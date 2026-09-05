@@ -1,0 +1,1 @@
+{"root":["./vite.config.ts","./vitest.config.ts","./scripts/check-content.ts","./scripts/check-deps.ts","./scripts/gen-font-subset.ts"],"errors":true,"version":"5.9.3"}

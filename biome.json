@@ -1,0 +1,87 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["src/**", "scripts/**", "tests/**", "*.ts", "*.json"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 110
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "error"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/sim/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "three": "sim 层禁止依赖 three",
+                  "react": "sim 层禁止依赖 react",
+                  "zustand": "sim 层禁止依赖 zustand"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/timeline/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "three": "timeline 层禁止依赖 three",
+                  "@react-three/fiber": "timeline 层禁止依赖 R3F"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}

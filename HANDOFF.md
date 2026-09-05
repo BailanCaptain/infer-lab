@@ -1,4 +1,4 @@
-# 交接说明（写于 2026-09-06 03:40，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 06:25，供新会话直接接手）
 
 新会话请**先读本文件，再读下面三份**，然后从「五、下一步」第 1 条开始动手，不要重新讨论方案。
 
@@ -35,27 +35,34 @@
 
 ## 三、代码现状
 
-已提交：commit `1307ebc` "Scaffold infer-lab" —— 脚手架可跑可部署，`pnpm check` 当时通过。
-包含：Vite/TS/Tailwind v4 tokens（`src/design/tokens.css`，颜色与字阶语义）、`DESIGN.md`、Biome（含 `noRestrictedImports` 分层约束）、vitest、HashRouter 空壳、`.github/workflows/deploy.yml`、自托管字体、`scripts/{check-deps,check-content,gen-font-subset}.ts`。
+已提交（`git log --oneline`）：
+- `1307ebc` 脚手架：Vite/TS/Tailwind v4 tokens（`src/design/tokens.css`）、`DESIGN.md`、Biome（含 `noRestrictedImports` 分层约束）、vitest、HashRouter 空壳、`.github/workflows/deploy.yml`、自托管字体、`scripts/{check-deps,check-content,gen-font-subset}.ts`。
+- `a440f5c` sim 层基座 + 本文件：`pnpm typecheck && pnpm lint && pnpm test` 首次全通过（2026-09-06 06:07，11 个测试）。
+- 其后一条（见 git log）：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
 
-**未提交且从未跑过 typecheck / lint / test 的新文件**（`git status`: `?? src/sim/`、`?? .gitattributes`、`?? scripts/subset-font.d.ts`）：
+**`src/sim/` 各文件（全部已通过 typecheck / lint / test）**：
 
 | 文件 | 内容 |
 |---|---|
-| `src/sim/rng.ts` | `hashString`(FNV-1a)、`mixSeed`、`Xorshift32`、`mulberry32`；禁 `Math.random` |
-| `src/sim/modelspec/types.ts` | `ModelSpec` / `LayerSpec` / `AttentionSpec`(mha\|gqa\|mqa\|mla\|linear_kda\|dsa) / `MlpSpec`(dense\|moe) / `DTYPE_BYTES` / `attnQDim` / `attnKvDim` / `isHomogeneous` |
-| `src/sim/modelspec/parseHfConfig.ts` | 支持 qwen3 / qwen3_moe / qwen2 / llama；解包 `text_config`；记录 `unrecognized` 字段；MoE 层判定 `!mlpOnly.has(i) && numExperts>0 && (i+1)%sparseStep===0`；`UnsupportedModelError` |
-| `src/sim/modelspec/analyze.ts` | `analyzeParams`（逐层 items + total/active/nonEmbedding）、`analyzeKvPerToken`（`2·n_kv·d_h·bytes`，非 MHA/GQA/MQA 抛错）、`weightBytes`、`fmtBytes`、`fmtCount` |
-| `src/sim/modelspec/presets{.ts,/*.json}` | 三份 HF 官方 config 原文（Qwen3-0.6B / 8B / 30B-A3B）+ 官方公布参数量 + `getPresetSpec(id)`、`DEFAULT_MODEL_ID` |
-| `src/sim/modelspec/analyze.test.ts` | 解析器用例 + 参数量 golden（对照官方，dense 误差 <1%、激活 <2%）+ KV 用例。**尚未运行** |
-| `src/sim/tensor/tensor.ts` | `Tensor{shape,dims,data:Float32Array}` 与 `zeros/fromArray/at2/at3/reshape/shapeLabel/absMax` |
-| `src/sim/weights.ts` | `LazyWeight`（形状按 `[in,out]`，注意 HF `nn.Linear` 存 `[out,in]`，页面要同时标注）、`weightAt/weightColumn/weightRow/weightThumb`；均匀分布 `U(−√3σ, √3σ)` |
-| `src/sim/tensor/ops.ts` | `rmsnorm`、`rmsnormLastDim`(q/k norm)、`linearLazy`（按列流式）、`embedLazy`、`splitHeads`、`ropeInplace`(rotate_half)、`attentionScores`(GQA `g(h)=⌊h/(n_q/n_kv)⌋`)、`causalMaskInplace`、`softmaxLastDim`、`attentionValues`、`mergeHeads`、`add`、`siluMul` |
-| `src/sim/timeline/types.ts` | **`Step` 是唯一真相源**：`model{tensors,highlight,op,lineage}` + `hardware{residency,transfers,active}` + `camera/evidence/terms/beats`；`Timeline`、`TensorRecord`、`Location`、`OpKind` |
-| `src/sim/timeline/recorder.ts` | `Recorder.dense/weight/step`，边算边录 |
-| `src/sim/timeline/validate.ts` | `validateTimeline` 校验 id 唯一 / title ≤14 字 / brief ≤40 字 / evidence 非空 / 张量已登记 / 高亮不越界 / matmul 可乘 / beats 单调 / transfer 有落点 |
+| `rng.ts` | `hashString`(FNV-1a)、`mixSeed`、`Xorshift32`、`mulberry32`；禁 `Math.random` |
+| `modelspec/types.ts` | `ModelSpec` / `LayerSpec` / `AttentionSpec`(mha\|gqa\|mqa\|mla\|linear_kda\|dsa) / `MlpSpec`(dense\|moe) / `DTYPE_BYTES` / `attnQDim` / `attnKvDim` / `isHomogeneous` |
+| `modelspec/parseHfConfig.ts` | 支持 qwen3 / qwen3_moe / qwen2 / llama；解包 `text_config`；记录 `unrecognized`；MoE 层判定 `!mlpOnly.has(i) && numExperts>0 && (i+1)%sparseStep===0`；`UnsupportedModelError` |
+| `modelspec/analyze.ts` | `analyzeParams`、`kvBytesPerTokenLayer`（KV 公式唯一定义处）、`analyzeKvPerToken`、`weightBytes`、`fmtBytes`、`fmtCount` |
+| `modelspec/presets{.ts,/*.json}` | 三份 HF 官方 config 原文（Qwen3-0.6B / 8B / 30B-A3B）+ 官方参数量 + `getPresetSpec(id)`、`DEFAULT_MODEL_ID` |
+| `modelspec/analyze.test.ts` | 解析器 + 参数量 golden（0.6B 非嵌入 0.44B、8B 6.95B、30B-A3B 30.5B/激活 3.3B，误差 <1%/<2%）+ KV 用例。**已通过** |
+| `tensor/tensor.ts` | `Tensor{shape,dims,data:Float32Array}` 与 `zeros/fromArray/at2/at3/reshape/clone/shapeLabel/absMax` |
+| `weights.ts` | `LazyWeight`（形状 `[in,out]`，HF 存 `[out,in]`）、`weightAt/weightColumn/weightRow/weightThumb`；`U(−√3σ, √3σ)` |
+| `tensor/ops.ts` | `rmsnorm`、`rmsnormLastDim`、`linearLazy`、`embedLazy`、`splitHeads`、`ropeInplace`、`attentionScores`(GQA)、`causalMaskInplace`、`softmaxLastDim`、`attentionValues`、`mergeHeads`、`add`、`siluMul` |
+| `timeline/types.ts` | **`Step` 是唯一真相源**；`Timeline`、`TensorRecord`、`Location`、`OpKind` |
+| `timeline/recorder.ts` | `Recorder.dense/weight/step`，边算边录 |
+| `timeline/validate.ts` | `validateTimeline`：id 唯一 / title ≤14 / brief ≤40 / evidence 非空 / 张量已登记 / 高亮不越界（**带 `head` 时 rows/cols 指头内二维**）/ matmul 可乘 / beats 单调 / transfer 有落点；`validate.test.ts` 覆盖高亮规则 |
+| `model/claims.ts` | `FORWARD_CLAIMS`：S01、C01–C09（transformers **v4.51.3** `modeling_qwen3.py` 行号，2026-09-06 实际打开核验）、D01–D03、A01–A03；`assertClaimIds` |
+| `model/forwardLayer.ts` | `forwardLayer(spec, layerIdx, ids, rec, {positions?, xIn?})`：Qwen3 dense 单层，录 21 步（qkNorm=false 为 20 步）；`buildLayerTimeline(spec, preset, {layerIndex?, chapterId?})` 构造期跑 `assertValid` + `assertClaimIds`。MoE / MLA / attention_bias 抛错（M2） |
+| `model/forwardLayer.test.ts` | ① H=32 缩小 spec 与独立 Float64 参考实现 21 个张量逐元素 <1e-5；② Qwen3-0.6B 真实尺寸不变量（形状链、softmax 行和、RMSNorm、GQA g(h)=⌊h/2⌋、KV 字节 = `analyzeKvPerToken`×S、确定性）；③ 步骤顺序、证据注册、`validateTimeline` 无 issue；④ 变体（MHA、无 qkNorm、xIn 串两层、错误输入） |
 
-> 结论：**sim 层的骨架写完了，但一行都没验证过。** 新会话第一件事就是跑起来。
+`scripts/bench-forward.ts`（`pnpm bench:forward`）= Spike D 的 Node 版：**Qwen3-0.6B 单层 S=6 约 111 ms，Qwen3-8B 约 1.3 s**（2026-09-06，本机），都在验收线内（0.5 s / 5 s）。浏览器 Worker 内的数字还没测。
+
+步骤 id（固定，可进 URL）：`embed.gather → L0.ln1 → L0.attn.q → L0.attn.k → L0.attn.v → L0.attn.qknorm → L0.attn.rope → L0.attn.scores → L0.attn.mask → L0.attn.softmax → L0.attn.pv → L0.attn.merge → L0.attn.o → L0.res1 → L0.ln2 → L0.mlp.gate → L0.mlp.up → L0.mlp.act → L0.mlp.down → L0.res2 → L0.kv.write`。
 
 ## 四、环境事实
 
@@ -65,14 +72,16 @@
 
 ## 五、下一步（M1，按序；对应计划 §2.10）
 
-1. **验证 sim 层**：`pnpm typecheck && pnpm lint && pnpm test`，修完全部报错。验收 = 参数量 golden 通过（0.6B 非嵌入 0.44B、8B 非嵌入 6.95B、30B-A3B 30.5B/激活 3.3B）。
-2. **`src/sim/model/forwardLayer.ts`**：`forwardLayer(spec, layerIdx, ids, rec)`，Qwen3 单层前向，边算边 `rec.step()` 录约 20 步：
-   `embed.gather → L0.ln1 → L0.attn.q/k/v → L0.attn.qknorm → L0.attn.rope → L0.attn.scores → L0.attn.mask → L0.attn.softmax → L0.attn.pv → L0.attn.merge → L0.attn.o → L0.res1 → L0.ln2 → L0.mlp.gate/up → L0.mlp.act → L0.mlp.down → L0.res2 → L0.kv.write`
-   每步写中文 `brief`(≤40 字)/`detail`/`formula`、`lineage`（如 `[S,H] · [H,n_q·d_h] → [S,n_q·d_h]`）、`evidence`、`terms`。
-3. **测试**：① 缩小 spec（H=32）下算子与 Float64 朴素实现逐元素对拍 1e-5；② 真实尺寸不变量（softmax 行和=1、RMSNorm 后 RMS≈1、GQA 组内共享同一 K/V 头、残差 shape 不变、shape 链与 ModelSpec 一致）；③ `validateTimeline` 对生成的 timeline 无 issue。
-4. **Spike D 性能**：Worker 内 Qwen3-0.6B / 8B 单层 S≈6 前向计时。验收：0.6B <0.5s、8B <5s；8B 不达标则降级为「仅形状」模式。
-5. **`src/sim/hardware/`**：`NpuSpec`（910B anchors：`hbm[0..3]`、`cube`、`vector`、`l2`、`hccs[0..6]`、`pcie`）+ `residencyRules.ts` + `mapResidency(step, spec)` 填充 `Step.hardware`（权重常驻 HBM 权重区；激活 HBM→L2→cube；softmax 走 vector；KV 写回 HBM kv 区；每条规则带证据等级）。
-6. 之后依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件 → 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
+已完成（有测试/命令输出为证）：
+1. ~~验证 sim 层~~ `pnpm check` 全通过；参数量 golden 通过。
+2. ~~`src/sim/model/forwardLayer.ts`~~ 21 步，每步有中文 brief/detail/formula、lineage、evidence、terms、highlight。
+3. ~~测试~~ 对拍 / 不变量 / validateTimeline 均通过（51 个测试）。
+4. ~~Spike D~~ Node 版达标（见上）；**浏览器 Worker 内计时留到播放引擎接上 Worker 时顺手做**。
+
+待做：
+5. **`src/sim/hardware/`**：`NpuSpec`（910B anchors：`hbm[0..3]`、`cube`、`vector`、`l2`、`hccs[0..6]`、`pcie`）+ `residencyRules.ts` + `mapResidency(step, spec)` 填充 `Step.hardware`（权重常驻 HBM 权重区；激活 HBM→L2→cube；softmax / RMSNorm / SwiGLU 走 vector；KV 写回 HBM kv 区；每条规则带证据等级，证据 id 注册进 `claims.ts` 同类注册表）。验收：每步 residency/transfers 完整，`validateTimeline` 仍无 issue，transfers.bytes 与 `TensorRecord.bytes` 一致。
+6. **预设句子 token id**：本机无 Python transformers，用 Node 读 Qwen3 `tokenizer.json`（需下载一次，约 11 MB，不入库）离线生成 S≈6–8 的中文短句 id，作为 `[S]` 数据写进 `src/sim/model/presets.ts` 并替换测试里的占位 id（当前 `PLACEHOLDER_IDS` 只是词表内的合法 id，不代表任何句子）。
+7. 之后依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildLayerTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` 应 re-export `sim/model/claims.ts`，不要再抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
 
 每完成一步：跑相关校验 → `git commit` → 按 Why / What / Evidence / Tradeoff / Open Questions 汇报；只有拿到实际命令输出或测试结果才能说"完成"。UI 改动必须在浏览器里实际打开验证，并把关键截图发给用户目测。
 
@@ -82,3 +91,8 @@
 - `sim/` 层禁止 import three / react / zustand；`timeline/` 禁止 import three。违反会被 `pnpm check:deps` 与 Biome 拦下。
 - Tailwind v4 用 `@theme`（`src/design/tokens.css`），Biome 需 `css.parser.tailwindDirectives: true`（已配）。
 - 大批量写文件不要用 bash heredoc 串联（历史上失败过），逐个文件写。
+- 高亮 `Highlight.rows/cols` 在带 `head` 的三维张量上指头内二维（`[n_q,S,S_k]` 的 rows 是 S），validate 已按 dims 里的 `n_q`/`n_kv` 识别头维；新张量的头维必须用这两个名字。
+- RMSNorm 后 RMS 不是恰好 1：词嵌入数值小（σ=0.02）时 ε=1e-6 占 mean(x²) 的 0.25%，RMS≈0.99875。写文案和断言都要按 `sqrt(ms/(ms+ε))`。
+- 因果 mask 的 −1e30 存进 Float32 是 `Math.fround(-1e30)`，断言别用字面量。
+- `ropeInplace` / `causalMaskInplace` 原地修改，`splitHeads` / `mergeHeads` 是共享 data 的视图：录制前要 `clone`，否则前一步的张量会被改掉。
+- `tsconfig.*.tsbuildinfo` 被 git 跟踪，每次 tsc 都会改动；提交时不要顺手带上（建议用户决定是否 `git rm --cached` + 加 .gitignore）。

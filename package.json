@@ -20,7 +20,8 @@
     "check:content": "tsx scripts/check-content.ts",
     "check:deps": "tsx scripts/check-deps.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:deps && pnpm check:content",
-    "gen:font": "tsx scripts/gen-font-subset.ts"
+    "gen:font": "tsx scripts/gen-font-subset.ts",
+    "bench:forward": "tsx scripts/bench-forward.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

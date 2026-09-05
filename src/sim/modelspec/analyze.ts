@@ -5,7 +5,7 @@
  * - KV 公式 [D]：MHA/GQA/MQA 每层每 token = 2 · n_kv · d_head · bytes
  * - 假设 [A]：权重字节按 config torch_dtype 统一换算；不含优化器/激活
  */
-import { attnKvDim, attnQDim, type LayerSpec, type ModelSpec } from "./types";
+import { type AttentionSpec, attnKvDim, attnQDim, type LayerSpec, type ModelSpec } from "./types";
 
 export interface ParamItem {
   id: string;
@@ -148,6 +148,11 @@ export function analyzeParams(spec: ModelSpec): ParamBreakdown {
   return { total, active, nonEmbedding: layerTotal + spec.hidden, items, perLayer };
 }
 
+/** 单层每 token 的 KV 字节：K 与 V 各 n_kv·d_h 个元素 [D01]。forwardLayer 的 kv.write 步与工作台共用此式 */
+export function kvBytesPerTokenLayer(a: AttentionSpec, kvDtypeBytes: number): number {
+  return 2 * a.numKvHeads * a.headDim * kvDtypeBytes;
+}
+
 export interface KvBreakdown {
   /** 每 token（所有层合计）字节 */
   bytesPerToken: number;
@@ -168,7 +173,7 @@ export function analyzeKvPerToken(spec: ModelSpec, kvDtypeBytes = spec.bytesPerP
   for (const l of spec.layers) {
     const a = l.attention;
     if (a.kind === "mha" || a.kind === "gqa" || a.kind === "mqa") {
-      const bytes = 2 * a.numKvHeads * a.headDim * kvDtypeBytes;
+      const bytes = kvBytesPerTokenLayer(a, kvDtypeBytes);
       perLayer.push({
         index: l.index,
         kind: a.kind,

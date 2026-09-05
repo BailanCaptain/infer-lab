@@ -1,5 +1,8 @@
 import type { Step, Timeline } from "./types";
 
+/** 教学维度名中表示「头」的符号（见 tensor.ts 的 dims 约定） */
+const HEAD_DIMS = new Set(["n_q", "n_kv"]);
+
 export interface ValidationIssue {
   step: string;
   message: string;
@@ -30,8 +33,16 @@ export function validateTimeline(tl: Timeline): ValidationIssue[] {
         issues.push({ step: s.id, message: `高亮张量未登记：${h.tensor}` });
         continue;
       }
-      const rows = rec.shape[0] ?? 0;
-      const cols = rec.shape[rec.shape.length - 1] ?? 0;
+      // 带 head 的高亮：rows/cols 指头内的二维（跳过头维），头维本身另行越界检查
+      const headIdx = h.head === undefined ? -1 : rec.dims.findIndex((dn) => HEAD_DIMS.has(dn));
+      if (h.head !== undefined) {
+        if (headIdx < 0) issues.push({ step: s.id, message: `高亮指定 head 但张量无头维：${h.tensor}` });
+        else if (h.head < 0 || h.head >= (rec.shape[headIdx] ?? 0))
+          issues.push({ step: s.id, message: `高亮 head 越界：${h.tensor}` });
+      }
+      const axes = rec.shape.map((_, i) => i).filter((i) => i !== headIdx);
+      const rows = rec.shape[axes[0] ?? 0] ?? 0;
+      const cols = rec.shape[axes[axes.length - 1] ?? 0] ?? 0;
       if (h.rows?.some((r) => r < 0 || r >= rows))
         issues.push({ step: s.id, message: `高亮行越界：${h.tensor}` });
       if (h.cols?.some((c) => c < 0 || c >= cols))

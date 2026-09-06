@@ -10,6 +10,7 @@
 - **尚未开始的界面工作**：3D 双层可视化图元、内容管线与 03 章正文、章节页布局、工作台界面。
 - **最近代码验证**：2026-09-06，`pnpm check` **107/107 测试通过**；`pnpm build` 通过（含 `timeline.worker` chunk）；`pnpm test:e2e` **3/3 通过**：Worker 构建 0.6B 199–232 ms、8B 2400–2968 ms；播放 3.2 s 共 200 帧、页面 commit 4 次（2 次换步 + 播放 + 暂停）、TweenBar 渲染 0 次。截图已发用户。
 - **代码基线固定为 `ca0500b`**。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
+- **本次同步只改本文件，不改代码**：补充第 8 步（viz3d）开工前需要的时间线实测事实与新踩坑，见第五节第 8 条下的「开工前已核实的事实」。
 
 | 文件 | 作用 |
 |---|---|
@@ -115,6 +116,7 @@
 - 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 已用 Node 加载 Qwen3 `tokenizer.json` 离线生成（`pnpm gen:presets`），结果作为 `[S02]` 数据随预设打包。
 - 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build` / `pnpm bench:forward` / `pnpm gen:presets [--write]` / `pnpm test:e2e`（Playwright，自动起 `pnpm dev --port 4173`；截图落在 `test-results/`）。
 - Playwright 1.63 需要 chromium build 1243，已用 `pnpm exec playwright install chromium` 装好（2026-09-06）；headless 走 SwiftShader（`playwright.config.ts` 的 launch args），WebGL 可用。
+- 3D 文字：`troika-three-text` 0.52.5 由 drei 间接带入（drei 的直接依赖），用 drei 的 `<Text>` 即可，不必单独安装。字体子集 `public/fonts/notosc-3d.woff` 已生成；troika 支持 ttf/otf/**woff**，不支持 woff2。`pnpm gen:font` 扫描 `src/content`、`src/sim`、`src/viz3d`、`src/timeline` 里的 CJK 字符，新增 3D 标签文案后要重跑。
 
 ## 五、下一步（M1，按序；对应计划 §2.10）
 
@@ -149,6 +151,16 @@
 待做：
 8. 依次：`viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局（把 `SpikeCPage` 的播放条抽成 `app/PlaybackBar`）→ `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言（`tests/` 已有骨架与 `window.__labReady` 约定）。
 
+   **开工前已核实的事实（2026-09-06 实际跑 `buildHardwareTimeline(qwen3-0.6b, kv-cache)` 打印所得，不要再猜）**：
+
+   - **`step.camera.view` 只有 8 个取值**：`embed`、`norm`、`matmul`、`heads`、`attention`、`mlp`、`residual`、`kv`。`camera/views.ts` 只需覆盖这 8 个预设，不必按 step id 一一配。
+   - **`step.beats` 只出现在 7 个 matmul 步**（q/k/v/o/gate/up/down），固定为 `0 读权重列 → 0.3 乘加 → 0.85 写回`；其余 14 步没有 beats，播放条的 beat 刻度要允许为空。
+   - **`op.kind` 分布**：matmul×7、rmsnorm×3、add×2，gather/rope/scores/mask/softmax/pv/merge/silu_mul/kv_write 各 1。
+   - **高亮形态**：激活基本是 `rows`（1 行）；权重是 `cols`（1 列）；matmul 输出是 `cells`（1 格）；`mask` 步是 `cells`（15 格）；`embed.gather` 对词表用 `rows`（6 行）。头相关步骤带 `head`，此时 `rows/cols` 指头内二维。
+   - **张量数据形态**：激活/分数/KV 全是 dense `Float32Array`；**7 个权重只有 96×96 的 `thumb`，没有全量数据**，全幅纹理平面必须走 `thumb`，放大窗口取值走 `weightAt(lazy, i, j)`。
+   - **真实形状**（Qwen3-0.6B，S=6）：`L0.x_in [6,1024]`、`q [6,2048]`、`k/v [6,1024]`、头张量 `[6,16,128]` 与 `[6,8,128]`、`scores/masked/probs [16,6,6]`（`n_q,S,S_k`，headStack）、`mlp.gate/up/act [6,3072]`、权重 `[1024,2048]` / `[1024,1024]` / `[1024,3072]` / `[3072,1024]` / 词表 `[151936,1024]`、`L0.kv.block [6,2,8,128]`（四维 `S,K|V,n_kv,d_h`，TensorGrid 处理不了，要么专门做 KVBlockGrid，要么先按 K/V 拆两片）。
+   - 极扁平面是常态：`[6,1024]` 的真实行列比 170:1，`[6,3072]` 是 512:1。按真实比例画会细到看不见，需要在组件里对显示纵横比做压缩（如 `aspect^0.75` 并设下限），**同时把真实 shape 打在标签上**，压缩比例只是显示手段，必须在文案里说明。
+
 每完成一步：跑相关校验 → `git commit` → 按 Why / What / Evidence / Tradeoff / Open Questions 汇报；只有拿到实际命令输出或测试结果才能说"完成"。UI 改动必须在浏览器里实际打开验证，并把关键截图发给用户目测。
 
 ## 六、容易踩的坑
@@ -166,4 +178,5 @@
 - Tailwind v4 冲突类按样式表顺序而非 class 顺序取胜：`bg-surface-elevated` 会盖掉后写的 `bg-accent`。基础类不要带背景色，按钮变体各自加（见 `SpikeCPage` 的 `btnBase/btn/btnPrimary`）。
 - 不要用 react-router 的 `useSearchParams` 写播放 URL：每次写都让整页重渲染。用 `timeline/url.ts` 的 `replaceHashQuery`。
 - R3F 9 + three 0.185 在控制台打 `THREE.Clock: This module has been deprecated` 警告，来自 R3F 内部，不是本项目代码，忽略即可。
+- **`L0.attn.masked` 的 `absMax` 是 1e30**（因果 mask 的 −1e30 参与了统计）。着色若直接用 `|v| / absMax`，除被掩码格外整张图全是 0 色。TensorGrid 要么按分位数定标，要么把 ≤ −1e29 的哨兵值单独渲染成「已掩码」样式，不要参与色阶。`ids` 的 `absMax` 是 113272（token id 数值），也不能当作数值场着色。
 - 预设句里选的词都是词表内完整 UTF-8 片段的 token；若新句子有字被拆成半个 UTF-8 字节序列，脚本会直接报错，换一句而不是存乱码。

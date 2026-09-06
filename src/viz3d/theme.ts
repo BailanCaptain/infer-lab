@@ -5,7 +5,7 @@
 import { Color } from "three";
 
 const KEYS = {
-  /* 3D 画布是深色内嵌面板：读 scene-* 而不是页面的 canvas/ink */
+  /* 3D 画布读 scene-*（白卡片），身份色与页面共用 */
   canvas: "--color-scene",
   surface: "--color-scene-panel",
   ink: "--color-scene-text",
@@ -17,6 +17,9 @@ const KEYS = {
   token: "--color-token",
   weight: "--color-weight",
   kv: "--color-kv",
+  tokenSoft: "--color-token-soft",
+  weightSoft: "--color-weight-soft",
+  kvSoft: "--color-kv-soft",
   danger: "--color-danger",
   neg: "--color-viz-neg",
   pos: "--color-viz-pos",
@@ -29,17 +32,20 @@ export type VizColorName = keyof typeof KEYS;
 
 /** CSS 缺失时的兜底（与 tokens.css 保持一致），保证无样式环境也能渲染 */
 const FALLBACK: Record<VizColorName, string> = {
-  canvas: "#101a2a",
-  surface: "#19263a",
-  ink: "#f1f5fc",
-  inkMuted: "#aabbd0",
-  inkFaint: "#aabbd0",
-  line: "#324157",
-  lineStrong: "#324157",
+  canvas: "#ffffff",
+  surface: "#f5f2ea",
+  ink: "#17211f",
+  inkMuted: "#66716d",
+  inkFaint: "#66716d",
+  line: "#d8d8cf",
+  lineStrong: "#d8d8cf",
   accent: "#e85b32",
   token: "#087f73",
   weight: "#c78300",
   kv: "#4c65b6",
+  tokenSoft: "#ddf4ef",
+  weightSoft: "#fff4cf",
+  kvSoft: "#e8edff",
   danger: "#b54237",
   neg: "#4fd1c5",
   pos: "#f2a94a",

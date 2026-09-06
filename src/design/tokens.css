@@ -20,18 +20,19 @@
   --color-ink-faint: #8a928f;
   --color-ink-inverse: #ffffff;
 
-  /* 深色内嵌面板（课程轨道、3D 画布）：在浅色页面里成块出现 */
+  /* 深色内嵌面板（课程轨道）：在浅色页面里成块出现 */
   --color-rail: #17211f;
   --color-rail-hover: #22302c;
   --color-rail-active: #2a3733;
   --color-rail-line: #394541;
   --color-rail-text: #aab3af;
   --color-rail-muted: #82908a;
-  --color-scene: #101a2a;
-  --color-scene-panel: #19263a;
-  --color-scene-line: #324157;
-  --color-scene-text: #f1f5fc;
-  --color-scene-muted: #aabbd0;
+  /* 3D 画布：与页面同一张纸，白卡片；对象只用身份色的淡填充 + 实线边 */
+  --color-scene: #ffffff;
+  --color-scene-panel: #f5f2ea;
+  --color-scene-line: #d8d8cf;
+  --color-scene-text: #17211f;
+  --color-scene-muted: #66716d;
 
   /* 唯一 accent：橙 = 当前动作 / 播放头 / 主按钮 */
   --color-accent: #e85b32;

@@ -75,7 +75,7 @@ export function Label({
       ref={setRef}
       font={mono && MONO_SAFE.test(children) ? MONO_FONT : LABEL_FONT}
       fontSize={fontSize}
-      color={theme[color]}
+      color={theme[color].getHex()}
       anchorX={anchorX}
       anchorY={anchorY}
       position={position}
@@ -83,7 +83,7 @@ export function Label({
       {...(maxWidth === undefined ? {} : { maxWidth })}
       sdfGlyphSize={SDF_GLYPH_SIZE}
       outlineWidth={outline ? fontSize * 0.07 : 0}
-      outlineColor={theme.canvas}
+      outlineColor={theme.canvas.getHex()}
       outlineOpacity={0.95}
       renderOrder={10}
       material-depthTest={false}

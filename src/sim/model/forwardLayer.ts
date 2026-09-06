@@ -218,7 +218,7 @@ export function forwardLayer(
       op: { kind: "gather", a: W.E.id, out: xInId },
       lineage: [lin(xInId, ["ids", W.E.id], `ids[S] 取 ${shapeLabel(W.E)} 的行 → ${shapeLabel(x)}`)],
       view: "embed",
-      evidence: ["S01", "A01"],
+      evidence: ["S01", "S02", "A01"],
       terms: ["token", "embedding", "hidden-size"],
     });
   }

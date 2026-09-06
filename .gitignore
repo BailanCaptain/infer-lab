@@ -8,3 +8,4 @@ playwright-report
 .DS_Store
 *.zip
 tools/fonts/*.ttf
+tools/tokenizer/*.json

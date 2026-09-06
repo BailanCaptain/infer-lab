@@ -30,6 +30,14 @@ export const FORWARD_CLAIMS: Record<string, Claim> = {
     source: "各预设的 configUrl（src/sim/modelspec/presets.ts），原文随站打包",
     verifiedOn: "2026-09-06",
   },
+  S02: {
+    id: "S02",
+    kind: "S",
+    text: "预设句子的 token id 由 Qwen3 官方 tokenizer.json（byte-level BPE）离线生成；0.6B / 8B / 30B-A3B 共用同一份词表。",
+    source:
+      "https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/tokenizer.json（SHA-256 aeb13307…2dae4，见 src/sim/model/presets.tokens.json）；生成脚本 scripts/gen-preset-tokens.ts，结果与 @huggingface/transformers 3.x 对拍一致",
+    verifiedOn: "2026-09-06",
+  },
   C01: {
     id: "C01",
     kind: "C",

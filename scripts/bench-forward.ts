@@ -4,10 +4,11 @@
  * 验收（计划 §2.10 #3b）：0.6B < 0.5s，8B < 5s；浏览器 Worker 内的数字另测。
  */
 import { buildHardwareTimeline } from "../src/sim/buildTimeline";
+import { getTokenPreset } from "../src/sim/model/presets";
 import { getPresetSpec } from "../src/sim/modelspec/presets";
 
-const ids = [151644, 872, 198, 108386, 3837, 151645];
-const preset = { id: "bench", text: "（占位）", tokens: ids.map(String), ids };
+const preset = getTokenPreset();
+const ids = preset.ids;
 const targets = process.argv.slice(2).length ? process.argv.slice(2) : ["qwen3-0.6b", "qwen3-8b"];
 const RUNS = 3;
 

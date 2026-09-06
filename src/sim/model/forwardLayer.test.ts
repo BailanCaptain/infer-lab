@@ -9,6 +9,7 @@ import { validateTimeline } from "../timeline/validate";
 import { type LazyWeight, lazyWeight, weightAt } from "../weights";
 import { FORWARD_CLAIMS } from "./claims";
 import { buildLayerTimeline, forwardLayer } from "./forwardLayer";
+import { getTokenPreset } from "./presets";
 
 // ---------- 缩小 spec（H=32）：与 Float64 朴素实现逐元素对拍 ----------
 
@@ -324,9 +325,6 @@ describe("forwardLayer 结构变体", () => {
 
 // ---------- 真实尺寸（Qwen3-0.6B）不变量 ----------
 
-/** [A] 占位 token id（在词表范围内），不代表某句话的真实分词；真实预设句由 tokenizer 离线生成后替换 */
-const PLACEHOLDER_IDS = [151644, 872, 198, 108386, 3837, 151645];
-
 it("token id 的逻辑存储使用 int32，不随模型 bf16 改为两字节", () => {
   const ids = [1, 2];
   const tl = buildLayerTimeline(getPresetSpec("qwen3-0.6b"), {
@@ -337,12 +335,8 @@ it("token id 的逻辑存储使用 int32，不随模型 bf16 改为两字节", (
   });
   expect(tl.tensors.ids!.bytes).toBe(ids.length * 4);
 });
-const PRESET: Timeline["preset"] = {
-  id: "placeholder",
-  text: "（占位）",
-  tokens: PLACEHOLDER_IDS.map(String),
-  ids: PLACEHOLDER_IDS,
-};
+/** 真实预设句「大模型推理需要显存」（S=6，[S02]） */
+const PRESET: Timeline["preset"] = getTokenPreset();
 
 const EXPECTED_STEPS = [
   "embed.gather",
@@ -371,7 +365,7 @@ const EXPECTED_STEPS = [
 describe("buildLayerTimeline（Qwen3-0.6B 真实尺寸，S=6）", () => {
   const spec = getPresetSpec("qwen3-0.6b");
   const tl = buildLayerTimeline(spec, PRESET);
-  const S = PLACEHOLDER_IDS.length;
+  const S = PRESET.ids.length;
   const T = tl.tensors;
 
   it("步骤顺序与 HANDOFF 约定一致，validateTimeline 无 issue", () => {

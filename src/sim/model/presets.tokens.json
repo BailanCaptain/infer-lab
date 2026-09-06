@@ -1,0 +1,34 @@
+{
+  "$comment": "由 scripts/gen-preset-tokens.ts 生成，勿手改；tokens 是每个 id 对应的 UTF-8 片段。",
+  "tokenizer": {
+    "repo": "Qwen/Qwen3-0.6B",
+    "file": "tokenizer.json",
+    "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+    "url": "https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/tokenizer.json",
+    "verifiedOn": "2026-09-06"
+  },
+  "presets": [
+    {
+      "id": "kv-cache",
+      "text": "大模型推理需要显存",
+      "note": "默认预设：03 章主线，直接引出 KV Cache 与显存",
+      "tokens": ["大", "模型", "推理", "需要", "显", "存"],
+      "ids": [26288, 104949, 113272, 85106, 99580, 24360]
+    },
+    {
+      "id": "ascend",
+      "text": "昇腾芯片正在计算注意力",
+      "note": "点名硬件层；「昇」「腾」被拆成两个单字 token，可讲罕见词切分",
+      "tokens": ["昇", "腾", "芯片", "正在", "计算", "注意力"],
+      "ids": [119219, 100494, 105016, 96555, 100768, 108260]
+    },
+    {
+      "id": "hello",
+      "text": "你好，世界！今天天气怎么样",
+      "note": "日常句，含中文标点与多字词 token",
+      "tokens": ["你好", "，", "世界", "！", "今天", "天气", "怎么样"],
+      "ids": [108386, 3837, 99489, 6313, 100644, 104307, 104472]
+    }
+  ]
+}

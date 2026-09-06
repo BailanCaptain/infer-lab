@@ -1,15 +1,15 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 硬件层接通后，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 预设 token 接通后，供新会话直接接手）
 
-新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 6 条**（第 1–5 条已完成）开始动手，不要重新讨论方案。Worker/播放入口应调用 `src/sim/buildTimeline.ts` 的 `buildHardwareTimeline`。
+新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 7 条**（第 1–6 条已完成）开始动手，不要重新讨论方案。Worker/播放入口应调用 `src/sim/buildTimeline.ts` 的 `buildHardwareTimeline`，默认句子用 `src/sim/model/presets.ts` 的 `getTokenPreset()`。
 
-## 当前进度速览（2026-09-06，同步到代码提交 `51adac4`）
+## 当前进度速览（2026-09-06，同步到代码提交 `9096ba9`）
 
-- **整体仍在 M1**：底层模型计算与硬件映射已接通，完整样板章和模型工作台尚未交付。下述第 1–5 步指本文件第五节的执行顺序，不等同于总体计划中的 Spike A/B/C 编号。
-- **已完成第 1–5 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件 spec/驻留/搬运/证据校验。默认 21 步可以生成双层时间线。
-- **第 6 步尚未开始**：`src/sim/model/presets.ts` 尚不存在；测试与 benchmark 仍使用占位 token id。下一次先生成并核验真实中文预设。
-- **尚未开始的界面工作**：Worker 与播放引擎、3D 双层可视化、内容管线与 03 章正文、工作台界面、Playwright 截图/交互验收。页面仍是首页空壳。
-- **最近代码验证**：2026-09-06，`pnpm check` **72/72 测试通过**，类型/Lint/依赖方向通过；`pnpm build` 通过。内容校验因无章节跳过；Biome 两条既有配置提示未处理。浏览器 Worker 性能尚未验证。
-- **代码基线固定为 `51adac4`**；本次同步只改 HANDOFF，不改变代码或验收进度。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
+- **整体仍在 M1**：底层模型计算、硬件映射与真实预设句已接通，完整样板章和模型工作台尚未交付。下述第 1–6 步指本文件第五节的执行顺序，不等同于总体计划中的 Spike A/B/C 编号。
+- **已完成第 1–6 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件 spec/驻留/搬运/证据校验、真实中文预设 token id。默认句「大模型推理需要显存」S=6，可生成 21 步双层时间线。
+- **第 7 步尚未开始**：`src/timeline` 播放引擎与 Worker 尚不存在；页面仍是首页空壳。
+- **尚未开始的界面工作**：Worker 与播放引擎、3D 双层可视化、内容管线与 03 章正文、工作台界面、Playwright 截图/交互验收。
+- **最近代码验证**：2026-09-06，`pnpm check` **77/77 测试通过**，类型/Lint/依赖方向通过；`pnpm build` 通过；`pnpm bench:forward` 0.6B 最快 139 ms、8B 最快 1599 ms。内容校验因无章节跳过；Biome 两条既有配置提示未处理。浏览器 Worker 性能尚未验证。
+- **代码基线固定为 `9096ba9`**。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
 
 | 文件 | 作用 |
 |---|---|
@@ -49,7 +49,8 @@
 - `a440f5c` sim 层基座 + 本文件：`pnpm typecheck && pnpm lint && pnpm test` 首次全通过（2026-09-06 06:07，11 个测试）。
 - `829ba05` **前向计算基线**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
 - `829ba05` 到 `38f5795` 之间仅改本文件；`d53348a` 新增硬件证据注册表。
-- `51adac4` **最新代码基线**：完成第 5 步，包含 `hardware/spec.ts`、`residencyRules.ts`、`mapResidency.ts`、硬件校验与测试、`sim/buildTimeline.ts` 双层入口；修正 id 字节统计。其后的纯交接文档提交不改变代码进度。
+- `51adac4` 完成第 5 步，包含 `hardware/spec.ts`、`residencyRules.ts`、`mapResidency.ts`、硬件校验与测试、`sim/buildTimeline.ts` 双层入口；修正 id 字节统计。
+- `9096ba9` **最新代码基线**：完成第 6 步，新增 `scripts/gen-preset-tokens.ts`、`src/sim/model/presets{.ts,.tokens.json,.test.ts}`、证据 S02；测试与 benchmark 改用真实预设句。其后的纯交接文档提交不改变代码进度。
 
 除本次交接文档同步外，工作区仅有 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo` 改动；tsc 会更新它们，本轮没有提交（处理办法见「六、容易踩的坑」最后一条）。
 
@@ -69,7 +70,10 @@
 | `timeline/types.ts` | **`Step` 是唯一真相源**；`Timeline`、`TensorRecord`、`Location`、`OpKind` |
 | `timeline/recorder.ts` | `Recorder.dense/weight/step`，边算边录 |
 | `timeline/validate.ts` | `validateTimeline`：id 唯一 / title ≤14 / brief ≤40 / evidence 非空 / 张量已登记 / 高亮不越界（**带 `head` 时 rows/cols 指头内二维**）/ matmul 可乘 / beats 单调 / transfer 有落点；`validate.test.ts` 覆盖高亮规则 |
-| `model/claims.ts` | `FORWARD_CLAIMS`：S01、C01–C09（transformers **v4.51.3** `modeling_qwen3.py` 行号，2026-09-06 实际打开核验）、D01–D03、A01–A03；`assertClaimIds` |
+| `model/claims.ts` | `FORWARD_CLAIMS`：S01–S02、C01–C09（transformers **v4.51.3** `modeling_qwen3.py` 行号，2026-09-06 实际打开核验）、D01–D03、A01–A03；`assertClaimIds`。S02 = 预设 token id 来源，`embed.gather` 引用 |
+| `model/presets.tokens.json` | **生成文件，勿手改**：tokenizer 来源（repo / revision `c1899de2` / SHA-256 `aeb13307…`）+ 三句预设 `kv-cache`「大模型推理需要显存」S=6、`ascend`「昇腾芯片正在计算注意力」S=6、`hello`「你好，世界！今天天气怎么样」S=7；`tokens` 是每个 id 的 UTF-8 片段，拼回等于原文 |
+| `model/presets.ts` | `TokenPreset`、`TOKEN_PRESETS`、`TOKENIZER_SOURCE`、`DEFAULT_TOKEN_PRESET_ID = "kv-cache"`、`getTokenPreset(id?)`；结构兼容 `Timeline["preset"]` |
+| `model/presets.test.ts` | 5 个测试：来源字段格式、默认/唯一/未知 id、S∈[6,8] 与拼回原文、id 均为普通 BPE 词（< 151643）且在三个预设模型词表内、与 transformers.js 对拍过的 golden id |
 | `model/forwardLayer.ts` | `forwardLayer(spec, layerIdx, ids, rec, {positions?, xIn?})`：Qwen3 dense 单层，录 21 步（qkNorm=false 为 20 步）；`buildLayerTimeline(spec, preset, {layerIndex?, chapterId?})` 构造期跑 `assertValid` + `assertClaimIds`。MoE / MLA / attention_bias 抛错（M2） |
 | `model/forwardLayer.test.ts` | ① H=32 缩小 spec 与独立 Float64 参考实现 21 个张量逐元素 <1e-5；② Qwen3-0.6B 真实尺寸不变量（形状链、softmax 行和、RMSNorm、GQA g(h)=⌊h/2⌋、KV 字节 = `analyzeKvPerToken`×S、确定性）；③ 步骤顺序、证据注册、`validateTimeline` 无 issue；④ 变体（MHA、无 qkNorm、xIn 串两层、错误输入） |
 | `hardware/claims.ts` | 15 条硬件声明（5 S、1 D、9 A），含原件 URL、页号、核验日期、SHA-256；未知物理规格不填数字 |
@@ -80,15 +84,17 @@
 | `hardware/residency.test.ts` | 20 个测试：完整映射、特殊步骤、变体、幂等性、自定义槽位、structuredClone 与损坏数据拒绝 |
 | `buildTimeline.ts` | **后续 Worker/播放器入口** `buildHardwareTimeline(model, preset, {layerIndex?, chapterId?, hardwareSpec?})`；buildMs 包含前向、映射与校验 |
 
-`scripts/bench-forward.ts`（`pnpm bench:forward`）现计入硬件映射与校验：**Qwen3-0.6B S=6 三次 143/124/109 ms，Qwen3-8B 三次 1306/1302/1310 ms**（2026-09-06，本机 Node），均为 21 步、35 张量，在验收线内（0.5 s / 5 s）。这是 JS 仿真构建耗时，不是 NPU 实测；浏览器 Worker 尚未计时。
+`scripts/bench-forward.ts`（`pnpm bench:forward`）用默认预设句（S=6）并计入硬件映射与校验：**Qwen3-0.6B 三次 183/147/139 ms，Qwen3-8B 三次 1599/1644/1656 ms**（2026-09-06，本机 Node），均为 21 步、35 张量，在验收线内（0.5 s / 5 s）。这是 JS 仿真构建耗时，不是 NPU 实测；浏览器 Worker 尚未计时。
+
+`scripts/gen-preset-tokens.ts`（`pnpm gen:presets [--write]`）：自实现 byte-level BPE（NFC → 官方正则预切分 → 字节映射 → 按 merge rank 合并 → 查表），读取 `tools/tokenizer/qwen3-tokenizer.json`（缺失时按固定 revision 下载并校验 SHA-256；已 gitignore）。三句预设 id 已与 `@huggingface/transformers` 3.x（暂存目录安装，不进项目依赖）逐 id 对拍一致，且 `decode(ids)` 等于原文。要加句子改脚本里的 `SENTENCES` 再 `--write`，脚本会自动跑 Biome 格式化。
 
 步骤 id（固定，可进 URL）：`embed.gather → L0.ln1 → L0.attn.q → L0.attn.k → L0.attn.v → L0.attn.qknorm → L0.attn.rope → L0.attn.scores → L0.attn.mask → L0.attn.softmax → L0.attn.pv → L0.attn.merge → L0.attn.o → L0.res1 → L0.ln2 → L0.mlp.gate → L0.mlp.up → L0.mlp.act → L0.mlp.down → L0.res2 → L0.kv.write`。
 
 ## 四、环境事实
 
 - Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；项目已 `git init`，当前 HEAD 以 `git log` 为准。
-- 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 改用 Node 加载 Qwen3 `tokenizer.json` 离线生成，结果作为 `[S]` 数据随预设打包。
-- 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build`。
+- 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 已用 Node 加载 Qwen3 `tokenizer.json` 离线生成（`pnpm gen:presets`），结果作为 `[S02]` 数据随预设打包。
+- 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build` / `pnpm bench:forward` / `pnpm gen:presets [--write]`。
 
 ## 五、下一步（M1，按序；对应计划 §2.10）
 
@@ -116,9 +122,10 @@
    - 注册表共 15 条（5 S、1 D、9 A），使用 `HW-` 前缀；Claim 类型复用、证据数据独立。新增 A07 特殊搬运语义、A08 概念几何/资源代表、A09 token id 计量。前向与硬件证据在硬件校验中统一检查，后续 sources 应 re-export 两表。
    - 本轮验证：全量检查与构建通过；20 个硬件测试 + 1 个 id 字节回归加入原有 51 个测试。覆盖 21 步/20 步变体、非零层、不同槽位、幂等性、不改数值、序列化及损坏硬件拒绝。Node 性能见上。未改 UI，未做浏览器验收；Worker 实测仍待做。
 
+6. ~~**预设句子 token id**~~ 已完成（`9096ba9`）：`scripts/gen-preset-tokens.ts` 用 Node 读 Qwen3 官方 `tokenizer.json`（revision `c1899de2`，SHA-256 `aeb13307…`，约 11 MB，不入库）离线生成三句 S=6/6/7 的中文预设，写入 `src/sim/model/presets.tokens.json`，由 `presets.ts` 导出；`forwardLayer.test.ts` 与 `bench-forward.ts` 的占位 id 已替换为 `getTokenPreset()`。`residency.test.ts` 与 id 字节回归里的 `[1,2]` 是刻意的最小用例，保留。证据：三句 id 与 `@huggingface/transformers` 3.x 逐 id 一致、`decode(ids)` 等于原文；`pnpm check` 77/77 通过；`pnpm build` 通过。**尚未做**：预设仍是纯文本，没有套 chat 模板（`<|im_start|>` 等特殊 token 留给后续章节讲）；三份预设模型共用词表这一点靠 HF API 的 LFS SHA-256 核验，未逐个下载三份文件。
+
 待做：
-6. **预设句子 token id**：本机无 Python transformers，用 Node 读 Qwen3 `tokenizer.json`（需下载一次，约 11 MB，不入库）离线生成 S≈6–8 的中文短句 id，作为 `[S]` 数据写进 `src/sim/model/presets.ts` 并替换测试里的占位 id（当前 `PLACEHOLDER_IDS` 只是词表内的合法 id，不代表任何句子）。
-7. 之后依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildHardwareTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
+7. 依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildHardwareTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
 
 每完成一步：跑相关校验 → `git commit` → 按 Why / What / Evidence / Tradeoff / Open Questions 汇报；只有拿到实际命令输出或测试结果才能说"完成"。UI 改动必须在浏览器里实际打开验证，并把关键截图发给用户目测。
 
@@ -133,3 +140,5 @@
 - 因果 mask 的 −1e30 存进 Float32 是 `Math.fround(-1e30)`，断言别用字面量。
 - `ropeInplace` / `causalMaskInplace` 原地修改，`splitHeads` / `mergeHeads` 是共享 data 的视图：录制前要 `clone`，否则前一步的张量会被改掉。
 - `tsconfig.*.tsbuildinfo` 被 git 跟踪，每次 tsc 都会改动；提交时不要顺手带上（建议用户决定是否 `git rm --cached` + 加 .gitignore）。
+- `src/sim/model/presets.tokens.json` 是生成文件：改句子只改 `scripts/gen-preset-tokens.ts` 的 `SENTENCES`，然后 `pnpm gen:presets --write`；改完要同步 `presets.test.ts` 的 golden id，并用 transformers.js 复核（暂存目录 `npm i @huggingface/transformers@3`，不进项目依赖）。`tools/tokenizer/*.json` 已 gitignore，勿提交 11 MB 词表。
+- 预设句里选的词都是词表内完整 UTF-8 片段的 token；若新句子有字被拆成半个 UTF-8 字节序列，脚本会直接报错，换一句而不是存乱码。

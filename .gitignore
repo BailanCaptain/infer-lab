@@ -12,3 +12,6 @@ tools/tokenizer/*.json
 
 # transformers.js 模型缓存（gen-trace）
 tools/hf-cache/
+
+# tsc 增量缓存（每次 typecheck 都变）
+*.tsbuildinfo

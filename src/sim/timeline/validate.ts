@@ -1,7 +1,7 @@
 import { validateNpuSpec } from "../hardware/spec";
 import { validateHardwareStep } from "../hardware/validate";
 import { planeAxes } from "./plane";
-import type { Step, Timeline } from "./types";
+import type { Timeline } from "./types";
 
 export interface ValidationIssue {
   step: string;
@@ -98,8 +98,4 @@ export function validateTimeline(tl: Timeline): ValidationIssue[] {
 export function assertValid(tl: Timeline): void {
   const issues = validateTimeline(tl);
   if (issues.length) throw new Error(issues.map((i) => `${i.step}: ${i.message}`).join("\n"));
-}
-
-export function stepIndexById(tl: Timeline, id: string): number {
-  return tl.steps.findIndex((s: Step) => s.id === id);
 }

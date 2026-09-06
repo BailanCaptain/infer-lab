@@ -82,8 +82,3 @@ export function attnQDim(a: AttentionSpec): number {
 export function attnKvDim(a: AttentionSpec): number {
   return a.numKvHeads * a.headDim;
 }
-export function isHomogeneous(spec: ModelSpec): boolean {
-  const first = spec.layers[0];
-  if (!first) return true;
-  return spec.layers.every((l) => l.attention.kind === first.attention.kind && l.mlp.kind === first.mlp.kind);
-}

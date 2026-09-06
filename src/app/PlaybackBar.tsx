@@ -46,8 +46,8 @@ function BeatStrip({ beats }: { beats: { at: number; label: string }[] }) {
 
 const btnBase =
   "inline-flex h-8 w-8 items-center justify-center rounded-field border active:scale-[0.97] disabled:opacity-40";
-export const btnGhost = `${btnBase} border-line bg-surface-elevated text-ink hover:border-line-strong`;
-export const btnPrimary = `${btnBase} border-accent bg-accent text-ink-inverse hover:bg-accent-hover`;
+const btnGhost = `${btnBase} border-line bg-surface-elevated text-ink hover:border-line-strong`;
+const btnPrimary = `${btnBase} border-accent bg-accent text-ink-inverse hover:bg-accent-hover`;
 
 export function PlaybackBar({ variant = "overlay" }: { variant?: "overlay" | "bar" }) {
   const playing = usePlayback((s) => s.playing);

@@ -34,12 +34,6 @@ export function strides(shape: number[]): number[] {
   return s;
 }
 
-/** 2D 取值 */
-export function at2(t: Tensor, i: number, j: number): number {
-  const cols = t.shape[1] ?? 1;
-  return t.data[i * cols + j] ?? 0;
-}
-
 /** 三维取值 */
 export function at3(t: Tensor, i: number, j: number, k: number): number {
   const s1 = t.shape[1] ?? 1;

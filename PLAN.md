@@ -156,7 +156,7 @@ reference/    并行策略图片包（只用其事实与证据账本）
 - **权重**：不存储、不下载。`weightAt(id, i, j)` 按哈希惰性生成，按 `initializer_range` 缩放，内存为零，标 `[A01]`「形状是真实模型，数值不是 checkpoint 输出」。
 - **计算位置**：Web Worker 内计算，按 `(modelId, presetId)` 缓存。0.6B 约 200 ms，8B 约 2.2 s。
 - **硬件层派生**：`mapResidency` 按规则给出驻留（权重常驻 HBM，激活进 Cube 前经 HBM→L2→L0，KV 写回 HBM kv 区），每条规则带证据等级。
-- **确定性**：`mulberry32(seed)`，禁 `Math.random` / `Date`。
+- **确定性**：权重与随机量一律走 `rng.ts` 的 `hashString` + `mixSeed`（按张量 id 与下标定值），禁 `Math.random` / `Date`。
 - **测试**：golden（缩小的 spec 与参考值逐元素 1e-5 比对）、真实尺寸不变量（softmax 行和 = 1、RMSNorm 后 RMS ≈ 1、GQA 每组 q head 读同一 K、shape 链与 ModelSpec 一致）、`validateTimeline`（高亮张量存在、transfer 的张量在 residency 中、matmul lineage 维度可乘、step id 唯一、beats 单调）。
 
 ### 2.3 播放引擎

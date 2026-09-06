@@ -2,6 +2,15 @@
 
 新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 6 条**（第 1–5 条已完成）开始动手，不要重新讨论方案。Worker/播放入口应调用 `src/sim/buildTimeline.ts` 的 `buildHardwareTimeline`。
 
+## 当前进度速览（2026-09-06，同步到代码提交 `51adac4`）
+
+- **整体仍在 M1**：底层模型计算与硬件映射已接通，完整样板章和模型工作台尚未交付。下述第 1–5 步指本文件第五节的执行顺序，不等同于总体计划中的 Spike A/B/C 编号。
+- **已完成第 1–5 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件 spec/驻留/搬运/证据校验。默认 21 步可以生成双层时间线。
+- **第 6 步尚未开始**：`src/sim/model/presets.ts` 尚不存在；测试与 benchmark 仍使用占位 token id。下一次先生成并核验真实中文预设。
+- **尚未开始的界面工作**：Worker 与播放引擎、3D 双层可视化、内容管线与 03 章正文、工作台界面、Playwright 截图/交互验收。页面仍是首页空壳。
+- **最近代码验证**：2026-09-06，`pnpm check` **72/72 测试通过**，类型/Lint/依赖方向通过；`pnpm build` 通过。内容校验因无章节跳过；Biome 两条既有配置提示未处理。浏览器 Worker 性能尚未验证。
+- **代码基线固定为 `51adac4`**；本次同步只改 HANDOFF，不改变代码或验收进度。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
+
 | 文件 | 作用 |
 |---|---|
 | `CLAUDE.md`（本目录） | 工作规则：证据契约、交付格式、最小必要改动 |
@@ -40,9 +49,9 @@
 - `a440f5c` sim 层基座 + 本文件：`pnpm typecheck && pnpm lint && pnpm test` 首次全通过（2026-09-06 06:07，11 个测试）。
 - `829ba05` **前向计算基线**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
 - `829ba05` 到 `38f5795` 之间仅改本文件；`d53348a` 新增硬件证据注册表。
-- 本轮完成第 5 步：`hardware/spec.ts`、`residencyRules.ts`、`mapResidency.ts`、硬件校验与测试、`sim/buildTimeline.ts` 双层入口；修正 id 字节统计。代码基线以最新 `git log` 为准。
+- `51adac4` **最新代码基线**：完成第 5 步，包含 `hardware/spec.ts`、`residencyRules.ts`、`mapResidency.ts`、硬件校验与测试、`sim/buildTimeline.ts` 双层入口；修正 id 字节统计。其后的纯交接文档提交不改变代码进度。
 
-工作区唯一的改动是 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo`，tsc 每次运行都会改，三次提交都没带上（处理办法见「六、容易踩的坑」最后一条）。
+除本次交接文档同步外，工作区仅有 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo` 改动；tsc 会更新它们，本轮没有提交（处理办法见「六、容易踩的坑」最后一条）。
 
 **`src/sim/` 各文件（全部已通过 typecheck / lint / test）**：
 
@@ -63,6 +72,13 @@
 | `model/claims.ts` | `FORWARD_CLAIMS`：S01、C01–C09（transformers **v4.51.3** `modeling_qwen3.py` 行号，2026-09-06 实际打开核验）、D01–D03、A01–A03；`assertClaimIds` |
 | `model/forwardLayer.ts` | `forwardLayer(spec, layerIdx, ids, rec, {positions?, xIn?})`：Qwen3 dense 单层，录 21 步（qkNorm=false 为 20 步）；`buildLayerTimeline(spec, preset, {layerIndex?, chapterId?})` 构造期跑 `assertValid` + `assertClaimIds`。MoE / MLA / attention_bias 抛错（M2） |
 | `model/forwardLayer.test.ts` | ① H=32 缩小 spec 与独立 Float64 参考实现 21 个张量逐元素 <1e-5；② Qwen3-0.6B 真实尺寸不变量（形状链、softmax 行和、RMSNorm、GQA g(h)=⌊h/2⌋、KV 字节 = `analyzeKvPerToken`×S、确定性）；③ 步骤顺序、证据注册、`validateTimeline` 无 issue；④ 变体（MHA、无 qkNorm、xIn 串两层、错误输入） |
+| `hardware/claims.ts` | 15 条硬件声明（5 S、1 D、9 A），含原件 URL、页号、核验日期、SHA-256；未知物理规格不填数字 |
+| `hardware/spec.ts` | `NpuSpec` / `NPU_910B`，概念部件、锚点、路径、区域；共享 `locationAnchor` / `tensorHome` 与 spec 校验 |
+| `hardware/residencyRules.ts` | 13 种 OpKind 的教学规则、证据与解释；`stepIO` 读取完整 lineage，覆盖双路 Q/K |
+| `hardware/mapResidency.ts` | `mapResidency(step, spec, tensors)` / `mapTimelineResidency(timeline, spec?)`，纯函数填充硬件信息，保留模型数值 |
+| `hardware/validate.ts` | 驻留、路径连续性、输入输出完整性、字节、活跃单元、合并证据校验；由 `validateTimeline` 调用 |
+| `hardware/residency.test.ts` | 20 个测试：完整映射、特殊步骤、变体、幂等性、自定义槽位、structuredClone 与损坏数据拒绝 |
+| `buildTimeline.ts` | **后续 Worker/播放器入口** `buildHardwareTimeline(model, preset, {layerIndex?, chapterId?, hardwareSpec?})`；buildMs 包含前向、映射与校验 |
 
 `scripts/bench-forward.ts`（`pnpm bench:forward`）现计入硬件映射与校验：**Qwen3-0.6B S=6 三次 143/124/109 ms，Qwen3-8B 三次 1306/1302/1310 ms**（2026-09-06，本机 Node），均为 21 步、35 张量，在验收线内（0.5 s / 5 s）。这是 JS 仿真构建耗时，不是 NPU 实测；浏览器 Worker 尚未计时。
 
@@ -79,7 +95,7 @@
 已完成（有测试/命令输出为证）：
 1. ~~验证 sim 层~~ `pnpm check` 全通过；参数量 golden 通过。
 2. ~~`src/sim/model/forwardLayer.ts`~~ 21 步，每步有中文 brief/detail/formula、lineage、evidence、terms、highlight。
-3. ~~测试~~ 对拍 / 不变量 / validateTimeline 均通过（51 个测试）。
+3. ~~测试~~ 前向基线为 51 个测试；完成第 5 步后总计 **72 个测试通过**（新增 20 个硬件用例与 1 个 id 字节回归）。
 4. ~~Spike D~~ Node 版达标（见上）；**浏览器 Worker 内计时留到播放引擎接上 Worker 时顺手做**。
 
 5. ~~**`src/sim/hardware/`**~~ 已实现 `NpuSpec`、13 种 OpKind 的驻留规则与 `mapResidency(step, spec, tensors)`。第三参数提供 `TensorRecord.bytes`；组合入口 `buildHardwareTimeline(model, preset, options)` 生成双层时间线。

@@ -70,6 +70,7 @@ created: 2026-09-07
 | 页面语言 | 全英文 / 中文正文英文术语 | **中文正文，`title` 英文原名，`aliases` 放中文** | 与课程一致（用户 2026-09-07 拍板） |
 | ingest 模型 | 默认 / sonnet | **默认模型，不传 `--model`** | 试点看质量后再决定第二步是否降级（用户 2026-09-07 拍板） |
 | 工具限制 | `bypassPermissions` 全放开 / 白名单 | **`--allowedTools` 白名单 + `--disallowedTools`，不用 bypassPermissions** | Multi-Agent 全靠 bypass；本项目 agent 面对的是不可信来源，必须收紧 |
+| 按路径限制写入 | `Write(路径)` / `Edit(路径)` / 只靠事后快照 | **`Edit(路径)` 规则**（同时管 Write）+ 批级快照差集兜底 | Spike W1（2026-09-07，4 次真实调用）：`Write(路径)` 不被识别；`Edit(_drafts/x.md)` 允许写该文件、拒绝写 `concepts/x.md`；黑名单里放 `Edit` 会连 Write 一起禁掉 |
 | 越界写检查 | 每 agent 单独 git status / 批级 | **批级**：批前批后比对 `wiki/` 改动集，超出本批允许路径即判失败 | 并发运行时 per-agent 的 git status 会看到别人的文件 |
 | 整合阶段删草稿 | agent 用 Bash 删 / 引擎删 | **agent 只写决策文件 `_drafts/_integration.json`，引擎按决策删** | agent 不给 Bash |
 | index.md / log.md | agent 维护 / 程序派生 | **程序派生，agent 禁写** | 借 Multi-Agent 经验：派生物不让 LLM 手改，避免漂移 |
@@ -84,6 +85,7 @@ created: 2026-09-07
 | 日期 | 事件 |
 |------|------|
 | 2026-09-07 | Kickoff。两轮规划对话拍板全部设计决策；核验事实基线；建 worktree `feat/llm-wiki` |
+| 2026-09-07 | Task 1–8、10 完成（schema / HANDBOOK / 读取器 / build / lint / ingest 引擎 / CLI runner / clone），27 个单测；Spike W1 定下 `Edit(路径)` 规则；vllm-ascend 钉在 28bf3a2e |
 
 ## Links
 

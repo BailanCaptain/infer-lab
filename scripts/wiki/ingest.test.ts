@@ -70,14 +70,17 @@ describe("extractRequest", () => {
       req.args.indexOf("--allowedTools") + 1,
       req.args.indexOf("--disallowedTools"),
     );
+    // Spike W1：Edit(路径) 规则同时管 Write；Write(路径) 不被识别；黑名单不能含 Edit
     expect(allowed).toEqual([
       "Read",
       "Grep",
       "Glob",
-      "Write(_drafts/paged-attention.md)",
-      "Write(raw/paged-attention.md)",
+      "Edit(_drafts/paged-attention.md)",
+      "Edit(raw/paged-attention.md)",
     ]);
-    expect(req.args.slice(req.args.indexOf("--disallowedTools") + 1)).toContain("Bash");
+    const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
+    expect(disallowed).toContain("Bash");
+    expect(disallowed).not.toContain("Edit");
     expect(req.allowedWrites).toEqual(["_drafts/paged-attention.md", "raw/paged-attention.md"]);
   });
   it("stdin 含 id、commit、入口、ask、今天日期、本批 id、两个允许路径", () => {
@@ -106,14 +109,7 @@ describe("integrateRequest", () => {
       req.args.indexOf("--allowedTools") + 1,
       req.args.indexOf("--disallowedTools"),
     );
-    expect(allowed).toEqual([
-      "Read",
-      "Grep",
-      "Glob",
-      "Write(concepts/**)",
-      "Edit(concepts/**)",
-      "Write(_drafts/_integration.json)",
-    ]);
+    expect(allowed).toEqual(["Read", "Grep", "Glob", "Edit(concepts/**)", "Edit(_drafts/_integration.json)"]);
     expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toBe("PF\n\nIN");
     expect(req.stdin).toContain("_drafts/a.md");
     expect(req.allowedWrites).toEqual(["concepts/**", "_drafts/_integration.json"]);

@@ -35,7 +35,7 @@
 
 | # | 决策 | 理由 |
 |---|------|------|
-| D1 | ingest 用 `--allowedTools Read Grep Glob Write(<path>)` 白名单 + `--disallowedTools Bash Edit …`，不传 `--permission-mode`。`-p` 非交互下未授权工具自动拒绝 | agent 面对不可信源码与 PR 文本，工具面必须最小。`Write(路径)` 规则是否按路径生效由 Spike W1 实证；不生效则退化为裸 `Write` + 快照越界检查 |
+| D1 | ingest 用 `--allowedTools Read Grep Glob Edit(<path>)` 白名单 + `--disallowedTools Bash …`（不含 Edit），不传 `--permission-mode`。`-p` 非交互下未授权工具自动拒绝 | agent 面对不可信源码与 PR 文本，工具面必须最小。Spike W1 实证：`Edit(路径)` 规则同时管 Write 且按路径生效；`Write(路径)` 不被识别；黑名单含 Edit 会连 Write 一起禁 |
 | D2 | 越界检查用文件快照（path → mtime+size）批前批后差集，不用 `git status` | 并发 agent 同时跑，`git status` 分不清谁写的；快照差集只要不在本批允许集合就判失败，且不受未提交改动干扰 |
 | D3 | ingest 用 `--output-format stream-json --verbose`，只解析 `assistant.tool_use`（实时打印在读哪个文件）与 `result`（session_id、is_error、cost） | 10 个并行 agent 跑十几分钟，要能看到活着；不需要 partial delta |
 | D4 | prompt 走 stdin；`--append-system-prompt` 只放 HANDBOOK 切片 | Windows argv 32 KB 上限（Multi-Agent 踩过 `ENAMETOOLONG`） |
@@ -1896,6 +1896,14 @@ ls _drafts concepts; rm -f _drafts/spike.md concepts/spike.md; cd ..
 - 两个都不存在 → 语法未被识别；试 `Write(./_drafts/spike.md)` 与 `Write(**/_drafts/*)` 各一次，仍不行则同上退化。
 
 记录结果到 `docs/features/F001-llm-wiki.md` Design Decisions 表（D1 行）。
+
+**结果（2026-09-07，4 次调用共 $0.87）**：
+- 变体 0：`--allowedTools Read "Write(_drafts/spike.md)" --disallowedTools Bash Edit` → 两个写入都被拒。
+- 变体 A：`--allowedTools Read "Edit(_drafts/spikeA.md)" --disallowedTools Bash` → `_drafts/spikeA.md` 写成，`concepts/spikeA.md` 被拒。**成立。**
+- 变体 B：`"Write(_drafts/spikeB.md)"`，黑名单不含 Edit → 两个都被拒。说明 `Write(路径)` 不是被识别的规则。
+- 变体 C：`"Write(./_drafts/spikeC.md)" "Edit(./_drafts/spikeC.md)"` → 与 A 相同，生效的是 Edit 规则。
+
+决策：路径规则一律写 `Edit(路径)`（它同时管 Write），黑名单不放 `Edit`。Task 6 的 argv 与测试已按此改。快照差集仍保留为第二道防线。
 
 ---
 

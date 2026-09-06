@@ -84,7 +84,11 @@ export interface AgentRequest {
   allowedWrites: string[];
 }
 
-const DISALLOWED = ["Bash", "Edit", "MultiEdit", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Agent"];
+/**
+ * 工具黑名单。注意不能放 Edit：Spike W1（2026-09-07）实测 `Edit(路径)` 规则同时管 Write，
+ * 禁 Edit 会把 Write 一起禁掉；而 `Write(路径)` 不是被识别的规则语法。
+ */
+const DISALLOWED = ["Bash", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Agent"];
 
 function baseArgs(system: string): string[] {
   return [
@@ -114,8 +118,8 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     "Read",
     "Grep",
     "Glob",
-    `Write(${draft})`,
-    `Write(${raw})`,
+    `Edit(${draft})`,
+    `Edit(${raw})`,
     "--disallowedTools",
     ...DISALLOWED,
   ];
@@ -144,11 +148,10 @@ export function integrateRequest(draftIds: string[], ctx: IngestContext): AgentR
     "Read",
     "Grep",
     "Glob",
-    "Write(concepts/**)",
     "Edit(concepts/**)",
-    "Write(_drafts/_integration.json)",
+    "Edit(_drafts/_integration.json)",
     "--disallowedTools",
-    ...DISALLOWED.filter((t) => t !== "Edit"),
+    ...DISALLOWED,
   ];
   const stdin = [
     `任务：整合 ${draftIds.length} 份草稿进 concepts/。今天是 ${ctx.today}。`,

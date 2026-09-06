@@ -36,6 +36,8 @@ uniform int uHiColCount;
 uniform float uHiRows[${MAX_HIGHLIGHT}];
 uniform float uHiCols[${MAX_HIGHLIGHT}];
 uniform vec4 uRect;      // 取景框 (u0,v0,u1,v1)，左上原点；z<=x 表示无
+uniform float uRevealRow; // 逐格揭示的行（-1 = 不揭示）
+uniform float uReveal;    // 该行揭示到的列比例 0..1
 uniform vec3 uNeg, uPos, uZero, uMask, uGrid, uAccent;
 
 void main() {
@@ -53,6 +55,11 @@ void main() {
     if (i < uHiColCount && abs(cellF.x - (uHiCols[i] + 0.5)) < halfC) hi = 1.0;
   }
   c = mix(c, c * 1.7 + uAccent * 0.32, clamp(hi * uHiT, 0.0, 1.0));
+
+  // 逐格揭示：揭示行里还没算到的格子先是"空"的
+  if (uRevealRow >= 0.0 && abs(cellF.y - (uRevealRow + 0.5)) < 0.5 && cellF.x > uReveal * uCells.x) {
+    c = uZero;
+  }
 
   // 格线：只有逐格对应且一格 ≥ 3 像素时才画，避免下采样纹理上的摩尔纹
   vec2 texel = t * uTexSize;
@@ -96,6 +103,8 @@ export interface PlaneUniforms {
   uHiRows: { value: number[] };
   uHiCols: { value: number[] };
   uRect: { value: Vector4 };
+  uRevealRow: { value: number };
+  uReveal: { value: number };
   uNeg: { value: Color };
   uPos: { value: Color };
   uZero: { value: Color };
@@ -119,6 +128,8 @@ export function createPlaneMaterial(theme: VizTheme): PlaneMaterial {
     uHiRows: { value: new Array<number>(MAX_HIGHLIGHT).fill(-1) },
     uHiCols: { value: new Array<number>(MAX_HIGHLIGHT).fill(-1) },
     uRect: { value: new Vector4(0, 0, 0, 0) },
+    uRevealRow: { value: -1 },
+    uReveal: { value: 1 },
     uNeg: { value: theme.neg.clone() },
     uPos: { value: theme.pos.clone() },
     uZero: { value: theme.zero.clone() },

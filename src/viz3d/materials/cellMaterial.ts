@@ -17,10 +17,14 @@ in float aVal0;
 in float aVal1;
 in float aHi0;
 in float aHi1;
+in float aRow;
+in float aCol;
 
 uniform float uT;
 uniform float uScale;
 uniform float uDimScale;
+uniform float uRevealRow; // 逐格揭示的行（真实行号，-1 = 不揭示）
+uniform float uRevealCol; // 揭示到的真实列号（不含）
 uniform vec3 uNeg, uPos, uZero, uMask, uAccent;
 
 out vec3 vColor;
@@ -34,6 +38,10 @@ void main() {
   vec3 c0 = valueColor(aVal0, uScale, uNeg, uPos, uZero, uMask);
   vec3 c1 = valueColor(aVal1, uScale, uNeg, uPos, uZero, uMask);
   vColor = mix(mix(c0, c1, uT), uAccent, hi * 0.22);
+  if (uRevealRow >= 0.0 && abs(aRow - uRevealRow) < 0.5 && aCol >= uRevealCol) {
+    vColor = uZero;
+    hi = 0.0;
+  }
 
   vNormal = normalize(normalMatrix * normal);
   vec3 transformed = position * mix(uDimScale, 1.0, hi);
@@ -67,6 +75,8 @@ export interface CellUniforms {
   uScale: { value: number };
   /** 非高亮格的缩放；本步无焦点时设为 1 */
   uDimScale: { value: number };
+  uRevealRow: { value: number };
+  uRevealCol: { value: number };
   uNeg: { value: Color };
   uPos: { value: Color };
   uZero: { value: Color };
@@ -81,6 +91,8 @@ export function createCellMaterial(theme: VizTheme): CellMaterial {
     uT: { value: 1 },
     uScale: { value: 1 },
     uDimScale: { value: DIM_SCALE },
+    uRevealRow: { value: -1 },
+    uRevealCol: { value: 1e9 },
     uNeg: { value: theme.neg.clone() },
     uPos: { value: theme.pos.clone() },
     uZero: { value: theme.zero.clone() },

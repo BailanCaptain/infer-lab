@@ -39,6 +39,14 @@ export interface TensorPlaneProps {
   rect?: Rect | null | undefined;
   /** 高亮渐入区间（progress.t） */
   hiWindow?: [number, number] | undefined;
+  /** 逐格揭示（瞬态，每帧读）：row 为真实行号，fraction 0..1；row<0 关闭 */
+  reveal?: RevealRef | undefined;
+}
+
+/** 由动效每帧写、图元每帧读，不经过 React */
+export interface RevealRef {
+  row: number;
+  fraction: number;
 }
 
 const FULL: [number, number] = [0, 1];
@@ -110,6 +118,7 @@ export const TensorPlane = memo(function TensorPlane({
   highlight,
   rect,
   hiWindow = FULL,
+  reveal,
 }: TensorPlaneProps) {
   const theme = vizTheme();
   const material = useMemo(() => createPlaneMaterial(theme), [theme]);
@@ -145,6 +154,8 @@ export const TensorPlane = memo(function TensorPlane({
 
   useFrame(() => {
     material.uniforms.uHiT.value = phase(progress.t, hiWindow);
+    material.uniforms.uRevealRow.value = reveal ? reveal.row : -1;
+    material.uniforms.uReveal.value = reveal ? reveal.fraction : 1;
   });
 
   // 其余头：后面一摞薄片，只表达数量

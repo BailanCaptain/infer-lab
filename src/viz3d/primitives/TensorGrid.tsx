@@ -15,7 +15,7 @@ import { fmtCell, type PlaneBox, robustScale, windowRect } from "../scale";
 import { vizTheme } from "../theme";
 import { CellWindow } from "./CellWindow";
 import { gridLayout, gridTexts } from "./layout";
-import { TensorPlane } from "./TensorPlane";
+import { type RevealRef, TensorPlane } from "./TensorPlane";
 
 export const DEFAULT_BOX: PlaneBox = { maxW: 8.4, maxH: 2.6 };
 export const DEFAULT_WINDOW = { rows: 6, cols: 12 };
@@ -48,6 +48,8 @@ export interface TensorGridProps {
   onCost?: ((ms: number) => void) | undefined;
   /** 标签放大倍数（由场景按相机距离给出） */
   labelScale?: number | undefined;
+  /** 逐格揭示（瞬态 ref，动效每帧写） */
+  reveal?: RevealRef | undefined;
 }
 
 export function TensorGrid({
@@ -67,6 +69,7 @@ export function TensorGrid({
   hiWindow = FULL_WINDOW,
   onCost,
   labelScale: ls = 1,
+  reveal,
 }: TensorGridProps) {
   const theme = vizTheme();
   const headIdx = highlight?.head ?? head ?? 0;
@@ -128,6 +131,7 @@ export function TensorGrid({
         highlight={highlight}
         rect={rect}
         hiWindow={hiWindow}
+        reveal={reveal}
       />
 
       {/* 取景框 → 放大窗口的引线 */}
@@ -164,6 +168,7 @@ export function TensorGrid({
           showValues={showValues}
           format={format}
           hiWindow={hiWindow}
+          reveal={reveal}
           onCost={onCost}
           labelKey={labelKey}
         />

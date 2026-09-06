@@ -38,6 +38,8 @@ export interface LabelProps {
   outline?: boolean | undefined;
   /** 等宽：文本全是 ASCII/×/· 时生效，否则回落到中文字体 */
   mono?: boolean | undefined;
+  /** 拿到 mesh 引用（动效每帧改 position/scale，不经过 React） */
+  objRef?: ((m: Mesh | null) => void) | undefined;
 }
 
 export function Label({
@@ -52,8 +54,13 @@ export function Label({
   maxWidth,
   outline = true,
   mono = false,
+  objRef,
 }: LabelProps) {
   const ref = useRef<Mesh>(null);
+  const setRef = (m: Mesh | null) => {
+    ref.current = m;
+    objRef?.(m);
+  };
   const theme = vizTheme();
   const fontSize = typeof size === "number" ? size : LABEL_SIZE[size];
 
@@ -65,7 +72,7 @@ export function Label({
 
   return (
     <Text
-      ref={ref}
+      ref={setRef}
       font={mono && MONO_SAFE.test(children) ? MONO_FONT : LABEL_FONT}
       fontSize={fontSize}
       color={theme[color]}

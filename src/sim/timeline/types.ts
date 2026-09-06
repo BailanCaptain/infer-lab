@@ -101,6 +101,8 @@ export interface Step {
   };
   /** 步内子节拍，at ∈ [0,1] 单调 */
   beats?: { at: number; label: string }[];
+  /** 1× 倍速下本步过渡时长（ms）；缺省用播放引擎的 STEP_TWEEN_MS。有逐格动效的步要长一些。 */
+  durationMs?: number;
   model: {
     tensors: TensorId[];
     highlight: Highlight[];

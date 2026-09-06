@@ -62,8 +62,11 @@ interface StepDraft {
   evidence: string[];
   terms: string[];
   beats?: NonNullable<Step["beats"]>;
+  durationMs?: number;
 }
 
+/** matmul 步的动效：抽行抽列 → 逐项相乘 → 收拢 → 写回 → 逐格揭示，1× 倍速 4.5 s */
+const MATMUL_DURATION_MS = 4500;
 const MATMUL_BEATS: NonNullable<Step["beats"]> = [
   { at: 0, label: "读权重列" },
   { at: 0.3, label: "乘加" },
@@ -132,6 +135,7 @@ export function forwardLayer(
         ...(dft.formula ? { formula: dft.formula } : {}),
       },
       ...(dft.beats ? { beats: dft.beats } : {}),
+      ...(dft.durationMs ? { durationMs: dft.durationMs } : {}),
       model: {
         tensors: dft.tensors,
         highlight: dft.highlight ?? [],
@@ -187,6 +191,7 @@ export function forwardLayer(
       evidence: p.evidence,
       terms: p.terms,
       beats: MATMUL_BEATS,
+      durationMs: MATMUL_DURATION_MS,
     });
     return y;
   };

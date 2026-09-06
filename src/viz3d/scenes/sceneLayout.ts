@@ -4,7 +4,7 @@
  * - 其余算子：输入在左（多个则上下堆叠）、输出在右。
  * 场景与相机共用这一份布局（包围盒 → 相机距离），图元长高了相机一定跟上。
  */
-import { planeView } from "../../sim/timeline/plane";
+import { type PlaneView, planeView } from "../../sim/timeline/plane";
 import type { Highlight, Step, TensorRecord, Timeline } from "../../sim/timeline/types";
 import { LAB_FOV, type ViewPreset, viewPreset } from "../camera/views";
 import { frameDistance, type GridLayout, gridLayout, gridTexts } from "../primitives/layout";
@@ -28,6 +28,7 @@ export interface SlotSpec {
   labelScale: number;
   /** 图元标题（角色 · 教学名） */
   title: string;
+  view: PlaneView;
 }
 
 export interface SceneLayout {
@@ -64,6 +65,7 @@ function slot(
   const texts = gridTexts({ record, view, rect: windowRect(view, highlight, window), title });
   return {
     title,
+    view,
     key,
     role,
     record,

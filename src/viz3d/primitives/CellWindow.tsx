@@ -15,7 +15,7 @@ import { Label } from "../labels/Label";
 import { createCellMaterial, DIM_SCALE } from "../materials/cellMaterial";
 import { fmtCell, type Rect } from "../scale";
 import { vizTheme } from "../theme";
-import { phase } from "./TensorPlane";
+import { phase, type RevealRef } from "./TensorPlane";
 
 /** 实例容量：Spike B 要求 5k 格子仍然 60fps */
 export const MAX_WINDOW_CELLS = 5120;
@@ -38,6 +38,8 @@ export interface CellWindowProps {
   format?: ((v: number) => string) | undefined;
   /** 高亮渐入区间（progress.t） */
   hiWindow?: [number, number] | undefined;
+  /** 逐格揭示（瞬态，每帧读） */
+  reveal?: RevealRef | undefined;
   /** 换步重写缓冲的耗时（ms） */
   onCost?: ((ms: number) => void) | undefined;
   labelKey?: string | undefined;
@@ -65,6 +67,7 @@ export function CellWindow({
   showValues,
   format = fmtCell,
   hiWindow = FULL,
+  reveal,
   onCost,
   labelKey = "win",
 }: CellWindowProps) {
@@ -78,6 +81,8 @@ export function CellWindow({
       aVal1: new Float32Array(MAX_WINDOW_CELLS),
       aHi0: new Float32Array(MAX_WINDOW_CELLS),
       aHi1: new Float32Array(MAX_WINDOW_CELLS),
+      aRow: new Float32Array(MAX_WINDOW_CELLS),
+      aCol: new Float32Array(MAX_WINDOW_CELLS),
     }),
     [],
   );
@@ -86,6 +91,8 @@ export function CellWindow({
   const aVal1 = useRef<InstancedBufferAttribute>(null);
   const aHi0 = useRef<InstancedBufferAttribute>(null);
   const aHi1 = useRef<InstancedBufferAttribute>(null);
+  const aRowRef = useRef<InstancedBufferAttribute>(null);
+  const aColRef = useRef<InstancedBufferAttribute>(null);
   // 回调放进 ref：换步重写只应由数据变化触发，不被父组件的函数身份带着重跑
   const costRef = useRef(onCost);
   costRef.current = onCost;
@@ -116,12 +123,21 @@ export function CellWindow({
         attrs.aVal0[i] = sameShape && prevView ? prevView.at(rr, cc) : v1;
         attrs.aHi1[i] = hiNow(rr, cc);
         attrs.aHi0[i] = sameShape ? hiPrev(rr, cc) : 0;
+        attrs.aRow[i] = rr;
+        attrs.aCol[i] = cc;
         i++;
       }
     }
     m.count = i;
     m.instanceMatrix.needsUpdate = true;
-    for (const a of [aVal0.current, aVal1.current, aHi0.current, aHi1.current]) {
+    for (const a of [
+      aVal0.current,
+      aVal1.current,
+      aHi0.current,
+      aHi1.current,
+      aRowRef.current,
+      aColRef.current,
+    ]) {
       if (a) a.needsUpdate = true;
     }
     material.uniforms.uScale.value = scale;
@@ -130,6 +146,8 @@ export function CellWindow({
 
   useFrame(() => {
     material.uniforms.uT.value = phase(progress.t, hiWindow);
+    material.uniforms.uRevealRow.value = reveal ? reveal.row : -1;
+    material.uniforms.uRevealCol.value = reveal ? reveal.fraction * view.cols : 1e9;
   });
 
   const cell = cellSize * 0.86;
@@ -155,6 +173,8 @@ export function CellWindow({
           <instancedBufferAttribute ref={aVal1} attach="attributes-aVal1" args={[attrs.aVal1, 1]} />
           <instancedBufferAttribute ref={aHi0} attach="attributes-aHi0" args={[attrs.aHi0, 1]} />
           <instancedBufferAttribute ref={aHi1} attach="attributes-aHi1" args={[attrs.aHi1, 1]} />
+          <instancedBufferAttribute ref={aRowRef} attach="attributes-aRow" args={[attrs.aRow, 1]} />
+          <instancedBufferAttribute ref={aColRef} attach="attributes-aCol" args={[attrs.aCol, 1]} />
         </boxGeometry>
         <primitive object={material} attach="material" />
       </instancedMesh>

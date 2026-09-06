@@ -14,6 +14,7 @@ import {
   createDefaultTimelineClient,
   installPlaybackKeys,
   loadTimelineIntoStore,
+  progress,
   selectStep,
   useLabUrlSync,
   usePlayback,
@@ -24,7 +25,7 @@ import { PlaybackBar } from "../PlaybackBar";
 
 const CHAPTER = { id: "03", title: "Transformer 层的双层数据流", eyebrow: "CH.03 · MODEL LAYER" };
 const HARDWARE = "Atlas 800I A2 · 昇腾 910B（概念剖面）";
-type LabWindow = Window & { __labReady?: boolean };
+type LabWindow = Window & { __labReady?: boolean; __labProgress?: typeof progress };
 
 /** 步骤分组（课程轨道的小标题） */
 function groupOf(id: string): string {
@@ -292,6 +293,7 @@ export function LabPage() {
   const stepIndex = usePlayback((s) => s.stepIndex);
   useEffect(() => {
     (window as LabWindow).__labReady = status === "ready";
+    if (import.meta.env.DEV) (window as LabWindow).__labProgress = progress;
   }, [status]);
 
   return (

@@ -22,7 +22,8 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:deps && pnpm check:content",
     "gen:font": "tsx scripts/gen-font-subset.ts",
     "bench:forward": "tsx scripts/bench-forward.ts",
-    "gen:presets": "tsx scripts/gen-preset-tokens.ts"
+    "gen:presets": "tsx scripts/gen-preset-tokens.ts",
+    "gen:trace": "tsx scripts/gen-trace.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",
+    "@huggingface/transformers": "^3.8.1",
     "@mdx-js/rollup": "^3.1.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",

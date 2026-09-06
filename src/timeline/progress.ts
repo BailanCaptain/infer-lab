@@ -40,7 +40,8 @@ export function advance(dtMs: number): void {
   if (!s.timeline || !(dtMs > 0)) return;
   const scaled = dtMs * s.speed;
   if (progress.t < 1) {
-    progress.t = selectNoMotion(s) ? 1 : Math.min(1, progress.t + scaled / STEP_TWEEN_MS);
+    const tween = s.timeline.steps[s.stepIndex]?.durationMs ?? STEP_TWEEN_MS;
+    progress.t = selectNoMotion(s) ? 1 : Math.min(1, progress.t + scaled / tween);
     return;
   }
   if (!s.playing) return;

@@ -38,7 +38,10 @@
 已提交（`git log --oneline`）：
 - `1307ebc` 脚手架：Vite/TS/Tailwind v4 tokens（`src/design/tokens.css`）、`DESIGN.md`、Biome（含 `noRestrictedImports` 分层约束）、vitest、HashRouter 空壳、`.github/workflows/deploy.yml`、自托管字体、`scripts/{check-deps,check-content,gen-font-subset}.ts`。
 - `a440f5c` sim 层基座 + 本文件：`pnpm typecheck && pnpm lint && pnpm test` 首次全通过（2026-09-06 06:07，11 个测试）。
-- 其后一条（见 git log）：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
+- `829ba05` **最后一个改代码的 commit**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
+- 其上还有若干只改本文件的 commit，不含任何代码。**判断代码进度以 `829ba05` 为准。**
+
+工作区唯一的改动是 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo`，tsc 每次运行都会改，三次提交都没带上（处理办法见「六、容易踩的坑」最后一条）。
 
 **`src/sim/` 各文件（全部已通过 typecheck / lint / test）**：
 

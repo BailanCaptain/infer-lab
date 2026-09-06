@@ -1,74 +1,72 @@
 /**
- * `#/model`：一个模型 = 一个 3D 物体。左栏是模型的结构目录（点了镜头飞过去），中间整块是白纸画布。
- * 没有右栏长文：信息只在画面里（名字 + 形状）和悬停条里（元素数、字节）。
+ * `#/model`："塔"的第一段——第 0 层注意力块的格子体（静帧，等用户批准后再垒整座塔、再加动效）。
+ * 左栏是块目录（点了镜头飞过去），中间整块是白卡片画布；没有右栏长文，细节在悬停条。
  */
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
+import { buildLayerTimeline } from "../../sim/model/forwardLayer";
 import { getTokenPreset } from "../../sim/model/presets";
-import { analyzeParams, fmtBytes, fmtCount } from "../../sim/modelspec/analyze";
-import { getPresetSpec, MODEL_PRESETS } from "../../sim/modelspec/presets";
+import { fmtBytes, fmtCount } from "../../sim/modelspec/analyze";
+import { getPresetSpec } from "../../sim/modelspec/presets";
 import { LAB_FOV } from "../../viz3d";
 import type { Box3Like } from "../../viz3d/model/frame";
-import { type ModelLayout, modelLayout } from "../../viz3d/model/layout";
-import { ModelScene, shapeText } from "../../viz3d/model/ModelScene";
+import { type AttentionLayout, attentionLayout, type Volume } from "../../viz3d/tower/attentionLayout";
+import { instanceCount } from "../../viz3d/tower/CellVolume";
+import { shapeText, TowerScene } from "../../viz3d/tower/TowerScene";
 
 type ModelWindow = Window & { __modelReady?: boolean };
+const MODEL_ID = "qwen3-0.6b";
+const KIND_NAME = { act: "激活", weight: "权重", kv: "KV Cache", scores: "注意力概率" } as const;
 
-const KIND_NAME = {
-  act: "激活",
-  weight: "权重",
-  kv: "KV Cache",
-  scores: "注意力分数",
-  norm: "归一化权重",
-} as const;
-
-/** 取景盒：全览或某一组（第 0 层 = 注意力 + MLP 两组） */
-function computeFocus(layout: ModelLayout, view: string): Box3Like {
+/** 取景盒：全览或某一块（留边给左侧标签） */
+function focusOf(layout: AttentionLayout, id: string | null): Box3Like {
   const b = layout.bounds;
-  const pad = 0.6;
-  const box = {
-    minX: b.minX - pad,
-    maxX: b.maxX + pad,
-    minY: 0,
-    maxY: b.maxH,
-    minZ: b.minZ - pad,
-    maxZ: b.maxZ + pad,
-  };
-  if (view === "all") return box;
-  const gs = layout.groups.filter((g) => (view === "L0" ? g.id.startsWith("L0.") : g.id === view));
-  if (!gs.length) return box;
+  if (id) {
+    const v = layout.volumes.find((x) => x.id === id);
+    if (v) {
+      const pad = Math.max(60, v.h * 0.15);
+      return {
+        minX: v.x - pad - 600,
+        maxX: v.x + v.w + pad,
+        minY: v.y - pad,
+        maxY: v.y + v.h + pad,
+        minZ: v.z - v.d,
+        maxZ: v.z,
+      };
+    }
+  }
   return {
-    ...box,
-    maxY: view === "deck" ? b.maxH : 0.6,
-    minZ: Math.min(...gs.map((g) => g.minZ)) - pad,
-    maxZ: Math.max(...gs.map((g) => g.maxZ)) + pad,
+    minX: b.minX - 700,
+    maxX: b.maxX + 100,
+    minY: b.minY - 60,
+    maxY: b.maxY + 60,
+    minZ: b.minZ,
+    maxZ: b.maxZ,
   };
 }
 
 export function ModelPage() {
-  const [modelId, setModelId] = useState("qwen3-0.6b");
   const preset = getTokenPreset();
-  const spec = useMemo(() => getPresetSpec(modelId), [modelId]);
-  const layout = useMemo(() => modelLayout(spec, preset.ids.length), [spec, preset.ids.length]);
-  const params = useMemo(() => analyzeParams(spec), [spec]);
+  const spec = useMemo(() => getPresetSpec(MODEL_ID), []);
+  const timeline = useMemo(
+    () =>
+      buildLayerTimeline(spec, { id: preset.id, text: preset.text, tokens: preset.tokens, ids: preset.ids }),
+    [spec, preset],
+  );
+  const layout = useMemo(() => attentionLayout(timeline), [timeline]);
+  const cells = useMemo(() => layout.volumes.reduce((a, v) => a + instanceCount(v), 0), [layout]);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [view, setView] = useState<string>("all");
-  const [focus, setFocus] = useState<Box3Like>(() => computeFocus(layout, "all"));
-  const fly = (id: string) => {
+  const [view, setView] = useState<string | null>(null);
+  const [focus, setFocus] = useState<Box3Like>(() => focusOf(layout, null));
+  const fly = (id: string | null) => {
     setView(id);
-    setFocus(computeFocus(layout, id));
+    setFocus(focusOf(layout, id));
   };
   useEffect(() => {
     (window as ModelWindow).__modelReady = true;
   }, []);
 
-  const hov = hovered ? layout.blocks.find((b) => b.id === hovered) : undefined;
-  const views: [string, string][] = [
-    ["all", "全览"],
-    ["embed", "词嵌入"],
-    ["L0", "第 0 层"],
-    ["head", "输出"],
-  ];
+  const hov: Volume | undefined = hovered ? layout.volumes.find((v) => v.id === hovered) : undefined;
 
   return (
     <div className="grid h-dvh grid-cols-1 bg-canvas text-ink lg:grid-cols-[248px_minmax(0,1fr)]">
@@ -82,15 +80,17 @@ export function ModelPage() {
             <small className="text-micro text-rail-muted tracking-wide">推理系统学习图谱</small>
           </span>
         </a>
-        <p className="mono mt-6 mb-1 px-1 text-micro text-rail-muted tracking-[0.08em]">MODEL STRUCTURE</p>
-        <ol className="space-y-0.5" data-testid="group-list">
-          {layout.groups.map((g, i) => {
-            const on = view === g.id || (view === "L0" && g.id.startsWith("L0."));
+        <p className="mono mt-6 mb-1 px-1 text-micro text-rail-muted tracking-[0.08em]">
+          LAYER 0 · ATTENTION
+        </p>
+        <ol className="min-h-0 flex-1 space-y-0.5 overflow-y-auto" data-testid="volume-list">
+          {layout.volumes.map((v, i) => {
+            const on = view === v.id;
             return (
-              <li key={g.id}>
+              <li key={v.id}>
                 <button
                   type="button"
-                  onClick={() => fly(g.id.startsWith("L0.") ? "L0" : g.id)}
+                  onClick={() => fly(v.id)}
                   className={`flex w-full items-center gap-2.5 rounded-field px-1.5 py-1.5 text-left text-compact ${
                     on
                       ? "bg-rail-active text-ink-inverse"
@@ -104,19 +104,18 @@ export function ModelPage() {
                   >
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="truncate font-medium">{g.name}</span>
+                  <span className="truncate font-medium">{v.name}</span>
                 </button>
               </li>
             );
           })}
         </ol>
-        <div className="mt-auto space-y-1 px-1 text-caption text-rail-muted">
+        <div className="mt-3 space-y-1 px-1 text-caption text-rail-muted">
           <p>
-            总参数 <span className="mono text-rail-text">{fmtCount(params.total)}</span>
+            句子 <span className="text-rail-text">{preset.text}</span>
           </p>
           <p>
-            权重 <span className="mono text-rail-text">{fmtBytes(params.total * spec.bytesPerParam)}</span>
-            <span className="mono"> {spec.dtype}</span>
+            画了 <span className="mono text-rail-text">{fmtCount(cells)}</span> 个格子
           </p>
         </div>
       </aside>
@@ -126,47 +125,27 @@ export function ModelPage() {
           <span className="text-caption text-ink-muted">推理系统</span>
           <span className="text-ink-faint">/</span>
           <span className="text-caption font-semibold text-ink">模型结构</span>
-          <div className="ml-auto flex items-center gap-2">
-            <select
-              className="mono h-8 rounded-field border border-line bg-surface-elevated px-2 text-label text-ink"
-              value={modelId}
-              onChange={(e) => {
-                setModelId(e.target.value);
-                setFocus(computeFocus(modelLayout(getPresetSpec(e.target.value), preset.ids.length), view));
-              }}
-              aria-label="模型"
-              data-testid="model"
-            >
-              {MODEL_PRESETS.filter((m) => m.id !== "qwen3-30b-a3b").map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <span className="mono ml-auto text-caption text-ink-muted">{spec.name}</span>
         </header>
 
         <section className="flex min-h-0 flex-col gap-3 px-5 pt-4 pb-5">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="eyebrow">MODEL · {spec.name}</p>
-              <h1 className="display mt-1 text-display">一个模型，一个物体</h1>
+              <p className="eyebrow">MODEL · {spec.name} · 第 0 层注意力</p>
+              <h1 className="display mt-1 text-display">每一格都是一个数</h1>
             </div>
             <div className="flex items-center gap-1.5" data-testid="views">
-              {views.map(([id, name]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => fly(id)}
-                  className={`h-8 rounded-field border px-3 text-compact ${
-                    view === id
-                      ? "border-accent bg-accent text-ink-inverse"
-                      : "border-line bg-surface-elevated text-ink hover:border-line-strong"
-                  }`}
-                >
-                  {name}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => fly(null)}
+                className={`h-8 rounded-field border px-3 text-compact ${
+                  view === null
+                    ? "border-accent bg-accent text-ink-inverse"
+                    : "border-line bg-surface-elevated text-ink hover:border-line-strong"
+                }`}
+              >
+                全览
+              </button>
             </div>
           </div>
 
@@ -175,8 +154,12 @@ export function ModelPage() {
             data-testid="canvas"
           >
             <div className="absolute inset-0">
-              <Canvas camera={{ position: [0, 30, 60], fov: LAB_FOV, near: 0.1, far: 500 }} dpr={[1, 2]} flat>
-                <ModelScene layout={layout} hovered={hovered} onHover={setHovered} focus={focus} />
+              <Canvas
+                camera={{ position: [0, 2000, 9000], fov: LAB_FOV, near: 1, far: 100_000 }}
+                dpr={[1, 2]}
+                flat
+              >
+                <TowerScene layout={layout} hovered={hovered} onHover={setHovered} focus={focus} />
               </Canvas>
             </div>
             <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-3 rounded-field bg-scene-panel/90 px-3 py-1.5 text-caption text-ink-muted">
@@ -192,7 +175,9 @@ export function ModelPage() {
                 <i className="inline-block h-2.5 w-2.5 rounded-[3px] border border-kv bg-kv-soft" />
                 KV Cache
               </span>
-              <span className="text-ink-faint">块的边长 ∝ √元素数；句长 S = {preset.ids.length}</span>
+              <span className="text-ink-faint">
+                1 格 = 1 个数（大矩阵按标注合并）；颜色深 = 正值大，浅 = 负值大
+              </span>
             </div>
             {hov && (
               <div
@@ -203,8 +188,8 @@ export function ModelPage() {
                   {hov.name} <span className="text-caption text-ink-muted">{KIND_NAME[hov.kind]}</span>
                 </p>
                 <p className="mono text-ink-muted">
-                  {shapeText(hov)} · {fmtCount(hov.elements)} 元素 ·{" "}
-                  {fmtBytes(hov.elements * spec.bytesPerParam)}
+                  {shapeText(hov)} · {fmtCount(hov.shape.reduce((a, b) => a * b, 1))} 元素 ·{" "}
+                  {fmtBytes(hov.record.bytes)}
                 </p>
               </div>
             )}

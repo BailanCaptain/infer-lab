@@ -1,41 +1,38 @@
 /**
- * `#/model`：整模型结构静帧。四个视图各截一张图给人看；断言只做存在性与悬停条。
+ * `#/model`："塔"的第一段（第 0 层注意力格子体）静帧。全览、W_q 聚焦 + 悬停、概率叠片各一张；断言只做存在性。
+ * SwiftShader 软渲染 10 万个小方块每帧要几秒，所以超时放宽、步骤尽量少。
  */
 import { expect, type Page, test } from "@playwright/test";
+
+test.setTimeout(300_000);
 
 async function waitReady(page: Page) {
   await page.waitForFunction(
     () => (window as unknown as { __modelReady?: boolean }).__modelReady === true,
     null,
-    {
-      timeout: 30_000,
-    },
+    { timeout: 60_000 },
   );
 }
 
-test("整模型四个视图 + 悬停", async ({ page }) => {
+test("注意力格子体：全览 / W_q 聚焦 + 悬停 / 概率叠片", async ({ page }) => {
   await page.goto("/#/model");
   await waitReady(page);
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(3000);
   await page.screenshot({ path: "test-results/model-all.png" });
-  for (const name of ["词嵌入", "第 0 层", "输出"]) {
-    await page.getByTestId("views").getByRole("button", { name }).click();
-    await page.waitForTimeout(1200);
-    await page.screenshot({ path: `test-results/model-${name}.png` });
-  }
-  await page.getByTestId("views").getByRole("button", { name: "第 0 层" }).click();
-  await page.waitForTimeout(1000);
+
+  await page.getByTestId("volume-list").getByRole("button", { name: /W_q/ }).click();
+  await page.waitForTimeout(2500);
   const box = await page.getByTestId("canvas").boundingBox();
   expect(box).not.toBeNull();
-  // 在画布中部扫一条线，找到能悬停出信息条的位置
-  let hit = false;
-  for (let fx = 0.2; fx <= 0.8 && !hit; fx += 0.05) {
-    for (let fy = 0.35; fy <= 0.65 && !hit; fy += 0.1) {
-      await page.mouse.move(box!.x + box!.width * fx, box!.y + box!.height * fy);
-      await page.waitForTimeout(80);
-      hit = (await page.getByTestId("hover").count()) > 0;
-    }
-  }
-  expect(hit).toBe(true);
-  await page.screenshot({ path: "test-results/model-hover.png" });
+  await page.mouse.move(box!.x + box!.width * 0.55, box!.y + box!.height * 0.55);
+  await page.waitForTimeout(1500);
+  await expect(page.getByTestId("hover")).toContainText("W_q");
+  await page.screenshot({ path: "test-results/model-wq.png" });
+
+  await page
+    .getByTestId("volume-list")
+    .getByRole("button", { name: /注意力概率/ })
+    .click();
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: "test-results/model-probs.png" });
 });

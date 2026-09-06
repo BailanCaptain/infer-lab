@@ -19,10 +19,14 @@
     "test:e2e": "playwright test",
     "check:content": "tsx scripts/check-content.ts",
     "check:deps": "tsx scripts/check-deps.ts",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:deps && pnpm check:content",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm check:deps && pnpm check:content && pnpm wiki:lint",
     "bench:forward": "tsx scripts/bench-forward.ts",
     "gen:presets": "tsx scripts/gen-preset-tokens.ts",
-    "gen:trace": "tsx scripts/gen-trace.ts"
+    "gen:trace": "tsx scripts/gen-trace.ts",
+    "wiki:build": "tsx scripts/wiki-build.ts",
+    "wiki:lint": "tsx scripts/wiki-lint.ts",
+    "wiki:ingest": "tsx scripts/wiki-ingest.ts",
+    "wiki:clone": "tsx scripts/wiki-clone.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

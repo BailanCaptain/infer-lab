@@ -1,15 +1,15 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 预设 token 接通后，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 播放引擎接通后，供新会话直接接手）
 
-新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 7 条**（第 1–6 条已完成）开始动手，不要重新讨论方案。Worker/播放入口应调用 `src/sim/buildTimeline.ts` 的 `buildHardwareTimeline`，默认句子用 `src/sim/model/presets.ts` 的 `getTokenPreset()`。
+新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 8 条**（第 1–7 条已完成）开始动手，不要重新讨论方案。播放/Worker 入口：`src/timeline`（barrel `index.ts`），Canvas 内只放一个 `src/viz3d/Clock.tsx`；默认句子用 `getTokenPreset()`。
 
-## 当前进度速览（2026-09-06，同步到代码提交 `9096ba9`）
+## 当前进度速览（2026-09-06，同步到代码提交 `ca0500b`）
 
-- **整体仍在 M1**：底层模型计算、硬件映射与真实预设句已接通，完整样板章和模型工作台尚未交付。下述第 1–6 步指本文件第五节的执行顺序，不等同于总体计划中的 Spike A/B/C 编号。
-- **已完成第 1–6 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件 spec/驻留/搬运/证据校验、真实中文预设 token id。默认句「大模型推理需要显存」S=6，可生成 21 步双层时间线。
-- **第 7 步尚未开始**：`src/timeline` 播放引擎与 Worker 尚不存在；页面仍是首页空壳。
-- **尚未开始的界面工作**：Worker 与播放引擎、3D 双层可视化、内容管线与 03 章正文、工作台界面、Playwright 截图/交互验收。
-- **最近代码验证**：2026-09-06，`pnpm check` **77/77 测试通过**，类型/Lint/依赖方向通过；`pnpm build` 通过；`pnpm bench:forward` 0.6B 最快 139 ms、8B 最快 1599 ms。内容校验因无章节跳过；Biome 两条既有配置提示未处理。浏览器 Worker 性能尚未验证。
-- **代码基线固定为 `9096ba9`**。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
+- **整体仍在 M1**：底层计算、硬件映射、真实预设句、播放引擎与 Worker 已接通，完整样板章和模型工作台尚未交付。下述第 1–7 步指本文件第五节的执行顺序，不等同于总体计划中的 Spike A/B/C 编号。
+- **已完成第 1–7 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件映射、真实预设 token id、**播放引擎 + Worker（Spike C/D 浏览器验收通过）**。
+- **第 8 步尚未开始**：`viz3d` 只有 `Clock.tsx`；Spike A（标签清晰度）/ Spike B（真实尺寸张量平面）尚未做。`/dev/spike-c` 是验收页，不是章节页。
+- **尚未开始的界面工作**：3D 双层可视化图元、内容管线与 03 章正文、章节页布局、工作台界面。
+- **最近代码验证**：2026-09-06，`pnpm check` **107/107 测试通过**；`pnpm build` 通过（含 `timeline.worker` chunk）；`pnpm test:e2e` **3/3 通过**：Worker 构建 0.6B 199–232 ms、8B 2400–2968 ms；播放 3.2 s 共 200 帧、页面 commit 4 次（2 次换步 + 播放 + 暂停）、TweenBar 渲染 0 次。截图已发用户。
+- **代码基线固定为 `ca0500b`**。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
 
 | 文件 | 作用 |
 |---|---|
@@ -50,7 +50,26 @@
 - `829ba05` **前向计算基线**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
 - `829ba05` 到 `38f5795` 之间仅改本文件；`d53348a` 新增硬件证据注册表。
 - `51adac4` 完成第 5 步，包含 `hardware/spec.ts`、`residencyRules.ts`、`mapResidency.ts`、硬件校验与测试、`sim/buildTimeline.ts` 双层入口；修正 id 字节统计。
-- `9096ba9` **最新代码基线**：完成第 6 步，新增 `scripts/gen-preset-tokens.ts`、`src/sim/model/presets{.ts,.tokens.json,.test.ts}`、证据 S02；测试与 benchmark 改用真实预设句。其后的纯交接文档提交不改变代码进度。
+- `9096ba9` 完成第 6 步，新增 `scripts/gen-preset-tokens.ts`、`src/sim/model/presets{.ts,.tokens.json,.test.ts}`、证据 S02；测试与 benchmark 改用真实预设句。
+- `ca0500b` **最新代码基线**：完成第 7 步，新增 `src/timeline/`（store、progress、keyboard、url、reducedMotion、load、worker/）、`src/viz3d/Clock.tsx`、`src/app/pages/dev/SpikeCPage.tsx`（路由 `#/dev/spike-c`）、`playwright.config.ts`、`tests/spike-c.spec.ts`。其后的纯交接文档提交不改变代码进度。
+
+**`src/timeline/`（播放引擎，禁 three/R3F；30 个单测）**：
+
+| 文件 | 内容 |
+|---|---|
+| `store.ts` | zustand `usePlayback`：`timeline/status/loadMeta/stepIndex/playing/speed/layer/reducedMotion/nofx/userCameraOverride/cameraResetSeq` + actions `load/unload/play/pause/toggle/next/prev/first/last/seek(序号|id)/setSpeed/stepSpeed/setLayer/setNofx/resetCamera`；`selectStep/selectStepCount/selectNoMotion`；`resetPlaybackStore()`。末步 `play` 从头开始，末步 `next` 自动暂停 |
+| `progress.ts` | 瞬态 `progress{t,stepIndex,prevStepIndex,holdMs}`（不进 store）；`advance(dtMs)`：过渡 `STEP_TWEEN_MS=900` → 停留 `STEP_HOLD_MS=700` → `next()`；倍速在此相乘；无动效时 t 直接 1；模块内订阅 store 换步重置 |
+| `keyboard.ts` | `handlePlaybackKey(e, actions)` 纯函数 + `installPlaybackKeys()`；Space/←/→/Home/End/Esc/[ ]；输入控件与组合键忽略 |
+| `url.ts` | `parseLabQuery/formatLabQuery/readHashQuery/withHashQuery/replaceHashQuery` + `useLabUrlSync(chapterId)`。**写 URL 走 `history.replaceState`，不经 react-router**（`useSearchParams` 会让整页多 commit 一次） |
+| `reducedMotion.ts` | `watchReducedMotion()` / `useReducedMotionWatcher()`：matchMedia → `store.reducedMotion` |
+| `worker/protocol.ts` | `TimelineRequest{modelId,presetId,layerIndex?,chapterId?}`、消息类型、`requestKey` |
+| `worker/handle.ts` | `handleTimelineMessage`（Worker 内与测试共用）、`collectTransferables`（去重 Float32Array buffer 零拷贝转移） |
+| `worker/timeline.worker.ts` | module worker 入口 |
+| `worker/client.ts` | `createTimelineClient(spawn)`：按 key 缓存 Promise、id 配对、`transferMs`= 往返 − buildMs；`createDefaultTimelineClient()` 用 `new Worker(new URL(...), {type:"module"})` |
+| `load.ts` | `loadTimelineIntoStore(client, req)`：loading → ready/error，后发请求覆盖先发 |
+| `index.ts` | barrel，上层只从这里 import |
+
+`src/viz3d/Clock.tsx`：Canvas 内唯一 `useFrame` 驱动，`advance(min(delta,0.1)*1000)`。`src/app/pages/dev/SpikeCPage.tsx`：Worker 加载 + 播放条 + 计数器（`window.__spikeC`、`window.__labReady`），`data-step-id` 挂在画布容器上。
 
 除本次交接文档同步外，工作区仅有 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo` 改动；tsc 会更新它们，本轮没有提交（处理办法见「六、容易踩的坑」最后一条）。
 
@@ -94,7 +113,8 @@
 
 - Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；项目已 `git init`，当前 HEAD 以 `git log` 为准。
 - 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 已用 Node 加载 Qwen3 `tokenizer.json` 离线生成（`pnpm gen:presets`），结果作为 `[S02]` 数据随预设打包。
-- 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build` / `pnpm bench:forward` / `pnpm gen:presets [--write]`。
+- 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build` / `pnpm bench:forward` / `pnpm gen:presets [--write]` / `pnpm test:e2e`（Playwright，自动起 `pnpm dev --port 4173`；截图落在 `test-results/`）。
+- Playwright 1.63 需要 chromium build 1243，已用 `pnpm exec playwright install chromium` 装好（2026-09-06）；headless 走 SwiftShader（`playwright.config.ts` 的 launch args），WebGL 可用。
 
 ## 五、下一步（M1，按序；对应计划 §2.10）
 
@@ -124,8 +144,10 @@
 
 6. ~~**预设句子 token id**~~ 已完成（`9096ba9`）：`scripts/gen-preset-tokens.ts` 用 Node 读 Qwen3 官方 `tokenizer.json`（revision `c1899de2`，SHA-256 `aeb13307…`，约 11 MB，不入库）离线生成三句 S=6/6/7 的中文预设，写入 `src/sim/model/presets.tokens.json`，由 `presets.ts` 导出；`forwardLayer.test.ts` 与 `bench-forward.ts` 的占位 id 已替换为 `getTokenPreset()`。`residency.test.ts` 与 id 字节回归里的 `[1,2]` 是刻意的最小用例，保留。证据：三句 id 与 `@huggingface/transformers` 3.x 逐 id 一致、`decode(ids)` 等于原文；`pnpm check` 77/77 通过；`pnpm build` 通过。**尚未做**：预设仍是纯文本，没有套 chat 模板（`<|im_start|>` 等特殊 token 留给后续章节讲）；三份预设模型共用词表这一点靠 HF API 的 LFS SHA-256 核验，未逐个下载三份文件。
 
+7. ~~**`src/timeline` 播放引擎 + Worker**~~ 已完成（`ca0500b`）。契约：store 只放离散状态；`progress.t` 瞬态；Canvas 内唯一 `<Clock/>`；3D 图元在各自 `useFrame` 读 `progress.t`/`prevStepIndex` 写 uniform，换步用 `useLayoutEffect([stepIndex])` 一次重写 buffer；图元组件要 `memo`，不订阅 store 就不会重渲染。证据：30 个单测；Playwright 3/3：0.6B Worker 构建 199–232 ms（<500）、8B 2400–2968 ms（<5000，构建期主线程帧数继续增长）；播放 3.2 s 200 帧 / 4 commit / TweenBar 0 渲染；深链接 `?step=L0.attn.softmax&layer=hardware&nofx=1` 直达且 t=1；快捷键与 URL 写回验证通过。**未做**：IndexedDB 缓存（现为内存 Promise 缓存，接口不变可后补）；相机接管只留了 `userCameraOverride/cameraResetSeq` 字段，CameraDirector 在第 8 步。
+
 待做：
-7. 依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildHardwareTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
+8. 依次：`viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局（把 `SpikeCPage` 的播放条抽成 `app/PlaybackBar`）→ `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言（`tests/` 已有骨架与 `window.__labReady` 约定）。
 
 每完成一步：跑相关校验 → `git commit` → 按 Why / What / Evidence / Tradeoff / Open Questions 汇报；只有拿到实际命令输出或测试结果才能说"完成"。UI 改动必须在浏览器里实际打开验证，并把关键截图发给用户目测。
 
@@ -141,4 +163,7 @@
 - `ropeInplace` / `causalMaskInplace` 原地修改，`splitHeads` / `mergeHeads` 是共享 data 的视图：录制前要 `clone`，否则前一步的张量会被改掉。
 - `tsconfig.*.tsbuildinfo` 被 git 跟踪，每次 tsc 都会改动；提交时不要顺手带上（建议用户决定是否 `git rm --cached` + 加 .gitignore）。
 - `src/sim/model/presets.tokens.json` 是生成文件：改句子只改 `scripts/gen-preset-tokens.ts` 的 `SENTENCES`，然后 `pnpm gen:presets --write`；改完要同步 `presets.test.ts` 的 golden id，并用 transformers.js 复核（暂存目录 `npm i @huggingface/transformers@3`，不进项目依赖）。`tools/tokenizer/*.json` 已 gitignore，勿提交 11 MB 词表。
+- Tailwind v4 冲突类按样式表顺序而非 class 顺序取胜：`bg-surface-elevated` 会盖掉后写的 `bg-accent`。基础类不要带背景色，按钮变体各自加（见 `SpikeCPage` 的 `btnBase/btn/btnPrimary`）。
+- 不要用 react-router 的 `useSearchParams` 写播放 URL：每次写都让整页重渲染。用 `timeline/url.ts` 的 `replaceHashQuery`。
+- R3F 9 + three 0.185 在控制台打 `THREE.Clock: This module has been deprecated` 警告，来自 R3F 内部，不是本项目代码，忽略即可。
 - 预设句里选的词都是词表内完整 UTF-8 片段的 token；若新句子有字被拆成半个 UTF-8 字节序列，脚本会直接报错，换一句而不是存乱码。

@@ -1,6 +1,6 @@
 /**
  * 步内进度（计划 §2.3）：模块级瞬态对象，不进 store。
- * Canvas 内唯一的 <Clock/>（viz3d）每帧调用 advance(dt)；3D 图元在各自 useFrame 里读 progress.t 写 uniform，
+ * 页面里唯一的 rAF 时钟每帧调用 advance(dt)；画面元素自己每帧读 progress.t 直接改 DOM/uniform，
  * 播放期没有任何 React 重渲染。换步时由 store 订阅重置 t。
  */
 import { selectNoMotion, usePlayback } from "./store";

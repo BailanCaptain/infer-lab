@@ -1,19 +1,19 @@
 /**
- * 依赖方向检查：design ← sim ← timeline ← viz3d/viz2d ← content ← app
+ * 依赖方向检查：design ← sim ← timeline ← viz2d ← content ← app
  * 违反即非零退出。
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = join(process.cwd(), "src");
-const ORDER = ["design", "sim", "timeline", "viz3d", "viz2d", "content", "app"] as const;
+const ORDER = ["design", "sim", "timeline", "viz2d", "content", "app"] as const;
 type Layer = (typeof ORDER)[number];
 const rank = (l: Layer) => ORDER.indexOf(l);
-const SIBLINGS: Record<string, string[]> = { viz3d: ["viz2d"], viz2d: ["viz3d"] };
+const SIBLINGS: Record<string, string[]> = {};
 const FORBIDDEN_PKGS: Record<string, string[]> = {
-  sim: ["three", "react", "react-dom", "zustand", "@react-three/fiber", "@react-three/drei"],
-  timeline: ["three", "@react-three/fiber", "@react-three/drei"],
-  design: ["three", "react", "zustand"],
+  sim: ["react", "react-dom", "zustand"],
+  timeline: ["react-dom"],
+  design: ["react", "zustand"],
 };
 
 function walk(dir: string, out: string[] = []): string[] {

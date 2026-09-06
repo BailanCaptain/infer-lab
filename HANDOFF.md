@@ -1,39 +1,37 @@
-# 交接说明（2026-09-06 晚重写；新会话先读这一页，再读 `CLAUDE.md`、`DESIGN.md`、`PITFALLS.md`）
+# 交接说明（2026-09-06 深夜重写；新会话先读这一页，再读 `CLAUDE.md`、`DESIGN.md`、`PITFALLS.md`）
 
 ## 现状（一句话）
 
-底层扎实，用户能看的画面刚刚重来：唯一给用户看的入口是 **`#/model`**，现在是"塔"的第一段——第 0 层注意力块的**格子体**静帧（每格一个真实小方块，1 单位 = 1 元素，头沿 z 叠片），正在等用户批准材质与体量。上一版"纸面平板块躺在地上"被否为"平片图"，已删。`#/lab`（21 步分别构图 + 右栏长文）被用户整体否定，保留代码但**不要再给用户看、不要再往上加东西**；`#/dev/*` 是工程验收页，同样不给用户看。
+**只剩地基，没有任何教学画面。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否——"幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
 
-## 已确认决策（不要再问）
-
-- 产品单元是**一个模型的整体 3D 结构**（bbycroft 式）：Qwen3-0.6B 全部 28 层是一个物体，第 0 层展开，其余层折成薄片；教学步骤以后是这个物体里的镜头位置，不是独立画面。它同时就是模型工作台的"粘贴 config → 3D 结构"。
-- 视觉：暖白纸面页面 + 深色左栏 + 白卡片 3D 画布（`scene-*` 已是浅色）。**3D 必须真的用三个轴**：张量是带格线的格子体（真实小方块，1 世界单位 = 1 元素，大矩阵按 2 的幂合并并标"一格 = N×N"），头/K|V 沿 z 叠片，层以后沿 y 往上垒成塔；数值只做低对比的纹理（正向身份色、负向白，最多 30%），不许电视雪花；不要"单色薄板 + 象征性高度"。屏幕上小于 9px 的字自动隐藏。
-- 文字：右栏长文砍掉，画面里只有名字 + 形状，细节在悬停条。
-- 流程：**先出静帧给用户批准，批准前不写动效**；用户在 `http://localhost:5173/#/model` 热更新实时看。
-- 数据：真实 trace 已生成（`src/sim/model/traces/*.trace.json`，Qwen3-0.6B ONNX q8 贪心 12 token，脚本 `pnpm gen:trace`，Node 需 `NODE_USE_ENV_PROXY=1`），UI 尚未使用。
-- 其余历史决策（技术栈、事实基线、硬件、真实尺寸、哈希权重、工作台范围）见 `C:\Users\-\.claude\plans\shimmering-zooming-scroll.md` 与记忆目录，本文件不重复。
-
-## 代码地图（只列会碰的）
+## 地基有什么（全部有测试，不要动）
 
 | 位置 | 作用 |
 |---|---|
-| `src/viz3d/tower/cells.ts` | 二维视图 → 合并格子（块均值）+ 色阶（纯函数，3 个测试） |
-| `src/viz3d/tower/attentionLayout.ts` | 时间线张量 → 第 0 层注意力块的格子体布局（纯函数，4 个测试）；y 向上流动、z 叠片 |
-| `src/viz3d/tower/CellVolume.tsx` | 一个张量的 InstancedMesh 小方块 + 实例色 |
-| `src/viz3d/tower/TowerScene.tsx` | 灯光、格子体、左侧立式标签（按屏幕像素 LOD）、镜头飞行、OrbitControls |
-| `src/viz3d/model/frame.ts` | 包围盒 → 相机位姿（纯函数，2 个测试） |
-| `src/app/pages/ModelPage.tsx` | `#/model` 页：左栏块目录（点击聚焦）、全览按钮、悬停条；时间线在主线程同步构建（约 200 ms） |
-| `tests/model.spec.ts` | 全览 / W_q / 概率 三张截图 + 悬停断言（SwiftShader 下 10 万方块很慢，超时放宽） |
-| `src/sim/**` | 模型解析、21 步前向、硬件映射、预设句、trace（全部有测试，不动） |
-| `src/timeline/**` | 播放引擎 + Worker（可复用，暂未接到 `#/model`） |
+| `src/sim/modelspec/` | 解析 HF `config.json` → `ModelSpec`（全站唯一形状来源）；内置 Qwen3-0.6B / 8B / 30B-A3B；参数量与 KV 字节分析 |
+| `src/sim/model/forwardLayer.ts` | 真实维度的一层前向 21 步（每步中文 brief/detail/公式、lineage、高亮、证据）；权重按哈希惰性生成 `[A01]` |
+| `src/sim/hardware/` | 昇腾 910B 概念剖面：13 种算子的驻留/搬运规则，`buildHardwareTimeline` 把硬件层填进每一步 |
+| `src/sim/model/presets.ts` | 三句预设句的真实 Qwen3 tokenizer id（生成物，`pnpm gen:presets`） |
+| `src/sim/model/traces/` | 真实 Qwen3-0.6B（ONNX q8）贪心生成 12 token 的 top-10 概率 trace `[M]`（`pnpm gen:trace`） |
+| `src/timeline/` | 播放引擎：zustand 离散状态 + 瞬态 `progress.t`、Worker 构建时间线、快捷键、URL 深链接、reduced-motion |
+| `src/app/PlaybackBar.tsx` | 播放条（DOM，播放期零 commit） |
+| `src/app/pages/dev/SpikeCPage.tsx` | 播放引擎验收页 `#/dev/spike-c`（纯 DOM 进度条），Playwright `tests/spike-c.spec.ts` |
+| `src/design/tokens.css`、`DESIGN.md` | 暖白纸面 + 深色课程轨道的页面配色、字阶、圆角；无 3D 条目 |
 
-## 下一步（按序）
+## 已确认决策（不要再问）
 
-1. 用户对注意力格子体的反馈 → 改到批准为止（只改材质/体量/构图，不加功能）。
-2. 批准后：把 MLP、词嵌入、输出补齐成完整第 0 层，再把 28 层沿 y 垒成塔（其余层压缩楼层），时间线构建挪回 Worker。
-3. 再后：在塔里加第一段动效（X·W_q → Q，3B1B 式行×列→格），仍先给一帧再给动。
-4. 再后：AnimatedLLM 式 token 生成条（用真实 trace）、镜头沿计算路径的步骤导航、硬件层。
+- 教学章一律真实模型尺寸（默认 Qwen3-0.6B），`ModelSpec` 唯一形状来源；权重不下载，哈希生成。
+- 页面风格：暖白纸面、深色 248px 课程轨道、很重的显示体标题、橙色唯一行动色（沿用旧 infra-view 的观感，不复用其代码）。
+- 用户要的体验：Transformer Explainer 的横向流水线总览 + AnimatedLLM 的逐 token 生成与概率分布 + bbycroft 式"一个模型是一个物体、镜头在里面飞"。文字极少，靠悬停。
+- **画面怎么做还没有定，而且不许再由 AI 自作主张地"先做一版看看"**：用户对三版画面的否定都指向同一点——我画的是示意图，不是物体。下一次动画面之前，先和用户一起用参照物截图逐条定"画面纪律"，拿到明确的 yes 再写代码；先出静帧，批准前不写动效。
+- 其余历史决策（技术栈、事实基线、硬件、工作台范围）见 `C:\Users\-\.claude\plans\shimmering-zooming-scroll.md` 与记忆目录。
 
-## 验证基线（2026-09-06 晚）
+## 下一步
 
-`pnpm check` 168/168；`pnpm build` 通过；`pnpm test:e2e` 8/8。UI 改动必须看截图（troika 的字形块问题只有截图能发现）。
+1. 和用户一起定画面纪律（参照物：bbycroft.net/llm、poloclub Transformer Explainer、animatedllm.github.io、3B1B 矩阵动画）。没定之前不写任何画面代码。
+2. 定了之后从一个最小对象开始（例如一个 [6,1024] 激活的真格子），只交一张图。
+3. 与画面无关、可先做的：AnimatedLLM 式 token 生成条（纯 DOM，用真实 trace）；模型工作台的数字部分（参数量、KV 显存）。是否先做由用户定。
+
+## 验证基线（2026-09-06 深夜，删除 3D 之后）
+
+`pnpm check` 126/126（12 个测试文件）；`pnpm build` 通过；`pnpm test:e2e` 3/3（只剩 spike-c）。

@@ -18,10 +18,10 @@ pnpm install
 pnpm dev          # 本地开发
 pnpm check        # typecheck + lint + 单测 + 依赖方向 + 内容校验
 pnpm build        # 产物在 dist/
-pnpm test:e2e     # Playwright 截图与标签检查
+pnpm test:e2e     # Playwright 浏览器验收
 ```
 
-目录与依赖方向：`design ← sim ← timeline ← viz3d/viz2d ← content ← app`，见 `scripts/check-deps.ts`。视觉合同见 `DESIGN.md`。
+目录与依赖方向：`design ← sim ← timeline ← viz2d ← content ← app`，见 `scripts/check-deps.ts`。视觉合同见 `DESIGN.md`。
 
 ## 参考与授权
 

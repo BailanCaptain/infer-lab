@@ -27,19 +27,13 @@
   --color-rail-line: #394541;
   --color-rail-text: #aab3af;
   --color-rail-muted: #82908a;
-  /* 3D 画布：与页面同一张纸，白卡片；对象只用身份色的淡填充 + 实线边 */
-  --color-scene: #ffffff;
-  --color-scene-panel: #f5f2ea;
-  --color-scene-line: #d8d8cf;
-  --color-scene-text: #17211f;
-  --color-scene-muted: #66716d;
 
   /* 唯一 accent：橙 = 当前动作 / 播放头 / 主按钮 */
   --color-accent: #e85b32;
   --color-accent-hover: #c84725;
   --color-accent-soft: #fff0e9;
 
-  /* 对象身份色（正文与 3D 共用） */
+  /* 对象身份色（正文与图共用） */
   --color-token: #087f73; /* Token / 激活 = 青 */
   --color-token-soft: #ddf4ef;
   --color-weight: #c78300; /* 权重 / 计算 = 琥珀 */
@@ -50,13 +44,6 @@
   --color-comm-soft: #f7e7f2;
   --color-control: #66716d; /* 控制面 / 调度 = 灰 */
   --color-danger: #b54237; /* 错误 / 禁配 = 红 */
-
-  /* 3D 数值场色阶（深色画布上）：负青 / 正琥珀 / 0 近黑；掩码格与格线不参与色阶 */
-  --color-viz-neg: #4fd1c5;
-  --color-viz-pos: #f2a94a;
-  --color-viz-zero: #121c2c;
-  --color-viz-mask: #33415a;
-  --color-viz-grid: #1c2a3f;
 
   /* 并行维度色（沿用并行策略图片包） */
   --color-tp: #2f7fd6;

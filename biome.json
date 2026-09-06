@@ -50,7 +50,6 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "three": "sim 层禁止依赖 three",
                   "react": "sim 层禁止依赖 react",
                   "zustand": "sim 层禁止依赖 zustand"
                 }
@@ -69,8 +68,7 @@
               "level": "error",
               "options": {
                 "paths": {
-                  "three": "timeline 层禁止依赖 three",
-                  "@react-three/fiber": "timeline 层禁止依赖 R3F"
+                  "react-dom": "timeline 层禁止依赖 react-dom"
                 }
               }
             }

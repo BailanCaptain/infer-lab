@@ -1,17 +1,16 @@
 /**
  * Spike C（计划 §2.10 #3）+ Spike D 浏览器版：
  * - Worker 内 buildHardwareTimeline 并计时（buildMs / transferMs）；
- * - Canvas 内唯一 <Clock/> 推进瞬态 progress.t，图元在 useFrame 里读 t，播放期零 React commit；
+ * - 页面里唯一的 rAF 时钟推进瞬态 progress.t，进度条每帧直接改 DOM，播放期零 React commit；
  * - 播放条、快捷键、URL ?step=&layer=&nofx=1、reduced-motion 全部走 timeline 层。
  * 计数器挂在 window.__spikeC 供 Playwright 读取；读计数不触发渲染。
  */
-import { Canvas, useFrame } from "@react-three/fiber";
 import { RotateCcw } from "lucide-react";
 import { memo, Profiler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Group, Mesh } from "three";
 import { TOKEN_PRESETS } from "../../../sim/model/presets";
 import { MODEL_PRESETS } from "../../../sim/modelspec/presets";
 import {
+  advance,
   createDefaultTimelineClient,
   installPlaybackKeys,
   loadTimelineIntoStore,
@@ -23,68 +22,60 @@ import {
   usePlayback,
   useReducedMotionWatcher,
 } from "../../../timeline";
-import { Clock } from "../../../viz3d";
 import { PlaybackBar } from "../../PlaybackBar";
 
 const counters = { pageCommits: 0, barRenders: 0, frames: 0, stepChanges: 0, progress };
 type SpikeWindow = Window & { __spikeC?: typeof counters; __labReady?: boolean };
 
-function cssVar(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#ffffff";
-}
-
-/** 进度条：每帧读 progress.t 写 scale，不经过 React。 */
+/** 页面唯一时钟：每帧推进 progress，并把 t 写到进度条的 transform 上，不经过 React。 */
 function TweenBar() {
   counters.barRenders++;
-  const ref = useRef<Mesh>(null);
-  const color = useMemo(() => cssVar("--color-token"), []);
-  useFrame(() => {
-    counters.frames++;
-    const m = ref.current;
-    if (!m) return;
-    const t = Math.max(0.001, progress.t);
-    m.scale.x = t;
-    m.position.x = -3 + 3 * t;
-  });
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      advance(now - last);
+      last = now;
+      counters.frames++;
+      const el = ref.current;
+      if (el) el.style.transform = `scaleX(${Math.max(0.001, progress.t)})`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
   return (
-    <mesh ref={ref} position={[-3, 0.9, 0]}>
-      <boxGeometry args={[6, 0.35, 0.35]} />
-      <meshStandardMaterial color={color} />
-    </mesh>
+    <div className="h-3 w-full overflow-hidden rounded-field bg-surface-sunken" data-testid="tween">
+      <div ref={ref} className="h-full w-full origin-left bg-token" />
+    </div>
   );
 }
 
 const MemoTweenBar = memo(TweenBar);
 
-/** 步骤标记：换步时在 useLayoutEffect 里一次性改缩放与颜色，播放期不动。 */
+/** 步骤标记：换步时在 useLayoutEffect 里一次性改 data 属性，播放期不动。 */
 function StepMarkers() {
   const count = usePlayback(selectStepCount);
   const stepIndex = usePlayback((s) => s.stepIndex);
-  const group = useRef<Group>(null);
-  const accent = useMemo(() => cssVar("--color-accent"), []);
-  const idle = useMemo(() => cssVar("--color-line-strong"), []);
+  const group = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     counters.stepChanges++;
     const g = group.current;
     if (!g) return;
-    g.children.forEach((child, i) => {
-      const m = child as Mesh & { material: { color: { set(c: string): void } } };
-      const on = i === stepIndex;
-      m.scale.setScalar(on ? 1.5 : 0.78);
-      m.material.color.set(on ? accent : idle);
+    g.childNodes.forEach((child, i) => {
+      (child as HTMLElement).dataset.on = i === stepIndex ? "1" : "0";
     });
-  }, [stepIndex, accent, idle]);
-  const n = Math.max(count, 1);
-  const w = 6 / n;
+  }, [stepIndex]);
   return (
-    <group ref={group}>
+    <div ref={group} className="flex gap-1" data-testid="markers">
       {Array.from({ length: count }, (_, i) => (
-        <mesh key={String(i)} position={[-3 + w * (i + 0.5), -0.6, 0]}>
-          <boxGeometry args={[w * 0.6, 0.4, 0.4]} />
-          <meshStandardMaterial color={idle} />
-        </mesh>
+        <span
+          key={String(i)}
+          className="h-2 flex-1 rounded-[3px] bg-line-strong data-[on=1]:scale-y-150 data-[on=1]:bg-accent"
+        />
       ))}
-    </group>
+    </div>
   );
 }
 
@@ -197,21 +188,16 @@ export function SpikeCPage() {
         </p>
 
         <div
-          className="relative aspect-[16/7] overflow-hidden rounded-panel border border-line bg-surface"
+          className="relative space-y-3 overflow-hidden rounded-panel border border-line bg-surface p-4 pb-16"
           data-testid="canvas"
           data-step-id={step?.id ?? ""}
         >
-          <Canvas camera={{ position: [0, 0, 7], fov: 40 }} dpr={1} frameloop="always">
-            <ambientLight intensity={1.2} />
-            <directionalLight position={[3, 5, 6]} intensity={1.5} />
-            <Clock />
-            {timeline && (
-              <>
-                <MemoTweenBar />
-                <StepMarkers />
-              </>
-            )}
-          </Canvas>
+          {timeline && (
+            <>
+              <MemoTweenBar />
+              <StepMarkers />
+            </>
+          )}
           <PlaybackBar />
         </div>
 

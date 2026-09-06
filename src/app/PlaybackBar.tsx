@@ -4,8 +4,45 @@
  *
  * Tailwind v4 的冲突类按样式表顺序取胜，基础类不带背景色，变体各自加。
  */
-import { ChevronFirst, ChevronLast, Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { SPEED_STEPS, selectStep, selectStepCount, usePlayback } from "../timeline";
+import { ChevronFirst, ChevronLast, Crosshair, Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { progress, SPEED_STEPS, selectStep, selectStepCount, usePlayback } from "../timeline";
+
+/** 节拍条：直接改 DOM，不走 React 状态，播放期零 commit */
+function BeatStrip({ beats }: { beats: { at: number; label: string }[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const el = ref.current;
+      if (el) {
+        const t = progress.t;
+        let active = -1;
+        beats.forEach((b, i) => {
+          if (t >= b.at) active = i;
+        });
+        el.childNodes.forEach((n, i) => {
+          (n as HTMLElement).dataset.active = i === active ? "1" : "0";
+        });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [beats]);
+  return (
+    <div ref={ref} className="flex gap-1" data-testid="beats">
+      {beats.map((b) => (
+        <span
+          key={b.label}
+          className="rounded-field border border-line px-1.5 text-caption text-ink-faint data-[active=1]:border-accent data-[active=1]:text-accent"
+        >
+          {b.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const btnBase =
   "inline-flex h-8 w-8 items-center justify-center rounded-field border active:scale-[0.97] disabled:opacity-40";
@@ -42,16 +79,28 @@ export function PlaybackBar() {
       <button type="button" className={btnGhost} data-testid="last" onClick={a.last} aria-label="最后一步">
         <ChevronLast size={16} />
       </button>
-      <input
-        type="range"
-        className="mx-2 flex-1 accent-accent"
-        min={0}
-        max={Math.max(0, count - 1)}
-        value={stepIndex}
-        onChange={(e) => a.seek(Number(e.target.value))}
-        aria-label="步骤进度"
-        data-testid="scrubber"
-      />
+      <div className="relative mx-2 flex-1">
+        <input
+          type="range"
+          className="w-full accent-accent"
+          min={0}
+          max={Math.max(0, count - 1)}
+          value={stepIndex}
+          onChange={(e) => a.seek(Number(e.target.value))}
+          aria-label="步骤进度"
+          data-testid="scrubber"
+        />
+        <div className="-bottom-1 pointer-events-none absolute inset-x-2 h-1">
+          {Array.from({ length: count }, (_, i) => (
+            <span
+              key={String(i)}
+              className={`absolute top-0 h-1 w-px ${i <= stepIndex ? "bg-accent/70" : "bg-line-strong"}`}
+              style={{ left: `${count > 1 ? (i / (count - 1)) * 100 : 0}%` }}
+            />
+          ))}
+        </div>
+      </div>
+      {step?.beats && <BeatStrip beats={step.beats} />}
       <span className="mono w-14 text-label text-ink-muted">
         {stepIndex + 1}/{count}
       </span>
@@ -71,6 +120,15 @@ export function PlaybackBar() {
       <span className="ml-2 truncate text-compact" data-testid="step-title">
         {step?.title ?? "—"}
       </span>
+      <button
+        type="button"
+        className={btnGhost}
+        onClick={a.resetCamera}
+        aria-label="重置视角（Esc）"
+        title="重置视角（Esc）"
+      >
+        <Crosshair size={16} />
+      </button>
     </div>
   );
 }

@@ -8,21 +8,21 @@
  */
 import { Line } from "@react-three/drei";
 import { useMemo } from "react";
-import { shapeLabel } from "../../sim/tensor/tensor";
 import { planeView } from "../../sim/timeline/plane";
 import type { Highlight, TensorRecord } from "../../sim/timeline/types";
-import { Label } from "../labels/Label";
-import { fmtAspect, fmtCell, type PlaneBox, robustScale } from "../scale";
+import { LABEL_SIZE, Label } from "../labels/Label";
+import { fmtCell, type PlaneBox, robustScale, windowRect } from "../scale";
 import { vizTheme } from "../theme";
 import { CellWindow } from "./CellWindow";
-import { gridLayout } from "./layout";
-import { TensorPlane, textureShape } from "./TensorPlane";
+import { gridLayout, gridTexts } from "./layout";
+import { TensorPlane } from "./TensorPlane";
 
 export const DEFAULT_BOX: PlaneBox = { maxW: 8.4, maxH: 2.6 };
 export const DEFAULT_WINDOW = { rows: 6, cols: 12 };
 /** 分类张量的色阶基准：任何编号都落在 0 色，不出现"id 越大越亮"的误导 */
 const CATEGORICAL_SCALE = 1e30;
 const fmtInt = (v: number) => String(Math.round(v));
+const FULL_WINDOW: [number, number] = [0, 1];
 
 export interface TensorGridProps {
   record: TensorRecord;
@@ -42,8 +42,12 @@ export interface TensorGridProps {
   title?: string | undefined;
   labelKey?: string | undefined;
   position?: [number, number, number] | undefined;
+  /** 高亮在步内的渐入区间（按 progress.t），matmul 用它分节拍：先 B 列、再 A 行、最后 C 格 */
+  hiWindow?: [number, number] | undefined;
   /** 换步重写实例缓冲的耗时（ms） */
   onCost?: ((ms: number) => void) | undefined;
+  /** 标签放大倍数（由场景按相机距离给出） */
+  labelScale?: number | undefined;
 }
 
 export function TensorGrid({
@@ -60,7 +64,9 @@ export function TensorGrid({
   title,
   labelKey = "tg",
   position = [0, 0, 0],
+  hiWindow = FULL_WINDOW,
   onCost,
+  labelScale: ls = 1,
 }: TensorGridProps) {
   const theme = vizTheme();
   const headIdx = highlight?.head ?? head ?? 0;
@@ -77,12 +83,16 @@ export function TensorGrid({
     [prev, prevHighlight?.head, headIdx, sel],
   );
 
+  const rectPre = useMemo(() => windowRect(view, highlight, win), [view, highlight, win]);
+  const texts = useMemo(
+    () => gridTexts({ record, view, rect: rectPre, title }),
+    [record, view, rectPre, title],
+  );
   const layout = useMemo(
-    () => gridLayout(view, highlight, box, win, cellSize),
-    [view, highlight, box, win, cellSize],
+    () => gridLayout(view, highlight, box, win, cellSize, ls, texts),
+    [view, highlight, box, win, cellSize, ls, texts],
   );
   const { size, rect, winW, winH, winY } = layout;
-  const tex = useMemo(() => textureShape(view), [view]);
   const vscale = useMemo(() => {
     // 权重优先用缩略图估色阶：它已经是全矩阵的均匀采样
     if (view.thumb) {
@@ -97,12 +107,6 @@ export function TensorGrid({
   const categorical = record.role === "input";
   const colorScale = categorical ? CATEGORICAL_SCALE : vscale.scale;
   const format = categorical ? fmtInt : fmtCell;
-  // 切片说明：头下标 + 额外轴（如 KV 块的 K|V）
-  const sliceParts: string[] = [];
-  if (view.heads > 0) sliceParts.push(`头 ${view.head}/${view.heads - 1}`);
-  view.axes.extra.forEach((axis, i) => {
-    sliceParts.push(`${record.dims[axis] ?? "轴"}=${view.picks[i] ?? 0}`);
-  });
 
   const viewKey = `${record.id}|${headIdx}|${picksKey}`;
   const winBottom = winY - winH / 2;
@@ -114,21 +118,6 @@ export function TensorGrid({
   const rectR = px(rect.c0 + rect.cols);
   const rectT = py(rect.r0);
 
-  const rowText =
-    rect.rows < view.rows
-      ? `行 ${rect.r0}–${rect.r0 + rect.rows - 1} ⋯ 共 ${view.rows}`
-      : `行 0–${view.rows - 1}`;
-  const colText =
-    rect.cols < view.cols
-      ? `列 ${rect.c0}–${rect.c0 + rect.cols - 1} ⋯ 共 ${view.cols}`
-      : `列 0–${view.cols - 1}`;
-
-  const notes: string[] = [];
-  if (size.compressed) notes.push(`显示比例已压缩，真实 ${fmtAspect(size.trueAspect)}`);
-  if (!tex.exact) notes.push(`全幅是 ${tex.cols}×${tex.rows} 采样，放大窗口是真值`);
-  if (vscale.hasMask && !categorical) notes.push("含 −∞ 掩码格，不参与色阶");
-  if (categorical) notes.push("token id 是编号，不按大小着色");
-
   return (
     <group position={position}>
       <TensorPlane
@@ -138,6 +127,7 @@ export function TensorGrid({
         scale={colorScale}
         highlight={highlight}
         rect={rect}
+        hiWindow={hiWindow}
       />
 
       {/* 取景框 → 放大窗口的引线 */}
@@ -173,66 +163,59 @@ export function TensorGrid({
           cellSize={cellSize}
           showValues={showValues}
           format={format}
+          hiWindow={hiWindow}
           onCost={onCost}
           labelKey={labelKey}
         />
         {/* 车道①：窗口正上方 = 标题与真实形状 */}
-        <Label id={`${labelKey}.title`} position={[0, winH / 2 + 0.5, 0]} size="title" color="ink">
-          {title ?? record.name}
-        </Label>
-        <Label id={`${labelKey}.shape`} position={[0, winH / 2 + 0.26, 0]} size="micro" color="inkMuted">
-          {shapeLabel(record)}
-        </Label>
-        {/* 车道②③：窗口左右 = 窗口覆盖范围与头下标 */}
         <Label
-          id={`${labelKey}.rows`}
-          position={[-winW / 2 - 0.18, 0, 0]}
-          size="micro"
-          color="inkMuted"
-          anchorX="right"
+          id={`${labelKey}.title`}
+          position={[0, winH / 2 + 0.5 * ls, 0]}
+          size={LABEL_SIZE.title * ls}
+          color="ink"
         >
-          {rowText}
+          {texts.title}
         </Label>
-        {sliceParts.length > 0 && (
-          <Label
-            id={`${labelKey}.slice`}
-            position={[winW / 2 + 0.18, 0, 0]}
-            size="micro"
-            color="inkMuted"
-            anchorX="left"
-          >
-            {sliceParts.join(" · ")}
-          </Label>
-        )}
-        <Label id={`${labelKey}.cols`} position={[0, -winH / 2 - 0.2, 0]} size="micro" color="inkMuted">
-          {colText}
+        <Label
+          id={`${labelKey}.shape`}
+          position={[0, winH / 2 + 0.26 * ls, 0]}
+          size={LABEL_SIZE.micro * ls}
+          color="inkMuted"
+          mono
+        >
+          {texts.shape}
+        </Label>
+        {/* 车道②：窗口正下方 = 窗口覆盖范围与切片 */}
+        <Label
+          id={`${labelKey}.range`}
+          position={[0, -winH / 2 - 0.2 * ls, 0]}
+          size={LABEL_SIZE.micro * ls}
+          color="inkMuted"
+        >
+          {texts.range}
         </Label>
       </group>
 
-      {/* 车道④：平面左侧 = 行维；平面下方 = 列维与显示说明 */}
+      {/* 车道③④：平面左侧 = 行维；平面下方 = 列维 */}
       <Label
         id={`${labelKey}.rowdim`}
-        position={[-size.w / 2 - 0.24, 0, 0]}
+        position={[-size.w / 2 - 0.22 * ls, 0, 0]}
         rotation={[0, 0, Math.PI / 2]}
-        size="micro"
+        size={LABEL_SIZE.micro * ls}
         color="inkMuted"
+        mono
       >
         {`${view.rowDim}=${view.rows}`}
       </Label>
-      <Label id={`${labelKey}.coldim`} position={[0, -size.h / 2 - 0.24, 0]} size="micro" color="inkMuted">
+      <Label
+        id={`${labelKey}.coldim`}
+        position={[0, -size.h / 2 - 0.22 * ls, 0]}
+        size={LABEL_SIZE.micro * ls}
+        color="inkMuted"
+        mono
+      >
         {`${view.colDim}=${view.cols}`}
       </Label>
-      {notes.map((n, i) => (
-        <Label
-          key={n}
-          id={`${labelKey}.note${i}`}
-          position={[0, -size.h / 2 - 0.52 - i * 0.26, 0]}
-          size="micro"
-          color="inkMuted"
-        >
-          {n}
-        </Label>
-      ))}
     </group>
   );
 }

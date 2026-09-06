@@ -10,6 +10,16 @@ import subsetFont from "subset-font";
 
 const SRC_TTF = join(process.cwd(), "tools/fonts/NotoSansSC-Regular.ttf");
 const OUT = join(process.cwd(), "public/fonts/notosc-3d.woff");
+/** 数字 / shape / 格值用等宽（DESIGN.md：等宽 = 机器可核对的事实） */
+const MONO_SRC = join(
+  process.cwd(),
+  "node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff",
+);
+const OUT_MONO = join(process.cwd(), "public/fonts/mono-3d.woff");
+const MONO_CHARS =
+  " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~×·";
+/** 3D 标签用 Medium：常规体在深色底上 SDF 渲染偏虚 */
+const WEIGHT = 500;
 const FONT_URL = "https://github.com/google/fonts/raw/main/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf";
 
 const BASE =
@@ -18,7 +28,7 @@ const BASE =
   "αβγδεζηθικλμνξπρστυφχψωΓΔΘΛΞΠΣΦΨΩ" +
   "₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹ᵀᵢⱼₖₙₘ" +
   "，。、；：？！（）【】《》「」『』〈〉—～·" +
-  "①②③④⑤⑥⑦⑧⑨⑩⟳";
+  "①②③④⑤⑥⑦⑧⑨⑩⟳–−";
 
 function walk(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
@@ -56,10 +66,15 @@ async function main() {
   }
   const text = [...chars].join("");
   const src = readFileSync(SRC_TTF);
-  const woff = await subsetFont(src, text, { targetFormat: "woff" });
+  const woff = await subsetFont(src, text, { targetFormat: "woff", variationAxes: { wght: WEIGHT } });
   mkdirSync(join(process.cwd(), "public/fonts"), { recursive: true });
   writeFileSync(OUT, woff);
-  console.log(`ok 字体子集：${chars.size} 字符 → ${OUT} (${(woff.length / 1024).toFixed(1)} KB)`);
+  console.log(
+    `ok 字体子集：${chars.size} 字符 wght ${WEIGHT} → ${OUT} (${(woff.length / 1024).toFixed(1)} KB)`,
+  );
+  const mono = await subsetFont(readFileSync(MONO_SRC), MONO_CHARS, { targetFormat: "woff" });
+  writeFileSync(OUT_MONO, mono);
+  console.log(`ok 等宽子集：${MONO_CHARS.length} 字符 → ${OUT_MONO} (${(mono.length / 1024).toFixed(1)} KB)`);
 }
 
 main().catch((e) => {

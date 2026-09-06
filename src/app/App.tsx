@@ -3,6 +3,7 @@ import { AppShell } from "./AppShell";
 import { SpikeABPage } from "./pages/dev/SpikeABPage";
 import { SpikeCPage } from "./pages/dev/SpikeCPage";
 import { HomePage } from "./pages/HomePage";
+import { LabPage } from "./pages/LabPage";
 
 const router = createHashRouter([
   {
@@ -10,6 +11,7 @@ const router = createHashRouter([
     Component: AppShell,
     children: [
       { index: true, Component: HomePage },
+      { path: "lab", Component: LabPage },
       { path: "dev/spike-ab", Component: SpikeABPage },
       { path: "dev/spike-c", Component: SpikeCPage },
     ],

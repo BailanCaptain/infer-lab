@@ -11,17 +11,18 @@ import { useEffect, useRef } from "react";
 import type { Mesh } from "three";
 import { type VizColorName, vizTheme } from "../theme";
 import { registerLabel } from "./registry";
+import { LABEL_SIZE, type LabelSize } from "./sizes";
 
 /** 子集字体路径（相对 base，GitHub Pages 子路径也成立） */
 export const LABEL_FONT = `${import.meta.env.BASE_URL}fonts/notosc-3d.woff`;
+/** 等宽子集（JetBrains Mono 500，仅 ASCII + × ·）：数字、shape、格值 */
+export const MONO_FONT = `${import.meta.env.BASE_URL}fonts/mono-3d.woff`;
+const MONO_SAFE = /^[\x20-\x7e×·]+$/;
 
 /** SDF 每字形分辨率：troika 要求 2 的幂；64 对中文偏软，128 够清晰 */
 export const SDF_GLYPH_SIZE = 128;
 
-/** 字号档（世界单位）：与 DESIGN.md 的字阶同源，3D 里只留三档 */
-export const LABEL_SIZE = { title: 0.26, body: 0.19, micro: 0.15 } as const;
-
-export type LabelSize = keyof typeof LABEL_SIZE;
+export { LABEL_SIZE, type LabelSize } from "./sizes";
 
 export interface LabelProps {
   children: string;
@@ -35,6 +36,8 @@ export interface LabelProps {
   anchorY?: "top" | "middle" | "bottom" | undefined;
   maxWidth?: number | undefined;
   outline?: boolean | undefined;
+  /** 等宽：文本全是 ASCII/×/· 时生效，否则回落到中文字体 */
+  mono?: boolean | undefined;
 }
 
 export function Label({
@@ -48,6 +51,7 @@ export function Label({
   anchorY = "middle",
   maxWidth,
   outline = true,
+  mono = false,
 }: LabelProps) {
   const ref = useRef<Mesh>(null);
   const theme = vizTheme();
@@ -62,7 +66,7 @@ export function Label({
   return (
     <Text
       ref={ref}
-      font={LABEL_FONT}
+      font={mono && MONO_SAFE.test(children) ? MONO_FONT : LABEL_FONT}
       fontSize={fontSize}
       color={theme[color]}
       anchorX={anchorX}

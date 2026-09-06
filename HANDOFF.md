@@ -1,6 +1,6 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 viz3d 地基（Spike A/B）完成后，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 活母版页 `#/lab` 第一版完成后，供新会话直接接手）
 
-新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 8 条的剩余项**（第 1–7 条与第 8 条的 Spike A/B 已完成）开始动手，不要重新讨论方案。播放/Worker 入口：`src/timeline`（barrel `index.ts`）；3D 图元入口 `src/viz3d`（barrel `index.ts`），Canvas 内只放一个 `<Clock/>`；默认句子用 `getTokenPreset()`。
+新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 8a 条的「待用户反馈后」与 8b 剩余项**开始动手，不要重新讨论方案。**给用户看的入口只有 `#/lab`**；`#/dev/*` 是工程验收页，不要让用户看。播放/Worker 入口：`src/timeline`（barrel `index.ts`）；3D 图元入口 `src/viz3d`（barrel `index.ts`），Canvas 内只放一个 `<Clock/>`；默认句子用 `getTokenPreset()`。
 
 ## 从用户视角看进度（2026-09-06 晚，用户实测后）
 
@@ -8,6 +8,7 @@
 - 用户对 3D 文字的反馈：字号提大后"能读得清，但字体非常难看"。原因已定位：3D 里所有标签（含 shape、数字）都用 Noto Sans SC 常规体（400），违反 DESIGN.md「等宽 = 机器可核对的事实」；应加 JetBrains Mono 子集给数字/shape，正文标签换 Medium（500）子集，描边再细一点。
 - 用户提出先建「全局视觉母版」（一张完整典型页面 + 提取出的规则），问法来自 ChatGPT。结论：**同意，但母版做成"活的"**：`DESIGN.md` 已有规则半边（三栏 232/自适应/380、身份色、字阶、3D 语法），缺的是把它们放在一起的那张完整页面。用代码搭 `#/lab` 母版页，内容用真实的 Q 投影步（X 行 × W_q 列 → Q 格），交付：完整桌面页、默认/播放中/聚焦三个状态、窄屏参考、补齐 DESIGN.md 的 3D 材质/镜头/动效条目、「Three.js / SVG / DOM」实现拆分表。Imagen 只用于定气质，不当 3D 规格（会画出粒子、雾、假数据流，全是硬禁令）。气质沿用 DESIGN.md 的"深色工作台"，用户未要求更改。
 - 现在的相机按钮（正面/斜视/侧视/俯视）是标签测试用的，产品里相机按 `step.camera.view` 自动运镜，只保留「重置视角」。
+- **活母版页第一版已交付（`#/lab`）**：三栏壳 + 21 步可播 + 右栏解说 + matmul 的 L 形构图。截图已发用户，等反馈。已知的自评缺陷：① 场景在画布里偏小（约占 60% 高度），空白多；② matmul 的 A 行 / B 列 / C 格高亮在缩略比例下不够醒目，还没有「A 行 × B 列 → C 格」的乘积条（计划里的 MatMulRig 抽出 k 项乘积）；③ 硬件层只在右栏是文字（搬运列表），3D 里没有 NPU；④ 相机没有用户拖动接管；⑤ 没有 Bloom/后期；⑥ 3D 字体已换成 Noto Medium + JetBrains Mono（数字/shape），用户还没评价。
 
 ## 里程碑内进度（2026-09-06，同步到 `git log` 最新提交）
 
@@ -15,9 +16,9 @@
 - **已完成第 1–7 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件映射、真实预设 token id、**播放引擎 + Worker（Spike C/D 浏览器验收通过）**。
 - **第 8 步已完成前半（Spike A + Spike B）**：`src/viz3d/` 有了尺度/取样/色阶纯函数、`Label`（troika SDF）+ 标签边界注册表、`TensorGrid`（全幅 R32F 纹理平面 + InstancedMesh 放大窗口 + 标签车道）、`CameraRig`；验收页 `#/dev/spike-ab`，Playwright `tests/spike-ab.spec.ts` 2/2 通过。**尚未做**：`camera/views.ts` + CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏、后期（Bloom/SMAA）。`/dev/spike-*` 都是验收页，不是章节页。
 - **尚未开始的界面工作**：3D 双层可视化图元、内容管线与 03 章正文、章节页布局、工作台界面。
-- **最近代码验证**：2026-09-06，`pnpm check` **146/146 测试通过**（新增 plane 18、scale 24）；`pnpm build` 通过；`pnpm test:e2e` **5/5 通过**：Spike A 正面机位 70 个标签两两不相交且全在画布内；Spike B 压力模式 5120 格 2 s 内 106–121 帧（SwiftShader 软渲染），21 步换步实例缓冲重写最大 **0.50 ms**（< 2 ms）；Spike C 0.6B 190–218 ms、8B 2146–2236 ms、播放 3.2 s 200 帧 / 4 commit / TweenBar 0 渲染。截图已发用户。
+- **最近代码验证**：2026-09-06 晚，`pnpm check` **146/146 测试通过**；`pnpm build` 通过；`pnpm test:e2e` **6/6 通过**（新增 `tests/lab.spec.ts`：三栏、步骤列表点击跳步、右栏「这一格怎么算」、节拍条、窄屏、End 到第 21 步；截图 `test-results/lab-{default,matmul,playing,narrow,kv}.png`）。旧 Spike 数字：：Spike A 正面机位 70 个标签两两不相交且全在画布内；Spike B 压力模式 5120 格 2 s 内 106–121 帧（SwiftShader 软渲染），21 步换步实例缓冲重写最大 **0.50 ms**（< 2 ms）；Spike C 0.6B 190–218 ms、8B 2146–2236 ms、播放 3.2 s 200 帧 / 4 commit / TweenBar 0 渲染。截图已发用户。
 - 两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
-- 标签字号已按用户反馈提到 micro/body/title = 0.15/0.19/0.26（`089d49a`），用户确认能读清；字体观感问题见上一节，在母版页一并解决。
+- 标签字号 micro/body/title = 0.15/0.19/0.26（`labels/sizes.ts`），并按相机距离放大 1–1.6 倍（`sceneLayout.resolveScene`）；3D 字体：`notosc-3d.woff`（Noto Sans SC 可变字体实例化 wght 500，152 KB）+ `mono-3d.woff`（JetBrains Mono 500，ASCII + × ·，22 KB）。`sdfGlyphSize=128`。
 
 | 文件 | 作用 |
 |---|---|
@@ -177,7 +178,8 @@
 7. ~~**`src/timeline` 播放引擎 + Worker**~~ 已完成（`ca0500b`）。契约：store 只放离散状态；`progress.t` 瞬态；Canvas 内唯一 `<Clock/>`；3D 图元在各自 `useFrame` 读 `progress.t`/`prevStepIndex` 写 uniform，换步用 `useLayoutEffect([stepIndex])` 一次重写 buffer；图元组件要 `memo`，不订阅 store 就不会重渲染。证据：30 个单测；Playwright 3/3：0.6B Worker 构建 199–232 ms（<500）、8B 2400–2968 ms（<5000，构建期主线程帧数继续增长）；播放 3.2 s 200 帧 / 4 commit / TweenBar 0 渲染；深链接 `?step=L0.attn.softmax&layer=hardware&nofx=1` 直达且 t=1；快捷键与 URL 写回验证通过。**未做**：IndexedDB 缓存（现为内存 Promise 缓存，接口不变可后补）；相机接管只留了 `userCameraOverride/cameraResetSeq` 字段，CameraDirector 在第 8 步。
 
 待做：
-8a. **活母版页 `#/lab`（当前正在做，优先于 8 的其余项）**：章节页三栏壳（顶栏：章节 / 模型 / 硬件；左：课程轨道 + 21 步列表；中：3D 画布 + 播放条（带 step 刻度与 beat 标记）；右：步骤标题 / brief / detail / 公式 / 形状链 / 证据 / 硬件驻留）+ `camera/views.ts` 8 个预设 + CameraDirector + `MatMulRig`（matmul 步：A 左 / B 上 / C 右下，按 beats 点亮 A 行、B 列、C 格）+ 非 matmul 步的通用 `OpScene`（输入 → 输出并排）+ 3D 字体（mono 子集 + Medium）。验收标准：用户打开 `#/lab` 能看懂"现在在算什么"，三个状态截图 + 窄屏截图。
+8a. ~~**活母版页 `#/lab` 第一版**~~ 已交付：`src/app/pages/LabPage.tsx`（三栏壳、课程轨道、右栏解读：brief/detail/公式/形状链/「这一格怎么算」乘加展开/画面显示约定/硬件搬运/证据徽章）、`src/app/PlaybackBar.tsx`（21 步刻度、节拍条 BeatStrip 直接改 DOM、重置视角）、`viz3d/camera/views.ts`（8 个方向预设 + `LAB_FOV=22`）、`viz3d/camera/CameraDirector.tsx`、`viz3d/scenes/sceneLayout.ts`（matmul L 形 / 通用输入→输出构图，`resolveScene` 两遍求解相机距离与标签倍数，按 timeline+step+倍数缓存）、`viz3d/scenes/StepScene.tsx`、`viz3d/primitives/notes.ts`（长说明进 DOM）、`viz3d/primitives/layout.ts`（`gridTexts` 是标签文案唯一来源，文本宽度进包围盒）。
+   **待用户反馈后做**：场景占画布比例、matmul 乘积条（A 行 × B 列的 k 项乘积悬在 C 格上方）、高亮醒目度、字体观感、把 dev 页从首页/路由里藏起来。
 8b. ~~Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口~~（已完成，见第三节 `src/viz3d/` 表与 `tests/spike-ab.spec.ts`）→ 依次：`camera/views.ts`（8 个 view 预设）+ CameraDirector（读 `step.camera.view`，`userCameraOverride` 接 OrbitControls）、MatMulRig（A 左 / B 上 / C 右下，复用 TensorGrid）、FlowPacket、KVBlockGrid（现在 KV 块用 TensorGrid 切片显示，不是终态）、NpuModule910B + AnchorRegistry、双层分屏、EffectComposer（Bloom 阈值 0.85，标签亮度 <0.8）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局（把 `SpikeCPage` 的播放条抽成 `app/PlaybackBar`）→ `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言（`tests/` 已有骨架与 `window.__labReady` 约定）。
 
    **开工前已核实的事实（2026-09-06 实际跑 `buildHardwareTimeline(qwen3-0.6b, kv-cache)` 打印所得，不要再猜）**：
@@ -212,5 +214,7 @@
 - **troika `sdfGlyphSize` 必须是 2 的幂**（64/128）。填 96 时所有字形渲染成实心方块，数值断言全过、只有截图能看出来——UI 验收必须看图。
 - Playwright 每次运行会清空 `test-results/`，跑第二个 spec 会删掉第一个的截图；要看图就把两个 spec 一起跑或先复制走。`playwright.config.ts` 已设 `workers: 1`：两个浏览器同时跑时 8B Worker 构建从 2.2 s 变成 6.1 s，帧数断言也会被拖垮。
 - `pnpm gen:font` 现在只扫 ts/tsx 的**字符串**（注释已剥掉），子集 270 KB / 820 字；仍然包含 `forwardLayer.ts` 的 brief/detail 叙述文案（这些走 DOM，不进 3D）。要再瘦身需要把 3D 标签用字与 DOM 文案分开标注，属于后续内容管线的事。
+- 3D 标签的文案只能来自 `primitives/layout.ts` 的 `gridTexts`；布局用它估文本宽度，TensorGrid 用它渲染。绕过它直接在 TensorGrid 里写标签，包围盒就不知道文字多宽，标题会互相撞（已经撞过一次）。
+- `labelScale` 由 `resolveScene` 决定，TensorGrid/gridLayout 只接收；不要在图元里自己按距离放大字。
 - `TensorGrid` 的 `window`/`box` prop 传字面量对象会让 `CellWindow` 每次父组件渲染都重写实例缓冲；页面里要 `useMemo`。换步不要给 TensorGrid 换 `key`（会把 5120 容量的 InstancedMesh 整个重建，耗时数字就不真实了）。
 - 全幅平面上的高亮列带按「格数 × 0.004、至少半格」加宽（1024 列时约 4 格宽），否则一列宽只有半个像素；放大窗口里的高亮是逐格真值。文案里目前没写这条加宽，做章节页时若要严谨可加。

@@ -15,6 +15,7 @@ import { Label } from "../labels/Label";
 import { createCellMaterial, DIM_SCALE } from "../materials/cellMaterial";
 import { fmtCell, type Rect } from "../scale";
 import { vizTheme } from "../theme";
+import { phase } from "./TensorPlane";
 
 /** 实例容量：Spike B 要求 5k 格子仍然 60fps */
 export const MAX_WINDOW_CELLS = 5120;
@@ -35,6 +36,8 @@ export interface CellWindowProps {
   showValues: boolean;
   /** 格值文案，默认 fmtCell */
   format?: ((v: number) => string) | undefined;
+  /** 高亮渐入区间（progress.t） */
+  hiWindow?: [number, number] | undefined;
   /** 换步重写缓冲的耗时（ms） */
   onCost?: ((ms: number) => void) | undefined;
   labelKey?: string | undefined;
@@ -49,6 +52,7 @@ function hiTest(h: Highlight | undefined): ((r: number, c: number) => number) | 
 }
 
 const mat = new Matrix4();
+const FULL: [number, number] = [0, 1];
 
 export function CellWindow({
   view,
@@ -60,6 +64,7 @@ export function CellWindow({
   cellSize,
   showValues,
   format = fmtCell,
+  hiWindow = FULL,
   onCost,
   labelKey = "win",
 }: CellWindowProps) {
@@ -124,7 +129,7 @@ export function CellWindow({
   }, [view, prevView, rect, highlight, prevHighlight, cellSize, scale, attrs, material]);
 
   useFrame(() => {
-    material.uniforms.uT.value = progress.t;
+    material.uniforms.uT.value = phase(progress.t, hiWindow);
   });
 
   const cell = cellSize * 0.86;
@@ -160,6 +165,7 @@ export function CellWindow({
           position={[v.x, v.y, cellSize * 0.4]}
           size={cellSize * 0.3}
           color="ink"
+          mono
         >
           {v.text}
         </Label>

@@ -78,22 +78,22 @@ test("Spike A：标签在四个机位都不重叠、不出画布；中文截图�
   await waitReady(page);
   await expect(page.getByTestId("canvas")).toHaveAttribute("data-step-id", "embed.gather");
 
-  // 值模式 8×8：64 个格值 + 标题/形状/范围/轴/说明。激活只有 S=6 行，用 Q 投影权重 [1024,2048] 才够 8 行
+  // 值模式 8×8：64 个格值 + 标题/形状/范围/行维/列维 = 69。激活只有 S=6 行，用 Q 投影权重 [1024,2048] 才够 8 行
   await page.getByTestId("mode-values").click();
   await page.getByTestId("scrubber").fill("2");
   await expect(page.getByTestId("canvas")).toHaveAttribute("data-step-id", "L0.attn.q");
   await page.getByTestId("slot-b").click();
   await expect(page.getByTestId("status")).toHaveAttribute("data-tensor-id", "L0.attn.q_proj");
-  const front = await settledLabels(page, 70);
+  const front = await settledLabels(page, 69);
   console.log(`正面机位标签数 ${front.length}`);
-  expect(front.length).toBeGreaterThanOrEqual(70);
+  expect(front.length).toBeGreaterThanOrEqual(69);
   await assertLabelsClean(page, front);
   await page.screenshot({ path: "test-results/spike-ab-values-front.png" });
 
   for (const v of ["tilt", "side", "top"]) {
     await page.getByTestId(`view-${v}`).click();
     await page.waitForTimeout(300);
-    const ls = await settledLabels(page, 70);
+    const ls = await settledLabels(page, 69);
     // 斜机位的投影 AABB 偏保守，只断言不出画布
     const box = await page.getByTestId("canvas").boundingBox();
     for (const l of ls) {
@@ -113,7 +113,7 @@ test("Spike B：真实尺寸平面（激活带 / 权重块 / 词表）+ 5120 格
   // 词表 [151936,1024]：gather 步的 A 槽（gather 没有 B）
   await page.getByTestId("slot-a").click();
   await expect(page.getByTestId("status")).toHaveAttribute("data-tensor-id", "model.embed_tokens");
-  await settledLabels(page, 8);
+  await settledLabels(page, 5);
   await page.screenshot({ path: "test-results/spike-ab-vocab.png" });
 
   // 权重块 [1024,2048]：Q 投影的 B 槽
@@ -121,17 +121,18 @@ test("Spike B：真实尺寸平面（激活带 / 权重块 / 词表）+ 5120 格
   await page.getByTestId("scrubber").fill("2");
   await expect(page.getByTestId("canvas")).toHaveAttribute("data-step-id", "L0.attn.q");
   await expect(page.getByTestId("status")).toHaveAttribute("data-tensor-id", "L0.attn.q_proj");
-  await settledLabels(page, 8);
+  await settledLabels(page, 5);
   await page.screenshot({ path: "test-results/spike-ab-weight.png" });
 
   // 激活带 [6,2048]：输出槽
   await page.getByTestId("slot-out").click();
   await expect(page.getByTestId("status")).toHaveAttribute("data-tensor-id", "L0.attn.q");
-  const ls = await settledLabels(page, 8);
+  const ls = await settledLabels(page, 5);
   await assertLabelsClean(page, ls);
   const texts = ls.map((l) => l.text);
   expect(texts.some((t) => t.includes("[S,n_q·d_h]=[6×2048]"))).toBe(true);
-  expect(texts.some((t) => t.includes("显示比例已压缩"))).toBe(true);
+  // 长说明已进 DOM；3D 里只留窗口范围与真实总数
+  expect(texts.some((t) => t.includes("共 2048"))).toBe(true);
   await page.screenshot({ path: "test-results/spike-ab-activation.png" });
 
   // 压力模式：5120 格
@@ -161,7 +162,7 @@ test("Spike B：真实尺寸平面（激活带 / 权重块 / 词表）+ 5120 格
     `21 步换步缓冲重写：最大 ${c2.maxCostMs.toFixed(2)} ms，最后一步 ${c2.lastCostMs.toFixed(2)} ms`,
   );
   expect(c2.maxCostMs).toBeLessThan(2);
-  const kv = await settledLabels(page, 8);
+  const kv = await settledLabels(page, 5);
   expect(kv.map((l) => l.text).some((t) => t.includes("K|V=0"))).toBe(true);
   await page.screenshot({ path: "test-results/spike-ab-kv.png" });
 });

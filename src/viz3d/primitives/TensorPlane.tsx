@@ -37,6 +37,17 @@ export interface TensorPlaneProps {
   highlight?: Highlight | undefined;
   /** 放大窗口在平面上的取景框 */
   rect?: Rect | null | undefined;
+  /** 高亮渐入区间（progress.t） */
+  hiWindow?: [number, number] | undefined;
+}
+
+const FULL: [number, number] = [0, 1];
+
+/** progress.t → 区间内的 0..1 */
+export function phase(t: number, w: [number, number]): number {
+  const [a, b] = w;
+  if (b <= a) return t >= b ? 1 : 0;
+  return Math.min(1, Math.max(0, (t - a) / (b - a)));
 }
 
 export interface TextureShape {
@@ -98,6 +109,7 @@ export const TensorPlane = memo(function TensorPlane({
   scale,
   highlight,
   rect,
+  hiWindow = FULL,
 }: TensorPlaneProps) {
   const theme = vizTheme();
   const material = useMemo(() => createPlaneMaterial(theme), [theme]);
@@ -132,7 +144,7 @@ export const TensorPlane = memo(function TensorPlane({
   }, [material, texture, view, scale, highlight, rect]);
 
   useFrame(() => {
-    material.uniforms.uHiT.value = progress.t;
+    material.uniforms.uHiT.value = phase(progress.t, hiWindow);
   });
 
   // 其余头：后面一摞薄片，只表达数量

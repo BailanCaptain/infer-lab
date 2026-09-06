@@ -1,6 +1,8 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 06:25，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 13:17，供新会话直接接手）
 
-新会话请**先读本文件，再读下面三份**，然后从「五、下一步」第 1 条开始动手，不要重新讨论方案。
+新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 5 条**（第 1–4 条已完成）开始动手，不要重新讨论方案。
+
+> 上手前先看「四、环境事实」最后一条：本会话的模型会中途从 Fable 5.1 掉到 Opus 5，属已查明的正常现象，不必排查。
 
 | 文件 | 作用 |
 |---|---|
@@ -66,9 +68,10 @@
 
 ## 四、环境事实
 
-- Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；项目已 `git init`（HEAD = `1307ebc`）。
+- Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；Claude Code 2.1.263；项目已 `git init`（HEAD = `829ba05`）。
 - 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 改用 Node 加载 Qwen3 `tokenizer.json` 离线生成，结果作为 `[S]` 数据随预设打包。
 - 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build`。
+- **模型会中途从 Fable 5.1 掉到 Opus 5，这是本项目的固有现象，不是配置错误、不是用户操作。** 至今三次会话各触发一次，事件类型 `model_refusal_fallback`、类别 `frontier_llm`、`scope: session`（一旦触发，本次会话余下全部在 Opus 5 上跑），记录在 `~/.claude/projects/C--Users---Desktop-infra-view-new/*.jsonl`。原因是本项目正文长期讨论大模型推理内部机制（Transformer 逐步计算、KV Cache、并行切分、NPU 执行），命中了 Fable 5.1 的前沿模型话题分类器；官方提示语自己写明「有时会发生在安全、正常的对话上」。`~/.claude/settings.json` 里配置的仍是 `claude-fable-5-1[1m]`，所以**下次新会话会再从 Fable 起步，并可能再次掉档**。若要行为稳定，用户可以直接把模型固定成 Opus 5；不要为此改动代码或删减内容。
 
 ## 五、下一步（M1，按序；对应计划 §2.10）
 
@@ -80,6 +83,14 @@
 
 待做：
 5. **`src/sim/hardware/`**：`NpuSpec`（910B anchors：`hbm[0..3]`、`cube`、`vector`、`l2`、`hccs[0..6]`、`pcie`）+ `residencyRules.ts` + `mapResidency(step, spec)` 填充 `Step.hardware`（权重常驻 HBM 权重区；激活 HBM→L2→cube；softmax / RMSNorm / SwiGLU 走 vector；KV 写回 HBM kv 区；每条规则带证据等级，证据 id 注册进 `claims.ts` 同类注册表）。验收：每步 residency/transfers 完整，`validateTimeline` 仍无 issue，transfers.bytes 与 `TensorRecord.bytes` 一致。
+
+   **当前状态（2026-09-06 13:17）：一行代码都还没写。** 已读完全部前置（`Step.hardware` 契约见 `src/sim/timeline/types.ts` 的 `Location` / `HardwareUnit`；`Recorder.step` 默认填 `{residency:{},transfers:[],active:[]}`；`validateTimeline` 已校验「transfer 张量必须在本步 residency 中有落点」）。**卡在第一步：昇腾 910B 的官方事实来源还没查。** 两次会话都是刚要发 WebSearch 就被打断，至今没有发出过任何搜索。
+
+   接手时按这个顺序做：
+   1. 先定事实。需要的是**结构性事实**（M1 不需要峰值算力/带宽数字，那是 M2 工作台的事）：一颗 910B 有几个 HBM stack、AI Core 里 Cube/Vector/Scalar 的分工、片上缓存层级（L2 / L1 / Unified Buffer）、单卡 HCCS 链路数与八卡拓扑、PCIe 形态。优先级：华为昇腾社区与 CANN 官方文档 `[S]` > 昇腾开源仓库 `[C]` > 公开二手资料 `[I]`。查不到的物理细节**必须标「概念剖面」`[A]`**，不要编数字——计划 §2.5 已经明确允许这样做，站内也不得出现自测性能数据（无实机）。
+   2. 证据写进新的 `src/sim/hardware/claims.ts`（**不要往 `model/claims.ts` 里塞**，那是 03 章前向的注册表；两者结构相同、各自独立，`content/sources.ts` 后面统一 re-export）。
+   3. 再写 `NpuSpec` 与 `residencyRules.ts`，最后 `mapResidency`。
+   4. `sim/` 层禁止 import three / react / zustand（`pnpm check:deps` + Biome 会拦）。
 6. **预设句子 token id**：本机无 Python transformers，用 Node 读 Qwen3 `tokenizer.json`（需下载一次，约 11 MB，不入库）离线生成 S≈6–8 的中文短句 id，作为 `[S]` 数据写进 `src/sim/model/presets.ts` 并替换测试里的占位 id（当前 `PLACEHOLDER_IDS` 只是词表内的合法 id，不代表任何句子）。
 7. 之后依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildLayerTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` 应 re-export `sim/model/claims.ts`，不要再抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
 

@@ -4,7 +4,7 @@
  * 数值来源：权重按 [A01] 哈希生成；输入 token id 由调用方提供。
  * 约定：权重形状写作 [in, out]，y = x · W；HF nn.Linear 存 [out, in]（转置），页面同时标注。
  *
- * Step 是唯一真相源：这里写下的 tensors / highlight / op / lineage 就是 3D 与面板显示的全部依据。
+ * Step 是唯一真相源：这里写下的 tensors / highlight / op / lineage 就是表现层与面板显示的全部依据。
  * hardware 字段留空，由 sim/hardware 的 mapResidency 后处理填充。
  */
 import { fmtCount, kvBytesPerTokenLayer } from "../modelspec/analyze";

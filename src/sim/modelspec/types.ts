@@ -1,6 +1,6 @@
 /**
  * ModelSpec：从 HuggingFace config.json 归一化得到的模型结构描述。
- * 它是全站唯一的形状来源：教学章时间轴、3D 网格、工作台数字都从它派生。
+ * 它是全站唯一的形状来源：教学章时间轴、画面图元、工作台数字都从它派生。
  */
 
 export type AttentionKind = "mha" | "gqa" | "mqa" | "mla" | "linear_kda" | "dsa";

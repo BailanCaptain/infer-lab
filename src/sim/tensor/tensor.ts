@@ -40,7 +40,7 @@ export function at2(t: Tensor, i: number, j: number): number {
   return t.data[i * cols + j] ?? 0;
 }
 
-/** 3D 取值 */
+/** 三维取值 */
 export function at3(t: Tensor, i: number, j: number, k: number): number {
   const s1 = t.shape[1] ?? 1;
   const s2 = t.shape[2] ?? 1;

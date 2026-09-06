@@ -1,5 +1,6 @@
 /**
- * Step 是唯一真相源：3D 两层与 DOM 面板只读 Step，不各自推导。
+ * Step 是唯一真相源：表现层与 DOM 面板只读 Step，不各自推导。
+ * camera / beats 字段暂无消费者（表现层重建后会用到），保留。
  */
 import type { NpuSpec } from "../hardware/spec";
 import type { LazyWeight } from "../weights";

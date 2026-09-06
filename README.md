@@ -21,7 +21,18 @@ pnpm build        # 产物在 dist/
 pnpm test:e2e     # Playwright 浏览器验收
 ```
 
-目录与依赖方向：`design ← sim ← timeline ← viz2d ← content ← app`，见 `scripts/check-deps.ts`。视觉合同见 `DESIGN.md`。
+目录与依赖方向：`design ← sim ← timeline ← viz2d ← content ← app`，见 `scripts/check-deps.ts`。
+
+## 文档
+
+| 文件 | 作用 |
+|---|---|
+| `PLAN.md` | **总体大纲**：22 章蓝图、模型工作台、技术架构、M1 任务分解、里程碑 |
+| `HANDOFF.md` | 当前状态与下一步，新会话先读这一页 |
+| `DESIGN.md` | 设计真相源：配色、字阶、圆角、组件、画面纪律 |
+| `PITFALLS.md` | 踩过的坑 |
+| `CLAUDE.md` / `AGENTS.md` | 协作规则（两份内容相同，改动要同步） |
+| `docs/plans/` | 单个 feature 的分步实施计划 |
 
 ## 参考与授权
 

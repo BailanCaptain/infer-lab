@@ -1,6 +1,6 @@
 /**
  * 内容校验：Term / Evidence / Lab 引用必须在注册表中；章节 frontmatter 合法。
- * 注册表与章节尚未建立时直接通过。完整实现见 M1 任务 #10。
+ * 注册表与章节尚未建立时直接通过。完整实现见 PLAN.md 的 M1 任务 10。
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";

@@ -1,4 +1,4 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 13:17，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 硬件证据核验后，供新会话直接接手）
 
 新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 5 条**（第 1–4 条已完成）开始动手，不要重新讨论方案。
 
@@ -38,8 +38,8 @@
 已提交（`git log --oneline`）：
 - `1307ebc` 脚手架：Vite/TS/Tailwind v4 tokens（`src/design/tokens.css`）、`DESIGN.md`、Biome（含 `noRestrictedImports` 分层约束）、vitest、HashRouter 空壳、`.github/workflows/deploy.yml`、自托管字体、`scripts/{check-deps,check-content,gen-font-subset}.ts`。
 - `a440f5c` sim 层基座 + 本文件：`pnpm typecheck && pnpm lint && pnpm test` 首次全通过（2026-09-06 06:07，11 个测试）。
-- `829ba05` **最后一个改代码的 commit**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
-- 其上还有若干只改本文件的 commit，不含任何代码。**判断代码进度以 `829ba05` 为准。**
+- `829ba05` **前向计算基线**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
+- `829ba05` 到 `38f5795` 之间仅改本文件；本轮新增 `src/sim/hardware/claims.ts`，第 5 步进入证据已落库、spec/映射未实现的状态。
 
 工作区唯一的改动是 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo`，tsc 每次运行都会改，三次提交都没带上（处理办法见「六、容易踩的坑」最后一条）。
 
@@ -69,7 +69,7 @@
 
 ## 四、环境事实
 
-- Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；Claude Code 2.1.263；项目已 `git init`（HEAD = `829ba05`）。
+- Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；项目已 `git init`，当前 HEAD 以 `git log` 为准。
 - 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 改用 Node 加载 Qwen3 `tokenizer.json` 离线生成，结果作为 `[S]` 数据随预设打包。
 - 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build`。
 
@@ -84,11 +84,19 @@
 待做：
 5. **`src/sim/hardware/`**：`NpuSpec`（910B anchors：`hbm[0..3]`、`cube`、`vector`、`l2`、`hccs[0..6]`、`pcie`）+ `residencyRules.ts` + `mapResidency(step, spec)` 填充 `Step.hardware`（权重常驻 HBM 权重区；激活 HBM→L2→cube；softmax / RMSNorm / SwiGLU 走 vector；KV 写回 HBM kv 区；每条规则带证据等级，证据 id 注册进 `claims.ts` 同类注册表）。验收：每步 residency/transfers 完整，`validateTimeline` 仍无 issue，transfers.bytes 与 `TensorRecord.bytes` 一致。
 
-   **当前状态（2026-09-06 13:17）：一行代码都还没写。** 已读完全部前置（`Step.hardware` 契约见 `src/sim/timeline/types.ts` 的 `Location` / `HardwareUnit`；`Recorder.step` 默认填 `{residency:{},transfers:[],active:[]}`；`validateTimeline` 已校验「transfer 张量必须在本步 residency 中有落点」）。**卡在第一步：昇腾 910B 的官方事实来源还没查，至今没有发出过任何一次搜索。**
+   **当前状态（2026-09-06）：硬件证据已核验并写入 `src/sim/hardware/claims.ts`；NpuSpec、residencyRules、mapResidency 仍未实现。** `Recorder.step` 仍填空 hardware；现有 `validateTimeline` 只检查 transfer 引用与落点存在，不要求硬件完整或字节一致，后续映射验收需补足。
+
+   本轮证据结论（原件 URL、PDF 页号、核验日期与 SHA-256 均在 claims.ts）：
+   - CANN 8.1.RC1.alpha002 官方 PDF，文档版本 01（实际原件日期 2025-08-26），阅读器 p31–35 已下载、抽取并逐页渲染核对。确认 AIC/AIV 分离、各自 Scalar、Cube 的 L1/L0 路径、Vector 的 UB 路径及核外 L2。注意 p31 上半图是**耦合**架构；A2 应用 p32 的**分离**架构图。不要复制文档中的具体执行单元数量（p32 图含 FixPipe，文字枚举却未计入）。
+   - 华为 R24.0（25H2）彩页 p3 原页确认 Atlas 800I A2 八模组 HCCS 全互联、使用 HBM。每卡七个邻居是拓扑推导 `[HW-D01]`，不是物理 lane 数。搜索命中的 Atlas 200I A2 边缘产品 npu-smi 文档不适用于 800I A2，不能借其 lane 编号证明目标规格。
+   - **尚未直接证实**：910B 子型号 HBM 堆叠数、物理 HCCS lane 数/端口编号、Host 到目标模组的 PCIe 接线/代际/宽度。彩页有容量/算力占位值，PCIe 字段仅指服务器扩展插槽。禁止据此填 NPU 规格。
+   - 注册表共 12 条（5 S、1 D、6 A），使用 `HW-` 前缀；只通过 type import 复用现有 Claim 类型，证据数据独立。HBM 槽位/区域、算子到单元映射、折叠搬运路径、字节估算均显式标教学假设。
+   - 下一段实现先按已核实路径设计 spec；`hbm[0..3]` 只能是概念展示槽。若沿用 `HBM→L2→cube/vector`，必须解释省略的 L1/L0/UB/搬运单元，不能声称整张量片上驻留或每次命中 L2。
+   - 本轮验证：`pnpm check` 通过（51/51 测试，类型/Lint/依赖通过，内容无章节跳过，Biome 两条既有配置提示）；`pnpm build` 通过；`pnpm exec tsx -e` 检查 12 条声明的 key/id/类别、官方来源元信息、内部引用和前向编号不冲突，全部通过。未改 UI，未做浏览器验收；也未新增仿真功能或功能测试。
 
    接手时按这个顺序做：
-   1. 先定事实。需要的是**结构性事实**（M1 不需要峰值算力/带宽数字，那是 M2 工作台的事）：一颗 910B 有几个 HBM stack、AI Core 里 Cube/Vector/Scalar 的分工、片上缓存层级（L2 / L1 / Unified Buffer）、单卡 HCCS 链路数与八卡拓扑、PCIe 形态。优先级：华为昇腾社区与 CANN 官方文档 `[S]` > 昇腾开源仓库 `[C]` > 公开二手资料 `[I]`。查不到的物理细节**必须标「概念剖面」`[A]`**，不要编数字——计划 §2.5 已经明确允许这样做，站内也不得出现自测性能数据（无实机）。
-   2. 证据写进新的 `src/sim/hardware/claims.ts`（**不要往 `model/claims.ts` 里塞**，那是 03 章前向的注册表；两者结构相同、各自独立，`content/sources.ts` 后面统一 re-export）。
+   1. 结构性事实已完成首轮核验（见上）；未证实细节按 `[A]` 概念剖面处理，不编物理数字。M1 不需要峰值算力/带宽，也不能把 Node 仿真耗时作为 NPU 实测。
+   2. 复用已有 `src/sim/hardware/claims.ts`；后续证据补在硬件注册表，`content/sources.ts` 以后统一 re-export，不能抄一份。追加 HW 编号后，前向专用 `assertClaimIds` 不能直接校验合并后的证据，需在组合层统一校验。
    3. 再写 `NpuSpec` 与 `residencyRules.ts`，最后 `mapResidency`。
    4. `sim/` 层禁止 import three / react / zustand（`pnpm check:deps` + Biome 会拦）。
 6. **预设句子 token id**：本机无 Python transformers，用 Node 读 Qwen3 `tokenizer.json`（需下载一次，约 11 MB，不入库）离线生成 S≈6–8 的中文短句 id，作为 `[S]` 数据写进 `src/sim/model/presets.ts` 并替换测试里的占位 id（当前 `PLACEHOLDER_IDS` 只是词表内的合法 id，不代表任何句子）。

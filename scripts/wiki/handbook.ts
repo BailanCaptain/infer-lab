@@ -29,7 +29,14 @@ const H2_TO_KEY = new Map<string, HandbookSliceKey>(
 );
 
 export function sliceHandbook(content: string): HandbookSlices {
-  const slices: HandbookSlices = { pageFormat: "", extract: "", integrate: "", query: "", lint: "", human: "" };
+  const slices: HandbookSlices = {
+    pageFormat: "",
+    extract: "",
+    integrate: "",
+    query: "",
+    lint: "",
+    human: "",
+  };
   let current: HandbookSliceKey | null = null;
   for (const line of content.split(/\r?\n/)) {
     const m = /^##\s+(.+?)\s*$/.exec(line);

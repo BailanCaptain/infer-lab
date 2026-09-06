@@ -27,7 +27,9 @@ describe("pageFrontmatterSchema", () => {
   });
   it("sources 只接受 repo@commit:path#L 或 URL", () => {
     expect(() => pageFrontmatterSchema.parse({ ...ok, sources: ["attention_v1.py"] })).toThrow();
-    expect(pageFrontmatterSchema.parse({ ...ok, sources: ["https://docs.vllm.ai/x"] }).sources).toHaveLength(1);
+    expect(pageFrontmatterSchema.parse({ ...ok, sources: ["https://docs.vllm.ai/x"] }).sources).toHaveLength(
+      1,
+    );
   });
   it("id 必须 kebab-case，evidence 只认七档，updated 必须是日期串", () => {
     expect(() => pageFrontmatterSchema.parse({ ...ok, id: "KV_Cache" })).toThrow();

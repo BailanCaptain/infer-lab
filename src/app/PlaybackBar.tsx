@@ -31,11 +31,11 @@ function BeatStrip({ beats }: { beats: { at: number; label: string }[] }) {
     return () => cancelAnimationFrame(raf);
   }, [beats]);
   return (
-    <div ref={ref} className="flex gap-1" data-testid="beats">
+    <div ref={ref} className="flex shrink-0 gap-1" data-testid="beats">
       {beats.map((b) => (
         <span
           key={b.label}
-          className="rounded-field border border-line px-1.5 text-caption text-ink-faint data-[active=1]:border-accent data-[active=1]:text-accent"
+          className="shrink-0 whitespace-nowrap rounded-field border border-line px-1.5 text-caption text-ink-faint data-[active=1]:border-accent data-[active=1]:text-accent"
         >
           {b.label}
         </span>
@@ -49,7 +49,7 @@ const btnBase =
 export const btnGhost = `${btnBase} border-line bg-surface-elevated text-ink hover:border-line-strong`;
 export const btnPrimary = `${btnBase} border-accent bg-accent text-ink-inverse hover:bg-accent-hover`;
 
-export function PlaybackBar() {
+export function PlaybackBar({ variant = "overlay" }: { variant?: "overlay" | "bar" }) {
   const playing = usePlayback((s) => s.playing);
   const stepIndex = usePlayback((s) => s.stepIndex);
   const count = usePlayback(selectStepCount);
@@ -57,7 +57,13 @@ export function PlaybackBar() {
   const step = usePlayback(selectStep);
   const a = usePlayback.getState();
   return (
-    <div className="absolute inset-x-0 bottom-0 flex h-14 items-center gap-2 border-line border-t bg-surface/95 px-3">
+    <div
+      className={
+        variant === "bar"
+          ? "flex h-14 items-center gap-2 rounded-card border border-line bg-surface-elevated px-3 shadow-card"
+          : "absolute inset-x-0 bottom-0 flex h-14 items-center gap-2 border-line border-t bg-surface/95 px-3"
+      }
+    >
       <button type="button" className={btnGhost} data-testid="first" onClick={a.first} aria-label="第一步">
         <ChevronFirst size={16} />
       </button>

@@ -5,13 +5,14 @@
 import { Color } from "three";
 
 const KEYS = {
-  canvas: "--color-canvas",
-  surface: "--color-surface",
-  ink: "--color-ink",
-  inkMuted: "--color-ink-muted",
-  inkFaint: "--color-ink-faint",
-  line: "--color-line",
-  lineStrong: "--color-line-strong",
+  /* 3D 画布是深色内嵌面板：读 scene-* 而不是页面的 canvas/ink */
+  canvas: "--color-scene",
+  surface: "--color-scene-panel",
+  ink: "--color-scene-text",
+  inkMuted: "--color-scene-muted",
+  inkFaint: "--color-scene-muted",
+  line: "--color-scene-line",
+  lineStrong: "--color-scene-line",
   accent: "--color-accent",
   token: "--color-token",
   weight: "--color-weight",
@@ -28,23 +29,23 @@ export type VizColorName = keyof typeof KEYS;
 
 /** CSS 缺失时的兜底（与 tokens.css 保持一致），保证无样式环境也能渲染 */
 const FALLBACK: Record<VizColorName, string> = {
-  canvas: "#0b0f14",
-  surface: "#121820",
-  ink: "#e6edf5",
-  inkMuted: "#9aa8ba",
-  inkFaint: "#64728a",
-  line: "#263242",
-  lineStrong: "#34435a",
-  accent: "#f28c38",
-  token: "#38d6d0",
-  weight: "#e2b25a",
-  kv: "#5b8def",
-  danger: "#ef5a5a",
-  neg: "#38d6d0",
-  pos: "#f0a94a",
-  zero: "#0d1219",
-  mask: "#2b3546",
-  grid: "#1d2634",
+  canvas: "#101a2a",
+  surface: "#19263a",
+  ink: "#f1f5fc",
+  inkMuted: "#aabbd0",
+  inkFaint: "#aabbd0",
+  line: "#324157",
+  lineStrong: "#324157",
+  accent: "#e85b32",
+  token: "#087f73",
+  weight: "#c78300",
+  kv: "#4c65b6",
+  danger: "#b54237",
+  neg: "#4fd1c5",
+  pos: "#f2a94a",
+  zero: "#121c2c",
+  mask: "#33415a",
+  grid: "#1c2a3f",
 };
 
 export type VizTheme = Record<VizColorName, Color>;

@@ -2,74 +2,94 @@
 
 /* ============================================================
    设计真相源（与 DESIGN.md 一致）。组件里只写语义 token 类，禁裸色。
+   2026-09-06 改为浅色暖底：页面浅色，课程轨道与 3D 画布是深色内嵌面板。
    ============================================================ */
 @theme {
-  /* 画布与表面：深蓝近黑，四档 */
-  --color-canvas: #0b0f14;
-  --color-surface-sunken: #0e131a;
-  --color-surface: #121820;
-  --color-surface-elevated: #171f29;
-  --color-surface-floating: #1d2734;
-  --color-line: #263242;
-  --color-line-strong: #34435a;
+  /* 页面表面：暖白四档 */
+  --color-canvas: #f5f2ea;
+  --color-surface-sunken: #ece9df;
+  --color-surface: #fbfaf6;
+  --color-surface-elevated: #ffffff;
+  --color-surface-floating: #ffffff;
+  --color-line: #d8d8cf;
+  --color-line-strong: #b8bcb5;
 
   /* 文字四档 */
-  --color-ink: #e6edf5;
-  --color-ink-muted: #9aa8ba;
-  --color-ink-faint: #64728a;
-  --color-ink-inverse: #0b0f14;
+  --color-ink: #17211f;
+  --color-ink-muted: #66716d;
+  --color-ink-faint: #8a928f;
+  --color-ink-inverse: #ffffff;
+
+  /* 深色内嵌面板（课程轨道、3D 画布）：在浅色页面里成块出现 */
+  --color-rail: #17211f;
+  --color-rail-hover: #22302c;
+  --color-rail-active: #2a3733;
+  --color-rail-line: #394541;
+  --color-rail-text: #aab3af;
+  --color-rail-muted: #82908a;
+  --color-scene: #101a2a;
+  --color-scene-panel: #19263a;
+  --color-scene-line: #324157;
+  --color-scene-text: #f1f5fc;
+  --color-scene-muted: #aabbd0;
 
   /* 唯一 accent：橙 = 当前动作 / 播放头 / 主按钮 */
-  --color-accent: #f28c38;
-  --color-accent-hover: #ff9f4d;
-  --color-accent-soft: #3a2415;
+  --color-accent: #e85b32;
+  --color-accent-hover: #c84725;
+  --color-accent-soft: #fff0e9;
 
   /* 对象身份色（正文与 3D 共用） */
-  --color-token: #38d6d0; /* Token / 激活 = 青 */
-  --color-weight: #e2b25a; /* 权重 = 暖金 */
-  --color-kv: #5b8def; /* KV Cache = 蓝 */
-  --color-comm: #b07cf0; /* 通信 / collective = 紫 */
-  --color-control: #8b96a8; /* 控制面 / 调度 = 灰 */
-  --color-danger: #ef5a5a; /* 错误 / 禁配 = 红 */
+  --color-token: #087f73; /* Token / 激活 = 青 */
+  --color-token-soft: #ddf4ef;
+  --color-weight: #c78300; /* 权重 / 计算 = 琥珀 */
+  --color-weight-soft: #fff4cf;
+  --color-kv: #4c65b6; /* KV Cache / 显存 = 蓝 */
+  --color-kv-soft: #e8edff;
+  --color-comm: #9a4b86; /* 通信 / collective = 紫 */
+  --color-comm-soft: #f7e7f2;
+  --color-control: #66716d; /* 控制面 / 调度 = 灰 */
+  --color-danger: #b54237; /* 错误 / 禁配 = 红 */
 
-  /* 3D 数值场色阶：负青 / 正琥珀 / 0 近黑；掩码格与格线不参与色阶 */
-  --color-viz-neg: #38d6d0;
-  --color-viz-pos: #f0a94a;
-  --color-viz-zero: #0d1219;
-  --color-viz-mask: #2b3546;
-  --color-viz-grid: #1d2634;
+  /* 3D 数值场色阶（深色画布上）：负青 / 正琥珀 / 0 近黑；掩码格与格线不参与色阶 */
+  --color-viz-neg: #4fd1c5;
+  --color-viz-pos: #f2a94a;
+  --color-viz-zero: #121c2c;
+  --color-viz-mask: #33415a;
+  --color-viz-grid: #1c2a3f;
 
   /* 并行维度色（沿用并行策略图片包） */
-  --color-tp: #4ea3f5;
-  --color-pp: #f5a54e;
-  --color-dp: #5ecf7a;
-  --color-ep: #c774f2;
-  --color-cp: #3ec9d9;
-  --color-pcp: #f08a3c;
-  --color-dcp: #e458c8;
+  --color-tp: #2f7fd6;
+  --color-pp: #e0862a;
+  --color-dp: #3c9a5f;
+  --color-ep: #a24fc9;
+  --color-cp: #1f9fae;
+  --color-pcp: #d96f26;
+  --color-dcp: #c9459f;
 
   /* rank 轮转色 */
-  --color-rank0: #ef6b6b;
-  --color-rank1: #5ecf7a;
-  --color-rank2: #4ea3f5;
-  --color-rank3: #d9c24e;
+  --color-rank0: #2c879b;
+  --color-rank1: #6965b5;
+  --color-rank2: #b77730;
+  --color-rank3: #4b8a62;
 
   /* 证据等级 */
-  --color-ev-official: #5ecf7a;
-  --color-ev-source: #4ea3f5;
-  --color-ev-derived: #38d6d0;
-  --color-ev-assumption: #e2b25a;
-  --color-ev-inference: #f5d94e;
-  --color-ev-measured: #b07cf0;
-  --color-ev-conflict: #ef5a5a;
+  --color-ev-official: #3c7d51;
+  --color-ev-source: #2f6fb8;
+  --color-ev-derived: #087f73;
+  --color-ev-assumption: #936300;
+  --color-ev-inference: #b08a00;
+  --color-ev-measured: #7a4a9e;
+  --color-ev-conflict: #b54237;
 
   /* 状态色 */
-  --color-success: #5ecf7a;
-  --color-warning: #f5c04e;
-  --color-info: #5b8def;
+  --color-success: #3c7d51;
+  --color-warning: #936300;
+  --color-info: #4c65b6;
 
   /* 字体 */
   --font-sans:
+    "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display:
     "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Consolas", "Menlo", monospace;
 
@@ -88,22 +108,25 @@
   --text-lead--line-height: 26px;
   --text-title: 20px;
   --text-title--line-height: 28px;
-  --text-display: 28px;
-  --text-display--line-height: 36px;
+  --text-display: 34px;
+  --text-display--line-height: 40px;
+  --text-hero: 48px;
+  --text-hero--line-height: 52px;
 
-  /* 圆角四档 */
-  --radius-field: 8px;
-  --radius-card: 12px;
-  --radius-panel: 16px;
-  --radius-floating: 20px;
+  /* 圆角三档 + 一档小 */
+  --radius-field: 10px;
+  --radius-card: 16px;
+  --radius-panel: 24px;
+  --radius-floating: 24px;
 
-  /* 阴影：只给真浮层 */
-  --shadow-floating: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 0 1px rgba(242, 140, 56, 0.35), 0 0 18px rgba(242, 140, 56, 0.25);
+  /* 阴影：轻 */
+  --shadow-card: 0 5px 18px rgba(23, 33, 31, 0.07);
+  --shadow-floating: 0 18px 50px rgba(23, 33, 31, 0.14);
+  --shadow-glow: 0 8px 22px rgba(232, 91, 50, 0.2);
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -123,6 +146,23 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* 显示体：很重、字距收紧 */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+/* 眉题：橙色等宽大写小字 */
+.eyebrow {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 /* 数字、shape、rank、来源号：等宽 + tabular */
 .num,
 code,
@@ -132,18 +172,15 @@ kbd,
   font-variant-numeric: tabular-nums;
 }
 
+::selection {
+  background: #f5b8a5;
+  color: var(--color-ink);
+}
+
 /* 全局焦点环：2px accent */
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-}
-
-/* 深色画布上的极淡网格 */
-.canvas-grid {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
 }
 
 @media (prefers-reduced-motion: reduce) {

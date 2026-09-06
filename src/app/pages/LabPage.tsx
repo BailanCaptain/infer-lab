@@ -22,7 +22,7 @@ import {
 import { CameraDirector, Clock, displayNotes, getSceneLayout, LAB_FOV, StepScene } from "../../viz3d";
 import { PlaybackBar } from "../PlaybackBar";
 
-const CHAPTER = { id: "03", title: "Transformer 层的双层数据流" };
+const CHAPTER = { id: "03", title: "Transformer 层的双层数据流", eyebrow: "CH.03 · MODEL LAYER" };
 const HARDWARE = "Atlas 800I A2 · 昇腾 910B（概念剖面）";
 type LabWindow = Window & { __labReady?: boolean };
 
@@ -114,20 +114,28 @@ function StepList({ timeline }: { timeline: Timeline }) {
         return (
           <li key={s.id}>
             {header && (
-              <p className="mt-3 mb-1 px-2 text-caption text-ink-faint uppercase tracking-wide">{g}</p>
+              <p className="mono mt-4 mb-1 px-2 text-micro text-rail-muted uppercase tracking-[0.12em]">
+                {g}
+              </p>
             )}
             <button
               type="button"
               onClick={() => seek(i)}
-              className={`flex w-full items-baseline gap-2 rounded-field px-2 py-1 text-left text-compact ${
-                on ? "bg-accent-soft text-ink" : "text-ink-muted hover:bg-surface-elevated hover:text-ink"
+              className={`flex w-full items-center gap-2.5 rounded-field px-1.5 py-1.5 text-left text-compact ${
+                on
+                  ? "bg-rail-active text-ink-inverse"
+                  : "text-rail-text hover:bg-rail-hover hover:text-ink-inverse"
               }`}
               aria-current={on ? "step" : undefined}
             >
-              <span className={`mono w-5 shrink-0 text-caption ${on ? "text-accent" : "text-ink-faint"}`}>
+              <span
+                className={`mono grid h-6 w-6 shrink-0 place-items-center rounded-[7px] border text-micro font-semibold ${
+                  on ? "border-accent bg-accent text-ink-inverse" : "border-rail-line text-rail-text"
+                }`}
+              >
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="truncate">{s.title}</span>
+              <span className="truncate font-medium">{s.title}</span>
             </button>
           </li>
         );
@@ -152,13 +160,16 @@ function Reading({ step, timeline, index }: { step: Step; timeline: Timeline; in
         <p className="mono text-caption text-ink-faint">
           第 {index + 1} / {timeline.steps.length} 步 · {step.id}
         </p>
-        <h2 className="mt-1 text-title font-semibold" data-testid="narration-title">
+        <h2 className="display mt-1 text-title" data-testid="narration-title">
           {step.title}
         </h2>
         <p className="mt-2 text-lead text-ink">{step.narration.brief}</p>
       </header>
 
-      <p className="text-body text-ink-muted">{step.narration.detail}</p>
+      <details className="group rounded-card border border-line bg-surface-elevated px-4 py-3">
+        <summary className="cursor-pointer select-none text-compact font-semibold text-ink">详细解释</summary>
+        <p className="mt-2 text-body text-ink-muted">{step.narration.detail}</p>
+      </details>
 
       {step.narration.formula && (
         <section>
@@ -206,8 +217,10 @@ function Reading({ step, timeline, index }: { step: Step; timeline: Timeline; in
         </section>
       )}
 
-      <section>
-        <h3 className="text-label font-medium text-ink-muted">硬件层（单 NPU）</h3>
+      <details className="rounded-card border border-line bg-surface-elevated px-4 py-3">
+        <summary className="cursor-pointer select-none text-compact font-semibold text-ink">
+          硬件层（单 NPU）
+        </summary>
         <div className="mt-1 flex flex-wrap gap-1">
           {hw.active.map((u) => (
             <span
@@ -232,11 +245,13 @@ function Reading({ step, timeline, index }: { step: Step; timeline: Timeline; in
           </ul>
         )}
         {hw.explanation && <p className="mt-2 text-caption text-ink-faint">{hw.explanation}</p>}
-      </section>
+      </details>
 
-      <section>
-        <h3 className="text-label font-medium text-ink-muted">证据</h3>
-        <div className="mt-1 flex flex-wrap gap-1">
+      <details className="rounded-card border border-line bg-surface-elevated px-4 py-3">
+        <summary className="cursor-pointer select-none text-compact font-semibold text-ink">
+          证据来源 <span className="mono text-caption text-ink-faint">{step.evidence.length}</span>
+        </summary>
+        <div className="mt-2 flex flex-wrap gap-1">
           {step.evidence.map((e) => {
             const k = evKind(e);
             return (
@@ -250,7 +265,7 @@ function Reading({ step, timeline, index }: { step: Step; timeline: Timeline; in
             );
           })}
         </div>
-      </section>
+      </details>
     </div>
   );
 }
@@ -280,91 +295,112 @@ export function LabPage() {
   }, [status]);
 
   return (
-    <div className="grid h-dvh grid-rows-[48px_minmax(0,1fr)] bg-canvas text-ink">
-      <header className="flex items-center gap-4 border-line border-b bg-surface px-4">
-        <span className="mono text-label text-ink-muted">infer-lab</span>
-        <span className="text-ink-faint">/</span>
-        <span className="text-compact">
-          <span className="mono text-ink-muted">{CHAPTER.id}</span> · {CHAPTER.title}
-        </span>
-        <div className="ml-auto flex items-center gap-2">
-          <select
-            className={select}
-            value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
-            aria-label="模型"
-            data-testid="model"
-          >
-            {MODEL_PRESETS.filter((m) => m.id !== "qwen3-30b-a3b").map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className={select}
-            value={presetId}
-            onChange={(e) => setPresetId(e.target.value)}
-            aria-label="输入句子"
-            data-testid="preset"
-          >
-            {TOKEN_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.text}
-              </option>
-            ))}
-          </select>
-          <span className="hidden text-caption text-ink-muted xl:inline">{HARDWARE}</span>
+    <div className="grid h-dvh grid-cols-1 bg-canvas text-ink lg:grid-cols-[248px_minmax(0,1fr)]">
+      {/* 课程轨道：深色固定栏 */}
+      <aside className="hidden min-h-0 flex-col bg-rail px-3.5 py-4 text-rail-text lg:flex">
+        <a href="#/" className="flex items-center gap-2.5 px-1 text-ink-inverse no-underline">
+          <span className="mono grid h-8 w-8 place-items-center rounded-[10px] bg-accent text-micro font-extrabold">
+            IL
+          </span>
+          <span className="flex flex-col">
+            <b className="text-compact">infer-lab</b>
+            <small className="text-micro text-rail-muted tracking-wide">推理系统学习图谱</small>
+          </span>
+        </a>
+        <div className="mono mt-6 mb-1 flex justify-between px-1 text-micro text-rail-muted tracking-[0.08em]">
+          <span>LEARNING PATH</span>
+          <span>
+            {String(stepIndex + 1).padStart(2, "0")} / {timeline?.steps.length ?? 21}
+          </span>
         </div>
-      </header>
+        <div className="min-h-0 flex-1 overflow-y-auto">{timeline && <StepList timeline={timeline} />}</div>
+      </aside>
 
-      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[232px_minmax(0,1fr)_380px]">
-        <aside className="hidden min-h-0 overflow-y-auto border-line border-r bg-surface px-2 py-3 lg:block">
-          <p className="px-2 text-caption text-ink-faint">课程轨道</p>
-          {timeline && <StepList timeline={timeline} />}
-        </aside>
-
-        <section
-          className="relative aspect-[4/3] min-h-0 bg-canvas lg:aspect-auto"
-          data-testid="canvas"
-          data-step-id={step?.id ?? ""}
-        >
-          <div className="absolute inset-0 aspect-auto">
-            <Canvas camera={{ position: [0, 0.5, 16], fov: LAB_FOV }} dpr={[1, 2]} frameloop="always">
-              <ambientLight intensity={1.1} />
-              <directionalLight position={[3, 6, 8]} intensity={1.2} />
-              <Clock />
-              <CameraDirector />
-              {timeline && <StepScene />}
-            </Canvas>
+      <div className="grid min-h-0 grid-rows-[54px_minmax(0,1fr)]">
+        <header className="flex items-center gap-3 border-line border-b bg-canvas/90 px-5 backdrop-blur">
+          <span className="text-caption text-ink-muted">推理系统</span>
+          <span className="text-ink-faint">/</span>
+          <span className="text-caption font-semibold text-ink">{CHAPTER.title}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <select
+              className={select}
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+              aria-label="模型"
+              data-testid="model"
+            >
+              {MODEL_PRESETS.filter((m) => m.id !== "qwen3-30b-a3b").map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className={select}
+              value={presetId}
+              onChange={(e) => setPresetId(e.target.value)}
+              aria-label="输入句子"
+              data-testid="preset"
+            >
+              {TOKEN_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.text}
+                </option>
+              ))}
+            </select>
+            <span className="hidden text-caption text-ink-muted xl:inline">{HARDWARE}</span>
           </div>
-          {status === "loading" && (
-            <div className="absolute inset-0 flex items-center justify-center text-compact text-ink-muted">
-              Worker 正在计算这一层的 21 步…
-            </div>
-          )}
-          {status === "error" && (
-            <div className="absolute inset-0 flex items-center justify-center text-compact text-danger">
-              错误：{error}
-            </div>
-          )}
-          {step && (
-            <div className="pointer-events-none absolute top-3 left-3 rounded-field bg-surface/85 px-3 py-1.5 text-compact">
-              <span className="mono text-accent">{stepIndex + 1}</span>
-              <span className="mono text-ink-faint">/{timeline?.steps.length ?? 0}</span>
-              <span className="ml-2">{step.narration.brief}</span>
-            </div>
-          )}
-          <PlaybackBar />
-        </section>
+        </header>
 
-        <aside className="min-h-0 overflow-y-auto border-line border-t bg-surface px-5 py-4 lg:border-t-0 lg:border-l">
-          {step && timeline ? (
-            <Reading step={step} timeline={timeline} index={stepIndex} />
-          ) : (
-            <p className="text-compact text-ink-muted">加载中…</p>
-          )}
-        </aside>
+        <div className="grid min-h-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 pt-4 pb-5">
+            <div>
+              <p className="eyebrow">{CHAPTER.eyebrow}</p>
+              <h1 className="display mt-1 text-display">{CHAPTER.title}</h1>
+            </div>
+            <PlaybackBar variant="bar" />
+            <div
+              className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-panel bg-scene text-scene-text"
+              data-testid="canvas"
+              data-step-id={step?.id ?? ""}
+            >
+              <div className="absolute inset-0">
+                <Canvas camera={{ position: [0, 0.5, 16], fov: LAB_FOV }} dpr={[1, 2]} frameloop="always">
+                  <ambientLight intensity={1.1} />
+                  <directionalLight position={[3, 6, 8]} intensity={1.2} />
+                  <Clock />
+                  <CameraDirector />
+                  {timeline && <StepScene />}
+                </Canvas>
+              </div>
+              {status === "loading" && (
+                <div className="absolute inset-0 flex items-center justify-center text-compact text-scene-muted">
+                  Worker 正在计算这一层的 21 步…
+                </div>
+              )}
+              {status === "error" && (
+                <div className="absolute inset-0 flex items-center justify-center text-compact text-danger">
+                  错误：{error}
+                </div>
+              )}
+              {step && (
+                <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-field bg-scene-panel/90 px-3 py-1.5 text-compact">
+                  <span className="mono text-accent">{stepIndex + 1}</span>
+                  <span className="mono text-scene-muted">/{timeline?.steps.length ?? 0}</span>
+                  <span>{step.narration.brief}</span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="min-h-0 overflow-y-auto border-line border-t bg-surface px-5 py-4 xl:border-t-0 xl:border-l">
+            {step && timeline ? (
+              <Reading step={step} timeline={timeline} index={stepIndex} />
+            ) : (
+              <p className="text-compact text-ink-muted">加载中…</p>
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );

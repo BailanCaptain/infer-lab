@@ -32,7 +32,9 @@ pnpm test:e2e     # Playwright 浏览器验收
 | `DESIGN.md` | 设计真相源：配色、字阶、圆角、组件、画面纪律 |
 | `PITFALLS.md` | 踩过的坑 |
 | `CLAUDE.md` / `AGENTS.md` | 协作规则（两份内容相同，改动要同步） |
+| `docs/features/` | 单个 feature 的聚合文件（Why / What / AC / 决策 / Timeline），索引见 `PLAN.md` 七 |
 | `docs/plans/` | 单个 feature 的分步实施计划 |
+| `wiki/HANDBOOK.md` | 知识库 schema 真相源（F001） |
 
 ## 参考与授权
 

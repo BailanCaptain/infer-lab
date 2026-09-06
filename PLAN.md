@@ -296,3 +296,15 @@ M1 = 地基 + 样板章 `03` + 工作台 v1。
 ## 六、单个 feature 的实施计划
 
 本文件是总体大纲。具体到一个 feature 时，按 Multi-Agent 的 `writing-plans` skill 写分步实施计划，存到 `docs/plans/{feature-name}-plan.md`：每步一个动作、写精确文件路径与完整代码、写精确命令与预期输出、先红后绿、频繁提交。
+
+---
+
+## 七、Feature 索引
+
+单个 feature 的聚合文件放 `docs/features/F{NNN}-name.md`（Status / Why / What / AC / 决策 / Timeline），实施计划放 `docs/plans/`，写法参照 Multi-Agent 的 `feat-lifecycle` 与 `writing-plans` skill。
+
+| ID | 名称 | 状态 | 文档 |
+|---|---|---|---|
+| F001 | LLM Wiki：课程知识库 + 右侧问答（agent 写、人审、进 git；`#/wiki` 阅读与聊天；批量灌种 vLLM-Ascend 特性与 30 个术语） | spec | [F001](docs/features/F001-llm-wiki.md) · [计划](docs/plans/llm-wiki-plan.md) |
+
+F001 同时给 §2.6 内容管线提供 Term 注册表：`<Term id>` 的 id 与摘要来自 `src/content/wiki/registry.json`（由 `wiki/concepts/` 派生），不再另建 terms 表。

@@ -19,7 +19,7 @@ export const LABEL_FONT = `${import.meta.env.BASE_URL}fonts/notosc-3d.woff`;
 export const SDF_GLYPH_SIZE = 128;
 
 /** 字号档（世界单位）：与 DESIGN.md 的字阶同源，3D 里只留三档 */
-export const LABEL_SIZE = { title: 0.2, body: 0.15, micro: 0.11 } as const;
+export const LABEL_SIZE = { title: 0.26, body: 0.19, micro: 0.15 } as const;
 
 export type LabelSize = keyof typeof LABEL_SIZE;
 
@@ -71,7 +71,7 @@ export function Label({
       rotation={rotation}
       {...(maxWidth === undefined ? {} : { maxWidth })}
       sdfGlyphSize={SDF_GLYPH_SIZE}
-      outlineWidth={outline ? fontSize * 0.09 : 0}
+      outlineWidth={outline ? fontSize * 0.07 : 0}
       outlineColor={theme.canvas}
       outlineOpacity={0.95}
       renderOrder={10}

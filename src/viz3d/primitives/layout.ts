@@ -10,7 +10,7 @@ export const GAP = 0.52;
 /** 窗口上方：标题、形状两行标签占的高度 */
 export const TOP_LANE = 0.72;
 /** 平面下方：列维 + 最多三条说明 */
-export const BOTTOM_LANE = 1.15;
+export const BOTTOM_LANE = 1.35;
 /** 左右车道：行维竖排标签与窗口范围标签 */
 export const SIDE_LANE = 1.4;
 

@@ -158,7 +158,7 @@ export function CellWindow({
           key={v.key}
           id={`${labelKey}.cell.${v.key}`}
           position={[v.x, v.y, cellSize * 0.4]}
-          size={cellSize * 0.26}
+          size={cellSize * 0.3}
           color="ink"
         >
           {v.text}

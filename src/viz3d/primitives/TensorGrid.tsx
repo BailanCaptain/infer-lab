@@ -215,20 +215,20 @@ export function TensorGrid({
         position={[-size.w / 2 - 0.24, 0, 0]}
         rotation={[0, 0, Math.PI / 2]}
         size="micro"
-        color="inkFaint"
+        color="inkMuted"
       >
         {`${view.rowDim}=${view.rows}`}
       </Label>
-      <Label id={`${labelKey}.coldim`} position={[0, -size.h / 2 - 0.24, 0]} size="micro" color="inkFaint">
+      <Label id={`${labelKey}.coldim`} position={[0, -size.h / 2 - 0.24, 0]} size="micro" color="inkMuted">
         {`${view.colDim}=${view.cols}`}
       </Label>
       {notes.map((n, i) => (
         <Label
           key={n}
           id={`${labelKey}.note${i}`}
-          position={[0, -size.h / 2 - 0.5 - i * 0.22, 0]}
+          position={[0, -size.h / 2 - 0.52 - i * 0.26, 0]}
           size="micro"
-          color="inkFaint"
+          color="inkMuted"
         >
           {n}
         </Label>

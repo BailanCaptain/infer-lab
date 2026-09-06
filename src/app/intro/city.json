@@ -1,0 +1,85 @@
+{
+  "seed": 20260907,
+  "model": "compute-city.glb",
+  "palette": {
+    "sky": "#e7e8dd",
+    "fog": "#e7e8dd",
+    "ink": "#293e38",
+    "accent": "#405e50",
+    "concrete": "#abb0a1",
+    "edge": "#cdd0bb",
+    "metal": "#758780",
+    "dark": "#344b46",
+    "glass": "#536f68",
+    "road": "#6c817b",
+    "water": "#aebfba",
+    "light": "#ffe7a1",
+    "signal": "#bbebe0",
+    "tree": "#53684a",
+    "skin": "#ae9477",
+    "clothes": "#27332f"
+  },
+  "camera": { "target": [1, 9, -7], "offset": [36.25, 30, 81.25] },
+  "landmarks": [
+    {
+      "id": "gpu",
+      "title": "GPU 集群",
+      "english": "GPU Cluster",
+      "brand": "NVIDIA",
+      "position": [-1.5, 12, 0],
+      "size": [7, 6.5, 26],
+      "description": "走近并行计算的核心。观察计算单元、显存与设备互联如何组成 GPU 集群。",
+      "topics": "GPU · HBM · Tensor Core"
+    },
+    {
+      "id": "npu",
+      "title": "NPU 集群",
+      "english": "NPU Cluster",
+      "brand": "ASCEND",
+      "position": [20.5, 11, 0],
+      "size": [6.1, 5.4, 21],
+      "description": "探索面向 AI 计算的专用架构，认识昇腾 NPU、片上存储和计算流水线。",
+      "topics": "Ascend · Cube · Vector"
+    },
+    {
+      "id": "scheduler",
+      "title": "请求调度",
+      "english": "Scheduler",
+      "brand": "SCHEDULER",
+      "position": [9.5, 26, 0],
+      "size": [5.4, 5.4, 17],
+      "description": "观察请求如何排队、组成批次，并被安排到计算资源上执行。",
+      "topics": "Queue · Batching · Scheduling"
+    },
+    {
+      "id": "cache",
+      "title": "KV 缓存",
+      "english": "KV Cache",
+      "brand": "KV CACHE",
+      "position": [9.5, -4, 0],
+      "size": [5, 5, 12.5],
+      "description": "认识推理过程中的记忆。沿着缓存的数据路径，理解显存容量与复用。",
+      "topics": "KV Cache · Paging · Memory"
+    },
+    {
+      "id": "fabric",
+      "title": "高速互联",
+      "english": "Networking Fabric",
+      "brand": "FABRIC",
+      "position": [-11.5, -4, 0],
+      "size": [6, 5, 9],
+      "description": "连接每一份算力。观察设备间互联与网络拓扑，理解数据如何跨设备搬运。",
+      "topics": "Interconnect · Bandwidth · Collective"
+    },
+    {
+      "id": "engine",
+      "title": "推理引擎",
+      "english": "Inference Engine",
+      "brand": "INFERENCE",
+      "position": [20.5, -14, 0],
+      "size": [7.3, 6.5, 15.5],
+      "description": "从模型到服务，把调度、缓存与计算连接起来，走进推理引擎的工作现场。",
+      "topics": "vLLM · Runtime · Serving"
+    }
+  ]
+}

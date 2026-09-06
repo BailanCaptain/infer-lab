@@ -6,7 +6,7 @@
  * 下载原件 SHA-256（用于识别同 URL 内容更新）：
  * CANN: 80d7fdb0a038448e30767544d3979e050f6ec8c559d054afaad96a4aa688aceb
  * Atlas: b90c2769230ac4ec68185142f566f8f8dc9909cf60ede0b199d8ae60ae4673a4
- * 尚未实现 NpuSpec / mapResidency，这些声明不表示硬件层已接通。
+ * NpuSpec 与驻留规则引用本表；逻辑时间线不能作为真实 kernel trace。
  */
 import type { Claim } from "../model/claims";
 
@@ -78,7 +78,7 @@ export const HARDWARE_CLAIMS: Record<string, Claim> = {
   "HW-A03": {
     id: "HW-A03",
     kind: "A",
-    text: "矩阵乘映射 Cube，RMSNorm、Softmax、RoPE、SwiGLU 与逐元素加法映射 Vector，是按运算性质选择的教学执行方式。",
+    text: "矩阵乘映射 Cube，分数缩放、RMSNorm、Softmax、RoPE、SwiGLU 与加法映射 Vector，是按运算性质选择的教学执行方式。",
     source: "依据 HW-S02/HW-S03 简化；不是对特定 CANN 或 vLLM-Ascend 融合算子调度的观测。",
   },
   "HW-A04": {
@@ -98,5 +98,24 @@ export const HARDWARE_CLAIMS: Record<string, Claim> = {
     kind: "A",
     text: "PCIe 锚点暂只表示概念连接；尚未核实目标模组的 Host 接线、代际、宽度与连接器形态。",
     source: "HW-S05 所在彩页 p3 的 PCIe 字段描述服务器扩展插槽，不能据此外推 NPU 模组接口。",
+  },
+  "HW-A07": {
+    id: "HW-A07",
+    kind: "A",
+    text: "查表只展示选中行的搬运；共享数据视图不搬运；KV 用 UB 中转后写入逻辑缓存块，章末写回是教学顺序。",
+    source:
+      "与 forwardLayer 的 gather、merge、kv_write 对应；不表示实际 gather/KV kernel、内存布局或真实写回时序。",
+  },
+  "HW-A08": {
+    id: "HW-A08",
+    kind: "A",
+    text: "部件位置和尺寸为概念剖面；一个 Cube/Vector 图元代表一类资源，不表示芯片核数或 AIC:AIV 配比。",
+    source: "依据 HW-S01/HW-S03 展示结构关系，不复刻芯片 floorplan。HCCS 锚点表示 HW-D01 的逻辑邻居。",
+  },
+  "HW-A09": {
+    id: "HW-A09",
+    kind: "A",
+    text: "教学输入 id 按 int32 计四字节；权重和激活按模型 dtype 估算。JS 数值容器不代表设备 dtype。",
+    source: "Recorder.dense 的字节覆盖参数；不声明实际框架或 kernel 的 token id 类型。",
   },
 };

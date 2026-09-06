@@ -1,6 +1,6 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 硬件证据核验后，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 硬件层接通后，供新会话直接接手）
 
-新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 5 条**（第 1–4 条已完成）开始动手，不要重新讨论方案。
+新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 6 条**（第 1–5 条已完成）开始动手，不要重新讨论方案。Worker/播放入口应调用 `src/sim/buildTimeline.ts` 的 `buildHardwareTimeline`。
 
 | 文件 | 作用 |
 |---|---|
@@ -39,7 +39,8 @@
 - `1307ebc` 脚手架：Vite/TS/Tailwind v4 tokens（`src/design/tokens.css`）、`DESIGN.md`、Biome（含 `noRestrictedImports` 分层约束）、vitest、HashRouter 空壳、`.github/workflows/deploy.yml`、自托管字体、`scripts/{check-deps,check-content,gen-font-subset}.ts`。
 - `a440f5c` sim 层基座 + 本文件：`pnpm typecheck && pnpm lint && pnpm test` 首次全通过（2026-09-06 06:07，11 个测试）。
 - `829ba05` **前向计算基线**：`src/sim/model/`（单层前向 + 证据注册表 + 测试）、`validate.ts` 头维高亮修复、`scripts/bench-forward.ts`。`pnpm check` 全通过（51 个测试）。
-- `829ba05` 到 `38f5795` 之间仅改本文件；本轮新增 `src/sim/hardware/claims.ts`，第 5 步进入证据已落库、spec/映射未实现的状态。
+- `829ba05` 到 `38f5795` 之间仅改本文件；`d53348a` 新增硬件证据注册表。
+- 本轮完成第 5 步：`hardware/spec.ts`、`residencyRules.ts`、`mapResidency.ts`、硬件校验与测试、`sim/buildTimeline.ts` 双层入口；修正 id 字节统计。代码基线以最新 `git log` 为准。
 
 工作区唯一的改动是 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo`，tsc 每次运行都会改，三次提交都没带上（处理办法见「六、容易踩的坑」最后一条）。
 
@@ -63,7 +64,7 @@
 | `model/forwardLayer.ts` | `forwardLayer(spec, layerIdx, ids, rec, {positions?, xIn?})`：Qwen3 dense 单层，录 21 步（qkNorm=false 为 20 步）；`buildLayerTimeline(spec, preset, {layerIndex?, chapterId?})` 构造期跑 `assertValid` + `assertClaimIds`。MoE / MLA / attention_bias 抛错（M2） |
 | `model/forwardLayer.test.ts` | ① H=32 缩小 spec 与独立 Float64 参考实现 21 个张量逐元素 <1e-5；② Qwen3-0.6B 真实尺寸不变量（形状链、softmax 行和、RMSNorm、GQA g(h)=⌊h/2⌋、KV 字节 = `analyzeKvPerToken`×S、确定性）；③ 步骤顺序、证据注册、`validateTimeline` 无 issue；④ 变体（MHA、无 qkNorm、xIn 串两层、错误输入） |
 
-`scripts/bench-forward.ts`（`pnpm bench:forward`）= Spike D 的 Node 版：**Qwen3-0.6B 单层 S=6 约 111 ms，Qwen3-8B 约 1.3 s**（2026-09-06，本机），都在验收线内（0.5 s / 5 s）。浏览器 Worker 内的数字还没测。
+`scripts/bench-forward.ts`（`pnpm bench:forward`）现计入硬件映射与校验：**Qwen3-0.6B S=6 三次 143/124/109 ms，Qwen3-8B 三次 1306/1302/1310 ms**（2026-09-06，本机 Node），均为 21 步、35 张量，在验收线内（0.5 s / 5 s）。这是 JS 仿真构建耗时，不是 NPU 实测；浏览器 Worker 尚未计时。
 
 步骤 id（固定，可进 URL）：`embed.gather → L0.ln1 → L0.attn.q → L0.attn.k → L0.attn.v → L0.attn.qknorm → L0.attn.rope → L0.attn.scores → L0.attn.mask → L0.attn.softmax → L0.attn.pv → L0.attn.merge → L0.attn.o → L0.res1 → L0.ln2 → L0.mlp.gate → L0.mlp.up → L0.mlp.act → L0.mlp.down → L0.res2 → L0.kv.write`。
 
@@ -81,26 +82,27 @@
 3. ~~测试~~ 对拍 / 不变量 / validateTimeline 均通过（51 个测试）。
 4. ~~Spike D~~ Node 版达标（见上）；**浏览器 Worker 内计时留到播放引擎接上 Worker 时顺手做**。
 
-待做：
-5. **`src/sim/hardware/`**：`NpuSpec`（910B anchors：`hbm[0..3]`、`cube`、`vector`、`l2`、`hccs[0..6]`、`pcie`）+ `residencyRules.ts` + `mapResidency(step, spec)` 填充 `Step.hardware`（权重常驻 HBM 权重区；激活 HBM→L2→cube；softmax / RMSNorm / SwiGLU 走 vector；KV 写回 HBM kv 区；每条规则带证据等级，证据 id 注册进 `claims.ts` 同类注册表）。验收：每步 residency/transfers 完整，`validateTimeline` 仍无 issue，transfers.bytes 与 `TensorRecord.bytes` 一致。
+5. ~~**`src/sim/hardware/`**~~ 已实现 `NpuSpec`、13 种 OpKind 的驻留规则与 `mapResidency(step, spec, tensors)`。第三参数提供 `TensorRecord.bytes`；组合入口 `buildHardwareTimeline(model, preset, options)` 生成双层时间线。
 
-   **当前状态（2026-09-06）：硬件证据已核验并写入 `src/sim/hardware/claims.ts`；NpuSpec、residencyRules、mapResidency 仍未实现。** `Recorder.step` 仍填空 hardware；现有 `validateTimeline` 只检查 transfer 引用与落点存在，不要求硬件完整或字节一致，后续映射验收需补足。
+   **当前状态（2026-09-06）：第 5 步代码与验收完成，未做 UI。** `buildLayerTimeline` 仍为纯模型入口；`mapTimelineResidency` 返回新步骤、保留张量数据引用，并附加 `Timeline.hardwareSpec`。该字段存在时 `validateTimeline` 强制硬件完整性；有硬件数据却无 spec 也报错。
+
+   实现契约：
+   - `spec.ts`：部件、坐标、锚点、搬运路径、单元引用、区域槽位；`locationAnchor` 与 `tensorHome` 是共享映射。HBM/HCCS 物理数量保持 null，四个 HBM 槽和七个 HCCS 邻居锚点均为概念表示。
+   - `hardware.residency` 表示主要后备存储，**不是**步内所有副本或整个张量片上驻留。Cube 输入落在 L0A/L0B，结果从 L0C 经 FixPipe 写回；Vector 使用 UB。计算单元不是存储落点。
+   - Q/K 归一化和 RoPE 使用完整 lineage，双路均映射；scores 的缩放显式走 Vector；merge 共享数据视图零搬运，仅 Host 元数据操作；Embedding 只搬选中行，用输出 id 表示该数据量，禁止搬整张词表；KV 写入逻辑 kv 区，单 NPU 步不启用 HCCS。
+   - token id 按 int32 教学约定计四字节（HW-A09），不再跟随模型 bf16 两字节。修复前稳定失败：两个 id 期望 8 B、实际 4 B；修复后回归测试通过。JS Float32 容器与设备 dtype 无关。
+   - 硬件校验覆盖主要驻留、路径合法/连续、输入输出完整、字节、证据及活跃单元；构建后 `structuredClone` 仍可校验，alias 保留，适合下一阶段 Worker。
 
    本轮证据结论（原件 URL、PDF 页号、核验日期与 SHA-256 均在 claims.ts）：
    - CANN 8.1.RC1.alpha002 官方 PDF，文档版本 01（实际原件日期 2025-08-26），阅读器 p31–35 已下载、抽取并逐页渲染核对。确认 AIC/AIV 分离、各自 Scalar、Cube 的 L1/L0 路径、Vector 的 UB 路径及核外 L2。注意 p31 上半图是**耦合**架构；A2 应用 p32 的**分离**架构图。不要复制文档中的具体执行单元数量（p32 图含 FixPipe，文字枚举却未计入）。
    - 华为 R24.0（25H2）彩页 p3 原页确认 Atlas 800I A2 八模组 HCCS 全互联、使用 HBM。每卡七个邻居是拓扑推导 `[HW-D01]`，不是物理 lane 数。搜索命中的 Atlas 200I A2 边缘产品 npu-smi 文档不适用于 800I A2，不能借其 lane 编号证明目标规格。
    - **尚未直接证实**：910B 子型号 HBM 堆叠数、物理 HCCS lane 数/端口编号、Host 到目标模组的 PCIe 接线/代际/宽度。彩页有容量/算力占位值，PCIe 字段仅指服务器扩展插槽。禁止据此填 NPU 规格。
-   - 注册表共 12 条（5 S、1 D、6 A），使用 `HW-` 前缀；只通过 type import 复用现有 Claim 类型，证据数据独立。HBM 槽位/区域、算子到单元映射、折叠搬运路径、字节估算均显式标教学假设。
-   - 下一段实现先按已核实路径设计 spec；`hbm[0..3]` 只能是概念展示槽。若沿用 `HBM→L2→cube/vector`，必须解释省略的 L1/L0/UB/搬运单元，不能声称整张量片上驻留或每次命中 L2。
-   - 本轮验证：`pnpm check` 通过（51/51 测试，类型/Lint/依赖通过，内容无章节跳过，Biome 两条既有配置提示）；`pnpm build` 通过；`pnpm exec tsx -e` 检查 12 条声明的 key/id/类别、官方来源元信息、内部引用和前向编号不冲突，全部通过。未改 UI，未做浏览器验收；也未新增仿真功能或功能测试。
+   - 注册表共 15 条（5 S、1 D、9 A），使用 `HW-` 前缀；Claim 类型复用、证据数据独立。新增 A07 特殊搬运语义、A08 概念几何/资源代表、A09 token id 计量。前向与硬件证据在硬件校验中统一检查，后续 sources 应 re-export 两表。
+   - 本轮验证：全量检查与构建通过；20 个硬件测试 + 1 个 id 字节回归加入原有 51 个测试。覆盖 21 步/20 步变体、非零层、不同槽位、幂等性、不改数值、序列化及损坏硬件拒绝。Node 性能见上。未改 UI，未做浏览器验收；Worker 实测仍待做。
 
-   接手时按这个顺序做：
-   1. 结构性事实已完成首轮核验（见上）；未证实细节按 `[A]` 概念剖面处理，不编物理数字。M1 不需要峰值算力/带宽，也不能把 Node 仿真耗时作为 NPU 实测。
-   2. 复用已有 `src/sim/hardware/claims.ts`；后续证据补在硬件注册表，`content/sources.ts` 以后统一 re-export，不能抄一份。追加 HW 编号后，前向专用 `assertClaimIds` 不能直接校验合并后的证据，需在组合层统一校验。
-   3. 再写 `NpuSpec` 与 `residencyRules.ts`，最后 `mapResidency`。
-   4. `sim/` 层禁止 import three / react / zustand（`pnpm check:deps` + Biome 会拦）。
+待做：
 6. **预设句子 token id**：本机无 Python transformers，用 Node 读 Qwen3 `tokenizer.json`（需下载一次，约 11 MB，不入库）离线生成 S≈6–8 的中文短句 id，作为 `[S]` 数据写进 `src/sim/model/presets.ts` 并替换测试里的占位 id（当前 `PLACEHOLDER_IDS` 只是词表内的合法 id，不代表任何句子）。
-7. 之后依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildLayerTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` 应 re-export `sim/model/claims.ts`，不要再抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
+7. 之后依次：`src/timeline` 播放引擎（zustand store + 单个 `<Clock/>` 推进瞬态 `progress.t` + 快捷键 + URL `?ch=&step=&layer=&nofx=1` + reduced-motion，Spike C；Worker 内跑 `buildHardwareTimeline` 并计时）→ `viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局 → `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言。
 
 每完成一步：跑相关校验 → `git commit` → 按 Why / What / Evidence / Tradeoff / Open Questions 汇报；只有拿到实际命令输出或测试结果才能说"完成"。UI 改动必须在浏览器里实际打开验证，并把关键截图发给用户目测。
 

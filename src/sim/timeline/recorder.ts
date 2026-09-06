@@ -12,7 +12,8 @@ export class Recorder {
   readonly steps: Step[] = [];
   constructor(private readonly bytesPerElem: number) {}
 
-  dense(id: TensorId, name: string, t: Tensor, role: TensorRole): TensorId {
+  /** bytesPerElem 可覆盖模型 dtype（如 int32 id），与 JS Float32 容器解耦。 */
+  dense(id: TensorId, name: string, t: Tensor, role: TensorRole, bytesPerElem = this.bytesPerElem): TensorId {
     if (this.tensors[id]) throw new Error(`张量 id 重复：${id}`);
     this.tensors[id] = {
       id,
@@ -21,7 +22,7 @@ export class Recorder {
       dims: [...t.dims],
       role,
       data: t.data,
-      bytes: t.data.length * this.bytesPerElem,
+      bytes: t.data.length * bytesPerElem,
       absMax: absMax(t),
     };
     return id;

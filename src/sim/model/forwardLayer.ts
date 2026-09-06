@@ -199,7 +199,8 @@ export function forwardLayer(
     T(xInId, `X（第 ${layerIdx} 层输入）`, x, "activation");
   } else {
     const idsT = fromArray([S], ["S"], ids);
-    T("ids", "token id", idsT, "input");
+    // 教学中的 token id 存储按 int32 计字节，与激活 dtype 分开 [HW-A09]。
+    rec.dense("ids", "token id", idsT, "input", 4);
     rec.weight("E（词嵌入表）", W.E);
     x = embedLazy(ids, W.E);
     T(xInId, "X（词嵌入 / 第 0 层输入）", x, "activation");

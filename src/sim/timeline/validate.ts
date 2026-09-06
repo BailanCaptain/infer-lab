@@ -1,3 +1,5 @@
+import { validateNpuSpec } from "../hardware/spec";
+import { validateHardwareStep } from "../hardware/validate";
 import type { Step, Timeline } from "./types";
 
 /** 教学维度名中表示「头」的符号（见 tensor.ts 的 dims 约定） */
@@ -14,11 +16,25 @@ export interface ValidationIssue {
  * - 每步 evidence 非空；beats.at 单调递增且在 [0,1]
  * - transfers 引用的张量在本步 residency 中有落点
  * - matmul lineage 的维度可乘
+ * - hardwareSpec 存在时：驻留/路径/字节/证据/活跃单元完整，否则只接受空硬件数据
  */
 export function validateTimeline(tl: Timeline): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  if (tl.hardwareSpec)
+    for (const message of validateNpuSpec(tl.hardwareSpec)) issues.push({ step: "hardwareSpec", message });
   const ids = new Set<string>();
   for (const s of tl.steps) {
+    if (tl.hardwareSpec) {
+      for (const message of validateHardwareStep(s, tl.tensors, tl.hardwareSpec))
+        issues.push({ step: s.id, message });
+    } else if (
+      s.hardware.specId ||
+      s.hardware.transfers.length ||
+      Object.keys(s.hardware.residency).length ||
+      s.hardware.active.length
+    ) {
+      issues.push({ step: s.id, message: "硬件数据缺少 Timeline.hardwareSpec" });
+    }
     if (ids.has(s.id)) issues.push({ step: s.id, message: "step id 重复" });
     ids.add(s.id);
     if (s.title.length > 14) issues.push({ step: s.id, message: `title 超过 14 字：${s.title.length}` });

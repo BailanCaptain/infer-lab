@@ -326,6 +326,17 @@ describe("forwardLayer 结构变体", () => {
 
 /** [A] 占位 token id（在词表范围内），不代表某句话的真实分词；真实预设句由 tokenizer 离线生成后替换 */
 const PLACEHOLDER_IDS = [151644, 872, 198, 108386, 3837, 151645];
+
+it("token id 的逻辑存储使用 int32，不随模型 bf16 改为两字节", () => {
+  const ids = [1, 2];
+  const tl = buildLayerTimeline(getPresetSpec("qwen3-0.6b"), {
+    id: "id-bytes",
+    text: "占位",
+    tokens: ids.map(String),
+    ids,
+  });
+  expect(tl.tensors.ids!.bytes).toBe(ids.length * 4);
+});
 const PRESET: Timeline["preset"] = {
   id: "placeholder",
   text: "（占位）",

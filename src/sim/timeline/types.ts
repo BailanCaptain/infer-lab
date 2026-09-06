@@ -1,6 +1,7 @@
 /**
  * Step 是唯一真相源：3D 两层与 DOM 面板只读 Step，不各自推导。
  */
+import type { NpuSpec } from "../hardware/spec";
 import type { LazyWeight } from "../weights";
 
 export type TensorId = string;
@@ -30,6 +31,7 @@ export type Location =
   | { k: "hostDram" }
   | { k: "hbm"; slot: number; region: "weight" | "kv" | "act" }
   | { k: "l2" }
+  | { k: "l1" | "l0a" | "l0b" | "l0c" | "ub" | "pcie" }
   | { k: "cube" }
   | { k: "vector" }
   | { k: "link"; from: string; to: string };
@@ -67,12 +69,23 @@ export interface Transfer {
   tensor: TensorId;
   from: Location;
   to: Location;
+  /** 本次逻辑数据量，不是实测总线流量；分块细节折叠，重复路径不能直接用于性能估算。 */
   bytes: number;
   /** 为什么搬（中文，≤30 字） */
   reason: string;
 }
 
-export type HardwareUnit = "cube" | "vector" | "hbm" | "l2" | "hccs" | "host";
+export type HardwareUnit =
+  | "cube"
+  | "vector"
+  | "hbm"
+  | "l2"
+  | "hccs"
+  | "host"
+  | "mte1"
+  | "mte2"
+  | "mte3"
+  | "fixpipe";
 
 export interface Step {
   /** 稳定 id，可进 URL，如 "L0.attn.q" */
@@ -95,6 +108,11 @@ export interface Step {
     lineage: Lineage[];
   };
   hardware: {
+    /** 填充后对应 Timeline.hardwareSpec；未映射的纯模型步骤不设置。 */
+    specId?: string;
+    /** 解释逻辑搬运、视图变换与教学简化，不作为 kernel trace。 */
+    explanation?: string;
+    /** 张量的主要存储位置。读入片上副本不会改变此位置，不表示步内所有副本。 */
     residency: Record<TensorId, Location>;
     transfers: Transfer[];
     active: HardwareUnit[];
@@ -107,6 +125,8 @@ export interface Step {
 }
 
 export interface Timeline {
+  /** 存在时 validateTimeline 强制验证每一步的硬件完整性。 */
+  hardwareSpec?: NpuSpec;
   chapterId: string;
   modelId: string;
   modelName: string;

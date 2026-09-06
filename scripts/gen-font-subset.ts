@@ -30,6 +30,11 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+/** 去掉块注释与行注释；`//` 前面紧跟 `:` 的是 URL，不算注释 */
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:\\])\/\/.*$/gm, "$1");
+}
+
 async function main() {
   if (!existsSync(SRC_TTF)) {
     console.log("下载 Noto Sans SC ...");
@@ -39,10 +44,12 @@ async function main() {
     writeFileSync(SRC_TTF, Buffer.from(await res.arrayBuffer()));
   }
   const chars = new Set<string>(BASE);
-  // 扫描内容与标签源码中的 CJK 字符
+  // 扫描内容与标签源码中的 CJK 字符。ts/tsx 先剥掉注释（注释里的中文不会出现在 3D 标签里），md/mdx 全文扫。
   const scanDirs = ["src/content", "src/sim", "src/viz3d", "src/timeline"].map((d) => join(process.cwd(), d));
   for (const file of scanDirs.flatMap((d) => walk(d))) {
-    for (const ch of readFileSync(file, "utf8")) {
+    const raw = readFileSync(file, "utf8");
+    const text = /\.(ts|tsx)$/.test(file) ? stripComments(raw) : raw;
+    for (const ch of text) {
       const code = ch.codePointAt(0) ?? 0;
       if (code >= 0x3000) chars.add(ch);
     }

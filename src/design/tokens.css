@@ -32,6 +32,13 @@
   --color-control: #8b96a8; /* 控制面 / 调度 = 灰 */
   --color-danger: #ef5a5a; /* 错误 / 禁配 = 红 */
 
+  /* 3D 数值场色阶：负青 / 正琥珀 / 0 近黑；掩码格与格线不参与色阶 */
+  --color-viz-neg: #38d6d0;
+  --color-viz-pos: #f0a94a;
+  --color-viz-zero: #0d1219;
+  --color-viz-mask: #2b3546;
+  --color-viz-grid: #1d2634;
+
   /* 并行维度色（沿用并行策略图片包） */
   --color-tp: #4ea3f5;
   --color-pp: #f5a54e;

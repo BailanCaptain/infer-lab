@@ -6,7 +6,7 @@
  * 计数器挂在 window.__spikeC 供 Playwright 读取；读计数不触发渲染。
  */
 import { Canvas, useFrame } from "@react-three/fiber";
-import { ChevronFirst, ChevronLast, Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { memo, Profiler, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Group, Mesh } from "three";
 import { TOKEN_PRESETS } from "../../../sim/model/presets";
@@ -16,7 +16,6 @@ import {
   installPlaybackKeys,
   loadTimelineIntoStore,
   progress,
-  SPEED_STEPS,
   selectNoMotion,
   selectStep,
   selectStepCount,
@@ -24,7 +23,8 @@ import {
   usePlayback,
   useReducedMotionWatcher,
 } from "../../../timeline";
-import { Clock } from "../../../viz3d/Clock";
+import { Clock } from "../../../viz3d";
+import { PlaybackBar } from "../../PlaybackBar";
 
 const counters = { pageCommits: 0, barRenders: 0, frames: 0, stepChanges: 0, progress };
 type SpikeWindow = Window & { __spikeC?: typeof counters; __labReady?: boolean };
@@ -85,74 +85,6 @@ function StepMarkers() {
         </mesh>
       ))}
     </group>
-  );
-}
-
-const btnBase =
-  "inline-flex h-8 w-8 items-center justify-center rounded-field border active:scale-[0.97] disabled:opacity-40";
-const btn = `${btnBase} border-line bg-surface-elevated text-ink hover:border-line-strong`;
-const btnPrimary = `${btnBase} border-accent bg-accent text-ink-inverse hover:bg-accent-hover`;
-
-function PlaybackBar() {
-  const playing = usePlayback((s) => s.playing);
-  const stepIndex = usePlayback((s) => s.stepIndex);
-  const count = usePlayback(selectStepCount);
-  const speed = usePlayback((s) => s.speed);
-  const step = usePlayback(selectStep);
-  const a = usePlayback.getState();
-  return (
-    <div className="absolute inset-x-0 bottom-0 flex h-14 items-center gap-2 border-line border-t bg-surface/95 px-3">
-      <button type="button" className={btn} data-testid="first" onClick={a.first} aria-label="第一步">
-        <ChevronFirst size={16} />
-      </button>
-      <button type="button" className={btn} data-testid="prev" onClick={a.prev} aria-label="上一步">
-        <SkipBack size={16} />
-      </button>
-      <button
-        type="button"
-        className={btnPrimary}
-        data-testid={playing ? "pause" : "play"}
-        onClick={a.toggle}
-        aria-label={playing ? "暂停" : "播放"}
-      >
-        {playing ? <Pause size={16} /> : <Play size={16} />}
-      </button>
-      <button type="button" className={btn} data-testid="next" onClick={a.next} aria-label="下一步">
-        <SkipForward size={16} />
-      </button>
-      <button type="button" className={btn} data-testid="last" onClick={a.last} aria-label="最后一步">
-        <ChevronLast size={16} />
-      </button>
-      <input
-        type="range"
-        className="mx-2 flex-1 accent-accent"
-        min={0}
-        max={Math.max(0, count - 1)}
-        value={stepIndex}
-        onChange={(e) => a.seek(Number(e.target.value))}
-        aria-label="步骤进度"
-        data-testid="scrubber"
-      />
-      <span className="mono w-14 text-label text-ink-muted">
-        {stepIndex + 1}/{count}
-      </span>
-      <select
-        className="mono h-8 rounded-field border border-line bg-surface-elevated px-2 text-label"
-        value={speed}
-        onChange={(e) => a.setSpeed(Number(e.target.value))}
-        aria-label="倍速"
-        data-testid="speed"
-      >
-        {SPEED_STEPS.map((v) => (
-          <option key={v} value={v}>
-            {v}×
-          </option>
-        ))}
-      </select>
-      <span className="ml-2 truncate text-compact" data-testid="step-title">
-        {step?.title ?? "—"}
-      </span>
-    </div>
   );
 }
 

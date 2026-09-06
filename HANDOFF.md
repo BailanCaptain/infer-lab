@@ -1,16 +1,16 @@
-# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 播放引擎接通后，供新会话直接接手）
+# 交接说明（写于 2026-09-06 03:40，更新于 2026-09-06 viz3d 地基（Spike A/B）完成后，供新会话直接接手）
 
-新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 8 条**（第 1–7 条已完成）开始动手，不要重新讨论方案。播放/Worker 入口：`src/timeline`（barrel `index.ts`），Canvas 内只放一个 `src/viz3d/Clock.tsx`；默认句子用 `getTokenPreset()`。
+新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 8 条的剩余项**（第 1–7 条与第 8 条的 Spike A/B 已完成）开始动手，不要重新讨论方案。播放/Worker 入口：`src/timeline`（barrel `index.ts`）；3D 图元入口 `src/viz3d`（barrel `index.ts`），Canvas 内只放一个 `<Clock/>`；默认句子用 `getTokenPreset()`。
 
-## 当前进度速览（2026-09-06，同步到代码提交 `ca0500b`）
+## 当前进度速览（2026-09-06，同步到 `git log` 最新提交「viz3d 地基」）
 
 - **整体仍在 M1**：底层计算、硬件映射、真实预设句、播放引擎与 Worker 已接通，完整样板章和模型工作台尚未交付。下述第 1–7 步指本文件第五节的执行顺序，不等同于总体计划中的 Spike A/B/C 编号。
 - **已完成第 1–7 步**：模型解析、参数/KV 分析、单层前向与数值验证、Node 性能 Spike、硬件映射、真实预设 token id、**播放引擎 + Worker（Spike C/D 浏览器验收通过）**。
-- **第 8 步尚未开始**：`viz3d` 只有 `Clock.tsx`；Spike A（标签清晰度）/ Spike B（真实尺寸张量平面）尚未做。`/dev/spike-c` 是验收页，不是章节页。
+- **第 8 步已完成前半（Spike A + Spike B）**：`src/viz3d/` 有了尺度/取样/色阶纯函数、`Label`（troika SDF）+ 标签边界注册表、`TensorGrid`（全幅 R32F 纹理平面 + InstancedMesh 放大窗口 + 标签车道）、`CameraRig`；验收页 `#/dev/spike-ab`，Playwright `tests/spike-ab.spec.ts` 2/2 通过。**尚未做**：`camera/views.ts` + CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏、后期（Bloom/SMAA）。`/dev/spike-*` 都是验收页，不是章节页。
 - **尚未开始的界面工作**：3D 双层可视化图元、内容管线与 03 章正文、章节页布局、工作台界面。
-- **最近代码验证**：2026-09-06，`pnpm check` **107/107 测试通过**；`pnpm build` 通过（含 `timeline.worker` chunk）；`pnpm test:e2e` **3/3 通过**：Worker 构建 0.6B 199–232 ms、8B 2400–2968 ms；播放 3.2 s 共 200 帧、页面 commit 4 次（2 次换步 + 播放 + 暂停）、TweenBar 渲染 0 次。截图已发用户。
-- **代码基线固定为 `ca0500b`**。两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
-- **本次同步只改本文件，不改代码**：补充第 8 步（viz3d）开工前需要的时间线实测事实与新踩坑，见第五节第 8 条下的「开工前已核实的事实」。
+- **最近代码验证**：2026-09-06，`pnpm check` **146/146 测试通过**（新增 plane 18、scale 24）；`pnpm build` 通过；`pnpm test:e2e` **5/5 通过**：Spike A 正面机位 70 个标签两两不相交且全在画布内；Spike B 压力模式 5120 格 2 s 内 106–121 帧（SwiftShader 软渲染），21 步换步实例缓冲重写最大 **0.50 ms**（< 2 ms）；Spike C 0.6B 190–218 ms、8B 2146–2236 ms、播放 3.2 s 200 帧 / 4 commit / TweenBar 0 渲染。截图已发用户。
+- 两个已跟踪的 tsbuildinfo 文件仍是工作区噪音，未提交。
+- **待用户目测**：micro 档标签（0.11 世界单位）在 1× DPR 下约 9–10 px，处于 DESIGN.md 字阶地板；若嫌小，改 `labels/Label.tsx` 的 `LABEL_SIZE.micro`，标签车道高度在 `primitives/layout.ts` 同步调。
 
 | 文件 | 作用 |
 |---|---|
@@ -70,7 +70,28 @@
 | `load.ts` | `loadTimelineIntoStore(client, req)`：loading → ready/error，后发请求覆盖先发 |
 | `index.ts` | barrel，上层只从这里 import |
 
-`src/viz3d/Clock.tsx`：Canvas 内唯一 `useFrame` 驱动，`advance(min(delta,0.1)*1000)`。`src/app/pages/dev/SpikeCPage.tsx`：Worker 加载 + 播放条 + 计数器（`window.__spikeC`、`window.__labReady`），`data-step-id` 挂在画布容器上。
+`src/app/PlaybackBar.tsx`：播放条唯一实现（从 SpikeCPage 抽出，`data-testid` 不变），两个 dev 页共用。`src/app/pages/dev/SpikeCPage.tsx`：Worker 加载 + 计数器（`window.__spikeC`、`window.__labReady`）。`src/app/pages/dev/SpikeABPage.tsx`（`#/dev/spike-ab`）：四机位（相机距离由 `gridLayout` 包围盒算出，不是手填数字）、三种窗口模式（6×12 / 值模式 8×8 / 压力 64×80）、A/B/输出槽位切换；`window.__spikeAB{frames,stepChanges,lastCostMs,maxCostMs}`、`window.__labels()`。
+
+**`src/viz3d/`（R3F 图元；可 import sim 与 timeline）**：
+
+| 文件 | 内容 |
+|---|---|
+| `Clock.tsx` | Canvas 内唯一 `useFrame` 驱动，`advance(min(delta,0.1)*1000)` |
+| `theme.ts` | `vizTheme()`：从 `tokens.css` 的 CSS 变量读色（含新增 `--color-viz-neg/pos/zero/mask/grid`），组件禁裸色 |
+| `scale.ts`（+test） | 纯函数：`displayAspect`（a^0.75，超过拐点 12 后对数增长，单调不并值）、`planeSize`、`sampleAxis`（≤1024 stride 下采样）、`robustScale`（忽略 ≥1e29 哨兵、取 99.5 分位）、`windowRect`/`focusCenter`（对准**第一个**高亮，不取均值）、`fmtCell`/`fmtAspect` |
+| `materials/valueColor.ts` | 数值→颜色的唯一 GLSL 定义：负青 / 正琥珀 / 0 近黑，亮度 ∝ (\|v\|/scale)^0.7，哨兵单独出掩码色 |
+| `materials/planeMaterial.ts` | 全幅平面 ShaderMaterial（GLSL3）：R32F 纹理、格线（仅逐格对应且 ≥3px）、高亮行列带（最多 8 行 8 列，格数多时加宽到可见）、取景框；`uHiT` 每帧 = progress.t |
+| `materials/cellMaterial.ts` | 放大窗口 InstancedMesh 材质：`aVal0/aVal1/aHi0/aHi1` 逐实例，`uT` 插值在 GPU；非高亮缩放 `DIM_SCALE=0.78`（不用透明度），本步无焦点时 `uDimScale=1` |
+| `labels/Label.tsx` | drei `<Text>` 封装：子集字体 `public/fonts/notosc-3d.woff`、`sdfGlyphSize=128`（**必须 2 的幂**）、深色描边、`depthTest=false`、三档字号 `LABEL_SIZE` |
+| `labels/registry.ts` / `LabelProbe.tsx` | 标签屏幕 AABB 注册表 + `window.__labels()` 探针（dev） |
+| `primitives/layout.ts` | `gridLayout`：平面/窗口/车道位置与包围盒；`frameDistance`：按包围盒算相机距离。图元与相机共用这一份 |
+| `primitives/TensorPlane.tsx` | 全幅平面（稠密张量下采样纹理；权重走 96×96 thumb）+ 多头张量后方薄片堆 |
+| `primitives/CellWindow.tsx` | 放大窗口：容量 5120，换步只重写缓冲并回报耗时；格 ≥0.34 且 ≤64 格时标真值 |
+| `primitives/TensorGrid.tsx` | 组合：平面 + 引线 + 窗口 + 8 条车道标签（标题、真实 shape、行/列范围与 ⋯、切片「头 i/n · K\|V=k」、行维/列维、压缩比例与采样说明、掩码说明）；`role==="input"` 的 token id 按分类量处理 |
+| `camera/CameraRig.tsx` | `maath/easing.damp3` 平滑到 `pose{pos,target}`，`instant` 时瞬移；CameraDirector 待做 |
+| `index.ts` | barrel |
+
+`src/sim/timeline/plane.ts`（+test）：**张量 → 二维视图的唯一规则**（`HEAD_DIMS`、`headAxis`、`planeAxes`、`planeView`），`validate.ts` 的高亮校验已改为复用它；四维 `L0.kv.block` 通过 `picks` 选 K/V 切片。
 
 除本次交接文档同步外，工作区仅有 `tsconfig.app.tsbuildinfo` / `tsconfig.node.tsbuildinfo` 改动；tsc 会更新它们，本轮没有提交（处理办法见「六、容易踩的坑」最后一条）。
 
@@ -149,7 +170,7 @@
 7. ~~**`src/timeline` 播放引擎 + Worker**~~ 已完成（`ca0500b`）。契约：store 只放离散状态；`progress.t` 瞬态；Canvas 内唯一 `<Clock/>`；3D 图元在各自 `useFrame` 读 `progress.t`/`prevStepIndex` 写 uniform，换步用 `useLayoutEffect([stepIndex])` 一次重写 buffer；图元组件要 `memo`，不订阅 store 就不会重渲染。证据：30 个单测；Playwright 3/3：0.6B Worker 构建 199–232 ms（<500）、8B 2400–2968 ms（<5000，构建期主线程帧数继续增长）；播放 3.2 s 200 帧 / 4 commit / TweenBar 0 渲染；深链接 `?step=L0.attn.softmax&layer=hardware&nofx=1` 直达且 t=1；快捷键与 URL 写回验证通过。**未做**：IndexedDB 缓存（现为内存 Promise 缓存，接口不变可后补）；相机接管只留了 `userCameraOverride/cameraResetSeq` 字段，CameraDirector 在第 8 步。
 
 待做：
-8. 依次：`viz3d`（Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口、CameraDirector、MatMulRig、FlowPacket、KVBlockGrid、NpuModule910B + AnchorRegistry、双层分屏）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局（把 `SpikeCPage` 的播放条抽成 `app/PlaybackBar`）→ `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言（`tests/` 已有骨架与 `window.__labReady` 约定）。
+8. ~~Spike A 标签清晰度、Spike B TensorGrid 全幅纹理平面 + InstancedMesh 放大窗口~~（已完成，见第三节 `src/viz3d/` 表与 `tests/spike-ab.spec.ts`）→ 依次：`camera/views.ts`（8 个 view 预设）+ CameraDirector（读 `step.camera.view`，`userCameraOverride` 接 OrbitControls）、MatMulRig（A 左 / B 上 / C 右下，复用 TensorGrid）、FlowPacket、KVBlockGrid（现在 KV 块用 TensorGrid 切片显示，不是终态）、NpuModule910B + AnchorRegistry、双层分屏、EffectComposer（Bloom 阈值 0.85，标签亮度 <0.8）→ 内容管线与 MDX 组件（`content/sources.ts` re-export 前向与硬件 claims，不另抄一份）→ 章节页布局（把 `SpikeCPage` 的播放条抽成 `app/PlaybackBar`）→ `03` 章正文 + `claims.md` → 模型工作台 v1 → Playwright 截图与标签断言（`tests/` 已有骨架与 `window.__labReady` 约定）。
 
    **开工前已核实的事实（2026-09-06 实际跑 `buildHardwareTimeline(qwen3-0.6b, kv-cache)` 打印所得，不要再猜）**：
 
@@ -180,3 +201,8 @@
 - R3F 9 + three 0.185 在控制台打 `THREE.Clock: This module has been deprecated` 警告，来自 R3F 内部，不是本项目代码，忽略即可。
 - **`L0.attn.masked` 的 `absMax` 是 1e30**（因果 mask 的 −1e30 参与了统计）。着色若直接用 `|v| / absMax`，除被掩码格外整张图全是 0 色。TensorGrid 要么按分位数定标，要么把 ≤ −1e29 的哨兵值单独渲染成「已掩码」样式，不要参与色阶。`ids` 的 `absMax` 是 113272（token id 数值），也不能当作数值场着色。
 - 预设句里选的词都是词表内完整 UTF-8 片段的 token；若新句子有字被拆成半个 UTF-8 字节序列，脚本会直接报错，换一句而不是存乱码。
+- **troika `sdfGlyphSize` 必须是 2 的幂**（64/128）。填 96 时所有字形渲染成实心方块，数值断言全过、只有截图能看出来——UI 验收必须看图。
+- Playwright 每次运行会清空 `test-results/`，跑第二个 spec 会删掉第一个的截图；要看图就把两个 spec 一起跑或先复制走。`playwright.config.ts` 已设 `workers: 1`：两个浏览器同时跑时 8B Worker 构建从 2.2 s 变成 6.1 s，帧数断言也会被拖垮。
+- `pnpm gen:font` 现在只扫 ts/tsx 的**字符串**（注释已剥掉），子集 270 KB / 820 字；仍然包含 `forwardLayer.ts` 的 brief/detail 叙述文案（这些走 DOM，不进 3D）。要再瘦身需要把 3D 标签用字与 DOM 文案分开标注，属于后续内容管线的事。
+- `TensorGrid` 的 `window`/`box` prop 传字面量对象会让 `CellWindow` 每次父组件渲染都重写实例缓冲；页面里要 `useMemo`。换步不要给 TensorGrid 换 `key`（会把 5120 容量的 InstancedMesh 整个重建，耗时数字就不真实了）。
+- 全幅平面上的高亮列带按「格数 × 0.004、至少半格」加宽（1024 列时约 4 格宽），否则一列宽只有半个像素；放大窗口里的高亮是逐格真值。文案里目前没写这条加宽，做章节页时若要严谨可加。

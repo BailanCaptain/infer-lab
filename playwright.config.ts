@@ -7,6 +7,8 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
+  // 构建耗时与帧数断言对 CPU 敏感，不能两个浏览器同时跑
+  workers: 1,
   retries: 0,
   reporter: [["list"]],
   use: {

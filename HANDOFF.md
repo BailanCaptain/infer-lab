@@ -2,8 +2,6 @@
 
 新会话请**先读本文件，再读下面三份**，然后从「五、下一步」**第 5 条**（第 1–4 条已完成）开始动手，不要重新讨论方案。
 
-> 上手前先看「四、环境事实」最后一条：本会话的模型会中途从 Fable 5.1 掉到 Opus 5，属已查明的正常现象，不必排查。
-
 | 文件 | 作用 |
 |---|---|
 | `CLAUDE.md`（本目录） | 工作规则：证据契约、交付格式、最小必要改动 |
@@ -71,13 +69,6 @@
 - Windows 11 + PowerShell；Node v24.14.0；pnpm 10.32.1；Claude Code 2.1.263；项目已 `git init`（HEAD = `829ba05`）。
 - 本机 **没有** Python `transformers` / `tokenizers`（只有 numpy 1.21.5）→ 预设句子的 token id 改用 Node 加载 Qwen3 `tokenizer.json` 离线生成，结果作为 `[S]` 数据随预设打包。
 - 命令：`pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm check:deps` / `pnpm check:content` / `pnpm check`（全跑）/ `pnpm dev` / `pnpm build`。
-- **模型会中途从 Fable 5.1 掉到 Opus 5，这是本项目的固有现象，不是配置错误、不是用户操作，不必再排查。** 三次会话各触发一次，事件记录在 `~/.claude/projects/C--Users---Desktop-infra-view-new/*.jsonl`。
-
-  **机制（`[S]`，事件字段原文）**：`subtype: model_refusal_fallback`、`trigger: refusal`、`apiRefusalCategory: frontier_llm`、`apiRefusalExplanation: null`、`direction: retry`、`scope: session`。即 API 对某一次请求返回了拒绝，Claude Code 换 Opus 5 重试并锁定整场会话。
-
-  **触发内容（`[I]`，无法确证）**：API 没给任何解释字段，拿不到是哪段文字。可以用证据排除的：不是上下文长度（三次分别是约 3.6 万 / 18 万 / 215 万字符）；不是某个特定文件或工具（一次是刚读完 4 个源码文件，一次是用户只打了「继续推进」、当轮没有任何新工具输出，一次是在配置定时任务）；不是额度或限流（那是另一个 subtype `model_fallback`，trigger 为 `model_not_found` / `permission_denied`）。剩下的合理推断是：分类器对本项目题材（Transformer 逐步计算、KV Cache、TP/PP/DP/EP/PCP/DCP 并行、NPU 执行、vLLM-Ascend 源码）**概率性**误报——同样的材料上 Fable 累计跑通 83 次请求（50 + 31 + 2），只拒了 3 次。官方提示语也自己写明「有时会发生在安全、正常的对话上」。
-
-  **影响与处置**：`~/.claude/settings.json` 配置的仍是 `claude-fable-5-1[1m]`，所以**下次新会话仍从 Fable 起步，并可能再次掉档**。若要行为稳定，用户可直接把模型固定成 Opus 5。**不要为此改动代码、删减内容或回避题材**——内容本身没有问题。
 
 ## 五、下一步（M1，按序；对应计划 §2.10）
 
@@ -90,7 +81,7 @@
 待做：
 5. **`src/sim/hardware/`**：`NpuSpec`（910B anchors：`hbm[0..3]`、`cube`、`vector`、`l2`、`hccs[0..6]`、`pcie`）+ `residencyRules.ts` + `mapResidency(step, spec)` 填充 `Step.hardware`（权重常驻 HBM 权重区；激活 HBM→L2→cube；softmax / RMSNorm / SwiGLU 走 vector；KV 写回 HBM kv 区；每条规则带证据等级，证据 id 注册进 `claims.ts` 同类注册表）。验收：每步 residency/transfers 完整，`validateTimeline` 仍无 issue，transfers.bytes 与 `TensorRecord.bytes` 一致。
 
-   **当前状态（2026-09-06 13:17）：一行代码都还没写。** 已读完全部前置（`Step.hardware` 契约见 `src/sim/timeline/types.ts` 的 `Location` / `HardwareUnit`；`Recorder.step` 默认填 `{residency:{},transfers:[],active:[]}`；`validateTimeline` 已校验「transfer 张量必须在本步 residency 中有落点」）。**卡在第一步：昇腾 910B 的官方事实来源还没查。** 两次会话都是刚要发 WebSearch 就被打断，至今没有发出过任何搜索。
+   **当前状态（2026-09-06 13:17）：一行代码都还没写。** 已读完全部前置（`Step.hardware` 契约见 `src/sim/timeline/types.ts` 的 `Location` / `HardwareUnit`；`Recorder.step` 默认填 `{residency:{},transfers:[],active:[]}`；`validateTimeline` 已校验「transfer 张量必须在本步 residency 中有落点」）。**卡在第一步：昇腾 910B 的官方事实来源还没查，至今没有发出过任何一次搜索。**
 
    接手时按这个顺序做：
    1. 先定事实。需要的是**结构性事实**（M1 不需要峰值算力/带宽数字，那是 M2 工作台的事）：一颗 910B 有几个 HBM stack、AI Core 里 Cube/Vector/Scalar 的分工、片上缓存层级（L2 / L1 / Unified Buffer）、单卡 HCCS 链路数与八卡拓扑、PCIe 形态。优先级：华为昇腾社区与 CANN 官方文档 `[S]` > 昇腾开源仓库 `[C]` > 公开二手资料 `[I]`。查不到的物理细节**必须标「概念剖面」`[A]`**，不要编数字——计划 §2.5 已经明确允许这样做，站内也不得出现自测性能数据（无实机）。

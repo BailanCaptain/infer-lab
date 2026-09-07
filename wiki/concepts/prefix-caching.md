@@ -18,9 +18,9 @@ sources:
   - vllm-ascend@28bf3a2e:vllm_ascend/models/layer/attention/layer.py#L121-L127
   - vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker/v2/model_runner.py#L99-L109
 evidence: "I"
-related: [paged-attention, block-table, kv-cache-spec, kv-pool, recompute-cpu-offload, kv-cache-memory-profiling]
+related: [paged-attention, block-table, kv-cache-spec, kv-pool, recompute-cpu-offload, kv-cache-memory-profiling, kv-cache-cpu-offload]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

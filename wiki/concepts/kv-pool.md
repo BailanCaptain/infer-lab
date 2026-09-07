@@ -22,9 +22,9 @@ sources:
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L854-L865
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L50-L56
 evidence: "C"
-related: [prefix-caching, kv-cache-layerwise-offload, kv-cache-cpu-offload, recompute-cpu-offload, paged-attention]
+related: [prefix-caching, kv-cache-layerwise-offload, kv-cache-cpu-offload, recompute-cpu-offload, paged-attention, kv-cache-memory-profiling]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

@@ -17,9 +17,9 @@ sources:
   - vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker_310p.py#L113-L133
   - vllm-ascend@28bf3a2e:docs/source/tutorials/models/Dots3-Note.md#L400-L408
 evidence: "C"
-related: [paged-attention, block-table, kv-cache-spec, kv-pool, kv-cache-layerwise-offload, kv-cache-sparse-offload]
+related: [paged-attention, block-table, kv-cache-spec, kv-pool, kv-cache-layerwise-offload, kv-cache-sparse-offload, prefix-caching, kv-cache-cpu-offload]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

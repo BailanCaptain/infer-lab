@@ -43,6 +43,13 @@ describe("lintPages", () => {
     expect(r.map((p) => p.rule).sort()).toEqual(["broken-link", "related-missing", "unknown-chapter"]);
     expect(r.find((p) => p.rule === "broken-link")?.message).toContain("nope.md");
   });
+  it("related-asymmetric：A 指 B 而 B 不回指 A", () => {
+    const r = lintPages([mk("a", { related: ["b"] }), mk("b")], opts);
+    expect(r).toEqual([
+      { file: "concepts/a.md", rule: "related-asymmetric", message: "related 含 b，但 b 没有回指 a" },
+    ]);
+    expect(lintPages([mk("a", { related: ["b"] }), mk("b", { related: ["a"] })], opts)).toEqual([]);
+  });
   it("orphan：无 chapters 且无入链；有入链即不算", () => {
     expect(lintPages([mk("lonely", { chapters: [] })], opts)[0]?.rule).toBe("orphan");
     expect(lintPages([mk("lonely", { chapters: [] }), mk("a", {}, "[l](lonely.md)")], opts)).toEqual([]);

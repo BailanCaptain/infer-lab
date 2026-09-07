@@ -1,4 +1,4 @@
-# Layerwise KV Offload — 引用片段
+# Layerwise KV Offload — 源码片段
 
 ## docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L18-L36
 
@@ -24,11 +24,13 @@ The net effect: save/load latency is amortized across the forward pass rather
 than concentrated as a single blocking step.
 ```
 
-官方特性文档对「逐层存/取如何与前向重叠」的定义，正文「是什么」一节据此写。
+「是什么」一节的定义来源：逐层保存/加载替代整包搬运，以及重叠的基本方向。
 
-## docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L79-L88
+## docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L77-L88
 
 ```markdown
+### Key Parameters
+
 | Parameter | Default | Description |
 | :--- | :--- | :--- |
 | `use_layerwise` | `false` | Enable layer-by-layer KV save/load. Requires `backend: "memcache"`. |
@@ -41,7 +43,7 @@ than concentrated as a single blocking step.
 | `discard_partial_chunks` | `true` (non-layerwise) / `false` (layerwise) | Whether to discard KV for incomplete chunk boundaries. Layerwise defaults to `false` to preserve partial layers. |
 ```
 
-配置项与文档声称的默认值；正文「形状与数值」用它，并对照代码指出 `layerwise_prefetch_layers` 的默认值与代码不一致。
+「形状与数值」列配置项时引用；同时是「常见误解」中 `layerwise_prefetch_layers` 默认值与代码不一致的文档侧证据。
 
 ## docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L224-L245
 
@@ -70,27 +72,84 @@ wait/save calls. Layerwise + CP is future work.
   disagg proxy does not serve the `/v1/metaserver` endpoint.
 ```
 
-适用的注意力后端与限制；正文「在哪一步出现」「常见误解」引用，并与 `dsa_cp.py` 的实际调用对照。
+「适用的模型与注意力类型」与限制清单的文档侧来源；也是「常见误解」中该清单已落后于代码的对照对象。
 
-## docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L144-L196
+## docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L98-L146
+
+````markdown
+For a uniform cache layout:
+
+```text
+N = number of cache-bearing layers
+I = number of independent layers
+R = N - I
+B = configured shared-buffer count
+
+physical buffers = I + min(B, R)
+
+main-KV NPU footprint ratio ~= physical buffers / N
+```
+
+The footprint ratio assumes a uniform cache layout with equal-size layer
+buffers. It describes only main-KV storage and does not include the indexer or
+other fixed NPU allocations.
+
+Reusable layers are assigned to the shared buffers in round-robin order.
+Layers with incompatible main KV specifications do not share a physical
+buffer. MTP layers participate in the same planning. Optional indexer caches
+follow their main buffer assignment and are allocated only where needed.
+
+Before tensor descriptors are merged, the planner validates cache
+specifications, tensor sizes, and optional indexer layouts. An incompatible
+layout fails initialization instead of sharing incorrectly sized storage.
+
+### Execution pipeline
+
+For each layer:
+
+1. load the cached prefix from Memcache when required;
+2. wait until the target physical buffer is safe to overwrite;
+3. run attention and update KV;
+4. save the updated KV to host memory; and
+5. prefetch a later layer while computation continues.
+
+Multiple physical buffers let transfer and computation overlap. Prefill has
+enough per-layer computation to hide much of the load and save latency, which
+is why full-layer transfer is suitable for this stage.
+
+### Reuse invariant
+
+A physical buffer cannot be reused until every consumer of its previous
+contents has finished. Its Memcache save must complete before reuse. In the
+joint deployment, the Decode-side remote read must also complete.
+
+The implementation tracks completion by physical storage slot rather than only
+by logical layer name. This matters because several logical layers can refer to
+the same NPU address.
+````
+
+「形状与数值」的 buffer 数量公式、「在哪一步出现」的五步流水线、以及复用不变式（buffer 释放条件）的来源。
+
+## docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L192-L202
 
 ```markdown
-## 2. Layerwise KV Cache Offload on Prefill
+Prefill uses `MultiConnector` to compose the Remote D2H completion provider and
+`AscendStoreConnector`. `AscendMultiConnector` invokes the completion provider
+first regardless of their order in the connector configuration. For every
+layer buffer:
 
-Use this mode on a dedicated Prefill node with:
+- AscendStore saves the layer to the Prefill host KV pool; and
+- Remote D2H publishes source metadata and waits for Decode acknowledgements.
 
-- `kv_role: "kv_producer"`;
-- the Memcache backend;
-- an MLA, SFA, or DSA attention backend; and
-- eager execution.
+The buffer-reuse gate opens only after both paths finish. This prevents Prefill
+from overwriting a shared physical buffer while Decode is still reading it.
+```
 
-For a combined deployment, Prefill TP must be greater than or equal to Decode
-TP and divisible by it.
+说明与 `SfaRemoteD2HConnector` 联合部署时 buffer 释放需要两条路径都完成，对应正文中的外部释放门。
 
-Add the following options to the Prefill launch command. `MultiConnector` lets
-`AscendStoreConnector` offload layer buffers to Memcache while
-`SfaRemoteD2HConnector` exposes the same buffers to Decode:
+## docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L160-L196
 
+````markdown
 ```bash
 --enforce-eager \
 --kv-transfer-config '{
@@ -127,11 +186,11 @@ Do not set `sparse_kv_offload_config` on Prefill. The
 | :--- | :--- |
 | `layerwise_num_shared_buffers` | Number of reusable NPU buffers. Start with two to four and tune for memory and transfer bandwidth. |
 | `layerwise_independent_layers` | Layers that keep dedicated buffers. The default is `[0]`; `"all"` disables cross-layer reuse. |
-```
+````
 
-Prefill 侧逐层卸载的实际启动配置与共享缓冲区参数；正文「形状与数值」「在哪一步出现」引用。
+「形状与数值」里 B=3、I=[0] 的配置样例来源，以及 `--enforce-eager` 要求。
 
-## vllm_ascend/attention/utils.py#L473-L522
+## vllm_ascend/attention/utils.py#L473-L521
 
 ```python
 def wait_for_kv_layer_from_connector(layer_name: str):
@@ -185,9 +244,9 @@ def notify_kv_cache_written(layer_name: str = ""):
         on_kv_cache_written(layer_name)
 ```
 
-注意力后端与 connector 之间的三个逐层挂钩点；正文的调用链从这里开始。
+注意力后端与 connector 之间的三个逐层钩子；正文「在哪一步出现」以此为调用链起点。
 
-## vllm_ascend/attention/mla_v1.py#L1898-L1913
+## vllm_ascend/attention/mla_v1.py#L1898-L1907
 
 ```python
         decode_preprocess_res = None
@@ -200,123 +259,111 @@ def notify_kv_cache_written(layer_name: str = ""):
         # Preprocess for prefill tokens
         if has_prefill:
             prefill_preprocess_res = self.mla_preprocess_prefill(q_c, kv_no_split, kv_cache, attn_metadata)
-        # Let the connector record any sync primitive it needs once the paged KV
-        # cache for this layer has been written. No-op for connectors that don't
-        # implement on_kv_cache_written; the decision to actually transfer is made
-        # by the connector/scheduler, not here.
-        notify_kv_cache_written(layer_name)
-        return decode_preprocess_res, prefill_preprocess_res
 ```
 
-MLA 后端里「等本层 KV 到位」的确切位置：只在有 prefill token 时等，等待发生在 preprocess 之前。
+MLA 后端里 load 等待点的位置：只在 `has_prefill` 时调用，位于本层 preprocess 之前。
 
-## vllm_ascend/attention/sfa_v1.py#L1694-L1700
+## vllm_ascend/attention/mla_v1.py#L2016-L2020
 
 ```python
-            output,
-            parallel_context.gather_full_o_proj,
-        )
+        output[...] = self.o_proj(o_proj_input, is_prefill=prefill_preprocess_res is not None)[0]
 
+        del o_proj_input
         maybe_save_kv_layer_to_connector(layer_name, list(kv_cache))
-
-        return output
+        return output_padded
 ```
 
-SFA 后端里「本层算完立刻交给 connector 保存」的位置：在 o_proj 之后、返回之前。
+MLA 后端里 save 触发点的位置：本层 o_proj 之后、返回之前。
 
-## vllm_ascend/attention/context_parallel/dsa_cp.py#L1430-L1434
+## vllm_ascend/attention/mla_v1.py#L1356-L1362
 
 ```python
-        layer_metadata = self._get_layer_metadata(layer_name, attn_metadata)
-        common_attn_metadata = layer_metadata.compressor_cache
-        if common_attn_metadata is None:
-            common_attn_metadata = layer_metadata.swa
+            "actual_seq_lengths": actual_seq_lengths_q,
+            "actual_seq_lengths_kv": actual_seq_lengths_kv,
+        }
+        record_attention_compute_start()
+
+        if self.head_padding > 0:
+            query = torch.cat((q_nope, q_pe), dim=-1)
+```
+
+attention gate 的打开点：紧邻 `npu_fused_infer_attention_score` 之前记录 compute stream 事件。
+
+## vllm_ascend/attention/dsa_v1.py#L1250-L1261
+
+```python
         wait_for_kv_layer_from_connector(layer_name)
+        cache_is_prepared = self._prepare_caches_before_attention(
+            layer_name,
+            hidden_states,
+            kv_cache,
+            attn_metadata,
+        )
+        if actual_tokens == 0:
+            output.zero_()
+            notify_kv_cache_written(layer_name)
+            maybe_save_kv_layer_to_connector(layer_name, list(kv_cache))
+            return output
 ```
 
-CP 变体 `dsa_cp` 实际已经调用了逐层等待，与文档「CP 变体尚未接入 layerwise wait/save」的说法不一致；正文「常见误解」据此提示。
+证明 `dsa_v1` 同样接入了逐层 wait/save 钩子（文档「Supported Models」只列了 mla_v1 / sfa_v1）。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L77-L83
+## vllm_ascend/attention/sfa_v1.py#L1546-L1551
 
 ```python
-    @classmethod
-    def requires_piecewise_for_cudagraph(cls, extra_config: dict[str, Any]) -> bool:
-        """
-        AscendStore requires PIECEWISE CUDA graph mode when layerwise
-        operations are enabled.
-        """
-        return extra_config.get("use_layerwise", False)
+            if self.has_indexer:
+                k_li, k_li_scale = self.indexer_select_pre_process(x=hidden_states, cos=cos, sin=sin)
+            else:
+                k_li, k_li_scale = None, None
+            wait_for_kv_layer_from_connector(layer_name)
+
 ```
 
-开启 layerwise 后对图模式的约束（PIECEWISE），正文「常见误解」用它区分「必须 eager」这一说法。
+证明 SFA 后端接入逐层等待，且等待发生在 indexer 预处理之后。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L227-L251
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L27-L61
 
 ```python
-    def wait_for_layer_load(self, layer_name: str) -> None:
-        if not self.use_layerwise:
-            return
-        self.connector_worker.wait_for_layer_load()
+class AttentionComputeStartGate:
+    """Gate that opens when the compute stream reaches attention.
 
-    def save_kv_layer(
-        self, layer_name: str, kv_layer: torch.Tensor, attn_metadata: "AttentionMetadata", **kwargs
+    The attention worker records an NPU event immediately before submitting the
+    attention op. MemCache worker threads wait for that event to complete before
+    submitting H2D/L2G work, so transfer starts when the compute stream is
+    actually at the attention boundary rather than merely after the Python call
+    site was reached.
+    """
+
+    def __init__(self) -> None:
+        self._condition = threading.Condition()
+        self._event: torch.npu.Event | None = None
+
+    def record(
+        self,
+        stream: torch.npu.Stream | None = None,
     ) -> None:
-        if not self.use_layerwise:
-            return
+        stream = stream or torch.npu.current_stream()
+        event = torch.npu.Event()
+        event.record(stream)
+        with self._condition:
+            if self._event is None:
+                self._event = event
+                self._condition.notify_all()
 
-        if self.kv_role == "kv_consumer" and not self.consumer_is_to_put:
-            # A load-only consumer does not publish KV.
-            return
-        self.connector_worker.save_kv_layer(self._get_connector_metadata())
+    def wait(self, timeout: float = 10.0) -> bool:
+        with self._condition:
+            while self._event is None:
+                if not self._condition.wait(timeout=timeout):
+                    return False
+            event = self._event
 
-    def wait_for_save(self, self_unused=None):
-        if self.kv_role == "kv_consumer" and not self.consumer_is_to_put:
-            # Don't do save if the role is kv_consumer
-            return
-
-        if self.use_layerwise:
-            return
-
-        self.connector_worker.wait_for_save(self._get_connector_metadata())
+        event.synchronize()
+        return True
 ```
 
-connector 层的分流：未开 layerwise 时两个逐层钩子直接返回；开了 layerwise 后步末的整批 `wait_for_save` 被跳过。（`wait_for_save` 的签名在原文件为 `def wait_for_save(self):`，此处仅为片段抄录时的笔误标注，见 L243。）
+「stream 与同步点」的核心：预取线程不是等 Python 调用返回，而是等 compute stream 真正跑到 attention 边界的 NPU event。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L154-L157
-
-```python
-        self.consumer_is_to_put = extra_config.get("consumer_is_to_put", False)
-        self.backend = extra_config.get("backend", "mooncake")
-        self.backend_name = self.backend.lower()
-        self.use_gva_layerwise = self.use_layerwise and self.backend_name == "memcache"
-```
-
-「layerwise 只支持 memcache」在代码里的落点：只有 memcache 后端才走 GVA 逐层路径。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L183-L185
-
-```python
-        self.h2d_stagger_us = int(extra_config.get("h2d_stagger_us", 0))
-        self.layerwise_max_transfer_blocks = int(extra_config.get("layerwise_max_transfer_blocks", 0))
-        self.layerwise_max_transfer_bytes = int(extra_config.get("layerwise_max_transfer_bytes", 0))
-```
-
-三个搬运节流参数的默认值（均为 0），正文「形状与数值」引用。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L236-L241
-
-```python
-            if self.use_layerwise:
-                raise ValueError(
-                    f"TP mismatch (local_tp={self.tp_size}, peer_tp={self.peer_tp_size}) "
-                    "is not supported with layerwise KV transfer (use_layerwise=True). "
-                    "The layerwise threads do not implement TP-mismatch handling."
-                )
-```
-
-layerwise 与 P/D 两侧 TP 不一致互斥的硬约束。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L463-L492
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L463-L471
 
 ```python
     def _start_kv_transfer_threads(self) -> None:
@@ -328,34 +375,15 @@ layerwise 与 P/D 两侧 TP 不一致互斥的硬约束。
             self.layer_load_finished_events = [threading.Event() for i in range(self.num_layers)]
             self.layer_save_finished_events = [threading.Event() for i in range(self.num_layers)]
             self.sync_save_events = [torch.npu.Event() for i in range(self.num_layers)]
-            can_save = self.kv_role in ["kv_producer", "kv_both"] or self.consumer_is_to_put
-            if self.use_gva_layerwise and can_save:
-                ready_event_sending = threading.Event()
-                self.kv_send_thread = KVCacheStoreLayerSendingThread(
-                    self.m_store,
-                    self.token_database,
-                    self.block_size,
-                    self.tp_rank,
-                    self.tp_size,
-                    self.dcp_size,
-                    self.page_size_bytes,
-                    ready_event_sending,
-                    self.num_layers,
-                    self.layer_save_finished_events,
-                    self.sync_save_events,
-                    self.layerwise_max_transfer_blocks,
-                    self.layerwise_max_transfer_bytes,
-                    group_builders=self._build_group_layer_builders(),
-                )
-                self.kv_send_thread.start()
-                ready_event_sending.wait()
 ```
 
-逐层模式下创建的同步对象与后台线程：每层各一个 `threading.Event`（load/save 完成）和一个 `torch.npu.Event`（save 的设备侧同步），发送/接收各一条 Python 线程。
+三组每层同步原语：两组 CPU 线程事件 + 一组 NPU event，正文「同步点」按此列举。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1620-L1645
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1618-L1645
 
 ```python
+    def _submit_ready_layer_loads(self) -> None:
+        assert self.kv_recv_thread is not None
         recv_thread = self.kv_recv_thread
 
         def submit_layer_load(layer_id: int) -> bool:
@@ -384,7 +412,7 @@ layerwise 与 P/D 两侧 TP 不一致互斥的硬约束。
                 submitted_layers += 1
 ```
 
-预取的提交节奏：第 0 层一次性提交 `num_prefetch_layers` 个，之后每等一层就补提交一层；只有「未来层」的任务才挂 attention 门。
+预取节奏：第 0 层一次投 `num_prefetch_layers` 个，之后每层补 1 个；`wait_for_save_layer` 即复用同一 buffer 的上一层。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1647-L1699
 
@@ -444,73 +472,33 @@ layerwise 与 P/D 两侧 TP 不一致互斥的硬约束。
         self.current_layer = self.current_layer + 1
 ```
 
-worker 侧的两个同步点本体：等待用 10 秒轮询的 `threading.Event`；保存先 `record()` 一个 NPU event 再把任务丢给发送线程，只有最后一层才阻塞等发送完成，`current_layer` 在这里推进。
+主机侧逐层状态机：load 侧阻塞等本层事件、save 侧只 record NPU event 后异步入队，只有最后一层才同步等待；`current_layer` 在 save 后自增。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L27-L61
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L236-L247
 
 ```python
-class AttentionComputeStartGate:
-    """Gate that opens when the compute stream reaches attention.
-
-    The attention worker records an NPU event immediately before submitting the
-    attention op. MemCache worker threads wait for that event to complete before
-    submitting H2D/L2G work, so transfer starts when the compute stream is
-    actually at the attention boundary rather than merely after the Python call
-    site was reached.
-    """
-
-    def __init__(self) -> None:
-        self._condition = threading.Condition()
-        self._event: torch.npu.Event | None = None
-
-    def record(
-        self,
-        stream: torch.npu.Stream | None = None,
-    ) -> None:
-        stream = stream or torch.npu.current_stream()
-        event = torch.npu.Event()
-        event.record(stream)
-        with self._condition:
-            if self._event is None:
-                self._event = event
-                self._condition.notify_all()
-
-    def wait(self, timeout: float = 10.0) -> bool:
-        with self._condition:
-            while self._event is None:
-                if not self._condition.wait(timeout=timeout):
-                    return False
-            event = self._event
-
-        event.synchronize()
-        return True
+            if self.use_layerwise:
+                raise ValueError(
+                    f"TP mismatch (local_tp={self.tp_size}, peer_tp={self.peer_tp_size}) "
+                    "is not supported with layerwise KV transfer (use_layerwise=True). "
+                    "The layerwise threads do not implement TP-mismatch handling."
+                )
+            if self.use_hybrid:
+                raise NotImplementedError(
+                    f"TP mismatch (local_tp={self.tp_size}, peer_tp={self.peer_tp_size}) "
+                    "is not yet supported with hybrid KV cache layouts (e.g. DSV4). "
+                    "The strided I/O path assumes a single dense KV group."
+                )
 ```
 
-重叠的关键同步原语：在计算流上记录一个 NPU event，搬运线程 `event.synchronize()` 后才发起 H2D，保证搬运真的和 attention 计算并行而不是抢在它前面。
+TP mismatch 与 layerwise 互斥的硬失败点，用于「常见误解」中区分 AscendStore 侧 TP 约束与 P/D 联合部署的 TP 比例要求。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1467-L1479
-
-```python
-    def _get_h2d_stagger_delay_us(self, layer_id: int) -> int:
-        if self.h2d_stagger_us <= 0:
-            return 0
-        slot = (self.tp_rank + layer_id) % self.tp_size
-        return slot * self.h2d_stagger_us
-
-    def _stagger_h2d_submit(self, layer_id: int) -> None:
-        delay_us = self._get_h2d_stagger_delay_us(layer_id)
-        if delay_us <= 0:
-            return
-        deadline = time.perf_counter() + delay_us / 1_000_000
-        while time.perf_counter() < deadline:
-            pass
-```
-
-`h2d_stagger_us` 的确切算法：错峰量 = `((tp_rank + layer_id) % tp_size) * h2d_stagger_us` 微秒，用忙等实现。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1484-L1501
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1481-L1502
 
 ```python
+    def _handle_request(  # type: ignore[override]
+        self, data: LayerLoadTask
+    ):
         wait_for_save = data.wait_for_save_layer
         transfer_tasks = data.transfer_tasks
         layer_id = data.layer_id
@@ -531,52 +519,91 @@ class AttentionComputeStartGate:
             self.layer_save_finished_events[wait_for_save].clear()
 ```
 
-共享缓冲区带来的额外同步点：要往某个 buffer 里灌新层数据前，必须先等上一个占用该 buffer 的层保存完（CPU 事件 + NPU 事件都要等）。
+buffer 复用门的实现：接收线程在写目标 buffer 前，先等上一占用层的 CPU save 事件，再 `synchronize()` 该层的 NPU event。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1533-L1554
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1533-L1535
 
 ```python
         if attention_start_gate is not None:
             while not attention_start_gate.wait(timeout=10):
                 logger.info("Layerwise %d load waits for attention compute start", layer_id)
-
-        all_load_keys: list[str] = []
-        all_req_ids: set[str] = set()
-        last_chunk_req_ids: set[str] = set()
-        all_gvas = []
-        all_addrs = []
-        all_sizes = []
-        for task, req_meta in task_metas:
-            if req_meta.load_keys:
-                all_load_keys.extend(req_meta.load_keys)
-            for req_id, is_last_chunk in zip(req_meta.req_ids, req_meta.is_last_chunks):
-                all_req_ids.add(req_id)
-                if is_last_chunk:
-                    last_chunk_req_ids.add(req_id)
-            all_gvas.append(req_meta.gvas_array)
-            all_addrs.append(req_meta.addr_array)
-            all_sizes.append(req_meta.size_array)
-
-        self._stagger_h2d_submit(layer_id)
 ```
 
-接收线程的完整顺序：等 attention 门 → 拼批 → 错峰 → 发起 `batch_copy`，正文「在哪一步出现」按这个顺序描述重叠。
+预取线程在真正发起 H2D 前等待 attention gate，避免搬运抢在本层 attention 之前挤占带宽。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L17-L21
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1467-L1479
 
 ```python
-_NUM_SHARED_BUFFERS = "layerwise_num_shared_buffers"
-_PREFETCH_LAYERS = "layerwise_prefetch_layers"
-_INDEPENDENT_LAYERS = "layerwise_independent_layers"
-_DEFAULT_MAX_PREFETCH_LAYERS = 8
-_INDEXER_CACHE_SUFFIX = ".indexer.k_cache"
+    def _get_h2d_stagger_delay_us(self, layer_id: int) -> int:
+        if self.h2d_stagger_us <= 0:
+            return 0
+        slot = (self.tp_rank + layer_id) % self.tp_size
+        return slot * self.h2d_stagger_us
+
+    def _stagger_h2d_submit(self, layer_id: int) -> None:
+        delay_us = self._get_h2d_stagger_delay_us(layer_id)
+        if delay_us <= 0:
+            return
+        deadline = time.perf_counter() + delay_us / 1_000_000
+        while time.perf_counter() < deadline:
+            pass
 ```
 
-预取层数的代码上限常量 8，用于指出文档写的默认值 1 与代码不符。
+`h2d_stagger_us` 的实际语义：按 `(tp_rank + layer_id) % tp_size` 错峰，且是忙等自旋。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L118-L164
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1147-L1164
 
 ```python
+        if key_list:
+            exists_states = self.lookup(key_list)
+            missing_indices = [index for index, exists in enumerate(exists_states) if not exists]
+            keys_to_put = [key_list[index] for index in missing_indices]
+            addrs_to_put = [addr_list[index] for index in missing_indices]
+            sizes_to_put = [size_list[index] for index in missing_indices]
+            if keys_to_put:
+                self.sync_save_events[layer_id].synchronize()
+                self.m_store.put(keys_to_put, addrs_to_put, sizes_to_put)
+
+        if layer_id == self.final_layer_id:
+            for req_id, is_last_chunk in zip(req_ids, is_last_chunks):
+                if is_last_chunk and self.try_finish_and_delete_stored_request(req_id):
+                    self.set_finished_request(req_id)
+
+        assert not self.layer_save_finished_events[layer_id].is_set(), f"thread: {layer_id} save failed "
+        logger.debug("Key-based layer save event set: layer %d", layer_id)
+        self.layer_save_finished_events[layer_id].set()
+```
+
+发送线程侧的同步点：`put` 之前 `synchronize()` 本层 NPU event，确保 attention 已把 KV 写进 buffer；完成后 set CPU 事件。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L89-L102
+
+```python
+    for connector_config in connector_configs:
+        if not isinstance(connector_config, dict):
+            continue
+        if connector_config.get("kv_connector") not in (
+            "AscendStoreConnector",
+            "MooncakeConnectorStoreV1",
+        ):
+            continue
+        extra_config = connector_config.get("kv_connector_extra_config") or {}
+        if str(extra_config.get("backend", "mooncake")).lower() == "memcache" and extra_config.get(
+            "use_layerwise", False
+        ):
+            return extra_config
+    return None
+```
+
+buffer 复用规划只在 `backend == "memcache"` 且 `use_layerwise` 同时成立时启用；也说明 `MultiConnector` 下会逐个子 connector 匹配。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L114-L134
+
+```python
+def build_layerwise_cache_layout(
+    num_layers: int,
+    extra_config: dict[str, Any] | None = None,
+) -> LayerwiseCacheLayout:
     shared_buffers_value = extra_config.get(_NUM_SHARED_BUFFERS) if extra_config else None
     if shared_buffers_value is None:
         if num_layers < 1:
@@ -594,7 +621,13 @@ _INDEXER_CACHE_SUFFIX = ".indexer.k_cache"
         num_prefetch_layers = _parse_int_config(prefetch_value, _PREFETCH_LAYERS)
         if num_prefetch_layers < 1:
             raise ValueError(f"{_PREFETCH_LAYERS} must be at least 1")
+```
 
+配置默认值的代码真相：`layerwise_num_shared_buffers` 缺省等于层数（不复用），`layerwise_prefetch_layers` 缺省是 `min(shared_buffers, 8)` 而非文档写的 1。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L136-L178
+
+```python
     independent_value = extra_config.get(_INDEPENDENT_LAYERS) if extra_config else None
     if independent_value is None:
         layer_indices = [0]
@@ -624,70 +657,75 @@ _INDEXER_CACHE_SUFFIX = ".indexer.k_cache"
         reused_layers[next_index]: reused_layers[next_index - num_shared_buffers]
         for next_index in range(num_shared_buffers, len(reused_layers))
     }
-```
+    storage_indices = [[layer] for layer in independent_layers]
+    for slot in range(num_shared_buffers):
+        members = list(range(slot, len(reused_layers), num_shared_buffers))
+        if members:
+            storage_indices.append([reused_layers[index] for index in members])
 
-三个 buffer 参数的真实默认值与含义：不配 `layerwise_num_shared_buffers` 时等于层数（即不复用），预取层数默认 `min(shared_buffers, 8)`，独立层默认 `[0]`。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L245-L253
-
-```python
-    buffer_slots: list[tuple[int, ...]] = [(layer,) for layer in independent_layers]
-    prefetch_layer_map: dict[int, int] = {}
-    for _, bucket_layers in signature_buckets:
-        num_shared_buffers = min(base_layout.num_shared_buffers, len(bucket_layers))
-        for buffer_index in range(num_shared_buffers):
-            layers_sharing_buffer = tuple(bucket_layers[buffer_index::num_shared_buffers])
-            buffer_slots.append(layers_sharing_buffer)
-            for owner_index in range(1, len(layers_sharing_buffer)):
-                prefetch_layer_map[layers_sharing_buffer[owner_index]] = layers_sharing_buffer[owner_index - 1]
-```
-
-共享 buffer 的分配规则：层按 `buffer_index::num_shared_buffers` 轮转共用一块 HBM，`prefetch_layer_map[i]` 记录 i 必须等哪一层先保存完。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L341-L357
-
-```python
-    new_tensors: list[KVCacheTensor] = []
-    for slot in reuse_layout.buffer_slots:
-        _merge_specs([reuse_layout.layer_cache_specs[layer].main for layer in slot])
-        indexer_specs: list[NamedKVCacheSpec] = []
-        for layer in slot:
-            indexer = reuse_layout.layer_cache_specs[layer].indexer
-            if indexer is not None:
-                indexer_specs.append(indexer)
-        if indexer_specs:
-            _merge_specs(indexer_specs)
-    kv_cache_config.kv_cache_tensors = new_tensors
-    logger.info(
-        "Layerwise KV cache reuse merged %d descriptors into %d descriptors using %d buffer assignments.",
-        len(old_tensors),
-        len(new_tensors),
-        len(reuse_layout.buffer_slots),
+    return LayerwiseCacheLayout(
+        num_shared_buffers=num_shared_buffers,
+        num_prefetch_layers=num_prefetch_layers,
+        independent_layers=independent_layers,
+        prefetch_layer_map=prefetch_layer_map,
+        storage_indices=storage_indices,
+        has_layer_reuse=has_layer_reuse,
     )
 ```
 
-缓冲区复用是通过改写 `kv_cache_config.kv_cache_tensors`（多层共用一个 `KVCacheTensor`）实现的；文档里那条确认日志就是这里打出来的。
+round-robin 分配与 `prefetch_layer_map`（层 i 复用第 i−B 个可复用层的 buffer）的确切构造，是「形状与数值」中占用比公式的实现依据。
 
-## vllm_ascend/attention/sfa_kv_offload.py#L1-L17
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L76-L91
 
 ```python
-"""Standalone SFA backend for Sparse KV offload.
+class AscendStoreConnector(KVConnectorBase_V1, SupportsHMA):
+    @classmethod
+    def requires_piecewise_for_cudagraph(cls, extra_config: dict[str, Any]) -> bool:
+        """
+        AscendStore requires PIECEWISE CUDA graph mode when layerwise
+        operations are enabled.
+        """
+        return extra_config.get("use_layerwise", False)
 
-All Sparse KV offload related attention logic lives in this module and is selected by
-``AscendSFABackend.get_impl_cls()`` / ``get_builder_cls()`` when
-``sparse_kv_offload_config.enabled`` is set, keeping ``sfa_v1.py`` clean.
+    def __init__(self, vllm_config: VllmConfig, role: KVConnectorRole, kv_cache_config: KVCacheConfig | None = None):
+        super().__init__(vllm_config=vllm_config, role=role, kv_cache_config=kv_cache_config)
+        self.kv_role = vllm_config.kv_transfer_config.kv_role
 
-Data plane (see zsc-sfa-kv-offload-merge-plan.md):
-
-- prefill (debug intermediate state, only reachable with
-  ``keep_device_kv_cache=True``): ``exec_kv`` writes the NPU paged main
-  cache as usual, then the layer's cache rows are committed D2H
-  (``cache_cpu[slot] = cache_npu[slot]``) through the manager;
-- decode: no NPU main K/V cache at all (indexer K cache only). The current
-  token's K/V is produced compute-only and committed D2H directly; top-k
-  misses are loaded H2D into the resident (topk) buffer and a single
-  resident SFA attention runs.
-"""
+        extra_config = vllm_config.kv_transfer_config.kv_connector_extra_config
+        self.use_layerwise = extra_config.get("use_layerwise", False)
+        self.consumer_is_to_put = extra_config.get("consumer_is_to_put", False)
 ```
 
-用来划清边界：Decode 侧的稀疏卸载是另一条独立数据面（另一页 `kv-cache-sparse-offload`），与本页的逐层存/取不是同一套机制。
+开关入口与图模式约束：开启 layerwise 时要求 PIECEWISE cudagraph（对应文档的 eager 要求）。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L227-L251
+
+```python
+    def wait_for_layer_load(self, layer_name: str) -> None:
+        if not self.use_layerwise:
+            return
+        self.connector_worker.wait_for_layer_load()
+
+    def save_kv_layer(
+        self, layer_name: str, kv_layer: torch.Tensor, attn_metadata: "AttentionMetadata", **kwargs
+    ) -> None:
+        if not self.use_layerwise:
+            return
+
+        if self.kv_role == "kv_consumer" and not self.consumer_is_to_put:
+            # A load-only consumer does not publish KV.
+            return
+        self.connector_worker.save_kv_layer(self._get_connector_metadata())
+
+    def wait_for_save(self):
+        if self.kv_role == "kv_consumer" and not self.consumer_is_to_put:
+            # Don't do save if the role is kv_consumer
+            return
+
+        if self.use_layerwise:
+            return
+
+        self.connector_worker.wait_for_save(self._get_connector_metadata())
+```
+
+connector 侧的分发：`layer_name` 只用于开关判断，实际按 worker 内部的 `current_layer` 计数推进；layerwise 开启后整包 `wait_for_save` 直接短路。

@@ -1,0 +1,18 @@
+{
+  "promoted": [
+    "block-table",
+    "kv-cache-cpu-offload",
+    "kv-cache-layerwise-offload",
+    "kv-cache-memory-profiling",
+    "kv-cache-quantization",
+    "kv-cache-sparse-offload",
+    "kv-cache-spec",
+    "kv-pool",
+    "paged-attention",
+    "prefix-caching",
+    "recompute-cpu-offload"
+  ],
+  "merged": [],
+  "rejected": [],
+  "contradictions": []
+}

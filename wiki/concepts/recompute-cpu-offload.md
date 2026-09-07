@@ -25,7 +25,7 @@ sources:
 evidence: "C"
 related: [kv-cache-cpu-offload, prefix-caching, block-table, kv-pool, paged-attention, kv-cache-spec]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

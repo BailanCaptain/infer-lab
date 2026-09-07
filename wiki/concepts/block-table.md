@@ -21,9 +21,9 @@ sources:
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L200-L210
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1646-L1656
 evidence: "C"
-related: [paged-attention, kv-cache-spec, prefix-caching]
+related: [paged-attention, kv-cache-spec, prefix-caching, kv-cache-cpu-offload, recompute-cpu-offload, kv-cache-memory-profiling]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

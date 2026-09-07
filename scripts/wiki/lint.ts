@@ -59,9 +59,19 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       }
     }
     for (const r of p.fm.related) {
-      if (!ids.has(r))
+      if (!ids.has(r)) {
         problems.push({ file: p.file, rule: "related-missing", message: `related 指向不存在的 ${r}` });
-      else inbound.add(r);
+        continue;
+      }
+      inbound.add(r);
+      // HANDBOOK「整合」要求 related 双向；只单边写会让图不连通
+      if (!ids.get(r)?.fm.related.includes(p.fm.id)) {
+        problems.push({
+          file: p.file,
+          rule: "related-asymmetric",
+          message: `related 含 ${r}，但 ${r} 没有回指 ${p.fm.id}`,
+        });
+      }
     }
     for (const t of linkTargets(p)) {
       const target = pages.find((q) => q.file === t);

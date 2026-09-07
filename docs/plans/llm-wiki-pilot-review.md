@@ -104,3 +104,38 @@ $17.32 产出 8 页，约合 **每页 2.2 美元**。这是 CLI 报告的等值�
 2. 是否采纳上面问题 2 的 HANDBOOK 补充规则（推广结论降级到 `D`）。
 
 技术上待办：等 4:10 额度重置后 `--retry-failed` 补跑 3 页，再跑整合阶段，然后 `pnpm wiki:build` 与 `pnpm wiki:lint` 收尾。
+
+---
+
+## 补跑与整合（2026-09-07 下午，续）
+
+额度重置后按用户「补完，先不换模型」的指示续跑。
+
+| 阶段 | 命令 | 结果 | 花费 |
+|---|---|---|---|
+| 补跑 3 页 | `--phase extract --retry-failed` | 3 成 0 败，失败账本清空 | $6.92 |
+| 整合 11 页 | `--phase integrate` | 晋升 11，合并 0，拒收 0，矛盾 0 | $3.78 |
+
+试点批总花费 **$28.02**，产出 11 页，约合每页 2.5 美元等值。
+
+### 收尾校验
+
+- `pnpm wiki:audit`：11 页 174 条来源，行号全部有效，零缺失文件、零越界、零 raw 缺片段。
+- `pnpm wiki:build`：连跑两次 `index.md` 与 `registry.json` 无 diff，幂等成立。
+- `pnpm check`：168 个测试通过（20 个文件），typecheck、lint、依赖方向、内容校验、wiki lint 全绿。
+- `pnpm build`：通过。
+- 11 页 `updated` 全部为 `2026-09-07`，日期 bug 的修复在整合阶段生效。
+
+### 新发现：related 单向（已修，并补了 lint 规则）
+
+69 条交叉链接里有 1 条单向：`kv-cache-memory-profiling` 指向 `block-table`，但后者没有回指。HANDBOOK 的「整合」切片要求双向，lint 却没有检查这一条，属于规则有、把关无。
+
+处置：给 `wiki:lint` 加规则 `related-asymmetric`（配单测），它立即抓出了这条真实缺陷；然后补上 `block-table` 的回指。现在 lint 通过。
+
+### 另一处调整：生成物退出格式化范围
+
+`src/content/wiki/registry.json` 由 `wiki:build` 生成，biome 想按自己的风格重排它，会与 build 的输出互相覆盖。已在 `biome.json` 把它排除，两边不再打架。
+
+### 待用户决定（仍未答复）
+
+HANDBOOK「提取」切片是否补一条：引用的代码带前提断言、而页面把结论推广到更广范围时，证据等级必须降到 `D` 并写明推广依据。这条不影响已产出的 11 页，但会影响第二步批量灌种的写法。

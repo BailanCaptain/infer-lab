@@ -23,9 +23,9 @@ sources:
   - vllm-ascend@28bf3a2e:csrc/torch_binding.cpp#L217-L256
   - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1175-L1179
 evidence: "C"
-related: [paged-attention, block-table, prefix-caching, kv-pool, recompute-cpu-offload, kv-cache-layerwise-offload, kv-cache-memory-profiling]
+related: [paged-attention, block-table, prefix-caching, kv-pool, recompute-cpu-offload, kv-cache-layerwise-offload, kv-cache-memory-profiling, kv-cache-spec]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

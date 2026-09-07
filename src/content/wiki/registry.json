@@ -1,4 +1,494 @@
 {
   "version": 1,
-  "pages": []
+  "pages": [
+    {
+      "id": "block-table",
+      "title": "Block Table",
+      "type": "concept",
+      "summary": "每个请求一行、记录它按顺序占用了哪些物理 KV block 的整数表；配合 slot_mapping 把 token 位置翻译成 KV cache 里的写入槽位。",
+      "aliases": [
+        "块表",
+        "块映射表"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L84-L98",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L100-L119",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L140-L179",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L248-L272",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L278-L283",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L347-L353",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ops/triton/compute_slot_mapping.py#L30-L41",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ops/triton/compute_slot_mapping.py#L43-L84",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/npu_input_batch.py#L131-L144",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1143-L1145",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1468-L1472",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3152-L3158",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L200-L210",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1646-L1656"
+      ],
+      "evidence": "C",
+      "related": [
+        "paged-attention",
+        "kv-cache-spec",
+        "prefix-caching",
+        "kv-cache-cpu-offload",
+        "recompute-cpu-offload",
+        "kv-cache-memory-profiling"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/block-table.md"
+    },
+    {
+      "id": "kv-cache-cpu-offload",
+      "title": "KV Cache CPU Offload",
+      "type": "feature",
+      "summary": "把 NPU 上被淘汰的 KV block 异步搬到 CPU 内存做二级前缀缓存，命中时再用专用 NPU stream 搬回来，省掉重算。",
+      "aliases": [
+        "KV Cache CPU 卸载",
+        "NPUOffloadingSpec",
+        "OffloadingConnector"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L81",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L104-L110",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/__init__.py#L63-L73",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L86-L97",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L159-L189",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L22-L55",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L74-L93",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L45-L53",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L116-L131",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L276-L313",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L315-L328",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L187-L222",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L224-L247",
+        "vllm-ascend@28bf3a2e:csrc/torch_binding.cpp#L136-L175",
+        "vllm-ascend@28bf3a2e:csrc/torch_binding.cpp#L217-L256",
+        "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1175-L1179"
+      ],
+      "evidence": "C",
+      "related": [
+        "paged-attention",
+        "block-table",
+        "prefix-caching",
+        "kv-pool",
+        "recompute-cpu-offload",
+        "kv-cache-layerwise-offload",
+        "kv-cache-memory-profiling",
+        "kv-cache-spec"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-cache-cpu-offload.md"
+    },
+    {
+      "id": "kv-cache-layerwise-offload",
+      "title": "Layerwise KV Offload",
+      "type": "feature",
+      "summary": "把 KV cache 的存/取从「整个 forward 一次性搬运」拆成「每层算完就搬」，用后一层的注意力计算掩盖前一层的传输，并让多层共用少量 NPU buffer。",
+      "aliases": [
+        "逐层 KV 卸载",
+        "逐层 KV 传输",
+        "Layerwise KV Pool",
+        "Layerwise Prefill Offload"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L18-L36",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L77-L88",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L224-L245",
+        "vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L98-L146",
+        "vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L192-L202",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L160-L196",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L473-L521",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L1356-L1362",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L1898-L1907",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L2016-L2020",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L1546-L1551",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/dsa_v1.py#L1250-L1261",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L27-L61",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L76-L91",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L227-L251",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L236-L247",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L463-L471",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1618-L1645",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1647-L1699",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1147-L1164",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1467-L1479",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1481-L1502",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1533-L1535",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L89-L102",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L114-L134",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L136-L178"
+      ],
+      "evidence": "C",
+      "related": [
+        "kv-cache-sparse-offload",
+        "kv-cache-quantization",
+        "kv-cache-spec",
+        "kv-cache-memory-profiling",
+        "kv-pool",
+        "kv-cache-cpu-offload"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-cache-layerwise-offload.md"
+    },
+    {
+      "id": "kv-cache-memory-profiling",
+      "title": "KV Cache Memory Profiling",
+      "type": "feature",
+      "summary": "启动时跑一次假的前向，量出权重、激活峰值和非 torch 显存，用 total_memory×gpu_memory_utilization 减掉它们，得到能分给 KV Cache 的字节数。",
+      "aliases": [
+        "KV Cache 显存探测",
+        "显存 profiling",
+        "determine_available_memory"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L441-L454",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L500-L517",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L536-L563",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L565-L600",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L602-L630",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L778-L821",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3713-L3727",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3836-L3837",
+        "vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker_310p.py#L113-L133",
+        "vllm-ascend@28bf3a2e:docs/source/tutorials/models/Dots3-Note.md#L400-L408"
+      ],
+      "evidence": "C",
+      "related": [
+        "paged-attention",
+        "block-table",
+        "kv-cache-spec",
+        "kv-pool",
+        "kv-cache-layerwise-offload",
+        "kv-cache-sparse-offload",
+        "prefix-caching",
+        "kv-cache-cpu-offload"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-cache-memory-profiling.md"
+    },
+    {
+      "id": "kv-cache-quantization",
+      "title": "KV Cache Quantization",
+      "type": "feature",
+      "summary": "把写进 KV cache 的 K/V 从 bf16 降到 int8（A5 上为 fp8_e4m3fn），显存减半；scale 来自 ModelSlim checkpoint 里的 kv_cache_scale，attention 算子按 antiquant scale 在核内反量化。",
+      "aliases": [
+        "KV 缓存量化",
+        "C8 KV cache",
+        "INT8 KV cache",
+        "FAKQuant"
+      ],
+      "chapters": [
+        "11",
+        "17"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/quantization.md#L122-L124",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/quant_type.py#L26-L37",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/configs/modelslim_config.py#L658-L670",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/configs/modelslim_config.py#L799-L809",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/configs/modelslim_config.py#L905-L914",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/configs/modelslim_config.py#L1097-L1115",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1793-L1800",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1898-L1931",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1933-L1979",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1981-L2002",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L2004-L2040",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4684-L4698",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L689-L721",
+        "vllm-ascend@28bf3a2e:vllm_ascend/models/minimax_m3/msa_m3.py#L112-L120",
+        "vllm-ascend@28bf3a2e:vllm_ascend/models/layer/attention/layer.py#L177-L183",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L514-L522",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L1150-L1156"
+      ],
+      "evidence": "C",
+      "related": [
+        "kv-cache-layerwise-offload",
+        "kv-cache-sparse-offload",
+        "kv-cache-spec"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-cache-quantization.md"
+    },
+    {
+      "id": "kv-cache-sparse-offload",
+      "title": "Sparse KV Offload",
+      "type": "feature",
+      "summary": "Decode 节点把整份 KV cache 放在主机 DRAM，每步只把稀疏注意力 indexer 选中的 top-k token 的 KV 拉回 NPU 常驻 buffer 上算一次注意力。",
+      "aliases": [
+        "稀疏 KV 卸载",
+        "Sparse KV Cache Offload",
+        "Sparse Decode Offload"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L203-L241",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L260-L268",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1227-L1245",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1257-L1292",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L1-L17",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L166-L173",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L306-L322",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L396-L448",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L1661-L1688",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L61-L66",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp#L115-L173",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L53-L84",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L194-L227",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L756-L776"
+      ],
+      "evidence": "C",
+      "related": [
+        "kv-cache-layerwise-offload",
+        "kv-cache-quantization",
+        "kv-cache-spec",
+        "kv-cache-memory-profiling"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-cache-sparse-offload.md"
+    },
+    {
+      "id": "kv-cache-spec",
+      "title": "KV Cache Spec",
+      "type": "feature",
+      "summary": "每个注意力层向引擎申报一张\"规格单\"（block_size、num_kv_heads、head_size、dtype），引擎据此算出每 block 字节数与总 block 数，再回头按规格单分配真实张量。",
+      "aliases": [
+        "KV Cache 规格",
+        "KVCacheSpec",
+        "按层 KV 规格声明"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L983-L994",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L1009-L1020",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L374-L376",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4947-L4986",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5076-L5085",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3910-L3938",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3986-L4000",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4032-L4052",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4288-L4317",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4598-L4614",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4647-L4659",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4693-L4704",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L114-L121",
+        "vllm-ascend@28bf3a2e:vllm_ascend/core/kv_cache_interface.py#L50-L61",
+        "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1171-L1179",
+        "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1380-L1382",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L608-L619"
+      ],
+      "evidence": "C",
+      "related": [
+        "paged-attention",
+        "block-table",
+        "kv-cache-memory-profiling",
+        "prefix-caching",
+        "kv-cache-quantization",
+        "kv-cache-cpu-offload",
+        "kv-cache-layerwise-offload",
+        "kv-cache-sparse-offload",
+        "recompute-cpu-offload"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-cache-spec.md"
+    },
+    {
+      "id": "kv-pool",
+      "title": "KV Pool",
+      "type": "feature",
+      "summary": "把 KV cache 存进 HBM 之外的共享存储池（Mooncake / Memcache / Yuanrong），让前缀命中能跨请求、跨实例复用；AscendStoreConnector 在调度侧查命中数、在 worker 侧按块地址把 KV 搬进搬出 HBM。",
+      "aliases": [
+        "KV 缓存池",
+        "KV Cache Pool",
+        "AscendStoreConnector",
+        "Ascend Store"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L11-L43",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L175-L179",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L299-L314",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/__init__.py#L39-L49",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L85-L116",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L204-L252",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L291-L334",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L90-L102",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L161-L172",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L456-L496",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L528-L545",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L790-L819",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L874-L930",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L854-L865",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L50-L56"
+      ],
+      "evidence": "C",
+      "related": [
+        "prefix-caching",
+        "kv-cache-layerwise-offload",
+        "kv-cache-cpu-offload",
+        "recompute-cpu-offload",
+        "paged-attention",
+        "kv-cache-memory-profiling"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/kv-pool.md"
+    },
+    {
+      "id": "paged-attention",
+      "title": "PagedAttention",
+      "type": "feature",
+      "summary": "把 KV Cache 切成固定 128 token 的物理块，attention 靠 block_table 按块寻址读取；昇腾上它是一个可选算子分支，默认走 FIA。",
+      "aliases": [
+        "分页注意力",
+        "PA"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L121",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L123-L149",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L153",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L200-L210",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L249-L253",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1324-L1333",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1561-L1580",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1628-L1657",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1660-L1681",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1695-L1705",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L206-L222",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L378-L383",
+        "vllm-ascend@28bf3a2e:vllm_ascend/device/device_op.py#L43-L53",
+        "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1167-L1204",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4850-L4863",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L61",
+        "vllm-ascend@28bf3a2e:docs/source/faqs.md#L304-L306"
+      ],
+      "evidence": "C",
+      "related": [
+        "block-table",
+        "kv-cache-spec",
+        "prefix-caching",
+        "kv-cache-memory-profiling",
+        "kv-pool",
+        "kv-cache-cpu-offload",
+        "recompute-cpu-offload"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/paged-attention.md"
+    },
+    {
+      "id": "prefix-caching",
+      "title": "Prefix Caching",
+      "type": "feature",
+      "summary": "把已算过的前缀 KV 按 block 哈希存下来，新请求命中多少个整块就跳过多少 token 的前向计算。",
+      "aliases": [
+        "前缀缓存",
+        "自动前缀缓存",
+        "APC",
+        "Automatic Prefix Caching"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1167-L1204",
+        "vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L1196-L1210",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L161",
+        "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1287-L1345",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1542-L1569",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/v2/attn_utils.py#L305-L336",
+        "vllm-ascend@28bf3a2e:vllm_ascend/patch/platform/patch_kv_cache_coordinator.py#L156-L171",
+        "vllm-ascend@28bf3a2e:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L55-L84",
+        "vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L107-L143",
+        "vllm-ascend@28bf3a2e:vllm_ascend/models/layer/attention/layer.py#L121-L127",
+        "vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker/v2/model_runner.py#L99-L109"
+      ],
+      "evidence": "I",
+      "related": [
+        "paged-attention",
+        "block-table",
+        "kv-cache-spec",
+        "kv-pool",
+        "recompute-cpu-offload",
+        "kv-cache-memory-profiling",
+        "kv-cache-cpu-offload"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/prefix-caching.md"
+    },
+    {
+      "id": "recompute-cpu-offload",
+      "title": "Recompute CPU Offload",
+      "type": "feature",
+      "summary": "PD 分离 D 节点被抢占的请求，把已算好的 KV 块从 HBM 拷到 CPU 内存暂存，重新排到时再拷回，避免退回 P 节点重跑 prefill。",
+      "aliases": [
+        "重算 CPU 卸载",
+        "RecomputeCPUOffloadConnector"
+      ],
+      "chapters": [
+        "11",
+        "12"
+      ],
+      "sources": [
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/__init__.py#L91-L95",
+        "vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L966-L996",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L39-L70",
+        "vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L415-L467",
+        "vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L222-L239",
+        "vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L1054-L1073",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L148-L172",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L174-L187",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L195-L216",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L308-L318",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L534-L570",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/metadata.py#L35-L52",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L2088-L2093",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L104-L122",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L165",
+        "vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L227-L253"
+      ],
+      "evidence": "C",
+      "related": [
+        "kv-cache-cpu-offload",
+        "prefix-caching",
+        "block-table",
+        "kv-pool",
+        "paged-attention",
+        "kv-cache-spec"
+      ],
+      "contradicts": [],
+      "updated": "2026-09-07",
+      "file": "concepts/recompute-cpu-offload.md"
+    }
+  ]
 }

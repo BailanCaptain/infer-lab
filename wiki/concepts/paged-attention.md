@@ -24,9 +24,9 @@ sources:
   - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L61
   - vllm-ascend@28bf3a2e:docs/source/faqs.md#L304-L306
 evidence: "C"
-related: [block-table, kv-cache-spec, prefix-caching, kv-cache-memory-profiling]
+related: [block-table, kv-cache-spec, prefix-caching, kv-cache-memory-profiling, kv-pool, kv-cache-cpu-offload, recompute-cpu-offload]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

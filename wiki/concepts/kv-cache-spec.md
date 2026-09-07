@@ -24,9 +24,9 @@ sources:
   - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1380-L1382
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L608-L619
 evidence: "C"
-related: [paged-attention, block-table, kv-cache-memory-profiling, prefix-caching, kv-cache-quantization, kv-cache-cpu-offload, kv-cache-layerwise-offload, kv-cache-sparse-offload]
+related: [paged-attention, block-table, kv-cache-memory-profiling, prefix-caching, kv-cache-quantization, kv-cache-cpu-offload, kv-cache-layerwise-offload, kv-cache-sparse-offload, recompute-cpu-offload]
 contradicts: []
-updated: "2026-09-06"
+updated: "2026-09-07"
 ---
 
 ## 是什么

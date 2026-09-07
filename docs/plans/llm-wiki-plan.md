@@ -2131,12 +2131,16 @@ git commit -m "feat(F001): pilot batch — chapter 11 KV cache pages from vllm-a
 
 ---
 
-### Task 13: 文档同步
+### Task 13: 文档同步 ✅（2026-09-07）
 
 - `PLAN.md`：新增「七、知识库与问答（F001）」段，指向 feature doc；§2.6 内容管线里 Term 注册表改为「由 `src/content/wiki/registry.json` 提供」。
 - `HANDOFF.md`：「现状」加一段 wiki 骨架与试点批状态；「工作区约定」加 `tools/repos/`（可 `pnpm wiki:clone` 重建）。
 - `README.md` 文档表加 `wiki/HANDBOOK.md`、`docs/features/`。
 - `docs/features/F001-llm-wiki.md`：AC1–AC4 打勾，Timeline 加试点批日期与结果，Spike W1 结论进 Design Decisions。
+
+实际完成：`HANDOFF.md` 新增 F001 一节（五条命令表、产出、成本实测、接手注意四条），现状段与验证基线分列两条分支；`PLAN.md` 索引行改 in-progress 并挂上试点报告；`docs/features/F001-llm-wiki.md` AC1–AC4 打勾、状态改 in-progress、Timeline 补三行、Design Decisions 补「推广结论降级」；`README.md` 文档表在立项时已加。
+
+Phase 1 至此全部完成。
 
 ```bash
 git add PLAN.md HANDOFF.md README.md docs/

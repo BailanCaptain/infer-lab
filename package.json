@@ -25,6 +25,7 @@
     "gen:trace": "tsx scripts/gen-trace.ts",
     "wiki:build": "tsx scripts/wiki-build.ts",
     "wiki:lint": "tsx scripts/wiki-lint.ts",
+    "wiki:audit": "tsx scripts/wiki-audit.ts",
     "wiki:ingest": "tsx scripts/wiki-ingest.ts",
     "wiki:clone": "tsx scripts/wiki-clone.ts"
   },

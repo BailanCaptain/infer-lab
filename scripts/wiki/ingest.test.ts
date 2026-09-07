@@ -9,6 +9,7 @@ import {
   diffSnapshot,
   extractRequest,
   integrateRequest,
+  localDate,
   parseSeeds,
   parseStreamJsonLine,
   type RunAgent,
@@ -294,5 +295,14 @@ describe("applyIntegration", () => {
     const log = readFileSync(join(root, "log.md"), "utf8");
     expect(log).toContain("## [2026-09-07] ingest | Ta");
     expect(log).toContain("merged b → a");
+  });
+});
+
+describe("localDate", () => {
+  it("取本地日期而不是 UTC 日期", () => {
+    // 东八区 2026-09-07 01:50 对应 UTC 2026-09-06 17:50
+    const d = new Date(2026, 8, 7, 1, 50, 0);
+    expect(localDate(d)).toBe("2026-09-07");
+    expect(localDate(new Date(2026, 0, 5))).toBe("2026-01-05");
   });
 });

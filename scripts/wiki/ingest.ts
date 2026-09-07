@@ -395,3 +395,12 @@ export function applyIntegration(
   if (logLines.length) appendFileSync(join(wikiRoot, "log.md"), `${logLines.join("\n")}\n`);
   return { problems, logLines };
 }
+
+/**
+ * 本地日期 YYYY-MM-DD。不能用 toISOString()：它给的是 UTC，
+ * 东八区凌晨跑 ingest 会把页面的 updated 写成前一天。
+ */
+export function localDate(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}

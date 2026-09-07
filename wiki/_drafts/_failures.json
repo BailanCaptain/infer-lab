@@ -1,0 +1,20 @@
+{
+  "kv-cache-layerwise-offload": {
+    "at": "2026-09-06T17:50:49.164Z",
+    "reason": "exit 1",
+    "stderrTail": "",
+    "sessionId": "a6a1a755-49cf-4a1b-9bdf-342560826bf0"
+  },
+  "kv-cache-quantization": {
+    "at": "2026-09-06T17:50:49.164Z",
+    "reason": "exit 1",
+    "stderrTail": "",
+    "sessionId": "b9f89dc7-639b-4723-a491-b473c8bf0719"
+  },
+  "kv-cache-sparse-offload": {
+    "at": "2026-09-06T17:50:49.164Z",
+    "reason": "exit 1",
+    "stderrTail": "",
+    "sessionId": "c112487c-ca86-48fc-b0e7-21de5db7e4f6"
+  }
+}

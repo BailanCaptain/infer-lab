@@ -13,6 +13,7 @@ import {
   type IngestContext,
   integrateRequest,
   integrationSchema,
+  localDate,
   parseSeeds,
   readFailures,
   runExtractPhase,
@@ -37,7 +38,7 @@ if (!seedsPath) {
 const seeds = parseSeeds(readFileSync(seedsPath, "utf8"));
 const phase = arg("--phase", "all") as "extract" | "integrate" | "all";
 const dryRun = flag("--dry-run");
-const today = new Date().toISOString().slice(0, 10);
+const today = localDate();
 
 const repoRoots: Record<string, string> = {};
 for (const [name, r] of Object.entries(seeds.repos)) {

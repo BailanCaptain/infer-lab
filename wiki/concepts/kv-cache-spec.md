@@ -55,9 +55,11 @@ token_size_bytes_k = num_kv_heads × head_size × dtype.itemsize
 token_size_bytes_v = num_kv_heads × head_size_v × dtype.itemsize
 ```
 
-K 和 V 分开算。对 MHA/GQA 两者相等，所以：
+注意这段代码紧跟一行 `assert kv_head_num == 1, "Sparse KV offload only support sfa(mla)"`，也就是它只在 MLA 这类单 KV 头的路径上执行，源码本身并没有给出 MHA/GQA 的通用形式。
 
-> **每 token 每层 KV 字节 = 2 × num_kv_heads × head_size × dtype 字节数**
+下面这条通用式是由上式按形状规则外推得到的 `[D]`，依据是 KV Cache 每层存 `num_kv_heads × head_size` 个元素、K 与 V 各一份，这一点在 `AscendAttentionBackend.get_kv_cache_shape` 声明的 `(2, num_blocks, block_size, num_kv_heads, head_size)` 里可以直接读出：
+
+> **每 token 每层 KV 字节 = 2 × num_kv_heads × head_size × dtype 字节数**（`[D]` 推导，非源码直述）
 
 用 **Qwen3-0.6B**（n_kv = 8，d_h = 128，28 层，bf16 每元素 2 字节）算一遍：
 

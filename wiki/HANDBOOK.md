@@ -48,6 +48,8 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `raw/<id>.md` 格式：H1 标题，然后每个片段一节：`## <path>#L起-L止`，下面一个代码块贴原文（不改动一字），再一行你为什么引用它。只贴你在页面里用到的片段，每段不超过 60 行。
 - `sources` 里每一项都要在 `raw/<id>.md` 里有对应片段；反过来 raw 里每个片段都要被正文引用到。
 - 不确定的写成推断并把 `evidence` 降到 `I`，不要编造行号。找不到任何源码依据就不要写页面，回复 `FAIL <id> <原因>`。
+- **推广要降级**：你引用的代码若带前提断言（例如紧邻的 `assert`、`if` 早退、只处理某一类模型的分支）或只覆盖部分情形，而你要把结论推广到更广的范围，该结论的 `evidence` 必须降到 `D`，并在正文写明两件事：源码里的限制条件是什么，你依据什么把它推广出去。
+  例：某处 `token_size = kv_head_num * head_dim * itemsize` 紧跟 `assert kv_head_num == 1`，说明它只对 MLA 成立；把它写成 GQA 通用的每 token 字节公式，就是推广，标 `D` 不标 `C`。
 - 不要读 `_drafts/` 里别人的草稿，不要修改 `concepts/`、`index.md`、`log.md`。
 - `related` 只填你确定存在或本批会产生的 id（任务描述里会列出本批 id）。
 
@@ -65,6 +67,7 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
   ```json
   { "promoted": ["id"], "merged": [{ "from": "id", "into": "id" }], "rejected": [{ "id": "id", "reason": "..." }], "contradictions": [{ "a": "id", "b": "id", "note": "..." }] }
   ```
+- 检查证据等级有没有被高估：正文出现「通用」「任何模型」「一般来说」这类推广措辞，而所引代码带前提断言或只覆盖部分情形时，把该页 `evidence` 降到 `D`，并在 `contradicts` 之外的正文里补一句限制条件。这一条只降级不拒收。
 - 拒收条件：sources 为空、行号明显编造（文件不存在）、正文少于三节、summary 超过一句话。
 - 不写 `index.md`、`log.md`，它们由程序派生。
 - 写完决策文件后回复一行 `DONE integrate promoted=<n> merged=<n> rejected=<n>`。
@@ -88,6 +91,7 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `dup-id`：两个文件同 id；`dup-alias`：alias 与其它页的 id 或 alias 重复（忽略大小写）。
 - `unknown-chapter`：chapters 含不存在的章节号。
 - `related-missing`：related 指向不存在的 id。
+- `related-asymmetric`：A 的 related 含 B，但 B 没有回指 A（「整合」要求双向）。
 - `broken-link`：正文相对链接指向不存在的文件。
 - `orphan`：concept / feature 页既没有 chapters，也没有任何页链接到它。
 - `log-format`：`log.md` 的 H2 不符合 `## [YYYY-MM-DD] ingest|build|review | 标题`。

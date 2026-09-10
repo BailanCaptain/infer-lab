@@ -19,6 +19,8 @@ export interface PageIndex {
   summary: string;
   chapters: string[];
   evidence: string;
+  /** 双向 related（HANDBOOK「整合」保证对称），图扩展靠它 */
+  related?: string[];
   /** 正文原文，用于关键词匹配 */
   text: string;
 }
@@ -30,17 +32,25 @@ export interface Hit {
   evidence: string;
   score: number;
   /** 命中方式，供上层决定要不要继续追问 */
-  how: "exact" | "keyword";
+  how: "exact" | "keyword" | "related";
+  /** how 为 related 时，说明是从哪一页牵出来的 */
+  via?: string;
 }
 
 export interface RetrieveOptions {
   limit?: number;
+  /**
+   * 图扩展（AC12）：直接命中之后，把命中页的 `related` 也带出来当二级候选。
+   * 只走一跳——两跳之后相关性衰减很快，而 70 条边、64% 密度的图两跳几乎等于全库。
+   */
+  expand?: boolean;
 }
 
 export interface Index {
   pages: PageIndex[];
   /** 归一化后的 id / title / alias → 页 */
   exact: Map<string, PageIndex>;
+  byId: Map<string, PageIndex>;
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -53,7 +63,7 @@ export function buildIndex(pages: PageIndex[]): Index {
       if (k && !exact.has(k)) exact.set(k, p);
     }
   }
-  return { pages, exact };
+  return { pages, exact, byId: new Map(pages.map((p) => [p.id, p])) };
 }
 
 /** 拆成检索词：按非字母数字与 CJK 边界切，去掉太短的噪声词。 */
@@ -104,17 +114,34 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
     }
   }
 
-  return [...scored.values()]
+  const direct = [...scored.values()]
     .sort((a, b) => b.score - a.score || a.page.id.localeCompare(b.page.id))
-    .slice(0, limit)
-    .map(({ page, score, how }) => ({
-      id: page.id,
-      title: page.title,
-      summary: page.summary,
-      evidence: page.evidence,
-      score,
-      how,
-    }));
+    .slice(0, limit);
+
+  const toHit = ({ page, score, how }: { page: PageIndex; score: number; how: Hit["how"] }): Hit => ({
+    id: page.id,
+    title: page.title,
+    summary: page.summary,
+    evidence: page.evidence,
+    score,
+    how,
+  });
+
+  if (!opts.expand || direct.length === 0) return direct.map(toHit);
+
+  // 一跳扩展：按牵出它的那页的分数排序，且排在全部直接命中之后
+  const seen = new Set(direct.map((d) => d.page.id));
+  const expanded: Hit[] = [];
+  for (const d of direct) {
+    for (const rid of d.page.related ?? []) {
+      if (seen.has(rid)) continue;
+      const page = index.byId.get(rid);
+      if (!page) continue;
+      seen.add(rid);
+      expanded.push({ ...toHit({ page, score: d.score / 2, how: "related" }), via: d.page.id });
+    }
+  }
+  return [...direct.map(toHit), ...expanded].slice(0, limit + expanded.length);
 }
 
 export interface CitationVerdict {

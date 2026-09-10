@@ -721,3 +721,65 @@
     width: 100vw;
   }
 }
+
+/* 证据角标的完整形态：有空间的地方写中文，不让学习者对着一个字母发懵 */
+.wiki-evidence-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 3px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  font-size: var(--text-micro);
+  color: var(--color-ink-muted);
+}
+
+.wiki-legend-block {
+  margin-top: 34px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-line);
+}
+
+.wiki-legend-block h2 {
+  margin: 0 0 6px;
+  font-size: var(--text-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wiki-legend-block > p {
+  margin: 0 0 16px;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  color: var(--color-ink-muted);
+}
+
+.wiki-evidence-legend {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 10px 20px;
+}
+
+.wiki-evidence-legend > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wiki-evidence-legend dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-compact);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.wiki-evidence-legend dd {
+  margin: 0 0 0 23px;
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-ink-faint);
+}

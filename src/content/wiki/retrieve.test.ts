@@ -9,6 +9,7 @@ const pages: PageIndex[] = [
     summary: "缓存每层每个 token 的 K 与 V，decode 时不再重算。",
     chapters: ["05", "11"],
     evidence: "C",
+    related: ["paged-attention", "chunked-prefill"],
     text: "## 是什么\nKV Cache 把 attention 的 key 与 value 存下来。\n## 形状与数值\n每 token 每层 4 KiB。",
   },
   {
@@ -27,7 +28,20 @@ const pages: PageIndex[] = [
     summary: "每个请求一行，记录它占用了哪些物理 KV block。",
     chapters: ["11"],
     evidence: "C",
+    related: ["paged-attention"],
     text: "## 是什么\nblock table 是页表。",
+  },
+  {
+    // 与 kv-cache 相关，但标题和正文都不含 kv / cache，
+    // 所以查 "kv-cache" 时它只能靠图扩展出现——这正是 AC12 要验的路径
+    id: "chunked-prefill",
+    title: "Chunked Prefill",
+    aliases: ["分块预填充"],
+    summary: "把长请求的预填充切成若干小段，避免一次占满计算。",
+    chapters: ["12"],
+    evidence: "C",
+    related: ["kv-cache"],
+    text: "## 是什么\n长请求的首次前向被切成多段轮流执行。",
   },
 ];
 
@@ -96,5 +110,49 @@ describe("citationCheck", () => {
 
   it("空回答不算通过", () => {
     expect(citationCheck("   ").cited).toBe(false);
+  });
+});
+
+describe("retrieve · 图扩展（AC12）", () => {
+  it("命中一页后，把它的 related 作为二级候选带出来", () => {
+    const plain = retrieve("kv-cache", index).map((h) => h.id);
+    expect(plain).not.toContain("chunked-prefill");
+    const ids = retrieve("kv-cache", index, { expand: true }).map((h) => h.id);
+    expect(ids[0]).toBe("kv-cache");
+    expect(ids).toContain("chunked-prefill");
+  });
+
+  it("扩展来的候选标明是从哪一页牵出来的", () => {
+    const hits = retrieve("kv-cache", index, { expand: true });
+    const cp = hits.find((h) => h.id === "chunked-prefill");
+    expect(cp?.how).toBe("related");
+    expect(cp?.via).toBe("kv-cache");
+  });
+
+  it("直接命中的页不会被标成 related", () => {
+    const hits = retrieve("kv-cache", index, { expand: true });
+    expect(hits.find((h) => h.id === "kv-cache")?.via).toBeUndefined();
+  });
+
+  it("扩展候选排在直接命中之后", () => {
+    const hits = retrieve("kv-cache", index, { expand: true });
+    const firstRelated = hits.findIndex((h) => h.how === "related");
+    const lastDirect = hits.map((h) => h.how !== "related").lastIndexOf(true);
+    expect(firstRelated).toBeGreaterThan(lastDirect);
+  });
+
+  it("不开 expand 时行为不变", () => {
+    expect(retrieve("kv-cache", index)).toEqual(retrieve("kv-cache", index, { expand: false }));
+  });
+
+  it("扩展只走一跳，不会把整个图拖进来", () => {
+    // 查 block-table：一跳到 paged-attention；paged-attention 再连 kv-cache，
+    // kv-cache 再连 chunked-prefill —— 三跳的 chunked-prefill 不该出现。
+    const hits = retrieve("block-table", index, { expand: true, limit: 10 });
+    expect(hits.find((h) => h.id === "chunked-prefill")).toBeUndefined();
+  });
+
+  it("一页什么都没命中时，扩展不产生结果", () => {
+    expect(retrieve("今天天气怎么样", index, { expand: true })).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import { CHAPTER_TITLES } from "../../content/wiki/chapters";
 import { getPage, listPages, rewriteRelativeLink, sourceUrl } from "../../content/wiki/index";
 import { parseRepoRef, type RegistryEntry } from "../../content/wiki/schema";
-import { EvidenceBadge, Term } from "../../content/wiki/Term";
+import { EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { ChatDrawer } from "../wiki/ChatDrawer";
 import "../../design/wiki.css";
 
@@ -79,6 +79,15 @@ function Landing({ count }: { count: number }) {
         每一页都由 agent 读钉住 commit 的源码写成，正文里的每条结论都能追到具体文件与行号。 目前 {count}{" "}
         页，从左侧目录开始读。
       </p>
+
+      <section className="wiki-legend-block">
+        <h2>每页角上的字母是什么</h2>
+        <p>
+          它标的是这一页的结论<strong>可信到什么程度</strong>。同样一句话，来自源码和来自推断，
+          分量完全不同——这里不把两者混为一谈。
+        </p>
+        <EvidenceLegend />
+      </section>
     </div>
   );
 }
@@ -94,7 +103,7 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
               {c} · {CHAPTER_TITLES[c] ?? "未归章"}
             </span>
           ))}
-          <EvidenceBadge level={page.evidence} />
+          <EvidenceBadge level={page.evidence} variant="full" />
         </div>
         <h1 className="display">{page.title}</h1>
         <p className="wiki-summary">{page.summary}</p>

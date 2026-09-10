@@ -18,9 +18,11 @@ import {
   parseSeeds,
   readFailures,
   runExtractPhase,
+  selectRelevantPages,
   worktreeKey,
 } from "./wiki/ingest";
 import { runLint } from "./wiki/lint";
+import { loadPages, parsePage } from "./wiki/pages";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -104,7 +106,22 @@ async function main() {
       console.log("没有草稿可整合");
       return;
     }
-    const req = integrateRequest(draftIds, ctx);
+    // Task 26：程序按 related 与章节交集挑相关页，不再让 agent 扫全库（风险 R2）
+    const toRef = (pg: { fm: { id: string; chapters: string[]; related: string[] } }) => ({
+      id: pg.fm.id,
+      chapters: pg.fm.chapters,
+      related: pg.fm.related,
+    });
+    const draftRefs = draftIds.map((id) => {
+      const file = join(wikiRoot, "_drafts", `${id}.md`);
+      const parsed = parsePage(`_drafts/${id}.md`, readFileSync(file, "utf8"));
+      return parsed.page ? toRef(parsed.page) : { id, chapters: [], related: [] };
+    });
+    const existingRefs = loadPages(wikiRoot).pages.map(toRef);
+    const req = integrateRequest(draftRefs, existingRefs, ctx);
+    console.log(
+      `  相关现有页 ${selectRelevantPages(draftRefs, existingRefs).length} / ${existingRefs.length}`,
+    );
     if (dryRun) {
       console.log(formatDryRun(req));
       return;

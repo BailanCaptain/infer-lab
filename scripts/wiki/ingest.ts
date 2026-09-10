@@ -29,8 +29,9 @@ export const DEFAULT_REF = "main";
 /**
  * 一个 repo 钉一组 ref，而不是一个 commit。
  *
- * 原因（2026-09-10 实测）：`layer_sharding` 在分支间的分布是非单调的——
- * v0.13 有 5 个文件、v0.23 有 13 个、v0.24 起主线为 0、v0.26.0rc 又有 1 个。
+ * 原因（2026-09-11 完整克隆下实测）：`layer_sharding` 在分支间的分布是非单调的——
+ * v0.13.0 有 8 个文件、v0.18.0 有 9 个、v0.23.0 有 14 个、v0.24.0rc 起主线为 0、
+ * v0.26.0rc 又有 1 处（单测里的残留赋值，不是功能回归）。
  * 「哪个版本移除的」只能按 ref 列表回答，单 commit 模型结构上答不了。
  *
  * 兼容旧格式：只写 `commit: <sha>` 时归一化成 `refs: { main: <sha> }`，
@@ -181,7 +182,56 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
   return { id: f.id, cwd: ctx.wikiRoot, args, stdin, timeoutMs: ctx.timeoutMs, allowedWrites: [draft, raw] };
 }
 
-export function integrateRequest(draftIds: string[], ctx: IngestContext): AgentRequest {
+/** 整合阶段需要知道的最少信息，草稿与现有页共用这个形状 */
+export interface PageRef {
+  id: string;
+  chapters: string[];
+  related: string[];
+}
+
+export interface SelectOptions {
+  /** 相关页数量上限，默认 30 */
+  max?: number;
+}
+
+/**
+ * 从现有页里挑出与本批草稿相关的那些（风险 R2 的应对）。
+ *
+ * 原来 HANDBOOK 让整合 agent「读 concepts/ 里全部现有页」。11 页时是 96 KB，
+ * 没问题；120–160 页约 1.4 MB、40 万 token 量级，会撞上下文，而且每批都要
+ * 重读一遍，成本随页数增长。
+ *
+ * 挑选规则按相关性从强到弱：
+ *   1. 草稿的 related 直接指向它
+ *   2. 它的 related 回指草稿（双向图理论上与 1 等价，但草稿阶段链还没建好）
+ *   3. 章节有交集
+ * 前两类是明确的语义关联，优先保留；第三类只是「可能相关」，超上限时先砍它。
+ */
+export function selectRelevantPages(
+  drafts: PageRef[],
+  existing: PageRef[],
+  opts: SelectOptions = {},
+): PageRef[] {
+  const max = opts.max ?? 30;
+  const draftIds = new Set(drafts.map((d) => d.id));
+  const wantedIds = new Set(drafts.flatMap((d) => d.related));
+  const wantedChapters = new Set(drafts.flatMap((d) => d.chapters));
+
+  const linked: PageRef[] = [];
+  const sameChapter: PageRef[] = [];
+  for (const p of existing) {
+    if (draftIds.has(p.id)) continue;
+    if (wantedIds.has(p.id) || p.related.some((r) => draftIds.has(r))) linked.push(p);
+    else if (p.chapters.some((c) => wantedChapters.has(c))) sameChapter.push(p);
+  }
+  // 组内按 id 排序，保证同样输入给出同样结果
+  const byId = (a: PageRef, b: PageRef) => a.id.localeCompare(b.id);
+  return [...linked.sort(byId), ...sameChapter.sort(byId)].slice(0, max);
+}
+
+export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: IngestContext): AgentRequest {
+  const draftIds = drafts.map((d) => d.id);
+  const relevant = selectRelevantPages(drafts, existing);
   const args = [
     ...baseArgs(`${ctx.handbook.pageFormat.trim()}\n\n${ctx.handbook.integrate.trim()}`),
     "--allowedTools",
@@ -198,6 +248,11 @@ export function integrateRequest(draftIds: string[], ctx: IngestContext): AgentR
     "",
     "草稿文件：",
     ...draftIds.map((id) => `- _drafts/${id}.md`),
+    "",
+    relevant.length > 0
+      ? "需要对照的现有页（程序已按 related 与章节交集挑出，**只读这些，不要扫全库**）："
+      : "现有页里没有与本批相关的（程序已按 related 与章节交集查过），直接晋升即可，不要扫全库。",
+    ...relevant.map((p) => `- concepts/${p.id}.md`),
     "",
     "按「整合」规则处理，写 _drafts/_integration.json，回复 DONE integrate promoted=<n> merged=<n> rejected=<n>。",
   ].join("\n");

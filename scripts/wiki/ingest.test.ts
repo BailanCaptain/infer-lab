@@ -15,6 +15,7 @@ import {
   type RunAgent,
   runExtractPhase,
   runPool,
+  selectRelevantPages,
   snapshotDir,
   strayPaths,
 } from "./ingest";
@@ -185,7 +186,14 @@ describe("extractRequest", () => {
 
 describe("integrateRequest", () => {
   it("白名单：concepts/** 写与编辑、决策文件；stdin 列草稿 id", () => {
-    const req = integrateRequest(["a", "b"], ctx);
+    const req = integrateRequest(
+      [
+        { id: "a", chapters: ["11"], related: [] },
+        { id: "b", chapters: ["11"], related: [] },
+      ],
+      [],
+      ctx,
+    );
     const allowed = req.args.slice(
       req.args.indexOf("--allowedTools") + 1,
       req.args.indexOf("--disallowedTools"),
@@ -385,5 +393,78 @@ describe("localDate", () => {
     const d = new Date(2026, 8, 7, 1, 50, 0);
     expect(localDate(d)).toBe("2026-09-07");
     expect(localDate(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+});
+
+describe("selectRelevantPages（Task 26 · 解风险 R2）", () => {
+  const mk = (id: string, chapters: string[], related: string[] = []) => ({ id, chapters, related });
+
+  it("草稿的 related 指向的现有页要选进来", () => {
+    const picked = selectRelevantPages(
+      [mk("a", ["11"], ["kv-cache"])],
+      [mk("kv-cache", ["05"]), mk("far", ["21"])],
+    );
+    expect(picked.map((p) => p.id)).toContain("kv-cache");
+    expect(picked.map((p) => p.id)).not.toContain("far");
+  });
+
+  it("现有页回指草稿的也要选进来（双向）", () => {
+    const picked = selectRelevantPages([mk("a", ["11"])], [mk("b", ["21"], ["a"])]);
+    expect(picked.map((p) => p.id)).toContain("b");
+  });
+
+  it("章节有交集的选进来", () => {
+    const picked = selectRelevantPages([mk("a", ["11"])], [mk("same-chapter", ["11"]), mk("other", ["13"])]);
+    expect(picked.map((p) => p.id)).toContain("same-chapter");
+    expect(picked.map((p) => p.id)).not.toContain("other");
+  });
+
+  it("完全无关的页不选——这是 R2 的核心", () => {
+    const existing = Array.from({ length: 200 }, (_, i) => mk(`p${i}`, ["21"]));
+    expect(selectRelevantPages([mk("a", ["11"])], existing)).toEqual([]);
+  });
+
+  it("有上限，不会因为同章页太多而爆掉", () => {
+    const existing = Array.from({ length: 200 }, (_, i) => mk(`p${i}`, ["11"]));
+    expect(selectRelevantPages([mk("a", ["11"])], existing, { max: 30 }).length).toBe(30);
+  });
+
+  it("直接 related 的优先于只是同章的", () => {
+    const existing = [...Array.from({ length: 50 }, (_, i) => mk(`chap${i}`, ["11"])), mk("linked", ["21"])];
+    const picked = selectRelevantPages([mk("a", ["11"], ["linked"])], existing, { max: 5 });
+    expect(picked.map((p) => p.id)).toContain("linked");
+  });
+
+  it("结果稳定：同样输入两次结果一致", () => {
+    const existing = Array.from({ length: 50 }, (_, i) => mk(`p${i}`, ["11"]));
+    const d = [mk("a", ["11"])];
+    expect(selectRelevantPages(d, existing, { max: 10 })).toEqual(
+      selectRelevantPages(d, existing, { max: 10 }),
+    );
+  });
+});
+
+describe("integrateRequest（Task 26 · stdin 不随总页数增长）", () => {
+  const drafts = [{ id: "a", chapters: ["11"], related: ["kv-cache"] }];
+  const mkExisting = (n: number) => [
+    { id: "kv-cache", chapters: ["05"], related: [] },
+    ...Array.from({ length: n }, (_, i) => ({ id: `unrelated${i}`, chapters: ["21"], related: [] })),
+  ];
+
+  it("只把选中的相关页写进 stdin，不叫 agent 读全部", () => {
+    const { stdin } = integrateRequest(drafts, mkExisting(200), ctx);
+    expect(stdin).toContain("kv-cache");
+    expect(stdin).not.toContain("unrelated0");
+  });
+
+  it("总页数从 10 涨到 500，stdin 长度不变", () => {
+    const a = integrateRequest(drafts, mkExisting(10), ctx).stdin.length;
+    const b = integrateRequest(drafts, mkExisting(500), ctx).stdin.length;
+    expect(b).toBe(a);
+  });
+
+  it("没有相关页时明确说明，不让 agent 自己去扫全库", () => {
+    const { stdin } = integrateRequest(drafts, [], ctx);
+    expect(stdin).toMatch(/没有|无/);
   });
 });

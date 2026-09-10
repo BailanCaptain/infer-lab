@@ -4,8 +4,10 @@
 repos:
   vllm-ascend:
     url: https://github.com/vllm-project/vllm-ascend
-    commit: 28bf3a2e            # PLAN.md 事实基线，2026-08-29 核验
     path: tools/repos/vllm-ascend
+    refs:
+      main: 28bf3a2e            # PLAN.md 事实基线，2026-08-29 核验
+      "releases/v0.23.0": 2c59ff10   # 分支 tip，2026-09-09；layer_sharding 的完整形态所在分支
 
 features:
   - id: paged-attention

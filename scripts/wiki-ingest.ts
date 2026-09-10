@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { runBuild } from "./wiki/build";
 import { formatDryRun, runClaude } from "./wiki/claude-cli";
+import { worktreeDir } from "./wiki/clone";
 import { loadHandbook } from "./wiki/handbook";
 import {
   applyIntegration,
@@ -17,6 +18,7 @@ import {
   parseSeeds,
   readFailures,
   runExtractPhase,
+  worktreeKey,
 } from "./wiki/ingest";
 import { runLint } from "./wiki/lint";
 
@@ -40,14 +42,17 @@ const phase = arg("--phase", "all") as "extract" | "integrate" | "all";
 const dryRun = flag("--dry-run");
 const today = localDate();
 
+// 一个 ref 一份工作树，键与 extractRequest 里的 worktreeKey 对齐
 const repoRoots: Record<string, string> = {};
 for (const [name, r] of Object.entries(seeds.repos)) {
-  const abs = resolve(root, r.path);
-  if (!dryRun && !existsSync(abs)) {
-    console.error(`x 仓库 ${name} 不在 ${abs}，先跑 pnpm wiki:clone --seeds ${seedsPath}`);
-    process.exit(2);
+  for (const ref of Object.keys(r.refs)) {
+    const abs = resolve(root, worktreeDir(r, ref));
+    if (!dryRun && !existsSync(abs)) {
+      console.error(`x 仓库 ${name} 的 ref ${ref} 不在 ${abs}，先跑 pnpm wiki:clone --seeds ${seedsPath}`);
+      process.exit(2);
+    }
+    repoRoots[worktreeKey(name, ref)] = abs;
   }
-  repoRoots[name] = abs;
 }
 for (const d of ["_drafts", "raw", "concepts", "sources"]) mkdirSync(join(wikiRoot, d), { recursive: true });
 

@@ -45,17 +45,97 @@ const hb: HandbookSlices = {
 const ctx = {
   handbook: hb,
   wikiRoot: "C:/w/wiki",
-  repoRoots: { "vllm-ascend": "C:/w/tools/repos/vllm-ascend" },
+  repoRoots: {
+    "vllm-ascend@main": "C:/w/tools/repos/vllm-ascend",
+    "vllm-ascend@releases/v0.23.0": "C:/w/tools/repos/vllm-ascend@releases-v0.23.0",
+  },
   today: "2026-09-07",
   timeoutMs: 1000,
   batchIds: ["paged-attention", "block-table"],
 };
+
+const multiRefYaml = `
+repos:
+  vllm-ascend:
+    url: https://github.com/vllm-project/vllm-ascend
+    path: tools/repos/vllm-ascend
+    refs:
+      main: 28bf3a2e
+      "releases/v0.23.0": 9b4b1e2a
+features:
+  - id: layer-sharding
+    title: Layer Sharding
+    type: feature
+    chapters: ["13"]
+    repo: vllm-ascend
+    ref: "releases/v0.23.0"
+    entry: [vllm_ascend/ops/layer_shard_linear.py]
+    ask: 这个参数干嘛的
+  - id: paged-attention
+    title: PagedAttention
+    type: feature
+    chapters: ["11"]
+    repo: vllm-ascend
+    entry: [vllm_ascend/attention/attention_v1.py]
+    ask: 块级 KV 布局
+`;
 
 describe("parseSeeds", () => {
   it("解析并校验；feature.repo 必须在 repos 里；priority 默认 2", () => {
     const s = parseSeeds(seedsYaml);
     expect(s.features[0]?.priority).toBe(2);
     expect(() => parseSeeds(seedsYaml.replace("repo: vllm-ascend", "repo: nope"))).toThrow(/nope/);
+  });
+
+  it("repo 可以钉一组 ref，feature 可以指定适用 ref，未指定则默认 main", () => {
+    const s = parseSeeds(multiRefYaml);
+    expect(Object.keys(s.repos["vllm-ascend"]!.refs)).toEqual(["main", "releases/v0.23.0"]);
+    expect(s.features[0]?.ref).toBe("releases/v0.23.0");
+    expect(s.features[1]?.ref).toBe("main");
+  });
+
+  it("旧格式的单个 commit 归一化成 refs.main，现有 seeds 不用改", () => {
+    const s = parseSeeds(seedsYaml);
+    expect(s.repos["vllm-ascend"]!.refs).toEqual({ main: "28bf3a2e" });
+    expect(s.features[0]?.ref).toBe("main");
+  });
+
+  it("feature 指向未声明的 ref 时报错并指名", () => {
+    expect(() => parseSeeds(multiRefYaml.replace('ref: "releases/v0.23.0"', "ref: nope"))).toThrow(
+      /ref「nope」不在/,
+    );
+  });
+
+  it("repo 既没有 refs 也没有 commit 时报错", () => {
+    const bad = multiRefYaml
+      .replace("    refs:", "    other:")
+      .replace("      main: 28bf3a2e", "")
+      .replace('      "releases/v0.23.0": 9b4b1e2a', "");
+    expect(() => parseSeeds(bad)).toThrow(/refs/);
+  });
+});
+
+describe("extractRequest · 多 ref", () => {
+  it("add-dir 指向该 feature 声明的 ref 的工作树，sources 前缀用该 ref 的 commit", () => {
+    const s = parseSeeds(multiRefYaml);
+    const req = extractRequest(s.features[0]!, s, ctx);
+    expect(req.args[req.args.indexOf("--add-dir") + 1]).toBe("C:/w/tools/repos/vllm-ascend@releases-v0.23.0");
+    expect(req.stdin).toContain("vllm-ascend@9b4b1e2a");
+    expect(req.stdin).toContain("releases/v0.23.0");
+    expect(req.stdin).not.toContain("28bf3a2e");
+  });
+
+  it("未声明 ref 的 feature 走 main", () => {
+    const s = parseSeeds(multiRefYaml);
+    const req = extractRequest(s.features[1]!, s, ctx);
+    expect(req.args[req.args.indexOf("--add-dir") + 1]).toBe("C:/w/tools/repos/vllm-ascend");
+    expect(req.stdin).toContain("vllm-ascend@28bf3a2e");
+  });
+
+  it("缺该 ref 的本地工作树时报错并指名", () => {
+    const s = parseSeeds(multiRefYaml);
+    const bad = { ...ctx, repoRoots: { "vllm-ascend@main": "C:/w/x" } };
+    expect(() => extractRequest(s.features[0]!, s, bad)).toThrow(/releases\/v0\.23\.0/);
   });
 });
 
@@ -192,17 +272,18 @@ describe("runExtractPhase", () => {
     chapters: ["11"],
     priority: 2,
     repo: "r",
+    ref: "main",
     entry: ["a.py"],
     ask: "?",
   });
   const seeds = {
-    repos: { r: { url: "https://x", commit: "28bf3a2e", path: "tools/repos/r" } },
+    repos: { r: { url: "https://x", refs: { main: "28bf3a2e" }, path: "tools/repos/r" } },
     features: [feat("a"), feat("b"), feat("c")],
   };
   const mkCtx = (root: string) => ({
     handbook: hb,
     wikiRoot: root,
-    repoRoots: { r: "/r" },
+    repoRoots: { "r@main": "/r" },
     today: "2026-09-07",
     timeoutMs: 100,
     batchIds: ["a", "b", "c"],

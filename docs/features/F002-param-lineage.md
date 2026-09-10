@@ -27,14 +27,16 @@ F001 结构上答不了这类问题，三个原因：
 
    | ref | 含该标识符的 py 文件数 |
    |---|---|
-   | `releases/v0.13.0` | 5 |
-   | `releases/v0.18.0` | 1 |
-   | `releases/v0.23.0` | **13**（核心实现 `vllm_ascend/ops/layer_shard_linear.py`）|
+   | `releases/v0.13.0` | 8 |
+   | `releases/v0.18.0` | 9 |
+   | `releases/v0.23.0` | **14**（核心实现 `vllm_ascend/ops/layer_shard_linear.py`）|
    | `releases/v0.24.0rc` | 0 |
    | `releases/v0.25.1rc` | 0 |
-   | `releases/v0.26.0rc` | 1 |
+   | `releases/v0.26.0rc` | 1（只是单测里的残留赋值 `self.impl.layer_sharding_kwargs = []`，不是功能回归）|
    | `releases/v0.27.1rc` | 0 |
    | `main` | 0 |
+
+   数字是 2026-09-11 在**完整克隆**下测的。同一批命令在部分克隆下给出的是 5 / 1 / 11–13，错得离谱且不稳定（见 Design Decisions「扫描方式」下方的克隆说明）。
 
    在 `main` 的代码里它根本不存在，全仓只有 `docs/source/tutorials/models/GLM5.2.md:184` 提了一句「启用 DSA-CP 后 `layer_sharding` 不能包含 `o_proj`」。
 

@@ -101,8 +101,8 @@ interface ParamLineage {
 | 7 | 全树无记载的参数 | 逐个 `grep -rl <name> docs --include='*.md'` | 8 个：`ascend_log_path`、`draft_window_size`、`enable_sp_by_pass`、`mix_placement`、`num_head_replica`、`olora_tensor_parallel_size`、`pd_head_ratio`、`pd_tp_ratio` |
 | 8 | 只在教程里提到的参数 | 同上 | 6 个：`keep_device_kv_cache`、`sparse_kv_offload_config`、`topk`、`topk_buffer_size`（在 `feature_guide/layerwise_and_sparse_kv_cache_offloading.md`）；`ascend_fusion_config`、`fusion_ops_gmmswigluquant`（在 `tutorials/models/GLM4.x.md`）|
 | 9 | 正则口径会错判 | 逐个 `git grep -n <name> -- 'vllm_ascend/*.py'` | `budget_threshold`、`budget_update_interval`、`initial_verify_budget_per_req` 实为 `DynamicSpecConfig.method_params` 的合法键，只在 `ascend_config.py:876-881` 的注释里列出；`min_verify_tokens` 在 `spec_decode/utils.py:277` 按字符串取值。正则全部漏判为「代码里没有」 |
-| 10 | `layer_sharding` 分支分布非单调 | `for b in ...; do git grep -l layer_sharding $b -- '*.py' \| wc -l; done` | v0.13.0=5、v0.18.0=1、v0.23.0=13、v0.24.0rc=0、v0.25.1rc=0、v0.26.0rc=1、v0.27.1rc=0、main=0 |
-| 11 | 部分克隆会静默漏文件 | 同一命令在部分克隆与完整拉取下对比 | v0.23.0 部分克隆数出 11，完整拉取 13。**这是 Phase 1 改完整克隆的直接依据** |
+| 10 | `layer_sharding` 分支分布非单调 | 完整克隆下 `for b in ...; do git grep -l layer_sharding origin/$b -- '*.py' \| wc -l; done`（2026-09-11 重测）| v0.13.0=**8**、v0.18.0=**9**、v0.23.0=**14**、v0.24.0rc=0、v0.25.1rc=0、v0.26.0rc=1、v0.27.1rc=0、main=0。v0.26.0rc 那 1 处是单测残留赋值 `self.impl.layer_sharding_kwargs = []`，不是功能回归 |
+| 11 | 部分克隆会静默漏文件，且不稳定 | 同一命令在部分克隆与完整克隆下对比 | v0.18.0：部分 1 / 完整 **9**；v0.23.0：部分先后给出 11 与 13 / 完整 **14**。漏掉的 `vllm_ascend/utils.py` 那处来自 2026-01-08 的提交，一直都在，纯属没拉到。同一条命令给出**两个不同的错误答案**（取决于已按需拉了多少），比单纯漏更危险。**这是 Phase 1 改完整克隆的直接依据** |
 | 12 | 删除提交与 PR 号可从本地 git 取得 | `git log --all --oneline -- vllm_ascend/ops/layer_shard_linear.py` | `89601215 [Refactor] remove layer sharding (#11953)`，日期 2026-07-15 |
 | 13 | 含删除提交的 ref | `git branch -r --contains 89601215` / `git tag --contains 89601215` | 分支：main、releases/v0.24.0rc、v0.25.1rc、v0.26.0rc、v0.27.1rc；tag：v0.24.0rc1、v0.25.1rc1、v0.26.0rc1 |
 | 14 | `(#NNNN)` 格式覆盖率 | `git log --oneline -200 origin/main \| grep -cE '\(#[0-9]+\)$'` | 200/200 |
@@ -115,7 +115,9 @@ interface ParamLineage {
 > 已移除的 tag：`v0.24.0rc1` 起；
 > 仍保留的分支：`releases/v0.23.0`（13 个文件，核心实现 `vllm_ascend/ops/layer_shard_linear.py`）及更早的 v0.18.0、v0.13.0。
 
-**遗留待查**：核验 10 显示 `releases/v0.26.0rc` 有 1 个 `.py` 文件仍含 `layer_sharding`，而核验 13 显示该分支包含删除提交。两者不矛盾（可能是测试或注释残留，也可能是局部回带），但要在 Task 14 的谱系实现里作为真实用例查清并覆盖——这正是「按 ref 列表而非单一版本号」的价值所在。当时因 `schannel: failed to receive handshake` 未查完。
+**遗留问题已查清（2026-09-11）**：`releases/v0.26.0rc` 那 1 处是 `tests/ut/attention/a2/test_mla_v1.py:1229` 里的残留赋值 `self.impl.layer_sharding_kwargs = []`，不是功能回归——该分支确实包含删除提交 `89601215`。
+
+这个案例给谱系实现定了一条规则：**光数 grep 命中数会把测试残留当成「这个版本还有这个参数」**。`refPresence` 必须区分实现代码与测试代码，或至少把命中位置一并输出让人能判断。写进 Task 12 的验收。
 
 ## 设计决策
 
@@ -201,7 +203,9 @@ cd tools/repos/vllm-ascend
 git grep -l layer_sharding origin/releases/v0.23.0 -- "*.py" | wc -l
 ```
 
-**预期输出**：`13`（部分克隆时为 11）。不是 13 就停下来查，不要继续 Phase 2。
+**预期输出**：`14`。不是 14 就停下来查，不要继续 Phase 2。
+
+（2026-09-11 实跑结果就是 14。计划初稿写的 13 来自部分克隆下的测量，已按完整克隆的真值改正。）
 
 同时复核锚点 10 那张分支分布表在完整克隆下是否有变化；有变化就更新 F002 的 Why 与本计划的锚点记录。
 
@@ -290,7 +294,7 @@ node -e "const p=require('./wiki/lineage/params-main.json'); console.log(p.lengt
 
 ## Phase 3：版本谱系（AC3）
 
-- **Task 12**：`lineage.ts` 的 `refPresence(param, refs)`，逐 ref 跑 `git grep -l` 计数。测试用 stub 的 git 执行器，不碰真实仓库。
+- **Task 12**：`lineage.ts` 的 `refPresence(param, refs)`，逐 ref 跑 `git grep -l` 并**分开统计实现代码与测试代码**，同时输出命中位置。验收：`layer_sharding` 在 `releases/v0.26.0rc` 上实现命中数为 0、测试命中数为 1，不能笼统报「存在」。测试用 stub 的 git 执行器，不碰真实仓库。
 - **Task 13**：`introducedAt` / `removedAt`，用 `git log -S<name> --all --oneline --reverse` 取首尾提交；PR 号用 `/\(#(\d+)\)\s*$/` 从 subject 提取（锚点 14：近 200 条提交覆盖率 200/200）。
 - **Task 14**：`tagsWithout` / `branchesWith` / `branchesWithout`，用 `git tag --contains` 与 `git branch -r --contains`。**用 `layer_sharding` 作真实用例**，断言输出与锚点 12、13 一致，并顺手查清「`releases/v0.26.0rc` 含删除提交却仍有 1 个 py 文件命中」这个遗留问题。
 - **Task 15**：入口 `pnpm wiki:lineage`，产出 `wiki/lineage/<param>.json`。
@@ -312,7 +316,7 @@ node -e "const p=require('./wiki/lineage/params-main.json'); console.log(p.lengt
 
 | AC | 验证方式 | 通过标准 |
 |---|---|---|
-| F001 AC9 | Task 4 实跑 | `git grep -l layer_sharding origin/releases/v0.23.0 -- "*.py" \| wc -l` 等于 13 |
+| F001 AC9 | Task 4 实跑 | `git grep -l layer_sharding origin/releases/v0.23.0 -- "*.py" \| wc -l` 等于 14 |
 | AC1 | Task 5–10 单测 + 实跑 | 四种形态各有用例；`params-main.json` 条数 > 100 |
 | AC2 | Task 19 | 注入的非参数标识符被判 `not-param` 且带理由 |
 | AC3 | Task 14 | `layer_sharding` 谱系与锚点 12、13 一致；v0.26.0rc 残留已查清 |

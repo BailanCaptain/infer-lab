@@ -45,7 +45,7 @@ created: 2026-09-07
 - [ ] **AC6 · 站内消费**：`#/wiki` 阅读页（左目录、中页面、related、来源角标）；`<Term id>` 悬停卡显示 `summary`。验收：浏览器打开 `#/wiki`，悬停出摘要，页面间链接跳转正确（Playwright）。
 - [ ] **AC7 · 聊天问答**：`server/` 薄运行器 spawn `claude -p`（cwd=`wiki/`，只读工具白名单）；`#/wiki` 右侧抽屉流式回答；多轮用 `--resume`。**必须与 AC10 同批落地**（见风险 R1）。**回答里的事实性论断必须带页面引用**：借 Multi-Agent 的 `adaptive-recall/judge-block.ts` 思路，回答若出现断言式表述却没有指向任何 wiki 页的链接，就不作为「知识库答案」呈现，改标「（未收录，以下是模型自身知识）」。验收：问「KV Cache 是什么」，流式回答含 kv-cache 链接并可跳转；问一个知识库没有的词，回答被标为未收录而不是伪装成知识库结论。
 - [ ] **AC8 · 存进 wiki 与 PR ingest**：抽屉「存进 wiki」把回答写成 `_drafts/` 草稿；`pnpm wiki:ingest --pr <n>` 把一个真实 PR 变成草稿，社区不可信文本经 sanitize；草稿批准 / 驳回面板。验收：草稿文件出现且 diff 可读，`raw/` 与 `tools/repos/` 未被修改。
-- [ ] **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 13 个文件（部分克隆下只有 11，见 Design Decisions）。
+- [ ] **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 **14** 个文件（部分克隆下是 11 或 13，见 Design Decisions）。
 - [ ] **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
 
 **Out of scope**（写明触发条件）：向量检索（2026-09-10 用户拍板先不加；触发条件改为「AC10 的 grep 实现在一组真实问题上命中率不足」，且只用于 F003 的 issue 语料，不用于 wiki 页——参数类问题按名字精确查表，语义检索反而更差）；codex 作为 ingest agent（claude 试点合格后再接，runner 接口已留 `agent` 字段）；多 agent 并发写同一页所需的租约 / 围栏令牌 / CAS（本设计下并行 agent 不写同一文件，不需要）；cron 巡检与写入账本；章节页右栏（章节页尚不存在，抽屉先落在 `#/wiki`）。
@@ -80,7 +80,7 @@ created: 2026-09-07
 | 入口 | 直接做章节页右栏 / 先独立页 | **先 `#/wiki`，章节页出现后抽屉复用** | 章节页不存在 |
 | 第一步克隆范围 | vllm + vllm-ascend / 只 vllm-ascend | **只 vllm-ascend** | 试点批只需要它（用户 2026-09-07 拍板） |
 | 仓库钉定粒度 | 一个 repo 钉一个 commit / 钉一组 ref | **钉一组 ref**（`main` + 各 `releases/*` + 指定 tag），feature 可声明适用 ref | `layer_sharding` 在各分支的分布是非单调的：v0.13 有 5 个文件、v0.18 有 1 个、v0.23 有 13 个、v0.24 起主线为 0、v0.26.0rc 又有 1 个。「哪个版本移除的」只能按分支答，单 commit 模型结构上答不了（2026-09-10 用户指出，实测见 F002）|
-| 克隆方式 | `--filter=blob:none` 部分克隆 / 完整克隆 | **完整克隆**（含全部分支与 tag） | 部分克隆跨分支 `git grep` 会静默漏文件：v0.23.0 上部分克隆数出 11 个文件，完整拉取后是 13 个，且每次按需拉取要数分钟、断网即失败（2026-09-10 实测）|
+| 克隆方式 | `--filter=blob:none` 部分克隆 / 完整克隆 | **完整克隆**（含全部分支与 tag） | 部分克隆跨分支 `git grep` 会静默漏文件，且**同一条命令在不同时刻给出不同的错误答案**（取决于已按需拉了多少）。`layer_sharding` 实测：v0.18.0 部分克隆数出 1、完整克隆是 **9**；v0.23.0 部分克隆先后给出 11 与 13、完整克隆是 **14**（漏掉的 `vllm_ascend/utils.py` 那处来自 2026-01-08 的提交，一直都在）。另外每次按需拉取要数分钟、断网即失败（2026-09-11 实测）|
 | 检索实现位置 | 聊天层内联 grep / 抽成 `retrieve()` 接口 | **抽成单一入口**，第一版仍是 index + grep | 向量检索先不加（用户拍板），但留缝的成本近乎为零，换实现时不必重写聊天层 |
 | 向量检索时机 | 页数超 300 就上 / 按实测命中率决定 | **按命中率决定，且只考虑 issue 语料** | 参数问题是按名字精确查表，语义相似反而会把无关项捞进来；概念页几百页规模 agent 读 index 再 grep 够用 |
 | 工作流 | 直接在 main 改 / worktree | **worktree `../infra-view-new-llm-wiki`，分支 `feat/llm-wiki`** | 参照 Multi-Agent `worktree` skill（用户 2026-09-07 要求） |

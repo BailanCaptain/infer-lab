@@ -21,16 +21,41 @@ import { parsePage } from "./pages";
 
 // ---------- 种子清单 ----------
 
+const shaField = z.string().regex(/^[0-9a-f]{7,40}$/);
+
+/** 默认 ref 名。一个 repo 至少要有它，feature 不写 `ref` 时用它。 */
+export const DEFAULT_REF = "main";
+
+/**
+ * 一个 repo 钉一组 ref，而不是一个 commit。
+ *
+ * 原因（2026-09-10 实测）：`layer_sharding` 在分支间的分布是非单调的——
+ * v0.13 有 5 个文件、v0.23 有 13 个、v0.24 起主线为 0、v0.26.0rc 又有 1 个。
+ * 「哪个版本移除的」只能按 ref 列表回答，单 commit 模型结构上答不了。
+ *
+ * 兼容旧格式：只写 `commit: <sha>` 时归一化成 `refs: { main: <sha> }`，
+ * 现有的 wiki/seeds/*.yaml 不用改。
+ */
+const repoSchema = z
+  .object({
+    url: z.string().url(),
+    /** 旧格式，等价于 refs.main */
+    commit: shaField.optional(),
+    refs: z.record(shaField).optional(),
+    /** 相对仓库根 */
+    path: z.string().min(1),
+  })
+  .transform((r) => {
+    const refs = r.refs ?? (r.commit ? { [DEFAULT_REF]: r.commit } : undefined);
+    return { url: r.url, path: r.path, refs: refs ?? {} };
+  })
+  .refine((r) => Object.keys(r.refs).length > 0, {
+    message: "repo 必须声明 refs（或旧格式的 commit）",
+  });
+
 export const seedsSchema = z
   .object({
-    repos: z.record(
-      z.object({
-        url: z.string().url(),
-        commit: z.string().regex(/^[0-9a-f]{7,40}$/),
-        /** 相对仓库根 */
-        path: z.string().min(1),
-      }),
-    ),
+    repos: z.record(repoSchema),
     features: z.array(
       z.object({
         id: z.string().regex(ID_RE),
@@ -39,6 +64,8 @@ export const seedsSchema = z
         chapters: z.array(z.string().regex(/^\d{2}$/)).min(1),
         priority: z.number().int().min(1).max(3).default(2),
         repo: z.string(),
+        /** 本 feature 适用的 ref，必须是所属 repo 的 refs 的键 */
+        ref: z.string().default(DEFAULT_REF),
         entry: z.array(z.string().min(1)).min(1),
         ask: z.string().min(1),
       }),
@@ -47,8 +74,14 @@ export const seedsSchema = z
   .superRefine((s, ctx) => {
     const seen = new Set<string>();
     for (const f of s.features) {
-      if (!s.repos[f.repo]) {
+      const repo = s.repos[f.repo];
+      if (!repo) {
         ctx.addIssue({ code: "custom", message: `feature ${f.id} 的 repo「${f.repo}」不在 repos 里` });
+      } else if (!repo.refs[f.ref]) {
+        ctx.addIssue({
+          code: "custom",
+          message: `feature ${f.id} 的 ref「${f.ref}」不在 repo ${f.repo} 的 refs 里（有 ${Object.keys(repo.refs).join("、")}）`,
+        });
       }
       if (seen.has(f.id)) ctx.addIssue({ code: "custom", message: `feature id 重复：${f.id}` });
       seen.add(f.id);
@@ -61,12 +94,17 @@ export function parseSeeds(text: string): Seeds {
   return seedsSchema.parse(parseYaml(text));
 }
 
+/** `repoRoots` 与磁盘工作树的索引键。一个 ref 一份工作树，所以 repo 名不足以定位。 */
+export function worktreeKey(repo: string, ref: string): string {
+  return `${repo}@${ref}`;
+}
+
 // ---------- agent 请求 ----------
 
 export interface IngestContext {
   handbook: HandbookSlices;
   wikiRoot: string;
-  /** repo 名 → 绝对路径 */
+  /** `repo@ref` → 该 ref 的本地工作树绝对路径，键由 worktreeKey 生成 */
   repoRoots: Record<string, string>;
   today: string;
   timeoutMs: number;
@@ -106,8 +144,10 @@ function baseArgs(system: string): string[] {
 export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext): AgentRequest {
   const repo = seeds.repos[f.repo];
   if (!repo) throw new Error(`repo ${f.repo} 未定义`);
-  const repoRoot = ctx.repoRoots[f.repo];
-  if (!repoRoot) throw new Error(`repo ${f.repo} 没有本地路径`);
+  const commit = repo.refs[f.ref];
+  if (!commit) throw new Error(`repo ${f.repo} 没有 ref ${f.ref}`);
+  const repoRoot = ctx.repoRoots[worktreeKey(f.repo, f.ref)];
+  if (!repoRoot) throw new Error(`repo ${f.repo} 的 ref ${f.ref} 没有本地工作树，先跑 pnpm wiki:clone`);
   const draft = `_drafts/${f.id}.md`;
   const raw = `raw/${f.id}.md`;
   const args = [
@@ -130,8 +170,8 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     `- type: ${f.type}`,
     `- chapters: ${JSON.stringify(f.chapters)}`,
     `- updated: "${ctx.today}"`,
-    `- 来源仓库：${f.repo}@${repo.commit}，本地只读路径 ${repoRoot}`,
-    `- sources 写法：${f.repo}@${repo.commit}:<相对路径>#L起-L止`,
+    `- 来源仓库：${f.repo}@${commit}（ref ${f.ref}），本地只读路径 ${repoRoot}`,
+    `- sources 写法：${f.repo}@${commit}:<相对路径>#L起-L止`,
     `- 入口文件：${f.entry.join("、")}`,
     `- 要回答的问题：${f.ask}`,
     `- 本批其它 feature id（related 可引用）：${ctx.batchIds.filter((x) => x !== f.id).join(", ") || "无"}`,

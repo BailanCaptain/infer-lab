@@ -8,7 +8,13 @@ import { CHAPTER_TITLES } from "../../src/content/wiki/chapters";
 import { PAGE_TYPES, type PageType, type Registry } from "../../src/content/wiki/schema";
 import { loadPages, type WikiPage } from "./pages";
 
-const TYPE_LABEL: Record<PageType, string> = { concept: "概念", feature: "特性", source: "来源", pr: "PR" };
+const TYPE_LABEL: Record<PageType, string> = {
+  concept: "概念",
+  feature: "特性",
+  param: "参数",
+  source: "来源",
+  pr: "PR",
+};
 
 const byId = (a: WikiPage, b: WikiPage) => a.fm.id.localeCompare(b.fm.id);
 const link = (p: WikiPage) => `[${p.fm.title}](${p.file})`;

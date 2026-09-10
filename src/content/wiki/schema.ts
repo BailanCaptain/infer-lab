@@ -4,7 +4,7 @@
  */
 import { z } from "zod";
 
-export const PAGE_TYPES = ["concept", "feature", "source", "pr"] as const;
+export const PAGE_TYPES = ["concept", "feature", "param", "source", "pr"] as const;
 export type PageType = (typeof PAGE_TYPES)[number];
 
 /** 证据等级，沿用 PLAN.md §1.4 七档 */
@@ -46,6 +46,8 @@ export const pageFrontmatterSchema = z.object({
   summary: z.string().min(1).max(200, "summary 是一句话，不超过 200 字"),
   aliases: z.array(z.string().min(1)).default([]),
   chapters: z.array(z.string().regex(/^\d{2}$/)).default([]),
+  /** 读这页前该先懂什么，其它页的 id */
+  prerequisites: z.array(idField).default([]),
   sources: z
     .array(z.string().refine(isSourceRef, "sources 每项必须是 repo@commit:path#L起-L止 或 https URL"))
     .min(1, "sources 不得为空"),

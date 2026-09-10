@@ -11,6 +11,7 @@ const page = (id: string, type: WikiPage["fm"]["type"], chapters: string[]): Wik
     type,
     summary: `${id} 摘要`,
     aliases: [],
+    prerequisites: [],
     chapters,
     sources: ["https://x"],
     evidence: "S",

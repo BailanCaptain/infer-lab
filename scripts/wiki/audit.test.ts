@@ -11,6 +11,7 @@ const page = (sources: string[]): WikiPage => ({
     type: "feature",
     summary: "s",
     aliases: [],
+    prerequisites: [],
     chapters: ["11"],
     sources,
     evidence: "C",

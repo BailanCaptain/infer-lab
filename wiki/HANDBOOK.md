@@ -167,6 +167,7 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `prerequisites-missing`：`prerequisites` 指向不存在的 id。
 - `doc-evidence`：`sources` 里**多数**来自 `docs/source/**.md`（文档条数 > 源码条数）但 `evidence` 不是 `S`；或页级 `evidence` 为 `S` 而 sources 里一条文档都没有。只查主体来源与页级等级是否一致，不因为引了一条文档就要求改标签。
 - `unexpanded-placeholder`：正文里出现 `{{ ... }}`，说明照抄了本地文档的占位符而没去官网取展开值。
+- `legacy-format`（迁移期，只警告不阻塞）：页面还是 2026-09-11 改版前的旧四节格式（是什么 / 形状与数值 / 在哪一步出现 / 常见误解）。重跑成新格式后这条应归零，届时删掉豁免。
 - `broken-link`：正文相对链接指向不存在的文件。
 - `orphan`：concept / feature 页既没有 chapters，也没有任何页链接到它。
 - `log-format`：`log.md` 的 H2 不符合 `## [YYYY-MM-DD] ingest|build|review | 标题`。

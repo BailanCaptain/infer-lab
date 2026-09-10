@@ -62,7 +62,7 @@ F001 结构上答不了这类问题，三个原因：
 
 - **F001 AC9（阻塞）**：多 ref 钉定与完整克隆。参数扫描要跨分支跑，部分克隆会静默漏文件（实测 v0.23.0 漏 2 个）。
 - **Python 3**（本机 `/f/ProgramData/Anaconda3/python`，3.9.13）：扫描器用 Python 的 `ast` 模块解析 `.py`。`ast.parse()` 只解析源码文本、不执行也不 import，因此**不需要安装 vllm 或 pydantic**。缺 Python 时脚本给出明确报错而不是静默降级到正则。
-- F001 的 ingest 引擎（AC5 复用它跑补正文的 agent 调用）。
+- **F001 的 ingest 引擎 + `runBatch` 重构（阻塞 AC2、AC5）**：AC2 的疑似项复核与 AC5 的补正文都是 agent 调用，但都不是 `SeedFeature` 形状，而 `runExtractPhase` 签名绑死了 `SeedFeature[]`（`scripts/wiki/ingest.ts:304`）。要把它拆成 `runBatch(requests: AgentRequest[], ctx, deps)` + 薄壳——`AgentRequest`（同文件 :77）本来就是通用形状，快照 / 并发池 / 越界检查 / 失败账本这四十行与 seeds 无关。这是十行的机械重构，现有测试继续有效。[F004](F004-knowledge-loop.md) 也依赖它，F002 先做则 F004 免费拿到。
 - 不依赖 GitHub token（PR 号从本地 git 提交信息里取，不查 API）。
 
 ## Design Decisions
@@ -76,6 +76,7 @@ F001 结构上答不了这类问题，三个原因：
 | 谱系存放位置 | 写进页面 frontmatter / 独立 `lineage/` 文件 | **独立文件，页面渲染时合并** | 页面正文由 LLM 维护、谱系由脚本每日重算；混在一个文件里两边会互相覆盖（F001 试点已经吃过 build 与 biome 互相重排的亏）|
 | PR 号来源 | GitHub API / squash 提交信息 | **提交信息尾部 `(#NNNN)`** | 上游用 squash merge，PR 号就在提交标题里；不用 token、不受 API 限额影响。API 只在 F003 用 |
 | 「移除版本」的表述 | 单一版本号 / 按 ref 列表 | **按 ref 列表** | 分支分布非单调（v0.24 没了、v0.26.0rc 又有），单一版本号会说谎 |
+| 参数页与 orphan 规则 | 纳入孤页检查 / 豁免 | **豁免**（`lint.ts:85` 的 orphan 只查 `concept` 与 `feature`，`param` 天然不在内） | 参数是按名字精确查的，没有入链是正常状态；把 100+ 参数页塞进「必须有人链接」会逼出无意义的交叉引用。豁免是既有实现的自然结果，此处显式确认而非默认 |
 | 扫描粒度 | 每次全量 / 增量 | **每次全量，结果做 diff** | 全量扫一个 ref 是秒级；增量的复杂度换不来收益，全量还能顺带发现改名 |
 
 **Design Gate**：数据管线级（新目录 `wiki/params/`、`wiki/lineage/`，新增 Python 依赖）。待用户批准实施计划。

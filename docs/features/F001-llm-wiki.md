@@ -41,9 +41,9 @@ created: 2026-09-07
 - [x] **AC2 · Lint 把关**：`pnpm wiki:lint` 拒收空 `sources`、非法 frontmatter、重复 id 或 alias、断链、孤页，非零退出并指名文件与规则；纳入 `pnpm check`。验收：故意造一页空 sources 与一条断链，lint 非零退出且输出含两个文件名；修复后 `pnpm check` 全绿。
 - [x] **AC3 · ingest 引擎**：`pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml` 按种子清单扇出提取（每个 feature 一次 `claude -p`，默认并发 3，每个 agent 只能写 `_drafts/<id>.md` 与 `raw/<id>.md`），再串行整合进 `concepts/`；单个失败不阻塞其余，记入 `_drafts/_failures.json`；支持 `--only`、`--skip-existing`、`--retry-failed`、`--dry-run`。验收：单元测试用 spawn stub 验 argv、cwd、stdin、并发上限、越界写判失败、失败记录；`--dry-run` 打印每个 feature 的完整命令而不 spawn。
 - [x] **AC4 · 试点批 10 页合格**：11 章 KV Cache 那组约 10 个 feature 跑通，每页 `sources` 指向 `vllm-ascend@28bf3a2e` 的真实文件与行号，随机抽 3 页人工核对源码确实如此；`git status` 证明 agent 未越界写文件。人审通过才进 AC5。
-- [ ] **AC5 · 批量灌种**：种子补全 10 到 21 章全部特性与 `forwardLayer.ts` 的 30 个术语，分章跑，预计 120 到 160 页；`wiki:lint --terms` 确认 30 个 `Step.terms` id 全部有页；`pnpm check` 全绿。
+- [ ] **AC5 · 批量灌种**：种子补全 10 到 21 章全部特性与 `forwardLayer.ts` 的 30 个术语，分章跑，预计 120 到 160 页；`wiki:lint --terms` 确认 30 个 `Step.terms` id 全部有页；`pnpm check` 全绿。**开跑前必须先改整合的读取策略（见风险 R2），否则会在放量中途撞上下文上限。**
 - [ ] **AC6 · 站内消费**：`#/wiki` 阅读页（左目录、中页面、related、来源角标）；`<Term id>` 悬停卡显示 `summary`。验收：浏览器打开 `#/wiki`，悬停出摘要，页面间链接跳转正确（Playwright）。
-- [ ] **AC7 · 聊天问答**：`server/` 薄运行器 spawn `claude -p`（cwd=`wiki/`，只读工具白名单）；`#/wiki` 右侧抽屉流式回答；多轮用 `--resume`。验收：问「KV Cache 是什么」，流式回答含 kv-cache 链接并可跳转。
+- [ ] **AC7 · 聊天问答**：`server/` 薄运行器 spawn `claude -p`（cwd=`wiki/`，只读工具白名单）；`#/wiki` 右侧抽屉流式回答；多轮用 `--resume`。**必须与 AC10 同批落地**（见风险 R1）。验收：问「KV Cache 是什么」，流式回答含 kv-cache 链接并可跳转。
 - [ ] **AC8 · 存进 wiki 与 PR ingest**：抽屉「存进 wiki」把回答写成 `_drafts/` 草稿；`pnpm wiki:ingest --pr <n>` 把一个真实 PR 变成草稿，社区不可信文本经 sanitize；草稿批准 / 驳回面板。验收：草稿文件出现且 diff 可读，`raw/` 与 `tools/repos/` 未被修改。
 - [ ] **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 13 个文件（部分克隆下只有 11，见 Design Decisions）。
 - [ ] **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
@@ -98,6 +98,15 @@ created: 2026-09-07
 | 2026-09-10 | 用户提出参数类问题（`layer_sharding` 干嘛的 / 哪个版本移除 / 哪些分支还有）与报错溯源两类需求。实测确认单 commit 钉定与部分克隆都答不了，追加 AC9、AC10；参数清单与谱系拆为 F002，GitHub 语料拆为 F003 |
 | 2026-09-07 | Task 1–8、10 完成（schema / HANDBOOK / 读取器 / build / lint / ingest 引擎 / CLI runner / clone），27 个单测；Spike W1 定下 `Edit(路径)` 规则；vllm-ascend 钉在 28bf3a2e |
 
+## 风险登记
+
+| # | 风险 | 触发时机 | 后果 | 应对 |
+|---|---|---|---|---|
+| **R1** | AC7 图快把 grep 内联进聊天层，跳过 AC10 的 `retrieve()` 接口 | 做 AC7 时 | [F004](F004-knowledge-loop.md) AC3「查不到自动补写」的钩子挂在检索这一步，没有接口就要**重写聊天层**；F003 AC4 接语料检索同样受阻 | AC7 与 AC10 同批落地，不拆。聊天层代码里不得出现 grep 调用，由 AC10 的单测把关（stub 替换 `retrieve` 即可驱动聊天层） |
+| **R2** | 整合 agent 读「`concepts/` 里全部现有页」，放量后撞上下文上限 | 做 AC5 时 | 实测 11 页 = 96 KB / 994 行，每页约 8.8 KB；120–160 页约 1.4 MB，粗估 40 万 token 量级。整合会失败，且每批重读一遍成本失控 | **AC5 开跑前**改 HANDBOOK「整合」切片与 `integrateRequest`：只读 `index.md` 摘要 + 按 chapter 与 related 拉相关页，不读全量正文。[F004](F004-knowledge-loop.md) AC6 已按新策略设计，两处保持一致 |
+| R4 | 阅读页目录全量渲染 | F001 AC5 与 F002 AC4 都落地后 | AC6 的 `WikiPage` 目录一次渲染全部页（`listPages()` 无分页）。F001 AC5 的 120–160 页 + F002 AC4 的 100+ 参数页 ≈ 250–300 页，左栏会变成一条极长列表，参数页尤其会淹没教学页 | 页数超过约 80 页时给目录加按 type 折叠与搜索框；参数页在目录里默认折叠，主要靠搜索与页内链接抵达。不需要虚拟滚动 |
+| R3 | 放量成本 | 做 AC5 时 | 试点实测每页约 2.5 美元，120–160 页约 300 美元等值，跨多个额度窗口 | 分章跑、每章人抽查；或第二步改用更便宜的模型（用户 2026-09-07 表示试点先不换） |
+
 ## Links
 
 - Plan: [llm-wiki-plan.md](../plans/llm-wiki-plan.md)
@@ -108,5 +117,5 @@ created: 2026-09-07
 ## Evolution
 
 - **Evolved from**: 无
-- **Blocks**: PLAN M1 任务 10（内容管线的 Term 注册表由本 feature 的 registry 提供）；[F002](F002-param-lineage.md)（参数扫描依赖 AC9 的多 ref 克隆）；[F003](F003-github-corpus.md)（报错检索依赖 AC10 的检索接口）
+- **Blocks**: PLAN M1 任务 10（内容管线的 Term 注册表由本 feature 的 registry 提供）；[F002](F002-param-lineage.md)（参数扫描依赖 AC9 的多 ref 克隆）；[F003](F003-github-corpus.md)（报错检索依赖 AC10 的检索接口）；[F004](F004-knowledge-loop.md)（闭环依赖 AC8 的 sanitize 与 AC10 的检索接口）
 - **Related**: PLAN 第 21 章「PR 影响分析」（AC8 的 PR ingest 是它的素材来源）

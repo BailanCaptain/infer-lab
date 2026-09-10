@@ -1,0 +1,99 @@
+---
+id: F002
+title: vLLM-Ascend 参数清单与版本谱系
+status: planned
+owner: BailanCaptain
+created: 2026-09-10
+---
+
+# F002 — vLLM-Ascend 参数清单与版本谱系
+
+**Status**: planned
+**Created**: 2026-09-10
+
+## Why
+
+用户 2026-09-10 提的原始问题：
+
+> 比如 layer_sharding 这个参数，我问 layer_sharding 这个参数干嘛的啊，需要解释这个参数，然后可以告诉我这个参数在 vllm-ascend 哪个版本会移除，移除的 PR 是哪个，目前哪些分支保留了这个参数，哪个分支没有这个参数了。
+
+> layer_sharding 只是一个例子，vllm-ascend 有非常多这种参数，需要去查去找，要在初期尽可能的找到。而且后续还要有机制，假设有新的参数进来，需要及时有机制去触发写 wiki 然后更新到我们的 LLM-WIKI 中。
+
+F001 结构上答不了这类问题，三个原因：
+
+1. **参数量级远超手写 seeds 能覆盖的范围**。仅 `vllm_ascend/ascend_config.py`（1432 行，15 个 Config 类）一个文件就有约 100 个参数字段，另有 `envs.py` 的 12 个环境变量与全仓约 25 处散落的 `os.getenv`。F001 的 `wiki/seeds/vllm-ascend.yaml` 是手写的 11 条，扩不到这个量级。
+2. **官方文档不是完整参数参考**。`docs/` 树 152 个 md 文件全查一遍，仍有 8 个参数（`ascend_log_path`、`draft_window_size`、`enable_sp_by_pass`、`mix_placement`、`num_head_replica`、`olora_tensor_parallel_size`、`pd_head_ratio`、`pd_tp_ratio`）一次都没出现；另有 6 个只在某个模型教程或特性指南里被提到，不在配置参考页（`user_guide/configuration/additional_config.md`）里。学习者按文档查不到，只能读源码。
+3. **参数在分支间的分布是非单调的**，单 commit 钉定答不了「哪个版本移除」。`layer_sharding` 实测分布：
+
+   | ref | 含该标识符的 py 文件数 |
+   |---|---|
+   | `releases/v0.13.0` | 5 |
+   | `releases/v0.18.0` | 1 |
+   | `releases/v0.23.0` | **13**（核心实现 `vllm_ascend/ops/layer_shard_linear.py`）|
+   | `releases/v0.24.0rc` | 0 |
+   | `releases/v0.25.1rc` | 0 |
+   | `releases/v0.26.0rc` | 1 |
+   | `releases/v0.27.1rc` | 0 |
+   | `main` | 0 |
+
+   在 `main` 的代码里它根本不存在，全仓只有 `docs/source/tutorials/models/GLM5.2.md:184` 提了一句「启用 DSA-CP 后 `layer_sharding` 不能包含 `o_proj`」。
+
+## What
+
+用户能感知到的变化：
+
+- 问任意一个 vllm-ascend 参数，都能得到答案——包括官方文档没写的、以及主线已经删掉的。
+- 答案里带版本信息：哪个提交引入、哪个 PR 删除、进了哪些 tag、当前哪些分支还有。
+- 新参数合入上游后，知识库自动发现并生成草稿，不需要人去盯。
+- 参数页顶部有版本横幅（如「此参数在 main 已移除，v0.24 起，PR #NNNN」），过期信息不会静默留着。
+
+## Acceptance Criteria
+
+- [ ] **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`（如 `additional_config["eplb_config"]["dynamic_eplb"]`）、`file`、`line`、`comment`（字段上方注释）、`constraints`（从 validator 的报错字符串提取的取值范围与联动）、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别（见 Design Decisions「四种定义形态」）。
+- [ ] **AC2 · 疑似项由 LLM 复核**：`confidence: suspect` 的条目走一次 agent 调用复核，输出 `确认是参数 / 不是参数 / 拿不准` 三态与理由，写回 `params-<ref>.json`。拿不准的留在清单里并标记，不静默丢弃。验收：故意混入一个非参数标识符，复核后被标为「不是参数」且带理由。
+- [ ] **AC3 · 版本谱系**：`pnpm wiki:lineage` 对每个参数跨全部 ref 计算 `wiki/lineage/<param>.json`：各 ref 有无、首次出现的提交与 PR 号、被删除的提交与 PR 号、含它的 tag 列表。PR 号从 squash 提交信息尾部的 `(#NNNN)` 提取。验收：`layer_sharding` 的谱系文件与上方 Why 里那张实测表一致，且给出 v0.23→v0.24 之间的删除提交。
+- [ ] **AC4 · 骨架页零成本覆盖全部参数**：`pnpm wiki:build-param-pages` 由 `params-*.json` + 谱系确定性生成 `wiki/params/<name>.md`，含 frontmatter、定义位置、默认值、约束、版本表，正文标记为「骨架，待补」。不调用任何 LLM。验收：跑一次生成全部参数页，`pnpm wiki:lint` 通过，`git diff` 在重复运行后为空（幂等）。
+- [ ] **AC5 · LLM 选择性补正文**：`pnpm wiki:ingest --params <name,...>` 把骨架页交给提取 agent 补「是什么 / 为什么存在 / 开了的代价 / 和谁互斥」四节，骨架部分（版本表、定义位置）由脚本重新覆盖，agent 不得改动。验收：补完一页后重跑 `wiki:build-param-pages`，版本表被脚本刷新而正文保留。
+- [ ] **AC6 · 每日同步与新参数触发**：`pnpm wiki:sync` 拉全部 ref、重跑扫描与谱系、与上次结果 diff；新增参数进 `wiki/_drafts/_param-queue.json` 并自动生成骨架页；消失的参数在页面上标注移除版本与 PR；默认值变化写进 `wiki/log.md`。失败非零退出并在 log 留原因。注册为 Windows 计划任务每日运行。验收：把上次结果人为改掉一条，跑 sync 能报出「新增 1 / 删除 1 / 变更 1」并落到对应文件。
+
+**Out of scope**：vllm 上游仓库的参数（先只做 vllm-ascend，需要时同一套引擎加一个 repo）；参数的运行时实测行为（属于 PLAN 的 M 级证据，本 feature 只做静态事实）；GitHub issue / PR 语料与报错检索（→ F003）；前端展示（复用 F001 AC6 的阅读页，本 feature 只产数据）。
+
+## Dependencies
+
+- **F001 AC9（阻塞）**：多 ref 钉定与完整克隆。参数扫描要跨分支跑，部分克隆会静默漏文件（实测 v0.23.0 漏 2 个）。
+- **Python 3**（本机 `/f/ProgramData/Anaconda3/python`，3.9.13）：扫描器用 Python 的 `ast` 模块解析 `.py`。`ast.parse()` 只解析源码文本、不执行也不 import，因此**不需要安装 vllm 或 pydantic**。缺 Python 时脚本给出明确报错而不是静默降级到正则。
+- F001 的 ingest 引擎（AC5 复用它跑补正文的 agent 调用）。
+- 不依赖 GitHub token（PR 号从本地 git 提交信息里取，不查 API）。
+
+## Design Decisions
+
+| 决策 | 选项 | 结论 | 原因 |
+|------|------|------|------|
+| 扫描方式 | 正则 / Python AST / AST + grep + 注释三路 | **三路合一，并输出 `confidence`** | 2026-09-10 用正则试跑当场翻车：101 个字段里错判 5 个（`budget_threshold` 等被判「文档有代码无」，实为 `DynamicSpecConfig.method_params` 这个自由字典的合法键，只在注释里写明），嵌套 Config 类也有漏。单一手段覆盖不了下面四种形态 |
+| 四种定义形态 | — | 扫描器必须同时处理 | ① pydantic dataclass 字段 `dynamic_eplb: bool = False`；② 嵌套 config 类（`eplb_config` 里再套一层，AST 要递归）；③ 自由字典的合法键，只在字段注释里列出（`method_params` 的 `initial_verify_budget_per_req` 等三个，AST 扫不到）；④ 别处按字符串取值（`spec_decode/utils.py:277` 的 `min_verify_tokens`，要全仓 grep 才发现）|
+| 疑似项处理 | 人工复核 / LLM 复核 | **LLM 复核**（用户 2026-09-10 拍板） | 疑似项是长尾，量不小；人审会成为放量的瓶颈。三态输出保留「拿不准」，不强行二选一 |
+| 参数页生产 | 全部 LLM 写 / 骨架确定性 + LLM 选择性补 | **骨架确定性生成，LLM 只补正文** | 按试点每页 2.5 美元，100+ 参数全用 LLM 写要 250 美元以上，且版本表这类事实 LLM 写了还会过期。骨架零成本、不会错、每次 sync 自动刷新 |
+| 谱系存放位置 | 写进页面 frontmatter / 独立 `lineage/` 文件 | **独立文件，页面渲染时合并** | 页面正文由 LLM 维护、谱系由脚本每日重算；混在一个文件里两边会互相覆盖（F001 试点已经吃过 build 与 biome 互相重排的亏）|
+| PR 号来源 | GitHub API / squash 提交信息 | **提交信息尾部 `(#NNNN)`** | 上游用 squash merge，PR 号就在提交标题里；不用 token、不受 API 限额影响。API 只在 F003 用 |
+| 「移除版本」的表述 | 单一版本号 / 按 ref 列表 | **按 ref 列表** | 分支分布非单调（v0.24 没了、v0.26.0rc 又有），单一版本号会说谎 |
+| 扫描粒度 | 每次全量 / 增量 | **每次全量，结果做 diff** | 全量扫一个 ref 是秒级；增量的复杂度换不来收益，全量还能顺带发现改名 |
+
+**Design Gate**：数据管线级（新目录 `wiki/params/`、`wiki/lineage/`，新增 Python 依赖）。待用户批准实施计划。
+
+## Timeline
+
+| 日期 | 事件 |
+|------|------|
+| 2026-09-10 | 用户提出参数类需求；实测确认 F001 单 commit 模型答不了；确认官方文档不完整（8 个参数全树无记载）；确认正则扫描不可靠（错判 5 个）；用户拍板疑似项由 LLM 复核。立此 feature |
+
+## Links
+
+- Plan: [param-lineage-plan.md](../plans/param-lineage-plan.md)
+- 依赖: [F001](F001-llm-wiki.md) AC9 多 ref 钉定
+- 姊妹: [F003](F003-github-corpus.md) GitHub 语料与报错检索
+
+## Evolution
+
+- **Evolved from**: [F001](F001-llm-wiki.md)（F001 只覆盖「参数是什么」，本 feature 补「有哪些、哪个版本有」）
+- **Blocks**: 无
+- **Related**: PLAN 第 21 章「PR 影响分析」

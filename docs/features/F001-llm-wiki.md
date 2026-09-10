@@ -48,7 +48,7 @@ created: 2026-09-07
 - [x] **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 **14** 个文件（部分克隆下是 11 或 13，见 Design Decisions）。
 - [x] **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
 
-- [ ] **AC11 · 页面要有图**：HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。
+- [ ] **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。
 - [ ] **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `related` 作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 related 扩展来的页并标出来源，抽屉里出现相关页入口。
 
 **Out of scope**（写明触发条件）：向量检索（2026-09-10 用户拍板先不加；触发条件改为「AC10 的 grep 实现在一组真实问题上命中率不足」，且只用于 F003 的 issue 语料，不用于 wiki 页——参数类问题按名字精确查表，语义检索反而更差）；codex 作为 ingest agent（claude 试点合格后再接，runner 接口已留 `agent` 字段）；多 agent 并发写同一页所需的租约 / 围栏令牌 / CAS（本设计下并行 agent 不写同一文件，不需要）；cron 巡检与写入账本；章节页右栏（章节页尚不存在，抽屉先落在 `#/wiki`）。

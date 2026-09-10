@@ -44,6 +44,8 @@ created: 2026-09-10
 - [ ] **AC5 · 溯源链路**：命中 issue 后顺着 `fixed by #NNNN` 找到 PR，再查 F002 的谱系得出修复进了哪些 tag 与分支。验收：给定一条已修复的 issue，输出链路完整（issue → PR → 合并提交 → 含该提交的 tag 列表）。
 - [ ] **AC6 · 重要 PR 升级为 wiki 页**：PR 的 diff 若触及 seeds 里声明的入口文件或 F002 的参数定义文件，自动排进 ingest 队列生成草稿；社区不可信文本（PR 正文、评论）经 sanitize 模块处理后才进 prompt。验收：挑一个真实的参数改动 PR，草稿生成且 diff 可读；构造一条含提示注入的评论，sanitize 后注入片段不出现在 prompt 里。
 
+- [ ] **AC7 · 解析 issue 里引用的文档链接**：社区讨论大量引用官方文档 URL（`docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html`）。抓取时把这类链接解析成结构化引用（版本 + 路径），并映射到本地 `docs/source/` 的对应文件，让「这条 issue 讲的是哪一页文档」可被检索与跳转。链接指向的版本与当前钉住的版本不同时要标出来。验收：取 10 条含文档链接的真实 issue，链接全部被解析出版本与路径，且能映射到本地文件（映射不到的要给出原因，例如该页已被删除）。
+
 **Out of scope**：向量检索（先做 AC4 的 grep 实现并实测命中率，不达标再评估）；vllm 上游仓库的 issue（需要时同一套脚本加一个 repo）；把全部 issue 转成 wiki 页（成本不成立，见 Why）；GitHub webhook 实时推送（每日增量足够）。
 
 ## Dependencies
@@ -51,6 +53,7 @@ created: 2026-09-10
 - **GitHub token（阻塞 AC1）**：只读 `public_repo` 权限，放本机环境变量 `GITHUB_TOKEN`，不进仓库。匿名限额 60 次/小时，拉 1.6 万条需约 270 小时；带 token 为 5000 次/小时，全量首拉约数小时。
 - **F001 AC10（阻塞 AC4）**：可替换的 `retrieve()` 接口。
 - **F002（阻塞 AC5）**：版本谱系提供「修复进了哪个 tag / 哪些分支」。
+- **官方文档站与本地 `docs/source/`（AC7）**：解析 issue 里的文档链接需要两边的映射关系。
 - **sanitize 模块（AC6）**：从 `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\` 整目录复制（5 文件 1492 行，含 510 行测试，零外部依赖），与 F001 AC8 共用。
 
 ## Design Decisions

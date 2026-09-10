@@ -23,7 +23,7 @@ chapters: ["05", "11"]            # 归属章节，两位数字符串
 prerequisites: [attention]        # 读这页前该先懂什么，其它页的 id；没有就留空数组
 sources:                          # 不得为空
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L120-L188
-evidence: "C"                     # 必须加引号；S 官方文档 / C 钉住 commit 的源码 / D 推导 / A 假设 / I 推断 / M 实测 / ! 冲突
+evidence: "C"                     # 必须加引号。这是**整页主体结论**的等级，不是「出现过的最高等级」
 related: [paged-attention]        # 其它页的 id，双向
 contradicts: []                   # 整合阶段发现矛盾时填 "<id>: 一句话"，留给人审
 updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成日期对象
@@ -83,7 +83,13 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `repo@commit:docs/source/<路径>.md#L起-L止` —— **官方文档的本地副本**。官网 <https://docs.vllm.ai/projects/ascend/> 就是这个目录渲染出来的，读本地文件与读官网内容同源，且能给出行号。
 - `https://docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html` —— 官方文档的线上地址。
 
-**引用官方文档时 `evidence` 标 `S`，不是 `C`**，并且**本地行号与线上 URL 两个都要给**：前者可核对、后者可点开。版本段用你实际读的那个 ref 对应的版本（`main` 对应 `latest`，`releases/v0.23.0` 对应 `v0.23.0`）。官方文档站有 26 个活跃版本，不要笼统写 `latest`。
+**页级 `evidence` 取整页主体结论的等级，不是出现过的最高等级。** 一页引了两条官方文档、十五条源码，主体结论仍来自读源码，那它就是 `C` 不是 `S`。判断方法：把这页最核心的三条论断挑出来，看它们主要靠什么支撑。
+
+**逐条结论用内联标记**（这是 PLAN §1.4 的原设计，页级字段表达不了混合来源）：在句末加 `[S]` / `[C]` / `[D]` / `[A]` / `[I]` / `[M]` / `[!]`，标明这一条的依据类型。例如：
+
+> 后端只支持 `block_size = 128`，`get_supported_kernel_block_sizes` 直接返回 `[128]` [C]。官方文档建议长序列场景开启此项以降低碎片 [S]。按每 token 每层 4 KiB 推算，28 层共 112 KiB [D]。
+
+引用官方文档时**本地行号与线上 URL 两个都要给**：前者可核对、后者可点开。版本段用你实际读的那个 ref 对应的版本（`main` 对应 `latest`，`releases/v0.23.0` 对应 `v0.23.0`）。官方文档站有 26 个活跃版本，不要笼统写 `latest`。
 
 `docs/source/llms.txt` 是上游专门为 LLM 写的官方索引，逐节给出 canonical URL。找官方文档的入口先看它。
 
@@ -103,7 +109,15 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
   例：某处 `token_size = kv_head_num * head_dim * itemsize` 紧跟 `assert kv_head_num == 1`，说明它只对 MLA 成立；把它写成 GQA 通用的每 token 字节公式，就是推广，标 `D` 不标 `C`。
 - 不要读 `_drafts/` 里别人的草稿，不要修改 `concepts/`、`index.md`、`log.md`。
 - `related` 只填你确定存在或本批会产生的 id（任务描述里会列出本批 id）。
-- **官方文档和源码一起读，不要只读源码**。任务会给出 `entry` 里的 `.py` 与对应的 `docs/` 文件；`docs/source/llms.txt` 是上游为 LLM 写的官方索引，先看它找入口。文档讲「为什么这么设计、什么时候该开」，源码讲「实际怎么跑」，两者都要。引用文档时 `evidence` 标 `S` 并同时给本地行号与线上 URL（见「页面格式」）。
+- **三路对照读，不要只读源码**：
+  1. **源码**（`--add-dir` 给你的本地仓库）——它是行为的最终依据，回答「实际怎么跑」。
+  2. **本地文档**（同一仓库的 `docs/source/**.md`）——回答「为什么这么设计、什么时候该开、和谁互斥」，这些源码里没有。`docs/source/llms.txt` 是上游为 LLM 写的官方索引，先看它找入口，别顺着源码碰运气。
+  3. **官网渲染页**（<https://docs.vllm.ai/projects/ascend/en/{版本}/{路径}.html>）——见下一条，有些内容只有它有。
+
+  页级 `evidence` 取整页主体结论的等级——引了几条文档不等于整页都是 `S`（判定见「页面格式」）。逐条结论用内联标记 `[S]` / `[C]` / `[D]` 区分依据类型。引用文档时本地行号与线上 URL 都要给。
+- **本地文档里的 `{{ 变量 }}` 必须去官网取展开值**。这个文档站用 MkDocs 的 macros 插件，版本号定义在 `mkdocs.yml` 的 `extra:` 块，md 源文件里写的是占位符——全仓共 226 处，其中 `{{ vllm_ascend_version }}` 就占 167 处，还集中在安装命令、pip 版本、镜像 tag 这些地方。
+  照抄本地文件会把 `pip install vllm-ascend=={{ pip_vllm_ascend_version }}` 原样写进页面，学习者复制粘贴得到一条跑不了的命令。
+  正确做法：读到含 `{{ }}` 的段落，去对应版本的官网页面取渲染后的值再写；`sources` 里本地行号与官网 URL 都记。**页面正文里出现 `{{ }}` 会被 lint 判红。**
 - **该画图就画图**。`## 怎么工作` 涉及数据流、映射关系、状态变化时必须给 mermaid 图。图里的标识符必须在源码里真实存在——你会被 lint 检查这一条。上游 `docs/` 里已有的图可以参考其表达方式，但不要复制图片文件，自己用 mermaid 重画。
 - **`## 事实表` 里不写解释句**，只放能扫读的数与来源；解释归 `## 为什么需要它` 与 `## 怎么工作`。这两类混在一起是上一版格式最大的毛病。
 
@@ -151,7 +165,8 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `whatsnext-overflow`：`## 接着看` 超过五条。
 - `diagram-identifier`：mermaid 图里标注的文件名或符号，在该页 `sources` 覆盖的范围里找不到。
 - `prerequisites-missing`：`prerequisites` 指向不存在的 id。
-- `doc-evidence`：`sources` 里含 `docs/source/**.md` 但 `evidence` 不是 `S`（引用官方文档却标成源码，属标签失真）。
+- `doc-evidence`：`sources` 里**多数**来自 `docs/source/**.md`（文档条数 > 源码条数）但 `evidence` 不是 `S`；或页级 `evidence` 为 `S` 而 sources 里一条文档都没有。只查主体来源与页级等级是否一致，不因为引了一条文档就要求改标签。
+- `unexpanded-placeholder`：正文里出现 `{{ ... }}`，说明照抄了本地文档的占位符而没去官网取展开值。
 - `broken-link`：正文相对链接指向不存在的文件。
 - `orphan`：concept / feature 页既没有 chapters，也没有任何页链接到它。
 - `log-format`：`log.md` 的 H2 不符合 `## [YYYY-MM-DD] ingest|build|review | 标题`。
@@ -164,3 +179,4 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - 人审：看 `_drafts/_integration.json` 与 `git diff wiki/concepts`，随机抽页对照 `raw/` 与 `tools/repos/` 源码。不满意改本文件对应切片重跑，不要手改草稿。
 - 失败：`_drafts/_failures.json` 记录每个失败 feature 的原因与 session id；`--retry-failed` 只重跑它们。
 - 来源仓库在 `tools/repos/<repo>`，钉住 `seeds/*.yaml` 里的 commit；不在 git 里，`pnpm wiki:clone` 重建。
+- 官方文档站 <https://docs.vllm.ai/projects/ascend/> 有 26 个活跃版本，版本清单查 `https://app.readthedocs.org/api/v3/projects/vllm-ascend/versions/?active=true`。站上内容由仓库 `docs/source/` 渲染而来，但**版本号等占位符只有渲染后才有值**，所以本地与线上两路都要读。

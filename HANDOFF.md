@@ -1,4 +1,4 @@
-# 交接说明（2026-09-10 更新：知识库拆出 F002 / F003）
+# 交接说明（2026-09-11 更新：阅读页与问答上线，HANDBOOK 重写，立 F004）
 
 ## 当前开篇：大模型推理之旅 · 城市背景
 
@@ -12,52 +12,72 @@
 
 ## 现状（一句话）
 
-**主干只剩地基，没有任何教学画面；另有一条 `feat/llm-wiki` 分支在做知识库（见下方 F001 一节）。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
+**主干只剩地基，没有任何教学画面；另有一条 `feat/llm-wiki` 分支在做知识库，已有可用的阅读页与问答（见下方 F001 一节）。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
 
 ## 知识库 F001（分支 `feat/llm-wiki`，未合入 main）
 
-聚合文件 `docs/features/F001-llm-wiki.md`，实施计划 `docs/plans/llm-wiki-plan.md`，试点人审报告 `docs/plans/llm-wiki-pilot-review.md`。这三份是这件事的真相源，接手先读它们。
+真相源四份，接手先读：聚合文件 `docs/features/F001-llm-wiki.md`、实施计划 `docs/plans/llm-wiki-plan.md`、试点人审报告 `docs/plans/llm-wiki-pilot-review.md`、**问题台账 `docs/plans/llm-wiki-open-questions.md`**（用户 09-10 至 09-11 提的 17 个问题及处置，含几处我判断错后的更正）。
 
-**目标**：agent 写、人只审、进 git 的课程知识库，最终在章节页右侧放聊天框问名词。十条验收标准（2026-09-10 追加 AC9 多 ref 钉定、AC10 检索接口），已完成前四条。
+**目标**：agent 写、人只审、进 git 的课程知识库，学习者在 `#/wiki` 问名词就有基于知识库的回答。
 
-**已经能用的（Phase 1 完成）**
+**十二条验收标准，已完成八条**：AC1 骨架派生、AC2 lint、AC3 ingest 引擎、AC4 试点批、AC6 阅读页、AC7 聊天问答、AC9 多 ref 与完整克隆、AC10 检索接口。
+**剩四条**：AC5 批量灌种（要额度，且有四条前置改造，见下）、AC8 存进 wiki、AC11 图与逐条证据标记、AC12 关系呈现（检索侧已完成）。
+
+**已经能用的命令**
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm wiki:clone --seeds <yaml>` | 按种子清单浅克隆源码仓库到 `tools/repos/`，钉住 commit |
+| `pnpm wiki:clone --seeds <yaml>` | **完整克隆**源码仓库到 `tools/repos/`，抓全部分支与 tag，按 seeds 里声明的每个 ref 建一份工作树 |
 | `pnpm wiki:ingest --seeds <yaml>` | 扇出提取（每 feature 一次 `claude -p`，并发 3）+ 串行整合 |
 | `pnpm wiki:build` | 由 frontmatter 派生 `wiki/index.md`、`wiki/log.md`、`src/content/wiki/registry.json` |
-| `pnpm wiki:lint` | 十条静态规则，已进 `pnpm check` |
+| `pnpm wiki:lint` | 静态规则，已进 `pnpm check` |
 | `pnpm wiki:audit --seeds <yaml>` | 把每条来源行号拿到钉住的仓库里核对是否真实存在 |
+| `pnpm dev` | 前端；`#/wiki` 是阅读页 |
+| `pnpm dev:server` | 问答服务（`server/`，默认 8790），前端经 vite proxy 打过来 |
+| `pnpm dev:all` | 前后端一起起 |
 
-`wiki/HANDBOOK.md` 是知识库规则的唯一真相源，按六个二级标题切片分别注入不同角色的 agent。改规则只改这个文件，不用动代码。
+**`wiki/HANDBOOK.md` 是这套系统唯一的规则文件**，176 行，按六个二级标题切片分别注入不同角色的 agent（提取 / 整合 / 问答 / 复核）。映射表在 `scripts/wiki/handbook.ts:9`。**改规则只改这一个文件，不动代码**——09-10 至 09-11 用户提的页面格式、加图、证据等级、占位符四类问题，全部只改了它。代价是：**规则改了页面不会自己变，要重跑才生效**，所以现有 11 页仍是旧格式。
 
-**产出**：`wiki/concepts/` 11 页（11 章 KV Cache 特性，来自 `vllm-ascend@28bf3a2e`），174 条来源行号全部核对属实，69 条双向交叉链接。`wiki/raw/` 是对应的源码摘录。
+**产出**：`wiki/concepts/` 11 页（11 章 KV Cache 特性，`vllm-ascend@28bf3a2e`），174 条来源行号全部核对属实，70 条双向交叉链接（密度 64%，无孤立页）。`wiki/raw/` 是对应摘录。
 
-**成本实测**：试点批 11 页花费 28 美元等值，约每页 2.5 美元，一批 11 个会打满一个额度窗口。Phase 2 要灌 120 到 160 页，按此约 300 美元等值，跨多个窗口。放量前需用户重新确认，或改用更便宜的模型。
+**成本实测**：试点批 11 页 28 美元等值，约每页 2.5 美元，一批 11 个打满一个额度窗口。AC5 要灌 120–160 页，约 300 美元等值，跨多个窗口。
 
-**下一步**：F002 Phase 1（多 ref 钉定与完整克隆，见下节）是新的优先项——它同时是 F001 AC9，且不做就无法回答参数类问题。之后可选 Phase 2 批量灌种（要额度）或 Phase 3 阅读界面（几乎不花额度）。
+**下一步：AC5 有四条前置改造，都在 `llm-wiki-plan.md` 的 Phase 4.5（Task 26–29），必须先做完再开跑**——灌种一旦开始就是上百页上百美元，跑完才发现规则不对要全部重来：
 
-## 参数谱系 F002 与社区语料 F003（2026-09-10 立项，未开工）
-
-用户 2026-09-10 提出两类 F001 结构上答不了的需求：参数类问题（「`layer_sharding` 干嘛的、哪个版本移除、哪些分支还有」）与报错溯源（「贴一段报错，找到对应 issue/PR」）。
-
-- **[F002](docs/features/F002-param-lineage.md)**（计划 [param-lineage-plan.md](docs/plans/param-lineage-plan.md)）：参数扫描器 + 版本谱系 + 每日触发。全部确定性脚本，**不花 LLM 额度**；LLM 只用来复核疑似项和补正文。
-- **[F003](docs/features/F003-github-corpus.md)**：GitHub issue / PR 语料与报错检索。需要只读 token（环境变量 `GITHUB_TOKEN`），计划待写。
-
-两条核心实测结论，接手前必须知道：
-
-1. **F001 的「一个 repo 钉一个 commit」不成立**。`layer_sharding` 在分支间是非单调的（v0.13 有 5 个文件、v0.23 有 13 个、v0.24 起主线为 0、v0.26.0rc 又有 1 个），「哪个版本移除」只能按 ref 列表答。
-2. **部分克隆（`--filter=blob:none`）会静默漏文件**。同一条 `git grep` 在 v0.23.0 上，部分克隆数出 11、完整拉取是 13。所以 `wiki:clone` 必须改完整克隆，这是 F002 Phase 1 Task 2。
-
-顺带验证了谱系可以全靠本地 git 算出来、不用 GitHub API：`layer_sharding` 由 PR **#11953**（提交 `89601215`，2026-07-15）移除，`git branch -r --contains` 与 `git tag --contains` 直接给出哪些分支和 tag 已经没有它。近 200 条上游提交的 `(#NNNN)` 格式覆盖率是 200/200。
+1. **Task 26 解 R2**：整合阶段现在读 `concepts/` 全部现有页，11 页 96 KB 没事，160 页约 1.4 MB 会撞上下文
+2. **Task 27**：seeds 的 `entry` 要同时列源码与文档（现在全指 `.py`，152 个文档只碰到 9 个）
+3. **Task 28**：本地文档有 226 处 `{{ }}` 占位符，照抄会写出跑不了的安装命令
+4. **Task 29**：HANDBOOK 声明了六条新 lint 规则但代码没写，声明了不执行等于没有
 
 **接手注意**
 
-- `tools/repos/` 已 gitignore，全新检出要先跑 `pnpm wiki:clone` 才能跑审计与灌种。
-- `src/content/wiki/registry.json` 是生成物，已排除在 biome 格式化之外，不要手改。
-- `wiki/index.md` 与 `wiki/log.md` 同为生成物，agent 与人都不该手改。
-- ingest 用 `Edit(路径)` 做按路径的写入限制（`Write(路径)` 不被 CLI 识别，且黑名单放 `Edit` 会连 Write 一起禁掉），另有批级快照差集做第二道越界防线。
+- `tools/repos/` 已 gitignore，全新检出要先跑 `pnpm wiki:clone`。**完整克隆约 96 MB**，每个非 main 的 ref 另占一份工作树。
+- `src/content/wiki/registry.json`、`wiki/index.md`、`wiki/log.md` 都是生成物，不要手改；registry 已排除在 biome 格式化外。
+- ingest 用 `Edit(路径)` 做按路径写入限制（`Write(路径)` 不被 CLI 识别，黑名单放 `Edit` 会连 Write 一起禁掉），另有批级快照差集兜底。
+- **检索只能走 `src/content/wiki/retrieve.ts`**，聊天层不许自己 grep（AC10，风险 R1 的应对）。
+- 官方文档站 <https://docs.vllm.ai/projects/ascend/> 有 26 个活跃版本，内容由仓库 `docs/source/` 渲染。**读本地拿不到版本号**——占位符只有渲染后才有值，所以本地与线上两路都要读。
+
+## 后续三个 feature：F002 / F003 / F004（均未开工）
+
+用户 09-10 至 09-11 提出三类 F001 结构上答不了的需求，各立一个 feature。四份 feature 文档已互相引用、依赖标清、冲突已解（做过一轮交叉审查）。
+
+| Feature | 做什么 | 状态 |
+|---|---|---|
+| **[F002](docs/features/F002-param-lineage.md)** · 参数清单与版本谱系 | 「`layer_sharding` 干嘛的、哪个版本移除、哪些分支还有」。参数扫描器 + 跨 ref 谱系 + 每日触发。**全是确定性脚本，不花 LLM 额度**，LLM 只复核疑似项和补正文 | feature + [plan](docs/plans/param-lineage-plan.md)（333 行，15 条锚点核验）已写 |
+| **[F003](docs/features/F003-github-corpus.md)** · GitHub 语料与报错溯源 | 「贴一段报错，找到对应 issue/PR」。12,074 PR / 4,188 issue 拉成检索语料，**不做成 wiki 页**（全量转页要约 4 万美元） | feature 已写，plan 等 `GITHUB_TOKEN` |
+| **[F004](docs/features/F004-knowledge-loop.md)** · 知识库闭环 | 「越用越聪明」：手动投喂、查不到自动补写、定期巡检、页面衰减检测、跨页重复 lint。九条 AC | feature 已写，plan 待写 |
+
+**接手前必须知道的实测结论**
+
+1. **单 commit 钉定不成立**。`layer_sharding` 在分支间非单调：v0.13.0 有 8 个文件、v0.18.0 有 9 个、v0.23.0 有 **14** 个、v0.24.0rc 起主线为 0、v0.26.0rc 又有 1 处（那 1 处是单测里的残留赋值 `self.impl.layer_sharding_kwargs = []`，不是功能回归）。「哪个版本移除」只能按 ref 列表答。**已修，AC9 完成。**
+
+2. **部分克隆会静默漏文件且不稳定**。同一条 `git grep`：v0.18.0 部分克隆数出 1、完整克隆是 9；v0.23.0 部分克隆先后给出 11 和 13、完整是 14。同一命令在不同时刻给出两个不同的错误答案，比单纯漏更危险。**已修，改完整克隆。**
+
+3. **谱系全靠本地 git 就能算，不用 GitHub API**。`layer_sharding` 由 PR **#11953**（提交 `89601215`，2026-07-15）移除；`git branch -r --contains` 与 `git tag --contains` 直接给出哪些 ref 已经没有它。近 200 条上游提交的 `(#NNNN)` 覆盖率 200/200。
+
+4. **查文档不能用全词精确匹配**。文档里写 `Layer sharding.` 而不是 `layer_sharding`，精确匹配会漏掉整份 `release_notes.md`（2267 行、**1137 个 PR 链接**、39 个版本小节——这是谱系的一等来源）。`retrieve()` 已改成宽松匹配（压平分隔符 + 公共前缀），学习者问「layer share 是什么」也能命中。
+
+5. **`runBatch` 重构是 F002 就需要的**，不是 F004 才需要。F002 AC2/AC5 都是非 `SeedFeature` 形状的 agent 调用，而 `runExtractPhase` 签名绑死了它。十行机械重构，F002 先做则 F004 白捡。
 
 ## 地基有什么（全部有测试，不要动）
 

@@ -11,6 +11,10 @@
 - AC6 · 站内消费：`#/wiki` 阅读页 + `<Term>` 悬停卡，Playwright 验收。
 - AC7 · 聊天问答：`server/` spawn `claude -p` 只读白名单，SSE 流式，`--resume` 多轮。
 - AC8 · 存进 wiki 与 PR ingest：草稿产出、PR ingest 经 sanitize、批准 / 驳回面板。
+- AC9 · 多 ref 钉定与完整克隆：一个 repo 钉一组 ref，feature 可声明适用 ref；克隆改完整克隆。**已完成 2026-09-11。**
+- AC10 · 检索接口可替换：`retrieve(query)` 单一入口，聊天层不内联 grep。**已完成 2026-09-11。**
+- AC11 · 页面要有图与逐条证据标记：mermaid 图 + 内联 `[S]`/`[C]`/`[D]` 标记 + 对应 lint 规则。
+- AC12 · 回答要体现页与页的关系：`retrieve()` 一跳图扩展、chat 传关系、回答附「接着看」。**检索侧已完成 2026-09-11。**
 
 **Architecture:** 三层（`wiki/raw` 不可变摘录、`wiki/concepts|sources` agent 维护的页面、`wiki/HANDBOOK.md` schema）+ 三操作（ingest / query / lint）。ingest 是「扇出提取 + 串行整合」：并行 agent 各写自己的 `_drafts/<id>.md` 与 `raw/<id>.md`，整合 agent 一次一个跨页写，程序按批前批后快照差集判越界，所以不需要任何锁。`index.md` 与 `registry.json` 由程序从 frontmatter 派生，agent 禁写。站内消费只读 `registry.json` 与页面原文；聊天由 `server/` 薄运行器 spawn 同一套 CLI 封装。
 **Tech Stack:** TypeScript + tsx 脚本（`scripts/wiki/*` 纯函数 + `scripts/wiki-*.ts` 入口）、zod 3（schema 脚本与前端共用）、gray-matter（frontmatter）、yaml（种子清单）、vitest 5、本机 `claude` CLI 2.1.263、Node 22 `child_process`。
@@ -2173,7 +2177,7 @@ repos 加 `infer-lab`（url 本仓库、commit 取 `git rev-parse --short HEAD`�
 
 ---
 
-## Phase 3：站内消费（AC6）
+## Phase 3：站内消费（AC6）✅ 完成 2026-09-11（提交 `726c47d`）
 
 ### Task 18: 读取器 `src/content/wiki/index.ts`
 
@@ -2193,7 +2197,7 @@ repos 加 `infer-lab`（url 本仓库、commit 取 `git rev-parse --short HEAD`�
 
 ---
 
-## Phase 4：server + 聊天（AC7）
+## Phase 4：server + 聊天（AC7 + AC10）✅ 完成 2026-09-11（提交 `103a2bd`）
 
 ### Task 22: `server/index.ts`（node:http，无框架）
 
@@ -2215,21 +2219,51 @@ fetch + ReadableStream 读 SSE；消息里的相对链接改写为 `#/wiki/<id>`
 
 ---
 
+## Phase 4.5：AC5 的前置改造（2026-09-11 追加，**必须在批量灌种之前做完**）
+
+批量灌种一旦开跑就是上百页、上百美元，跑完才发现规则不对要全部重来。以下四条是 09-10 至 09-11 的讨论产出，都必须先落地：
+
+### Task 26: 解 R2 —— 整合阶段改为按需读页
+
+现状：HANDBOOK「整合」要求读 `concepts/` 全部现有页。实测 11 页 = 96 KB / 994 行，每页约 8.8 KB；120–160 页约 1.4 MB，粗估 40 万 token 量级，**会撞上下文上限，且每批重读一遍成本失控**。
+
+改法：整合 agent 只读 `index.md` 的摘要，加上「与本批草稿的 chapters 或 related 有交集」的那些页的正文。`integrateRequest` 负责挑页并写进 stdin。
+验收：构造 200 页的假 registry，整合请求的 stdin 长度不随总页数线性增长。
+
+### Task 27: seeds 的 `entry` 同时列源码与文档
+
+现状：`entry` 全指向 `.py`，agent 顺着源码摸，152 个文档只碰到 9 个。
+改法：seeds 每个 feature 的 `entry` 分成 `code:` 与 `docs:` 两组；`llms.txt` 注入提取 agent 的系统提示当地图。
+验收：跑一个 feature 的 `--dry-run`，stdin 里同时出现 `.py` 与 `docs/source/` 的路径。
+
+### Task 28: 占位符展开
+
+现状：本地文档有 226 处 `{{ }}` 占位符（`{{ vllm_ascend_version }}` 占 167 处），扎堆在安装命令、pip 版本、镜像 tag。照抄会写出跑不了的命令。
+改法：HANDBOOK 已要求 agent 去官网取展开值；再加 lint 规则 `unexpanded-placeholder` 兜底。
+验收：构造一页含 `{{ x }}` 的草稿，lint 报红。
+
+### Task 29: 新 lint 规则实现
+
+HANDBOOK 的「Lint」切片已经声明了六条新规则，代码还没写：`missing-section`、`whatsnext-overflow`、`diagram-identifier`、`prerequisites-missing`、`doc-evidence`、`unexpanded-placeholder`。规则声明了却不执行，等于没有。
+验收：每条规则各有一个红样例与一个绿样例。
+
+---
+
 ## Phase 5：存进 wiki 与 PR ingest（AC8）
 
-### Task 26: `POST /api/wiki/file-answer`
+### Task 30: `POST /api/wiki/file-answer`
 
 body `{ question, answer, sessionId }` → 写 `_drafts/qa-<slug>-<date>.md`（type concept，sources 由回答里引用的页面 sources 汇总，evidence 取最低），走同一 `parsePage` 校验。
 
-### Task 27: sanitize 模块
+### Task 31: sanitize 模块
 
 整目录复制 Multi-Agent `packages/api/src/wiki/sanitize/` 到 `scripts/wiki/sanitize/`（含测试），去掉 `Buffer` 之外的运行时假设，接入 PR ingest 的输入前处理。
 
-### Task 28: `pnpm wiki:ingest --pr <n>`
+### Task 32: `pnpm wiki:ingest --pr <n>`
 
 `git -C tools/repos/vllm-ascend fetch origin refs/pull/<n>/head:pr-<n>`；用 GitHub REST（无需 gh，`https://api.github.com/repos/vllm-project/vllm-ascend/pulls/<n>`）取标题、正文、变更文件，经 sanitize 后作为 ask；`type: pr`，落 `sources/pr-<n>.md`；`sources` 指向 PR head commit。
 
-### Task 29: 草稿面板
+### Task 33: 草稿面板
 
 `#/wiki/drafts`：列 `_drafts/*.md`，显示 diff（与 `concepts/` 同 id 页对比），按钮批准（POST `/api/wiki/drafts/approve` → 引擎晋升 + build + lint）/ 驳回（移到 `_drafts/_rejected/`）。
 

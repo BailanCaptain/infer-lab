@@ -12,9 +12,14 @@
 |---|---|
 | 官网内容来源 | 就是仓库的 `docs/source/`，Sphinx 渲染 |
 | 本地已有的 md | 152 个（tutorials 55、user_guide 46、developer_guide 33、community 8，加顶层若干）|
-| 版本选择 | `latest`（开发预览，对应 `main`）与 `v0.23.0`（stable，对应 `releases/v0.23.0`）|
+| 版本选择 | **26 个活跃版本**（ReadTheDocs API `count=26`）。分支版：`latest`、`main`、`v0.26.0rc1`、`v0.24.0rc`、`v0.23.0`、`v0.22.1rc`、`v0.21.0rc`、`v0.20.2rc`、`v0.18.0`、`v0.13.0`、`v0.11.0`、`v0.9.1`、`v0.7.3`、`v0.7.1`；另有 12 个 tag 版 |
 | URL 规律 | `https://docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html` |
-| 两个版本本地都有吗 | **有**。AC9 的多 ref 克隆已经把 `main` 与 `releases/v0.23.0` 两份工作树都建好了 |
+| 本地覆盖到几个 | 目前只有 `main` 与 `releases/v0.23.0` 两份工作树（AC9 建的），官网有 26 个 |
+
+> **更正（09-11）**：我第一次只看了页面横幅上的两个版本就下结论，被用户指出漏了 v0.26。正确做法是查 ReadTheDocs API：
+> `https://app.readthedocs.org/api/v3/projects/vllm-ascend/versions/?active=true&limit=50`
+>
+> 这条更正带出一个设计影响：**文档本身也有版本谱系**。「这个参数在文档里什么时候消失」与「在代码里什么时候消失」是两个问题，答案还经常不一致——之前查到 8 个参数全树无记载、`layer_sharding` 只在一篇教程里被提过一句，就是这种不一致。F002 的谱系要同时覆盖代码与文档两条线。
 
 **重要发现：`docs/source/llms.txt`**（53 行）是上游**专门为 LLM 准备的官方索引**，逐节给出 canonical URL，还说明了 markdown 孪生页的取法（`latest/_sources/installation.md`）。里面点名的「支持矩阵」两页（`supported_models` / `supported_features`）正是结构化事实表。
 
@@ -53,14 +58,14 @@ sources 里的 https:// URL：0 条
 HANDBOOK 规定 `evidence: S` 要求 sources 是 `https://` 官方 URL，而 agent 读的是本地文件，写出来是 `vllm-ascend@28bf3a2e:docs/source/...md#L12-L20`——**内容来自官方文档，标签却记成了源码 C**。与「推广结论仍标 C」同一类的标签失真。
 
 **结论**：引用 `docs/` 时 evidence 标 `S`，且 sources 同时给本地行号与官网 URL（用 llms.txt 的 canonical 形式，带版本号）。
-**落在**：改 HANDBOOK，AC5 重跑时生效。**状态**：待做。
+**落在**：HANDBOOK 已改（见 Q10），AC5 重跑时在页面上生效。**状态**：规则已就位，待重跑。
 
 ### Q3 · 文档搜得不全吧？
 
 **是。** 152 个文档只被引用到 9 个。根因：seeds 的 `entry` 全指向 `.py`，agent 是顺着源码摸过去才偶然读到文档的，不是主动去查。
 
 **结论**：seeds 的 `entry` 同时列 `.py` 与对应的 `docs/` 文件，让 agent 两头读；并把 `llms.txt` 注入提取 agent 的系统提示当地图。
-**落在**：改 seeds + HANDBOOK，AC5。**状态**：待做。
+**落在**：HANDBOOK「提取」已补规则；seeds 的 `entry` 待改。**状态**：规则已就位，seeds 待改（AC5）。
 
 ### Q4 · vLLM 上游文档
 
@@ -142,7 +147,14 @@ HANDBOOK 规定 `evidence: S` 要求 sources 是 `https://` 官方 URL，而 age
 
 特性页多一节 `## 什么时候该开`；参数页以事实表为主（正好接 F002 的脚本生成区）。前置知识进 frontmatter 的 `prerequisites`，渲染在页顶。
 
-**状态**：方案已定，**待用户拍板后改 HANDBOOK**。改动与 AC5 绑一起最划算（现有 11 页要重跑才符合新格式）。
+**状态**：**HANDBOOK 已改**（2026-09-11）。四片同步改动：
+
+- 「页面格式」重写：七节结构 + 参数页五节 + `prerequisites` 字段 + 三种 sources 写法（源码 / 文档本地副本 / 文档线上 URL）+ 引用文档必须标 `S` 且两个地址都给。
+- 「提取」补四条：文档与源码一起读、`llms.txt` 当地图、该画图就画图、事实表里不写解释句。
+- 「整合」补一条：检查 `## 接着看` 是否超五条或只是原样倒 `related`。
+- 「Lint」补六条规则：`missing-section`、`whatsnext-overflow`、`diagram-identifier`、`prerequisites-missing`、`doc-evidence`。
+
+现有 11 页仍是旧格式，`wiki:lint` 通过（新规则的代码还没写）。**新格式要等 AC5 重跑才在页面上生效**；lint 新规则的实现列入 AC11。
 
 ---
 

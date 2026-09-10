@@ -1,6 +1,6 @@
 ---
 title: infer-lab Wiki Handbook
-updated: 2026-09-07
+updated: 2026-09-11
 ---
 # infer-lab Wiki Handbook
 
@@ -8,35 +8,86 @@ updated: 2026-09-07
 
 ## 页面格式
 
-每页是一个 markdown 文件，文件名 `<id>.md`，放在 `concepts/`（术语与特性页）或 `sources/`（来源摘要页、PR 页）。frontmatter 字段：
+每页是一个 markdown 文件，文件名 `<id>.md`，放在 `concepts/`（术语与特性页）、`params/`（参数页）或 `sources/`（来源摘要页、PR 页）。
+
+### frontmatter
 
 ```yaml
 ---
 id: kv-cache                      # kebab-case，与文件名一致；术语页与 Step.terms 的 id 一致
 title: KV Cache                   # 英文原名
-type: concept                     # concept | feature | source | pr
+type: concept                     # concept | feature | param | source | pr
 summary: 缓存每层每个 token 的 K 与 V，decode 时不再重算。   # 一句话，≤200 字，悬停卡直接用
 aliases: [KV 缓存]                # 中文名与常见别称
 chapters: ["05", "11"]            # 归属章节，两位数字符串
+prerequisites: [attention]        # 读这页前该先懂什么，其它页的 id；没有就留空数组
 sources:                          # 不得为空
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L120-L188
 evidence: "C"                     # 必须加引号；S 官方文档 / C 钉住 commit 的源码 / D 推导 / A 假设 / I 推断 / M 实测 / ! 冲突
-related: [paged-attention]        # 其它页的 id
+related: [paged-attention]        # 其它页的 id，双向
 contradicts: []                   # 整合阶段发现矛盾时填 "<id>: 一句话"，留给人审
 updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成日期对象
 ---
 ```
 
-正文用中文，英文术语、代码、标识符原样保留。固定四节，用 H2：
+### 正文分节
 
-1. `## 是什么`：两三句，先说它解决什么问题。
-2. `## 形状与数值`：涉及张量时写出形状，用 Qwen3-0.6B 的真实维度（H=1024，n_q=16，n_kv=8，d_h=128，28 层）；涉及配置项时写出默认值与来源行号。
-3. `## 在哪一步出现`：对应课程哪一章、请求路径的哪个阶段、源码里哪个类或函数（写 `文件#L起-L止`）。
-4. `## 常见误解`：一到三条，每条一句纠正。
+正文用中文，英文术语、代码、标识符原样保留。
+
+分节的依据是 [Diátaxis](https://diataxis.fr/) 的核心主张：**解释（为什么、怎么理解）与参考（精确事实）是两种不同的东西，必须分开**。混在一起的后果很实际——想查形状的人要跳过叙述，想理解原理的人被一串数字打断。骨架取自 [Kubernetes 的 concept 页模板](https://www.kubernetes.io/docs/contribute/style/page-content-types/)：概览 → 主体 → 接着看。
+
+**术语页与特性页（`type: concept` / `feature`）用这七节，顺序不能变：**
+
+1. `## 一句话`
+   一段，不超过三行。和 frontmatter 的 `summary` 说同一件事但可以展开一点。这一节要能独立成立——读者只看它就该知道这页讲什么。
+
+2. `## 为什么需要它`
+   **解释**。先说没有它会怎样（具体到哪一步会慢、会爆显存、会算错），再说它怎么解决。可以讲历史与取舍：上游为什么这么设计、有没有别的做法、昇腾侧和上游有什么不同。这一节允许有观点，但观点要写明依据。
+
+3. `## 怎么工作`
+   **解释 + 图**。讲清楚数据怎么流、谁调用谁、状态怎么变。
+   涉及结构关系时**必须画图**，用 mermaid 代码块（`flowchart` / `sequenceDiagram` / `stateDiagram-v2`）。图里出现的标识符必须是源码里真实存在的类名、函数名或字段名，不要为了画得好看编造盒子。图讲不清的细节写在图下方，不要把长句塞进节点。
+
+4. `## 拿真实数字走一遍`
+   **worked example**。用 Qwen3-0.6B 的真实维度（H=1024，n_q=16，n_kv=8，d_h=128，28 层）从头算到尾，每一步写出算式和结果，让读者能拿计算器复核。
+   涉及配置项的页，这一节给一个完整可复制的配置片段并说明每个值的来由。
+   实在不涉及可计算的量（例如纯流程类特性），可以省这一节，但要在 `## 怎么工作` 里给一个具体的调用实例。
+
+5. `## 事实表`
+   **参考**。只放能扫读的事实，不夹叙述：张量形状、默认值、取值范围、约束、对应的源码位置。用表格。每行的最后一列给来源（`文件#L起-L止`）。
+   这一节的判断标准：读者扫一眼就能拿到数，不需要读句子。
+
+6. `## 常见误解`
+   一到三条，每条一句话点破，再一句说明为什么。这一节在试点里被验证有效，保留。
+
+7. `## 接着看`
+   **最多五条**，每条一个相对链接加半句理由（为什么现在该看它）。内容来自 `related`，但要挑选与排序，不是把 `related` 全倒出来。
+
+**参数页（`type: param`）以参考为主，用这五节：**
+
+1. `## 一句话`
+2. `## 事实表`（默认值、类型、取值范围、联动、版本谱系；这一节由脚本生成，人和 agent 都不要手改）
+3. `## 为什么存在`（解释）
+4. `## 开了的代价`（什么时候该开、和谁互斥、有什么副作用）
+5. `## 接着看`
+
+**来源页与 PR 页（`type: source` / `pr`）** 不强制分节，按材料本身的结构写，但必须有 `## 一句话` 与 `## 接着看`。
+
+### 链接与来源
 
 链接用相对 markdown 链接：同目录 `[PagedAttention](paged-attention.md)`，跨目录 `[来源](../sources/xxx.md)`。不用 `[[wikilink]]`。引用代码片段时链接到 `../raw/<id>.md`。
 
-`sources` 每项两种写法：`repo@commit:path#L起-L止`（repo 是 `vllm-ascend`、`vllm`、`infer-lab` 之一，commit 是钉住的短 hash）或 `https://` URL（只用于 evidence 为 S 的官方文档）。写行号必须是你实际打开并阅读过的行。
+`sources` 每项三种写法：
+
+- `repo@commit:path#L起-L止` —— 源码。repo 是 `vllm-ascend`、`vllm`、`infer-lab` 之一，commit 是钉住的短 hash。
+- `repo@commit:docs/source/<路径>.md#L起-L止` —— **官方文档的本地副本**。官网 <https://docs.vllm.ai/projects/ascend/> 就是这个目录渲染出来的，读本地文件与读官网内容同源，且能给出行号。
+- `https://docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html` —— 官方文档的线上地址。
+
+**引用官方文档时 `evidence` 标 `S`，不是 `C`**，并且**本地行号与线上 URL 两个都要给**：前者可核对、后者可点开。版本段用你实际读的那个 ref 对应的版本（`main` 对应 `latest`，`releases/v0.23.0` 对应 `v0.23.0`）。官方文档站有 26 个活跃版本，不要笼统写 `latest`。
+
+`docs/source/llms.txt` 是上游专门为 LLM 写的官方索引，逐节给出 canonical URL。找官方文档的入口先看它。
+
+写行号必须是你实际打开并阅读过的行。
 
 ## 提取
 
@@ -52,6 +103,9 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
   例：某处 `token_size = kv_head_num * head_dim * itemsize` 紧跟 `assert kv_head_num == 1`，说明它只对 MLA 成立；把它写成 GQA 通用的每 token 字节公式，就是推广，标 `D` 不标 `C`。
 - 不要读 `_drafts/` 里别人的草稿，不要修改 `concepts/`、`index.md`、`log.md`。
 - `related` 只填你确定存在或本批会产生的 id（任务描述里会列出本批 id）。
+- **官方文档和源码一起读，不要只读源码**。任务会给出 `entry` 里的 `.py` 与对应的 `docs/` 文件；`docs/source/llms.txt` 是上游为 LLM 写的官方索引，先看它找入口。文档讲「为什么这么设计、什么时候该开」，源码讲「实际怎么跑」，两者都要。引用文档时 `evidence` 标 `S` 并同时给本地行号与线上 URL（见「页面格式」）。
+- **该画图就画图**。`## 怎么工作` 涉及数据流、映射关系、状态变化时必须给 mermaid 图。图里的标识符必须在源码里真实存在——你会被 lint 检查这一条。上游 `docs/` 里已有的图可以参考其表达方式，但不要复制图片文件，自己用 mermaid 重画。
+- **`## 事实表` 里不写解释句**，只放能扫读的数与来源；解释归 `## 为什么需要它` 与 `## 怎么工作`。这两类混在一起是上一版格式最大的毛病。
 
 ## 整合
 
@@ -69,6 +123,7 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
   ```
 - 检查证据等级有没有被高估：正文出现「通用」「任何模型」「一般来说」这类推广措辞，而所引代码带前提断言或只覆盖部分情形时，把该页 `evidence` 降到 `D`，并在 `contradicts` 之外的正文里补一句限制条件。这一条只降级不拒收。
 - 拒收条件：sources 为空、行号明显编造（文件不存在）、正文少于三节、summary 超过一句话。
+- 检查 `## 接着看` 是否超过五条、是否只是把 `related` 原样倒出来。超了或没挑选就自己删减到五条以内，每条补上半句理由。
 - 不写 `index.md`、`log.md`，它们由程序派生。
 - 写完决策文件后回复一行 `DONE integrate promoted=<n> merged=<n> rejected=<n>`。
 
@@ -92,6 +147,11 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `unknown-chapter`：chapters 含不存在的章节号。
 - `related-missing`：related 指向不存在的 id。
 - `related-asymmetric`：A 的 related 含 B，但 B 没有回指 A（「整合」要求双向）。
+- `missing-section`：正文缺少「页面格式」为该 `type` 规定的必需 H2，或顺序不对。
+- `whatsnext-overflow`：`## 接着看` 超过五条。
+- `diagram-identifier`：mermaid 图里标注的文件名或符号，在该页 `sources` 覆盖的范围里找不到。
+- `prerequisites-missing`：`prerequisites` 指向不存在的 id。
+- `doc-evidence`：`sources` 里含 `docs/source/**.md` 但 `evidence` 不是 `S`（引用官方文档却标成源码，属标签失真）。
 - `broken-link`：正文相对链接指向不存在的文件。
 - `orphan`：concept / feature 页既没有 chapters，也没有任何页链接到它。
 - `log-format`：`log.md` 的 H2 不符合 `## [YYYY-MM-DD] ingest|build|review | 标题`。

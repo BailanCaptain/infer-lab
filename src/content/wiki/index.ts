@@ -5,6 +5,7 @@
  * `pnpm wiki:build` 派生，两者的一致性由本文件的测试保证。
  */
 import registryJson from "./registry.json";
+import { buildIndex, type Hit, type Index, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
 import { type RegistryEntry, type RepoRef, registrySchema } from "./schema";
 
 const registry = registrySchema.parse(registryJson);
@@ -89,3 +90,34 @@ export function rewriteRelativeLink(href: string): string {
   const file = href.slice(href.lastIndexOf("/") + 1, -".md".length);
   return pageHref(file);
 }
+
+// ---------- 检索（AC10 的单一入口）----------
+
+let searchIndex: Index | null = null;
+
+function ensureIndex(): Index {
+  if (searchIndex) return searchIndex;
+  searchIndex = buildIndex(
+    registry.pages.map((p) => ({
+      id: p.id,
+      title: p.title,
+      aliases: p.aliases,
+      summary: p.summary,
+      chapters: p.chapters,
+      evidence: p.evidence,
+      text: bodyById.get(p.id) ?? "",
+    })),
+  );
+  return searchIndex;
+}
+
+/**
+ * 聊天层唯一允许的检索入口。**不要在调用方自己 grep**——换实现（比如给
+ * issue 语料接语义检索）时才不必重写聊天层。见 F001 AC10 与风险 R1。
+ */
+export function retrieve(query: string, opts?: RetrieveOptions): Hit[] {
+  return retrieveIn(query, ensureIndex(), opts);
+}
+
+export type { Hit } from "./retrieve";
+export { citationCheck } from "./retrieve";

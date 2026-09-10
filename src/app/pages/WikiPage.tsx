@@ -7,6 +7,7 @@ import { CHAPTER_TITLES } from "../../content/wiki/chapters";
 import { getPage, listPages, rewriteRelativeLink, sourceUrl } from "../../content/wiki/index";
 import { parseRepoRef, type RegistryEntry } from "../../content/wiki/schema";
 import { EvidenceBadge, Term } from "../../content/wiki/Term";
+import { ChatDrawer } from "../wiki/ChatDrawer";
 import "../../design/wiki.css";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -63,6 +64,8 @@ export function WikiPage() {
         )}
         {page && <Article page={page.fm} body={page.body} />}
       </main>
+
+      <ChatDrawer />
     </div>
   );
 }

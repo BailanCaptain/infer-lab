@@ -37,8 +37,24 @@ export function killTree(pid: number, platform: NodeJS.Platform = process.platfo
   else process.kill(pid, "SIGKILL");
 }
 
-export const runClaude: RunAgent = (req: AgentRequest, onEvent?: (e: AgentEvent) => void) =>
-  new Promise<AgentResult>((resolve) => {
+/** 行解析器认出 result 事件时返回这些字段，由管道记录下来。 */
+export interface LineOutcome {
+  isError?: boolean;
+  sessionId?: string;
+  costUsd?: number;
+}
+
+/**
+ * spawn 一次 claude 并逐行喂给解析器。ingest 与问答共用这段管道：
+ * 超时整树杀、stderr 只留尾部 2000、退出码与 result.is_error 归一成 AgentResult。
+ * 两边的事件形状不同（问答还要文本增量），所以解析交给调用方，
+ * 只要在认出 result 时把 sessionId / costUsd / isError 返回回来。
+ */
+export function spawnClaude(
+  req: AgentRequest,
+  onLine: (line: string) => LineOutcome | undefined,
+): Promise<AgentResult> {
+  return new Promise<AgentResult>((resolve) => {
     const cmd = resolveClaudeCommand();
     const child = spawn(cmd.command, req.args, {
       cwd: req.cwd,
@@ -57,14 +73,11 @@ export const runClaude: RunAgent = (req: AgentRequest, onEvent?: (e: AgentEvent)
     }, req.timeoutMs);
 
     createInterface({ input: child.stdout }).on("line", (line) => {
-      const e = parseStreamJsonLine(line);
-      if (!e) return;
-      if (e.kind === "result") {
-        isError = e.isError;
-        sessionId = e.sessionId;
-        costUsd = e.costUsd;
-      }
-      onEvent?.(e);
+      const out = onLine(line);
+      if (!out) return;
+      if (out.isError !== undefined) isError = out.isError;
+      if (out.sessionId !== undefined) sessionId = out.sessionId;
+      if (out.costUsd !== undefined) costUsd = out.costUsd;
     });
     child.stderr.on("data", (d: Buffer) => {
       stderr = (stderr + d.toString()).slice(-2000);
@@ -90,6 +103,18 @@ export const runClaude: RunAgent = (req: AgentRequest, onEvent?: (e: AgentEvent)
       else resolve({ ...base, ok: true });
     });
     child.stdin.end(req.stdin, "utf8");
+  });
+}
+
+/** ingest 用的运行器：按 ingest 的事件形状解析。 */
+export const runClaude: RunAgent = (req: AgentRequest, onEvent?: (e: AgentEvent) => void) =>
+  spawnClaude(req, (line) => {
+    const e = parseStreamJsonLine(line);
+    if (!e) return;
+    onEvent?.(e);
+    if (e.kind === "result") {
+      return { isError: e.isError, sessionId: e.sessionId, costUsd: e.costUsd };
+    }
   });
 
 /** --dry-run 用：把一次调用打印成可复制的命令行（stdin 另起一段） */

@@ -19,6 +19,8 @@ export default defineConfig({
     tailwindcss(),
   ],
   resolve: { alias: { "@": "/src" } },
+  // 问答服务在 server/，dev 下经代理走同源，避免 CORS
+  server: { proxy: { "/api": "http://127.0.0.1:8790" } },
   build: { target: "es2022", chunkSizeWarningLimit: 1500 },
   worker: { format: "es" },
 });

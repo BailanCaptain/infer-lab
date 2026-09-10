@@ -9,7 +9,12 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "./",
   plugins: [
-    { enforce: "pre", ...mdx({ remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm] }) },
+    // 只处理 .mdx：wiki/ 下的 .md 要以 ?raw 原文读取，交给 react-markdown 渲染，
+    // 若让 MDX 插件接手会被编译成组件（曾导致 text.startsWith is not a function）。
+    {
+      enforce: "pre",
+      ...mdx({ include: /\.mdx$/, remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm] }),
+    },
     react({ include: /\.(mdx|js|jsx|ts|tsx)$/ }),
     tailwindcss(),
   ],

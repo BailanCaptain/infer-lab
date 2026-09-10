@@ -44,12 +44,18 @@ created: 2026-09-11
 
 - [ ] **AC1 · 手动投喂**：`pnpm wiki:drop <文件或目录> --why "<为什么值得收>"` 把资料变成待审草稿。链路：读取 → `sanitizeRawDrop` 洗提示注入 → agent 按「投喂」切片编译成符合「页面格式」的草稿 → 落 `wiki/_drafts/`，原文存 `wiki/raw/drop-<日期>-<序号>.md`。验收：投一份真实 markdown，草稿生成且 `sources` 指向存下来的原文；构造一份含提示注入的文件，注入片段不出现在 agent 的 prompt 里（断言 prompt 文本）。
 - [ ] **AC2 · 投喂隔离区**：连续投喂做交叉关联检测——7 天窗口内比对历史投喂，命中「关键词链」或「互相引用」或「同来源高相似」的判为 `chained_suspect`，草稿进 `wiki/_drafts/_quarantine/` 而不是正常待审区，并在 warnings 里告警。验收：用 Multi-Agent 的 `series-vs-chained` 样例形态构造两组输入，续传的判为同系列放行、拆分注入的判为隔离。
-- [ ] **AC3 · 知识缺口捕捉**：问答走 F001 AC10 的 `retrieve()`；命中不足时把问题、时间、检索到的候选写进 `wiki/_gaps.json`。同一缺口累计到阈值（默认 3 次）自动排进 ingest 队列，产出草稿等人审。验收：连问三次知识库没有的词，`_gaps.json` 计数到 3 并出现在队列里；跑一次补写产出草稿。
+- [ ] **AC3 · 知识缺口捕捉**：问答走 F001 AC10 的 `retrieve()`；**「够不够」由 LLM 判定而不是阈值**——检索完让 agent 回答 `satisfied: true/false` 加理由（借 Multi-Agent 的 critique agent，`adaptive-recall/critique-agent.ts`），判不够就把问题、时间、检索到的候选、判定理由写进 `wiki/_gaps.json`。判定要有预算上限（最多 N 次调用），触顶直接记缺口不再追问。同一缺口累计到阈值（默认 3 次）自动排进 ingest 队列，产出草稿等人审。验收：连问三次知识库没有的词，`_gaps.json` 计数到 3 并出现在队列里；跑一次补写产出草稿。
 - [ ] **AC4 · 定期巡检**：`pnpm wiki:patrol` 复用 `lintPages` 的纯函数，加三项时间维度检查——死链、孤页、`updated` 超过 N 天且其 `sources` 指向的源码在钉住 ref 上已变动的页。结果写 `wiki/warnings/patrol-<日期>.md`，有问题非零退出。挂进 F002 的每日调度。验收：人为造一条死链与一页过期，巡检报出两项并指名文件。
 - [ ] **AC5 · 页面来源标记**：frontmatter 增加可选 `origin` 字段（`seed` / `drop` / `chat` / `pr` / `gap`，默认 `seed`），阅读页显示来源角标，投喂来源的页有视觉区分。验收：现有 11 页不改一字仍通过 lint（默认值生效）；投喂产出的页 `origin: drop` 且页面上可见。
 - [ ] **AC6 · 周期性交叉审视**：`pnpm wiki:reconcile` 定期重跑整合的四件事（判重、建双向链、标矛盾、修 `related`），范围是全库而不只当批草稿。为控制上下文，只读 `index.md` 摘要 + 按 chapter 与 related 拉取相关页，不读全量正文。验收：人为把一条 `related` 改成单向，reconcile 后恢复双向且 lint 通过。
 
+- [ ] **AC7 · 结论被推翻要留痕**：页面正文被改写时，若新结论与旧结论矛盾（不是补充而是否定），旧结论不能被静默覆盖——在页面里保留一节「已废弃的说法」，记原文、废弃日期、依据（哪个 commit / PR 让它不成立）。借 Multi-Agent 决策账本的 tombstone / `superseded_by` 协议（`viewfinder/decision-ledger.ts`），但落到 markdown 而不是 SQL。验收：构造一页说「X 默认开启」，用新事实「X 已被移除」重写，改后页面同时能看到新结论与被废弃的旧结论。
+- [ ] **AC8 · 页面衰减检测**：`pnpm wiki:drift [--sample N]` 定期对抽样页面重跑一次提取，把新产出与现有页做 token 集合的 jaccard 对比，`drift = 1 - jaccard`；超过阈值（默认 0.3）判定该页已衰减，写进 warnings 并排进重写队列。借 Multi-Agent 的 `viewfinder/monthly-snapshot.ts`。验收：拿一页人为删掉半篇正文，drift 判定超阈值并进队列；未改动的页 drift 接近 0。
+- [ ] **AC9 · 跨页内容重复 lint**：新增 lint 规则 `cross-page-overlap`——两页的 H2 标题与首段出现显式重叠，**且彼此没有 `related` 或正文链接**时报红；有交叉引用则放行。借 Multi-Agent 的 `cross-file-dedupe-lint.ts` 协议（重叠 + 有 cross-ref = 合规，重叠 + 无 cross-ref = 违规）。验收：造两页讲同一件事且互不引用，lint 报红并指名两个文件；给其中一页加上 `related` 后转绿。
+
 **Out of scope**：向量检索（F001 已定按实测命中率决定，且只考虑 issue 语料）；自动晋升（草稿一律人审，不做自动合入）；投喂二进制与图片（先只收文本类）；多用户与权限（单机单人）。
+
+**有意不搬的 Multi-Agent 机制**（都已核对源码后判定不适用）：`wiki_events` 写入账本与 `startup-reconciler` 崩溃恢复（我们是单机单人 + git，git 历史已经是账本）；ACL 引擎与租约 / 围栏令牌（F001 的扇出写不相交、整合串行，无并发写）；SQLite FTS5 + `memory-preflight` 的嵌入召回（F001 已定不上向量）；`capability-registry` 的 handoff 中性改写（那是多 agent 互相委派场景，本项目没有）。
 
 ## Dependencies
 

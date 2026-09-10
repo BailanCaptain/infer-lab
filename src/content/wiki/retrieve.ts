@@ -32,7 +32,7 @@ export interface Hit {
   evidence: string;
   score: number;
   /** 命中方式，供上层决定要不要继续追问 */
-  how: "exact" | "keyword" | "related";
+  how: "exact" | "fuzzy" | "keyword" | "related";
   /** how 为 related 时，说明是从哪一页牵出来的 */
   via?: string;
 }
@@ -50,10 +50,37 @@ export interface Index {
   pages: PageIndex[];
   /** 归一化后的 id / title / alias → 页 */
   exact: Map<string, PageIndex>;
+  /** 去掉全部分隔符的形式 → 页，用于宽松匹配 */
+  squashed: Map<string, PageIndex>;
   byId: Map<string, PageIndex>;
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
+
+/**
+ * 把标识符压成无分隔符的小写形式：`layer_sharding` / `Layer Sharding` /
+ * `layer-sharding` 全部压成 `layersharding`。
+ *
+ * 存在的理由（用户 2026-09-11 指出）：学习者不会照着 id 打字，他会问
+ * 「layer share 是什么」。同样地，官方文档里写的是 `Layer sharding.`——
+ * 我最初用全词精确匹配去数「哪些参数没文档」，就因此漏掉了
+ * `release_notes.md`（2267 行、1137 个 PR 链接）整份文件。
+ */
+const squash = (s: string) => s.toLowerCase().replace(/[\s_\-.]/g, "");
+
+/** 宽松匹配的最短长度，太短会把一堆页都命中 */
+const MIN_FUZZY = 4;
+
+/**
+ * 两个压平后的标识符是否算同一个东西。
+ * 用公共前缀而不是严格前缀——`layershare` 与 `layersharding` 在第 10 位就分叉，
+ * 严格前缀判不出来，但它们显然指同一个东西。
+ */
+function sameish(a: string, b: string): boolean {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i >= MIN_FUZZY && i >= Math.min(a.length, b.length) * 0.75;
+}
 
 export function buildIndex(pages: PageIndex[]): Index {
   const exact = new Map<string, PageIndex>();
@@ -63,7 +90,14 @@ export function buildIndex(pages: PageIndex[]): Index {
       if (k && !exact.has(k)) exact.set(k, p);
     }
   }
-  return { pages, exact, byId: new Map(pages.map((p) => [p.id, p])) };
+  const squashed = new Map<string, PageIndex>();
+  for (const p of pages) {
+    for (const key of [p.id, p.title, ...p.aliases]) {
+      const k = squash(key);
+      if (k && !squashed.has(k)) squashed.set(k, p);
+    }
+  }
+  return { pages, exact, squashed, byId: new Map(pages.map((p) => [p.id, p])) };
 }
 
 /** 拆成检索词：按非字母数字与 CJK 边界切，去掉太短的噪声词。 */
@@ -76,6 +110,7 @@ function terms(query: string): string[] {
   for (const t of raw) {
     if (/^[a-z0-9_]+$/.test(t)) {
       if (t.length >= 2 && !STOP_EN.has(t)) out.push(t);
+      // 长度 2 的片段（kv、tp、pp）只在标识符里有意义，正文命中会是噪声
     } else {
       // 中文按二元切分，"块表是干嘛的" → 块表 / 表是 / ...
       if (t.length === 1) continue;
@@ -97,15 +132,47 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   const hit = index.exact.get(q);
   if (hit) scored.set(hit.id, { page: hit, score: 1000, how: "exact" });
 
+  // 宽松匹配：把查询里的连续拉丁片段压成无分隔符形式，与页面标识符互为前缀即算命中。
+  // 「layer share」→「layershare」是「layersharding」的前缀 → 命中。
+  if (!hit) {
+    const q2 = squash(q);
+    if (q2.length >= MIN_FUZZY) {
+      for (const [key, page] of index.squashed) {
+        if (scored.has(page.id)) continue;
+        if (sameish(key, q2)) {
+          scored.set(page.id, { page, score: 900 - Math.abs(key.length - q2.length), how: "fuzzy" });
+        }
+      }
+    }
+    // 提问里夹着标识符时（「layer share 是什么意思」），逐个拉丁片段再试一遍
+    if (scored.size === 0) {
+      const latin = q.match(/[a-z0-9_\-. ]{4,}/g) ?? [];
+      for (const frag of latin) {
+        const f = squash(frag);
+        if (f.length < MIN_FUZZY) continue;
+        for (const [key, page] of index.squashed) {
+          if (scored.has(page.id)) continue;
+          if (sameish(key, f)) {
+            scored.set(page.id, { page, score: 800 - Math.abs(key.length - f.length), how: "fuzzy" });
+          }
+        }
+      }
+    }
+  }
+
   const ts = terms(query);
   if (ts.length > 0) {
     for (const p of index.pages) {
       const idText = norm(`${p.id} ${p.title} ${p.aliases.join(" ")}`);
+      const idSegments = new Set(idText.split(/[\s_\-.]+/).filter(Boolean));
       const body = norm(`${p.summary}\n${p.text}`);
       let score = 0;
       for (const t of ts) {
-        if (idText.includes(t)) score += 8;
-        if (body.includes(t)) score += 1;
+        // 长度 2 的拉丁片段（kv、tp、pp）只按整段匹配：`kv` 是 kv-cache 的一整段，
+        // 有意义；而 `la` 只是 `layer` 的一截，命中它纯属噪声。长片段仍按子串。
+        const short = t.length < 3 && /^[a-z0-9_]+$/.test(t);
+        if (short ? idSegments.has(t) : idText.includes(t)) score += 8;
+        else if (!short && body.includes(t)) score += 1;
       }
       if (score === 0) continue;
       const prev = scored.get(p.id);

@@ -19,7 +19,7 @@
 > **更正（09-11）**：我第一次只看了页面横幅上的两个版本就下结论，被用户指出漏了 v0.26。正确做法是查 ReadTheDocs API：
 > `https://app.readthedocs.org/api/v3/projects/vllm-ascend/versions/?active=true&limit=50`
 >
-> 这条更正带出一个设计影响：**文档本身也有版本谱系**。「这个参数在文档里什么时候消失」与「在代码里什么时候消失」是两个问题，答案还经常不一致——之前查到 8 个参数全树无记载、`layer_sharding` 只在一篇教程里被提过一句，就是这种不一致。F002 的谱系要同时覆盖代码与文档两条线。
+> 这条更正带出一个设计影响：**文档本身也有版本谱系**。「这个参数在文档里什么时候消失」与「在代码里什么时候消失」是两个问题，答案还经常不一致——之前查到 7 个参数全树无记载、`layer_sharding` 只在一篇教程里被提过一句，就是这种不一致。F002 的谱系要同时覆盖代码与文档两条线。
 
 **重要发现：`docs/source/llms.txt`**（53 行）是上游**专门为 LLM 准备的官方索引**，逐节给出 canonical URL，还说明了 markdown 孪生页的取法（`latest/_sources/installation.md`）。里面点名的「支持矩阵」两页（`supported_models` / `supported_features`）正是结构化事实表。
 
@@ -243,3 +243,37 @@ HANDBOOK 规定 `evidence: S` 要求 sources 是 `https://` 官方 URL，而 age
 1. **HANDBOOK 页面格式**要不要按 Q10 的新方案改（改完现有 11 页需重跑才一致）
 2. **AC5 批量灌种的额度**（约 300 美元等值，跨多个额度窗口）
 3. **GitHub token**（给了才能写 F003 的 plan）
+
+
+---
+
+## 七、检索的宽松匹配（09-11 用户指出）
+
+用户原话：
+
+> 你这个查不到可能是因为你用了全词匹配！文档中可能不是这样的形式。包括用户问也希望，我可能就问 layer share 是什么，难道就查不到了吗
+
+**判断成立，而且我在两个地方都犯了同一个错。**
+
+### 错误一：数「哪些参数没文档」时用了精确匹配
+
+| 参数 | 精确匹配命中 | 宽松匹配命中 |
+|---|---|---|
+| `layer_sharding` | 1 个文件 | **2 个**（漏了 `release_notes.md`）|
+| `mix_placement` | 0 | **1**（文档写作 `Mix placement`）|
+
+「8 个参数全无记载」应更正为 **7 个**。
+
+更要紧的是漏掉的那份文件：**`docs/source/user_guide/release_notes.md`，2267 行、1137 个 PR 链接、39 个版本小节**，是官方按版本组织、带 PR 号的变更史。它写 `Layer sharding.`，我的精确匹配全程看不见。这是 F002 谱系的一等来源，已写进 F002 的设计决策。
+
+### 错误二：`retrieve()` 也只认精确写法
+
+学习者不会照着 id 打字。已修：
+
+- 标识符压平成无分隔符小写形式（`layer_sharding` / `Layer Sharding` / `layer-sharding` → `layersharding`）
+- 按**公共前缀**判同一个东西，不用严格前缀——`layershare` 与 `layersharding` 在第 10 位就分叉，严格前缀判不出来
+- 提问里夹着标识符时（「layer share 是什么意思」）逐个拉丁片段再试
+- 宽松命中标 `how: "fuzzy"`，不冒充精确命中
+- 防误命中：长度 2 的拉丁片段只按整段匹配（`kv` 是 `kv-cache` 的一整段，有意义；`la` 只是 `layer` 的一截，是噪声）
+
+8 个新测试，全绿。

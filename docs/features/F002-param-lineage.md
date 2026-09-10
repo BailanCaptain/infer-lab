@@ -22,7 +22,7 @@ created: 2026-09-10
 F001 结构上答不了这类问题，三个原因：
 
 1. **参数量级远超手写 seeds 能覆盖的范围**。仅 `vllm_ascend/ascend_config.py`（1432 行，15 个 Config 类）一个文件就有约 100 个参数字段，另有 `envs.py` 的 12 个环境变量与全仓约 25 处散落的 `os.getenv`。F001 的 `wiki/seeds/vllm-ascend.yaml` 是手写的 11 条，扩不到这个量级。
-2. **官方文档不是完整参数参考**。`docs/` 树 152 个 md 文件全查一遍，仍有 8 个参数（`ascend_log_path`、`draft_window_size`、`enable_sp_by_pass`、`mix_placement`、`num_head_replica`、`olora_tensor_parallel_size`、`pd_head_ratio`、`pd_tp_ratio`）一次都没出现；另有 6 个只在某个模型教程或特性指南里被提到，不在配置参考页（`user_guide/configuration/additional_config.md`）里。学习者按文档查不到，只能读源码。
+2. **官方文档不是完整参数参考**。`docs/` 树 152 个 md 文件全查一遍，仍有 7 个参数（`ascend_log_path`、`draft_window_size`、`enable_sp_by_pass`、`num_head_replica`、`olora_tensor_parallel_size`、`pd_head_ratio`、`pd_tp_ratio`）一次都没出现（宽松匹配复核后的数；最初用精确匹配数出 8 个，`mix_placement` 其实以 `Mix placement` 的写法出现在 release notes 里）；另有 6 个只在某个模型教程或特性指南里被提到，不在配置参考页（`user_guide/configuration/additional_config.md`）里。学习者按文档查不到，只能读源码。
 3. **参数在分支间的分布是非单调的**，单 commit 钉定答不了「哪个版本移除」。`layer_sharding` 实测分布：
 
    | ref | 含该标识符的 py 文件数 |
@@ -78,6 +78,8 @@ F001 结构上答不了这类问题，三个原因：
 | 谱系存放位置 | 写进页面 frontmatter / 独立 `lineage/` 文件 | **独立文件，页面渲染时合并** | 页面正文由 LLM 维护、谱系由脚本每日重算；混在一个文件里两边会互相覆盖（F001 试点已经吃过 build 与 biome 互相重排的亏）|
 | PR 号来源 | GitHub API / squash 提交信息 | **提交信息尾部 `(#NNNN)`** | 上游用 squash merge，PR 号就在提交标题里；不用 token、不受 API 限额影响。API 只在 F003 用 |
 | 「移除版本」的表述 | 单一版本号 / 按 ref 列表 | **按 ref 列表** | 分支分布非单调（v0.24 没了、v0.26.0rc 又有），单一版本号会说谎 |
+| 文档里怎么找参数 | 全词精确匹配 / 宽松匹配 | **宽松匹配**：下划线、空格、连字符、大小写互通，且允许写不全 | 2026-09-11 实测翻车：用精确匹配数「哪些参数没文档」，`layer_sharding` 只命中 1 个文件，宽松匹配是 2 个——漏掉的正是 `release_notes.md`。文档里写的是 `Layer sharding.`，`mix_placement` 写的是 `Mix placement`。精确匹配会系统性低估文档覆盖率 |
+| `release_notes.md` 的地位 | 普通文档 / 谱系的一等来源 | **一等来源，与 git 历史并列** | 2267 行、**1137 个 PR 链接**、39 个版本小节，是官方维护、按版本组织、带 PR 号的变更史。git 历史给「哪个提交改的」，它给「官方怎么描述这次改动、算在哪个版本」，两者互补且可互相校验 |
 | 谱系覆盖几条线 | 只看代码 / 代码 + 文档两条线 | **两条线，且允许不一致** | 官方文档站有 26 个活跃版本（RTD API 实测），文档的版本线与代码的版本线是分开的。实测已见不一致：8 个参数代码里有、152 个文档文件里一次都没出现；`layer_sharding` 代码删了但教程里还留着一句。把「代码里何时消失」与「文档里何时消失」分开记，不一致本身就是有价值的信息 |
 | 覆盖率怎么算 | 已入账数 / 已入账数 / 用独立分母 | **分母用独立来源**：官方文档参数集 ∪ AST 扫出集 ∪ grep 候选集，分子是三路都确认的；差集必须显式列出 | 借 Multi-Agent `viewfinder/coverage-check.ts` 的教训：分母若取「已入账行数」就是自圆其说，扫到几个算几个、永远 100%。三集合里 `unresolved`（扫到但没确认）必须冒泡成 warning，不能吞掉 |
 | 参数页与 orphan 规则 | 纳入孤页检查 / 豁免 | **豁免**（`lint.ts:85` 的 orphan 只查 `concept` 与 `feature`，`param` 天然不在内） | 参数是按名字精确查的，没有入链是正常状态；把 100+ 参数页塞进「必须有人链接」会逼出无意义的交叉引用。豁免是既有实现的自然结果，此处显式确认而非默认 |

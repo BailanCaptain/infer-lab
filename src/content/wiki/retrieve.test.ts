@@ -32,6 +32,16 @@ const pages: PageIndex[] = [
     text: "## 是什么\nblock table 是页表。",
   },
   {
+    id: "layer-sharding",
+    title: "Layer Sharding",
+    aliases: ["层切分"],
+    summary: "把注意力层的权重按层切开分到多卡，v0.24 起主线已移除。",
+    chapters: ["13"],
+    evidence: "C",
+    related: [],
+    text: "## 一句话\nMLA/SFA 的层级切分，核心实现在 ops/layer_shard_linear.py。",
+  },
+  {
     // 与 kv-cache 相关，但标题和正文都不含 kv / cache，
     // 所以查 "kv-cache" 时它只能靠图扩展出现——这正是 AC12 要验的路径
     id: "chunked-prefill",
@@ -154,5 +164,40 @@ describe("retrieve · 图扩展（AC12）", () => {
 
   it("一页什么都没命中时，扩展不产生结果", () => {
     expect(retrieve("今天天气怎么样", index, { expand: true })).toEqual([]);
+  });
+});
+
+describe("retrieve · 标识符的宽松写法（用户 2026-09-11 提出）", () => {
+  it("空格写法能命中下划线/连字符的 id：layer sharding → layer-sharding", () => {
+    expect(retrieve("layer sharding", index)[0]?.id).toBe("layer-sharding");
+  });
+
+  it("写不全也能命中：layer share → layer-sharding", () => {
+    expect(retrieve("layer share", index)[0]?.id).toBe("layer-sharding");
+  });
+
+  it("连写能命中：kvcache → kv-cache", () => {
+    expect(retrieve("kvcache", index)[0]?.id).toBe("kv-cache");
+  });
+
+  it("大小写与分隔符都不敏感：Paged_Attention → paged-attention", () => {
+    expect(retrieve("Paged_Attention", index)[0]?.id).toBe("paged-attention");
+  });
+
+  it("中文别名照常命中", () => {
+    expect(retrieve("层切分", index)[0]?.id).toBe("layer-sharding");
+  });
+
+  it("带疑问句也能剥出标识符：layer share 是什么意思", () => {
+    expect(retrieve("layer share 是什么意思", index)[0]?.id).toBe("layer-sharding");
+  });
+
+  it("宽松命中要标明，不要冒充精确命中", () => {
+    expect(retrieve("layer share", index)[0]?.how).toBe("fuzzy");
+    expect(retrieve("layer-sharding", index)[0]?.how).toBe("exact");
+  });
+
+  it("过短的片段不触发宽松匹配，避免误命中", () => {
+    expect(retrieve("la", index)).toEqual([]);
   });
 });

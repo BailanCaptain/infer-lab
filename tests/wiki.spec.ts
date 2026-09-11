@@ -18,7 +18,48 @@ test.describe("知识库阅读页", () => {
     await nav.getByRole("link", { name: "Block Table" }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Block Table");
-    await expect(page.getByRole("heading", { name: "是什么" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "一句话" })).toBeVisible();
+  });
+
+  test("七节结构齐全，顺序与 HANDBOOK 一致", async ({ page }) => {
+    await page.goto("/#/wiki/block-table");
+    const h2 = page.getByTestId("wiki-body").getByRole("heading", { level: 2 });
+    await expect(h2).toHaveText([
+      "一句话",
+      "为什么需要它",
+      "怎么工作",
+      "拿真实数字走一遍",
+      "事实表",
+      "常见误解",
+      "接着看",
+    ]);
+  });
+
+  test("mermaid 图渲染成 SVG，不是一段源码", async ({ page }) => {
+    await page.goto("/#/wiki/block-table");
+    const fig = page.getByTestId("wiki-body").locator("figure.wiki-diagram");
+    await expect(fig.first()).toBeVisible();
+    // 渲染成功的标志是 svg 真的出现了，且不是失败态退回的源码
+    const svg = fig.first().locator("svg");
+    await expect(svg).toBeVisible();
+    const box = await svg.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(100);
+    expect(box?.height ?? 0).toBeGreaterThan(60);
+    await expect(fig.first()).not.toHaveClass(/wiki-diagram-failed/);
+    // 图里的标识符来自源码，随便挑一个验证文字真的进了 svg
+    await expect(svg).toContainText(/[A-Za-z_]/);
+  });
+
+  test("正文里的内联证据标记渲染成角标，不是字面量 [C]", async ({ page }) => {
+    await page.goto("/#/wiki/block-table");
+    const body = page.getByTestId("wiki-body");
+    const badge = body.locator("span.wiki-evidence").first();
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveText(/^[SCDAIM!]$/);
+    // 悬停说明：解决「用户看到一个字母不知道是什么」
+    await expect(badge).toHaveAttribute("title", /.+/);
+    // 字面量不该再出现在正文里
+    await expect(body).not.toContainText("[C]");
   });
 
   test("正文里指向其它页的链接可跳转", async ({ page }) => {

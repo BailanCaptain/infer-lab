@@ -14,5 +14,11 @@
   ],
   "merged": [],
   "rejected": [],
-  "contradictions": []
+  "contradictions": [
+    {
+      "a": "kv-cache-layerwise-offload",
+      "b": "kv-pool",
+      "note": "layerwise_prefetch_layers 的默认值：官方参数表写 1，memcache(GVA) 代码路径实际取 min(layerwise_num_shared_buffers, 8)；草稿自带此条 contradicts，已在 kv-pool 侧镜像一条待人审"
+    }
+  ]
 }

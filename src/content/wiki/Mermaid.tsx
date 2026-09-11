@@ -15,7 +15,7 @@ type Status = "idle" | "ok" | "error";
 /** 与 tokens.css 对齐，图不能是一块和页面无关的蓝白色 */
 const THEME_VARS = {
   fontFamily: "'Inter Variable', 'Noto Sans SC', system-ui, sans-serif",
-  fontSize: "13px",
+  fontSize: "14px",
   background: "#fbfaf6",
   primaryColor: "#e8edff",
   primaryTextColor: "#17211f",
@@ -44,8 +44,12 @@ function loadMermaid() {
         securityLevel: "strict",
         theme: "base",
         themeVariables: THEME_VARS,
-        flowchart: { curve: "basis", useMaxWidth: true },
-        sequence: { useMaxWidth: true },
+        // wrappingWidth 默认 200px，中文节点标签会被拦腰断开——实测「调度器给出的
+        // 新增块号」断在「块」后面，留一个孤零零的「号」。260 是试出来的平衡点：
+        // 十来个字的中文短语能一行放下，而 `[max_num_reqs, ...] int32` 这种长
+        // 方括号表达式仍会换行。再放宽图会变宽，useMaxWidth 缩放后字反而更小。
+        flowchart: { curve: "basis", useMaxWidth: true, wrappingWidth: 260 },
+        sequence: { useMaxWidth: true, wrap: true, width: 220 },
       });
       return m.default;
     });

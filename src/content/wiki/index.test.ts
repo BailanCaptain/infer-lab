@@ -19,7 +19,7 @@ describe("读取器", () => {
     expect(page).toBeTruthy();
     expect(page?.fm.title).toBe("Block Table");
     expect(page?.body.startsWith("---")).toBe(false);
-    expect(page?.body).toContain("## 是什么");
+    expect(page?.body).toContain("## 一句话");
   });
 
   it("getPage 对不存在的 id 返回 undefined", () => {

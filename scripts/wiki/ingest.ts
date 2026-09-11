@@ -236,7 +236,12 @@ export interface PageRef {
   id: string;
   chapters: string[];
   related: string[];
+  /** 草稿当前的内联标记数。整合 agent 要删到 MARK_BUDGET 以内，引擎先替它数好。 */
+  marks?: number;
 }
+
+/** 每页内联标记上限，与 HANDBOOK「整合」第 4 条一致 */
+export const MARK_BUDGET = 20;
 
 export interface SelectOptions {
   /** 相关页数量上限，默认 30 */
@@ -292,11 +297,23 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     "--disallowedTools",
     ...INTEGRATE_DISALLOWED,
   ];
+  // 要删标记的页与删多少，引擎数好直接给——让 agent 自己数 11 页是在浪费它的注意力，
+  // 而且「数一遍」这种指令实测不落地（2026-09-11 那轮只删到 27-40，目标是 20）
+  const overBudget = drafts.filter((d) => (d.marks ?? 0) > MARK_BUDGET);
   const stdin = [
     `任务：整合 ${draftIds.length} 份草稿进 concepts/。今天是 ${ctx.today}。`,
     "",
     "草稿文件：",
-    ...draftIds.map((id) => `- _drafts/${id}.md`),
+    ...drafts.map((d) => `- _drafts/${d.id}.md（内联标记 ${d.marks ?? "?"} 处）`),
+    ...(overBudget.length > 0
+      ? [
+          "",
+          `以下 ${overBudget.length} 页的内联标记超出 ${MARK_BUDGET} 处上限，按「整合」第 4 条删到达标：`,
+          ...overBudget.map(
+            (d) => `- ${d.id}：${d.marks} → 至多 ${MARK_BUDGET}，需删掉约 ${(d.marks ?? 0) - MARK_BUDGET} 处`,
+          ),
+        ]
+      : []),
     "",
     relevant.length > 0
       ? "需要对照的现有页（程序已按 related 与章节交集挑出，**只读这些，不要扫全库**）："

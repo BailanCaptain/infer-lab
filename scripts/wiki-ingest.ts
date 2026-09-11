@@ -139,10 +139,13 @@ async function main() {
       chapters: pg.fm.chapters,
       related: pg.fm.related,
     });
+    const MARK_RE = /\[[SCDAIM!]\d*\](?![\w-])/g;
     const draftRefs = draftIds.map((id) => {
       const file = join(wikiRoot, "_drafts", `${id}.md`);
-      const parsed = parsePage(`_drafts/${id}.md`, readFileSync(file, "utf8"));
-      return parsed.page ? toRef(parsed.page) : { id, chapters: [], related: [] };
+      const text = readFileSync(file, "utf8");
+      const parsed = parsePage(`_drafts/${id}.md`, text);
+      const marks = (text.match(MARK_RE) ?? []).length;
+      return parsed.page ? { ...toRef(parsed.page), marks } : { id, chapters: [], related: [], marks };
     });
     const existingRefs = loadPages(wikiRoot).pages.map(toRef);
     const req = integrateRequest(draftRefs, existingRefs, ctx);

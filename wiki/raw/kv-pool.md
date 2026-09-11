@@ -1,4 +1,174 @@
-# KV Pool 源码片段（vllm-ascend@28bf3a2e）
+# KV Pool 引用片段
+
+来源仓库 `vllm-ascend@28bf3a2e`（ref main）。
+
+## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L3-L15
+
+```markdown
+## Why KV Cache Pool?
+
+Prefix caching is an important feature in LLM inference that can reduce prefill computation time drastically.
+
+However, the performance gain from prefix caching is highly dependent on the cache hit rate, while the cache hit rate can be limited if one only uses on-chip memory for KV cache storage.
+
+Hence, KV Cache Pool is proposed to utilize various types of storage including on-chip memory, DRAM, and SSD, making a pool for KV Cache storage while making the prefix of requests visible across all nodes, increasing the cache hit rate for all requests.
+
+vLLM Ascend currently supports [MooncakeStore](https://github.com/kvcache-ai/Mooncake), one of the most recognized KV Cache storage engines.
+
+While one can utilize MooncakeStore in vLLM V1 engine by setting it as a remote backend of LMCache with GPU (see [Tutorial](https://github.com/LMCache/LMCache/blob/dev/examples/kv_cache_reuse/remote_backends/mooncakestore/README.md)), we find it would be better to integrate a connector that directly supports MooncakeStore and can utilize the data transfer strategy that best fits Huawei NPU hardware.
+
+Hence, we propose to integrate MooncakeStore with a brand new **MooncakeStoreConnectorV1**, which is indeed largely inspired by **LMCacheConnectorV1** (see the [How is MooncakeStoreConnectorV1 Implemented?](#how-is-mooncakestoreconnectorv1-implemented) section).
+```
+
+官方设计文档对「为什么需要 KV Pool」的原始表述：HBM 容量限制了前缀缓存命中率，池把 DRAM/SSD 也纳进来并跨节点共享前缀。用于 `## 为什么需要它`。
+
+## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L38-L44
+
+```markdown
+**Workflow**:
+
+1. The engine first checks for prefix hits in the on-chip memory cache.
+
+2. After getting the number of hit tokens on on-chip memory, it queries the KV Pool via the connector. If there are additional hits in the KV Pool, we get the **additional blocks only** from the KV Pool, and get the rest of the blocks directly from on-chip memory to minimize the data transfer latency.
+
+3. After the KV Caches in the KV Pool are loaded into on-chip memory, the remaining process is the same as Prefix Caching in on-chip memory.
+```
+
+官方文档明确「只取增量块」的分工，是 KV Pool 与 prefix caching 关系的一手依据。用于 `## 为什么需要它` 与 `## 常见误解`。
+
+## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L46-L52
+
+```markdown
+### 2. Combining KV Cache Pool with Mooncake PD Disaggregation
+
+When used together with Mooncake PD (Prefill-Decode) Disaggregation, the KV Cache Pool can further decouple prefill and decode stages across devices or nodes.
+
+Currently, we only perform put and get operations of KV Pool for **Prefill Nodes**, and Decode Nodes get their KV Cache from Mooncake P2P KV Connector, i.e., MooncakeConnector.
+
+The key benefit of doing this is that we can keep the gain in performance by computing less with Prefix Caching from on-chip memory and KV Pool for Prefill Nodes, while not sacrificing the data transfer efficiency between Prefill and Decode nodes with P2P KV Connector that transfers KV Caches between NPU devices directly.
+```
+
+说明 PD 分离下默认只有 Prefill 侧读写池，Decode 侧走 P2P connector。用于 `## 怎么工作` 与 `## 常见误解`。
+
+## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L82-L91
+
+```markdown
+## DFX
+
+1. When looking up a key in KV Pool, if we cannot find the key, there is no Cache Hit for this specific block; we return no hit for this block and do not look up further blocks for the current request.
+2. Similarly, when we are trying to put a block into KV Pool and it fails, we do not put further blocks (subject to change).
+
+## Limitations
+
+1. Currently, MooncakeStore for vLLM Ascend only supports DRAM as the storage for KV Cache Pool.
+
+2. For now, if we successfully looked up a key and found it exists, but failed to get it when calling KV Pool's get function, we just output a log indicating the get operation failed and keep going; hence, the accuracy of that specific request may be affected. We will handle this situation by falling back the request and re-compute everything assuming there's no prefix cache hit (or even better, revert only one block and keep using the Prefix Caches before that).
+```
+
+lookup 遇首个未命中即停（只认连续前缀）、以及 get 失败的精度风险。用于 `## 事实表` 与 `## 常见误解`。
+
+## docs/source/user_guide/feature_guide/kv_pool.md#L13-L43
+
+```markdown
+#### `kv_load_failure_policy`: KV Load Failure Handling Policy
+
+`kv_load_failure_policy` is a top-level field in `kv-transfer-config`.
+
+* `recompute`: When KV loading fails, vLLM rolls the request back to the last valid prefix and reschedules it to recompute the failed KV blocks. Hybrid attention models (e.g. DeepSeekV4, Qwen 3.5) are not supported yet.
+* `fail`: When KV loading fails, the affected request is terminated directly with an error.
+
+The default value in vLLM is `fail`. If you want the request to fall back to recomputation after a KV load failure, set it to `recompute`.
+
+When `MultiConnector` is used, configure `kv_load_failure_policy` on the `MultiConnector` top-level `kv-transfer-config` instead of the child connectors.
+
+#### `kv_connector_extra_config`: Additional Configurable Parameters for Pooling
+
+| Parameter | Description |
+| :--- | :--- |
+| `lookup_rpc_port` | Port for RPC Communication Between Pooling Scheduler Process and Worker Process: Each Instance Requires a Unique Port Configuration. |
+| `load_async` | Whether to Enable Asynchronous Loading. The default value is false. |
+| `backend` | Set the storage backend for kvpool (`mooncake`, `memcache`, `yuanrong`), with the default being `mooncake`. |
+| `consumer_is_to_put` | Whether Decode node put KV Cache into KV Pool. The default value is false. |
+| `consumer_is_to_load` | Whether Decode node load KV cache from KV Pool. The default value is false. |
+| `use_layerwise` | Enable layer-by-layer KV save/load. Only supported on the Prefill node and requires the `memcache` backend. The default value is false. |
+| `prefill_pp_size` | Prefill PP size, needs to be set when Prefill node enables PP. |
+| `prefill_pp_layer_partition` | Prefill PP layer partition, needs to be set when Prefill node enables PP. |
+
+### Environment Variable Configuration
+
+To guarantee uniform hash generation, it is required to synchronize the PYTHONHASHSEED environment variable across all nodes upon enabling KV Pool.
+
+```bash
+export PYTHONHASHSEED=0
+```
+```
+
+配置项默认值与约束的一手来源，以及 `PYTHONHASHSEED` 的硬性要求。用于 `## 事实表`。
+
+## docs/source/user_guide/feature_guide/kv_pool.md#L107-L118
+
+```markdown
+| Parameter | Description |
+| :--- | :--- |
+| `metadata_server` | Configured as **P2PHANDSHAKE**. |
+| `protocol` | Must be set to `ascend` on the NPU. |
+| `device_name` | Leave as empty string `""`.The ascend protocol does not use device names. |
+| `master_server_address` | IP and port of the master service. It can also be set via the **MOONCAKE_MASTER** environment variable, which takes precedence over this configuration item (useful for injecting the master address through Kubernetes). |
+| `global_segment_size` | Registered memory size per card to the KV Pool. **Needs to be aligned to 1GB.** It can also be set via the **MOONCAKE_GLOBAL_SEGMENT_SIZE** environment variable, which takes precedence over this configuration item. |
+| `preferred_segment` | Whether to prefer storing KV on the local segment when putting objects to the KV Pool. Defaults to **false**. |
+| `prefer_alloc_in_same_node` | Whether to prefer allocating KV on the same node. Defaults to **true**. |
+| `enable_ssd_offload` | Set to `true` to enable SSD offload. Environment variables are not supported. |
+| `ssd_offload_path` | **Required when `enable_ssd_offload` is `true`.** Absolute path to a local directory where Mooncake stores offloaded KV data (for example, `/nvme/mooncake_offload`). The directory must exist and be writable by the vLLM process; create it before startup (`mkdir -p <path>`). Relative paths, symbolic links, and paths containing `..` are rejected by Mooncake. |
+| `tenant_id` | Optional Mooncake tenant namespace. Missing, `null`, empty, or whitespace-only values use `default`; surrounding whitespace is removed. All Prefill, Decode, scheduler, and replica instances that share KV entries must use the same tenant ID. Non-default tenants require Mooncake `0.3.12` or later. |
+```
+
+`mooncake.json` 侧的池容量与协议约束（每卡 `global_segment_size` 要 1GB 对齐、NPU 上 `protocol` 必须是 `ascend`）。用于 `## 事实表` 与 `## 拿真实数字走一遍`。
+
+## docs/source/user_guide/feature_guide/kv_pool.md#L405-L412
+
+```shell
+KV_CONFIG='{
+  "kv_connector": "AscendStoreConnector",
+  "kv_role": "kv_both",
+  "kv_connector_extra_config": {
+     "backend": "mooncake",
+     "lookup_rpc_port": "0"
+     }
+}'
+```
+
+PD 混布（单实例）下最小可用配置，用于 `## 拿真实数字走一遍` 的配置片段。
+
+## docs/source/user_guide/feature_guide/kv_pool.md#L1100-L1125
+
+```bash
+python3 -m vllm.entrypoints.openai.api_server \
+    --model /xxxxx/Qwen2.5-7B-Instruct \
+    --port 8100 \
+    --trust-remote-code \
+    --enforce-eager \
+    --no-enable-prefix-caching \
+    --tensor-parallel-size 1 \
+    --data-parallel-size 1 \
+    --max-model-len 10000 \
+    --block-size 128 \
+    --max-num-batched-tokens 4096 \
+    --kv-transfer-config \
+    '{
+    "kv_connector": "AscendStoreConnector",
+    "kv_role": "kv_both",
+    "kv_load_failure_policy": "recompute",
+    "kv_connector_extra_config": {
+        "lookup_rpc_port": "1",
+        "backend": "yuanrong"
+    }
+}'
+
+`lookup_rpc_port` is the RPC port used between the pooling scheduler process
+and the worker process. Each instance must use a unique port value.
+```
+
+完整启动命令示例（含 `--block-size 128`、`kv_load_failure_policy`），以及 `lookup_rpc_port` 的官方说明。用于 `## 拿真实数字走一遍` 与 `## 事实表`。
 
 ## vllm_ascend/distributed/kv_transfer/__init__.py#L39-L49
 
@@ -16,21 +186,7 @@
     )
 ```
 
-证明 `kv_connector` 里能写的两个名字（`AscendStoreConnector` 与旧名 `MooncakeConnectorStoreV1`）都指向同一个类。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L77-L83
-
-```python
-    @classmethod
-    def requires_piecewise_for_cudagraph(cls, extra_config: dict[str, Any]) -> bool:
-        """
-        AscendStore requires PIECEWISE CUDA graph mode when layerwise
-        operations are enabled.
-        """
-        return extra_config.get("use_layerwise", False)
-```
-
-`use_layerwise` 与图模式的约束来源。
+两个注册名指向同一个类，说明 `MooncakeConnectorStoreV1` 是历史别名。用于 `## 事实表`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L85-L116
 
@@ -68,56 +224,11 @@
                 self.lookup_server = LookupKeyServer(self.connector_worker, vllm_config)
 ```
 
-一个类按 role 分流成 `KVPoolScheduler` / `KVPoolWorker`；`LookupKeyServer` 只在非 layerwise 且 rank 0 起。
+连接器按 role 分裂成 `KVPoolScheduler` 与 `KVPoolWorker`，且 lookup 服务只在非 layerwise 的 rank 0 worker 上起。用于 `## 怎么工作` 的图与 `## 事实表`。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L128-L149
-
-```python
-    def get_num_new_matched_tokens(self, request: "Request", num_computed_tokens: int) -> tuple[int, bool]:
-        assert self.connector_scheduler is not None
-        return self.connector_scheduler.get_num_new_matched_tokens(request, num_computed_tokens)
-
-    def update_state_after_alloc(self, request: "Request", blocks: "KVCacheBlocks", num_external_tokens: int):
-        assert self.connector_scheduler is not None
-        return self.connector_scheduler.update_state_after_alloc(request, blocks, num_external_tokens)
-
-    def build_connector_meta(
-        self,
-        scheduler_output: SchedulerOutput,
-    ) -> KVConnectorMetadata:
-        assert self.connector_scheduler is not None
-        return self.connector_scheduler.build_connector_meta(scheduler_output)
-
-    def request_finished(
-        self,
-        request: "Request",
-        block_ids: list[int],
-    ) -> tuple[bool, dict[str, Any] | None]:
-        assert self.connector_scheduler is not None
-        return self.connector_scheduler.request_finished(request, block_ids)
-```
-
-调度侧四个 KV Connector V1 钩子，全部转发给 `KVPoolScheduler`。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L204-L263
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L232-L263
 
 ```python
-    def register_kv_caches(self, kv_caches: dict[str, torch.Tensor]):
-        assert self.connector_worker is not None
-        self.connector_worker.register_kv_caches(kv_caches)
-
-    def start_load_kv(self, forward_context: "ForwardContext", **kwargs) -> None:
-        assert self.connector_worker is not None
-        metadata = self._get_connector_metadata()
-        self._current_step_has_real_forward = forward_context is not None
-        ...
-        self.connector_worker.start_load_kv(metadata)
-
-    def wait_for_layer_load(self, layer_name: str) -> None:
-        if not self.use_layerwise:
-            return
-        self.connector_worker.wait_for_layer_load()
-
     def save_kv_layer(
         self, layer_name: str, kv_layer: torch.Tensor, attn_metadata: "AttentionMetadata", **kwargs
     ) -> None:
@@ -152,9 +263,9 @@
         return done_sending, done_recving
 ```
 
-（中间日志语句用 `...` 省略，其余原文）Worker 侧六个钩子，以及 `kv_consumer` + `consumer_is_to_put=false` 时不落盘的分支。
+保存路径的角色门禁：`kv_consumer` 不显式开 `consumer_is_to_put` 就整段 return。用于 `## 怎么工作` 与 `## 常见误解`。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L291-L335
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L291-L334
 
 ```python
 class LookupKeyServer:
@@ -190,7 +301,12 @@ class LookupKeyServer:
                     use_layerwise=False,
                     hbm_hit_tokens=hbm_hit_tokens,
                 )
-                ...
+                logger.debug(
+                    "KV pool lookup response token_len=%d groups=%s hit_tokens=%d",
+                    token_len,
+                    kv_group_ids,
+                    result,
+                )
                 response = result.to_bytes(4, "big")
                 self.socket.send(response)
 
@@ -198,66 +314,9 @@ class LookupKeyServer:
         self.thread.start()
 ```
 
-调度进程查池命中要走 ZMQ 到 worker 进程，因为只有 worker 连着存储后端。
+调度进程与 worker 之间那一跳 zmq REQ/REP 的服务端：收块哈希、回命中 token 数。用于 `## 怎么工作` 的图。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L90-L102
-
-```python
-        self.kv_role = vllm_config.kv_transfer_config.kv_role
-        self.consumer_is_to_load = vllm_config.kv_transfer_config.kv_connector_extra_config.get(
-            "consumer_is_to_load", False
-        )
-        self.consumer_is_to_put = vllm_config.kv_transfer_config.kv_connector_extra_config.get(
-            "consumer_is_to_put", False
-        )
-        self.load_async = vllm_config.kv_transfer_config.kv_connector_extra_config.get("load_async", False)
-        retention_interval = getattr(envs, "VLLM_PREFIX_CACHE_RETENTION_INTERVAL", None)
-        self.retention_interval = retention_interval if isinstance(retention_interval, int) else None
-        self.save_decode_cache = vllm_config.kv_transfer_config.kv_connector_extra_config.get(
-            "save_decode_cache", False
-        )
-```
-
-`consumer_is_to_load` / `consumer_is_to_put` / `load_async` 的默认值（都是 `False`）与读取位置。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L161-L172
-
-```python
-        backend_name = vllm_config.kv_transfer_config.kv_connector_extra_config.get("backend", "mooncake")
-        self.backend_name = backend_name.lower()
-        self.use_gva_layerwise = self.use_layerwise and self.backend_name == "memcache"
-        backend = backend_map.get(self.backend_name)
-        if backend is None:
-            raise ValueError(f"Unsupported KV pool backend: {backend_name}")
-        backend_path = backend.get("path")
-        backend_class_name = backend.get("name")
-        assert backend_path is not None and backend_class_name is not None
-        backend_module = importlib.import_module(backend_path)
-        backend_class = getattr(backend_module, backend_class_name)
-        self.store_scheduler = backend_class.create_scheduler_client(vllm_config.parallel_config)
-```
-
-`backend` 默认 `mooncake`；GVA layerwise 只在 memcache 后端生效。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L178-L188
-
-```python
-        self.use_mla = False
-        if hasattr(model_config, "use_mla") and isinstance(model_config.use_mla, bool) and model_config.use_mla:
-            self.use_mla = True
-        if self.use_mla:
-            self.num_kv_head = 1
-        else:
-            self.num_kv_head = model_config.get_total_num_kv_heads()
-        if self.num_kv_head < self.tp_size:
-            self.put_step = self.tp_size // self.num_kv_head
-        else:
-            self.put_step = 1
-```
-
-`put_step` 的定义，决定一个块要拆成几个 key（`head_or_tp_ranks = tp_size // put_step`）；MLA 走 `num_kv_head = 1` 的分支。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L456-L512
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L456-L511
 
 ```python
         if self.kv_role == "kv_consumer" and not self.consumer_is_to_load:
@@ -318,31 +377,39 @@ class LookupKeyServer:
             need_to_allocate = num_external_hit_tokens - num_computed_tokens
 ```
 
-整页最核心的一段：池命中如何与 HBM prefix caching 命中相减，只把「多出来的」token 交给 vLLM 分配；以及 `consumer_is_to_load` 的早退、全命中减 1 的规则。
+调度侧查池的完整入口：consumer 默认不 load、prompt 不足一个传输粒度直接返回 0、以及 `need_to_allocate = 池命中 − HBM 命中` 这条增量公式。用于 `## 怎么工作`、`## 拿真实数字走一遍`、`## 常见误解`。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L935-L951
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L521-L545
 
 ```python
-        if self.kv_role == "kv_consumer" and not self.consumer_is_to_put:
-            self._delayed_free_req_ids.discard(request.request_id)
-            return False, None
-        if self.use_layerwise:
-            self._delayed_free_req_ids.discard(request.request_id)
-            return False, None
-        tracker = self._request_trackers.get(request.request_id)
-        if tracker is None or tracker.num_saved_tokens <= 0:
-            self._delayed_free_req_ids.discard(request.request_id)
-            return False, None
-        delay_free_blocks = len(block_ids) > 0
-        if delay_free_blocks:
-            self._delayed_free_req_ids.add(request.request_id)
-            logger.debug("Delaying free of %d blocks for request %s", len(block_ids), request.request_id)
-        else:
-            self._delayed_free_req_ids.discard(request.request_id)
-        return delay_free_blocks, None
+        # In layerwise mode, even when vLLM has local cached tokens, we still
+        # need to load KV cache from the pool because layerwise transfer loads
+        # per-layer data that may not be in HBM.
+        force_layerwise_load = self.use_layerwise and store_skip_tokens > 0
+        if need_to_allocate <= 0 and not force_layerwise_load:
+            return 0, False
+
+        self.load_specs[request.request_id] = LoadSpec(
+            vllm_cached_tokens=num_computed_tokens,
+            kvpool_cached_tokens=num_external_hit_tokens,
+            can_load=force_layerwise_load,
+            kvpool_store_skip_tokens=store_skip_tokens,
+        )
+        logger.debug(
+            "KV pool load spec created req=%s vllm_cached=%d kvpool_cached=%d "
+            "need_to_allocate=%d load_async=%s use_layerwise=%s",
+            request.request_id,
+            num_computed_tokens,
+            num_external_hit_tokens,
+            need_to_allocate,
+            self.load_async,
+            self.use_layerwise,
+        )
+
+        return need_to_allocate, self.load_async and not self.use_layerwise
 ```
 
-请求结束时块要不要延迟释放——异步 put 还在读 HBM 就不能立刻回收。
+`LoadSpec` 的两个字段（HBM 已算 token 数、池命中 token 数）是后面 worker 决定搬哪一段的唯一依据；返回值第二项表示是否异步加载。用于 `## 怎么工作` 与 `## 事实表`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1034-L1049
 
@@ -365,7 +432,26 @@ def get_zmq_rpc_path_lookup(vllm_config: "VllmConfig") -> str:
     return f"ipc://{base_url}/lookup_rpc_port_{rpc_port}_dp_rank{dp_rank}"
 ```
 
-`lookup_rpc_port` 其实不是 TCP 端口，而是 IPC 路径里的一段标识；这解释了为什么同机多实例必须各配一个。
+`lookup_rpc_port` 实际拼成的是一个 ipc 路径而不是 TCP 端口，同机同名会撞。用于 `## 事实表` 与 `## 常见误解`。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L161-L172
+
+```python
+        backend_name = vllm_config.kv_transfer_config.kv_connector_extra_config.get("backend", "mooncake")
+        self.backend_name = backend_name.lower()
+        self.use_gva_layerwise = self.use_layerwise and self.backend_name == "memcache"
+        backend = backend_map.get(self.backend_name)
+        if backend is None:
+            raise ValueError(f"Unsupported KV pool backend: {backend_name}")
+        backend_path = backend.get("path")
+        backend_class_name = backend.get("name")
+        assert backend_path is not None and backend_class_name is not None
+        backend_module = importlib.import_module(backend_path)
+        backend_class = getattr(backend_module, backend_class_name)
+        self.store_scheduler = backend_class.create_scheduler_client(vllm_config.parallel_config)
+```
+
+`backend` 默认 `mooncake`，非法值直接抛错；layerwise 的 GVA 路径只在 `memcache` 下启用。用于 `## 事实表`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L635-L644
 
@@ -382,7 +468,7 @@ def get_zmq_rpc_path_lookup(vllm_config: "VllmConfig") -> str:
         return block_len, block_stride, region_len, block_size_scale
 ```
 
-单块字节数的定义，worked example 的算式基础。
+每个 KV 张量一个块占多少字节的算式，是 `## 拿真实数字走一遍` 里 256 KiB / 14 MiB 的出处。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L790-L819
 
@@ -419,7 +505,7 @@ def get_zmq_rpc_path_lookup(vllm_config: "VllmConfig") -> str:
         self._start_kv_transfer_threads()
 ```
 
-`register_kv_caches` 的末尾：把 HBM 上的 KV 区间注册给后端（零拷贝 RDMA 的前提），然后起搬运线程。注释里也给出了 `block_len` 的构成公式。
+注册阶段把 HBM 里 KV 张量的地址区间交给后端（`register_buffer`），后续 get/put 才能直接写进 HBM；注释也给出了 `block_len = block_size * num_kv_head_per_local_rank * head_dim * elem_size`。用于 `## 怎么工作` 与 `## 拿真实数字走一遍`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L874-L931
 
@@ -472,81 +558,18 @@ def get_zmq_rpc_path_lookup(vllm_config: "VllmConfig") -> str:
             addr_list_c = _circular_shift(addr_list, self.tp_rank % len(addr_list))
             size_list_c = _circular_shift(size_list, self.tp_rank % len(size_list))
             block_id_list_c = _circular_shift(block_id_list, self.tp_rank % len(block_id_list))
-            ...
+            logger.debug(
+                "KV pool worker calls backend get request=%s token_len=%d groups=%s keys=%d sample_keys=%s",
+                request.req_id,
+                token_len,
+                load_group_ids,
+                len(key_list_c),
+                key_list_c[:3],
+            )
             ret = self.m_store.get(key_list_c, addr_list_c, size_list_c)
-            if ret is not None and any(r != 0 for r in ret):
-                missing_block_ids = record_failed_blocks(
-                    block_id_list_c,
-                    ret,
-                )
-                if len(request.block_ids_by_group) == 1:
-                    self._invalid_block_ids.update(missing_block_ids)
 ```
 
-同步 load 主路径：`mask_num` 跳过 HBM 已有的块，`prepare_value` 把 block_id 换成 HBM 地址，`_circular_shift` 按 tp_rank 错开请求顺序，失败块记入 `_invalid_block_ids`。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1701-L1719
-
-```python
-    def wait_for_save(self, connector_metadata: AscendConnectorMetadata):
-        current_event = None
-        assert self.kv_send_thread is not None
-        send_thread = self.kv_send_thread
-
-        for request in connector_metadata.requests:
-            can_save = request.can_save
-            if can_save is None or not can_save:
-                continue
-            if current_event is None:
-                current_event = torch.npu.Event()
-                current_event.record()
-            request.skip_null_blocks_by_group = self.group_uses_align_state
-            request.current_event = current_event
-            send_thread.add_stored_request(request.req_id)
-            send_thread.add_request(request)
-
-        if current_event is not None:
-            send_thread.request_queue.join()
-```
-
-非 layerwise 的 put 路径：录一个 NPU event 保证算子写完，再把请求丢给发送线程。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2310-L2349
-
-```python
-            for group_id in kv_cache_group_ids:
-                keys, starts, ends = self._build_lookup_keys(token_len, block_hashes, group_id, use_layerwise)
-
-                if not keys:
-                    return 0
-
-                multi_tp_keys = self._expand_lookup_keys_by_rank(keys, group_id)
-                num_ranks = len(multi_tp_keys) // len(keys)
-                res = self.m_store.exists(multi_tp_keys)  # type: ignore[assignment]
-                num_block = len(keys)
-                if use_layerwise:
-                    res = self.check_all_layers_exists(res, self.num_layers)
-                    num_block = len(keys) // self.num_layers
-                multi_tp_values = [
-                    res[i * num_block : (i + 1) * num_block]  # type: ignore[index]
-                    for i in range(num_ranks)
-                ]
-                ...
-                if group_id < len(self.group_uses_align_state) and self.group_uses_align_state[group_id]:
-                    group_hits = self.find_all_discontinuous_hit_positions(
-                        multi_tp_values, ends, num_block, max_hit_position, self.cache_transfer_granularity
-                    )
-                else:
-                    group_hits = self.find_all_continuous_hit_positions(
-                        multi_tp_values, ends, num_block, max_hit_position, self.cache_transfer_granularity
-                    )
-                if not group_hits:
-                    return 0
-                max_hit_position = min(max_hit_position, group_hits[-1])
-                hits.append(group_hits)
-```
-
-worker 侧真正的命中查询：一次 `exists` 批量问所有 rank 的 key，逐 group 取交集。
+同步加载路径：`mask_num` 跳过 HBM 已有的整块，只为剩下的块拼 (key, addr, size)，再一次性 `m_store.get`；各 rank 用 `_circular_shift` 错开起点以分散池侧热点。用于 `## 怎么工作` 与 `## 拿真实数字走一遍`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L115-L125
 
@@ -564,7 +587,7 @@ worker 侧真正的命中查询：一次 `exists` 批量问所有 rank 的 key�
         )
 ```
 
-池里对象的 key 长什么样——决定了哪些实例之间能互相命中。
+池对象 key 的确切字符串格式，决定了哪些实例之间能互相复用前缀。用于 `## 事实表` 与 `## 拿真实数字走一遍`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L437-L465
 
@@ -600,7 +623,7 @@ worker 侧真正的命中查询：一次 `exists` 批量问所有 rank 的 key�
         return addr_list, size_list, block_id
 ```
 
-一个 key 对应多少段内存：对每层的每个 K/V 张量各出一段 `(addr, size)`。worked example 的算式直接来自这里。
+一个 key 对应的 value 由多段 HBM 地址拼起来：每个 KV 张量出一段 `base_addr + block_id * block_stride`。用于 `## 怎么工作` 与 `## 拿真实数字走一遍`。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L17-L30
 
@@ -621,9 +644,9 @@ backend_map = {
 }
 ```
 
-三个可选后端的全集。
+源码侧可选后端的全集，与文档的 `backend` 取值一致。用于 `## 事实表`。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L194-L212
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L194-L245
 
 ```python
     def put(self, keys: list[str], addrs: list[list[int]], sizes: list[list[int]]):
@@ -645,137 +668,94 @@ backend_map = {
                     len(keys),
                     error_codes,
                 )
+                logger.debug("Failed to put key details. keys=%s, result=%s", keys, res)
+                if self._lazy_init:
+                    logger.warning("First DSV4(compress) request failure is expected. This is normal behavior.")
+        except Exception as e:
+            logger.error(
+                "Failed to put %d keys out of %d. type=%s, error=%s. Check store state and memory.",
+                len(keys),
+                len(keys),
+                type(e).__name__,
+                e,
+            )
+            logger.debug("Failed to put key details. keys=%s", keys)
+            if self._lazy_init:
+                logger.warning("First DSV4(compress) request failure is expected. This is normal behavior.")
+
+    def get(self, keys: list[str], addrs: list[list[int]], sizes: list[list[int]]):
+        if self._lazy_init and not self._store_initialized:
+            logger.error(
+                "Failed to get %d keys out of %d. Store is not initialized; "
+                "call put() first to trigger initialization.",
+                len(keys),
+                len(keys),
+            )
+            logger.debug("Failed to get key details. keys=%s", keys)
+            return
+        assert self.store is not None
+        logger.debug(
+            "MooncakeBackend.get enter keys=%d sample_keys=%s",
+            len(keys),
+            keys[:3],
+        )
+        try:
+            res = self.store.batch_get_into_multi_buffers(keys, addrs, sizes)
 ```
 
-后端的最后一跳：`batch_put_from_multi_buffers` 直接从注册过的 HBM 地址写入池，中间没有落到 host 的中转 buffer。
+Mooncake 后端最终调用的两个批量接口 `batch_put_from_multi_buffers` / `batch_get_into_multi_buffers`，说明搬运是「多段 HBM 缓冲 ↔ 池对象」而非先落地本地缓冲。用于 `## 怎么工作`。
 
-## docs/source/user_guide/feature_guide/kv_pool.md#L13-L22
-
-```markdown
-#### `kv_load_failure_policy`: KV Load Failure Handling Policy
-
-`kv_load_failure_policy` is a top-level field in `kv-transfer-config`.
-
-* `recompute`: When KV loading fails, vLLM rolls the request back to the last valid prefix and reschedules it to recompute the failed KV blocks. Hybrid attention models (e.g. DeepSeekV4, Qwen 3.5) are not supported yet.
-* `fail`: When KV loading fails, the affected request is terminated directly with an error.
-
-The default value in vLLM is `fail`. If you want the request to fall back to recomputation after a KV load failure, set it to `recompute`.
-
-When `MultiConnector` is used, configure `kv_load_failure_policy` on the `MultiConnector` top-level `kv-transfer-config` instead of the child connectors.
-```
-
-加载失败的兜底策略，以及它必须配在 `MultiConnector` 顶层这一坑。
-
-## docs/source/user_guide/feature_guide/kv_pool.md#L24-L43
-
-````markdown
-#### `kv_connector_extra_config`: Additional Configurable Parameters for Pooling
-
-| Parameter | Description |
-| :--- | :--- |
-| `lookup_rpc_port` | Port for RPC Communication Between Pooling Scheduler Process and Worker Process: Each Instance Requires a Unique Port Configuration. |
-| `load_async` | Whether to Enable Asynchronous Loading. The default value is false. |
-| `backend` | Set the storage backend for kvpool (`mooncake`, `memcache`, `yuanrong`), with the default being `mooncake`. |
-| `consumer_is_to_put` | Whether Decode node put KV Cache into KV Pool. The default value is false. |
-| `consumer_is_to_load` | Whether Decode node load KV cache from KV Pool. The default value is false. |
-| `use_layerwise` | Enable layer-by-layer KV save/load. Only supported on the Prefill node and requires the `memcache` backend. The default value is false. |
-| `prefill_pp_size` | Prefill PP size, needs to be set when Prefill node enables PP. |
-| `prefill_pp_layer_partition` | Prefill PP layer partition, needs to be set when Prefill node enables PP. |
-
-### Environment Variable Configuration
-
-To guarantee uniform hash generation, it is required to synchronize the PYTHONHASHSEED environment variable across all nodes upon enabling KV Pool.
-
-```bash
-export PYTHONHASHSEED=0
-```
-````
-
-官方的配置项全表 + `PYTHONHASHSEED` 要求，事实表主要依据。
-
-## docs/source/user_guide/feature_guide/kv_pool.md#L299-L314
-
-````markdown
-Currently, the key-value pool in PD Disaggregate only stores the kv cache generated by the Prefill node by default. In models using MLA, it is now supported that the Decode node stores the kv cache for use by the Prefill node, enabled by adding `consumer_is_to_put: true` to the AscendStoreConnector. If the Prefill node enables PP, `prefill_pp_size` or `prefill_pp_layer_partition` also needs to be set. Example as follows:
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L854-L865
 
 ```python
-{
-    "kv_connector": "AscendStoreConnector",
-    "kv_role": "kv_consumer",
-    "kv_load_failure_policy": "recompute",
-    "kv_connector_extra_config": {
-        "lookup_rpc_port": "0",
-        "backend": "mooncake",
-        "consumer_is_to_put": true,
-        "prefill_pp_size": 2,
-        "prefill_pp_layer_partition": "30,31"
-    }
-}
+            if self.kv_role == "kv_consumer":
+                keys, addrs, sizes = self._decode_adaptor_prefill_pp(
+                    keys,
+                    addrs,
+                    sizes,
+                    kv_cache_group_id=group_id,
+                )
+            if current_event is not None:
+                current_event.synchronize()
+            self.m_store.put(keys, addrs, sizes)
+            if self.enable_kv_event and stored_events:
+                self.update_kv_event(stored_events)
 ```
+
+保存走后台发送线程：先等 `torch.npu.Event` 同步确认这一步的 KV 已写进 HBM，再 `put`。用于 `## 怎么工作` 的图。
+
+## docs/source/user_guide/feature_guide/kv_pool.md#L63-L78
+
+````markdown
+    * Install Mooncake
+
+        Mooncake is the serving platform for Kimi, a leading LLM service provided by Moonshot AI.
+        The Mooncake wheel requires glibc 2.35 or later. Check the installed glibc version before installation:
+
+        ```shell
+        ldd --version
+        ```
+
+        Install Mooncake with pip:
+
+        ```shell
+        python3 -m pip install mooncake-transfer-engine-npu==0.3.11.post1 --extra-index-url https://mirrors.aliyun.com/pypi/web/simple
+        ```
+
+        Mooncake `0.3.11.post1` remains supported when `tenant_id` is omitted or resolves to `default`. A non-default tenant requires a Mooncake version whose `MooncakeDistributedStore.setup()` accepts `tenant_id`; use Mooncake `0.3.12` or later for multi-tenant deployments.
 ````
 
-D 节点回写池的适用范围（MLA 模型）与 PP 场景下的附加配置。
+Mooncake 后端的版本下限，以及多租户所需的更高版本。用于 `## 事实表`。
 
-## docs/source/user_guide/feature_guide/kv_pool.md#L405-L412
+## vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L63-L68
 
-```shell
-KV_CONFIG='{
-  "kv_connector": "AscendStoreConnector",
-  "kv_role": "kv_both",
-  "kv_connector_extra_config": {
-     "backend": "mooncake",
-     "lookup_rpc_port": "0"
-     }
-}'
+```python
+class MooncakeBackend(Backend):
+    def __init__(self, parallel_config: ParallelConfig, lazy_init: bool = False, contribute_memory: bool = True):
+        self.parallel_config = parallel_config
+        self.config = MooncakeStoreConfig.load_from_env()
+        if self.config.protocol != "ascend":
+            raise NotImplementedError(f"MooncakeBackend does not support protocol {self.config.protocol!r}.")
 ```
 
-PD 混合部署下最小可用配置，worked example 的配置片段来源。
-
-## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L5-L13
-
-```markdown
-Prefix caching is an important feature in LLM inference that can reduce prefill computation time drastically.
-
-However, the performance gain from prefix caching is highly dependent on the cache hit rate, while the cache hit rate can be limited if one only uses on-chip memory for KV cache storage.
-
-Hence, KV Cache Pool is proposed to utilize various types of storage including on-chip memory, DRAM, and SSD, making a pool for KV Cache storage while making the prefix of requests visible across all nodes, increasing the cache hit rate for all requests.
-
-vLLM Ascend currently supports [MooncakeStore](https://github.com/kvcache-ai/Mooncake), one of the most recognized KV Cache storage engines.
-```
-
-官方对「为什么需要它」的表述。
-
-## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L38-L52
-
-```markdown
-**Workflow**:
-
-1. The engine first checks for prefix hits in the on-chip memory cache.
-
-2. After getting the number of hit tokens on on-chip memory, it queries the KV Pool via the connector. If there are additional hits in the KV Pool, we get the **additional blocks only** from the KV Pool, and get the rest of the blocks directly from on-chip memory to minimize the data transfer latency.
-
-3. After the KV Caches in the KV Pool are loaded into on-chip memory, the remaining process is the same as Prefix Caching in on-chip memory.
-
-### 2. Combining KV Cache Pool with Mooncake PD Disaggregation
-
-When used together with Mooncake PD (Prefill-Decode) Disaggregation, the KV Cache Pool can further decouple prefill and decode stages across devices or nodes.
-
-Currently, we only perform put and get operations of KV Pool for **Prefill Nodes**, and Decode Nodes get their KV Cache from Mooncake P2P KV Connector, i.e., MooncakeConnector.
-```
-
-与 prefix caching 的三步协作，以及 PD 分离下默认只有 P 节点读写池。
-
-## docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L84-L91
-
-```markdown
-1. When looking up a key in KV Pool, if we cannot find the key, there is no Cache Hit for this specific block; we return no hit for this block and do not look up further blocks for the current request.
-2. Similarly, when we are trying to put a block into KV Pool and it fails, we do not put further blocks (subject to change).
-
-## Limitations
-
-1. Currently, MooncakeStore for vLLM Ascend only supports DRAM as the storage for KV Cache Pool.
-
-2. For now, if we successfully looked up a key and found it exists, but failed to get it when calling KV Pool's get function, we just output a log indicating the get operation failed and keep going; hence, the accuracy of that specific request may be affected.
-```
-
-官方 DFX 与限制条款。注：第 2 条与现在的 `kv_load_failure_policy` 已不一致，第 1 条也与用户指南里的 SSD offload 章节不一致，设计文档已落后于实现。
+文档说的「NPU 上 protocol 必须是 ascend」在源码里是一条硬断言。用于 `## 事实表`。

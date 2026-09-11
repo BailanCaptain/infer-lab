@@ -1,17 +1,83 @@
 # Block Table 源码片段
 
-引用基线：`vllm-ascend@28bf3a2e`（ref `main`）。
+引用自 `vllm-ascend@28bf3a2e`（ref `main`）。行号与本地仓库一致。
 
-## vllm_ascend/worker/block_table.py#L44-L98
+## vllm_ascend/worker/block_table.py#L79-L98
 
 ```python
-        self.max_num_blocks_per_req = max_num_blocks_per_req
-        self.max_num_batched_tokens = max_num_batched_tokens
-        self.pin_memory = pin_memory
-        self.device = device
-        self.physical_block_size = block_size
-        self.is_mamba_group = is_mamba_group
+        if self.use_hybrid_blocks:
+            logical_table_size = max_num_blocks_per_req * self.blocks_per_phys_block
+        else:
+            logical_table_size = max_num_blocks_per_req
 
+        duplicate_size = 1
+        if self.dcp_world_size > 1:
+            duplicate_size += num_speculative_tokens
+        self.block_table = self._make_buffer(max_num_reqs * duplicate_size, logical_table_size, dtype=torch.int32)
+        self.num_blocks_per_row = np.zeros(max_num_reqs, dtype=np.int32)
+        # MTP slot preparation appends up to num_speculative_tokens - 1
+        # draft positions for every request beyond the scheduler token limit.
+        num_mtp_draft_slots = max(num_speculative_tokens - 1, 0) * self.max_num_reqs
+        self.slot_mapping = self._make_buffer(
+            self.max_num_batched_tokens + num_mtp_draft_slots,
+            dtype=torch.int32,
+        )
+
+        self.kernel_sizes = kernel_sizes
+        self.cp_kv_cache_interleave_size = cp_kv_cache_interleave_size
+```
+
+三个缓冲区的形状与 dtype 全在这里：块表本体、每行已填块数、slot_mapping。事实表的形状行来自这一段。
+
+## vllm_ascend/worker/block_table.py#L100-L138
+
+```python
+    def append_row(
+        self,
+        block_ids,
+        row_idx: int,
+    ) -> None:
+        if not block_ids:
+            return
+        block_ids = np.array(block_ids)
+        if self.use_hybrid_blocks:
+            block_ids = self._convert_physical_to_logical_blocks(block_ids)
+
+        num_blocks = len(block_ids)
+        start = self.num_blocks_per_row[row_idx]
+
+        self.block_table.np[row_idx, start : start + num_blocks] = block_ids
+        self.num_blocks_per_row[row_idx] += num_blocks
+
+    def add_row(self, block_ids: list[int], row_idx: int) -> None:
+        self.num_blocks_per_row[row_idx] = 0
+        self.append_row(block_ids, row_idx)
+
+    def clear_row(self, row_idx: int) -> None:
+        num_blocks = self.num_blocks_per_row[row_idx]
+        if num_blocks > 0:
+            self.block_table.np[row_idx, :num_blocks] = 0
+        self.num_blocks_per_row[row_idx] = 0
+
+    def move_row(self, src: int, tgt: int) -> None:
+        num_blocks = self.num_blocks_per_row[src]
+        self.block_table.np[tgt, :num_blocks] = self.block_table.np[src, :num_blocks]
+        self.num_blocks_per_row[tgt] = num_blocks
+
+    def swap_row(self, src: int, tgt: int) -> None:
+        num_blocks_src = self.num_blocks_per_row[src]
+        num_blocks_tgt = self.num_blocks_per_row[tgt]
+        self.num_blocks_per_row[src] = num_blocks_tgt
+        self.num_blocks_per_row[tgt] = num_blocks_src
+
+        self.block_table.np[[src, tgt]] = self.block_table.np[[tgt, src]]
+```
+
+「decode 时怎样追加」的直接依据：追加写在 `num_blocks_per_row[row_idx]` 指向的列，写完游标前移；`add_row` 是把游标清零后的 `append_row`。`move_row` / `swap_row` 说明行是可以被整体搬动的批内槽位，不是请求的稳定标识。
+
+## vllm_ascend/worker/block_table.py#L51-L77
+
+```python
         # If kernel_sizes is None or [0], use physical block size (no splitting)
         if kernel_sizes is None or kernel_sizes == [0]:
             self.block_size = block_size
@@ -39,57 +105,9 @@
                 self.use_hybrid_blocks = True
             else:
                 self.use_hybrid_blocks = False
-
-        if self.use_hybrid_blocks:
-            logical_table_size = max_num_blocks_per_req * self.blocks_per_phys_block
-        else:
-            logical_table_size = max_num_blocks_per_req
-
-        duplicate_size = 1
-        if self.dcp_world_size > 1:
-            duplicate_size += num_speculative_tokens
-        self.block_table = self._make_buffer(max_num_reqs * duplicate_size, logical_table_size, dtype=torch.int32)
-        self.num_blocks_per_row = np.zeros(max_num_reqs, dtype=np.int32)
-        # MTP slot preparation appends up to num_speculative_tokens - 1
-        # draft positions for every request beyond the scheduler token limit.
-        num_mtp_draft_slots = max(num_speculative_tokens - 1, 0) * self.max_num_reqs
-        self.slot_mapping = self._make_buffer(
-            self.max_num_batched_tokens + num_mtp_draft_slots,
-            dtype=torch.int32,
-        )
-
-        self.kernel_sizes = kernel_sizes
-        self.cp_kv_cache_interleave_size = cp_kv_cache_interleave_size
 ```
 
-页面用它说明 `block_table` / `slot_mapping` 两个缓冲区的形状与 dtype、逻辑块拆分（`use_hybrid_blocks`）以及 DCP+MTP 下的行数放大。
-
-## vllm_ascend/worker/block_table.py#L100-L119
-
-```python
-    def append_row(
-        self,
-        block_ids,
-        row_idx: int,
-    ) -> None:
-        if not block_ids:
-            return
-        block_ids = np.array(block_ids)
-        if self.use_hybrid_blocks:
-            block_ids = self._convert_physical_to_logical_blocks(block_ids)
-
-        num_blocks = len(block_ids)
-        start = self.num_blocks_per_row[row_idx]
-
-        self.block_table.np[row_idx, start : start + num_blocks] = block_ids
-        self.num_blocks_per_row[row_idx] += num_blocks
-
-    def add_row(self, block_ids: list[int], row_idx: int) -> None:
-        self.num_blocks_per_row[row_idx] = 0
-        self.append_row(block_ids, row_idx)
-```
-
-页面用它说明「追加」的写入位置由 `num_blocks_per_row` 这个 CPU 侧游标决定，以及 `add_row` 与 `append_row` 的区别。
+说明「物理块」与「逻辑块」在什么条件下不是一回事：`kernel_sizes` 给出内核能吃的块粒度，一个物理块可以被切成 `blocks_per_phys_block` 个逻辑块。
 
 ## vllm_ascend/worker/block_table.py#L140-L179
 
@@ -136,7 +154,7 @@
             )
 ```
 
-页面用它说明 slot mapping 走的是 Triton kernel（非 DCP 路径）、启动网格 `num_reqs + 1`、以及各编译期常量的取值来源。
+槽位映射的入口：非 DCP 路径直接起 Triton 内核，grid 是 `num_reqs + 1`，读的是已经落到设备上的 `block_table.gpu`。`TILE_BLOCK_SIZE = 1024` 与 `BLOCK_TABLE_WINDOW_SIZE` 的算式也在这里。
 
 ## vllm_ascend/worker/block_table.py#L278-L283
 
@@ -149,30 +167,7 @@
         self.block_table.cpu.fill_(0)
 ```
 
-页面用它说明「提交」这一步就是把 CPU 侧前 `num_reqs` 行搬到设备。
-
-## vllm_ascend/worker/block_table.py#L285-L300
-
-```python
-    def _convert_physical_to_logical_blocks(self, physical_blocks: np.ndarray) -> np.ndarray:
-        """Convert physical block IDs to logical block IDs."""
-        if not self.use_hybrid_blocks:
-            return physical_blocks
-
-        # Create logical block IDs by splitting each physical block
-        logical_blocks: list[int] = []
-        for phys_block in physical_blocks:
-            # Convert physical block to multiple logical blocks
-            # Physical block 1 becomes logical blocks
-            # [1*split_ratio, 1*split_ratio+1, ...]
-            # But we need to account for the fact that block 0 is special
-            base_logical = phys_block * self.blocks_per_phys_block
-            logical_blocks.extend(range(base_logical, base_logical + self.blocks_per_phys_block))
-
-        return np.array(logical_blocks, dtype=np.int32)
-```
-
-页面用它说明 hybrid 模式下一个物理块如何在表里展开成连续多个逻辑块号。
+「提交」的全部内容：把 CPU 侧前 `num_reqs` 行搬到设备。页面里关于 commit 语义的结论只能从这两行加调用点推出。
 
 ## vllm_ascend/worker/block_table.py#L347-L358
 
@@ -191,31 +186,9 @@
             )
 ```
 
-页面用它给出每行容量（列数）的默认公式。
+列数的默认算式 `cdiv(max_model_len, block_size * dcp_world_size)`，以及「每个 KV cache group 一张表」的来源。
 
-## vllm_ascend/worker/block_table.py#L417-L431
-
-```python
-    def compute_slot_mapping(
-        self,
-        num_reqs: int,
-        query_start_loc: torch.Tensor,
-        positions: torch.Tensor,
-        positions_compressed_list: list[np.ndarray] | None = None,
-        req_indices_compressed_list: list[np.ndarray] | None = None,
-    ) -> None:
-        for i, block_table in enumerate(self.block_tables):
-            if block_table.is_mamba_group:
-                continue
-            if positions_compressed_list and req_indices_compressed_list:
-                block_table.compute_slot_mapping_draft(req_indices_compressed_list[i], positions_compressed_list[i])
-            else:
-                block_table.compute_slot_mapping(num_reqs, query_start_loc, positions)
-```
-
-页面用它说明多 KV cache group 时每组各有一张表，且 Mamba 组被跳过。
-
-## vllm_ascend/ops/triton/compute_slot_mapping.py#L30-L84
+## vllm_ascend/ops/triton/compute_slot_mapping.py#L30-L54
 
 ```python
     req_idx = tl.program_id(0)
@@ -244,17 +217,13 @@
             block_indices = pos // block_size
             slot_offsets = pos - block_indices * block_size
         else:
-            virtual_block_size = KV_CACHE_BLOCK_SIZE * TOTAL_CP_WORLD_SIZE
-            virtual_block_indices = pos // virtual_block_size
-            virtual_block_offsets = pos - virtual_block_indices * virtual_block_size
-            is_local = (virtual_block_offsets // CP_KV_CACHE_INTERLEAVE_SIZE) % TOTAL_CP_WORLD_SIZE == TOTAL_CP_RANK
-            local_block_offsets = (
-                virtual_block_offsets // (TOTAL_CP_WORLD_SIZE * CP_KV_CACHE_INTERLEAVE_SIZE)
-            ) * CP_KV_CACHE_INTERLEAVE_SIZE + (virtual_block_offsets % CP_KV_CACHE_INTERLEAVE_SIZE)
+```
 
-            block_indices = virtual_block_indices * BLOCKS_PER_KV_BLOCK + local_block_offsets // block_size
-            slot_offsets = local_block_offsets % block_size
+内核怎么按请求分工（一个 program 一条请求，最后一个 program 专做 padding）、怎么用 `query_start_loc` 取本请求的 token 区间、以及非 CP 路径把 `pos` 拆成逻辑块号与块内偏移。
 
+## vllm_ascend/ops/triton/compute_slot_mapping.py#L67-L84
+
+```python
         INT32_MAX = 2147483647
         valid_block_indices = tl.where(mask, block_indices, INT32_MAX)
         block_idx_base = tl.min(valid_block_indices, axis=0)
@@ -275,48 +244,59 @@
         tl.store(slot_mapping_ptr + offsets, slot_ids, mask=mask)
 ```
 
-页面用它逐行解释「position → 逻辑块号 + 块内偏移 → 查表得物理块号 → slot id」这条主线，以及最后一个 program 负责尾部填 `PAD_ID`。
+查表与合成 slot id 的那一步：不是逐 token 随机访存，而是先把本 tile 用得到的那一小段表行整体载入（窗口），再在窗口内 `tl.gather`；最后 `slot = block_numbers * block_size + slot_offsets`。
 
-## vllm_ascend/ops/triton/compute_slot_mapping.md#L11-L19
+## vllm_ascend/ops/triton/compute_slot_mapping.md#L53-L75
 
 ```markdown
-- 每个 `program_id(0) == req_idx` 处理一条请求（一个 sequence）。
-- 通过 `query_start_loc_ptr` 得到该请求在 batch 中的 token 起止区间 `[start_idx, end_idx)`。
-- 对区间内每个 token：
-    - 读取其逻辑序列位置 `pos`；
-    - 根据 `block_size` 将 `pos` 拆分为 `block_indices`（块内逻辑块号）与 `slot_offsets`（块内偏移）；
-    - 通过 `block_table` 把逻辑块号转换为物理块号 `block_numbers`；
-    - 计算 `slot_id = block_numbers * block_size + slot_offsets`，写回 `slot_mapping_ptr`。
-- 当 `TOTAL_CP_WORLD_SIZE > 1`（启用 Context Parallel，CP）时，会按 `CP_KV_CACHE_INTERLEAVE_SIZE` 交错布局把虚拟块切分到各 rank：仅属于本 rank 的 token 写入真实 slot id，其余写入 `PAD_ID`（详见下文「多 CP 域下的计算说明」）。
-- **最后一个 program**（`req_idx == num_programs(0) - 1`）专门用于把 `slot_mapping_ptr` 中 `[num_tokens, max_num_tokens)` 这段填充为 `PAD_ID`
+| 参数名 | 形状 / 类型 | 含义 |
+| --- | --- | --- |
+| `num_tokens` | int | 当前 batch 中实际的 token 数量。 |
+| `max_num_tokens` | int | 预分配的最大 token 数。 |
+| `query_start_loc_ptr` | `[num_reqs + 1]`, int32 | 每条请求在 batch 中的累加起始位置，类似 CSR 的 `indptr`，`req_idx` 的 token 区间为 `[query_start_loc[req_idx], query_start_loc[req_idx+1])`。 |
+| `positions_ptr` | `[num_tokens]`, int64 | 每个 token 在其所属请求中的逻辑序列位置。 |
+| `block_table_ptr` | `[max_num_reqs, max_num_blocks_per_req]`, int32（展平） | 块表，将「逻辑块号」映射为「物理块号」；按行展开存储。 |
+| `block_table_stride` | int | `block_table` 一行的元素个数，即 `max_num_blocks_per_req`。 |
+| `block_size` | int | Attention 内核使用的逻辑块大小（一个逻辑块包含多少 token）。 |
+| `slot_mapping_ptr` | `[max_num_tokens]`, int32 | 输出张量，写入每个 token 对应的物理 KV Cache slot id。 |
+
+### 2.2 编译期常量参数（`tl.constexpr`）
+
+| 参数名 | 含义 |
+| --- | --- |
+| `KV_CACHE_BLOCK_SIZE` | KV Cache 物理分配块大小（物理 block 的大小）。 |
+| `BLOCKS_PER_KV_BLOCK` | 一个物理 KV 块包含多少个逻辑 block，满足 `KV_CACHE_BLOCK_SIZE = BLOCKS_PER_KV_BLOCK * block_size`。 |
+| `TOTAL_CP_WORLD_SIZE` | Context Parallel 通信域的总 rank 数；为 `1` 时走非 CP 路径。 |
+| `TOTAL_CP_RANK` | 当前设备在 CP 通信域中的 rank。 |
+| `CP_KV_CACHE_INTERLEAVE_SIZE` | CP 模式下 KV Cache 的交错大小，用于将虚拟块按 interleave 粒度切分到各 rank。 |
+| `PAD_ID` | 无效槽位的填充值（通常为 `PAD_SLOT_ID = -1`），用于 padding 区域与非本 rank 槽位。 |
+| `TILE_BLOCK_SIZE` | Triton 循环中的 tile 大小，控制单次迭代处理的 token 数。 |
+| `BLOCK_TABLE_WINDOW_SIZE` | 一次性加载到寄存器的 block_table 窗口大小（需 ≥ `TILE_BLOCK_SIZE / block_size + 1`，并取 2 的幂以便 Triton 向量化）。 |
 ```
 
-仓库内随算子附带的说明文档，页面用它印证对 kernel 行为的解读（与源码读法一致）。
+仓库内的算子文档，给出内核各参数的形状与 dtype（含 `positions` 是 int64、`slot_mapping` 是 int32）、`PAD_ID` 通常为 `PAD_SLOT_ID = -1`，以及 `BLOCK_TABLE_WINDOW_SIZE` 为什么取那个下界。
 
-## vllm_ascend/attention/attention_v1.py#L114-L121
+## vllm_ascend/worker/model_runner_v1.py#L1143-L1145
 
 ```python
-    def get_kv_cache_shape(
-        num_blocks: int,
-        block_size: int,
-        num_kv_heads: int,
-        head_size: int,
-        cache_dtype_str: str = "",
-    ) -> tuple[int, ...]:
-        return (2, num_blocks, block_size, num_kv_heads, head_size)
+        # OPTIMIZATION: Start copying the block table first.
+        # This way, we can overlap the copy with the following CPU operations.
+        self.input_batch.block_table.commit_block_table(num_reqs)
 ```
 
-页面用它算每块字节数，并说明 slot id 为什么等于「块号 × 块大小 + 块内偏移」。
+提交的时机：每次 `_prepare_inputs` 一进来就发 H2D，好让拷贝与后续 CPU 端准备工作重叠。
 
-## vllm_ascend/attention/attention_v1.py#L151-L153
+## vllm_ascend/worker/model_runner_v1.py#L1468-L1472
 
 ```python
-    @staticmethod
-    def get_supported_kernel_block_sizes() -> list[int]:
-        return [128]
+        self.input_batch.block_table.compute_slot_mapping(
+            num_reqs,
+            self.query_start_loc.gpu[: num_reqs + 1],
+            self.positions[:total_num_scheduled_tokens],
+        )
 ```
 
-页面用它固定 `block_size = 128` 这个前提。
+槽位映射的调用点，以及它相对 `commit_block_table` 的先后顺序（同一函数内，L1145 在前、L1468 在后）。
 
 ## vllm_ascend/attention/attention_v1.py#L200-L210
 
@@ -334,18 +314,43 @@
     slot_mapping: torch.Tensor = None
 ```
 
-页面用它给出 attention metadata 里两个字段的形状与含义（含上游注释里的 slot 例子）。
+`AscendMetadata` 里块表与 slot_mapping 的字段定义和形状注释——这是「表最终交给谁」的答案。
 
-## vllm_ascend/attention/attention_v1.py#L250-L253
+## vllm_ascend/attention/attention_v1.py#L113-L121
 
 ```python
-        self.device = device
+    @staticmethod
+    def get_kv_cache_shape(
+        num_blocks: int,
+        block_size: int,
+        num_kv_heads: int,
+        head_size: int,
+        cache_dtype_str: str = "",
+    ) -> tuple[int, ...]:
+        return (2, num_blocks, block_size, num_kv_heads, head_size)
+```
+
+物理块在显存里的实际形状，用于「拿真实数字走一遍」里算一个块占多少字节、slot id 索引的是哪一维。
+
+## vllm_ascend/attention/attention_v1.py#L151-L153
+
+```python
+    @staticmethod
+    def get_supported_kernel_block_sizes() -> list[int]:
+        return [128]
+```
+
+Ascend attention 后端只接受 `block_size = 128`，事实表与「常见误解」都引这一条。
+
+## vllm_ascend/attention/attention_v1.py#L251-L253
+
+```python
         self.max_num_blocks_per_req = cdiv(
             self.model_config.max_model_len, AscendAttentionBackend.get_supported_kernel_block_sizes()[0]
         )
 ```
 
-页面用它给出「每行列数 = ceil(max_model_len / 128)」这条算式。
+列数在 attention builder 侧的算式，和 `MultiGroupBlockTable` 的默认值对得上（非 DCP 时 `dcp_world_size = 1`）。
 
 ## vllm_ascend/attention/attention_v1.py#L1646-L1656
 
@@ -363,84 +368,34 @@
             )
 ```
 
-页面用它说明 `slot_mapping` 的最终消费者是 `reshape_and_cache` 这一步写入。
+slot_mapping 的最终消费者：`reshape_and_cache` 拿它把这一步算出的 K/V 写进 KV cache，且只取前 `num_actual_tokens` 个（padding 段不写）。
 
-## vllm_ascend/worker/model_runner_v1.py#L1143-L1145
-
-```python
-        # OPTIMIZATION: Start copying the block table first.
-        # This way, we can overlap the copy with the following CPU operations.
-        self.input_batch.block_table.commit_block_table(num_reqs)
-```
-
-页面用它说明「提交」为何排在 `_prepare_inputs` 的最前面。
-
-## vllm_ascend/worker/model_runner_v1.py#L1468-L1472
+## vllm_ascend/attention/attention_v1.py#L380-L387
 
 ```python
-        self.input_batch.block_table.compute_slot_mapping(
-            num_reqs,
-            self.query_start_loc.gpu[: num_reqs + 1],
-            self.positions[:total_num_scheduled_tokens],
-        )
+        if block_table is not None and block_table.shape[0] < num_reqs_fia:
+            block_table = torch.cat(
+                [
+                    block_table,
+                    block_table.new_zeros((num_reqs_fia - block_table.shape[0], block_table.shape[1])),
+                ],
+                dim=0,
+            )
 ```
 
-页面用它给出 slot mapping 的实际调用点与三个输入。
+表的行数在交给 FIA 算子前可能被补齐：多出来的哑请求行填 0（指向物理块 0），因为它不会写 KV cache，所以无害。
 
-## vllm_ascend/worker/model_runner_v1.py#L3152-L3158
-
-```python
-                blk_table = self.input_batch.block_table[kv_cache_gid]
-                slot_mapping = blk_table.slot_mapping.gpu[:num_tokens_padded]
-                blk_table_tensor = blk_table.get_device_tensor()[:num_reqs_padded]
-                # Fill unused with -1. Needed for reshape_and_cache in full cuda
-                # graph mode. `blk_table_tensor` -1 to match mamba PAD_SLOT_ID
-                slot_mapping[num_tokens:num_tokens_padded].fill_(-1)
-                blk_table_tensor[num_reqs:num_reqs_padded].fill_(0)
-```
-
-页面用它说明设备张量如何被切片进 attention metadata，以及图模式下的 padding 约定。
-
-## vllm_ascend/worker/npu_input_batch.py#L131-L144
-
-```python
-        # Block table.
-        self.block_table = MultiGroupBlockTable(
-            max_num_reqs=max_num_reqs,
-            max_model_len=max_model_len,
-            max_num_batched_tokens=max_num_batched_tokens,
-            pin_memory=pin_memory,
-            device=device,
-            block_sizes=block_sizes,
-            max_num_blocks=max_num_blocks_per_req,
-            num_speculative_tokens=num_speculative_tokens,
-            kernel_sizes=kernel_block_sizes,
-            cp_kv_cache_interleave_size=cp_kv_cache_interleave_size,
-        )
-```
-
-页面用它说明块表的持有者是 `InputBatch`，生命周期与整个 batch 槽位一致。
-
-## docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
+## docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L60-L64
 
 ```markdown
-- **`block table`**: translates the logical address (within its sequence) of each block to its global physical address in the device's memory.
-- `max query len`: the longest scheduled tokens length in this request batch.
-- `slot mapping`: indices of each token that input token will be stored into.
-- `attention mask`: mask matrix applied to attention scores before softmax to control which tokens can attend to each other (usually a causal attention).
-
-## Before start
-
-There are mainly three types of variables.
-
-- token level: represents one attribute corresponding to each scheduled token, so the length of this variable is the number of scheduled tokens.
-- request level: represents one attribute of each scheduled request, whose length usually is the number of scheduled requests. (`query start location` is a special case, which has one more element.)
 - system level:
   1. **Token IDs table**: stores the token IDs (i.e. the inputs of a model) of each request. The shape of this table is `(max num request, max model len)`. Here, `max num request` is the maximum count of concurrent requests allowed in a forward batch and `max model len` is the maximum token count that can be handled at one request sequence in this model.
   2. **Block table**: translates the logical address (within its sequence) of each block to its global physical address in the device's memory. The shape of this table is `(max num request, max model len / block size)`
+
+**Note**: Both of these two tables come from the `_update_states` method before **preparing inputs**. You can take a look if you need more inspiration.
 ```
 
-官方开发者设计文档，页面用它给出块表的定义与形状（行=请求槽位、列=逻辑块号）。
+官方设计文档对块表的定义与形状，以及「表内容由 `_update_states` 维护、`_prepare_inputs` 只读」的分工。
 
 ## docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L191-L196
 
@@ -453,11 +408,13 @@ Details:
 4. Finally, use `block offsets` and `device block number` to create `slot mapping`: `device block number * block size + block_offsets = [2, 3, 4, 6, 7, 8, 9, 10, 11, 12]`
 ```
 
-官方文档给出的四步法，页面用它作为 `compute_slot_mapping` 的权威口径。
+官方文档把槽位映射写成四步（算表内索引 → 查物理块号 → 算块内偏移 → 合成 slot），页面的「怎么工作」沿用这个分步。
 
-## docs/source/developer_guide/Design_Documents/context_parallel.md#L13-L20
+## docs/source/developer_guide/Design_Documents/context_parallel.md#L11-L20
 
 ```markdown
+DCP stores tokens in an interleaved layout across ranks. The interleaving granularity is controlled by `cp_kv_cache_interleave_size`, whose default value is `1`.
+
 For a DCP size of `dcp_size`, a virtual block contains `block_size * dcp_size` tokens. For token `x`:
 
 - `virtual_block_index = x // (block_size * dcp_size)`
@@ -468,4 +425,4 @@ For a DCP size of `dcp_size`, a virtual block contains `block_size * dcp_size` t
 The slot-mapping calculation uses this layout so each DCP rank stores only its local sequence shard. The current implementation requires `block_size % cp_kv_cache_interleave_size == 0`.
 ```
 
-官方文档，页面用它说明 DCP 分支下的「虚拟块」语义与 `block_size % cp_kv_cache_interleave_size == 0` 约束。
+开 DCP 后槽位映射换算的官方说明：虚拟块 = `block_size * dcp_size`，每个 rank 只留自己那一份，其余 token 写 `PAD_ID`。

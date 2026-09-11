@@ -1,6 +1,6 @@
-# raw: kv-cache-memory-profiling
+# KV Cache Memory Profiling —— 源码片段
 
-引用自 vllm-ascend@28bf3a2e。
+全部摘自 `vllm-ascend@28bf3a2e`（ref `main`），原文未作任何改动。
 
 ## vllm_ascend/worker/worker.py#L441-L454
 
@@ -21,7 +21,7 @@
             )
 ```
 
-`gpu_memory_utilization` 的基数是 `total_memory` 而不是 `free_memory`，以及启动期的可行性检查，都在这里。页面用它说明「requested_memory 怎么来」与「为什么同卡多实例不会互相把对方的占用算进自己的开销」。
+引用理由：确定 `gpu_memory_utilization` 的语义——它乘的是 `total_memory` 而不是 `free_memory`；同时给出启动期的硬性校验（free < requested 直接抛 `ValueError`）。
 
 ## vllm_ascend/worker/worker.py#L536-L563
 
@@ -56,7 +56,7 @@
             return self._apply_kv_offload_decode_memory_constraints(kv_cache_memory_bytes)
 ```
 
-`--kv-cache-memory` 快路径：跳过 profiling 计算但仍跑 `profile_run()`，且明确声明不再遵守 `gpu_memory_utilization`。页面用它写「常见误解」与事实表的 fast path 行。
+引用理由：快路径。说明 `kv_cache_memory_bytes` 一旦给定就整体绕过测量，且**仍然跑 `profile_run()`**（为了编译），以及它「不遵守 gpu_memory_utilization」这一官方措辞。
 
 ## vllm_ascend/worker/worker.py#L565-L600
 
@@ -99,7 +99,7 @@
         self.available_kv_cache_memory_bytes = self.requested_memory - profile_result.non_kv_cache_memory
 ```
 
-页面的核心公式来源：三项扣除（non_torch_increase + torch_peak_increase + weights_memory）与 `requested_memory - non_kv_cache_memory`，以及 profiling 失效时的 assert。
+引用理由：整页的主体公式。三项扣除（`non_torch_increase` + `torch_peak_increase` + `weights_memory`）、峰值在图捕获之前取样、以及 free memory 单调性断言。
 
 ## vllm_ascend/worker/worker.py#L602-L630
 
@@ -135,7 +135,7 @@
         return int(self.available_kv_cache_memory_bytes)
 ```
 
-profiling 结果之后的两道修正：layerwise 复用把「物理字节」放大成「逻辑字节」，sparse KV offload 再做一次重规划。页面用它画流程图末段。
+引用理由：预算落地前的两道后处理（layerwise 复用按 factor 放大逻辑预算、sparse offload 约束），以及最终 `int()` 返回、没有对负值做钳位。
 
 ## vllm_ascend/worker/worker.py#L500-L534
 
@@ -177,26 +177,7 @@ profiling 结果之后的两道修正：layerwise 复用把「物理字节」放
         return int(budget.final_planner_bytes)
 ```
 
-未开 sparse offload 时这一步是恒等函数——用来说明「默认路径下 profiling 的结果就是最终返回值」。
-
-## vllm_ascend/worker/worker.py#L1009-L1020
-
-```python
-    def initialize_from_config(self, kv_cache_config: KVCacheConfig) -> None:
-        """Allocate NPU KV cache with the specified kv_cache_config."""
-        ensure_kv_transfer_initialized(self.vllm_config, kv_cache_config)
-        if self.vllm_config.model_config.enable_sleep_mode:
-            allocator = CaMemAllocator.get_instance()
-            context = allocator.use_memory_pool(tag="kv_cache")
-        else:
-            from contextlib import nullcontext
-
-            context = nullcontext()  # type: ignore
-        with context:
-            self.model_runner.initialize_kv_cache(kv_cache_config)
-```
-
-KV 张量的真正分配点。它排在 `compile_or_warm_up_model()` 之前，页面用它论证「ACL graph 显存花的是 KV 分配之后的余量」。
+引用理由：说明这道后处理在未开启 sparse offload 时是恒等函数，开启后会用 planner 的结果整体替换预算。
 
 ## vllm_ascend/worker/worker.py#L778-L821
 
@@ -247,7 +228,7 @@ KV 张量的真正分配点。它排在 `compile_or_warm_up_model()` 之前，�
             logger.info(msg)
 ```
 
-第五类内存（ACL graph pool）在这里才被测出，并只进入 `--kv-cache-memory` 的建议值，不回头修正已分配的 KV 预算；150 MiB 冗余量也在这里。页面的事实表与「常见误解」第 3 条都引它。
+引用理由：ACL 图内存 `npugraph_memory_bytes` 在 KV 预算**之后**才产生；建议值的公式与 150 MiB 冗余；日志里给出的两个候选值分别对齐 `requested_memory` 与 `free_memory`。
 
 ## vllm_ascend/worker/model_runner_v1.py#L3713-L3727
 
@@ -269,7 +250,32 @@ KV 张量的真正分配点。它排在 `compile_or_warm_up_model()` 之前，�
         super().profile_run()
 ```
 
-昇腾侧在上游 `profile_run` 之前额外跑一次 MC2 容量的 dummy run，把 MC2 通信算子的 HCCL buffer 也纳入 peak；页面用它讲「昇腾侧与上游的差异」。
+引用理由：昇腾侧 `profile_run` 的增量——EPLB 预热、sparse offload 的 topk buffer、以及 MC2 容量下的额外一次 dummy run；主体仍委托给上游 `super().profile_run()`。
+
+## vllm_ascend/worker/model_runner_v1.py#L3760-L3766
+
+```python
+        with DeviceMemoryProfiler() as m:  # noqa: SIM117
+            if self.eplb_enable:
+                def mock_pass(param1, param2):
+                    return
+                from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
+                DefaultModelLoader._init_ep_weight_filter = mock_pass
+            self.model: nn.Module = get_model(vllm_config=self.vllm_config)
+```
+
+引用理由：权重内存不是在 profiling 阶段量的，而是 `load_model()` 里由 `DeviceMemoryProfiler` 包住 `get_model()` 单独量的。
+
+## vllm_ascend/worker/model_runner_v1.py#L3834-L3837
+
+```python
+            if self.lora_config:
+                self.model = self.load_lora_model(self.model, self.vllm_config, self.device)
+        self.model_memory_usage = m.consumed_memory
+        logger.info("Loading model weights took %.4f GB", m.consumed_memory / float(2**30))
+```
+
+引用理由：`model_memory_usage` 的赋值点，即 `determine_available_memory` 里 `weights_memory=` 的来源。
 
 ## vllm_ascend/worker/model_runner_v1.py#L340-L341
 
@@ -278,25 +284,7 @@ KV 张量的真正分配点。它排在 `compile_or_warm_up_model()` 之前，�
         self.max_num_reqs = self.scheduler_config.max_num_seqs
 ```
 
-profiling 的 dummy batch 形状由这两个调度器上限决定，页面的事实表与 worked example 需要它。
-
-## vllm_ascend/worker/model_runner_v1.py#L5175-L5185
-
-```python
-    def capture_model(self) -> int:
-        """Capture NPU graphs and return actual graph pool memory bytes consumed."""
-        parent_module_name = _get_gpu_model_runner_module_name(self)
-        with _torch_cuda_wrapper(), _replace_gpu_model_runner_function_wrapper(parent_module_name):
-            cuda_graph_size = GPUModelRunner.capture_model(self)
-
-        mgr = self.encoder_cudagraph_manager
-        if mgr is not None and self.update_stream is not None:
-            mgr.update_stream = self.update_stream
-
-        return cuda_graph_size
-```
-
-`capture_model()` 返回真实占用的 graph pool 字节数——这是 `npugraph_memory_bytes` 的来源，说明它是「实测」而非估算。
+引用理由：profiling 那一次前向的形状由这两个调度器参数决定，解释了为什么 `--max-num-batched-tokens` 会直接改变 KV 预算。
 
 ## vllm_ascend/patch/platform/patch_torch_accelerator.py#L10-L23
 
@@ -317,9 +305,9 @@ torch.accelerator.reset_peak_memory_stats = torch.npu.reset_peak_memory_stats  #
 torch.accelerator.get_memory_info = torch.npu.mem_get_info  # type: ignore[attr-defined]
 ```
 
-`MemorySnapshot` 的 `free_memory` / `total_memory` 在昇腾上实际来自 `torch.npu.mem_get_info`，即驱动层整卡口径——页面据此说明 `gpu_memory_utilization` 的分母是什么。
+引用理由：昇腾上 `MemorySnapshot` 能读到真实数字，靠的是这层 monkey patch 把 `torch.accelerator.*` 重定向到 `torch.npu.*`；这是「同一套上游 profiling 代码在昇腾上跑得通」的前提。
 
-## vllm_ascend/_310p/worker_310p.py#L113-L125
+## vllm_ascend/_310p/worker_310p.py#L113-L133
 
 ```python
         # Divide the available memory by 2, to reserved more memory for other operators workspace and other cache
@@ -335,33 +323,21 @@ torch.accelerator.get_memory_info = torch.npu.mem_get_info  # type: ignore[attr-
             self.available_kv_cache_memory_bytes = (
                 self.requested_memory - profile_result.non_kv_cache_memory - non_torch_memory_cleared_by_empty_cache
             ) // 2
+
+        logger.debug(profile_result)
+        logger.info_once(
+            "Available KV cache memory: %.2f GiB (halved for workspace)",
+            GiB(self.available_kv_cache_memory_bytes),
+            scope="local",
+        )
+        return int(self.available_kv_cache_memory_bytes)
 ```
 
-310I Duo 走另一条实现：结果再除以 2，RC 模式还改用主机内存口径。页面用它说明「这页讲的是 A2/A3 主线路径，310P 不同」。
-
-## docs/source/faqs.md#L138-L148
-
-```markdown
-### 12. How to handle the out-of-memory issue?
-
-OOM errors typically occur when the model exceeds the memory capacity of a single NPU. For general guidance, you can refer to [vLLM OOM troubleshooting documentation](https://docs.vllm.ai/en/latest/usage/troubleshooting/#out-of-memory).
-
-In scenarios where NPUs have limited high bandwidth memory (on-chip memory) capacity, dynamic memory allocation/deallocation during inference can exacerbate memory fragmentation, leading to OOM. To address this:
-
-- **Limit `--max-model-len`**: It can save the on-chip memory usage for KV cache initialization step.
-
-- **Adjust `--gpu-memory-utilization`**: If unspecified, the default value is `0.9`. You can decrease this value to reserve more memory to reduce fragmentation risks. See details in: [vLLM - Inference and Serving - Engine Arguments](https://docs.vllm.ai/en/latest/cli/serve/#-gpu-memory-utilization).
-
-- **Configure `PYTORCH_NPU_ALLOC_CONF`**: Set this environment variable to optimize NPU memory management. For example, you can use `export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True` to enable virtual memory feature to mitigate memory fragmentation caused by frequent dynamic memory size adjustments during runtime. See details in [PYTORCH_NPU_ALLOC_CONF](https://www.hiascend.com/document/detail/zh/Pytorch/700/comref/Envvariables/Envir_012.html).
-```
-
-官方文档对 `--gpu-memory-utilization` 默认值 0.9 与调小它的用途（留碎片余量）的唯一一手表述，页面的「为什么需要它」与事实表默认值行引它。
+引用理由：310P 走的是另一套算法——结果整体除以 2，且 RC 设备改用主机内存口径。说明「A2/A3 的公式」不能推广到全部昇腾硬件。
 
 ## tests/ut/worker/a2/test_worker_multi_instance.py#L172-L223
 
 ```python
-    @patch("vllm_ascend.worker.worker.get_ascend_config")
-    @patch("vllm_ascend.worker.worker.logger")
     def test_second_instance_on_same_card_positive_kv_cache(self, mock_logger, mock_get_ascend_config):
         """
         Regression test for PR #7427.
@@ -416,33 +392,90 @@ In scenarios where NPUs have limited high bandwidth memory (on-chip memory) capa
         worker.model_runner.profile_run.assert_called_once()
 ```
 
-同卡多实例语义的权威说明（含 PR #7427 的前后对比），页面「为什么需要它」与「常见误解」第 2 条引它。
+引用理由：仓库自己写死的多实例场景，直接给出「一张 64 GiB 卡跑两个 Qwen3-0.6B、util=0.4」的真实数字，也说明了「差值只减自己这一份占用」这条不变量。
 
-## tests/ut/worker/a2/test_worker_multi_instance.py#L146-L168
+## tests/ut/worker/a2/test_worker_v1.py#L943-L949
 
 ```python
-    @patch("vllm_ascend.worker.worker.get_ascend_config")
-    @patch("vllm_ascend.worker.worker.logger")
-    def test_determine_available_memory_does_not_profile_npugraph_memory(self, mock_logger, mock_get_ascend_config):
-        mock_get_ascend_config.return_value.sparse_kv_offload_config.enabled = False
-        total = int(64 * GiB_bytes)
-        requested_memory = int(total * 0.9)
-        init_free = int(60 * GiB_bytes)
-        non_kv_cache = int(1 * GiB_bytes)
+            worker.model_runner.profile_run.assert_called_once()
 
-        worker = self._make_worker(requested_memory, init_free, total)
-        worker.model_runner.profile_cudagraph_memory = MagicMock()
-        profile_result = self._make_profile_result(
-            free_memory_after=init_free - non_kv_cache,
-            non_kv_cache_memory=non_kv_cache,
-        )
-
-        with self._patch_memory_profiling(profile_result):
-            result = worker.determine_available_memory()
-
-        worker.model_runner.profile_cudagraph_memory.assert_not_called()
-        self.assertFalse(hasattr(worker, "npugraph_memory_estimate"))
-        self.assertEqual(result, requested_memory - non_kv_cache)
+            # non_kv_cache_memory = non_torch_increase(1000) + torch_peak_increase(2000-0) + weights_memory(500) = 3500
+            # result = requested_memory(8000) - non_kv_cache_memory(3500) = 4500
+            expected_result = int(10000 * 0.8 - 3500)
+            self.assertEqual(result, expected_result)
+            worker._apply_kv_offload_decode_memory_constraints.assert_called_once_with(expected_result)
 ```
 
-锁死了「ACL graph 显存不在 determine_available_memory 里扣」这条行为，页面「常见误解」第 3 条引它。
+引用理由：把三项扣除的加法与最终减法写死成断言，是对主体公式最直接的确认。
+
+## tests/ut/worker/a2/test_worker_v1.py#L1111-L1116
+
+```python
+            result = worker.determine_available_memory()
+
+            # non_kv_cache_memory = 1000 + 9000 + 500 = 10500
+            # available = requested(8000) - non_kv_cache(10500) = -2500
+            # upstream no longer clamps to 0, returns int(negative)
+            self.assertEqual(result, int(8000 - 10500))
+```
+
+引用理由：明确「预算算成负数时不会被钳位到 0」，用于「常见误解」一节。
+
+## vllm_ascend/worker/model_runner_v1.py#L3694-L3711
+
+```python
+    @torch.inference_mode()
+    def _dummy_sampler_run(
+        self,
+        hidden_states: torch.Tensor,
+    ) -> torch.Tensor:
+        output = None
+
+        # For profile, have maximum num_reqs and that collectively have
+        # maximum num_tokens.
+        min_tokens_per_req = self.max_num_tokens // self.max_num_reqs
+        num_scheduled_tokens_list = [min_tokens_per_req] * self.max_num_reqs
+        num_scheduled_tokens_list[-1] += self.max_num_tokens % self.max_num_reqs
+        num_scheduled_tokens = np.array(num_scheduled_tokens_list, dtype=np.int32)
+        logit_indices = np.cumsum(num_scheduled_tokens) - 1
+        # TODO: need to rum a dummy sampler for generate task
+        hidden_states = hidden_states[logit_indices]
+        output = self.model.compute_logits(hidden_states)
+        return output
+```
+
+引用理由：profiling 那一次前向按「`max_num_reqs` 条请求、合计 `max_num_tokens` 个 token」的最坏形状构造，这是激活峰值口径的直接证据。
+
+## docs/source/faqs.md#L138-L148
+
+```markdown
+### 12. How to handle the out-of-memory issue?
+
+OOM errors typically occur when the model exceeds the memory capacity of a single NPU. For general guidance, you can refer to [vLLM OOM troubleshooting documentation](https://docs.vllm.ai/en/latest/usage/troubleshooting/#out-of-memory).
+
+In scenarios where NPUs have limited high bandwidth memory (on-chip memory) capacity, dynamic memory allocation/deallocation during inference can exacerbate memory fragmentation, leading to OOM. To address this:
+
+- **Limit `--max-model-len`**: It can save the on-chip memory usage for KV cache initialization step.
+
+- **Adjust `--gpu-memory-utilization`**: If unspecified, the default value is `0.9`. You can decrease this value to reserve more memory to reduce fragmentation risks. See details in: [vLLM - Inference and Serving - Engine Arguments](https://docs.vllm.ai/en/latest/cli/serve/#-gpu-memory-utilization).
+
+- **Configure `PYTORCH_NPU_ALLOC_CONF`**: Set this environment variable to optimize NPU memory management. For example, you can use `export PYTORCH_NPU_ALLOC_CONF=expandable_segments:True` to enable virtual memory feature to mitigate memory fragmentation caused by frequent dynamic memory size adjustments during runtime. See details in [PYTORCH_NPU_ALLOC_CONF](https://www.hiascend.com/document/detail/zh/Pytorch/700/comref/Envvariables/Envir_012.html).
+```
+
+引用理由：官方文档给出 `gpu_memory_utilization` 的默认值 0.9，以及「调小它是为了给碎片留余量」这一使用侧解释——源码里读不到这层意图。
+
+## docs/source/tutorials/models/Dots3-Note.md#L400-L408
+
+```markdown
+| Form | KV cache | Reason |
+|---|---|---|
+| text-only | `--gpu-memory-utilization 0.92` | Automatic profiling, validated |
+| image | `--kv-cache-memory-bytes 2816M` | FusedMC2 peak needs about 3.64 GiB per card; too large a KV (3328M) causes OOM; combined with `--max-num-batched-tokens 1024` to chunk large-image prefill |
+| audio | `--kv-cache-memory-bytes 4G` | Single-request budget is about 1,131 tokens (text 360 + audio 259 + output 512); 1G provides only 2,220 tokens, insufficient, while 4G provides 8,956 tokens (2.19x) |
+
+> **Why image/audio use explicit `--kv-cache-memory-bytes` (measured)**: automatic profiling under v0.22.1 can allocate a large KV (audio gets 21,565 tokens at 0.92 and 25,686 tokens at 0.95), but the actual peak memory during graph capture exceeds the limit and causes the worker to exit, with logs showing `Worker proc VllmWorker-* died unexpectedly`. Explicit KV is more conservative than automatic profiling and reserves headroom for the about 3.76 GiB peak of graph capture, so it is the currently validated stable approach.
+>
+> If you insist on automatic profiling, you can set `VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS=0` to disable the ACL graph memory estimation and try again; this approach has not been validated on single modality and is not recommended as the default configuration for external deployment testing.
+```
+
+引用理由：官方文档实测记录，证明「图捕获阶段的峰值不在 KV 预算里」会真的把 worker 打死，也给出了真实场景下改用显式字节数的理由与 `--kv-cache-memory-bytes` 的实际拼写。

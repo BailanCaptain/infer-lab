@@ -1,8 +1,8 @@
-# Recompute CPU Offload 源码片段
+# Recompute CPU Offload —— 引用片段
 
-来源仓库：vllm-ascend@28bf3a2e（ref `main`）。
+来源仓库 `vllm-ascend@28bf3a2e`（ref `main`）。以下片段按页面 `sources` 列表顺序排列，编号即正文内联标记里的编号。
 
-## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L3-L23
+## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L3-L38
 
 ```markdown
 ## Overview
@@ -26,13 +26,32 @@ one new token, plus speculative tokens if MTP is enabled, per request. This is
 efficient for decode but too small for recomputing long prompts after
 preemption. Recompute CPU offload avoids sending such requests back through the
 full prompt recompute path when their KV state can be preserved locally.
+
+## Key Concepts
+
+* **Recompute preemption**: When Decode-side HBM KV cache is exhausted,
+  `RecomputeScheduler` can preempt a running request and later resume it.
+* **CPU DRAM preservation**: `RecomputeCPUOffloadConnector` stores the
+  preempted request's computed KV blocks in CPU memory.
+* **H2D restore**: When the preempted request is scheduled again, the connector
+  restores the preserved KV blocks before model forward.
+* **Fallback behavior**: If the connector is not configured, the recompute
+  scheduler is not enabled, or CPU offload capacity is insufficient, vLLM
+  falls back to the original recompute behavior.
+* **`MultiConnector` integration**: In P/D disaggregation, use
+  `MultiConnector` to combine the P/D connector, such as `MooncakeConnectorV1`,
+  with `RecomputeCPUOffloadConnector` on Decode nodes.
 ```
 
-官方文档给出的「为什么需要它」——Decode 节点的 `max_num_batched_tokens` 被调成只够一步 decode，喂不下重算长 prompt。正文 `## 为什么需要它` 依据这一段。
+支撑「一句话」「为什么需要它」里 Decode 节点 `max_num_batched_tokens` 的取值习惯、opt-in 定位，以及未配置连接器 / 容量不足时回退到原 recompute 行为的说法。
 
-## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L44-L54
+## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L40-L74
 
-```markdown
+````markdown
+## Configuration Parameters
+
+`RecomputeCPUOffloadConnector` is configured through `kv-transfer-config`.
+
 | Parameter | Description |
 | :--- | :--- |
 | `kv_connector` | Must be set to `RecomputeCPUOffloadConnector`. |
@@ -44,9 +63,29 @@ full prompt recompute path when their KV state can be preserved locally.
 Prefer `cpu_bytes_to_use_per_rank` when you want every rank/card to use the
 same offload capacity. For example, set `cpu_bytes_to_use_per_rank` to
 `17179869184` for 16 GiB per rank/card.
+
+If you use `cpu_bytes_to_use`, remember that it is divided by `world_size`. In
+typical P/D Decode deployments, this means the value is divided by the active
+Decode DP size. For example, when starting a DP2TP8 Decode service, setting
+`cpu_bytes_to_use` to 16 GiB gives each DP rank's cards about 8 GiB of recompute
+offload space. To avoid ambiguity, use `cpu_bytes_to_use_per_rank` for new
+deployments.
+
+`scheduler_config.recompute_scheduler_enable` must also be enabled in `additional-config` on
+P/D-disaggregated Decode nodes:
+
+```bash
+--additional-config '{"scheduler_config":{"recompute_scheduler_enable":true}}'
 ```
 
-配置项的官方定义与默认值，正文 `## 事实表` 的配置行依据这一段。
+```{note}
+`scheduler_config.recompute_scheduler_enable` is only valid in P/D-disaggregated mode
+(`kv_role` is `kv_producer` or `kv_consumer`). Do not enable it in PD-mixed
+mode (`kv_role` is `kv_both`).
+```
+````
+
+支撑「拿真实数字走一遍」的配置片段来由（每项参数的含义、`kv_role` 必须是 `kv_consumer`、`recompute_scheduler_enable` 必须同时开），以及事实表里 `kv_role` 一行。
 
 ## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L226-L254
 
@@ -82,25 +121,7 @@ blocks. The reload path clips the H2D range to the GPU block table actually
 allocated for the resumed request.
 ```
 
-官方给出的七步流程与滑窗/MTP 处理，正文 `## 怎么工作` 的骨架依据这一段，再用源码逐步对照。
-
-## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L76-L87
-
-```markdown
-## Docker Shared Memory
-
-Recompute CPU offload allocates pinned CPU tensors for the offloaded KV blocks.
-When running in Docker, make sure the container's shared memory is large enough.
-If `--shm-size` is too small, a large per-card offload budget, such as 16 GiB
-per card, can fail to allocate CPU tensors and may cause the service to OOM or
-hang during startup.
-
-For typical A3 deployments with a large recompute-offload budget, set
-`--shm-size=1024g` when starting the container. The following snippet follows
-the Docker style used by the DeepSeek-V4-Flash tutorial:
-```
-
-pinned 内存对容器 shm 的要求，正文 `## 拿真实数字走一遍` 的部署提示引用它。
+支撑「怎么工作」的整体时序叙述，以及滑窗块表对齐与 MTP lookahead 夹取这两条结论的文档侧说法。
 
 ## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L256-L274
 
@@ -126,7 +147,7 @@ pinned 内存对容器 shm 的要求，正文 `## 拿真实数字走一遍` 的�
   request and the scheduler falls back to the original recompute behavior.
 ```
 
-限制清单，正文 `## 事实表` 的限制行与 `## 常见误解` 第 3 条依据它。
+支撑「为什么需要它」末尾的「拷贝未做吞吐优化」、「拿真实数字走一遍」里的 `--shm-size` 提醒，以及事实表「已知不支持」一行。
 
 ## docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L303-L307
 
@@ -138,18 +159,7 @@ blocks. `RecomputeCPUOffloadConnector` is specifically for preserving KV blocks
 of requests preempted by the Decode-side recompute scheduler.
 ```
 
-官方明确区分本特性与 KV Cache CPU Offload，正文 `## 常见误解` 第 1 条依据它。
-
-## docs/source/user_guide/configuration/additional_config.md#L141-L144
-
-```markdown
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `enable_balance_scheduling` | bool | `False` | Whether to enable balance scheduling. The legacy `VLLM_ASCEND_BALANCE_SCHEDULING` environment variable is no longer supported. |
-| `recompute_scheduler_enable` | bool | `False` | Whether to enable the recompute scheduler. **Only valid on PD-disaggregated D nodes** (`kv_role` is `kv_consumer`). **Do not enable on P nodes or in PD-mixed mode** (no `kv_transfer_config`, `kv_role` is `kv_producer`, or `kv_role` is `kv_both`); startup will fail with a clear error. |
-```
-
-`recompute_scheduler_enable` 的类型与默认值，正文 `## 事实表` 引用。
+支撑「常见误解」第三条与 `alternative-to: kv-cache-cpu-offload` 这条边的 note。
 
 ## vllm_ascend/platform.py#L966-L996
 
@@ -187,7 +197,7 @@ of requests preempted by the Decode-side recompute scheduler.
             vllm_config.scheduler_config = recompute_scheduler_config
 ```
 
-`recompute_scheduler_enable` 的三分支校验：P 节点降级为关闭、非 `kv_consumer` 直接报错、D 节点才替换 `scheduler_cls`。正文 `## 为什么需要它` 与 `## 事实表` 的适用范围行依据它。
+支撑事实表里「`recompute_scheduler_enable` 合法场景」一行：P 节点被强制改回 `False` 并告警，其余非 `kv_consumer` 情形直接 `ValueError`，只有 `kv_consumer` 才真正换上 `RecomputeScheduler`。
 
 ## vllm_ascend/distributed/kv_transfer/__init__.py#L91-L95
 
@@ -199,9 +209,20 @@ of requests preempted by the Decode-side recompute scheduler.
     )
 ```
 
-配置里写的字符串 `RecomputeCPUOffloadConnector` 到实现类 `RecomputeCPUOffloadConnectorV1` 的注册映射，正文 `## 事实表` 引用。
+支撑事实表里配置用的注册名 `RecomputeCPUOffloadConnector` 与实现类 `RecomputeCPUOffloadConnectorV1` 的对应关系。
 
-## vllm_ascend/core/recompute_scheduler.py#L415-L484
+## docs/source/user_guide/configuration/additional_config.md#L141-L144
+
+```markdown
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `enable_balance_scheduling` | bool | `False` | Whether to enable balance scheduling. The legacy `VLLM_ASCEND_BALANCE_SCHEDULING` environment variable is no longer supported. |
+| `recompute_scheduler_enable` | bool | `False` | Whether to enable the recompute scheduler. **Only valid on PD-disaggregated D nodes** (`kv_role` is `kv_consumer`). **Do not enable on P nodes or in PD-mixed mode** (no `kv_transfer_config`, `kv_role` is `kv_producer`, or `kv_role` is `kv_both`); startup will fail with a clear error. |
+```
+
+支撑事实表里 `recompute_scheduler_enable` 的类型与默认值 `False`。
+
+## vllm_ascend/core/recompute_scheduler.py#L415-L467
 
 ```python
                     transfer_config = self.vllm_config.kv_transfer_config
@@ -257,6 +278,13 @@ of requests preempted by the Decode-side recompute scheduler.
                             )
                         if recomputed_req == request:
                             break
+```
+
+支撑「怎么工作 / 抢占时：三选一」流程图的全部分支条件：分支入口判据是 `transfer_config is not None and not transfer_config.is_kv_producer`，钩子用 `getattr` 取（不装连接器时恒为 `False`），返回值决定保 KV 还是打回 Prefill。
+
+## vllm_ascend/core/recompute_scheduler.py#L468-L483
+
+```python
                     else:
                         self._preempt_request(
                             preempted_req,
@@ -275,7 +303,7 @@ of requests preempted by the Decode-side recompute scheduler.
                             break
 ```
 
-抢占分叉的全部逻辑：`update_state_before_preempt` 的返回值决定「本地保留」还是「回 Prefill 重算」；`else` 分支是普通抢占。正文 `## 怎么工作`、`## 为什么需要它` 与图 1 依据它。
+支撑流程图最左那条分支：没有 `kv_transfer_config` 或身份是 producer 时，走的是上游原语义的普通抢占，与本特性无关。
 
 ## vllm_ascend/core/recompute_scheduler.py#L222-L239
 
@@ -300,7 +328,7 @@ of requests preempted by the Decode-side recompute scheduler.
         assert [(r.request_id, r.client_index) for r in finished_reqs] == [(request.request_id, request.client_index)]
 ```
 
-回退路径不是本地排队等重跑，而是把请求以 `FINISHED_ABORTED` 结束掉。正文 `## 为什么需要它` 与 `## 常见误解` 第 2 条依据它。
+支撑「为什么需要它」与「常见误解」第一条：卸载失败的请求以 `FINISHED_ABORTED` 结束。
 
 ## vllm_ascend/core/recompute_scheduler.py#L1054-L1073
 
@@ -327,9 +355,43 @@ of requests preempted by the Decode-side recompute scheduler.
             )
 ```
 
-回退请求对外发出 `stop_reason="recomputed"` 的终止输出，由外层重投到 Prefill。正文 `## 为什么需要它` 依据它。
+支撑「打回 Prefill」这一说法的具体机制：向前端补发一条 `stop_reason="recomputed"` 的终止输出，由外部 P/D 代理重投。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L39-L70
+## vllm_ascend/core/recompute_scheduler.py#L621-L647
+
+```python
+                    # Get externally-cached tokens if using a KVConnector.
+                    if self.connector is not None:
+                        partial_tail = num_new_local_computed_tokens % self.block_size
+                        block_aligned_local = num_new_local_computed_tokens - partial_tail
+                        ext_tokens, load_kv_async = self.connector.get_num_new_matched_tokens(
+                            request, block_aligned_local
+                        )
+
+                        if ext_tokens is None:
+                            # The request cannot be scheduled because
+                            # the KVConnector couldn't determine
+                            # the number of matched tokens.
+                            request_queue.pop_request()
+                            step_skipped_waiting.prepend_request(request)
+                            continue
+                        selected_local_computed_tokens = num_new_local_computed_tokens
+                        if partial_tail and ext_tokens > partial_tail:
+                            new_computed_blocks = self._truncate_computed_blocks_for_connector(
+                                new_computed_blocks, block_aligned_local
+                            )
+                            num_new_local_computed_tokens = block_aligned_local
+                            num_external_computed_tokens = ext_tokens
+                        elif partial_tail:
+                            num_external_computed_tokens = 0
+                            load_kv_async = False
+                        else:
+                            num_external_computed_tokens = ext_tokens
+```
+
+支撑「换回不是抢占的镜像，而是伪装成一次外部命中」：换回走的是 WAITING 分支里的通用连接器路径，返回 `None` 时该请求本步被跳过并放回 `skipped_waiting`。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L39-L95
 
 ```python
 # Default CPU capacity: 8 GB
@@ -364,9 +426,57 @@ class RecomputeCPUOffloadConnectorV1(KVConnectorBase_V1, SupportsHMA):
                     cpu_capacity_per_rank / (1024**3),
                 )
             cpu_capacity_per_rank = explicit
+
+        self.scheduler_manager: RecomputeCPUOffloadScheduler | None = None
+        self.worker_handler: RecomputeCPUOffloadWorker | None = None
+
+        logger.info(
+            "RecomputeCPUOffloadConnector: role=%s, per_rank=%.2f GB, world_size=%d, offload_prefix_caching=%s",
+            role.name,
+            cpu_capacity_per_rank / (1024**3),
+            world_size,
+            enable_offload_prefix_caching,
+        )
+
+        if role == KVConnectorRole.SCHEDULER:
+            self.scheduler_manager = RecomputeCPUOffloadScheduler(
+                vllm_config,
+                kv_cache_config,
+                cpu_capacity_per_rank,
+                enable_offload_prefix_caching,
+            )
+        elif role == KVConnectorRole.WORKER:
+            self.worker_handler = RecomputeCPUOffloadWorker(
+                vllm_config,
+                kv_cache_config,
+                cpu_capacity_per_rank,
+            )
 ```
 
-三个配置项的解析：默认 8 GiB 总量、除以 `vllm_config.parallel_config.world_size` 得到每 rank 预算、`cpu_bytes_to_use_per_rank` 覆盖前者。正文 `## 事实表`、`## 拿真实数字走一遍` 与 `## 常见误解` 第 4 条依据它。
+支撑事实表里 `cpu_bytes_to_use` 默认 8 GiB、`cpu_bytes_to_use_per_rank` 覆盖规则与告警、`enable_offload_prefix_caching` 默认 `False` 且非 bool 抛 `ValueError`。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L91-L106
+
+```python
+        dcp_world_size = vllm_config.parallel_config.decode_context_parallel_size
+        pcp_world_size = vllm_config.parallel_config.prefill_context_parallel_size
+        assert dcp_world_size == 1 and pcp_world_size == 1
+        scheduler_block_size, hash_block_size = resolve_kv_cache_block_sizes(kv_cache_config, vllm_config)
+        self.cpu_coordinator: KVCacheCoordinator = get_kv_cache_coordinator(
+            kv_cache_config=self.cpu_kv_cache_config,
+            max_model_len=vllm_config.model_config.max_model_len,
+            max_num_batched_tokens=(vllm_config.scheduler_config.max_num_batched_tokens),
+            use_eagle=False,
+            enable_caching=self.enable_offload_prefix_caching,
+            enable_kv_cache_events=self.enable_kv_cache_events,
+            dcp_world_size=dcp_world_size,
+            pcp_world_size=pcp_world_size,
+            scheduler_block_size=scheduler_block_size,
+            hash_block_size=hash_block_size,
+        )
+```
+
+支撑事实表里的 DCP / PCP 硬约束（`assert` 要求两者都为 1），以及 CPU 侧块池由 `enable_offload_prefix_caching` 决定是否开启 caching。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L148-L172
 
@@ -398,44 +508,61 @@ class RecomputeCPUOffloadConnectorV1(KVConnectorBase_V1, SupportsHMA):
         )
 ```
 
-CPU 侧块数的换算公式：按 HBM 侧「每块字节数」等比折算，块大小与分组沿用 HBM 的 `kv_cache_groups`。正文 `## 拿真实数字走一遍` 依据它。
+支撑「拿真实数字走一遍」里调度器侧的 CPU 块数算式，以及 `builds-on: kv-cache-spec` 这条边——CPU 块池直接复用 `gpu_config.kv_cache_groups`。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L91-L106
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L174-L187
 
 ```python
-        dcp_world_size = vllm_config.parallel_config.decode_context_parallel_size
-        pcp_world_size = vllm_config.parallel_config.prefill_context_parallel_size
-        assert dcp_world_size == 1 and pcp_world_size == 1
-        scheduler_block_size, hash_block_size = resolve_kv_cache_block_sizes(kv_cache_config, vllm_config)
-        self.cpu_coordinator: KVCacheCoordinator = get_kv_cache_coordinator(
-            kv_cache_config=self.cpu_kv_cache_config,
-            max_model_len=vllm_config.model_config.max_model_len,
-            max_num_batched_tokens=(vllm_config.scheduler_config.max_num_batched_tokens),
-            use_eagle=False,
-            enable_caching=self.enable_offload_prefix_caching,
-            enable_kv_cache_events=self.enable_kv_cache_events,
-            dcp_world_size=dcp_world_size,
-            pcp_world_size=pcp_world_size,
-            scheduler_block_size=scheduler_block_size,
-            hash_block_size=hash_block_size,
-        )
+    def _align_group_block_ids(
+        self,
+        group_idx: int,
+        group_block_ids: list[int],
+        logical_num_blocks: int,
+    ) -> list[int]:
+        if logical_num_blocks <= 0:
+            return []
+        aligned_group_block_ids = list(group_block_ids)
+        if self._group_is_sliding_window[group_idx] and len(aligned_group_block_ids) < logical_num_blocks:
+            aligned_group_block_ids = [0] * (
+                logical_num_blocks - len(aligned_group_block_ids)
+            ) + aligned_group_block_ids
+        return aligned_group_block_ids[:logical_num_blocks]
 ```
 
-硬断言 DCP/PCP 必须为 1，以及 CPU 侧复用一套完整的 `KVCacheCoordinator` / `BlockPool`。正文 `## 事实表` 的约束行与 `## 怎么工作` 依据它。
+支撑「滑窗与 MTP」一节与事实表「滑窗组对齐」一行：前补 `0` 到 `logical_num_blocks` 而不是压缩非零 id。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L258-L306
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L195-L216
 
 ```python
-        if num_computed_tokens <= 0 or self._gpu_block_pool is None:
-            return False
+    def get_num_new_matched_tokens(self, request: "Request", num_computed_tokens: int) -> tuple[int | None, bool]:
+        state = self._preempted_req_states.get(request.request_id)
+        if state is None:
+            return 0, False
+        if not state.ready:
+            return None, False
 
-        kv_cache_groups = self.cpu_kv_cache_config.kv_cache_groups
-        group_gpu_blocks: list[list[KVCacheBlock | None]] = []
-        group_gpu_hashes: list[list[BlockHashWithGroupId | None]] = []
-        missing_hashes: set[BlockHashWithGroupId] = set()
-        num_unhashed = 0
-        num_mamba_blocks = 0
+        restorable_tokens = min(state.num_computed_tokens, request.num_tokens)
+        hit_length = max(0, restorable_tokens - num_computed_tokens)
+        if hit_length <= 0:
+            self._cleanup_preempt_cache_request(request.request_id)
+            return 0, False
 
+        state.load_start_tokens = num_computed_tokens
+        logger.debug(
+            "Recompute offload cache hit for request %s: load_start=%d, load_tokens=%d, stored_tokens=%d.",
+            request.request_id,
+            num_computed_tokens,
+            hit_length,
+            state.num_computed_tokens,
+        )
+        return hit_length, True
+```
+
+支撑换回路径的判定：store 未完成（`ready=False`）时返回 `None` 让调度器跳过本步，完成后返回 `(hit_length, True)` 当作外部命中。
+
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L266-L320
+
+```python
         for g, group_gpu_ids in enumerate(block_ids_by_group):
             gpu_blocks: list[KVCacheBlock | None] = []
             effective_hashes: list[BlockHashWithGroupId | None] = []
@@ -475,13 +602,7 @@ CPU 侧块数的换算公式：按 HBM 侧「每块字节数」等比折算，�
                         missing_hashes.add(block_hash)
             group_gpu_blocks.append(gpu_blocks)
             group_gpu_hashes.append(effective_hashes)
-```
 
-`_create_preempt_state` 的第一遍扫描：按 KV group 逐块分类，算出「需要新 CPU 块」的数量（未哈希块 + 缺失哈希块 + Mamba 块）。正文 `## 怎么工作` 与 `## 拿真实数字走一遍` 依据它。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L308-L320
-
-```python
         num_needed = num_unhashed + len(missing_hashes) + num_mamba_blocks
         if not any(any(gpu_block is not None for gpu_block in group) for group in group_gpu_blocks):
             return False
@@ -497,57 +618,7 @@ CPU 侧块数的换算公式：按 HBM 侧「每块字节数」等比折算，�
         cpu_block_iter = iter(self.cpu_block_pool.get_new_blocks(num_needed))
 ```
 
-容量判定：CPU 空闲块不够就直接返回 `False`，调度器随即走回退路径。正文 `## 怎么工作`「换出」一节与 `## 常见误解` 第 2 条依据这一段。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L174-L187
-
-```python
-    def _align_group_block_ids(
-        self,
-        group_idx: int,
-        group_block_ids: list[int],
-        logical_num_blocks: int,
-    ) -> list[int]:
-        if logical_num_blocks <= 0:
-            return []
-        aligned_group_block_ids = list(group_block_ids)
-        if self._group_is_sliding_window[group_idx] and len(aligned_group_block_ids) < logical_num_blocks:
-            aligned_group_block_ids = [0] * (
-                logical_num_blocks - len(aligned_group_block_ids)
-            ) + aligned_group_block_ids
-        return aligned_group_block_ids[:logical_num_blocks]
-```
-
-滑窗组的 block table 在前面补 0 以对齐逻辑位置，正文 `## 怎么工作` 的滑窗说明依据它。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L195-L216
-
-```python
-    def get_num_new_matched_tokens(self, request: "Request", num_computed_tokens: int) -> tuple[int | None, bool]:
-        state = self._preempted_req_states.get(request.request_id)
-        if state is None:
-            return 0, False
-        if not state.ready:
-            return None, False
-
-        restorable_tokens = min(state.num_computed_tokens, request.num_tokens)
-        hit_length = max(0, restorable_tokens - num_computed_tokens)
-        if hit_length <= 0:
-            self._cleanup_preempt_cache_request(request.request_id)
-            return 0, False
-
-        state.load_start_tokens = num_computed_tokens
-        logger.debug(
-            "Recompute offload cache hit for request %s: load_start=%d, load_tokens=%d, stored_tokens=%d.",
-            request.request_id,
-            num_computed_tokens,
-            hit_length,
-            state.num_computed_tokens,
-        )
-        return hit_length, True
-```
-
-换回的第一道判定：未就绪返回 `None`（调度器本步跳过该请求），就绪则以「外部命中 token 数 + 异步加载」的形式返回。正文 `## 怎么工作`「换回」一节与图 2 依据它。
+支撑「`_create_preempt_state` 是唯一的准入判定」：`logical_num_blocks = cdiv(num_computed_tokens, block_size)`、容量不足时打 warning 返回 `False`；同时支撑事实表「Mamba 组卸载范围」一行，以及 `builds-on: prefix-caching` 这条边（开 `enable_offload_prefix_caching` 才取 `gpu_block.block_hash` 做 CPU 块共享）。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L396-L412
 
@@ -571,46 +642,7 @@ CPU 侧块数的换算公式：按 HBM 侧「每块字节数」等比折算，�
             return False
 ```
 
-换回窗口 `[load_start_tokens, load_end_tokens)` 的计算，正文 `## 怎么工作` 与 `## 拿真实数字走一遍` 依据它。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L457-L488
-
-```python
-                aligned_group_gpu_ids = self._align_group_block_ids(
-                    g,
-                    block_ids_by_group[g],
-                    end_block,
-                )
-                for block_idx in range(start_block, end_block):
-                    cpu_block_id = group_cpu_ids[block_idx]
-                    gpu_block_id = aligned_group_gpu_ids[block_idx]
-                    if cpu_block_id <= 0 or gpu_block_id <= 0:
-                        continue
-                    cpu_block_ids.append(cpu_block_id)
-                    gpu_block_ids.append(gpu_block_id)
-
-        if not cpu_block_ids or len(cpu_block_ids) != len(gpu_block_ids):
-            raise RuntimeError(
-                "Recompute H2D block mapping is incomplete: "
-                f"req_id={request.request_id}, "
-                f"gpu_blocks={len(gpu_block_ids)}, "
-                f"cpu_blocks={len(cpu_block_ids)}"
-            )
-
-        assert self._gpu_block_pool is not None
-        self._gpu_block_pool.touch([self._gpu_block_pool.blocks[block_id] for block_id in gpu_block_ids])
-        state.load_transfer_meta = TransferMeta(gpu_block_ids, cpu_block_ids)
-        logger.info(
-            "Prepared recompute offload H2D load for request %s: tokens=[%d, %d), blocks=%d.",
-            request.request_id,
-            load_start_tokens,
-            load_end_tokens,
-            len(gpu_block_ids),
-        )
-        return True
-```
-
-CPU 块 → 新分配 HBM 块的逐块配对，`block_id <= 0` 的空洞被跳过（只搬非零块）。正文 `## 怎么工作`「换回」一节依据它。
+支撑「`update_state_after_alloc` 才根据真正分到的新 HBM 块建 CPU→HBM 映射」，以及 MTP lookahead 场景下 H2D 区间被 `min(...)` 夹取的说法。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L534-L571
 
@@ -654,55 +686,9 @@ CPU 块 → 新分配 HBM 块的逐块配对，`block_id <= 0` 的空洞被跳�
                     self._cleanup_preempt_cache_request(req_id)
 ```
 
-store 事件要被 `world_size` 个 worker 全部确认后才把请求置为 `ready`，之后才允许换回。正文 `## 怎么工作` 与状态图依据它。
+支撑「多卡要等齐」与事实表「store 完成判定」一行：累计计数达到 `_expected_worker_count`（= `parallel_config.world_size`）才置 `ready`；也支撑时序图末尾 `finished_recving` → `_cleanup_preempt_load_request` 这一步。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L595-L633
-
-```python
-    def request_finished(
-        self,
-        request: "Request",
-        block_ids: list[int],
-    ) -> tuple[bool, dict[str, Any] | None]:
-        state = self._preempted_req_states.get(request.request_id)
-        if state is not None and state.load_event is None:
-            if state.ready:
-                self._cleanup_preempt_cache_request(request.request_id)
-            else:
-                state.finished = True
-        return False, None
-
-    def request_finished_all_groups(
-        self,
-        request: "Request",
-        block_ids: tuple[list[int], ...],
-    ) -> tuple[bool, dict[str, Any] | None]:
-        return self.request_finished(request, block_ids=[])
-
-    def _cleanup_preempt_load_request(self, req_id: str) -> None:
-        state = self._preempted_req_states.get(req_id)
-        if state is None:
-            return
-
-        if state.load_event is not None:
-            reqs = self._preempt_load_event_to_reqs.get(state.load_event)
-            if reqs is not None:
-                with contextlib.suppress(ValueError):
-                    reqs.remove(req_id)
-                if not reqs:
-                    self._preempt_load_event_to_reqs.pop(state.load_event, None)
-
-        if state.load_transfer_meta is not None:
-            assert self._gpu_block_pool is not None
-            self._gpu_block_pool.free_blocks(
-                self._gpu_block_pool.blocks[block_id] for block_id in state.load_transfer_meta.gpu_block_ids
-            )
-        self._cleanup_preempt_cache_request(req_id)
-```
-
-CPU 块的释放时机：换回完成或请求结束时归还 `cpu_block_pool`；还没 store 完的请求先打 `finished` 标记延后清理。正文的状态图依据这一段。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L90-L115
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L90-L122
 
 ```python
         per_tensor_bytes_per_block = [tensor.shape[-1] * tensor.element_size() for tensor in unique_gpu_caches.values()]
@@ -731,9 +717,16 @@ CPU 块的释放时机：换回完成或请求结束时归还 `cpu_block_pool`�
 
         self.load_stream = torch.npu.Stream()
         self.store_stream = torch.npu.Stream()
+
+        logger.info(
+            "RecomputeCPUOffloadWorker scaffold registered %d unique KV tensors, allocating %d CPU blocks (%.2f GB).",
+            len(unique_gpu_caches),
+            self.num_cpu_blocks,
+            (self.num_cpu_blocks * total_bytes_per_block) / (1024**3),
+        )
 ```
 
-worker 侧按每块字节数算 CPU 块数（与 scheduler 侧不一致时以 scheduler 为准），并用 `pin_memory=True` 一次性分配镜像张量。正文 `## 拿真实数字走一遍` 与 shm 提示依据它。
+支撑「拿真实数字走一遍」第 4 步的 worker 侧块数算式与「与调度器不一致时对齐到调度器」，以及事实表里 pinned CPU 张量、两条传输流。
 
 ## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L175
 
@@ -782,11 +775,22 @@ worker 侧按每块字节数算 CPU 块数（与 scheduler 侧不一致时以 sc
         self._load_stream_waited = True
 ```
 
-D2H 与 H2D 两个方向都传 `sync=True`，即都阻塞在调度步内完成；注释说明了 D2H 必须早于 `_update_states()` 的原因。正文 `## 怎么工作` 与 `## 常见误解` 第 3 条依据它。
+支撑「搬运发生在 `handle_preemptions()` 里」以及「常见误解」第二条：store 与 load 两条路径都以 `sync=True` 提交。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L227-L273
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L216-L253
 
 ```python
+        if not src_block_ids:
+            if is_store:
+                self._completed_store_events[event_idx] = 1
+            else:
+                self._load_hwm = max(self._load_hwm, event_idx)
+            return
+
+        assert len(src_block_ids) == len(dst_block_ids)
+        assert self.gpu_kv_caches is not None
+        assert self.cpu_kv_caches is not None
+
         stream = self.store_stream if is_store else self.load_stream
         assert stream is not None
         torch.npu.synchronize()
@@ -814,64 +818,31 @@ D2H 与 H2D 两个方向都传 `sync=True`，即都阻塞在调度步内完成�
                                 gpu_tensor[src_block_id],
                                 non_blocking=True,
                             )
-                    else:
-                        # TODO: Replace this H2D torch copy with the NPU copy
-                        # backend dedicated kernel.
-                        if tensor_block_size_scale > 1:
-                            gpu_tensor[
-                                dst_block_id * tensor_block_size_scale : (dst_block_id + 1) * tensor_block_size_scale
-                            ].copy_(
-                                cpu_tensor[
-                                    src_block_id * tensor_block_size_scale : (src_block_id + 1)
-                                    * tensor_block_size_scale
-                                ],
-                                non_blocking=True,
-                            )
-                        else:
-                            gpu_tensor[dst_block_id].copy_(
-                                cpu_tensor[src_block_id],
-                                non_blocking=True,
-                            )
-            event = torch.npu.Event()
-            event.record(stream)
 ```
 
-搬运是「每块 × 每张 KV 张量」一次 `copy_`，提交前还有一次全局 `torch.npu.synchronize()`；源码 TODO 明确说这还不是专用 kernel。正文 `## 常见误解` 第 3 条与 `## 事实表` 的性能行依据它。
+支撑「常见误解」第二条与事实表「D2H / H2D 提交方式」一行：每次提交前先 `torch.npu.synchronize()`，逐块逐张量 `copy_`，且注释标明还没换成专用 NPU 拷贝算子。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/metadata.py#L15-L32
+## vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/metadata.py#L35-L52
 
 ```python
 @dataclass
-class RecomputeCPUOffloadMetadata(KVConnectorMetadata):
-    """Recompute offload transfers passed from scheduler to worker."""
+class RecomputeCPUOffloadWorkerMetadata(KVConnectorWorkerMetadata):
+    """Worker -> Scheduler metadata for completed store events.
 
-    # Whether any requests were preempted this step and need flush pending transfers.
-    need_flush: bool = False
+    Each worker reports {event_idx: 1} for newly completed stores.
+    ``aggregate()`` sums counts across workers within a step.
+    The scheduler-side manager accumulates across steps and processes
+    a store completion only when count reaches ``world_size``.
+    """
 
-    # Store blocks of newly preempted requests before their GPU blocks can
-    # be reused. The list may include a final partial block without a hash.
-    preempt_store_event: int = INVALID_JOB_ID
-    preempt_store_gpu_blocks: list[int] = field(default_factory=list)
-    preempt_store_cpu_blocks: list[int] = field(default_factory=list)
+    completed_store_events: dict[int, int]
 
-    # Preemption load event. Used when a previously preempted request resumes.
-    preempt_load_event: int = INVALID_JOB_ID
-    preempt_load_gpu_blocks: list[int] = field(default_factory=list)
-    preempt_load_cpu_blocks: list[int] = field(default_factory=list)
-    preempt_load_event_to_reqs: dict[int, list[str]] = field(default_factory=dict)
+    def aggregate(self, other: "KVConnectorWorkerMetadata") -> "KVConnectorWorkerMetadata":
+        assert isinstance(other, RecomputeCPUOffloadWorkerMetadata)
+        merged = dict(self.completed_store_events)
+        for k, v in other.completed_store_events.items():
+            merged[k] = merged.get(k, 0) + v
+        return RecomputeCPUOffloadWorkerMetadata(completed_store_events=merged)
 ```
 
-scheduler → worker 每步传递的全部字段，正文 `## 事实表` 与两张时序图的边依据它。
-
-## vllm_ascend/worker/model_runner_v1.py#L2088-L2093
-
-```python
-        if has_kv_transfer_group():
-            kv_connector_metadata = scheduler_output.kv_connector_metadata
-            assert kv_connector_metadata is not None
-            # Preemption stores must run before _update_states() zeroes newly
-            # allocated blocks that may reuse the same physical KV cache IDs.
-            get_kv_transfer_group().handle_preemptions(kv_connector_metadata)
-```
-
-`handle_preemptions` 在 `NPUModelRunner.execute_model` 里的唯一调用点，位置早于 `_update_states()`。正文 `## 怎么工作` 与图 1 依据它。
+支撑「多卡要等齐」：worker 每步上报 `{event_idx: 1}`，`aggregate()` 跨 worker 求和，调度器累计到 `world_size` 才算完成。

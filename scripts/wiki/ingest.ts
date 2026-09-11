@@ -399,6 +399,27 @@ export function strayPaths(changed: string[], allowed: Iterable<string>): string
   return changed.filter((p) => !res.some((re) => re.test(p)));
 }
 
+/**
+ * 把越界路径分成「本批新建的」与「本来就在、被改动的」。
+ *
+ * 这个区分是 2026-09-11 事故换来的：守卫当时对所有越界路径一律 `rmSync`，
+ * 结果把 `wiki/HANDBOOK.md`——规则的唯一真相源——删了，并把 11 个正常产出的
+ * agent 全判失败。而 agent 的白名单是 `Edit(_drafts/<id>.md)` 与
+ * `Edit(raw/<id>.md)`，它压根没有写 HANDBOOK 的权限，那次改动来自引擎外部。
+ *
+ * 所以两类要分开处置：
+ * - `created`：本批凭空多出来的文件。只可能是 agent 写的，删掉是正确的收容，
+ *   且它本来就不存在，删了不丢东西。
+ * - `modified`：本来就在的文件被改了。可能是人、编辑器、另一个进程——25 分钟的
+ *   窗口里这些都比 agent 越权更可能。**一律不删**，报出来让人自己看。
+ */
+export function classifyStray(stray: string[], before: Snapshot): { created: string[]; modified: string[] } {
+  const created: string[] = [];
+  const modified: string[] = [];
+  for (const p of stray) (before.has(p) ? modified : created).push(p);
+  return { created, modified };
+}
+
 // ---------- 并发池 ----------
 
 export async function runPool<T, R>(
@@ -470,12 +491,17 @@ export async function runExtractPhase(
   });
 
   const stray = strayPaths(diffSnapshot(before, snapshotDir(ctx.wikiRoot)), allowedAll);
-  for (const p of stray) rmSync(join(ctx.wikiRoot, p), { force: true });
+  const { created, modified } = classifyStray(stray, before);
+  // 新建的越界文件才删——本来就在的一律不动，见 classifyStray 的说明
+  for (const p of created) rmSync(join(ctx.wikiRoot, p), { force: true });
+  if (modified.length) {
+    deps.log(`! 本批运行期间这些已有文件被改动（不是 agent 能写的路径，未处理）：${modified.join(", ")}`);
+  }
 
   for (const r of results) {
     const draftPath = join(ctx.wikiRoot, `_drafts/${r.id}.md`);
     let reason = r.ok ? undefined : (r.reason ?? `exit ${r.exitCode}`);
-    if (!reason && stray.length) reason = `本批出现越界写入，已删除：${stray.join(", ")}`;
+    if (!reason && created.length) reason = `本批出现越界写入，已删除：${created.join(", ")}`;
     if (!reason && !existsSync(draftPath)) reason = "agent 结束但没有产出草稿";
     if (!reason) {
       const parsed = parsePage(`_drafts/${r.id}.md`, readFileSync(draftPath, "utf8"));

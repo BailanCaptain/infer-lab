@@ -338,6 +338,49 @@ describe("runExtractPhase", () => {
     const saved = JSON.parse(readFileSync(join(root, "_drafts/_failures.json"), "utf8"));
     expect(saved.b.sessionId).toBe("s-b");
   });
+  it("已存在的文件被改动：不删、不判失败，只报告（2026-09-11 事故）", async () => {
+    // 事故经过：11 个 agent 全部正常产出，但引擎跑的 25 分钟里 HANDBOOK.md 被
+    // 改了一次，守卫把它当越界写入**删掉**，并把 11 个 agent 全判失败。
+    // 删掉的是规则唯一真相源，而 agent 的白名单里根本没有它的写权限。
+    // 结论：守卫只能删「本批新建」的文件，绝不能删本来就在的。
+    const root = setup();
+    const handbook = join(root, "HANDBOOK.md");
+    writeFileSync(handbook, "原始规则");
+    const runAgent: RunAgent = async (req) => {
+      writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+      if (req.id === "b") writeFileSync(handbook, "被改动的规则");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" } as AgentResult;
+    };
+    const logs: string[] = [];
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      runAgent,
+      concurrency: 3,
+      log: (l) => logs.push(l),
+    });
+    expect(existsSync(handbook)).toBe(true);
+    expect(readFileSync(handbook, "utf8")).toBe("被改动的规则");
+    expect(out.succeeded.sort()).toEqual(["a", "b", "c"]);
+    expect(Object.keys(out.failures)).toEqual([]);
+    expect(logs.join(" ")).toContain("HANDBOOK.md");
+  });
+
+  it("本批新建的越界文件仍然删除并判整批失败", async () => {
+    const root = setup();
+    const runAgent: RunAgent = async (req) => {
+      writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+      if (req.id === "b") writeFileSync(join(root, "concepts/evil.md"), "越界");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" } as AgentResult;
+    };
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      runAgent,
+      concurrency: 3,
+      log: () => {},
+    });
+    expect(existsSync(join(root, "concepts/evil.md"))).toBe(false);
+    expect(out.succeeded).toEqual([]);
+    expect(out.failures.a?.reason).toContain("concepts/evil.md");
+  });
+
   it("无越界时：合法草稿成功，不合法草稿与 ok=false 的记失败，互不阻塞", async () => {
     const root = setup();
     const runAgent: RunAgent = async (req) => {

@@ -4,9 +4,11 @@ import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router";
 import remarkGfm from "remark-gfm";
 import { CHAPTER_TITLES } from "../../content/wiki/chapters";
+import { remarkEvidenceMarks } from "../../content/wiki/evidenceMarks";
 import { getPage, listPages, rewriteRelativeLink, sourceUrl } from "../../content/wiki/index";
+import { Mermaid } from "../../content/wiki/Mermaid";
 import { parseRepoRef, type RegistryEntry } from "../../content/wiki/schema";
-import { EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
+import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { ChatDrawer } from "../wiki/ChatDrawer";
 import "../../design/wiki.css";
 
@@ -16,6 +18,26 @@ const TYPE_LABEL: Record<string, string> = {
   source: "来源",
   pr: "PR",
 };
+
+const EVIDENCE_LETTERS = new Set(EVIDENCE_LEVELS_INFO.map((e) => e.level as string));
+
+type HastNode = {
+  type: string;
+  tagName?: string;
+  value?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+};
+
+/** `<pre><code class="language-mermaid">…</code></pre>` → 图的源码；不是图就返回 null */
+function mermaidSource(node: unknown): string | null {
+  const code = (node as HastNode | undefined)?.children?.[0];
+  if (code?.type !== "element" || code.tagName !== "code") return null;
+  const cls = code.properties?.className;
+  if (!Array.isArray(cls) || !cls.includes("language-mermaid")) return null;
+  const text = code.children?.[0];
+  return text?.type === "text" && text.value ? text.value.trim() : null;
+}
 
 export function WikiPage() {
   const { id } = useParams();
@@ -112,8 +134,22 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
 
       <div className="wiki-body" data-testid="wiki-body">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkEvidenceMarks]}
           components={{
+            // ```mermaid 块渲染成图。HANDBOOK 要求讲结构关系时必须画图，
+            // 不接这一段图就会以源码形式显示。在 pre 而不是 code 上拦，
+            // 否则 <figure> 会落进 <pre> 里。
+            pre: ({ children, node }) => {
+              const chart = mermaidSource(node);
+              return chart ? <Mermaid chart={chart} /> : <pre>{children}</pre>;
+            },
+            // remarkEvidenceMarks 把内联的 [C] 变成 <abbr>C</abbr>。
+            // markdown 本身没有 abbr 语法，所以单字母的 abbr 一定是它产的。
+            abbr: ({ children, ...rest }) => {
+              const level = String(children);
+              if (EVIDENCE_LETTERS.has(level)) return <EvidenceBadge level={level} />;
+              return <abbr {...rest}>{children}</abbr>;
+            },
             a: ({ href, children }) => {
               const to = rewriteRelativeLink(href ?? "");
               const external = /^https?:/i.test(to);

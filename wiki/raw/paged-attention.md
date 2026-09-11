@@ -1,6 +1,22 @@
-# paged-attention 源码片段
+# paged-attention 引用的源码片段
 
-## vllm_ascend/attention/attention_v1.py#L113-L121
+来源仓库：vllm-ascend@28bf3a2e（ref main）。
+
+## vllm_ascend/attention/attention_v1.py#L77-L83
+
+```python
+@register_backend(AttentionBackendEnum.CUSTOM, "ASCEND")
+class AscendAttentionBackend(AttentionBackend):
+    accept_output_buffer: bool = True
+
+    @staticmethod
+    def get_name() -> str:
+        return "CUSTOM"
+```
+
+昇腾后端不是上游某个 PagedAttention 后端的子类，而是以 `AttentionBackendEnum.CUSTOM` 注册的独立后端，后端名字面量是 `"CUSTOM"`。用于说明「与上游的差异」一节里「同一套 block 抽象、不同的后端实现」这一点。
+
+## vllm_ascend/attention/attention_v1.py#L113-L153
 
 ```python
     @staticmethod
@@ -12,13 +28,7 @@
         cache_dtype_str: str = "",
     ) -> tuple[int, ...]:
         return (2, num_blocks, block_size, num_kv_heads, head_size)
-```
 
-昇腾后端向 vLLM 声明的 KV Cache 张量形状，K 与 V 打包在同一张量的第 0 维。
-
-## vllm_ascend/attention/attention_v1.py#L123-L149
-
-```python
     @staticmethod
     def swap_blocks(
         src_kv_cache: list[torch.Tensor],
@@ -46,19 +56,13 @@
             value_caches = kv_cache[1]
             key_caches[dst_indices] = key_caches[src_indices]
             value_caches[dst_indices] = value_caches[src_indices]
-```
 
-块搬运/复制以块号张量索引第 1 维，说明 block 是唯一的迁移与复用粒度。
-
-## vllm_ascend/attention/attention_v1.py#L151-L153
-
-```python
     @staticmethod
     def get_supported_kernel_block_sizes() -> list[int]:
         return [128]
 ```
 
-后端只声明支持 block_size=128，是「支持的 block_size」问题的直接证据。
+页面的核心事实：KV Cache 声明形状 `(2, num_blocks, block_size, num_kv_heads, head_size)`；`swap_blocks` / `copy_blocks` 都以 block 为最小搬运单位、直接对第 0 维做索引赋值；后端只声明支持 `block_size = 128`。
 
 ## vllm_ascend/attention/attention_v1.py#L200-L210
 
@@ -76,9 +80,9 @@
     slot_mapping: torch.Tensor = None
 ```
 
-AscendMetadata 中承载 block_table 与 slot_mapping 的字段及其形状注释。
+`AscendMetadata` 里 block_table 与 slot_mapping 两个字段的形状与语义（slot = block_id × block_size + offset），用于「怎么工作」与事实表。
 
-## vllm_ascend/attention/attention_v1.py#L249-L253
+## vllm_ascend/attention/attention_v1.py#L251-L253
 
 ```python
         self.max_num_blocks_per_req = cdiv(
@@ -86,11 +90,74 @@ AscendMetadata 中承载 block_table 与 slot_mapping 的字段及其形状注�
         )
 ```
 
-block_table 的列数由 max_model_len 除以 128 向上取整算出。
+block_table 的列数由 `cdiv(max_model_len, 128)` 决定，用于「拿真实数字走一遍」里算出 320 列。
 
-## vllm_ascend/attention/attention_v1.py#L1324-L1333
+## vllm_ascend/attention/attention_v1.py#L1637-L1657
 
 ```python
+        if len(kv_cache) > 1:
+            if self.key_cache is None:
+                self.key_cache, self.value_cache = kv_cache[0], kv_cache[1]
+            if self.kv_sharing_target_layer_name is not None:
+                # KV-sharing target layers consume another layer's cache.
+                # Writing their dummy/current K/V would overwrite shared slots.
+                if self.is_kv_producer:
+                    attn_metadata.reshape_cache_event.record()
+                return query, key, value, output
+            slots = attn_metadata.slot_mapping
+            encoder_decoder = self.attn_type == AttentionType.ENCODER_DECODER
+            DeviceOperator.reshape_and_cache(
+                key=key[: attn_metadata.num_actual_tokens] if not encoder_decoder else key,
+                value=value[: attn_metadata.num_actual_tokens] if not encoder_decoder else value,
+                key_cache=self.key_cache,
+                value_cache=self.value_cache,
+                # quick fix to make sure slots is int32 for cross attention case.
+                # see: https://github.com/vllm-project/vllm/blob/ce88756b967c2c5006746a424c15dd59a284ed8c/vllm/model_executor/layers/attention/cross_attention.py#L117
+                slot_mapping=slots[: attn_metadata.num_actual_tokens] if not encoder_decoder else slots.to(torch.int32),
+            )
+            notify_kv_cache_written()
+```
+
+写侧：`kv_cache[0]` / `kv_cache[1]` 被拆成 key_cache 与 value_cache，本步新算出的 K/V 按 `slot_mapping` 散写进去。
+
+## vllm_ascend/device/device_op.py#L43-L53
+
+```python
+class BaseDeviceAdaptor:
+    @classmethod
+    def reshape_and_cache(cls, key, value, key_cache, value_cache, slot_mapping):
+        torch_npu.npu_scatter_pa_kv_cache(
+            key=key.contiguous(),
+            value=value.contiguous(),
+            key_cache=key_cache,
+            value_cache=value_cache,
+            slot_mapping=slot_mapping.contiguous(),
+            cache_mode="Norm",
+        )
+```
+
+写侧最终落到的昇腾算子是 `npu_scatter_pa_kv_cache`（默认设备适配器），用于「怎么工作」的图与事实表。
+
+## vllm_ascend/attention/attention_v1.py#L1307-L1345
+
+```python
+        if attn_metadata.attn_state == AscendAttentionState.PrefillNoCache:
+            block_size = 128
+            block_table = None
+            actual_seq_lengths_kv = attn_metadata.actual_seq_lengths_q
+            if self.attn_type == AttentionType.ENCODER_DECODER:
+                actual_seq_lengths_kv = torch.cumsum(attn_metadata.seq_lens, dim=0).tolist()
+        elif attn_metadata.attn_state == AscendAttentionState.PrefillCacheHit:
+            batch_size = attn_metadata.seq_lens.shape[0]
+            block_table = attn_metadata.block_tables[:batch_size, :]
+            num_block, block_size, _, _ = self.key_cache.shape  # type: ignore
+            key = self.key_cache.view(  # type: ignore
+                num_block, block_size, -1
+            )
+            value = self.value_cache.view(  # type: ignore
+                num_block, block_size, -1
+            )
+            actual_seq_lengths_kv = attn_metadata.seq_lens_list
         elif attn_metadata.attn_state == AscendAttentionState.DecodeOnly:
             num_block, block_size, _, _ = self.key_cache.shape  # type: ignore
             key = self.key_cache.view(  # type: ignore
@@ -101,9 +168,50 @@ block_table 的列数由 max_model_len 除以 128 向上取整算出。
             )
             block_table = attn_metadata.block_tables
             actual_seq_lengths_kv = attn_metadata.seq_lens_list
+        # chunked prefill.
+        else:
+            num_block, block_size, _, _ = self.key_cache.shape  # type: ignore
+            key = self.key_cache.view(  # type: ignore
+                num_block, block_size, -1
+            )
+            value = self.value_cache.view(  # type: ignore
+                num_block, block_size, -1
+            )
+            block_table = attn_metadata.block_tables
+            actual_seq_lengths_kv = attn_metadata.seq_lens_list
+        return key, value, block_size, block_table, actual_seq_lengths_kv
 ```
 
-decode 走 FIA 时，KV Cache 被压成三维 (num_block, block_size, n_kv*d_h)，block_table 原样取自 metadata。
+FIA 路径怎么把分页缓存交给算子：block_size 从 `key_cache.shape[1]` 读出，key/value 被 reshape 成 `(num_block, block_size, num_kv_heads * head_size)`，block_table 直接取 `attn_metadata.block_tables`；只有 `PrefillNoCache` 传 `block_table=None`。
+
+## vllm_ascend/attention/attention_v1.py#L1453-L1474
+
+```python
+                attn_output, _ = DeviceOperator.npu_fused_infer_attention_score(
+                    query=query,
+                    key=key,
+                    value=value,
+                    atten_mask=attn_metadata.attn_mask,
+                    block_table=block_table,
+                    input_layout="TND",
+                    block_size=block_size,
+                    actual_seq_lengths=attn_metadata.actual_seq_lengths_q,
+                    actual_seq_lengths_kv=actual_seq_lengths_kv,
+                    num_key_value_heads=self.num_kv_heads,
+                    num_heads=self.num_heads,
+                    head_size=self.head_size,
+                    scale=self.scale,
+                    key_cache=self.key_cache,
+                    value_cache=self.value_cache,
+                    current_key=key,
+                    current_value=passed_value,
+                    attn_metadata=attn_metadata,
+                    is_prefill_no_cache=attn_metadata.attn_state == AscendAttentionState.PrefillNoCache,
+                    sparse_mode=3,
+                )
+```
+
+默认读路径（causal、无 sliding window）最终调用的 FIA 算子，`block_table` 与 `block_size` 作为普通入参传入，layout 是 `TND`。
 
 ## vllm_ascend/attention/attention_v1.py#L1561-L1580
 
@@ -130,7 +238,7 @@ decode 走 FIA 时，KV Cache 被压成三维 (num_block, block_size, n_kv*d_h)�
         return output
 ```
 
-PA 算子的实际调用点：block_table 与 context_lens 直接从 metadata 传入，KV Cache 保持四维原布局。
+PA 路径：decode 时 `block_table` 与 `context_lens` 直接作为参数传进 `torch_npu._npu_paged_attention`，KV 传的是未 reshape 的 `key_cache` / `value_cache`。
 
 ## vllm_ascend/attention/attention_v1.py#L1660-L1681
 
@@ -159,7 +267,7 @@ PA 算子的实际调用点：block_table 与 context_lens 直接从 metadata �
         return output
 ```
 
-PA 与 FIA 的分叉点：只有 DecodeOnly、无 sliding window、且 using_paged_attention 为真才走 PA。
+PA 与 FIA 的分流点，以及走 PA 的三个必要条件（DecodeOnly、无 sliding window、`using_paged_attention` 为真）。
 
 ## vllm_ascend/attention/attention_v1.py#L1695-L1705
 
@@ -177,7 +285,7 @@ PA 与 FIA 的分叉点：只有 DecodeOnly、无 sliding window、且 using_pag
         """
 ```
 
-forward 入口对 query/key/value 与 kv_cache 形状的自述，用于「形状与数值」一节。
+forward 的输入输出张量形状，事实表用。
 
 ## vllm_ascend/attention/utils.py#L206-L222
 
@@ -201,53 +309,63 @@ def using_paged_attention(runtime_shape: int, vllm_config: VllmConfig, head_size
     return runtime_shape in get_ascend_config().pa_shape_list
 ```
 
-PA 分支的全部启用条件，是「PA 默认不开」这一结论的依据。
+PA 开关的全部判定条件：投机解码关、A5 关、`cudagraph_mode` 必须是 `FULL_DECODE_ONLY`、当前 batch 的 token 数必须命中 `pa_shape_list`。
 
-## vllm_ascend/ascend_config.py#L378-L383
-
-```python
-    enable_reduce_sample: bool = False
-    enable_dsa_cp: bool = False
-    draft_window_size: int | None = None
-    mix_placement: bool = False
-    pa_shape_list: list[Any] = dataclasses.field(default_factory=list)
-    mega_moe_max_tokens: int = 131072
-```
-
-`pa_shape_list` 的默认值为空列表。
-
-## docs/source/user_guide/configuration/additional_config.md#L61
-
-```markdown
-| `pa_shape_list`                     | list | `[]`    | The custom shape list of page attention ops.                                                              |
-```
-
-官方配置表中 `pa_shape_list` 的类型与默认值。
-
-## docs/source/faqs.md#L304-L306
-
-```markdown
-### 25. What is the difference between FIA and PA operators for attention?
-
-FIA (Flash Attention) is the default attention operator in vLLM-Ascend. In some batch-size settings (particularly medium concurrency), FIA may exhibit suboptimal performance. The PA (Page Attention) operator can be manually enabled via `pa_shape_list` in `--additional-config`. When the runtime batch size matches a value in `pa_shape_list`, the framework switches to PA. This is a temporary tuning knob — future FIA optimizations will make this parameter obsolete.
-```
-
-仓库自带文档对 FIA 与 PA 定位的官方说明。
-
-## vllm_ascend/utils.py#L1167-L1204
+## vllm_ascend/attention/utils.py#L94-L138
 
 ```python
-def refresh_block_size(vllm_config):
-    """
-    Refresh the block size in cache config.
-    """
-    cache_config = vllm_config.cache_config
-    scheduler_config = vllm_config.scheduler_config
-    model_config = vllm_config.model_config
+def update_paged_attention_graph_param(
+    update_stream,
+    handle,
+    event,
+    param: PagedAttentionGraphParam,
+    block_table: torch.Tensor,
+    seq_lens: torch.Tensor,
+) -> None:
+    (
+        query,
+        key_cache,
+        value_cache,
+        num_kv_heads,
+        num_heads,
+        scale,
+        _captured_block_table,
+        _captured_seq_lens,
+        output,
+    ) = param.params
+    workspace = torch_npu._npu_paged_attention_get_workspace(
+        query=query,
+        key_cache=key_cache,
+        value_cache=value_cache,
+        num_kv_heads=num_kv_heads,
+        num_heads=num_heads,
+        scale_value=scale,
+        block_table=block_table,
+        context_lens=seq_lens,
+        out=output,
+    )
+    torch.npu.graph_task_update_begin(update_stream, handle)
+    torch_npu._npu_paged_attention(
+        query=query,
+        key_cache=key_cache,
+        value_cache=value_cache,
+        num_kv_heads=num_kv_heads,
+        num_heads=num_heads,
+        scale_value=scale,
+        block_table=block_table,
+        context_lens=seq_lens,
+        out=output,
+        workspace=workspace,
+    )
+    torch.npu.graph_task_update_end(update_stream)
+    event.record(update_stream)
+```
 
-    if not cache_config:
-        return
+图模式下 block_table 怎么更新：捕获时记下的 `_captured_block_table` 被丢弃，重放前用本步 metadata 里的 `block_table` 与 `seq_lens` 重新下发任务。
 
+## vllm_ascend/utils.py#L1178-L1204
+
+```python
     if cache_config.block_size is None:
         cache_config.block_size = 128
 
@@ -277,81 +395,33 @@ def refresh_block_size(vllm_config):
             return
 ```
 
-block_size 默认值与被强制拉回 128 的路径。
+block_size 的实际来源：不指定就是 128；开了 prefix caching 或 chunked prefill 会被强制改回 128（deepseek_v4 与 hybrid 模型走各自的分支）。
 
-## vllm_ascend/worker/model_runner_v1.py#L4850-L4863
+## docs/source/user_guide/configuration/additional_config.md#L61-L61
 
-```python
-            def backend_supports_kernel_block_size(
-                attn_backend: type[AttentionBackend],
-                block_size: int,
-            ) -> bool:
-                for supported_size in attn_backend.get_supported_kernel_block_sizes():
-                    if isinstance(supported_size, int):
-                        if block_size == supported_size:
-                            return True
-                    elif isinstance(supported_size, MultipleOf):
-                        if block_size % supported_size.base == 0:
-                            return True
-                    else:
-                        raise ValueError(f"Unknown supported size: {supported_size}")
-                return False
+```markdown
+| `pa_shape_list`                     | list | `[]`    | The custom shape list of page attention ops.                                                              |
 ```
 
-`get_supported_kernel_block_sizes()` 的消费方：runner 用它校验实际 block_size 是否被后端接受。
+`pa_shape_list` 的类型与默认值（默认空列表，即默认不走 PA 算子）。
 
-## vllm_ascend/device/device_op.py#L43-L53
+## docs/source/faqs.md#L304-L306
 
-```python
-class BaseDeviceAdaptor:
-    @classmethod
-    def reshape_and_cache(cls, key, value, key_cache, value_cache, slot_mapping):
-        torch_npu.npu_scatter_pa_kv_cache(
-            key=key.contiguous(),
-            value=value.contiguous(),
-            key_cache=key_cache,
-            value_cache=value_cache,
-            slot_mapping=slot_mapping.contiguous(),
-            cache_mode="Norm",
-        )
+```markdown
+### 25. What is the difference between FIA and PA operators for attention?
+
+FIA (Flash Attention) is the default attention operator in vLLM-Ascend. In some batch-size settings (particularly medium concurrency), FIA may exhibit suboptimal performance. The PA (Page Attention) operator can be manually enabled via `pa_shape_list` in `--additional-config`. When the runtime batch size matches a value in `pa_shape_list`, the framework switches to PA. This is a temporary tuning knob — future FIA optimizations will make this parameter obsolete.
 ```
 
-分页写入侧：按 slot_mapping 把本步 K/V 散写进块内槽位。
+官方对 FIA 与 PA 两个算子关系的说明：FIA 是默认，PA 是临时调优开关。这是「为什么需要它」里唯一的官方级依据。
 
-## vllm_ascend/attention/attention_v1.py#L1628-L1657
+## docs/source/user_guide/feature_guide/graph_mode.md#L76-L79
 
-```python
-    def reshape_and_cache(
-        self,
-        query: torch.Tensor,
-        key: torch.Tensor,
-        value: torch.Tensor,
-        kv_cache: tuple[torch.Tensor],
-        attn_metadata: AscendMetadata,
-        output: torch.Tensor,
-    ):
-        if len(kv_cache) > 1:
-            if self.key_cache is None:
-                self.key_cache, self.value_cache = kv_cache[0], kv_cache[1]
-            if self.kv_sharing_target_layer_name is not None:
-                # KV-sharing target layers consume another layer's cache.
-                # Writing their dummy/current K/V would overwrite shared slots.
-                if self.is_kv_producer:
-                    attn_metadata.reshape_cache_event.record()
-                return query, key, value, output
-            slots = attn_metadata.slot_mapping
-            encoder_decoder = self.attn_type == AttentionType.ENCODER_DECODER
-            DeviceOperator.reshape_and_cache(
-                key=key[: attn_metadata.num_actual_tokens] if not encoder_decoder else key,
-                value=value[: attn_metadata.num_actual_tokens] if not encoder_decoder else value,
-                key_cache=self.key_cache,
-                value_cache=self.value_cache,
-                # quick fix to make sure slots is int32 for cross attention case.
-                # see: https://github.com/vllm-project/vllm/blob/ce88756b967c2c5006746a424c15dd59a284ed8c/vllm/model_executor/layers/attention/cross_attention.py#L117
-                slot_mapping=slots[: attn_metadata.num_actual_tokens] if not encoder_decoder else slots.to(torch.int32),
-            )
-            notify_kv_cache_written()
-        return query, key, value, output
+````markdown
+```bash
+vllm serve Qwen/Qwen3-0.6B \
+  --compilation-config '{"cudagraph_mode": "PIECEWISE"}'
 ```
+````
 
-`self.key_cache / self.value_cache` 由 `kv_cache[0] / kv_cache[1]` 切出，写入发生在 attention 计算之前。
+官方给出的 `cudagraph_mode` 命令行写法，「拿真实数字走一遍」的配置片段照此格式写成 `FULL_DECODE_ONLY`。

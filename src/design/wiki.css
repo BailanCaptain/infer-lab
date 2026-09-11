@@ -783,3 +783,58 @@
   line-height: 17px;
   color: var(--color-ink-faint);
 }
+
+/* ---------- 正文里的图 ---------- */
+/* mermaid 图。正文最宽 72ch，图常常比这宽，所以允许它溢出到 96ch 并可横向滚。 */
+.wiki-diagram {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  overflow-x: auto;
+  max-width: min(96ch, 100%);
+}
+
+.wiki-diagram-svg {
+  display: flex;
+  justify-content: center;
+}
+
+.wiki-diagram-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 图还没渲染出来时占住高度，避免正文跳动 */
+.wiki-diagram-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: var(--color-ink-faint);
+  font-size: var(--text-label);
+}
+
+/* 渲染失败退回源码，但要让人一眼看出这是失败态而不是有意贴的代码 */
+.wiki-diagram-failed {
+  border-color: var(--color-danger);
+  background: var(--color-surface-sunken);
+}
+
+.wiki-body .wiki-diagram-failed pre {
+  margin: 0;
+}
+
+.wiki-diagram-failed figcaption {
+  margin-top: 8px;
+  color: var(--color-danger);
+  font-size: var(--text-label);
+}
+
+/* 内联证据角标：正文句末的 [C] 渲染成它，比字面量好读 */
+.wiki-body .wiki-evidence {
+  margin: 0 1px 0 3px;
+  vertical-align: 2px;
+  cursor: help;
+}

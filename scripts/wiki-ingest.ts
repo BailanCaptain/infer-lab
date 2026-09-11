@@ -7,9 +7,11 @@ import { join, resolve } from "node:path";
 import { runBuild } from "./wiki/build";
 import { formatDryRun, runClaude } from "./wiki/claude-cli";
 import { worktreeDir } from "./wiki/clone";
+import { keepUsed, parseDocVars } from "./wiki/docvars";
 import { loadHandbook } from "./wiki/handbook";
 import {
   applyIntegration,
+  DEFAULT_REF,
   extractRequest,
   type IngestContext,
   integrateRequest,
@@ -73,10 +75,35 @@ if (flag("--skip-existing")) {
 }
 features = [...features].sort((a, b) => a.priority - b.priority);
 
+// Task 28：文档变量表在本地解，不让 agent 上网（它的黑名单里有 WebFetch）。
+// 两个版本的构建系统不同：main 是 MkDocs、v0.23.0 还是 Sphinx，两处都认。
+const readIf = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);
+const docVars: Record<string, Record<string, string>> = {};
+for (const [name, r] of Object.entries(seeds.repos)) {
+  for (const ref of Object.keys(r.refs)) {
+    const abs = resolve(root, worktreeDir(r, ref));
+    const all = parseDocVars({
+      mkdocsYml: readIf(join(abs, "mkdocs.yml")),
+      confPy: readIf(join(abs, "docs/source/conf.py")),
+    });
+    // 只留文档正文里真正用到的——extra: 块里还有 generator 这类非变量配置
+    const docTexts = listDocFiles(join(abs, "docs")).map((f) => readFileSync(f, "utf8"));
+    const vars = keepUsed(all, docTexts);
+    if (Object.keys(vars).length > 0) docVars[worktreeKey(name, ref)] = vars;
+  }
+}
+// Task 27：llms.txt 是上游给 LLM 的官方文档索引，当地图注入
+const mainRepo = Object.entries(seeds.repos)[0];
+const llmsTxt = mainRepo
+  ? readIf(resolve(root, worktreeDir(mainRepo[1], DEFAULT_REF), "docs/source/llms.txt"))
+  : undefined;
+
 const ctx: IngestContext = {
   handbook: loadHandbook(wikiRoot),
   wikiRoot,
   repoRoots,
+  ...(Object.keys(docVars).length > 0 ? { docVars } : {}),
+  ...(llmsTxt ? { llmsTxt } : {}),
   today,
   timeoutMs: Number(arg("--timeout-min", "20")) * 60_000,
   batchIds: features.map((f) => f.id),
@@ -156,3 +183,15 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+
+/** 递归列出 docs 下的 md 文件，用于统计哪些文档变量真的被用到 */
+function listDocFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  const out: string[] = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) out.push(...listDocFiles(full));
+    else if (e.name.endsWith(".md")) out.push(full);
+  }
+  return out;
+}

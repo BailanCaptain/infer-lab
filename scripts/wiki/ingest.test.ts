@@ -282,6 +282,7 @@ describe("runExtractPhase", () => {
     repo: "r",
     ref: "main",
     entry: ["a.py"],
+    docs: [],
     ask: "?",
   });
   const seeds = {
@@ -466,5 +467,54 @@ describe("integrateRequest（Task 26 · stdin 不随总页数增长）", () => {
   it("没有相关页时明确说明，不让 agent 自己去扫全库", () => {
     const { stdin } = integrateRequest(drafts, [], ctx);
     expect(stdin).toMatch(/没有|无/);
+  });
+});
+
+describe("extractRequest · 文档与占位符（Task 27 / 28）", () => {
+  const withDocs = multiRefYaml.replace(
+    "    entry: [vllm_ascend/ops/layer_shard_linear.py]",
+    "    entry: [vllm_ascend/ops/layer_shard_linear.py]\n    docs: [docs/source/user_guide/configuration/additional_config.md]",
+  );
+
+  it("seeds 的 docs 字段被解析出来", () => {
+    expect(parseSeeds(withDocs).features[0]?.docs).toEqual([
+      "docs/source/user_guide/configuration/additional_config.md",
+    ]);
+  });
+
+  it("没写 docs 时默认空数组，旧 seeds 不受影响", () => {
+    expect(parseSeeds(multiRefYaml).features[0]?.docs).toEqual([]);
+  });
+
+  it("stdin 同时给出源码入口与文档入口", () => {
+    const sd = parseSeeds(withDocs);
+    const { stdin } = extractRequest(sd.features[0]!, sd, ctx);
+    expect(stdin).toContain("vllm_ascend/ops/layer_shard_linear.py");
+    expect(stdin).toContain("docs/source/user_guide/configuration/additional_config.md");
+  });
+
+  it("文档变量表写进 stdin，agent 不必上网就能展开占位符", () => {
+    const sd = parseSeeds(withDocs);
+    const withVars = {
+      ...ctx,
+      docVars: { "vllm-ascend@releases/v0.23.0": { pip_vllm_ascend_version: "0.23.0" } },
+    };
+    const { stdin } = extractRequest(sd.features[0]!, sd, withVars);
+    expect(stdin).toContain("pip_vllm_ascend_version");
+    expect(stdin).toContain("0.23.0");
+  });
+
+  it("没有变量表时不写这一段，不留空标题", () => {
+    const sd = parseSeeds(withDocs);
+    const { stdin } = extractRequest(sd.features[0]!, sd, ctx);
+    expect(stdin).not.toContain("文档变量表");
+  });
+
+  it("llms.txt 当地图写进 stdin", () => {
+    const sd = parseSeeds(withDocs);
+    const withMap = { ...ctx, llmsTxt: "## Getting Started\n- [Installation](https://x/installation.html)" };
+    const { stdin } = extractRequest(sd.features[0]!, sd, withMap);
+    expect(stdin).toContain("llms.txt");
+    expect(stdin).toContain("Installation");
   });
 });

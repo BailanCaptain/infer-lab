@@ -2223,26 +2223,31 @@ fetch + ReadableStream 读 SSE；消息里的相对链接改写为 `#/wiki/<id>`
 
 批量灌种一旦开跑就是上百页、上百美元，跑完才发现规则不对要全部重来。以下四条是 09-10 至 09-11 的讨论产出，都必须先落地：
 
-### Task 26: 解 R2 —— 整合阶段改为按需读页
+### Task 26: 解 R2 —— 整合阶段改为按需读页 ✅ 完成 2026-09-11（`8b0b8c6`）
 
 现状：HANDBOOK「整合」要求读 `concepts/` 全部现有页。实测 11 页 = 96 KB / 994 行，每页约 8.8 KB；120–160 页约 1.4 MB，粗估 40 万 token 量级，**会撞上下文上限，且每批重读一遍成本失控**。
 
 改法：整合 agent 只读 `index.md` 的摘要，加上「与本批草稿的 chapters 或 related 有交集」的那些页的正文。`integrateRequest` 负责挑页并写进 stdin。
 验收：构造 200 页的假 registry，整合请求的 stdin 长度不随总页数线性增长。
 
-### Task 27: seeds 的 `entry` 同时列源码与文档
+### Task 27: seeds 的 `entry` 同时列源码与文档 ✅ 完成 2026-09-11
 
 现状：`entry` 全指向 `.py`，agent 顺着源码摸，152 个文档只碰到 9 个。
 改法：seeds 每个 feature 的 `entry` 分成 `code:` 与 `docs:` 两组；`llms.txt` 注入提取 agent 的系统提示当地图。
 验收：跑一个 feature 的 `--dry-run`，stdin 里同时出现 `.py` 与 `docs/source/` 的路径。
 
-### Task 28: 占位符展开
+### Task 28: 占位符展开 ✅ 完成 2026-09-11
 
 现状：本地文档有 226 处 `{{ }}` 占位符（`{{ vllm_ascend_version }}` 占 167 处），扎堆在安装命令、pip 版本、镜像 tag。照抄会写出跑不了的命令。
-改法：HANDBOOK 已要求 agent 去官网取展开值；再加 lint 规则 `unexpanded-placeholder` 兜底。
-验收：构造一页含 `{{ x }}` 的草稿，lint 报红。
+**实施中改了方案**：原计划让 agent 去官网取展开值，但提取 agent 的黑名单里有 `WebFetch`，它根本上不了网。而变量表本来就在仓库里，于是改成**引擎在本地解好、随 prompt 一起给它**——更准、更快，还能随 ref 走。
 
-### Task 29: 新 lint 规则实现
+两个版本的构建系统还不一样：`main` 是 MkDocs（变量在 `mkdocs.yml` 的 `extra:`），`releases/v0.23.0` 还是 Sphinx（在 `docs/source/conf.py` 的 `myst_substitutions`），`scripts/wiki/docvars.ts` 两处都认。
+实测两个 ref 的 `installation.md` 展开后零残留。
+
+另一处实施中发现的坑：`extra:` 块里不全是替换变量（MkDocs Material 的 `generator: false` 是页脚开关），照单全收会把它当版本变量塞进 prompt。改为只保留文档正文里真正出现过 `{{ 它 }}` 的变量，9 个，`generator` 自动落选。
+验收：构造一页含 `{{ x }}` 的草稿，lint 报红（已在 Task 29 实现）。
+
+### Task 29: 新 lint 规则实现 ✅ 完成 2026-09-11（`23d8900`）
 
 HANDBOOK 的「Lint」切片已经声明了六条新规则，代码还没写：`missing-section`、`whatsnext-overflow`、`diagram-identifier`、`prerequisites-missing`、`doc-evidence`、`unexpanded-placeholder`。规则声明了却不执行，等于没有。
 验收：每条规则各有一个红样例与一个绿样例。

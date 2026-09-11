@@ -68,6 +68,9 @@ export const seedsSchema = z
         /** 本 feature 适用的 ref，必须是所属 repo 的 refs 的键 */
         ref: z.string().default(DEFAULT_REF),
         entry: z.array(z.string().min(1)).min(1),
+        /** 对应的官方文档文件（相对仓库根）。不写则 agent 只能顺着源码碰运气——
+         *  实测 152 个文档只被碰到 9 个（2026-09-11） */
+        docs: z.array(z.string().min(1)).default([]),
         ask: z.string().min(1),
       }),
     ),
@@ -111,6 +114,10 @@ export interface IngestContext {
   timeoutMs: number;
   /** 本批全部 feature id，供 related 参考 */
   batchIds: string[];
+  /** `repo@ref` → 该 ref 的文档变量表，用于在本地展开 `{{ }}` 占位符 */
+  docVars?: Record<string, Record<string, string>>;
+  /** 上游 docs/source/llms.txt 原文，当作找文档的地图 */
+  llmsTxt?: string;
 }
 
 export interface AgentRequest {
@@ -140,6 +147,27 @@ function baseArgs(system: string): string[] {
     "--max-turns",
     "80",
   ];
+}
+
+/**
+ * 文档变量表。上游文档正文里的 `{{ 变量 }}` 只有渲染后才有值，而提取 agent 的
+ * 黑名单里有 WebFetch，上不了网。变量表本来就在仓库里（MkDocs 的 mkdocs.yml
+ * 或 Sphinx 的 conf.py），由引擎解出来直接给它，比让它上网更准也更快。
+ */
+function docVarsBlock(vars?: Record<string, string>): string[] {
+  const entries = Object.entries(vars ?? {});
+  if (entries.length === 0) return [];
+  return [
+    "",
+    "文档变量表（本地文档正文里的 `{{ 变量 }}` 用它展开，**不要把占位符原样抄进页面**）：",
+    ...entries.map(([k, v]) => `- {{ ${k} }} → ${v}`),
+  ];
+}
+
+/** llms.txt 是上游专门为 LLM 写的官方索引，当作找文档的地图。 */
+function llmsTxtBlock(text?: string): string[] {
+  if (!text?.trim()) return [];
+  return ["", "上游的 llms.txt（官方给 LLM 的文档索引，按它找文档，别顺着源码碰运气）：", text.trim()];
 }
 
 export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext): AgentRequest {
@@ -173,9 +201,12 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     `- updated: "${ctx.today}"`,
     `- 来源仓库：${f.repo}@${commit}（ref ${f.ref}），本地只读路径 ${repoRoot}`,
     `- sources 写法：${f.repo}@${commit}:<相对路径>#L起-L止`,
-    `- 入口文件：${f.entry.join("、")}`,
+    `- 源码入口：${f.entry.join("、")}`,
+    `- 文档入口：${f.docs.length > 0 ? f.docs.join("、") : "（未指定，自己按下面的 llms.txt 找）"}`,
     `- 要回答的问题：${f.ask}`,
     `- 本批其它 feature id（related 可引用）：${ctx.batchIds.filter((x) => x !== f.id).join(", ") || "无"}`,
+    ...docVarsBlock(ctx.docVars?.[worktreeKey(f.repo, f.ref)]),
+    ...llmsTxtBlock(ctx.llmsTxt),
     "",
     `只允许写这两个文件（相对当前目录）：${draft}、${raw}。写完回复 DONE ${f.id} sources=<数量>。`,
   ].join("\n");

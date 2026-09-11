@@ -8,6 +8,7 @@ import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
 import { getPresetSpec } from "../../src/sim/modelspec/presets";
 import { loadPages, type PageProblem, type WikiPage } from "./pages";
+import { classifySource, supportsOfficialEvidence } from "./sources";
 
 export interface LintOptions {
   chapterIds: string[];
@@ -175,22 +176,39 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       }
     }
 
+    // 能读什么不限，能引什么才限——白名单见 HANDBOOK「可引来源」，
+    // 与 sources.ts 的 CITABLE_DOMAINS 由测试锁住一致
+    const kinds = p.fm.sources.map((x) => ({ ref: x, kind: classifySource(x) }));
+    for (const { ref, kind } of kinds) {
+      if (kind === "unlisted") {
+        problems.push({
+          file: p.file,
+          rule: "source-domain",
+          message: `${ref} 不在可引来源白名单里（读可以，引不行；拿不到一手来源的结论标 I）`,
+        });
+      }
+    }
+
     // 页级 evidence 要与主体来源一致。引了一两条文档不该逼着改标签——
     // 试点 7 页就是源码 15 条、文档 2 条，标 C 是对的（2026-09-11 实测）。
-    // 官方文档有两种写法：仓库里的本地副本，以及文档站的线上地址（见 HANDBOOK「链接与来源」）
-    const docCount = p.fm.sources.filter((x) => x.includes(":docs/") || /^https?:/.test(x)).length;
+    // 「官方文档来源」= 仓库里的 docs/ 本地副本，或官方/论文档的 URL。
+    // 生态站（PyTorch、HF 等）不算——它们能引，但不是本项目的权威说法。
+    const docCount = p.fm.sources.filter(
+      (x) => x.includes(":docs/") || supportsOfficialEvidence(classifySource(x)),
+    ).length;
     const otherCount = p.fm.sources.length - docCount;
+    const hasOfficial = kinds.some((k) => supportsOfficialEvidence(k.kind));
     if (docCount > otherCount && p.fm.evidence !== "S") {
       problems.push({
         file: p.file,
         rule: "doc-evidence",
         message: `主体来源是官方文档（${docCount}/${p.fm.sources.length}）但 evidence 是 ${p.fm.evidence}`,
       });
-    } else if (p.fm.evidence === "S" && docCount === 0) {
+    } else if (p.fm.evidence === "S" && !hasOfficial) {
       problems.push({
         file: p.file,
         rule: "doc-evidence",
-        message: "evidence 标 S 但 sources 里没有官方文档来源",
+        message: "evidence 标 S 但没有「官方」或「论文」档的来源——生态站撑不起 S",
       });
     }
 

@@ -131,10 +131,21 @@ export interface AgentRequest {
 }
 
 /**
- * 工具黑名单。注意不能放 Edit：Spike W1（2026-09-07）实测 `Edit(路径)` 规则同时管 Write，
+ * 工具黑名单，按角色分。
+ *
+ * 注意不能放 Edit：Spike W1（2026-09-07）实测 `Edit(路径)` 规则同时管 Write，
  * 禁 Edit 会把 Write 一起禁掉；而 `Write(路径)` 不是被识别的规则语法。
+ *
+ * 联网按角色区分（2026-09-11 修正）：此前一刀切禁掉 WebFetch/WebSearch，
+ * 结果是一个讲 vllm-ascend 的知识库连昇腾官方文档都打不开，而 HANDBOOK 还写着
+ * 「去官网取展开值」——规则与能力矛盾。真正该限的是**能引什么**，不是能读什么，
+ * 那由 lint 的 `source-domain` 规则与 HANDBOOK 的白名单管。
  */
-const DISALLOWED = ["Bash", "NotebookEdit", "WebFetch", "WebSearch", "Task", "Agent"];
+const BASE_DISALLOWED = ["Bash", "NotebookEdit", "Task", "Agent"];
+/** 提取：要读官方文档站、昇腾文档、论文，放开联网 */
+const EXTRACT_DISALLOWED = BASE_DISALLOWED;
+/** 整合：只处理已有草稿、不引入新来源，联网无正当用途 */
+const INTEGRATE_DISALLOWED = [...BASE_DISALLOWED, "WebFetch", "WebSearch"];
 
 function baseArgs(system: string): string[] {
   return [
@@ -190,7 +201,7 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     `Edit(${draft})`,
     `Edit(${raw})`,
     "--disallowedTools",
-    ...DISALLOWED,
+    ...EXTRACT_DISALLOWED,
   ];
   const stdin = [
     `任务：为 feature「${f.title}」写一页 wiki 草稿。`,
@@ -272,7 +283,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     "Edit(concepts/**)",
     "Edit(_drafts/_integration.json)",
     "--disallowedTools",
-    ...DISALLOWED,
+    ...INTEGRATE_DISALLOWED,
   ];
   const stdin = [
     `任务：整合 ${draftIds.length} 份草稿进 concepts/。今天是 ${ctx.today}。`,

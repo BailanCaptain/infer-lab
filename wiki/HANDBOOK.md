@@ -93,6 +93,36 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 
 `docs/source/llms.txt` 是上游专门为 LLM 写的官方索引，逐节给出 canonical URL。找官方文档的入口先看它。
 
+### 可引来源
+
+**「读什么」不限，「引什么」才限。** 读得广理解才准——读一篇博客搞懂了某个机制，回源码核实后照常写进正文。但 `sources` 是「你可以去核对」的承诺，只能放下面这张表里的来源。
+
+| 域名 | 是什么 | 档 |
+|---|---|---|
+| `docs.vllm.ai` | vLLM 与 vllm-ascend 官方文档 | 官方 |
+| `www.hiascend.com` | 昇腾 / CANN 官方文档 | 官方 |
+| `blog.vllm.ai` | vLLM 官方博客 | 官方 |
+| `discuss.vllm.ai` | 官方用户论坛 | 官方 |
+| `github.com/vllm-project/` | 上游仓库、issue、PR、release | 官方 |
+| `gitee.com/ascend/` | 昇腾一手仓库（ATB 算子库等） | 官方 |
+| `gitcode.com/Ascend/` | 昇腾一手仓库（msmodelslim 等） | 官方 |
+| `gitcode.com/cann/` | CANN 一手仓库（ops-transformer 等） | 官方 |
+| `arxiv.org` | 论文 | 论文 |
+| `pytorch.org` | PyTorch / torch_npu 文档 | 生态 |
+| `triton-lang.org` | Triton 文档 | 生态 |
+| `huggingface.co` | 模型卡 | 生态 |
+| `modelscope.cn` | 模型卡 | 生态 |
+| `modelers.cn` | 模型卡 | 生态 |
+
+规则：
+
+- **`evidence: S` 要求至少一条「官方」或「论文」档的来源。** 生态站撑不起 S——引 PyTorch 文档说明 torch_npu 的行为是合理的，但那不是「vllm-ascend 官方直接支持」。
+- **表外的站点读了不能引**。拿不到一手来源的结论，`evidence` 只能标 `I`（推断），正文里写明依据从哪来。
+- **镜像站不可引**（`hf-mirror.com`、`mirrors.tuna.tsinghua.edu.cn`、`mirrors.huaweicloud.com` 等）——内容是别处的副本，要引就引原站。
+- **AI 生成的二手知识库不可引**，包括 vllm-ascend README 挂徽章的 `deepwiki.com`。
+- **本地优先**：本地仓库里能读到的就读本地（快、钉得住 commit、能给行号）。官网用于两种情况——渲染后才有的内容，以及本地没克隆的版本。
+- 这张表与 `scripts/wiki/sources.ts` 的 `CITABLE_DOMAINS` 必须逐条一致，有测试锁住。发现新的权威来源就两边一起加。
+
 写行号必须是你实际打开并阅读过的行。
 
 ## 提取
@@ -112,7 +142,9 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - **三路对照读，不要只读源码**：
   1. **源码**（`--add-dir` 给你的本地仓库）——它是行为的最终依据，回答「实际怎么跑」。
   2. **本地文档**（同一仓库的 `docs/source/**.md`）——回答「为什么这么设计、什么时候该开、和谁互斥」，这些源码里没有。`docs/source/llms.txt` 是上游为 LLM 写的官方索引，先看它找入口，别顺着源码碰运气。
-  3. **官网渲染页**（<https://docs.vllm.ai/projects/ascend/en/{版本}/{路径}.html>）——见下一条，有些内容只有它有。
+  3. **联网**（你有 WebFetch 与 WebSearch）——官网渲染页、昇腾官方文档、论文、社区讨论，读什么都行。
+     但**读与引是两回事**：`sources` 只能放「可引来源」表里的；表外的读了可以帮你理解、可以写进正文叙述，但那条结论的 `evidence` 只能标 `I`。
+     **本地优先**：本地仓库能读到的先读本地（快、钉得住 commit、能给行号），联网用于本地拿不到的东西。
 
   页级 `evidence` 取整页主体结论的等级——引了几条文档不等于整页都是 `S`（判定见「页面格式」）。逐条结论用内联标记 `[S]` / `[C]` / `[D]` 区分依据类型。引用文档时本地行号与线上 URL 都要给。
 - **本地文档里的 `{{ 变量 }}` 用任务给的变量表展开，不要原样抄**。这套文档在正文里写的是占位符（全仓 226 处，`{{ vllm_ascend_version }}` 一个就占 167 处），且集中在安装命令、pip 版本、镜像 tag。照抄会把 `pip install vllm-ascend=={{ pip_vllm_ascend_version }}` 写进页面，学习者复制粘贴得到一条跑不了的命令。
@@ -145,7 +177,9 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 你是课程知识库的问答 agent，回答学习者关于大模型推理、vLLM、vLLM-Ascend 与昇腾硬件的问题。
 
 规则：
-- 先读 `index.md` 找相关页，再读页面正文，再回答。找不到相关页就明说「知识库里还没有这一条」，然后用你自己的知识简短回答并标注「（未收录）」。
+- 先读 `index.md` 找相关页，再读页面正文，再回答。
+- **知识库里没有时，你可以联网查官方文档再答**（你有 WebFetch 与 WebSearch）。这种回答要明确写「知识库未收录，以下来自官方文档」并给出 URL，不要混在知识库结论里。实在查不到就说查不到，然后用自己的知识简短回答并标注「（未收录）」。
+- 你需要联网这件事本身说明知识库缺了这一块，程序会记下来补页，所以不必为「显得知识库很全」而勉强用现有页硬答。
 - 回答用中文，引用页面时用相对链接 `[KV Cache](concepts/kv-cache.md)`，让前端能跳转。每个结论后面带页面的 evidence 等级，如 `[C]`。
 - 不超过 300 字，先给一句话答案，再展开。
 - 你只有读工具，不要尝试写文件。学习者点「存进 wiki」时程序会把你的回答变成草稿。
@@ -164,7 +198,8 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `whatsnext-overflow`：`## 接着看` 超过五条。
 - `diagram-identifier`：mermaid 图里标注的文件名或符号，在该页 `sources` 覆盖的范围里找不到。
 - `prerequisites-missing`：`prerequisites` 指向不存在的 id。
-- `doc-evidence`：`sources` 里**多数**来自 `docs/source/**.md`（文档条数 > 源码条数）但 `evidence` 不是 `S`；或页级 `evidence` 为 `S` 而 sources 里一条文档都没有。只查主体来源与页级等级是否一致，不因为引了一条文档就要求改标签。
+- `doc-evidence`：`sources` 里**多数**是官方文档（本地 `docs/` 副本或「官方」「论文」档的 URL）但 `evidence` 不是 `S`；或页级 `evidence` 为 `S` 而没有任何「官方」「论文」档的来源（生态站撑不起 S）。只查主体来源与页级等级是否一致，不因为引了一条文档就要求改标签。
+- `source-domain`：`sources` 里的 URL 不在「可引来源」白名单里。
 - `unexpanded-placeholder`：正文里出现 `{{ ... }}`，说明照抄了本地文档的占位符而没去官网取展开值。
 - `legacy-format`（迁移期，只警告不阻塞）：页面还是 2026-09-11 改版前的旧四节格式（是什么 / 形状与数值 / 在哪一步出现 / 常见误解）。重跑成新格式后这条应归零，届时删掉豁免。
 - `broken-link`：正文相对链接指向不存在的文件。

@@ -40,8 +40,15 @@ export type ChatEvent =
   | { kind: "tool"; name: string; target?: string }
   | { kind: "result"; isError: boolean; sessionId?: string; costUsd?: number };
 
-/** 聊天 agent 不许碰的工具。与 ingest 不同，这里必须禁 Write 与 Edit。 */
-const DISALLOWED = ["Write", "Edit", "NotebookEdit", "Bash", "WebFetch", "WebSearch", "Task", "Agent"];
+/**
+ * 问答 agent 不许碰的工具。与提取不同，这里必须禁 Write 与 Edit——学习者的提问
+ * 不能改动知识库（要写只能走「存进 wiki」的草稿流程，AC8）。
+ *
+ * 但**允许联网**（2026-09-11 修正）：知识库没收录的问题，只回一句「没有」价值有限；
+ * 能读官方文档给出带出处的答案才有用。可引来源仍由 HANDBOOK 的白名单约束。
+ * 另外，agent 需要上网本身就是知识库缺口的信号，F004 AC3 拿它当补页的触发条件。
+ */
+const DISALLOWED = ["Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent"];
 
 export function buildChatRequest(
   input: ChatInput,

@@ -518,3 +518,33 @@ describe("extractRequest · 文档与占位符（Task 27 / 28）", () => {
     expect(stdin).toContain("Installation");
   });
 });
+
+describe("联网权限按角色分（2026-09-11 修正）", () => {
+  const disallowedOf = (args: string[]) => args.slice(args.indexOf("--disallowedTools") + 1);
+
+  it("提取 agent 能联网——它要读官方文档站、昇腾文档、论文", () => {
+    const sd = parseSeeds(seedsYaml);
+    const d = disallowedOf(extractRequest(sd.features[0]!, sd, ctx).args);
+    expect(d).not.toContain("WebFetch");
+    expect(d).not.toContain("WebSearch");
+    expect(d).toContain("Bash");
+  });
+
+  it("整合 agent 不能联网——它不引入新来源", () => {
+    const d = disallowedOf(integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx).args);
+    expect(d).toContain("WebFetch");
+    expect(d).toContain("WebSearch");
+  });
+
+  it("两个角色都不给 Bash，也都不禁 Edit（Spike W1）", () => {
+    const sd = parseSeeds(seedsYaml);
+    for (const args of [
+      extractRequest(sd.features[0]!, sd, ctx).args,
+      integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx).args,
+    ]) {
+      const d = disallowedOf(args);
+      expect(d).toContain("Bash");
+      expect(d).not.toContain("Edit");
+    }
+  });
+});

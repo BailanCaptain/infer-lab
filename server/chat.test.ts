@@ -55,9 +55,12 @@ describe("buildChatRequest", () => {
     const allowed = req.args.slice(req.args.indexOf("--allowedTools") + 1, req.args.indexOf("--disallowedTools"));
     expect(allowed).toEqual(["Read", "Grep", "Glob"]);
     const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
-    for (const t of ["Write", "Edit", "Bash", "WebFetch", "WebSearch"]) {
+    for (const t of ["Write", "Edit", "Bash"]) {
       expect(disallowed).toContain(t);
     }
+    // 允许联网：知识库没收录时能读官方文档给出带出处的答案（2026-09-11 修正）
+    expect(disallowed).not.toContain("WebFetch");
+    expect(disallowed).not.toContain("WebSearch");
   });
 
   it("提问走 stdin，不进 argv（Windows argv 有 32KB 上限）", () => {

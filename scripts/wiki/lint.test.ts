@@ -19,7 +19,7 @@ const mk = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiPage
     aliases: [],
     prerequisites: [],
     chapters: ["11"],
-    sources: ["https://x"],
+    sources: ["https://docs.vllm.ai/projects/ascend/en/latest/index.html"],
     evidence: "S",
     related: [],
     contradicts: [],
@@ -216,5 +216,47 @@ describe("lintPages · 旧格式页的过渡（Task 29）", () => {
     const rules = lintPages([mkRaw("a", {}, "## 随便写的\nx")], opts).map((p) => p.rule);
     expect(rules).toContain("missing-section");
     expect(rules).not.toContain("legacy-format");
+  });
+});
+
+describe("lintPages · 可引来源白名单", () => {
+  const body = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解", "接着看"]
+    .map((h) => `## ${h}\nx`)
+    .join("\n");
+
+  it("source-domain：白名单外的站点报红", () => {
+    const bad = mkRaw("a", { sources: ["https://zhuanlan.zhihu.com/p/1"], evidence: "I" }, body);
+    expect(lintPages([bad], opts).map((p) => p.rule)).toContain("source-domain");
+  });
+
+  it("镜像站也报红——要引就引原站", () => {
+    const bad = mkRaw("a", { sources: ["https://hf-mirror.com/Qwen/Qwen3-0.6B"], evidence: "I" }, body);
+    expect(lintPages([bad], opts).map((p) => p.rule)).toContain("source-domain");
+  });
+
+  it("昇腾在 gitee / gitcode 的一手仓库放行", () => {
+    const ok = mkRaw(
+      "a",
+      { sources: ["https://gitee.com/ascend/ascend-transformer-boost"], evidence: "S" },
+      body,
+    );
+    expect(lintPages([ok], opts).map((p) => p.rule)).not.toContain("source-domain");
+  });
+
+  it("evidence S 需要官方或论文档的来源，生态站撑不起", () => {
+    const eco = mkRaw("a", { sources: ["https://pytorch.org/docs/stable/x.html"], evidence: "S" }, body);
+    const rules = lintPages([eco], opts).map((p) => p.rule);
+    expect(rules).not.toContain("source-domain"); // 能引
+    expect(rules).toContain("doc-evidence"); // 但撑不起 S
+  });
+
+  it("生态站配 D 或 I 就没问题", () => {
+    const eco = mkRaw("a", { sources: ["https://pytorch.org/docs/stable/x.html"], evidence: "D" }, body);
+    expect(lintPages([eco], opts).map((p) => p.rule)).toEqual([]);
+  });
+
+  it("论文可以撑起 S", () => {
+    const paper = mkRaw("a", { sources: ["https://arxiv.org/abs/2309.06180"], evidence: "S" }, body);
+    expect(lintPages([paper], opts).map((p) => p.rule)).not.toContain("doc-evidence");
   });
 });

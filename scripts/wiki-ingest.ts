@@ -23,7 +23,7 @@ import {
   selectRelevantPages,
   worktreeKey,
 } from "./wiki/ingest";
-import { runLint } from "./wiki/lint";
+import { runLint, splitProblems } from "./wiki/lint";
 import { loadPages, parsePage } from "./wiki/pages";
 
 function arg(name: string, def?: string): string | undefined {
@@ -177,9 +177,12 @@ async function main() {
     );
     const b = runBuild(root);
     console.log(`wiki:build ${b.pageCount} 页`);
-    const problems = runLint(root, { terms: false });
-    for (const p of problems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
-    if (problems.length) process.exit(1);
+    // 与 pnpm wiki:lint 同一套警告豁免——否则一条 mark-flood 会让整条流水线在
+    // 11 页都已正确落盘之后报失败（2026-09-12 实际发生过）
+    const { errors, warnings } = splitProblems(runLint(root, { terms: false }));
+    for (const p of warnings) console.warn(`! ${p.file} [${p.rule}] ${p.message}`);
+    for (const p of errors) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
+    if (errors.length) process.exit(1);
   }
 }
 main().catch((e) => {

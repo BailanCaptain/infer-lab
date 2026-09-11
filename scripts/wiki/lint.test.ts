@@ -184,6 +184,18 @@ describe("lintPages · HANDBOOK 新规则", () => {
     );
   });
 
+  it("stray-tag：正文里裸露的 HTML 标签报红，代码块里的不算", () => {
+    // 2026-09-12：整合 agent 给 11 页尾部各留了一个 </content>，block-table 还留了 </invoke>。
+    // 正文不走 rehype-raw，这些标签会原样显示在页面上。
+    const leaked = lintPages([mkRaw("a", {}, `${fullBody}\n</content>`)], opts);
+    expect(leaked.find((p) => p.rule === "stray-tag")?.message).toContain("HTML 标签");
+
+    // mermaid 节点标签里的 <br/> 是合法的，围栏内不能误伤
+    const fenced = [fullBody, "```mermaid", "flowchart TD", '  A["x<br/>y"]', "```"].join("\n");
+    expect(lintPages([mkRaw("a", {}, fenced)], opts).map((p) => p.rule)).not.toContain("stray-tag");
+    expect(lintPages([mkRaw("a", {}, fullBody)], opts).map((p) => p.rule)).not.toContain("stray-tag");
+  });
+
   it("mark-unnumbered：[C] 不带来源编号报红，[D] 不带编号是对的", () => {
     // PLAN §1.4 的原设计是 [C##]：声称有一手来源就要给得出编号，读者才能核对
     const bare = lintPages([mkRaw("a", {}, `${fullBody}\n块大小是 128 [C]。`)], opts);

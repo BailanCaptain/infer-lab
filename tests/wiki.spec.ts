@@ -66,12 +66,12 @@ test.describe("知识库阅读页", () => {
     // CommonMark 的 flanking 规则遇上中文全角标点会失效：`**换出（D2H）**发生在`
     // 里的闭合 ** 前是「）」后是「发」，判不成 right-flanking，于是整段以字面量
     // 显示。remark-cjk-friendly 按 CommonMark 的 CJK 提案修正这条规则。
-    await page.goto("/#/wiki/recompute-cpu-offload");
+    await page.goto("/#/wiki/kv-pool");
     const body = page.getByTestId("wiki-body");
-    await expect(body.locator("strong", { hasText: "换出（D2H）" })).toBeVisible();
-    // 唯一允许留下的 ** 是 Python 幂运算 8 * 1024**3，它本来就不是加粗
-    const stars = ((await body.innerText()).match(/\*\*/g) ?? []).length;
-    expect(stars).toBeLessThanOrEqual(1);
+    // 「查（scheduler 侧）」闭合 ** 前是「）」后是中文——正是 flanking 判不出来的形状
+    await expect(body.locator("strong", { hasText: "查（scheduler 侧）" })).toBeVisible();
+    // 正文里不该剩任何 ** 字面量
+    expect((await body.innerText()).match(/\*\*/g)).toBeNull();
   });
 
   test("事实表的「来源」列不被侧栏裁掉", async ({ page }) => {
@@ -103,15 +103,33 @@ test.describe("知识库阅读页", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
-  test("related 侧栏的词条悬停出摘要卡", async ({ page }) => {
+  test("接着看由 relations 生成：分组、带理由、悬停出摘要卡", async ({ page }) => {
+    // 旧的侧栏「相关词条」已删——它是这一节的劣化复制品（无序、无理由）
     await page.goto("/#/wiki/block-table");
-    const term = page.getByTestId("wiki-related").getByRole("link").first();
-    await expect(term).toBeVisible();
+    await expect(page.getByTestId("wiki-related")).toHaveCount(0);
+
+    const next = page.getByTestId("wiki-next");
+    await expect(next).toBeVisible();
+    // 至少有一组，且每条都带 note——没有理由的链接读者不会点
+    const items = next.locator("li");
+    expect(await items.count()).toBeGreaterThan(0);
+    for (const note of await next.locator(".wiki-next-note").allInnerTexts()) {
+      expect(note.trim().length).toBeGreaterThan(0);
+    }
+
+    const term = items.first().getByRole("link").first();
     await expect(page.getByRole("tooltip")).toHaveCount(0);
     await term.hover();
-    const card = page.getByRole("tooltip");
-    await expect(card).toBeVisible();
-    await expect(card).not.toBeEmpty();
+    await expect(page.getByRole("tooltip")).toBeVisible();
+  });
+
+  test("带编号的内联标记能点开对应那条来源", async ({ page }) => {
+    await page.goto("/#/wiki/block-table");
+    const link = page.getByTestId("wiki-body").locator("a.wiki-mark-link").first();
+    await expect(link).toBeVisible();
+    // 点开的是钉住 commit 的具体行号，不是页面级的来源列表
+    await expect(link).toHaveAttribute("href", /^https?:\/\/.+/);
+    await expect(link.locator("span.wiki-evidence")).toHaveText(/^[SCM]$/);
   });
 
   test("来源角标指向 GitHub 钉住的行号", async ({ page }) => {

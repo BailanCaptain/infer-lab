@@ -3,19 +3,19 @@
 派生文件，由 `pnpm wiki:build` 生成，勿手改。共 11 页。
 
 ## 概念（concept）
-- [Block Table](concepts/block-table.md) — 一张 [请求槽位 × 逻辑块号] 的 int32 表，把每条序列内部连续的块号翻译成 KV cache 里离散的物理块号。 `11`
+- [Block Table](concepts/block-table.md) — 一张 [请求槽位 × 逻辑块号] 的 int32 表，把每条序列内部第几块 KV 翻译成显存里的全局物理块号。 `11`
 
 ## 特性（feature）
-- [KV Cache CPU Offload](concepts/kv-cache-cpu-offload.md) — 把 NPU 上暂时用不到的 KV 块经专用 DMA 流批量拷到预分配的 CPU 内存池，前缀命中时再异步拷回，用主机内存换重算。 `11`
-- [Layerwise KV Offload](concepts/kv-cache-layerwise-offload.md) — 把 KV cache 的存取从「整趟前向结束后一次搬」改成「每算完一层立刻搬一层」，让搬运与下一层计算重叠；memcache 后端上还能让多层共用同一块 HBM 缓冲。 `11`
-- [KV Cache Memory Profiling](concepts/kv-cache-memory-profiling.md) — 启动时跑一次假 batch 前向，量出权重、激活峰值与非 torch 内存，再从 gpu_memory_utilization 划定的预算里减掉，剩下的字节全给 KV Cache。 `11`
-- [KV Cache Quantization](concepts/kv-cache-quantization.md) — 把 KV cache 从 bf16 降到 INT8（昇腾称 C8），显存减半；scale 来自 ModelSlim 量化 checkpoint，attention 算子直接吃 INT8 分页 cache 加反量化 scale。 `11 17`
-- [Sparse KV Offload](concepts/kv-cache-sparse-offload.md) — Decode 节点把完整主 KV 放主机内存，每步只把 indexer 选中的 top-k token 搬回 NPU 的常驻热缓冲区。 `11`
-- [KV Cache Spec](concepts/kv-cache-spec.md) — 每个注意力层用一份 KVCacheSpec 声明自己一个 block 的形状与字节数，引擎据此算出块数，runner 再按字节申请裸内存并 view 成张量。 `11`
-- [KV Pool](concepts/kv-pool.md) — 把 KV cache 存到 HBM 之外的 DRAM/SSD 池里，并让所有实例共享同一份前缀，把 prefix caching 的命中率从「单卡可见」扩到「全集群可见」。 `11`
-- [PagedAttention](concepts/paged-attention.md) — 把 KV Cache 切成固定 128 token 的物理块，用 block_table 把逻辑序列映射到分散的块，attention 算子按块号取 KV。 `11`
-- [Prefix Caching](concepts/prefix-caching.md) — 把已经算过的前缀 KV 按 block 哈希存下来，后续请求命中就直接跳过这段 prefill，只算没命中的尾巴。 `11`
-- [Recompute CPU Offload](concepts/recompute-cpu-offload.md) — P/D 分离的 Decode 节点抢占请求时，把它已算好的 KV 块从 HBM 拷到 pinned CPU 内存留着，重新调度时再拷回来，避免整条请求被打回 Prefill 重算。 `11 12`
+- [KV Cache CPU Offload](concepts/kv-cache-cpu-offload.md) — 把已算完的 KV 块按 chunk 批量 DMA 到锁页 CPU 内存，NPU 前缀未命中而 CPU 命中时再异步搬回，用主机带宽换 prefill 重算。 `11`
+- [Layerwise KV Offload](concepts/kv-cache-layerwise-offload.md) — 把「整份 KV 一次搬」拆成「算完一层搬一层」，用 NPU event 让第 i 层的搬运与第 i+1 层的计算重叠；多个层还可共用少数几块物理 buffer 来省 HBM。 `11`
+- [KV Cache Memory Profiling](concepts/kv-cache-memory-profiling.md) — 启动时先跑一次最坏形状的空转前向，量出权重、激活峰值与非 torch 占用，再从 total_memory × gpu_memory_utilization 里减掉它们，得到 KV Cache 能用的字节数。 `11`
+- [KV Cache Quantization](concepts/kv-cache-quantization.md) — 把每层缓存的 K/V 从 BF16 降到 INT8（昇腾 950 上为 FP8）存放，配合每通道 scale 由 attention 算子内反量化，每 token 字节数减半。 `11 17`
+- [Sparse KV Offload](concepts/kv-cache-sparse-offload.md) — Decode 节点把 MLA 主 KV 全量放在主机内存，每步只把稀疏注意力选中的 top-k token 中未驻留的那些搬回 NPU 热缓冲区。 `11`
+- [KV Cache Spec](concepts/kv-cache-spec.md) — 每个注意力层自己申报一条 spec——块大小、KV 头数、head dim、dtype——引擎据此算出能开多少块，Worker 据此把显存切成真正的张量。 `11`
+- [KV Pool](concepts/kv-pool.md) — 把已算好的 KV 块存进一个跨节点共享的外部存储（Mooncake/Memcache/Yuanrong），命中时直接搬回 HBM，替代重算。 `11`
+- [PagedAttention](concepts/paged-attention.md) — 把每层 KV Cache 切成定长块散放在显存里，attention 算子拿着块表按块去取，序列不必占一段连续显存。 `11`
+- [Prefix Caching](concepts/prefix-caching.md) — 把已算过的 KV 按块哈希存下来，新请求前缀相同就直接挂上旧块，只对未命中的尾部做 prefill。 `11`
+- [Recompute CPU Offload](concepts/recompute-cpu-offload.md) — Decode 节点抢占请求时，先把它已算出的 KV 块从 HBM 拷到 pinned CPU 内存，重新排到时再拷回来，避免把请求打回 Prefill 重算。 `11 12`
 
 ## 按章节
 

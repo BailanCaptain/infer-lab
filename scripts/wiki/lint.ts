@@ -11,6 +11,32 @@ import { getPresetSpec } from "../../src/sim/modelspec/presets";
 import { loadPages, type PageProblem, type WikiPage } from "./pages";
 import { classifySource, supportsOfficialEvidence } from "./sources";
 
+/**
+ * 只警告不阻塞的规则。两个调用方共用这一份：`pnpm wiki:lint` 与 ingest 收尾。
+ *
+ * 分开维护过一次，结果 ingest 用裸的 runLint、把一条 mark-flood 警告当成错误，
+ * 让整条流水线在 11 页都已正确落盘之后报失败（2026-09-12）。
+ */
+export const WARN_ONLY: ReadonlySet<string> = new Set([
+  // 白名单外的来源配低等级证据是合法的，只是值得人审时扫一眼
+  "source-unlisted",
+  // 迁移期：无类型 related 待重跑成 relations，归零后删掉这条
+  "legacy-relations",
+  // 标记密度是质量提示不是硬错，人审时看一眼就行
+  "mark-flood",
+]);
+
+/** 把 lint 结果分成阻塞的与只提示的 */
+export function splitProblems(problems: PageProblem[]): {
+  errors: PageProblem[];
+  warnings: PageProblem[];
+} {
+  return {
+    errors: problems.filter((p) => !WARN_ONLY.has(p.rule)),
+    warnings: problems.filter((p) => WARN_ONLY.has(p.rule)),
+  };
+}
+
 export interface LintOptions {
   chapterIds: string[];
   /** 相对 wikiRoot 的文件是否存在（正文链接可指向 raw/ 等非页面文件） */
@@ -45,6 +71,13 @@ const REQUIRED_SECTIONS: Record<string, string[]> = {
 const LEGACY_SECTIONS = ["是什么", "形状与数值", "在哪一步出现", "常见误解"];
 
 const H2_RE = /^##\s+(.+?)\s*$/gm;
+/**
+ * 整行只有一个 HTML 标签——多半是 agent 写文件时漏出的包装标签。
+ * 2026-09-12 整合 agent 给全部 11 页尾部都留了一个 `</content>`，页面上原样显示。
+ * 正文不走 rehype-raw，任何裸标签都只会变成字面量，没有正当用途。
+ */
+const STRAY_TAG_RE = /^\s*<\/?[a-zA-Z][a-zA-Z0-9-]*\s*\/?>\s*$/;
+const FENCE_RE = /^\s*```/;
 const PLACEHOLDER_RE = /\{\{[^}]*\}\}/;
 const MERMAID_RE = /```mermaid\r?\n([\s\S]*?)```/g;
 /** 图里出现的文件名，如 attention_v1.py、block_table.py */
@@ -56,6 +89,17 @@ const DIAGRAM_FILE_RE = /[A-Za-z0-9_./-]+\.(?:py|ts|cpp|h|md)/g;
  */
 function isLegacyPage(p: WikiPage): boolean {
   return p.fm.relations.length === 0 && p.fm.related.length > 0;
+}
+
+/** 代码围栏外、整行是标签的行号（1 起） */
+function strayTagLines(body: string): number[] {
+  const out: number[] = [];
+  let inFence = false;
+  body.split(/\r?\n/).forEach((line, i) => {
+    if (FENCE_RE.test(line)) inFence = !inFence;
+    else if (!inFence && STRAY_TAG_RE.test(line)) out.push(i + 1);
+  });
+  return out;
 }
 
 function sectionsOf(body: string): string[] {
@@ -262,6 +306,14 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
         file: p.file,
         rule: "relation-empty",
         message: "一条 relations 都没有——孤立的知识点串不起来",
+      });
+    }
+
+    for (const line of strayTagLines(p.body)) {
+      problems.push({
+        file: p.file,
+        rule: "stray-tag",
+        message: `第 ${line} 行只有一个 HTML 标签——agent 写文件时漏出的包装标签，正文不渲染裸 HTML`,
       });
     }
 

@@ -1,4 +1,7 @@
 # 11 章 KV Cache 内存系统 · 试点批（11 个 feature）。
+# 每个 feature 对照两个 ref：稳定分支 releases/v0.23.0 与开发主线 main。
+# 只钉一个 ref 是 2026-09-12 被推翻的做法——读者在稳定分支上开发、页面讲 main，
+# 对不上就等于没用；讲清版本差异正是这个知识库存在的理由之一。
 # 跑法：pnpm wiki:clone --seeds wiki/seeds/vllm-ascend.yaml && pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml
 # entry 路径已在 vllm-ascend@28bf3a2e 里 grep 校正（2026-09-07）。
 repos:
@@ -16,6 +19,7 @@ features:
     chapters: ["11"]
     priority: 1
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [vllm_ascend/attention/attention_v1.py]
     docs: [docs/source/user_guide/configuration/additional_config.md]
     ask: 昇腾后端的 attention 算子如何按 block 读 KV Cache；AscendAttentionBackend 声明的 KV Cache 形状（get_kv_cache_shape）与支持的 block_size；decode 时 block_table 如何传给算子；与 vLLM 上游 PagedAttention 的差异。
@@ -26,6 +30,7 @@ features:
     chapters: ["11"]
     priority: 1
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [vllm_ascend/worker/block_table.py, vllm_ascend/attention/attention_v1.py]
     ask: BlockTable 类的形状与行列含义、逻辑 block 到物理 block 的映射、compute_slot_mapping 如何算出每个 token 的写入槽位、每步 decode 时怎样追加与提交（commit_block_table）。
 
@@ -35,6 +40,7 @@ features:
     chapters: ["11"]
     priority: 1
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [vllm_ascend/worker/worker.py, vllm_ascend/worker/model_runner_v1.py]
     docs: [docs/source/user_guide/configuration/additional_config.md]
     ask: get_kv_cache_spec 如何按层声明 KV Cache 的 block 形状与字节数；initialize_kv_cache 与 initialize_kv_cache_tensors 如何按 KVCacheConfig 真正分配张量；每 token 每层 KV 字节的计算公式，用 Qwen3-0.6B 的 n_kv=8、d_h=128 算一遍。
@@ -45,6 +51,7 @@ features:
     chapters: ["11"]
     priority: 1
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [vllm_ascend/worker/worker.py, vllm_ascend/worker/model_runner_v1.py]
     docs: [docs/source/user_guide/configuration/additional_config.md]
     ask: determine_available_memory 如何借 profile_run 决定可分配给 KV Cache 的 HBM 字节数；gpu_memory_utilization 在昇腾上的语义；哪些内存被预留、哪些被扣除。
@@ -55,6 +62,7 @@ features:
     chapters: ["11"]
     priority: 1
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [vllm_ascend/platform.py, vllm_ascend/utils.py, vllm_ascend/worker/model_runner_v1.py]
     ask: 前缀缓存在昇腾后端如何启用或被禁用（platform.py 的配置检查）、与 chunked prefill 的耦合、命中时跳过哪些计算；哈希以 block 为单位的依据。若实现主要在上游 vLLM，就说明昇腾侧只做了哪些适配，并把 evidence 降到 I。
 
@@ -64,6 +72,7 @@ features:
     chapters: ["11"]
     priority: 2
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [docs/source/user_guide/feature_guide/kv_pool.md, vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py]
     docs: [docs/source/user_guide/feature_guide/kv_pool.md, docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md]
     ask: KV Pool 是什么、解决什么问题、KV 在池与 HBM 之间怎么搬（connector 的调用链）、配置项与限制、与 prefix caching 的关系。
@@ -74,6 +83,7 @@ features:
     chapters: ["11"]
     priority: 2
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md, vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py]
     docs: [docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md]
     ask: 把 KV Cache 卸载到 CPU 内存的机制、触发条件、NPU 与 CPU 之间的拷贝路径与带宽代价、配置项。
@@ -84,6 +94,7 @@ features:
     chapters: ["11", "12"]
     priority: 2
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [docs/source/user_guide/feature_guide/recompute_cpu_offload.md, vllm_ascend/core/recompute_scheduler.py, vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py]
     docs: [docs/source/user_guide/feature_guide/recompute_cpu_offload.md]
     ask: 抢占时把被换出请求的 KV 卸到 CPU 而不是丢弃重算，调度器如何决定换出与换回、与普通 recompute 抢占的区别、配置项。
@@ -94,6 +105,7 @@ features:
     chapters: ["11"]
     priority: 2
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md, docs/source/user_guide/feature_guide/layerwise_kv_pool.md, vllm_ascend/attention/sfa_kv_offload.py]
     docs: [docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md, docs/source/user_guide/feature_guide/layerwise_kv_pool.md]
     ask: 逐层卸载与逐层传输的实现，按层粒度的搬运如何与前向重叠、涉及的 stream 与同步点、适用的模型与注意力类型。
@@ -104,6 +116,7 @@ features:
     chapters: ["11"]
     priority: 3
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md, vllm_ascend/attention/sfa_kv_offload.py, vllm_ascend/attention/sfa_v1.py]
     docs: [docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md]
     ask: 稀疏卸载保留哪些 token 的 KV、选择依据（indexer 或 top-k）、对精度与吞吐的影响；只写源码里有明确实现的部分。
@@ -114,6 +127,7 @@ features:
     chapters: ["11", "17"]
     priority: 2
     repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
     entry: [docs/source/user_guide/feature_guide/quantization.md, vllm_ascend/quantization/quant_type.py, vllm_ascend/attention/attention_v1.py]
     docs: [docs/source/user_guide/feature_guide/quantization.md]
     ask: kv_cache_dtype 支持哪些取值、int8 KV 的 scale 从哪来、attention 算子如何消费量化 KV、与权重量化的关系。

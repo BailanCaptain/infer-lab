@@ -23,7 +23,7 @@ import {
   selectRelevantPages,
   worktreeKey,
 } from "./wiki/ingest";
-import { runLint, splitProblems } from "./wiki/lint";
+import { factsTable, runLint, splitProblems } from "./wiki/lint";
 import { loadPages, parsePage } from "./wiki/pages";
 
 function arg(name: string, def?: string): string | undefined {
@@ -145,7 +145,10 @@ async function main() {
       const text = readFileSync(file, "utf8");
       const parsed = parsePage(`_drafts/${id}.md`, text);
       const marks = (text.match(MARK_RE) ?? []).length;
-      return parsed.page ? { ...toRef(parsed.page), marks } : { id, chapters: [], related: [], marks };
+      const facts = factsTable(parsed.page?.body ?? text)?.rows ?? 0;
+      return parsed.page
+        ? { ...toRef(parsed.page), marks, facts }
+        : { id, chapters: [], related: [], marks, facts };
     });
     const existingRefs = loadPages(wikiRoot).pages.map(toRef);
     const req = integrateRequest(draftRefs, existingRefs, ctx);

@@ -128,6 +128,7 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
             </span>
           ))}
           <EvidenceBadge level={page.evidence} variant="full" />
+          <span className="wiki-updated">更新于 {page.updated}</span>
         </div>
         <h1 className="display">{page.title}</h1>
         <p className="wiki-summary">{page.summary}</p>
@@ -191,29 +192,16 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
         <WhatsNext page={page} />
       </div>
 
-      <aside className="wiki-side">
-        <section data-testid="wiki-sources">
-          <h2>来源 · {page.sources.length} 条</h2>
-          <ol>
-            {page.sources.map((s, i) => (
-              <SourceItem key={s} index={i + 1} ref_={s} />
+      {page.contradicts.length > 0 && (
+        <section className="wiki-contradicts" data-testid="wiki-contradicts">
+          <h2>这页里有还没定论的地方</h2>
+          <ul>
+            {page.contradicts.map((c) => (
+              <li key={c}>{c}</li>
             ))}
-          </ol>
+          </ul>
         </section>
-
-        {page.contradicts.length > 0 && (
-          <section className="wiki-contradicts">
-            <h2>待人审的矛盾</h2>
-            <ul>
-              {page.contradicts.map((c) => (
-                <li key={c}>{c}</li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <p className="wiki-updated">更新于 {page.updated}</p>
-      </aside>
+      )}
     </article>
   );
 }
@@ -257,27 +245,6 @@ function WhatsNext({ page }: { page: RegistryEntry }) {
   );
 }
 
-function SourceItem({ index, ref_ }: { index: number; ref_: string }) {
-  const parsed = parseRepoRef(ref_);
-  const url = hrefOfSource(ref_);
-  const label = parsed
-    ? `${parsed.path}${parsed.lineStart ? `#L${parsed.lineStart}${parsed.lineEnd ? `-L${parsed.lineEnd}` : ""}` : ""}`
-    : ref_;
-  return (
-    <li>
-      <span className="wiki-source-index">{index}</span>
-      {url ? (
-        <a href={url} target="_blank" rel="noreferrer" title={ref_}>
-          {label}
-        </a>
-      ) : (
-        <span title={ref_}>{label}</span>
-      )}
-    </li>
-  );
-}
-
-/** 按章节分组；一页可属多章，会在每章都出现。无章节的归到「未归章」。 */
 function groupByChapter(pages: RegistryEntry[]): [string, RegistryEntry[]][] {
   const map = new Map<string, RegistryEntry[]>();
   for (const p of pages) {

@@ -24,6 +24,9 @@ export const WARN_ONLY: ReadonlySet<string> = new Set([
   "legacy-relations",
   // 标记密度是质量提示不是硬错，人审时看一眼就行
   "mark-flood",
+  // 迁移期：现有 11 页还是「两列 + 来源列 + 20 行」的旧事实表，等多版本重跑
+  // 才会变成「项 / 值 / 意味着什么 ≤10 行」。跑完这条清单应归零，届时删掉豁免。
+  "facts-overflow",
 ]);
 
 /** 把 lint 结果分成阻塞的与只提示的 */
@@ -89,6 +92,43 @@ const DIAGRAM_FILE_RE = /[A-Za-z0-9_./-]+\.(?:py|ts|cpp|h|md)/g;
  */
 function isLegacyPage(p: WikiPage): boolean {
   return p.fm.relations.length === 0 && p.fm.related.length > 0;
+}
+
+/** 事实表上限，与 HANDBOOK「页面格式」第 5 节一致 */
+export const FACTS_BUDGET = 10;
+
+/**
+ * 取 `## 事实表` 一节里的表格行（不含表头与分隔行）与表头单元格。
+ * 事实表是给学习者扫数的，不是 API 手册——2026-09-12 实测 17 到 25 行、
+ * 还带一整列源码路径，真正重要的几行被淹掉了。
+ */
+export function factsTable(body: string): { rows: number; header: string[] } | null {
+  const i = body.indexOf("## 事实表");
+  if (i < 0) return null;
+  const rest = body.slice(i + "## 事实表".length);
+  const end = rest.search(/^##\s/m);
+  const seg = end < 0 ? rest : rest.slice(0, end);
+  const lines = seg.split(/\r?\n/).filter((l) => l.trim().startsWith("|"));
+  if (lines.length < 2) return null;
+  const header = splitRow(lines[0] ?? "");
+  // 第二行是 | --- | --- | 分隔行
+  return { rows: Math.max(0, lines.length - 2), header };
+}
+
+/** 按 `|` 切单元格，反引号里的 `|` 不算分隔符 */
+function splitRow(row: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let tick = false;
+  for (const ch of row.trim().replace(/^\||\|$/g, "")) {
+    if (ch === "`") tick = !tick;
+    if (ch === "|" && !tick) {
+      out.push(cur.trim());
+      cur = "";
+    } else cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
 }
 
 /** 代码围栏外、整行是标签的行号（1 起） */
@@ -307,6 +347,24 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
         rule: "relation-empty",
         message: "一条 relations 都没有——孤立的知识点串不起来",
       });
+    }
+
+    const facts = factsTable(p.body);
+    if (facts) {
+      if (facts.rows > FACTS_BUDGET) {
+        problems.push({
+          file: p.file,
+          rule: "facts-overflow",
+          message: `事实表 ${facts.rows} 行，超过 ${FACTS_BUDGET}——它是给学习者扫数的，不是 API 手册`,
+        });
+      }
+      if (facts.header.includes("来源")) {
+        problems.push({
+          file: p.file,
+          rule: "facts-overflow",
+          message: "事实表还带「来源」列——依据写成正文里的内联标记 [C6]，表里那一列占宽又没人点",
+        });
+      }
     }
 
     for (const line of strayTagLines(p.body)) {

@@ -159,16 +159,15 @@
 }
 
 /* 文章：正文一栏 + 右侧证据栏 */
+/* 单栏。侧栏原本堆 18-41 条来源清单，没人会点——而内联的 [C6] 已经能直接
+   跳到那一行源码，验证路径就在结论旁边，比页边一堵墙好。去掉侧栏后正文
+   有了宽度，事实表和图才放得下。 */
 .wiki-article {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  grid-template-areas: "head head" "body side";
-  gap: 0 40px;
-  align-items: start;
+  display: block;
+  max-width: 980px;
 }
 
 .wiki-article-head {
-  grid-area: head;
   margin-bottom: 28px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--color-line);
@@ -223,11 +222,20 @@
 
 /* ---------- markdown 正文 ---------- */
 
+/* 易读宽度加在文字元素上，不加在容器上——这样表格与图能用满整幅，
+   而散文仍保持 72ch。侧栏去掉之后，这个区别才有意义。 */
 .wiki-body {
-  grid-area: body;
   font-size: var(--text-body);
   line-height: var(--text-body--line-height);
   color: var(--color-ink);
+}
+
+.wiki-body > p,
+.wiki-body > ul,
+.wiki-body > ol,
+.wiki-body > blockquote,
+.wiki-body > h2,
+.wiki-body > h3 {
   max-width: 72ch;
 }
 
@@ -344,84 +352,32 @@
 
 /* ---------- 右侧证据栏 ---------- */
 
-.wiki-side {
-  grid-area: side;
-  position: sticky;
-  top: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  border-radius: var(--radius-card);
-  border: 1px solid var(--color-line);
-  background: var(--color-surface-elevated);
-  box-shadow: var(--shadow-card);
-}
-
-.wiki-side h2 {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin: 0 0 8px;
-  font-size: var(--text-caption);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--color-ink-faint);
-}
-
-.wiki-side ul,
-.wiki-side ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.wiki-side ol li {
-  display: flex;
-  gap: 7px;
-  align-items: baseline;
-  font-family: var(--font-mono);
-  font-size: var(--text-caption);
-  line-height: 16px;
-  word-break: break-all;
-}
-
-.wiki-source-index {
-  flex: none;
-  min-width: 17px;
-  text-align: right;
-  color: var(--color-ink-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.wiki-side ol a {
-  color: var(--color-ink-muted);
-  text-decoration: none;
-}
-
-.wiki-side ol a:hover {
-  color: var(--color-accent-hover);
-  text-decoration: underline;
-}
-
+/* 矛盾从页边小卡片挪进正文——它是内容，不是元数据：
+   「官方文档说 1、代码实际是 min(...,8)」这种事读者必须看见 */
 .wiki-contradicts {
-  padding: 10px;
-  border-radius: var(--radius-field);
-  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  margin-top: 28px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  border-left: 3px solid var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 6%, transparent);
 }
 
 .wiki-contradicts h2 {
+  margin: 0 0 8px;
+  font-size: var(--text-label);
+  font-weight: 700;
   color: var(--color-danger);
+}
+
+.wiki-contradicts ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--text-compact);
+  color: var(--color-ink);
 }
 
 .wiki-updated {
   margin: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-line);
   font-size: var(--text-micro);
   color: var(--color-ink-faint);
   font-variant-numeric: tabular-nums;
@@ -531,13 +487,7 @@
   }
 
   .wiki-article {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "head" "body" "side";
-    gap: 24px 0;
-  }
-
-  .wiki-side {
-    position: static;
+    max-width: none;
   }
 }
 

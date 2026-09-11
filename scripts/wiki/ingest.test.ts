@@ -88,17 +88,27 @@ describe("parseSeeds", () => {
     expect(() => parseSeeds(seedsYaml.replace("repo: vllm-ascend", "repo: nope"))).toThrow(/nope/);
   });
 
-  it("repo 可以钉一组 ref，feature 可以指定适用 ref，未指定则默认 main", () => {
+  it("repo 钉一组 ref；feature 的 refs 可列多个，未指定则默认 main", () => {
     const s = parseSeeds(multiRefYaml);
     expect(Object.keys(s.repos["vllm-ascend"]!.refs)).toEqual(["main", "releases/v0.23.0"]);
-    expect(s.features[0]?.ref).toBe("releases/v0.23.0");
-    expect(s.features[1]?.ref).toBe("main");
+    // 旧的单数 ref 归一化进 refs
+    expect(s.features[0]?.refs).toEqual(["releases/v0.23.0"]);
+    expect(s.features[1]?.refs).toEqual(["main"]);
+  });
+
+  it("feature 可以同时对照多个 ref——差异要写进页面才叫文档", () => {
+    const both = multiRefYaml.replace(
+      '    ref: "releases/v0.23.0"',
+      '    refs: ["releases/v0.23.0", "main"]',
+    );
+    const s = parseSeeds(both);
+    expect(s.features[0]?.refs).toEqual(["releases/v0.23.0", "main"]);
   });
 
   it("旧格式的单个 commit 归一化成 refs.main，现有 seeds 不用改", () => {
     const s = parseSeeds(seedsYaml);
     expect(s.repos["vllm-ascend"]!.refs).toEqual({ main: "28bf3a2e" });
-    expect(s.features[0]?.ref).toBe("main");
+    expect(s.features[0]?.refs).toEqual(["main"]);
   });
 
   it("feature 指向未声明的 ref 时报错并指名", () => {
@@ -131,6 +141,22 @@ describe("extractRequest · 多 ref", () => {
     const req = extractRequest(s.features[1]!, s, ctx);
     expect(req.args[req.args.indexOf("--add-dir") + 1]).toBe("C:/w/tools/repos/vllm-ascend");
     expect(req.stdin).toContain("vllm-ascend@28bf3a2e");
+  });
+
+  it("多 ref 时每个 ref 各给一个 --add-dir，并要求写出版本差异", () => {
+    const both = multiRefYaml.replace(
+      '    ref: "releases/v0.23.0"',
+      '    refs: ["releases/v0.23.0", "main"]',
+    );
+    const s = parseSeeds(both);
+    const req = extractRequest(s.features[0]!, s, ctx);
+    const dirs = req.args.filter((a, i) => req.args[i - 1] === "--add-dir");
+    expect(dirs).toEqual(["C:/w/tools/repos/vllm-ascend@releases-v0.23.0", "C:/w/tools/repos/vllm-ascend"]);
+    // 两个 commit 前缀都要给，agent 才知道各自怎么写 sources
+    expect(req.stdin).toContain("9b4b1e2a");
+    expect(req.stdin).toContain("28bf3a2e");
+    expect(req.stdin).toContain("要对照 2 个版本");
+    expect(req.stdin).toContain("[!]");
   });
 
   it("缺该 ref 的本地工作树时报错并指名", () => {
@@ -282,7 +308,7 @@ describe("runExtractPhase", () => {
     chapters: ["11"],
     priority: 2,
     repo: "r",
-    ref: "main",
+    refs: ["main"],
     entry: ["a.py"],
     docs: [],
     ask: "?",

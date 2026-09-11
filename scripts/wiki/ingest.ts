@@ -58,21 +58,34 @@ export const seedsSchema = z
   .object({
     repos: z.record(repoSchema),
     features: z.array(
-      z.object({
-        id: z.string().regex(ID_RE),
-        title: z.string().min(1),
-        type: z.enum(PAGE_TYPES),
-        chapters: z.array(z.string().regex(/^\d{2}$/)).min(1),
-        priority: z.number().int().min(1).max(3).default(2),
-        repo: z.string(),
-        /** 本 feature 适用的 ref，必须是所属 repo 的 refs 的键 */
-        ref: z.string().default(DEFAULT_REF),
-        entry: z.array(z.string().min(1)).min(1),
-        /** 对应的官方文档文件（相对仓库根）。不写则 agent 只能顺着源码碰运气——
-         *  实测 152 个文档只被碰到 9 个（2026-09-11） */
-        docs: z.array(z.string().min(1)).default([]),
-        ask: z.string().min(1),
-      }),
+      z
+        .object({
+          id: z.string().regex(ID_RE),
+          title: z.string().min(1),
+          type: z.enum(PAGE_TYPES),
+          chapters: z.array(z.string().regex(/^\d{2}$/)).min(1),
+          priority: z.number().int().min(1).max(3).default(2),
+          repo: z.string(),
+          /** @deprecated 旧格式的单 ref，归一化进 refs */
+          ref: z.string().optional(),
+          /**
+           * 本 feature 要对照的 ref 列表，都必须是所属 repo 的 refs 的键。
+           *
+           * 一页只钉一个 ref 是 2026-09-12 被推翻的做法：读者在 v0.23.0 上开发、
+           * 页面讲的是 main，对不上就只能干瞪眼。文档的价值恰恰在于讲清版本之间
+           * 的差异，所以提取时要同时读多个 ref 并把不同之处写出来。
+           */
+          refs: z.array(z.string().min(1)).min(1).optional(),
+          entry: z.array(z.string().min(1)).min(1),
+          /** 对应的官方文档文件（相对仓库根）。不写则 agent 只能顺着源码碰运气——
+           *  实测 152 个文档只被碰到 9 个（2026-09-11） */
+          docs: z.array(z.string().min(1)).default([]),
+          ask: z.string().min(1),
+        })
+        .transform((f) => ({
+          ...f,
+          refs: f.refs ?? (f.ref ? [f.ref] : [DEFAULT_REF]),
+        })),
     ),
   })
   .superRefine((s, ctx) => {
@@ -81,11 +94,15 @@ export const seedsSchema = z
       const repo = s.repos[f.repo];
       if (!repo) {
         ctx.addIssue({ code: "custom", message: `feature ${f.id} 的 repo「${f.repo}」不在 repos 里` });
-      } else if (!repo.refs[f.ref]) {
-        ctx.addIssue({
-          code: "custom",
-          message: `feature ${f.id} 的 ref「${f.ref}」不在 repo ${f.repo} 的 refs 里（有 ${Object.keys(repo.refs).join("、")}）`,
-        });
+      } else {
+        for (const ref of f.refs) {
+          if (!repo.refs[ref]) {
+            ctx.addIssue({
+              code: "custom",
+              message: `feature ${f.id} 的 ref「${ref}」不在 repo ${f.repo} 的 refs 里（有 ${Object.keys(repo.refs).join("、")}）`,
+            });
+          }
+        }
       }
       if (seen.has(f.id)) ctx.addIssue({ code: "custom", message: `feature id 重复：${f.id}` });
       seen.add(f.id);
@@ -187,19 +204,55 @@ function llmsTxtBlock(text?: string): string[] {
   return ["", "上游的 llms.txt（官方给 LLM 的文档索引，按它找文档，别顺着源码碰运气）：", text.trim()];
 }
 
-export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext): AgentRequest {
+/** 一个 feature 要对照的每个 ref 的落地信息 */
+interface RefTarget {
+  ref: string;
+  commit: string;
+  root: string;
+}
+
+function refTargets(f: SeedFeature, seeds: Seeds, ctx: IngestContext): RefTarget[] {
   const repo = seeds.repos[f.repo];
   if (!repo) throw new Error(`repo ${f.repo} 未定义`);
-  const commit = repo.refs[f.ref];
-  if (!commit) throw new Error(`repo ${f.repo} 没有 ref ${f.ref}`);
-  const repoRoot = ctx.repoRoots[worktreeKey(f.repo, f.ref)];
-  if (!repoRoot) throw new Error(`repo ${f.repo} 的 ref ${f.ref} 没有本地工作树，先跑 pnpm wiki:clone`);
+  return f.refs.map((ref) => {
+    const commit = repo.refs[ref];
+    if (!commit) throw new Error(`repo ${f.repo} 没有 ref ${ref}`);
+    const root = ctx.repoRoots[worktreeKey(f.repo, ref)];
+    if (!root) throw new Error(`repo ${f.repo} 的 ref ${ref} 没有本地工作树，先跑 pnpm wiki:clone`);
+    return { ref, commit, root };
+  });
+}
+
+/**
+ * 要对照的版本清单。
+ *
+ * 多 ref 时把「必须写差异」顶到任务最显眼的位置。一页只钉一个 ref 是
+ * 2026-09-12 被推翻的做法：读者在 v0.23.0 上开发、页面讲的是 main，
+ * 对不上就等于没用——文档的价值恰恰在于讲清版本之间的差异。
+ */
+function refsBlock(repo: string, targets: RefTarget[]): string[] {
+  const lines = targets.map(
+    (t) =>
+      `  - ${t.ref} = ${repo}@${t.commit}，只读路径 ${t.root}，sources 写 ${repo}@${t.commit}:<相对路径>#L起-L止`,
+  );
+  if (targets.length === 1) return ["- 来源仓库（单版本）：", ...lines];
+  return [
+    `- **要对照 ${targets.length} 个版本**：`,
+    ...lines,
+    `  **每条结论都要确认在这 ${targets.length} 个版本上是否一致。** 一致的照常写；`,
+    "  不一致的必须写清哪个版本是哪样，该条标 `[!]`，事实表里那一行分版本列。",
+  ];
+}
+
+export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext): AgentRequest {
+  const targets = refTargets(f, seeds, ctx);
+  const primary = targets[0] as RefTarget;
   const draft = `_drafts/${f.id}.md`;
   const raw = `raw/${f.id}.md`;
   const args = [
     ...baseArgs(`${ctx.handbook.pageFormat.trim()}\n\n${ctx.handbook.extract.trim()}`),
-    "--add-dir",
-    repoRoot,
+    // 每个 ref 一份只读工作树，agent 逐一对照后把差异写进页面
+    ...targets.flatMap((t) => ["--add-dir", t.root]),
     "--allowedTools",
     "Read",
     "Grep",
@@ -217,13 +270,12 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     `- type: ${f.type}`,
     `- chapters: ${JSON.stringify(f.chapters)}`,
     `- updated: "${ctx.today}"`,
-    `- 来源仓库：${f.repo}@${commit}（ref ${f.ref}），本地只读路径 ${repoRoot}`,
-    `- sources 写法：${f.repo}@${commit}:<相对路径>#L起-L止`,
+    ...refsBlock(f.repo, targets),
     `- 源码入口：${f.entry.join("、")}`,
     `- 文档入口：${f.docs.length > 0 ? f.docs.join("、") : "（未指定，自己按下面的 llms.txt 找）"}`,
     `- 要回答的问题：${f.ask}`,
     `- 本批其它 feature id（related 可引用）：${ctx.batchIds.filter((x) => x !== f.id).join(", ") || "无"}`,
-    ...docVarsBlock(ctx.docVars?.[worktreeKey(f.repo, f.ref)]),
+    ...docVarsBlock(ctx.docVars?.[worktreeKey(f.repo, primary.ref)]),
     ...llmsTxtBlock(ctx.llmsTxt),
     "",
     `只允许写这两个文件（相对当前目录）：${draft}、${raw}。写完回复 DONE ${f.id} sources=<数量>。`,
@@ -238,10 +290,14 @@ export interface PageRef {
   related: string[];
   /** 草稿当前的内联标记数。整合 agent 要删到 MARK_BUDGET 以内，引擎先替它数好。 */
   marks?: number;
+  /** 草稿事实表的行数。同理，删到 FACTS_BUDGET 以内。 */
+  facts?: number;
 }
 
 /** 每页内联标记上限，与 HANDBOOK「整合」第 4 条一致 */
 export const MARK_BUDGET = 20;
+/** 事实表行数上限，与 HANDBOOK「页面格式」第 5 节一致 */
+export const FACTS_BUDGET = 10;
 
 export interface SelectOptions {
   /** 相关页数量上限，默认 30 */
@@ -300,17 +356,30 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
   // 要删标记的页与删多少，引擎数好直接给——让 agent 自己数 11 页是在浪费它的注意力，
   // 而且「数一遍」这种指令实测不落地（2026-09-11 那轮只删到 27-40，目标是 20）
   const overBudget = drafts.filter((d) => (d.marks ?? 0) > MARK_BUDGET);
+  const factsOver = drafts.filter((d) => (d.facts ?? 0) > FACTS_BUDGET);
   const stdin = [
     `任务：整合 ${draftIds.length} 份草稿进 concepts/。今天是 ${ctx.today}。`,
     "",
     "草稿文件：",
-    ...drafts.map((d) => `- _drafts/${d.id}.md（内联标记 ${d.marks ?? "?"} 处）`),
+    ...drafts.map(
+      (d) => `- _drafts/${d.id}.md（内联标记 ${d.marks ?? "?"} 处，事实表 ${d.facts ?? "?"} 行）`,
+    ),
     ...(overBudget.length > 0
       ? [
           "",
           `以下 ${overBudget.length} 页的内联标记超出 ${MARK_BUDGET} 处上限，按「整合」第 4 条删到达标：`,
           ...overBudget.map(
             (d) => `- ${d.id}：${d.marks} → 至多 ${MARK_BUDGET}，需删掉约 ${(d.marks ?? 0) - MARK_BUDGET} 处`,
+          ),
+        ]
+      : []),
+    ...(factsOver.length > 0
+      ? [
+          "",
+          `以下 ${factsOver.length} 页的事实表超出 ${FACTS_BUDGET} 行上限，按「整合」第 5 条删到达标（并去掉「来源」列）：`,
+          ...factsOver.map(
+            (d) =>
+              `- ${d.id}：${d.facts} 行 → 至多 ${FACTS_BUDGET}，需删掉约 ${(d.facts ?? 0) - FACTS_BUDGET} 行`,
           ),
         ]
       : []),

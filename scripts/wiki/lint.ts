@@ -4,6 +4,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
+import { isSymmetric } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
 import { getPresetSpec } from "../../src/sim/modelspec/presets";
@@ -35,9 +36,9 @@ function linkTargets(page: WikiPage): string[] {
  * 改这里之前先改 HANDBOOK——规则的真相源是那份文件，这里只是执行。
  */
 const REQUIRED_SECTIONS: Record<string, string[]> = {
-  concept: ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解", "接着看"],
-  feature: ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解", "接着看"],
-  param: ["一句话", "事实表", "为什么存在", "开了的代价", "接着看"],
+  concept: ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"],
+  feature: ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"],
+  param: ["一句话", "事实表", "为什么存在", "开了的代价"],
 };
 
 /** 2026-09-11 改版前的四节格式，用于识别待迁移的旧页 */
@@ -48,19 +49,82 @@ const PLACEHOLDER_RE = /\{\{[^}]*\}\}/;
 const MERMAID_RE = /```mermaid\r?\n([\s\S]*?)```/g;
 /** 图里出现的文件名，如 attention_v1.py、block_table.py */
 const DIAGRAM_FILE_RE = /[A-Za-z0-9_./-]+\.(?:py|ts|cpp|h|md)/g;
-const MAX_WHATSNEXT = 5;
+
+/**
+ * 还在用无类型 `related`、没有 `relations` 的页 = 2026-09-11 关系改版前的旧页。
+ * 新规则（带编号的内联标记、无 ## 接着看、至少一条边）不套在它们头上。
+ */
+function isLegacyPage(p: WikiPage): boolean {
+  return p.fm.relations.length === 0 && p.fm.related.length > 0;
+}
 
 function sectionsOf(body: string): string[] {
   return [...body.matchAll(H2_RE)].map((m) => (m[1] ?? "").trim());
 }
 
-/** 取「接着看」一节的正文（到下一个 H2 或文末） */
-function whatsNextBlock(body: string): string | null {
-  const i = body.indexOf("## 接着看");
-  if (i < 0) return null;
-  const rest = body.slice(i + "## 接着看".length);
-  const next = rest.search(/^##\s/m);
-  return next < 0 ? rest : rest.slice(0, next);
+/**
+ * 内联证据标记：`[C3]` 的 3 指向 sources 的第 3 条（从 1 数起）。
+ * PLAN §1.4 的原设计就是带编号的 `[C##]`，这样读者能点进去核对具体哪一行。
+ */
+const MARK_RE = /\[([SCDAIM!])(\d*)\](?![\w-])/g;
+/** 这三档声称「有一手来源可核对」，不给编号读者就核对不了 */
+const NUMBERED_LEVELS = new Set(["S", "C", "M"]);
+const MARK_FLOOD = 30;
+const MARK_DOMINANCE = 0.8;
+
+function markProblems(p: WikiPage): PageProblem[] {
+  const out: PageProblem[] = [];
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const m of p.body.matchAll(MARK_RE)) {
+    const level = m[1] ?? "";
+    const num = m[2] ?? "";
+    total++;
+    counts.set(level, (counts.get(level) ?? 0) + 1);
+    if (num === "") {
+      if (NUMBERED_LEVELS.has(level)) {
+        out.push({
+          file: p.file,
+          rule: "mark-unnumbered",
+          message: `[${level}] 没带来源编号——它声称有一手来源，要写成 [${level}1] 指向 sources 的某一条`,
+        });
+      }
+      continue;
+    }
+    const i = Number(num);
+    if (i < 1 || i > p.fm.sources.length) {
+      out.push({
+        file: p.file,
+        rule: "mark-index",
+        message: `[${level}${num}] 指向第 ${i} 条来源，但本页只有 ${p.fm.sources.length} 条`,
+      });
+    } else if (!NUMBERED_LEVELS.has(level)) {
+      out.push({
+        file: p.file,
+        rule: "mark-index",
+        message: `[${level}${num}] 不该带编号——推导、推断、假设、冲突没有单一来源可指`,
+      });
+    }
+  }
+  // 密度：上一版 11 页标了 400 处、66% 是 [C]，牌子挂满就不携带信息了
+  if (total > MARK_FLOOD) {
+    out.push({
+      file: p.file,
+      rule: "mark-flood",
+      message: `内联标记 ${total} 处，超过 ${MARK_FLOOD}——只标数值、反直觉结论与 D/I/A/! 这几类`,
+    });
+  } else if (total > 0) {
+    for (const [level, n] of counts) {
+      if (n / total > MARK_DOMINANCE && total >= 10) {
+        out.push({
+          file: p.file,
+          rule: "mark-flood",
+          message: `${Math.round((n / total) * 100)}% 的标记都是 [${level}]，这个等级已经不携带信息`,
+        });
+      }
+    }
+  }
+  return out;
 }
 
 export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
@@ -92,20 +156,49 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
         problems.push({ file: p.file, rule: "unknown-chapter", message: `章节 ${c} 不存在` });
       }
     }
-    for (const r of p.fm.related) {
-      if (!ids.has(r)) {
-        problems.push({ file: p.file, rule: "related-missing", message: `related 指向不存在的 ${r}` });
+    // 旧的无类型 related 只做迁移提示，不再检查对称性——新模型只写单向
+    if (isLegacyPage(p)) {
+      problems.push({
+        file: p.file,
+        rule: "legacy-relations",
+        message: `还在用无类型的 related（${p.fm.related.length} 条），待重跑为 relations`,
+      });
+      for (const r of p.fm.related) if (ids.has(r)) inbound.add(r);
+    }
+
+    const seenEdge = new Set<string>();
+    for (const r of p.fm.relations) {
+      if (r.to === p.fm.id) {
+        problems.push({ file: p.file, rule: "relation-selfloop", message: "relations 指向了自己" });
         continue;
       }
-      inbound.add(r);
-      // HANDBOOK「整合」要求 related 双向；只单边写会让图不连通
-      if (!ids.get(r)?.fm.related.includes(p.fm.id)) {
+      if (!ids.has(r.to)) {
         problems.push({
           file: p.file,
-          rule: "related-asymmetric",
-          message: `related 含 ${r}，但 ${r} 没有回指 ${p.fm.id}`,
+          rule: "relation-missing",
+          message: `relations 指向不存在的 ${r.to}`,
+        });
+        continue;
+      }
+      const key = `${r.to}|${r.kind}`;
+      if (seenEdge.has(key)) {
+        problems.push({
+          file: p.file,
+          rule: "relation-duplicate",
+          message: `(${r.to}, ${r.kind}) 写了两次`,
         });
       }
+      seenEdge.add(key);
+      // 反向边由 wiki:build 派生。两边各写一次会让「接着看」重复出现同一页。
+      const back = ids.get(r.to)?.fm.relations ?? [];
+      if (!isSymmetric(r.kind) && back.some((b) => b.to === p.fm.id && b.kind === r.kind)) {
+        problems.push({
+          file: p.file,
+          rule: "relation-duplicate",
+          message: `${r.to} 也写了 ${r.kind} 指回来——有向边只写在依赖方那一侧，反向由程序派生`,
+        });
+      }
+      inbound.add(r.to);
     }
     for (const t of linkTargets(p)) {
       const target = pages.find((q) => q.file === t);
@@ -146,17 +239,33 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       }
     }
 
-    const block = whatsNextBlock(p.body);
-    if (block) {
-      const items = block.split(/\r?\n/).filter((l) => /^\s*[-*]\s/.test(l)).length;
-      if (items > MAX_WHATSNEXT) {
-        problems.push({
-          file: p.file,
-          rule: "whatsnext-overflow",
-          message: `接着看 ${items} 条，超过 ${MAX_WHATSNEXT} 条上限`,
-        });
-      }
+    // 下面几条是 2026-09-11 关系改版后的规则。旧页只报一条 legacy-relations，
+    // 不逐条刷屏——它们要重跑才会变成新格式，在那之前既不该被静默放过，
+    // 也不该拿几百条噪声淹掉真问题。重跑完这个分支就走不到了。
+    if (isLegacyPage(p)) continue;
+
+    // 「接着看」改由 relations 生成，手写会与 note 漂移
+    if (p.body.includes("## 接着看")) {
+      problems.push({
+        file: p.file,
+        rule: "stray-whatsnext",
+        message: "正文里还有 ## 接着看——它由 relations 自动生成，理由写进边的 note",
+      });
     }
+
+    // 教学页至少要在图上有一条边——出边或入边都算。没有任何边的知识点串不起来。
+    // 只有一页的知识库没东西可连，不算孤立。
+    const teaching = p.fm.type === "concept" || p.fm.type === "feature";
+    const isolated = p.fm.relations.length === 0 && p.fm.related.length === 0 && !inbound.has(p.fm.id);
+    if (teaching && pages.length > 1 && isolated) {
+      problems.push({
+        file: p.file,
+        rule: "relation-empty",
+        message: "一条 relations 都没有——孤立的知识点串不起来",
+      });
+    }
+
+    problems.push(...markProblems(p));
 
     if (PLACEHOLDER_RE.test(p.body)) {
       problems.push({
@@ -164,16 +273,6 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
         rule: "unexpanded-placeholder",
         message: "正文残留 {{ }} 占位符——本地文档的变量要去官网取展开值，否则会给出跑不了的命令",
       });
-    }
-
-    for (const q of p.fm.prerequisites) {
-      if (!ids.has(q)) {
-        problems.push({
-          file: p.file,
-          rule: "prerequisites-missing",
-          message: `prerequisites 指向不存在的 ${q}`,
-        });
-      }
     }
 
     // 能读什么不限，能引什么才限——白名单见 HANDBOOK「可引来源」，

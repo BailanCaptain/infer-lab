@@ -15,6 +15,8 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadHandbook } from "../scripts/wiki/handbook";
 import { buildChatRequest, type ChatHit, runChat, sseFrame } from "./chat";
+import { neighborhood } from "../src/content/wiki/relations";
+import type { Backlink, Relation } from "../src/content/wiki/schema";
 
 const PORT = Number(process.env.WIKI_SERVER_PORT ?? 8790);
 const ROOT = resolve(process.cwd());
@@ -24,7 +26,17 @@ const handbook = loadHandbook(WIKI_ROOT);
 
 /** registry 与正文用于预检索。server 与前端共用 retrieve 的实现。 */
 const registry = JSON.parse(readFileSync(join(ROOT, "src/content/wiki/registry.json"), "utf8")) as {
-  pages: { id: string; title: string; aliases: string[]; summary: string; chapters: string[]; evidence: string; file: string }[];
+  pages: {
+    id: string;
+    title: string;
+    aliases: string[];
+    summary: string;
+    chapters: string[];
+    evidence: string;
+    file: string;
+    relations: Relation[];
+    backlinks: Backlink[];
+  }[];
 };
 
 const { buildIndex, retrieve } = await import("../src/content/wiki/retrieve");
@@ -94,8 +106,16 @@ const server = createServer(async (req, res) => {
     const hits = retrieve(message, index, { limit: 5 }) as ChatHit[];
     res.write(sseFrame("hits", { hits }));
 
+    // 沿图回答（2026-09-11）：把命中页的地基 / 下游 / 同层一并交给 agent，
+    // 否则它读一页就以为读完了——那正是「串不起来」的直接原因。
+    const graph = hits.slice(0, 2).flatMap((h) => {
+      const page = registry.pages.find((p) => p.id === h.id);
+      if (!page) return [];
+      return [{ id: page.id, title: page.title, neighborhood: neighborhood(page.relations, page.backlinks) }];
+    });
+
     const chatReq = buildChatRequest(
-      { message, ...(input.sessionId ? { sessionId: input.sessionId } : {}), hits },
+      { message, ...(input.sessionId ? { sessionId: input.sessionId } : {}), hits, graph },
       { pageFormat: handbook.pageFormat, query: handbook.query },
       { wikiRoot: WIKI_ROOT, indexMd: safeRead(join(WIKI_ROOT, "index.md")), timeoutMs: 5 * 60_000 },
     );

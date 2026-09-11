@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Link2 } from "lucide-react";
+import { ArrowLeft, BookOpen } from "lucide-react";
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router";
@@ -8,6 +8,7 @@ import { CHAPTER_TITLES } from "../../content/wiki/chapters";
 import { remarkEvidenceMarks } from "../../content/wiki/evidenceMarks";
 import { getPage, listPages, rewriteRelativeLink, sourceUrl } from "../../content/wiki/index";
 import { Mermaid } from "../../content/wiki/Mermaid";
+import { groupRelations } from "../../content/wiki/relations";
 import { parseRepoRef, type RegistryEntry } from "../../content/wiki/schema";
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { ChatDrawer } from "../wiki/ChatDrawer";
@@ -150,12 +151,28 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
                 <table>{children}</table>
               </div>
             ),
-            // remarkEvidenceMarks 把内联的 [C] 变成 <abbr>C</abbr>。
+            // remarkEvidenceMarks 把内联的 [C3] 变成 <abbr data-source="3">C</abbr>。
             // markdown 本身没有 abbr 语法，所以单字母的 abbr 一定是它产的。
-            abbr: ({ children, ...rest }) => {
+            abbr: ({ children, node, ...rest }) => {
               const level = String(children);
-              if (EVIDENCE_LETTERS.has(level)) return <EvidenceBadge level={level} />;
-              return <abbr {...rest}>{children}</abbr>;
+              if (!EVIDENCE_LETTERS.has(level)) return <abbr {...rest}>{children}</abbr>;
+              const idx = Number((node as HastNode | undefined)?.properties?.["data-source"] ?? 0);
+              const src = idx >= 1 && idx <= page.sources.length ? page.sources[idx - 1] : undefined;
+              const href = src ? hrefOfSource(src) : null;
+              // 带编号的角标能点进去看那一行源码——不能点的角标对读者没用
+              return href ? (
+                <a
+                  className="wiki-mark-link"
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={`来源 ${idx}`}
+                >
+                  <EvidenceBadge level={level} />
+                </a>
+              ) : (
+                <EvidenceBadge level={level} />
+              );
             },
             a: ({ href, children }) => {
               const to = rewriteRelativeLink(href ?? "");
@@ -170,24 +187,11 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
         >
           {body}
         </ReactMarkdown>
+
+        <WhatsNext page={page} />
       </div>
 
       <aside className="wiki-side">
-        {page.related.length > 0 && (
-          <section data-testid="wiki-related">
-            <h2>
-              <Link2 size={12} /> 相关词条
-            </h2>
-            <ul>
-              {page.related.map((r) => (
-                <li key={r}>
-                  <Term id={r} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
         <section data-testid="wiki-sources">
           <h2>来源 · {page.sources.length} 条</h2>
           <ol>
@@ -214,9 +218,48 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
   );
 }
 
+/** 来源引用 → 可点的 URL（源码引用指向钉住 commit 的 GitHub 行号） */
+function hrefOfSource(ref: string): string | null {
+  const parsed = parseRepoRef(ref);
+  if (parsed) return sourceUrl(parsed);
+  return ref.startsWith("http") ? ref : null;
+}
+
+/**
+ * 「接着看」由 relations 生成，不再让 agent 手写。
+ *
+ * 以前它在正文里手写一遍、侧栏的「相关词条」又列一遍无理由的 id，两份对不上，
+ * 而且侧栏那份更差（没有理由、没有排序）。现在只有一份真相：每条边的 note。
+ */
+function WhatsNext({ page }: { page: RegistryEntry }) {
+  const groups = groupRelations(page.relations, page.backlinks);
+  if (groups.length === 0) return null;
+  return (
+    <section className="wiki-next" data-testid="wiki-next">
+      <h2>接着看</h2>
+      {groups.map((g) => (
+        <div key={g.title} className="wiki-next-group">
+          <h3>
+            {g.title}
+            <span className="wiki-next-hint">{g.hint}</span>
+          </h3>
+          <ul>
+            {g.items.map((it) => (
+              <li key={it.id}>
+                <Term id={it.id} />
+                <span className="wiki-next-note">{it.note}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function SourceItem({ index, ref_ }: { index: number; ref_: string }) {
   const parsed = parseRepoRef(ref_);
-  const url = parsed ? sourceUrl(parsed) : ref_.startsWith("http") ? ref_ : null;
+  const url = hrefOfSource(ref_);
   const label = parsed
     ? `${parsed.path}${parsed.lineStart ? `#L${parsed.lineStart}${parsed.lineEnd ? `-L${parsed.lineEnd}` : ""}` : ""}`
     : ref_;

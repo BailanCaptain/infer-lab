@@ -6,6 +6,7 @@
  * 学习者的提问不能改动知识库（要写只能走「存进 wiki」的草稿流程，AC8）。
  */
 import type { AgentRequest } from "../scripts/wiki/ingest";
+import type { Neighborhood } from "../src/content/wiki/relations";
 
 export interface ChatHandbook {
   pageFormat: string;
@@ -33,6 +34,8 @@ export interface ChatInput {
   sessionId?: string;
   /** retrieve() 给出的候选页；由 server 层调用 AC10 的接口取得 */
   hits?: ChatHit[];
+  /** 命中页的子图：地基 / 下游 / 同层，每条带说明关系的 note */
+  graph?: { id: string; title: string; neighborhood: Neighborhood }[];
 }
 
 export type ChatEvent =
@@ -53,6 +56,33 @@ export type ChatEvent =
  */
 const ALLOWED = ["Read", "Grep", "Glob", "WebFetch", "WebSearch"];
 const DISALLOWED = ["Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent"];
+
+/**
+ * 子图注入。回答「什么是 X」时只读 X 一页是不够的——2026-09-11 实测就是读一页
+ * 就停了，因为那时候边是无类型的 `related`，agent 既不知道该去哪页，也不知道
+ * 去了之后怎么把两页接起来。现在把地基 / 下游 / 同层连同 note 一起给它，
+ * 让答案能按「它依赖什么 → 它是什么 → 谁用它 → 边界」组织。
+ */
+function graphBlock(graph?: { id: string; title: string; neighborhood: Neighborhood }[]): string[] {
+  const out: string[] = [];
+  for (const g of graph ?? []) {
+    const n = g.neighborhood;
+    if (!n.foundations.length && !n.dependents.length && !n.siblings.length) continue;
+    out.push("", `「${g.title}」（${g.id}）的子图——按「查询」规则沿它组织回答：`);
+    const section = (title: string, items: { id: string; note: string }[]) => {
+      if (!items.length) return;
+      out.push(`  ${title}：`);
+      for (const it of items) out.push(`    - ${it.id}：${it.note}`);
+    };
+    section("地基（先交代，一句话即可）", n.foundations);
+    section("下游（说清学了有什么用）", n.dependents);
+    section("同层（变体 / 互斥 / 替代，用来划边界）", n.siblings);
+  }
+  if (out.length) {
+    out.push("", "子图里的页要真的打开读，不要只拿上面这几行拼答案。");
+  }
+  return out;
+}
 
 export function buildChatRequest(
   input: ChatInput,
@@ -91,6 +121,7 @@ export function buildChatRequest(
   } else if (input.hits) {
     lines.push("", "程序预检索没有找到相关页。若你也找不到，请直接说知识库里还没有这一条。");
   }
+  lines.push(...graphBlock(input.graph));
 
   return {
     id: "chat",

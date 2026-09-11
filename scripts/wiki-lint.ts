@@ -10,6 +10,10 @@ import { runLint } from "./wiki/lint";
 const WARN_ONLY = new Set([
   // 白名单外的来源配低等级证据是合法的，只是值得人审时扫一眼
   "source-unlisted",
+  // 迁移期：无类型 related 待重跑成 relations，归零后删掉这条
+  "legacy-relations",
+  // 标记密度是质量提示不是硬错，人审时看一眼就行
+  "mark-flood",
 ]);
 
 const problems = runLint(process.cwd(), { terms: process.argv.includes("--terms") });

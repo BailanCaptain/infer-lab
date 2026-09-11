@@ -6,16 +6,20 @@
  * 不知道那是什么——这正是「证据等级用户会不会蒙」的问题，所以渲染成带 tooltip
  * 的角标，而不是让字面量原样出现在句子里。
  *
+ * 标记可以带来源编号：`[C3]` 的 3 指向本页 `sources` 的第 3 条（PLAN §1.4 的原
+ * 设计就是 `[C##]`）。带编号的会渲染成能点的链接，跳到那一行源码——不能点的
+ * 角标对读者没用，这是 2026-09-11 收到的反馈。
+ *
  * 实现上给 mdast 塞一个 `inlineCode` 节点并改写它的 hName，让 mdast-util-to-hast
- * 输出 `<abbr data-evidence="C">C</abbr>`，前端再把 `abbr` 映射成 EvidenceBadge。
- * 这样不需要自定义节点类型，也不需要放开 raw HTML。
+ * 输出 `<abbr data-evidence="C" data-source="3">C</abbr>`，前端再把 `abbr` 映射成
+ * EvidenceBadge。这样不需要自定义节点类型，也不需要放开 raw HTML。
  */
 
 /**
  * 七档字母的内联标记。只认前后不粘连的 `[X]`——`arr[0]`、`[S3]`、`[Ctrl]`
  * 都不能被误判成证据标记。`!` 在字符类里是字面量，不用转义。
  */
-export const EVIDENCE_MARK_RE = /\[([SCDAIM!])\](?![\w-])/g;
+export const EVIDENCE_MARK_RE = /\[([SCDAIM!])(\d*)\](?![\w-])/g;
 
 type TextNode = { type: "text"; value: string };
 type MarkNode = {
@@ -23,6 +27,13 @@ type MarkNode = {
   value: string;
   data: { hName: "abbr"; hProperties: Record<string, string> };
 };
+
+/** `[C3]` 里的 3 指向本页 sources 的第 3 条，前端据此渲染成可点的角标 */
+function markNode(level: string, index: string): MarkNode {
+  const props: Record<string, string> = { "data-evidence": level };
+  if (index) props["data-source"] = index;
+  return { type: "inlineCode", value: level, data: { hName: "abbr", hProperties: props } };
+}
 
 /** 把一个文本节点按证据标记切成 text / mark 交替的序列；没有标记就返回 null */
 export function splitEvidenceMarks(value: string): (TextNode | MarkNode)[] | null {
@@ -33,11 +44,7 @@ export function splitEvidenceMarks(value: string): (TextNode | MarkNode)[] | nul
   while (m) {
     const level = m[1] ?? "";
     if (m.index > last) out.push({ type: "text", value: value.slice(last, m.index) });
-    out.push({
-      type: "inlineCode",
-      value: level,
-      data: { hName: "abbr", hProperties: { "data-evidence": level } },
-    });
+    out.push(markNode(level, m[2] ?? ""));
     last = m.index + m[0].length;
     m = EVIDENCE_MARK_RE.exec(value);
   }

@@ -3,7 +3,7 @@ import { collectStepTerms, lintLog, lintPages } from "./lint";
 import type { WikiPage } from "./pages";
 
 /** 概念页的合法骨架，让不关心分节的用例不必自己写全七节 */
-const SKELETON = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解", "接着看"]
+const SKELETON = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"]
   .map((h) => `## ${h}\nx`)
   .join("\n");
 
@@ -21,6 +21,7 @@ const mk = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiPage
     chapters: ["11"],
     sources: ["https://docs.vllm.ai/projects/ascend/en/latest/index.html"],
     evidence: "S",
+    relations: [],
     related: [],
     contradicts: [],
     updated: "2026-09-07",
@@ -33,7 +34,14 @@ describe("lintPages", () => {
   it("干净输入无问题", () => {
     expect(
       lintPages(
-        [mk("a", { related: ["b"] }, "[b](b.md) [raw](../raw/a.md)"), mk("b", { related: ["a"] })],
+        [
+          mk(
+            "a",
+            { relations: [{ to: "b", kind: "builds-on", note: "a 的形状由 b 决定" }] },
+            "[b](b.md) [raw](../raw/a.md)",
+          ),
+          mk("b"),
+        ],
         opts,
       ),
     ).toEqual([]);
@@ -42,24 +50,76 @@ describe("lintPages", () => {
     const r = lintPages([mk("a"), { ...mk("a"), file: "sources/a.md" }, mk("b", { aliases: ["A"] })], opts);
     expect(r.map((p) => p.rule)).toEqual(expect.arrayContaining(["dup-id", "dup-alias"]));
   });
-  it("unknown-chapter / related-missing / broken-link", () => {
+  it("unknown-chapter / relation-missing / broken-link", () => {
     const r = lintPages(
-      [mk("a", { chapters: ["99"], related: ["nope"] }, "[x](nope.md) [ok](../raw/a.md) [web](https://z)")],
+      [
+        mk(
+          "a",
+          { chapters: ["99"], relations: [{ to: "nope", kind: "builds-on", note: "x" }] },
+          "[x](nope.md) [ok](../raw/a.md) [web](https://z)",
+        ),
+      ],
       opts,
     );
-    expect(r.map((p) => p.rule).sort()).toEqual(["broken-link", "related-missing", "unknown-chapter"]);
+    expect(r.map((p) => p.rule).sort()).toEqual(["broken-link", "relation-missing", "unknown-chapter"]);
     expect(r.find((p) => p.rule === "broken-link")?.message).toContain("nope.md");
   });
-  it("related-asymmetric：A 指 B 而 B 不回指 A", () => {
-    const r = lintPages([mk("a", { related: ["b"] }), mk("b")], opts);
-    expect(r).toEqual([
-      { file: "concepts/a.md", rule: "related-asymmetric", message: "related 含 b，但 b 没有回指 a" },
-    ]);
-    expect(lintPages([mk("a", { related: ["b"] }), mk("b", { related: ["a"] })], opts)).toEqual([]);
+  it("relation-duplicate：有向边两边各写一次", () => {
+    // 反向边由 wiki:build 派生，手写第二次会让「接着看」重复出现同一页
+    const both = lintPages(
+      [
+        mk("a", { relations: [{ to: "b", kind: "builds-on", note: "n" }] }),
+        mk("b", { relations: [{ to: "a", kind: "builds-on", note: "n" }] }),
+      ],
+      opts,
+    );
+    expect(both.map((p) => p.rule)).toEqual(["relation-duplicate", "relation-duplicate"]);
+    // 对称边两边都写不算重复——它本来就没有方向
+    const sym = lintPages(
+      [
+        mk("a", { relations: [{ to: "b", kind: "conflicts-with", note: "n" }] }),
+        mk("b", { relations: [{ to: "a", kind: "conflicts-with", note: "n" }] }),
+      ],
+      opts,
+    );
+    expect(sym).toEqual([]);
+  });
+
+  it("relation-selfloop / 同一对 (to, kind) 写两次", () => {
+    const self = lintPages([mk("a", { relations: [{ to: "a", kind: "builds-on", note: "n" }] })], opts);
+    expect(self.map((p) => p.rule)).toEqual(["relation-selfloop"]);
+    const twice = lintPages(
+      [
+        mk("a", {
+          relations: [
+            { to: "b", kind: "builds-on", note: "n" },
+            { to: "b", kind: "builds-on", note: "n2" },
+          ],
+        }),
+        mk("b"),
+      ],
+      opts,
+    );
+    expect(twice.map((p) => p.rule)).toEqual(["relation-duplicate"]);
+  });
+
+  it("relation-empty：多页知识库里没有任何边的教学页报红", () => {
+    const r = lintPages([mk("a"), mk("b")], opts);
+    expect(r.map((p) => p.rule)).toEqual(["relation-empty", "relation-empty"]);
+    // 只有一页时没东西可连，不算孤立
+    expect(lintPages([mk("a")], opts)).toEqual([]);
   });
   it("orphan：无 chapters 且无入链；有入链即不算", () => {
     expect(lintPages([mk("lonely", { chapters: [] })], opts)[0]?.rule).toBe("orphan");
-    expect(lintPages([mk("lonely", { chapters: [] }), mk("a", {}, "[l](lonely.md)")], opts)).toEqual([]);
+    expect(
+      lintPages(
+        [
+          mk("lonely", { chapters: [], relations: [{ to: "a", kind: "builds-on", note: "n" }] }),
+          mk("a", {}, "[l](lonely.md)"),
+        ],
+        opts,
+      ),
+    ).toEqual([]);
     expect(lintPages([mk("doc", { chapters: [], type: "source" })], opts)).toEqual([]);
   });
   it("missing-term 只在给了 requiredTerms 时检查", () => {
@@ -99,7 +159,7 @@ const mkRaw = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiP
 });
 
 describe("lintPages · HANDBOOK 新规则", () => {
-  const SECTIONS = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解", "接着看"];
+  const SECTIONS = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"];
   const fullBody = SECTIONS.map((h) => `## ${h}\nx`).join("\n");
 
   it("missing-section：缺必需小节报红，齐全放行", () => {
@@ -109,13 +169,11 @@ describe("lintPages · HANDBOOK 新规则", () => {
     expect(good.map((p) => p.rule)).not.toContain("missing-section");
   });
 
-  it("whatsnext-overflow：接着看超过五条报红", () => {
-    const six = `${fullBody}\n${Array.from({ length: 6 }, (_, i) => `- [p${i}](p${i}.md)`).join("\n")}`;
-    const bad = lintPages([mkRaw("a", {}, six)], { ...opts, existsFile: () => true });
-    expect(bad.map((p) => p.rule)).toContain("whatsnext-overflow");
-    const five = `${fullBody}\n${Array.from({ length: 5 }, (_, i) => `- [p${i}](p${i}.md)`).join("\n")}`;
-    const good = lintPages([mkRaw("a", {}, five)], { ...opts, existsFile: () => true });
-    expect(good.map((p) => p.rule)).not.toContain("whatsnext-overflow");
+  it("stray-whatsnext：正文手写 ## 接着看报红（它由 relations 生成）", () => {
+    const withIt = `${fullBody}\n## 接着看\n- [b](b.md)`;
+    const bad = lintPages([mkRaw("a", {}, withIt)], { ...opts, existsFile: () => true });
+    expect(bad.map((p) => p.rule)).toContain("stray-whatsnext");
+    expect(lintPages([mkRaw("a", {}, fullBody)], opts).map((p) => p.rule)).not.toContain("stray-whatsnext");
   });
 
   it("unexpanded-placeholder：正文残留 {{ }} 报红", () => {
@@ -126,17 +184,26 @@ describe("lintPages · HANDBOOK 新规则", () => {
     );
   });
 
-  it("prerequisites-missing：指向不存在的 id 报红", () => {
-    const bad = lintPages([mkRaw("a", { prerequisites: ["nope"] }, fullBody)], opts);
-    expect(bad.map((p) => p.rule)).toContain("prerequisites-missing");
-    const good = lintPages(
-      [
-        mkRaw("a", { prerequisites: ["b"], related: ["b"] }, fullBody),
-        mkRaw("b", { related: ["a"] }, fullBody),
-      ],
-      opts,
-    );
-    expect(good.map((p) => p.rule)).not.toContain("prerequisites-missing");
+  it("mark-unnumbered：[C] 不带来源编号报红，[D] 不带编号是对的", () => {
+    // PLAN §1.4 的原设计是 [C##]：声称有一手来源就要给得出编号，读者才能核对
+    const bare = lintPages([mkRaw("a", {}, `${fullBody}\n块大小是 128 [C]。`)], opts);
+    expect(bare.map((p) => p.rule)).toContain("mark-unnumbered");
+    const numbered = lintPages([mkRaw("a", {}, `${fullBody}\n块大小是 128 [C1]。`)], opts);
+    expect(numbered.map((p) => p.rule)).not.toContain("mark-unnumbered");
+    const derived = lintPages([mkRaw("a", {}, `${fullBody}\n由此推出 112 KiB [D]。`)], opts);
+    expect(derived.map((p) => p.rule)).toEqual([]);
+  });
+
+  it("mark-index：编号越界，或推导类标记带了编号", () => {
+    const over = lintPages([mkRaw("a", {}, `${fullBody}\nx [C9]。`)], opts);
+    expect(over.find((p) => p.rule === "mark-index")?.message).toContain("只有 1 条");
+    const wrong = lintPages([mkRaw("a", {}, `${fullBody}\nx [D1]。`)], opts);
+    expect(wrong.find((p) => p.rule === "mark-index")?.message).toContain("不该带编号");
+  });
+
+  it("mark-flood：标记过密只警告", () => {
+    const many = `${fullBody}\n${"句子 [C1]。".repeat(31)}`;
+    expect(lintPages([mkRaw("a", {}, many)], opts).map((p) => p.rule)).toContain("mark-flood");
   });
 
   it("doc-evidence：主体来自文档却不标 S 报红；源码为主标 C 放行", () => {

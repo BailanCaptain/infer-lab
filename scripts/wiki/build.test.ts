@@ -15,6 +15,7 @@ const page = (id: string, type: WikiPage["fm"]["type"], chapters: string[]): Wik
     chapters,
     sources: ["https://x"],
     evidence: "S",
+    relations: [],
     related: [],
     contradicts: [],
     updated: "2026-09-07",

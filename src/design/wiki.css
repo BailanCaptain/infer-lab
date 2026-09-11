@@ -853,3 +853,66 @@
   vertical-align: 2px;
   cursor: help;
 }
+
+/* ---------- 接着看：由 relations 生成 ---------- */
+/* 以前正文手写一遍、侧栏「相关词条」又列一遍无理由的 id，两份对不上。
+   现在只有一份真相：每条边的 note。 */
+.wiki-next {
+  margin-top: 36px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-line);
+}
+
+.wiki-body .wiki-next > h2 {
+  margin: 0 0 16px;
+  font-size: var(--text-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wiki-next-group {
+  margin-bottom: 18px;
+}
+
+.wiki-body .wiki-next-group h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 7px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.wiki-next-hint {
+  font-weight: 400;
+  font-size: var(--text-micro);
+  color: var(--color-ink-faint);
+}
+
+.wiki-body .wiki-next-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wiki-body .wiki-next-group li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0 5px 11px;
+  border-left: 2px solid var(--color-line);
+  font-size: var(--text-compact);
+}
+
+/* 理由跟在词条后面——没有理由的链接读者不会点 */
+.wiki-next-note {
+  color: var(--color-ink-muted);
+}
+
+/* 带来源编号的内联角标是链接，去掉正文 a 的下划线与颜色 */
+.wiki-body a.wiki-mark-link {
+  border: 0;
+  text-decoration: none;
+  color: inherit;
+}

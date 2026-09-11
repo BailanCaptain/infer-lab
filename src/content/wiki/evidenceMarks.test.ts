@@ -2,6 +2,16 @@ import { describe, expect, it } from "vitest";
 import { remarkEvidenceMarks, splitEvidenceMarks } from "./evidenceMarks";
 
 describe("splitEvidenceMarks", () => {
+  it("带编号的 [C3] 记下来源下标，供前端渲染成可点链接", () => {
+    const parts = splitEvidenceMarks("块大小固定 128 [C3]。");
+    const mark = parts?.find((p) => p.type === "inlineCode");
+    expect(mark).toEqual({
+      type: "inlineCode",
+      value: "C",
+      data: { hName: "abbr", hProperties: { "data-evidence": "C", "data-source": "3" } },
+    });
+  });
+
   it("句末的 [C] 切成角标节点，前后文本保留", () => {
     const parts = splitEvidenceMarks("后端只支持 block_size = 128 [C]。");
     expect(parts).toEqual([
@@ -25,7 +35,8 @@ describe("splitEvidenceMarks", () => {
   });
 
   it("数组下标与多字母方括号不误判", () => {
-    for (const s of ["arr[0] 的值", "见 [S3] 小节", "[Ctrl] 键", "[SC] 两档"]) {
+    // 注意 [S3] 现在是合法标记（S + 来源编号 3），不在这个列表里
+    for (const s of ["arr[0] 的值", "[Ctrl] 键", "[SC] 两档", "[C-1] 区间"]) {
       expect(splitEvidenceMarks(s)).toBeNull();
     }
   });

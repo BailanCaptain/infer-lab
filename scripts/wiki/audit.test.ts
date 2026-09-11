@@ -15,6 +15,7 @@ const page = (sources: string[]): WikiPage => ({
     chapters: ["11"],
     sources,
     evidence: "C",
+    relations: [],
     related: [],
     contradicts: [],
     updated: "2026-09-07",

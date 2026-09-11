@@ -5,7 +5,13 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CHAPTER_TITLES } from "../../src/content/wiki/chapters";
-import { PAGE_TYPES, type PageType, type Registry } from "../../src/content/wiki/schema";
+import {
+  type Backlink,
+  INVERSE_KIND,
+  PAGE_TYPES,
+  type PageType,
+  type Registry,
+} from "../../src/content/wiki/schema";
 import { loadPages, type WikiPage } from "./pages";
 
 const TYPE_LABEL: Record<PageType, string> = {
@@ -48,8 +54,38 @@ export function renderIndex(pages: WikiPage[]): string {
   return `${out.join("\n").trimEnd()}\n`;
 }
 
+/**
+ * 反向边由这里派生，页面里只写一个方向。
+ *
+ * 「A builds-on B」写在 A 上，B 自动得到「enables A」。对称的边（互斥、替代）
+ * 两边都得到同一个关系名。note 原样带过去——它说的是这条边本身是什么关系，
+ * 从哪头看都成立。
+ */
+export function deriveBacklinks(pages: WikiPage[]): Map<string, Backlink[]> {
+  const out = new Map<string, Backlink[]>();
+  const known = new Set(pages.map((p) => p.fm.id));
+  for (const p of pages) {
+    for (const r of p.fm.relations) {
+      if (!known.has(r.to)) continue; // 断边由 lint 报，这里不生成半截数据
+      const list = out.get(r.to) ?? [];
+      list.push({ from: p.fm.id, kind: INVERSE_KIND[r.kind], note: r.note });
+      out.set(r.to, list);
+    }
+  }
+  for (const [, list] of out) {
+    list.sort((a, b) => a.kind.localeCompare(b.kind) || a.from.localeCompare(b.from));
+  }
+  return out;
+}
+
 export function buildRegistry(pages: WikiPage[]): Registry {
-  return { version: 1, pages: [...pages].sort(byId).map((p) => ({ ...p.fm, file: p.file })) };
+  const backlinks = deriveBacklinks(pages);
+  return {
+    version: 1,
+    pages: [...pages]
+      .sort(byId)
+      .map((p) => ({ ...p.fm, file: p.file, backlinks: backlinks.get(p.fm.id) ?? [] })),
+  };
 }
 
 export function runBuild(rootDir: string): { pageCount: number; problems: number } {

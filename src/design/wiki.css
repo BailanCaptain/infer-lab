@@ -299,12 +299,27 @@
   line-height: 20px;
 }
 
+/* 事实表常有三列（项 / 值 / 来源），其中「来源」是长路径加行号，撑得比正文列宽。
+   不给容器就会溢出到侧栏底下把来源整列裁掉——而来源正是事实表的重点。 */
+.wiki-table-scroll {
+  margin: 0 0 14px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 .wiki-body table {
   width: 100%;
-  margin: 0 0 14px;
+  margin: 0;
   border-collapse: collapse;
   font-size: var(--text-compact);
   font-variant-numeric: tabular-nums;
+}
+
+/* 单元格里的长标识符允许断行，否则一条 path#L1-L2 就能把整列撑开 */
+.wiki-body td code,
+.wiki-body th code {
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .wiki-body th,

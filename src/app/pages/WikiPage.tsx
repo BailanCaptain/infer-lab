@@ -2,6 +2,7 @@ import { ArrowLeft, BookOpen, Link2 } from "lucide-react";
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router";
+import remarkCjkFriendly from "remark-cjk-friendly";
 import remarkGfm from "remark-gfm";
 import { CHAPTER_TITLES } from "../../content/wiki/chapters";
 import { remarkEvidenceMarks } from "../../content/wiki/evidenceMarks";
@@ -134,7 +135,7 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
 
       <div className="wiki-body" data-testid="wiki-body">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkEvidenceMarks]}
+          remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkEvidenceMarks]}
           components={{
             // ```mermaid 块渲染成图。HANDBOOK 要求讲结构关系时必须画图，
             // 不接这一段图就会以源码形式显示。在 pre 而不是 code 上拦，
@@ -143,6 +144,12 @@ function Article({ page, body }: { page: RegistryEntry; body: string }) {
               const chart = mermaidSource(node);
               return chart ? <Mermaid chart={chart} /> : <pre>{children}</pre>;
             },
+            // 事实表比正文列宽，不包一层会溢出到侧栏底下，把「来源」整列裁掉
+            table: ({ children }) => (
+              <div className="wiki-table-scroll">
+                <table>{children}</table>
+              </div>
+            ),
             // remarkEvidenceMarks 把内联的 [C] 变成 <abbr>C</abbr>。
             // markdown 本身没有 abbr 语法，所以单字母的 abbr 一定是它产的。
             abbr: ({ children, ...rest }) => {

@@ -62,6 +62,36 @@ test.describe("知识库阅读页", () => {
     await expect(body).not.toContainText("[C]");
   });
 
+  test("中文加粗真的加粗——全角标点旁的 ** 不留字面量", async ({ page }) => {
+    // CommonMark 的 flanking 规则遇上中文全角标点会失效：`**换出（D2H）**发生在`
+    // 里的闭合 ** 前是「）」后是「发」，判不成 right-flanking，于是整段以字面量
+    // 显示。remark-cjk-friendly 按 CommonMark 的 CJK 提案修正这条规则。
+    await page.goto("/#/wiki/recompute-cpu-offload");
+    const body = page.getByTestId("wiki-body");
+    await expect(body.locator("strong", { hasText: "换出（D2H）" })).toBeVisible();
+    // 唯一允许留下的 ** 是 Python 幂运算 8 * 1024**3，它本来就不是加粗
+    const stars = ((await body.innerText()).match(/\*\*/g) ?? []).length;
+    expect(stars).toBeLessThanOrEqual(1);
+  });
+
+  test("事实表的「来源」列不被侧栏裁掉", async ({ page }) => {
+    await page.goto("/#/wiki/paged-attention");
+    // 页面上不止一张表，挑表头里有「来源」的那张——事实表
+    const wrap = page
+      .getByTestId("wiki-body")
+      .locator(".wiki-table-scroll")
+      .filter({ has: page.locator("th", { hasText: "来源" }) })
+      .first();
+    await expect(wrap).toBeVisible();
+    // 容器自己能横向滚，表格就不会溢出去压到侧栏底下
+    const [clientW, scrollW] = await wrap.evaluate((el) => [el.clientWidth, el.scrollWidth]);
+    expect(scrollW).toBeLessThanOrEqual(clientW + 1);
+    // 第三列（来源）真的在视口里
+    const lastCell = wrap.locator("tbody tr").first().locator("td").last();
+    await expect(lastCell).toBeVisible();
+    await expect(lastCell).toContainText("#L");
+  });
+
   test("正文里指向其它页的链接可跳转", async ({ page }) => {
     await page.goto("/#/wiki/block-table");
     const body = page.getByTestId("wiki-body");

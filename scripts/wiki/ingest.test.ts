@@ -157,6 +157,8 @@ describe("extractRequest", () => {
       "Read",
       "Grep",
       "Glob",
+      "WebFetch",
+      "WebSearch",
       "Edit(_drafts/paged-attention.md)",
       "Edit(raw/paged-attention.md)",
     ]);
@@ -521,13 +523,27 @@ describe("extractRequest · 文档与占位符（Task 27 / 28）", () => {
 
 describe("联网权限按角色分（2026-09-11 修正）", () => {
   const disallowedOf = (args: string[]) => args.slice(args.indexOf("--disallowedTools") + 1);
+  const allowedOf = (args: string[]) =>
+    args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--disallowedTools"));
 
   it("提取 agent 能联网——它要读官方文档站、昇腾文档、论文", () => {
     const sd = parseSeeds(seedsYaml);
-    const d = disallowedOf(extractRequest(sd.features[0]!, sd, ctx).args);
+    const args = extractRequest(sd.features[0]!, sd, ctx).args;
+    const d = disallowedOf(args);
     expect(d).not.toContain("WebFetch");
     expect(d).not.toContain("WebSearch");
     expect(d).toContain("Bash");
+    // `--allowedTools` 在 -p 模式下是白名单：只从黑名单拿掉，工具仍会被拒。
+    // 实测 2026-09-11：Claude requested permissions to use WebFetch, but you
+    // haven't granted it yet. 两边都要改，漏一边等于没放开。
+    expect(allowedOf(args)).toContain("WebFetch");
+    expect(allowedOf(args)).toContain("WebSearch");
+  });
+
+  it("整合 agent 的白名单里也没有联网工具", () => {
+    const a = allowedOf(integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx).args);
+    expect(a).not.toContain("WebFetch");
+    expect(a).not.toContain("WebSearch");
   });
 
   it("整合 agent 不能联网——它不引入新来源", () => {

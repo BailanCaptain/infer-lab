@@ -140,12 +140,18 @@ export interface AgentRequest {
  * 结果是一个讲 vllm-ascend 的知识库连昇腾官方文档都打不开，而 HANDBOOK 还写着
  * 「去官网取展开值」——规则与能力矛盾。真正该限的是**能引什么**，不是能读什么，
  * 那由 lint 的 `source-domain` 规则与 HANDBOOK 的白名单管。
+ *
+ * 注意 `--allowedTools` 在 `-p` 无人值守模式下是**白名单**而非「免确认表」：
+ * 不在表里的工具会被直接拒（实测 2026-09-11：`Claude requested permissions to
+ * use WebFetch, but you haven't granted it yet.`）。所以放开联网必须同时做两件事，
+ * 从黑名单拿掉、往白名单加上，只做前者等于没做。
  */
 const BASE_DISALLOWED = ["Bash", "NotebookEdit", "Task", "Agent"];
+const WEB_TOOLS = ["WebFetch", "WebSearch"];
 /** 提取：要读官方文档站、昇腾文档、论文，放开联网 */
 const EXTRACT_DISALLOWED = BASE_DISALLOWED;
 /** 整合：只处理已有草稿、不引入新来源，联网无正当用途 */
-const INTEGRATE_DISALLOWED = [...BASE_DISALLOWED, "WebFetch", "WebSearch"];
+const INTEGRATE_DISALLOWED = [...BASE_DISALLOWED, ...WEB_TOOLS];
 
 function baseArgs(system: string): string[] {
   return [
@@ -161,9 +167,9 @@ function baseArgs(system: string): string[] {
 }
 
 /**
- * 文档变量表。上游文档正文里的 `{{ 变量 }}` 只有渲染后才有值，而提取 agent 的
- * 黑名单里有 WebFetch，上不了网。变量表本来就在仓库里（MkDocs 的 mkdocs.yml
- * 或 Sphinx 的 conf.py），由引擎解出来直接给它，比让它上网更准也更快。
+ * 文档变量表。上游文档正文里的 `{{ 变量 }}` 只有渲染后才有值。提取 agent 现在
+ * 能上网了，但变量表本来就在仓库里（MkDocs 的 mkdocs.yml 或 Sphinx 的 conf.py），
+ * 由引擎解出来直接给它，比让它去官网猜哪个渲染值对应哪个变量更准也更快。
  */
 function docVarsBlock(vars?: Record<string, string>): string[] {
   const entries = Object.entries(vars ?? {});
@@ -198,6 +204,7 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     "Read",
     "Grep",
     "Glob",
+    ...WEB_TOOLS,
     `Edit(${draft})`,
     `Edit(${raw})`,
     "--disallowedTools",

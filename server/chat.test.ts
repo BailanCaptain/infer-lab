@@ -53,14 +53,23 @@ describe("buildChatRequest", () => {
   it("只给只读工具；写类工具一律禁掉", () => {
     const req = buildChatRequest({ message: "x" }, hb, ctx);
     const allowed = req.args.slice(req.args.indexOf("--allowedTools") + 1, req.args.indexOf("--disallowedTools"));
-    expect(allowed).toEqual(["Read", "Grep", "Glob"]);
+    expect(allowed).toEqual(["Read", "Grep", "Glob", "WebFetch", "WebSearch"]);
     const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
     for (const t of ["Write", "Edit", "Bash"]) {
       expect(disallowed).toContain(t);
     }
-    // 允许联网：知识库没收录时能读官方文档给出带出处的答案（2026-09-11 修正）
-    expect(disallowed).not.toContain("WebFetch");
-    expect(disallowed).not.toContain("WebSearch");
+  });
+
+  it("联网工具进白名单，不只是没进黑名单", () => {
+    // `--allowedTools` 在 -p 模式下是白名单：只从黑名单拿掉不够，实测会被拒
+    // （Claude requested permissions to use WebFetch, but you haven't granted it yet.）
+    const req = buildChatRequest({ message: "x" }, hb, ctx);
+    const allowed = req.args.slice(req.args.indexOf("--allowedTools") + 1, req.args.indexOf("--disallowedTools"));
+    const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
+    for (const t of ["WebFetch", "WebSearch"]) {
+      expect(allowed).toContain(t);
+      expect(disallowed).not.toContain(t);
+    }
   });
 
   it("提问走 stdin，不进 argv（Windows argv 有 32KB 上限）", () => {

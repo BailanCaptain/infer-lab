@@ -47,7 +47,11 @@ export type ChatEvent =
  * 但**允许联网**（2026-09-11 修正）：知识库没收录的问题，只回一句「没有」价值有限；
  * 能读官方文档给出带出处的答案才有用。可引来源仍由 HANDBOOK 的白名单约束。
  * 另外，agent 需要上网本身就是知识库缺口的信号，F004 AC3 拿它当补页的触发条件。
+ *
+ * 放开联网要两步：从 DISALLOWED 拿掉、往 ALLOWED 加上。`--allowedTools` 在 `-p`
+ * 模式下是白名单，不在表里的工具会被直接拒（实测 2026-09-11）。
  */
+const ALLOWED = ["Read", "Grep", "Glob", "WebFetch", "WebSearch"];
 const DISALLOWED = ["Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent"];
 
 export function buildChatRequest(
@@ -75,14 +79,7 @@ export function buildChatRequest(
     "20",
   ];
   if (input.sessionId) args.push("--resume", input.sessionId);
-  args.push(
-    "--allowedTools",
-    "Read",
-    "Grep",
-    "Glob",
-    "--disallowedTools",
-    ...DISALLOWED,
-  );
+  args.push("--allowedTools", ...ALLOWED, "--disallowedTools", ...DISALLOWED);
 
   const lines = [`学习者的问题：${input.message}`];
   if (input.hits?.length) {

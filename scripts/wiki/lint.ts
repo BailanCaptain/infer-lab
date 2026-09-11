@@ -179,12 +179,31 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
     // 能读什么不限，能引什么才限——白名单见 HANDBOOK「可引来源」，
     // 与 sources.ts 的 CITABLE_DOMAINS 由测试锁住一致
     const kinds = p.fm.sources.map((x) => ({ ref: x, kind: classifySource(x) }));
-    for (const { ref, kind } of kinds) {
-      if (kind === "unlisted") {
+    const unlisted = kinds.filter((k) => k.kind === "unlisted");
+    if (unlisted.length > 0) {
+      // 白名单管的是「什么配得上高等级证据」，不是「什么都不许引」。
+      // 引一篇博客并诚实标成推断（I）是有用的——它告诉读者这个理解从哪来、
+      // 且没能从一手来源确认。真问题是拿博客冒充官方实证。
+      const highEvidence = p.fm.evidence === "S" || p.fm.evidence === "C";
+      const allUnlisted = unlisted.length === p.fm.sources.length;
+      const refs = unlisted.map((u) => u.ref).join("、");
+      if (highEvidence) {
         problems.push({
           file: p.file,
           rule: "source-domain",
-          message: `${ref} 不在可引来源白名单里（读可以，引不行；拿不到一手来源的结论标 I）`,
+          message: `${refs} 不在可引来源白名单里，撑不起 evidence ${p.fm.evidence}——降到 D/I 或换一手来源`,
+        });
+      } else if (allUnlisted) {
+        problems.push({
+          file: p.file,
+          rule: "source-domain",
+          message: "全部来源都不在白名单里，这页没有任何可核对的一手依据",
+        });
+      } else {
+        problems.push({
+          file: p.file,
+          rule: "source-unlisted",
+          message: `${refs} 不在白名单里（配 evidence ${p.fm.evidence} 可以，人审时留意）`,
         });
       }
     }

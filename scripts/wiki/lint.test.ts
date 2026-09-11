@@ -219,18 +219,33 @@ describe("lintPages · 旧格式页的过渡（Task 29）", () => {
   });
 });
 
-describe("lintPages · 可引来源白名单", () => {
-  const body = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解", "接着看"]
-    .map((h) => `## ${h}\nx`)
-    .join("\n");
+describe("lintPages · 可引来源分级", () => {
+  const body = SKELETON;
+  const official = "https://docs.vllm.ai/projects/ascend/en/latest/x.html";
 
-  it("source-domain：白名单外的站点报红", () => {
-    const bad = mkRaw("a", { sources: ["https://zhuanlan.zhihu.com/p/1"], evidence: "I" }, body);
-    expect(lintPages([bad], opts).map((p) => p.rule)).toContain("source-domain");
+  it("表外来源 + 高等级（S/C）报错——拿博客冒充官方实证", () => {
+    for (const ev of ["S", "C"] as const) {
+      const bad = mkRaw("a", { sources: [official, "https://zhuanlan.zhihu.com/p/1"], evidence: ev }, body);
+      expect(
+        lintPages([bad], opts).map((p) => p.rule),
+        ev,
+      ).toContain("source-domain");
+    }
   });
 
-  it("镜像站也报红——要引就引原站", () => {
-    const bad = mkRaw("a", { sources: ["https://hf-mirror.com/Qwen/Qwen3-0.6B"], evidence: "I" }, body);
+  it("表外来源 + 低等级（D/I/A）只警告，不阻塞——引博客并诚实标成推断是合理的", () => {
+    for (const ev of ["D", "I", "A"] as const) {
+      const rules = lintPages(
+        [mkRaw("a", { sources: [official, "https://zhuanlan.zhihu.com/p/1"], evidence: ev }, body)],
+        opts,
+      ).map((p) => p.rule);
+      expect(rules, ev).toContain("source-unlisted");
+      expect(rules, ev).not.toContain("source-domain");
+    }
+  });
+
+  it("一页的来源全在表外则报错——没有任何可核对的一手依据", () => {
+    const bad = mkRaw("a", { sources: ["https://zhuanlan.zhihu.com/p/1"], evidence: "I" }, body);
     expect(lintPages([bad], opts).map((p) => p.rule)).toContain("source-domain");
   });
 
@@ -240,17 +255,19 @@ describe("lintPages · 可引来源白名单", () => {
       { sources: ["https://gitee.com/ascend/ascend-transformer-boost"], evidence: "S" },
       body,
     );
-    expect(lintPages([ok], opts).map((p) => p.rule)).not.toContain("source-domain");
+    const rules = lintPages([ok], opts).map((p) => p.rule);
+    expect(rules).not.toContain("source-domain");
+    expect(rules).not.toContain("source-unlisted");
   });
 
   it("evidence S 需要官方或论文档的来源，生态站撑不起", () => {
     const eco = mkRaw("a", { sources: ["https://pytorch.org/docs/stable/x.html"], evidence: "S" }, body);
     const rules = lintPages([eco], opts).map((p) => p.rule);
-    expect(rules).not.toContain("source-domain"); // 能引
-    expect(rules).toContain("doc-evidence"); // 但撑不起 S
+    expect(rules).not.toContain("source-domain");
+    expect(rules).toContain("doc-evidence");
   });
 
-  it("生态站配 D 或 I 就没问题", () => {
+  it("生态站配 D 就没问题", () => {
     const eco = mkRaw("a", { sources: ["https://pytorch.org/docs/stable/x.html"], evidence: "D" }, body);
     expect(lintPages([eco], opts).map((p) => p.rule)).toEqual([]);
   });

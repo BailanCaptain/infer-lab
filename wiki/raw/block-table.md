@@ -1,10 +1,54 @@
-# Block Table 源码片段
+# Block Table —— 引用到的源码片段
 
-引用自 `vllm-ascend@28bf3a2e`（ref `main`）。行号与本地仓库一致。
+对照两个 ref：`main = vllm-ascend@28bf3a2e`，`releases/v0.23.0 = vllm-ascend@2c59ff10`。
 
-## vllm_ascend/worker/block_table.py#L79-L98
+## vllm_ascend/worker/block_table.py#L37-L95
+
+（main，28bf3a2e）
 
 ```python
+        is_mamba_group = (
+            kv_cache_group is not None
+            and hasattr(kv_cache_group, "kv_cache_spec")
+            and get_kv_cache_spec_kind(kv_cache_group.kv_cache_spec) == KVCacheSpecKind.MAMBA
+        )
+        # The KV cache spec already provides the per-rank table capacity.
+        # Mamba state is replicated across DCP ranks, not sharded then expanded.
+        self.max_num_blocks_per_req = max_num_blocks_per_req
+        self.max_num_batched_tokens = max_num_batched_tokens
+        self.pin_memory = pin_memory
+        self.device = device
+        self.physical_block_size = block_size
+        self.is_mamba_group = is_mamba_group
+
+        # If kernel_sizes is None or [0], use physical block size (no splitting)
+        if kernel_sizes is None or kernel_sizes == [0]:
+            self.block_size = block_size
+            self.logical_block_size = block_size
+            self.blocks_per_phys_block = 1
+            self.use_hybrid_blocks = False
+        else:
+            # Find the first kernel size that divides physical_block_size evenly
+            selected_kernel_size = None
+            for kernel_size in kernel_sizes:
+                if kernel_size > 0 and self.physical_block_size % kernel_size == 0:
+                    selected_kernel_size = kernel_size
+                    break
+
+            if selected_kernel_size is None:
+                raise ValueError(
+                    f"None of the kernel sizes {kernel_sizes} can divide "
+                    f"physical block size {self.physical_block_size} evenly"
+                )
+
+            self.block_size = selected_kernel_size
+            self.logical_block_size = selected_kernel_size
+            self.blocks_per_phys_block = self.physical_block_size // self.logical_block_size
+            if self.blocks_per_phys_block > 1:
+                self.use_hybrid_blocks = True
+            else:
+                self.use_hybrid_blocks = False
+
         if self.use_hybrid_blocks:
             logical_table_size = max_num_blocks_per_req * self.blocks_per_phys_block
         else:
@@ -22,14 +66,13 @@
             self.max_num_batched_tokens + num_mtp_draft_slots,
             dtype=torch.int32,
         )
-
-        self.kernel_sizes = kernel_sizes
-        self.cp_kv_cache_interleave_size = cp_kv_cache_interleave_size
 ```
 
-三个缓冲区的形状与 dtype 全在这里：块表本体、每行已填块数、slot_mapping。事实表的形状行来自这一段。
+块表张量的形状（行 = `max_num_reqs * duplicate_size`，列 = `logical_table_size`）、dtype（int32）、`num_blocks_per_row` 游标、slot_mapping 缓冲长度，以及物理块 / 逻辑块拆分规则都在这里。main 上没有 `compress_ratio`、也没有 Mamba × CP 扩表——注释直接说明「spec 已经给出 per-rank 容量」。
 
 ## vllm_ascend/worker/block_table.py#L100-L138
+
+（main，28bf3a2e）
 
 ```python
     def append_row(
@@ -73,43 +116,11 @@
         self.block_table.np[[src, tgt]] = self.block_table.np[[tgt, src]]
 ```
 
-「decode 时怎样追加」的直接依据：追加写在 `num_blocks_per_row[row_idx]` 指向的列，写完游标前移；`add_row` 是把游标清零后的 `append_row`。`move_row` / `swap_row` 说明行是可以被整体搬动的批内槽位，不是请求的稳定标识。
-
-## vllm_ascend/worker/block_table.py#L51-L77
-
-```python
-        # If kernel_sizes is None or [0], use physical block size (no splitting)
-        if kernel_sizes is None or kernel_sizes == [0]:
-            self.block_size = block_size
-            self.logical_block_size = block_size
-            self.blocks_per_phys_block = 1
-            self.use_hybrid_blocks = False
-        else:
-            # Find the first kernel size that divides physical_block_size evenly
-            selected_kernel_size = None
-            for kernel_size in kernel_sizes:
-                if kernel_size > 0 and self.physical_block_size % kernel_size == 0:
-                    selected_kernel_size = kernel_size
-                    break
-
-            if selected_kernel_size is None:
-                raise ValueError(
-                    f"None of the kernel sizes {kernel_sizes} can divide "
-                    f"physical block size {self.physical_block_size} evenly"
-                )
-
-            self.block_size = selected_kernel_size
-            self.logical_block_size = selected_kernel_size
-            self.blocks_per_phys_block = self.physical_block_size // self.logical_block_size
-            if self.blocks_per_phys_block > 1:
-                self.use_hybrid_blocks = True
-            else:
-                self.use_hybrid_blocks = False
-```
-
-说明「物理块」与「逻辑块」在什么条件下不是一回事：`kernel_sizes` 给出内核能吃的块粒度，一个物理块可以被切成 `blocks_per_phys_block` 个逻辑块。
+decode 每步「追加」的实际动作：只往 `num_blocks_per_row[row]` 指向的下一列写新块号，不重写整行；`add_row` = 游标归零后 append；`clear_row` 把已用列填 0。`move_row` / `swap_row` 的存在说明行号是 batch 内的位置而非请求身份——批次重排时要把整行搬过去。这段在 v0.23.0（L108-L146）逐字相同。
 
 ## vllm_ascend/worker/block_table.py#L140-L179
+
+（main，28bf3a2e）
 
 ```python
     def compute_slot_mapping(
@@ -154,9 +165,11 @@
             )
 ```
 
-槽位映射的入口：非 DCP 路径直接起 Triton 内核，grid 是 `num_reqs + 1`，读的是已经落到设备上的 `block_table.gpu`。`TILE_BLOCK_SIZE = 1024` 与 `BLOCK_TABLE_WINDOW_SIZE` 的算式也在这里。
+main 的 slot mapping 走 vllm-ascend 自带的 triton kernel，grid 是 `num_reqs + 1`（最后一个 program 负责补 PAD），并多传了 `TILE_BLOCK_SIZE` / `BLOCK_TABLE_WINDOW_SIZE` 两个 Ascend 侧的分块参数。
 
 ## vllm_ascend/worker/block_table.py#L278-L283
+
+（main，28bf3a2e）
 
 ```python
     def commit_block_table(self, num_reqs: int) -> None:
@@ -167,43 +180,38 @@
         self.block_table.cpu.fill_(0)
 ```
 
-「提交」的全部内容：把 CPU 侧前 `num_reqs` 行搬到设备。页面里关于 commit 语义的结论只能从这两行加调用点推出。
+main 的提交动作：交给上游 `CpuGpuBuffer.copy_to_gpu`，只拷前 `num_reqs` 行。
 
-## vllm_ascend/worker/block_table.py#L347-L358
+## vllm_ascend/worker/block_table.py#L285-L300
+
+（main，28bf3a2e）
 
 ```python
-        if max_num_blocks is None:
-            # Note(hc): each dcp rank only store
-            # (max_model_len//dcp_world_size) tokens in kvcache,
-            # so the block_size which used for calc max_num_blocks_per_req
-            # must be multiplied by dcp_world_size.
-            dcp_world_size = get_decode_context_model_parallel_world_size()
-            max_num_blocks = [cdiv(max_model_len, block_size * dcp_world_size) for block_size in block_sizes]
+    def _convert_physical_to_logical_blocks(self, physical_blocks: np.ndarray) -> np.ndarray:
+        """Convert physical block IDs to logical block IDs."""
+        if not self.use_hybrid_blocks:
+            return physical_blocks
 
-        if len(max_num_blocks) != len(block_sizes):
-            raise ValueError(
-                f"max_num_blocks length ({len(max_num_blocks)}) must match block_sizes length ({len(block_sizes)})"
-            )
+        # Create logical block IDs by splitting each physical block
+        logical_blocks: list[int] = []
+        for phys_block in physical_blocks:
+            # Convert physical block to multiple logical blocks
+            # Physical block 1 becomes logical blocks
+            # [1*split_ratio, 1*split_ratio+1, ...]
+            # But we need to account for the fact that block 0 is special
+            base_logical = phys_block * self.blocks_per_phys_block
+            logical_blocks.extend(range(base_logical, base_logical + self.blocks_per_phys_block))
+
+        return np.array(logical_blocks, dtype=np.int32)
 ```
 
-列数的默认算式 `cdiv(max_model_len, block_size * dcp_world_size)`，以及「每个 KV cache group 一张表」的来源。
+hybrid 模式下一个物理块被拆成 `blocks_per_phys_block` 个连续逻辑块号写进同一行，因此列数也要相应放大。两版逐字相同（v0.23.0 在 L288-L303）。
 
-## vllm_ascend/ops/triton/compute_slot_mapping.py#L30-L54
+## vllm_ascend/ops/triton/compute_slot_mapping.py#L43-L84
+
+（main，28bf3a2e）
 
 ```python
-    req_idx = tl.program_id(0)
-
-    if req_idx == tl.num_programs(0) - 1:
-        # Pad remaining slots for CUDA graph compatibility.
-        for i in range(num_tokens, max_num_tokens, TILE_BLOCK_SIZE):
-            offsets = i + tl.arange(0, TILE_BLOCK_SIZE)
-            tl.store(
-                slot_mapping_ptr + offsets,
-                PAD_ID,
-                mask=offsets < max_num_tokens,
-            )
-        return
-
     start_idx = tl.load(query_start_loc_ptr + req_idx).to(tl.int64)
     end_idx = tl.load(query_start_loc_ptr + req_idx + 1).to(tl.int64)
 
@@ -217,13 +225,17 @@
             block_indices = pos // block_size
             slot_offsets = pos - block_indices * block_size
         else:
-```
+            virtual_block_size = KV_CACHE_BLOCK_SIZE * TOTAL_CP_WORLD_SIZE
+            virtual_block_indices = pos // virtual_block_size
+            virtual_block_offsets = pos - virtual_block_indices * virtual_block_size
+            is_local = (virtual_block_offsets // CP_KV_CACHE_INTERLEAVE_SIZE) % TOTAL_CP_WORLD_SIZE == TOTAL_CP_RANK
+            local_block_offsets = (
+                virtual_block_offsets // (TOTAL_CP_WORLD_SIZE * CP_KV_CACHE_INTERLEAVE_SIZE)
+            ) * CP_KV_CACHE_INTERLEAVE_SIZE + (virtual_block_offsets % CP_KV_CACHE_INTERLEAVE_SIZE)
 
-内核怎么按请求分工（一个 program 一条请求，最后一个 program 专做 padding）、怎么用 `query_start_loc` 取本请求的 token 区间、以及非 CP 路径把 `pos` 拆成逻辑块号与块内偏移。
+            block_indices = virtual_block_indices * BLOCKS_PER_KV_BLOCK + local_block_offsets // block_size
+            slot_offsets = local_block_offsets % block_size
 
-## vllm_ascend/ops/triton/compute_slot_mapping.py#L67-L84
-
-```python
         INT32_MAX = 2147483647
         valid_block_indices = tl.where(mask, block_indices, INT32_MAX)
         block_idx_base = tl.min(valid_block_indices, axis=0)
@@ -244,79 +256,11 @@
         tl.store(slot_mapping_ptr + offsets, slot_ids, mask=mask)
 ```
 
-查表与合成 slot id 的那一步：不是逐 token 随机访存，而是先把本 tile 用得到的那一小段表行整体载入（窗口），再在窗口内 `tl.gather`；最后 `slot = block_numbers * block_size + slot_offsets`。
+槽位公式的权威出处：`block_indices = pos // block_size`、`slot_offsets = pos % block_size`、`slot_ids = block_numbers * block_size + slot_offsets`；同时说明 main 是按 `TILE_BLOCK_SIZE` 个 token 一批、只把行内 `BLOCK_TABLE_WINDOW_SIZE` 个相邻列载入片上再 `tl.gather`。
 
-## vllm_ascend/ops/triton/compute_slot_mapping.md#L53-L75
+## vllm_ascend/attention/attention_v1.py#L113-L153
 
-```markdown
-| 参数名 | 形状 / 类型 | 含义 |
-| --- | --- | --- |
-| `num_tokens` | int | 当前 batch 中实际的 token 数量。 |
-| `max_num_tokens` | int | 预分配的最大 token 数。 |
-| `query_start_loc_ptr` | `[num_reqs + 1]`, int32 | 每条请求在 batch 中的累加起始位置，类似 CSR 的 `indptr`，`req_idx` 的 token 区间为 `[query_start_loc[req_idx], query_start_loc[req_idx+1])`。 |
-| `positions_ptr` | `[num_tokens]`, int64 | 每个 token 在其所属请求中的逻辑序列位置。 |
-| `block_table_ptr` | `[max_num_reqs, max_num_blocks_per_req]`, int32（展平） | 块表，将「逻辑块号」映射为「物理块号」；按行展开存储。 |
-| `block_table_stride` | int | `block_table` 一行的元素个数，即 `max_num_blocks_per_req`。 |
-| `block_size` | int | Attention 内核使用的逻辑块大小（一个逻辑块包含多少 token）。 |
-| `slot_mapping_ptr` | `[max_num_tokens]`, int32 | 输出张量，写入每个 token 对应的物理 KV Cache slot id。 |
-
-### 2.2 编译期常量参数（`tl.constexpr`）
-
-| 参数名 | 含义 |
-| --- | --- |
-| `KV_CACHE_BLOCK_SIZE` | KV Cache 物理分配块大小（物理 block 的大小）。 |
-| `BLOCKS_PER_KV_BLOCK` | 一个物理 KV 块包含多少个逻辑 block，满足 `KV_CACHE_BLOCK_SIZE = BLOCKS_PER_KV_BLOCK * block_size`。 |
-| `TOTAL_CP_WORLD_SIZE` | Context Parallel 通信域的总 rank 数；为 `1` 时走非 CP 路径。 |
-| `TOTAL_CP_RANK` | 当前设备在 CP 通信域中的 rank。 |
-| `CP_KV_CACHE_INTERLEAVE_SIZE` | CP 模式下 KV Cache 的交错大小，用于将虚拟块按 interleave 粒度切分到各 rank。 |
-| `PAD_ID` | 无效槽位的填充值（通常为 `PAD_SLOT_ID = -1`），用于 padding 区域与非本 rank 槽位。 |
-| `TILE_BLOCK_SIZE` | Triton 循环中的 tile 大小，控制单次迭代处理的 token 数。 |
-| `BLOCK_TABLE_WINDOW_SIZE` | 一次性加载到寄存器的 block_table 窗口大小（需 ≥ `TILE_BLOCK_SIZE / block_size + 1`，并取 2 的幂以便 Triton 向量化）。 |
-```
-
-仓库内的算子文档，给出内核各参数的形状与 dtype（含 `positions` 是 int64、`slot_mapping` 是 int32）、`PAD_ID` 通常为 `PAD_SLOT_ID = -1`，以及 `BLOCK_TABLE_WINDOW_SIZE` 为什么取那个下界。
-
-## vllm_ascend/worker/model_runner_v1.py#L1143-L1145
-
-```python
-        # OPTIMIZATION: Start copying the block table first.
-        # This way, we can overlap the copy with the following CPU operations.
-        self.input_batch.block_table.commit_block_table(num_reqs)
-```
-
-提交的时机：每次 `_prepare_inputs` 一进来就发 H2D，好让拷贝与后续 CPU 端准备工作重叠。
-
-## vllm_ascend/worker/model_runner_v1.py#L1468-L1472
-
-```python
-        self.input_batch.block_table.compute_slot_mapping(
-            num_reqs,
-            self.query_start_loc.gpu[: num_reqs + 1],
-            self.positions[:total_num_scheduled_tokens],
-        )
-```
-
-槽位映射的调用点，以及它相对 `commit_block_table` 的先后顺序（同一函数内，L1145 在前、L1468 在后）。
-
-## vllm_ascend/attention/attention_v1.py#L200-L210
-
-```python
-    # ********************** KV Cache Related Properties ********************* #
-    # Block addresses per sequence (Seq id -> list of physical block).
-    # (batch_size, max_blocks_per_seq)
-    block_tables: torch.Tensor = None
-
-    # The indices of the token slots that input tokens will be stored into.
-    # E.g., if `slot_mapping` is [35, 2, 17] and the block size is 16, the
-    # three tokens are stored in the 3rd slot in block 2, 2nd slot in block 0,
-    # and 1st slot in block 1, respectively.
-    # (num_tokens,)
-    slot_mapping: torch.Tensor = None
-```
-
-`AscendMetadata` 里块表与 slot_mapping 的字段定义和形状注释——这是「表最终交给谁」的答案。
-
-## vllm_ascend/attention/attention_v1.py#L113-L121
+（main，28bf3a2e）
 
 ```python
     @staticmethod
@@ -328,31 +272,45 @@
         cache_dtype_str: str = "",
     ) -> tuple[int, ...]:
         return (2, num_blocks, block_size, num_kv_heads, head_size)
-```
 
-物理块在显存里的实际形状，用于「拿真实数字走一遍」里算一个块占多少字节、slot id 索引的是哪一维。
+    @staticmethod
+    def swap_blocks(
+        src_kv_cache: list[torch.Tensor],
+        dst_kv_cache: list[torch.Tensor],
+        src_to_dst: torch.Tensor,
+    ) -> None:
+        src_key_cache, src_value_cache = src_kv_cache[0], src_kv_cache[1]
+        dst_key_cache, dst_value_cache = dst_kv_cache[0], dst_kv_cache[1]
+        src_indices = src_to_dst[:, 0]
+        dst_indices = src_to_dst[:, 1]
 
-## vllm_ascend/attention/attention_v1.py#L151-L153
+        dst_key_cache[dst_indices] = src_key_cache[src_indices].to(dst_key_cache.device)
+        dst_value_cache[dst_indices] = src_value_cache[src_indices].to(dst_key_cache.device)
 
-```python
+    @staticmethod
+    def copy_blocks(
+        kv_caches: list[torch.Tensor],
+        src_to_dists: torch.Tensor,
+    ) -> None:
+        src_indices = src_to_dists[:, 0]
+        dst_indices = src_to_dists[:, 1]
+
+        for kv_cache in kv_caches:
+            key_caches = kv_cache[0]
+            value_caches = kv_cache[1]
+            key_caches[dst_indices] = key_caches[src_indices]
+            value_caches[dst_indices] = value_caches[src_indices]
+
     @staticmethod
     def get_supported_kernel_block_sizes() -> list[int]:
         return [128]
 ```
 
-Ascend attention 后端只接受 `block_size = 128`，事实表与「常见误解」都引这一条。
-
-## vllm_ascend/attention/attention_v1.py#L251-L253
-
-```python
-        self.max_num_blocks_per_req = cdiv(
-            self.model_config.max_model_len, AscendAttentionBackend.get_supported_kernel_block_sizes()[0]
-        )
-```
-
-列数在 attention builder 侧的算式，和 `MultiGroupBlockTable` 的默认值对得上（非 DCP 时 `dcp_world_size = 1`）。
+块号在显存里指向什么：KV cache 每层张量是 `(2, num_blocks, block_size, num_kv_heads, head_size)`，所以「块号 × block_size + 偏移」正好是第二、三维展平后的下标。同时给出 Ascend GQA 后端只支持 `block_size = 128` 这一硬约束。
 
 ## vllm_ascend/attention/attention_v1.py#L1646-L1656
+
+（main，28bf3a2e）
 
 ```python
             slots = attn_metadata.slot_mapping
@@ -368,61 +326,291 @@ Ascend attention 后端只接受 `block_size = 128`，事实表与「常见误�
             )
 ```
 
-slot_mapping 的最终消费者：`reshape_and_cache` 拿它把这一步算出的 K/V 写进 KV cache，且只取前 `num_actual_tokens` 个（padding 段不写）。
+slot_mapping 的消费端：每层 attention 用它把本步算出的 K/V 散写进 KV cache。
 
-## vllm_ascend/attention/attention_v1.py#L380-L387
+## vllm_ascend/worker/model_runner_v1.py#L1143-L1147
+
+（main，28bf3a2e）
 
 ```python
-        if block_table is not None and block_table.shape[0] < num_reqs_fia:
-            block_table = torch.cat(
-                [
-                    block_table,
-                    block_table.new_zeros((num_reqs_fia - block_table.shape[0], block_table.shape[1])),
-                ],
-                dim=0,
+        # OPTIMIZATION: Start copying the block table first.
+        # This way, we can overlap the copy with the following CPU operations.
+        self.input_batch.block_table.commit_block_table(num_reqs)
+
+        req_indices = np.repeat(self.arange_np[:num_reqs], num_scheduled_tokens)
+```
+
+`commit_block_table` 在 `_prepare_inputs` 的第一行调用，目的是让 H2D 拷贝与随后的 CPU 侧准备工作重叠。
+
+## vllm_ascend/worker/model_runner_v1.py#L1468-L1472
+
+（main，28bf3a2e）
+
+```python
+        self.input_batch.block_table.compute_slot_mapping(
+            num_reqs,
+            self.query_start_loc.gpu[: num_reqs + 1],
+            self.positions[:total_num_scheduled_tokens],
+        )
+```
+
+`compute_slot_mapping` 的唯一主调用点，说明它吃的是设备上的 `query_start_loc` 与全局 `positions`。
+
+## vllm_ascend/worker/model_runner_v1.py#L4773-L4799
+
+（main，28bf3a2e）
+
+```python
+            elif isinstance(kv_cache_spec, AttentionSpec):
+                # This is an attention backend that supports virtual
+                # block splitting. Get the supported block sizes from
+                # the backend.
+                attn_groups = self.attn_groups[kv_cache_group_id]
+                backends = [attn_group.backend for attn_group in attn_groups]
+                kv_manager_block_size = kv_cache_group.kv_cache_spec.block_size
+                selected_kernel_size = select_common_block_size(
+                    kv_manager_block_size, backends
+                )
+                self.kernel_block_sizes.append([selected_kernel_size])
+            else:
+                # This is likely Mamba or other non-attention cache,
+                # no splitting.
+                # NOTE: set kernel_block_sizes to 0 to disable slotmapping computation
+                # of mamba block. In this case, BlockTable.block_size will never equal
+                # to kernel_block_sizes[0]
+                self.kernel_block_sizes.append([0])
+
+        max_num_blocks = []
+        max_model_len = max(self.max_model_len, self.max_encoder_len)
+        for kv_cache_group in non_encoder_groups:
+            max_num_blocks_per_req = kv_cache_group.kv_cache_spec.max_num_blocks_per_req(
+                self.vllm_config,
+                max_model_len,
+            )
+            max_num_blocks.append(max_num_blocks_per_req)
+```
+
+列数（`max_num_blocks_per_req`）与逻辑块大小（`kernel_block_sizes`）都不是 BlockTable 自己定的，而是由 KV cache spec 与后端声明的 kernel block size 决定。
+
+## vllm_ascend/utils.py#L1167-L1181
+
+（main，28bf3a2e）
+
+```python
+def refresh_block_size(vllm_config):
+    """
+    Refresh the block size in cache config.
+    """
+    cache_config = vllm_config.cache_config
+    scheduler_config = vllm_config.scheduler_config
+    model_config = vllm_config.model_config
+
+    if not cache_config:
+        return
+
+    if cache_config.block_size is None:
+        cache_config.block_size = 128
+
+    if not scheduler_config or not model_config:
+        return
+```
+
+用户不显式指定 `--block-size` 时，昇腾平台把它置成 128。
+
+## vllm_ascend/worker/block_table.py#L1-L9
+
+（v0.23.0，2c59ff10）
+
+```python
+import numpy as np
+import torch
+from vllm.distributed import get_dcp_group, get_pcp_group
+from vllm.utils.math_utils import cdiv
+from vllm.v1.attention.backends.utils import PAD_SLOT_ID
+from vllm.v1.kv_cache_interface import KVCacheGroupSpec, MambaSpec, UniformTypeKVCacheSpecs
+from vllm.v1.utils import CpuGpuBuffer
+from vllm.v1.worker.block_table import _compute_slot_mapping_kernel
+from vllm.v1.worker.cp_utils import get_total_cp_world_size
+```
+
+v0.23.0 的 slot mapping kernel 直接从上游 `vllm.v1.worker.block_table` 导入；main 已改成导入 `vllm_ascend.ops.triton.compute_slot_mapping`（见本页 main 版 block_table.py L14-L17 与 compute_slot_mapping.py 片段）。
+
+## vllm_ascend/worker/block_table.py#L31-L48
+
+（v0.23.0，2c59ff10）
+
+```python
+        compress_ratio = 1
+        if (
+            kv_cache_group is not None
+            and hasattr(kv_cache_group, "kv_cache_spec")
+            and isinstance(kv_cache_group.kv_cache_spec, UniformTypeKVCacheSpecs)
+        ):
+            kv_cache_spec = next(iter(kv_cache_group.kv_cache_spec.kv_cache_specs.values()), None)
+            if kv_cache_spec is not None and hasattr(kv_cache_spec, "compress_ratio"):
+                compress_ratio = kv_cache_spec.compress_ratio
+        if (
+            kv_cache_group is not None
+            and hasattr(kv_cache_group, "kv_cache_spec")
+            and (self.pcp_world_size * self.dcp_world_size > 1)
+            and isinstance(kv_cache_group.kv_cache_spec, MambaSpec)
+        ):
+            max_num_blocks_per_req = max_num_blocks_per_req * self.pcp_world_size * self.dcp_world_size
+        max_num_blocks_per_req = max(cdiv(max_num_blocks_per_req, compress_ratio), 1)
+        self.max_num_blocks_per_req = max_num_blocks_per_req
+```
+
+v0.23.0 会在构造时二次调整列数：按 `compress_ratio` 缩小、在 Mamba + CP 场景按 `pcp * dcp` 放大。main 把这两段删掉了，直接用传入值。
+
+## vllm_ascend/worker/block_table.py#L92-L106
+
+（v0.23.0，2c59ff10）
+
+```python
+        duplicate_size = 1
+        if self.pcp_world_size * self.dcp_world_size > 1:
+            duplicate_size += num_speculative_tokens
+        self.block_table = self._make_buffer(max_num_reqs * duplicate_size, logical_table_size, dtype=torch.int32)
+        self.num_blocks_per_row = np.zeros(max_num_reqs, dtype=np.int32)
+        # MTP slot preparation appends up to num_speculative_tokens - 1
+        # draft positions for every request in addition to graph padding.
+        num_mtp_draft_slots = max(num_speculative_tokens - 1, 0) * self.max_num_reqs
+        self.slot_mapping = self._make_buffer(
+            self.max_num_batched_tokens + 2 * self.pcp_world_size * self.max_num_reqs + num_mtp_draft_slots,
+            dtype=torch.int32,
+        )
+
+        self.kernel_sizes = kernel_sizes
+        self.cp_kv_cache_interleave_size = cp_kv_cache_interleave_size
+```
+
+v0.23.0 的行数扩展条件含 PCP，slot_mapping 缓冲另外预留 `2 * pcp_world_size * max_num_reqs`。
+
+## vllm_ascend/worker/block_table.py#L148-L179
+
+（v0.23.0，2c59ff10）
+
+```python
+    def compute_slot_mapping(
+        self,
+        num_reqs: int,
+        query_start_loc: torch.Tensor,
+        positions: torch.Tensor,
+    ) -> None:
+        num_tokens = positions.shape[0]
+        total_cp_world_size = self.pcp_world_size * self.dcp_world_size
+        total_cp_rank = self.pcp_rank * self.dcp_world_size + self.dcp_rank
+        if self.dcp_world_size * self.pcp_world_size > 1:
+            req_indices = torch.repeat_interleave(
+                torch.arange(num_reqs, dtype=torch.int32, device=query_start_loc.device),
+                query_start_loc[1:] - query_start_loc[:-1],
+                output_size=num_tokens,
+            )
+            self._compute_pcp_dcp_slot_mapping(req_indices, positions)
+        else:
+            _compute_slot_mapping_kernel[(num_reqs + 1,)](
+                num_tokens,
+                self.max_num_batched_tokens,
+                query_start_loc,
+                positions,
+                self.block_table.gpu,
+                self.block_table.gpu.stride(0),
+                self.block_size,
+                self.slot_mapping.gpu,
+                TOTAL_CP_WORLD_SIZE=total_cp_world_size,
+                TOTAL_CP_RANK=total_cp_rank,
+                CP_KV_CACHE_INTERLEAVE_SIZE=self.cp_kv_cache_interleave_size,
+                PAD_ID=PAD_SLOT_ID,
+                BLOCK_SIZE=1024,
             )
 ```
 
-表的行数在交给 FIA 算子前可能被补齐：多出来的哑请求行填 0（指向物理块 0），因为它不会写 KV cache，所以无害。
+v0.23.0 把上游 kernel 的分块大小写死成 `BLOCK_SIZE=1024`，没有 `TILE_BLOCK_SIZE` / `BLOCK_TABLE_WINDOW_SIZE` 这两个参数；CP 路径合并了 PCP 与 DCP。
 
-## docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L60-L64
+## vllm_ascend/worker/block_table.py#L278-L283
 
-```markdown
-- system level:
-  1. **Token IDs table**: stores the token IDs (i.e. the inputs of a model) of each request. The shape of this table is `(max num request, max model len)`. Here, `max num request` is the maximum count of concurrent requests allowed in a forward batch and `max model len` is the maximum token count that can be handled at one request sequence in this model.
-  2. **Block table**: translates the logical address (within its sequence) of each block to its global physical address in the device's memory. The shape of this table is `(max num request, max model len / block size)`
+（v0.23.0，2c59ff10）
 
-**Note**: Both of these two tables come from the `_update_states` method before **preparing inputs**. You can take a look if you need more inspiration.
+```python
+    def commit_block_table(self, num_reqs: int) -> None:
+        self.block_table.gpu[:num_reqs].copy_(
+            self.block_table.cpu[:num_reqs].clone().pin_memory(),
+            non_blocking=True,
+        )
 ```
 
-官方设计文档对块表的定义与形状，以及「表内容由 `_update_states` 维护、`_prepare_inputs` 只读」的分工。
+v0.23.0 的提交是手写的：先把 CPU 行 clone 到一块 pinned 内存再异步 H2D；main 换成了 `CpuGpuBuffer.copy_to_gpu`。
 
-## docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L191-L196
+## vllm_ascend/attention/attention_v1.py#L142-L144
 
-```markdown
+（v0.23.0，2c59ff10）
+
+```python
+    @staticmethod
+    def get_supported_kernel_block_sizes() -> list[int]:
+        return [128]
+```
+
+v0.23.0 同样只支持 128，`block_size = 128` 这条约束两版一致。
+
+## vllm_ascend/utils.py#L1369-L1381
+
+（v0.23.0，2c59ff10）
+
+```python
+def refresh_block_size(vllm_config):
+    """
+    Refresh the block size in cache config.
+    """
+    cache_config = vllm_config.cache_config
+    scheduler_config = vllm_config.scheduler_config
+    model_config = vllm_config.model_config
+
+    if not cache_config:
+        return
+
+    if cache_config.block_size is None:
+        cache_config.block_size = 128
+```
+
+v0.23.0 的默认 block_size 同样是 128。
+
+## docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
+
+（main，28bf3a2e；线上同页 <https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html>）
+
+````markdown
+In the current **Block Table**, we use the first block (i.e. block_0) to mark the unused block. The shape of the block is `(max num request, max model len / block size)`, where `max model len / block size = 12 / 2 = 6`.
+
+```shell
+| 1  | 2  | 0  | 0  | 0  | 0  |
+| 3  | 0  | 0  | 0  | 0  | 0  |
+| 4  | 5  | 6  | 0  | 0  | 0  |
+| 0  | 0  | 0  | 0  | 0  | 0  |
+......
+```
+
+The KV cache block in the device memory is like:
+
+```shell
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | ......
+```
+
+Let's say `K = max model len / block size = 6`, and we can get token `device block number`.
+
+The workflow of achieving slot mapping:
+
+1. Get `block table indices` using `K`, `positions` and `request indices`.
+2. Get `device block number` using `block table indices`.
+3. Get `block offsets` using `positions` and `block size`.
+4. construct `slot mapping` using `device block number` and `block offsets`.
+
 Details:
 
-1. (**Token level**) Use a simple formula to calculate `block table indices`: `request indices * K + positions / block size`. So it equals `[0 * 6 + 0 / 2, 0 * 6 + 1 / 2, 0 * 6 + 2 / 2, 1 * 6 + 0 / 2, 1 * 6 + 1 / 2, 2 * 6 + 0 / 2, 2 * 6 + 1 / 2, 2 * 6 + 2 / 2, 2 * 6 + 3 / 2, 2 * 6 + 4 / 2] = [0, 0, 1, 6, 6, 12, 12, 13, 13, 14]`. This could be used to select `device block number` from `block table`.
+1. (**Token level**) Use a simple formula to calculate `block table indices`: `request indices * K + positions / block size`. ... = `[0, 0, 1, 6, 6, 12, 12, 13, 13, 14]`.
 2. (**Token level**) Use `block table indices` to select out `device block number` for each scheduled token. The pseudocode is `block_numbers = block_table[block_table_indices]`. So `device block number=[1, 1, 2, 3, 3, 4, 4, 5, 5, 6]`
 3. (**Token level**) `block offsets` could be computed by `block offsets = positions % block size = [0, 1, 0, 0, 1, 0, 1, 0, 1, 0]`.
 4. Finally, use `block offsets` and `device block number` to create `slot mapping`: `device block number * block size + block_offsets = [2, 3, 4, 6, 7, 8, 9, 10, 11, 12]`
-```
+````
 
-官方文档把槽位映射写成四步（算表内索引 → 查物理块号 → 算块内偏移 → 合成 slot），页面的「怎么工作」沿用这个分步。
-
-## docs/source/developer_guide/Design_Documents/context_parallel.md#L11-L20
-
-```markdown
-DCP stores tokens in an interleaved layout across ranks. The interleaving granularity is controlled by `cp_kv_cache_interleave_size`, whose default value is `1`.
-
-For a DCP size of `dcp_size`, a virtual block contains `block_size * dcp_size` tokens. For token `x`:
-
-- `virtual_block_index = x // (block_size * dcp_size)`
-- `offset_in_virtual_block = x % (block_size * dcp_size)`
-- `local_block_index = offset_in_virtual_block // cp_kv_cache_interleave_size`
-- `target_rank = local_block_index % dcp_size`
-
-The slot-mapping calculation uses this layout so each DCP rank stores only its local sequence shard. The current implementation requires `block_size % cp_kv_cache_interleave_size == 0`.
-```
-
-开 DCP 后槽位映射换算的官方说明：虚拟块 = `block_size * dcp_size`，每个 rank 只留自己那一份，其余 token 写 `PAD_ID`。
+官方设计文档对块表形状、block_0 作未使用哨兵、以及四步 slot mapping 的说明（为控制长度省略了原文中的说明句与部分算式，公式与结果未改）。同一段文字在 v0.23.0 的同路径同行号处一致。

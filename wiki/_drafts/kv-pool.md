@@ -2,131 +2,136 @@
 id: kv-pool
 title: KV Pool
 type: feature
-summary: 把已算好的 KV 块存进一个跨节点共享的外部存储（Mooncake/Memcache/Yuanrong），命中时直接搬回 HBM，替代重算。
-aliases: [KV Cache Pool, KV 缓存池, AscendStoreConnector, Ascend Store]
+summary: 把 KV Cache 存进 HBM 之外、跨节点共享的存储池，让前缀命中不再受单卡显存与单节点边界限制。
+aliases: [KV Cache Pool, Ascend Store, AscendStoreConnector]
 chapters: ["11"]
 sources:
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L3-L43
+  - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_pool.html
   - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L3-L15
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L38-L44
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L46-L52
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L82-L91
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L13-L43
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L107-L118
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L405-L412
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L1100-L1125
+  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L38-L52
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/__init__.py#L39-L49
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L39-L49
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L85-L116
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L232-L263
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L232-L252
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L234-L253
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L291-L334
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L456-L511
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L521-L545
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1034-L1049
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L161-L172
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L635-L644
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L790-L819
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L874-L931
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L115-L125
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L437-L465
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1034-L1049
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L17-L30
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L194-L245
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L20-L56
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L629-L644
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L743-L764
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L790-L819
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L905-L937
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1701-L1719
   - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L854-L865
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L63-L78
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L63-L68
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L115-L125
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L66-L76
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L437-L465
 evidence: "C"
 relations:
   - to: prefix-caching
     kind: builds-on
-    note: 池只负责 HBM 前缀命中之外的那一段，命中长度以 num_computed_tokens 为起点做差
-  - to: kv-cache-spec
+    note: 池查询把 HBM 里已命中的 token 数当作起点，只把多出来的那一段搬进来
+  - to: paged-attention
     kind: builds-on
-    note: 池对象的字节数与地址步长由 spec 决定的每块 KV 张量形状算出（block_len、block_stride）
+    note: 池里一条 key 对应 HBM 里一个 block 的全部层，地址由 block_id × block_stride 直接算出
   - to: kv-cache-cpu-offload
     kind: alternative-to
-    note: 同样是把 KV 挪出 HBM 换取更长的可复用前缀，但 offload 留在本机内存、池是跨节点共享的外部存储
-contradicts: ["kv-cache-layerwise-offload: layerwise_prefetch_layers 的默认值在官方参数表（1）与 memcache(GVA) 代码路径（min(layerwise_num_shared_buffers, 8)）之间说法不一致，本页未给出该参数默认值"]
+    note: 同样是把 KV 挪出 HBM，但落点是本机 DRAM 而不是跨节点共享的池
+contradicts: []
 updated: "2026-09-12"
 ---
 
 ## 一句话
 
-KV Pool 把算好的 KV 块按「块哈希 + rank 命名空间」写进一个进程外的共享存储（Mooncake、Memcache 或 Yuanrong），下一个请求命中同样的前缀时，把这些块直接搬回 HBM 而不是重算。它以 `AscendStoreConnector` 的形式接进 vLLM 的 KV Connector V1 接口。
+KV Pool 是一层挂在 vLLM KV Connector 接口上的外部 KV 存储：命中的前缀不再只能来自本卡 HBM，而可以来自 DRAM、SSD、别的节点。在 vllm-ascend 里它的实现叫 `AscendStoreConnector`，背后可换三种存储引擎（`mooncake` / `memcache` / `yuanrong`）[C14]。两个对照版本（v0.23.0 与 main）的配置项、key 格式、调用链都一致，只有 layerwise 模式下 Decode 节点写不写池这一条行为不同 [!]。
 
 ## 为什么需要它
 
-[prefix caching](prefix-caching.md) 的收益完全取决于命中率，而只用片上内存存 KV 时命中率被容量卡死：HBM 里装不下的旧前缀会被淘汰，同一段系统提示词换个请求、换台机器就得从头算一遍 [S1]。
+[prefix caching](prefix-caching.md) 能省掉重复前缀的 prefill，但省多少完全取决于命中率，而命中率被两件事卡住：**片上内存装不下多少前缀**，以及**一个节点算出来的前缀，别的节点看不见**。上游文档把这两点说得很直接——命中率「受限于只用片上内存做 KV 存储」，所以要做一个池，把片上内存、DRAM、SSD 都用上，并让请求的前缀**对所有节点可见** [S3]。
 
-KV Pool 的做法是把 DRAM、SSD 这些更便宜的层级也拉进来做 KV 的存储池，并且让前缀对所有节点可见——一个节点算过的前缀，另一个节点能直接取。官方设计文档（本地 `docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L3-L15`，线上 <https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/KV_Cache_Pool_Guide.html>）把它定位成 prefix caching 的第二层，而不是替代品。
+于是问题变成：多出来的那一层存储，怎么接进 vLLM 的调度循环？vLLM V1 给的接口是 KV Connector——调度器侧回答「外部还有多少 token 能拿」，worker 侧负责真的把数据搬进搬出。上游本可以把 MooncakeStore 挂在 LMCache 的 remote backend 后面用，但他们选择直接写一个连接器，理由是这样才能用上贴合昇腾硬件的传输策略 [S3]。落到代码里最明显的一处就是：搬运的源和目的都是 KV cache 张量的**原始 HBM 地址**，没有 LMCache 那种中转 LocalBuffer [C17][C21]。
 
-上游生态里也可以把 MooncakeStore 当作 LMCache 的远端后端来用；vllm-ascend 选择自己写一个直连的 connector，理由是这样才能用上最贴合 NPU 的传输路径——代码上表现为池的读写直接落在启动时注册过的 HBM 地址上，不经过中转缓冲 [C18]。
+这一页只讲池本身。块怎么切、命中怎么判，在 [paged-attention](paged-attention.md) 与 [prefix-caching](prefix-caching.md) 那两页；把 KV 挪到本机 DRAM 的做法见 [kv-cache-cpu-offload](kv-cache-cpu-offload.md)。
 
 ## 怎么工作
 
-一个连接器实例按角色分裂成两半：调度进程里是 `KVPoolScheduler`，worker 进程里是 `KVPoolWorker`；非 layerwise 模式下还会在 `rank == 0` 的 worker 上起一个 `LookupKeyServer` 线程。查询必须绕这一圈，是因为只有 worker 进程握着后端 store 的连接。
+一个 `AscendStoreConnector` 实例在两种角色下长得不一样：`KVConnectorRole.SCHEDULER` 下只造 `KVPoolScheduler`，其余角色造 `KVPoolWorker`，并且**只有 `rank == 0` 且非 layerwise 的 worker** 会额外起一个 `LookupKeyServer` [C7]。这就决定了查表必须跨进程：调度器进程里没有存储客户端，它通过 `LookupKeyClient` 用 ZMQ 去问 worker 里那个 REP 后台线程 [C10]。
 
 ```mermaid
-flowchart TB
-    subgraph Scheduler["调度进程 KVConnectorRole.SCHEDULER"]
-        A["KVPoolScheduler.get_num_new_matched_tokens"] --> B["LookupKeyClient.lookup"]
-        A --> C["LoadSpec(vllm_cached_tokens, kvpool_cached_tokens)"]
-        C --> D["KVPoolScheduler.build_connector_meta"]
-    end
-    subgraph Worker["worker 进程 KVConnectorRole.WORKER"]
-        E["LookupKeyServer"] --> F["KVPoolWorker.lookup_scheduler"]
-        F --> G["MooncakeBackend.exists"]
-        D --> H["KVPoolWorker.start_load_kv"]
-        H --> I["ChunkedTokenDatabase.prepare_value"]
-        I --> J["MooncakeBackend.get"]
-        K["AscendStoreConnector.wait_for_save"] --> L["KVCacheStoreSendingThread"]
-        L --> M["MooncakeBackend.put"]
-    end
-    B -- "zmq REQ/REP over ipc" --> E
-    J -- "batch_get_into_multi_buffers" --> N["HBM 中的 kv_caches"]
-    N -- "batch_put_from_multi_buffers" --> M
+sequenceDiagram
+    participant Sched as KVPoolScheduler
+    participant Client as LookupKeyClient
+    participant Server as LookupKeyServer
+    participant Worker as KVPoolWorker
+    participant Store as MooncakeBackend
+
+    Note over Sched: get_num_new_matched_tokens
+    Sched->>Client: lookup(token_len, block_hashes, hbm_hit_tokens)
+    Client->>Server: ZMQ REQ / REP
+    Server->>Worker: lookup_scheduler(...)
+    Worker->>Store: exists(keys)
+    Store-->>Worker: 每个 key 在不在
+    Worker-->>Server: 命中到第几个 token
+    Server-->>Client: 4 字节大端整数
+    Client-->>Sched: num_external_hit_tokens
+    Note over Sched: need_to_allocate = 命中 - num_computed_tokens
+
+    Worker->>Worker: start_load_kv(metadata)
+    Worker->>Store: get(keys, addrs, sizes)
+    Note over Worker: 模型前向
+    Worker->>Worker: wait_for_save(metadata)
+    Worker->>Store: put(keys, addrs, sizes)
 ```
 
-**查（scheduler 侧）**：`get_num_new_matched_tokens` 拿到 vLLM 已经在 HBM 里命中的 `num_computed_tokens`，把请求的块哈希列表通过 zmq 发给 `LookupKeyServer`，worker 侧对每个块的 key 调 `exists`，返回命中的 token 数。命中只认连续前缀——第一个查不到的块就停，后面的块不再查 [S4]。两边相减得到真正要搬的量：`need_to_allocate = kvpool_cached_tokens − num_computed_tokens` [C13]。这就是官方文档说的「只取增量块，其余的仍从片上内存取」[S2]。
+几个容易看漏的点：
 
-**搬（worker 侧）**：`start_load_kv` 按 `LoadSpec` 里的 `vllm_cached_tokens` 算出 `mask_num`，跳过 HBM 里已有的整块，只为剩下的块拼三个等长列表——key、addr、size，然后一次 `m_store.get`。一个 key 对应的 value 不是一段连续内存，而是**多段 HBM 地址**：`prepare_value` 为该块在每个 KV 张量里的位置各算一段 `base_addr + block_id * block_stride` [C21]，Mooncake 后端把它们交给 `batch_get_into_multi_buffers`。这些地址之所以能被后端直接写，是因为 `register_kv_caches` 阶段已经用 `register_buffer` 把整片 KV 张量区间注册给了后端。
+- **查表的入参带着 HBM 已命中数**。`get_num_new_matched_tokens` 把 vLLM 自己算出的 `num_computed_tokens` 当作 `hbm_hit_tokens` 一起发过去，返回值再减掉它才是真要搬的量 [C11]。官方文档把这条叫「只取多出来的块，其余直接用片上的」[S4]——这就是 KV Pool 和 prefix caching 的接缝。
+- **默认只有 Prefill 节点碰池**。`kv_role == "kv_consumer"` 且没开 `consumer_is_to_load` 时，`get_num_new_matched_tokens` 第一行就返回 0 [C11]；写回侧同理由 `consumer_is_to_put` 控制 [C8]。PD 分离部署里 Decode 的 KV 由 `MooncakeConnectorV1` 点对点送来，池只服务 Prefill [S4]。
+- **put 是后台线程做的，但不是不等**。`wait_for_save` 录一个 `torch.npu.Event` 后把请求塞进发送线程队列，随即 `request_queue.join()` 等队列排空 [C20]；发送线程在真正 `put` 之前会 `current_event.synchronize()`，确保前向已经把 KV 写进 HBM [C21]。
+- **get 默认是同步的**。`load_async` 不开时，`start_load_kv` 里直接调 `m_store.get(...)`，这一步的耗时算在前向路径上 [C19]。
 
-**存**：`wait_for_save` 把要保存的请求丢给后台的 `KVCacheStoreSendingThread`，线程先 `torch.npu.Event.synchronize()` 确认本步 KV 已落到 HBM，再 `put`。
+后端接口很窄，只有四个必选动作：`register_buffer`（把 HBM 区间登记给存储引擎）、`exists`（查）、`put`、`get`；put/get 收的是裸地址列表和长度列表，不是张量 [C15]。选哪个后端由 `backend` 决定，默认 `mooncake`，名字不在 `backend_map` 里会直接抛 `ValueError` 而不是悄悄回退 [C12][C14]。
 
-**角色门禁**：`kv_role` 为 `kv_consumer` 时，默认既不查也不存——`consumer_is_to_load` 和 `consumer_is_to_put` 都默认 false，前者让 `get_num_new_matched_tokens` 直接返回 0 [C13]，后者让 `wait_for_save` 整段 return。这对应官方文档里 PD 分离下「池只服务 Prefill 节点，Decode 的 KV 走 P2P connector」的默认分工 [S3]。
+一条 key 对应什么，是理解传输量的关键：
+
+```mermaid
+flowchart LR
+    K["PoolKey.to_string()<br/>model_name@pcp@dcp@head_or_tp_rank@pp_rank@group@cache_role@cache_family@chunk_hash"]
+    K --> P["prepare_value(start, end, block_ids)"]
+    P --> A0["layer 0 K: base_addr + block_id*block_stride"]
+    P --> A1["layer 0 V: base_addr + block_id*block_stride"]
+    P --> An["…逐层每个 cache 张量各一条 (addr, size)"]
+```
+
+也就是说，非 layerwise 模式下**层不是 key 的一部分**：一条 key 一次覆盖该 kv cache group 在本 rank 上的全部层 [C24]。key 串里带了模型名和 pcp/dcp/tp/pp 各维度的 rank [C22]，两个版本逐字相同 [C23]——换并行切分或换模型名，池里的旧数据就全部对不上了。
+
+**版本差异**：v0.23.0 的 `save_kv_layer` 只看 `kv_role`，是 `kv_consumer` 就直接 return，`consumer_is_to_put` 在 layerwise 路径上不起作用 [C9]；main 上这个判断改成了 `kv_role == "kv_consumer" and not self.consumer_is_to_put` [C8][!]。非 layerwise 的 `wait_for_save` 两版都认 `consumer_is_to_put`，所以差异只出现在同时开了 `use_layerwise` 和 `consumer_is_to_put` 的 Decode 节点上。此外 main 把 `config_data.py` 改名为 `metadata.py`、`backend/backend.py` 改名为 `backend/base.py`，key 格式与接口签名不变——数据兼容，import 路径不兼容。
 
 ## 拿真实数字走一遍
 
-模型 Qwen3-0.6B：28 层，n_kv = 8，d_h = 128，bf16（2 B）；TP = 1，`--block-size 128`（官方示例即用此值），prefix caching 开着。
+用 Qwen3-0.6B（28 层，n_kv = 8，d_h = 128，bf16 每元素 2 B），TP = 1，按 block_size = 128 算一条 key 要搬多少字节。
 
-**一个池对象有多大。** 每层 K 张量形状为 `[num_blocks, 128, 8, 128]`，按 `block_len = cache[0].numel() * element_size` 算 [C17]：
+每块每张量的字节数就是 `cache[0].numel() * element_size` [C16]，源码注释给出了展开形式 `block_size * num_kv_head_per_local_rank * head_dim * elem_size` [C18]：
 
-```
-cache[0].numel() = 128 × 8 × 128 = 131072
-block_len        = 131072 × 2 B  = 262144 B = 256 KiB
-```
+- 一层的 K：128 × 8 × 128 × 2 B = 262 144 B = **256 KiB**
+- 昇腾侧 K 和 V 注册成两个张量，所以一层一块 = 256 KiB × 2 = **512 KiB**，这正是 `page_size_bytes = sum(block_len)` [C18][D]
+- `prepare_value` 对该 group 的**每个** cache 张量都生成一条 (addr, size) [C24]，一条 key 覆盖 28 层：512 KiB × 28 = **14 MiB**
+- 换算到单 token：14 MiB ÷ 128 = **112 KiB/token**（= 28 层 × 4 KiB）[D]
+- 一条 32 768 token 的 prompt 全量落池：32768 ÷ 128 = 256 条 key，256 × 14 MiB = **3.5 GiB**
 
-K/V 是两个独立张量时，28 层共 56 个 KV 张量，于是一个块的 value 由 56 段地址拼成，合计 56 × 256 KiB = **14 MiB**；折合每 token 14 MiB ÷ 128 = **112 KiB** [D]。（这一步把 `_as_cache_tuple` 的通用逻辑套到了 GQA 的 K/V 分离布局上；MLA 模型每层只有一个张量，段数和总量都要重算。）
+拿这个数去读部署文档给的 `mooncake.json` 就很清楚了：示例里 `global_segment_size` 是 `"1GB"`，那是**每张卡**贡献给池的内存 [S1]，TP = 8 全开也只有 8 GiB，装得下两条多这样的长请求。这个示例值是拿来跑通流程的，上生产必须按「并发 × 前缀长度 × 112 KiB/token」重新估。
 
-**一次请求搬多少。** 4096 token 的 prompt = 32 个块。假设 HBM 前缀命中 1024 token（8 块），池里命中到 3072 token（24 块）：
+`[D]` 的两处说明一下推广的依据：`_as_cache_tuple` 只做「是张量就包成一元组，否则原样转 tuple」[C16]，一层注册成几个张量取决于 attention 后端交上来的结构。上面按 2 个（K、V 分开）算，对 MLA 这类把 KV 合并成一个张量的布局不成立——`pool_worker` 里也确实有 `use_mla` 分支。所以 112 KiB/token 是 GQA 布局下的数，不是通用公式。
 
-```
-need_to_allocate = 3072 − 1024 = 2048 token = 16 块
-mask_num         = 1024 // 128 × 128 = 1024                  [C19]
-→ 拼出 16 个 key、16 × 56 = 896 段地址
-→ 一次 m_store.get 搬 16 × 14 MiB = 224 MiB
-```
+一份能直接用的 PD 混部配置（来自官方部署脚本 [S1]）：
 
-**key 长什么样。** TP=1、无 PCP/DCP/PP 时，第 9 个块的 key 是 [C20]：
-
-```
-Qwen3-0.6B@pcp0@dcp0@head_or_tp_rank:0@pp_rank:0@group:0@cache_role:kv@cache_family:default@<chunk_hash>
-```
-
-model_name 取自 `--model` 路径的最后一段，rank 字段全都进了 key——所以两个实例要共享前缀，模型名、并行切分方式都必须一致。
-
-**配置。** PD 混布（单实例既产又消）的最小配置 [S7]（完整部署步骤见本地 `docs/source/user_guide/feature_guide/kv_pool.md`，线上 <https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_pool.html>）：
-
-```shell
-export PYTHONHASHSEED=0                      # 全节点必须一致，否则块哈希对不上
-export MOONCAKE_CONFIG_PATH=/path/mooncake.json
+```bash
+export PYTHONHASHSEED=0                                   # 所有节点必须一致
+export MOONCAKE_CONFIG_PATH="/path/to/mooncake.json"
 
 KV_CONFIG='{
   "kv_connector": "AscendStoreConnector",
@@ -134,40 +139,31 @@ KV_CONFIG='{
   "kv_connector_extra_config": {
      "backend": "mooncake",
      "lookup_rpc_port": "0"
-     }
+  }
 }'
 ```
 
-`kv_role: kv_both` 表示这个实例既存又取；`lookup_rpc_port` 每个实例必须唯一 [S8]，因为它拼成的是 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<port>_dp_rank<dp>` 这个本机路径。`mooncake.json` 里 `protocol` 在 NPU 上必须是 `ascend`，每卡贡献的 `global_segment_size` 要按 1 GB 对齐 [S6]。
+`kv_role: kv_both` 表示这个实例既读也写池（混部场景没有 P/D 之分）；`lookup_rpc_port: "0"` 是本节点上第一个实例，第二个实例改成 `"1"`。
 
 ## 事实表
 
-| 项 | 值 |
-| --- | --- |
-| 连接器注册名 | `AscendStoreConnector`；`MooncakeConnectorStoreV1` 是旧名，指向同一个类并打 warning |
-| `backend` | `mooncake` / `memcache` / `yuanrong`，默认 `mooncake`，非法值抛 `ValueError` |
-| `lookup_rpc_port` | 每实例唯一；实际拼成 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<port>_dp_rank<dp>` |
-| `load_async` | 默认 `false`；为 true 且非 layerwise 时 `get_num_new_matched_tokens` 返回异步标志 |
-| `consumer_is_to_load` | 默认 `false`；false 时 `kv_consumer` 不查池 |
-| `consumer_is_to_put` | 默认 `false`；false 时 `kv_consumer` 不存池 |
-| `use_layerwise` | 默认 `false`；仅 Prefill 节点，且要求 `memcache` 后端 |
-| `kv_load_failure_policy` | 顶层字段，vLLM 默认 `fail`；`recompute` 回退重算，混合注意力模型暂不支持 |
-| 用 MultiConnector 时该字段位置 | 配在 MultiConnector 顶层，不配在子 connector 上 |
-| `PYTHONHASHSEED` | 必须全节点一致（示例取 0） |
-| Mooncake `protocol` | NPU 上必须 `ascend`，否则 `MooncakeBackend.__init__` 抛 `NotImplementedError` |
-| Mooncake `global_segment_size` | 每卡注册给池的内存量，需 1 GB 对齐；`MOONCAKE_GLOBAL_SEGMENT_SIZE` 优先 |
-| Mooncake 版本 | ≥ 0.3.11.post1；非 `default` 租户需 ≥ 0.3.12 |
-| lookup 服务所在位置 | 仅 `rank == 0` 且 `use_layerwise == False` 的 worker 起 `LookupKeyServer` |
-| key 格式 | `<model>@pcp<i>@dcp<i>@head_or_tp_rank:<i>@pp_rank:<i>@group:<i>@cache_role:kv@cache_family:<f>@<chunk_hash>` |
-| 一段 value 的地址数 | 等于该组 KV 张量数（每张量一段 `base_addr + block_id * block_stride`） |
-| 一块一层一张量的字节数 | `cache[0].numel() * element_size * block_size_scale` |
-| lookup 命中规则 | 连续前缀，遇首个未命中块即停 |
-| put 失败行为 | 该块之后的块不再 put |
-| Mooncake 存储介质 | 文档记为仅 DRAM；SSD offload 另由 `enable_ssd_offload` 提供 |
+下表只有「layerwise 下 Decode 是否写池」一行两版不同，其余各行两版一致，故只写一个值列。
+
+| 项 | 值 | 意味着什么 |
+| :--- | :--- | :--- |
+| 连接器注册名 | `AscendStoreConnector`；旧名 `MooncakeConnectorStoreV1` 仍指向同一个类，但会打告警 [C5][C6] | 老配置不用立刻改，新配置别再写旧名 |
+| `backend` | `mooncake`（默认）/ `memcache` / `yuanrong` [C12][C14] | 名字写错是启动即 `ValueError`，不会静默退回默认后端 |
+| `lookup_rpc_port` | 拼进 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<n>_dp_rank<r>` [C13] | 它不占 TCP 端口，只要同机各实例不重名即可 |
+| `load_async` | 默认 `false` [S1] | 默认 get 同步做，池的读延迟直接计入前向耗时 |
+| `consumer_is_to_load` / `consumer_is_to_put` | 默认都 `false` [S1][C11] | 默认 Decode 节点对池只读不写、连读也不读——池只服务 Prefill |
+| layerwise 下 Decode 是否写池 | v0.23.0：只看 `kv_role`，永不写 [C9]；main：看 `consumer_is_to_put` [C8] | 同一份配置两版行为不同，`[!]` 升级前必须重测 |
+| `use_layerwise` | 默认 `false`，且只在 `memcache` 后端上走 GVA 路径 [S1][C12] | 配 `mooncake` + `use_layerwise` 不会报错，但走不到逐层路径 |
+| 一条池 key 的覆盖范围 | 一个 chunk × 该 group 全部层 × 本 rank 的头 [C24] | 层不是 key 的一部分，整块所有层一次 put/get |
+| key 串组成 | `model_name@pcp@dcp@head_or_tp_rank@pp_rank@group@cache_role@cache_family@chunk_hash` [C22][C23] | 改并行切分或改模型名，池里旧数据全部失效 |
+| 环境依赖 | CANN ≥ 8.5.0、mooncake ≥ 0.3.11.post1，多租户需 mooncake ≥ 0.3.12 [S1][S2] | 版本不够时故障点在存储侧，日志里不一定指向 vllm-ascend |
 
 ## 常见误解
 
-- **「开了 KV Pool 就不需要 HBM 前缀缓存了」**——反了。池只补 HBM 命中之外的增量：命中的那部分块仍然直接从片上内存取，只有多出来的块才从池里搬，为的是把传输量压到最小。
-- **「配上 `AscendStoreConnector`，Decode 节点也会读写池」**——默认不会。`kv_consumer` 角色下 `consumer_is_to_load` / `consumer_is_to_put` 都默认 false，查和存两条路都被门禁挡住，PD 分离下 Decode 的 KV 默认来自 P2P connector。
-- **「从池里取失败会自动退回重算」**——要显式配。`kv_load_failure_policy` 在 vLLM 里默认是 `fail`（请求直接报错终止），改成 `recompute` 才会回退到最后一个有效前缀重算 [S5]；而文档记录的另一种情况更隐蔽：lookup 说存在、get 却失败时只打日志继续跑，该请求的精度可能受影响 [S4]。
-- **「`lookup_rpc_port` 是个 TCP 端口，随便填不冲突就行」**——它拼出来的是 ipc 路径，同一台机器上多个实例填同一个值会撞在同一个 socket 文件上 [C15]。
+- **「`lookup_rpc_port` 是个 TCP 端口，要挑没被占用的。」** 不是。它只是拼进 IPC 套接字路径 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<n>_dp_rank<r>` 的一段字符串 [C13]。文档说「每个实例需要唯一配置」是对的，但唯一性的作用域是同机的这个路径，跟端口占用无关。
+- **「开了 KV Pool，prefix caching 就被替代了。」** 反过来，它建立在 prefix caching 之上：命中先在 HBM 里算，池只补上多出来的那一段，其余块仍从片上直接取 [S4][C11]。关掉 prefix caching，池也就没有可衔接的命中前缀了。
+- **「池里查到了就一定能用上。」** `get` 返回非 0 的块会被记进 `_invalid_block_ids` [C19]，而 vLLM 侧默认的 `kv_load_failure_policy` 是 `fail`——请求直接报错终止；要让它退回重算必须显式配 `recompute`，且混合注意力模型还不支持 [S1]。

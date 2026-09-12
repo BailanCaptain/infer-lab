@@ -1,8 +1,6 @@
 # KV Cache Spec —— 引用的源码片段
 
-仓库：vllm-ascend@28bf3a2e（ref main）。以下片段原样摘录，未做任何改动。
-
-## vllm_ascend/worker/worker.py#L983-L994
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L983-L994
 
 ```python
     def get_kv_cache_spec(self) -> dict[str, KVCacheSpec]:
@@ -19,9 +17,18 @@
         return kv_cache_spec
 ```
 
-引用理由：Worker 侧的声明入口，证明 spec 由 model runner 生成后原样上交给引擎，Worker 自己只做旁路记录。
+main 上 worker 层的入口：除了转发给 model runner，还会为 layerwise offload 与 sparse offload 留一份 spec。用于说明版本差异。
 
-## vllm_ascend/worker/model_runner_v1.py#L4947-L4986
+## vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L891-L892
+
+```python
+    def get_kv_cache_spec(self) -> dict[str, KVCacheSpec]:
+        return self.model_runner.get_kv_cache_spec()
+```
+
+v0.23.0 上同一个入口是纯转发。与上一段对照给出版本差异。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4947-L4986
 
 ```python
     def get_kv_cache_spec(self) -> dict[str, KVCacheSpec]:
@@ -66,121 +73,113 @@
                     attn_layer_names.add(layer_name)
 ```
 
-引用理由：逐层声明的主循环。证明「按层」的粒度、跳过 kv sharing 层、spec 为 None 的层不进字典这三条。GQA（Qwen3-0.6B）走的就是最后这个 `isinstance(attn_module, Attention)` 分支。
+main 上 spec 的按层分发：遍历 static forward context 里所有 `AttentionLayerBase`，按模块类型决定写哪种 spec；KV 共享层直接跳过不建 spec。这是「如何按层声明」的主体证据。
 
-## vllm_ascend/worker/model_runner_v1.py#L4988-L5014
-
-```python
-            elif isinstance(attn_module, MLAAttention):
-                if self.use_sparse:
-                    impl = attn_module.impl
-                    cache_sparse_sfa_c8 = bool(
-                        getattr(impl, "enable_sparse_sfa_c8", False)
-                    )
-                    if cache_sparse_sfa_c8:
-                        head_size = get_sfa_qsfa_packed_head_dim(
-                            self.model_config.hf_text_config.kv_lora_rank,
-                            self.model_config.hf_text_config.qk_rope_head_dim,
-                        )
-                        dtype = self.c8_k_cache_dtype
-                    else:
-                        head_size = (
-                            self.model_config.hf_text_config.kv_lora_rank
-                            + self.model_config.hf_text_config.qk_rope_head_dim
-                        )
-                        dtype = self.kv_cache_dtype
-                    kv_cache_spec[layer_name] = AscendMLAAttentionSpec(
-                        block_size=self.block_size,
-                        num_kv_heads=1,
-                        head_size=head_size,
-                        dtype=dtype,
-                        cache_dtype_str=self.vllm_config.cache_config.cache_dtype,
-                        cache_sparse_sfa_c8=cache_sparse_sfa_c8,
-                        store_on_host=self.sparse_kv_offload_enabled,
-                    )
-```
-
-引用理由：MLA 分支把 `num_kv_heads` 硬写成 1、`head_size` 写成 `kv_lora_rank + qk_rope_head_dim`。这是「不同注意力族声明出完全不同的形状」的直接证据，也是把 GQA 公式推广到全部模型会出错的原因。
-
-## vllm_ascend/core/kv_cache_interface.py#L33-L65
+## vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4946
 
 ```python
-@dataclass(frozen=True, kw_only=True)
-class AscendMLAAttentionSpec(MLAAttentionSpec):
-    """MLA cache spec with Ascend-specific layout metadata.
+    def get_kv_cache_spec(self) -> dict[str, KVCacheSpec]:
+        """
+        Generates the KVCacheSpec by parsing the kv cache format from each
+        Attention module in the static forward context.
+        Returns:
+            KVCacheSpec: A dictionary mapping layer names to their KV cache
+            format. Layers that do not need KV cache are not included.
+        """
 
-    For SFA, this spec describes only the main MLA cache. The indexer K
-    tensor, its quantization scale, and DCP replication are described by a
-    separate :class:`AscendSFAIndexerCacheSpec`.
-    """
+        if has_ec_transfer() and get_ec_transfer().is_producer:
+            return {}
 
-    scale_dim: int = 0
-    scale_dtype: torch.dtype = torch.int8
-    # Sparse C8 changes the main cache into one packed byte tensor. Keep that
-    # main-cache property here; indexer-specific C8 properties belong to the
-    # indexer spec.
-    cache_sparse_sfa_c8: bool = False
-    store_on_host: bool = False
-
-    @property
-    def storage_block_size(self) -> int:
-        """Return the physical block size consumed by Ascend kernels."""
-        return self.block_size // self.compress_ratio
-
-    @property
-    def real_page_size_bytes(self) -> int:
-        return (
-            self.storage_block_size
-            * self.num_kv_heads
-            * (self.head_size * get_dtype_size(self.dtype) + self.scale_dim * get_dtype_size(self.scale_dtype))
-        )
-
-    @property
-    def unpadded_page_size_bytes(self) -> int:
-        return self.real_page_size_bytes
+        kv_cache_spec: dict[str, list[KVCacheSpec]] = defaultdict(list)
+        attn_layers = get_layers_from_vllm_config(self.vllm_config, AttentionLayerBase)
+        # NOTE: Must process Attention/MLAAttention before MambaBase to maintain
+        # ordering expected by graph parameter update logic in attention backends.
+        mamba_layers: dict[str, MambaBase] = {}
+        attn_layer_names = set()
+        for layer_name, attn_module in attn_layers.items():
+            if (isinstance(attn_module, Attention)
+                    and (kv_tgt_layer := attn_module.kv_sharing_target_layer_name) is not None):
+                # The layer doesn't need its own KV cache and will use that of
+                # the target layer. We skip creating a KVCacheSpec for it, so
+                # that KV cache management logic will act as this layer does
+                # not exist, and doesn't allocate KV cache for the layer. This
+                # enables the memory saving of cross-layer kv sharing, allowing
+                # a given amount of memory to accommodate longer context lengths
+                # or enable more requests to be processed simultaneously.
+                self.shared_kv_cache_layers[layer_name] = kv_tgt_layer
+                continue
+            elif self.use_compress:
+                # Skip modules that don't need KV cache (eg encoder-only attention)
+                if spec := attn_module.get_kv_cache_spec(self.vllm_config):
+                    kv_cache_spec[layer_name] = spec
+            elif isinstance(attn_module, Attention):
+                if spec := attn_module.get_kv_cache_spec(self.vllm_config):
+                    kv_cache_spec[layer_name] = spec
+                    attn_layer_names.add(layer_name)
 ```
 
-引用理由：昇腾自有 spec 类型的页字节公式与 `storage_block_size`，用于「事实表」和「spec.block_size ≠ kernel 块大小」这条误解。
+v0.23.0 上同一段：稠密 GQA 分支逐字相同，说明这条主线两版一致。EC transfer 的早退条件相反（`is_producer` vs `not is_consumer`）。
 
-## vllm_ascend/core/kv_cache_interface.py#L100-L107
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5031-L5047
 
 ```python
-    def max_memory_usage_bytes(self, vllm_config: VllmConfig) -> int:
-        max_model_len = vllm_config.model_config.max_model_len
-        dcp_world_size = vllm_config.parallel_config.decode_context_parallel_size
-        # Note(hc): each dcp rank only need save
-        # (max_model_len//dcp_world_size) tokens locally.
-        if dcp_world_size > 1:
-            max_model_len = cdiv(max_model_len, dcp_world_size)
-        return cdiv(max_model_len, self.block_size) * self.page_size_bytes
+            elif isinstance(attn_module, DeepseekV32IndexerCache):
+                # TODO: This mirrors upstream's separated KV/indexer specs for
+                # SFA, but keeps Ascend-specific shape/block-size accounting.
+                # Remove this special case once the generic vLLM spec/backend
+                # path can describe the Ascend SFA indexer layout directly.
+                cache_sparse_li_c8 = self.ascend_config.is_sparse_li_c8_layer(layer_name)
+                kv_cache_spec[layer_name] = AscendSFAIndexerCacheSpec(
+                    block_size=self.block_size,
+                    num_kv_heads=1,
+                    head_size=self.model_config.hf_text_config.index_head_dim,
+                    dtype=self.c8_k_cache_dtype if cache_sparse_li_c8 else self.kv_cache_dtype,
+                    cache_dtype_str=self.vllm_config.cache_config.cache_dtype,
+                    scale_dim=1 if cache_sparse_li_c8 else 0,
+                    scale_dtype=self.c8_k_scale_cache_dtype if cache_sparse_li_c8 else torch.int8,
+                    cache_sparse_li_c8=cache_sparse_li_c8,
+                    sfa_dcp_replicated_indexer_size=self.sfa_dcp_replicated_indexer_size,
+                )
 ```
 
-引用理由：spec 还负责回答「一条最长请求最多占多少字节」，即 `ceil(max_model_len / block_size) * page_size_bytes`。
+main 为 SFA indexer 单独建了一类 spec。用于事实表里的版本差异行。
 
-## vllm_ascend/core/kv_cache_interface.py#L227-L242
+## vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L5005-L5011
 
 ```python
-def register_ascend_kv_cache_specs() -> None:
-    KVCacheSpecRegistry.register(
-        kvcache_spec_cls=AscendMLAAttentionSpec,
-        manager_class=FullAttentionManager,
-        uniform_type_base_spec=FullAttentionSpec,
-    )
-    KVCacheSpecRegistry.register(
-        kvcache_spec_cls=AscendSFAIndexerCacheSpec,
-        manager_class=FullAttentionManager,
-        uniform_type_base_spec=FullAttentionSpec,
-    )
-    KVCacheSpecRegistry.register(
-        kvcache_spec_cls=AscendSlidingWindowMLASpec,
-        manager_class=SlidingWindowManager,
-        uniform_type_base_spec=SlidingWindowMLASpec,
-    )
+            elif isinstance(attn_module, CacheOnlyAttentionLayer):
+                # Only CacheOnlyAttentionLayer (extract_hidden_states draft model)
+                # is handled here. Other AttentionLayerBase subclasses such as
+                # DeepseekV32IndexerCache are intentionally skipped: on Ascend,
+                # the indexer's k_cache is replaced by IndexerWrapper, so its
+                # KV cache is unused.
+                if spec := attn_module.get_kv_cache_spec(self.vllm_config):
 ```
 
-引用理由：昇腾自定义的 spec 类型必须注册给上游，才能被调度侧的块管理器识别。证明 spec 同时是调度侧的输入。
+v0.23.0 明确跳过 `DeepseekV32IndexerCache`，indexer 的字节被折进 `AscendMLAAttentionSpec.sparse_head_dim`。与上一段对照。
 
-## vllm_ascend/attention/attention_v1.py#L113-L121
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5076-L5089
+
+```python
+        if len(mamba_layers) > 0:
+            mamba_page_size_padded = 0
+            for layer_name, mamba_module in mamba_layers.items():
+                if spec := mamba_module.get_kv_cache_spec(self.vllm_config):
+                    kv_cache_spec[layer_name] = spec
+                    mamba_page_size_padded = spec.page_size_bytes
+            # align attn_page_size to mamba_page_size_padded
+            for layer_name in attn_layer_names:
+                if kv_cache_spec[layer_name].page_size_bytes < mamba_page_size_padded:  # type: ignore[attr-defined]
+                    object.__setattr__(kv_cache_spec[layer_name], "page_size_padded", mamba_page_size_padded)
+
+        if self.sparse_kv_offload_enabled:
+            self.kv_cache_spec = kv_cache_spec # reserve for Sparse KV offload usage
+        return kv_cache_spec
+```
+
+函数收尾：mamba 混合模型下注意力层的页会被 padding 到 mamba 页大小。说明 `page_size_padded` 的来源。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L121
 
 ```python
     @staticmethod
@@ -194,9 +193,25 @@ def register_ascend_kv_cache_specs() -> None:
         return (2, num_blocks, block_size, num_kv_heads, head_size)
 ```
 
-引用理由：GQA 后端把 spec 的四个数翻译成张量形状，首维 2 即 K 与 V 两份。每 token 每层字节公式里的因子 2 由此而来。
+GQA 后端声明的 block 形状，首维 2 就是 K 与 V。
 
-## vllm_ascend/attention/attention_v1.py#L151-L153
+## vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112
+
+```python
+    @staticmethod
+    def get_kv_cache_shape(
+        num_blocks: int,
+        block_size: int,
+        num_kv_heads: int,
+        head_size: int,
+        cache_dtype_str: str = "",
+    ) -> tuple[int, ...]:
+        return (2, num_blocks, block_size, num_kv_heads, head_size)
+```
+
+v0.23.0 上逐字相同，证明形状结论两版一致。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L153
 
 ```python
     @staticmethod
@@ -204,9 +219,27 @@ def register_ascend_kv_cache_specs() -> None:
         return [128]
 ```
 
-引用理由：昇腾 GQA kernel 只支持 128 的物理块；混合块场景下 reshape 会按它再切一次。
+GQA 后端只支持 128 这一个 kernel block size。
 
-## vllm_ascend/worker/worker.py#L1009-L1020
+## vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
+
+```python
+    @staticmethod
+    def get_supported_kernel_block_sizes() -> list[int]:
+        return [128]
+```
+
+v0.23.0 相同。
+
+## vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L174-L174
+
+```markdown
+| `long_req_block_threshold` | int | `700` | In dynamic mode, a newly added request above this block count activates balancing. The default threshold corresponds to approximately 89,600 tokens when `block_size=128`. |
+```
+
+官方文档在别处的参数说明里把 `block_size=128` 当作既定前提（700 × 128 = 89600）。用于佐证 128 是实际生效的块大小。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L1009-L1020
 
 ```python
     def initialize_from_config(self, kv_cache_config: KVCacheConfig) -> None:
@@ -223,9 +256,9 @@ def register_ascend_kv_cache_specs() -> None:
             self.model_runner.initialize_kv_cache(kv_cache_config)
 ```
 
-引用理由：引擎把算好的 `KVCacheConfig` 发回 Worker 的入口，也是 sleep mode 下 KV cache 走独立内存池的地方。
+分配阶段的外层入口：engine 把算好的 `KVCacheConfig` 递进来，worker 再交给 model runner。
 
-## vllm_ascend/worker/model_runner_v1.py#L3910-L3938
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3910-L3938
 
 ```python
     def initialize_kv_cache(self, kv_cache_config: KVCacheConfig) -> None:
@@ -259,9 +292,39 @@ def register_ascend_kv_cache_specs() -> None:
         kv_caches = self.initialize_kv_cache_tensors(kv_cache_config)
 ```
 
-引用理由：`initialize_kv_cache` 的实际顺序——先改写 config（encoder-only 层、layerwise 计划、kv sharing 组），再建后端，最后才分配张量。
+main 上 `initialize_kv_cache` 的主干顺序：改写 config → 选后端 → 重建 input batch → 真正分配张量。
 
-## vllm_ascend/worker/model_runner_v1.py#L3986-L4030
+## vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865
+
+```python
+    def initialize_kv_cache(self, kv_cache_config: KVCacheConfig) -> None:
+        """
+        Initialize KV cache based on `kv_cache_config`.
+        Args:
+            kv_cache_config: Configuration for the KV cache, including the KV
+            cache size of each layer
+        """
+        kv_cache_config = deepcopy(kv_cache_config)
+        self.kv_cache_config = kv_cache_config
+        self._mamba_bufs = None
+        self._mamba_copy_bufs = None
+        self.may_add_encoder_only_layers_to_kv_cache_config()
+        self.maybe_add_kv_sharing_layers_to_kv_cache_groups(kv_cache_config)
+        # NOTE(cmq): initialize_attn_backend must before using self.attn_groups
+        self.initialize_attn_backend(kv_cache_config)
+        self.use_hybrid_blocks = len(self.attn_groups) > 1
+        # NOTE: Currently, we determine whether we need `num_accepted_tokens` through `MambaSpec`.
+        self.need_accepted_tokens = any(
+            [isinstance(attn_group[0].kv_cache_spec, MambaSpec) for attn_group in self.attn_groups]
+        )
+
+        self.may_reinitialize_input_batch(kv_cache_config)
+        kv_caches = self.initialize_kv_cache_tensors(kv_cache_config)
+```
+
+v0.23.0 上同一主干：没有 `apply_layerwise_kv_cache_plan` 与 sparse offload manager 两步，其余顺序一致。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3986-L4004
 
 ```python
     def initialize_kv_cache_tensors(self, kv_cache_config: KVCacheConfig) -> dict[str, torch.Tensor]:
@@ -283,128 +346,13 @@ def register_ascend_kv_cache_specs() -> None:
         for layer_name, target_layer_name in self.shared_kv_cache_layers.items():
             logger.debug("%s reuses KV cache of %s", layer_name, target_layer_name)
             kv_caches[layer_name] = kv_caches[target_layer_name]
-
-        if self.model_config.hf_text_config.model_type == "deepseek_v4":
-            from vllm_ascend.utils import extract_dsv4_layer_index
-
-            assert len(self.kv_caches) == 0
-            for layer_name in sorted(
-                    kv_caches,
-                    key=lambda name: (extract_dsv4_layer_index(
-                        self.model_config.hf_text_config, name), name)):
-                self.kv_caches.append(kv_caches[layer_name])
-            for layer_name, kv_cache in kv_caches.items():
-                self.compilation_config.static_forward_context[
-                    layer_name].kv_cache = [kv_cache]
-        else:
-            from vllm.v1.worker.utils import bind_kv_cache
-
-            model_type = self.model_config.hf_text_config.model_type
-            num_attn_module = 2 if model_type in ("longcat_flash", "longcat_flash_ngram") else 1
-            bind_kv_cache(
-                kv_caches,
-                self.compilation_config.static_forward_context,
-                self.kv_caches,
-                num_attn_module,
-            )
-
-        return kv_caches
 ```
 
-引用理由：分配三步走（原始字节 → reshape → 绑定）的骨架，以及 kv sharing 层在这里直接复用目标层张量。
+分配的两段式结构：先按字节数申请原始 buffer，再 view 成目标形状；KV 共享层在这里补回指针。v0.23.0 的 L3917-L3935 结构相同。
 
-## vllm_ascend/worker/model_runner_v1.py#L4032-L4052
-
-```python
-    def _get_layer_kv_cache_specs(self, kv_cache_config: KVCacheConfig) -> dict[str, KVCacheSpec]:
-        compilation_config = getattr(self, "compilation_config", None)
-        if compilation_config is None:
-            compilation_config = getattr(self.vllm_config, "compilation_config", None)
-        static_forward_context = getattr(compilation_config, "static_forward_context", None)
-
-        layer_kv_cache_spec: dict[str, KVCacheSpec] = {}
-        for group_kv_cache_spec in kv_cache_config.kv_cache_groups:
-            group_spec = group_kv_cache_spec.kv_cache_spec
-            for layer_name in group_kv_cache_spec.layer_names:
-                if isinstance(group_spec, UniformTypeKVCacheSpecs):
-                    layer_kv_cache_spec[layer_name] = group_spec.kv_cache_specs[layer_name]
-                else:
-                    layer_kv_cache_spec[layer_name] = group_spec
-                if static_forward_context is not None:
-                    attn_layer = static_forward_context.get(layer_name)
-                    if isinstance(attn_layer, AttentionLayerBase):
-                        spec = attn_layer.get_kv_cache_spec(self.vllm_config)
-                        if isinstance(spec, AscendSFAIndexerCacheSpec):
-                            layer_kv_cache_spec[layer_name] = spec
-        return layer_kv_cache_spec
-```
-
-引用理由：分配阶段把「组级 spec」还原回「层级 spec」的地方——证明 `KVCacheConfig` 里挂的是分组，而分配要按层还原。
-
-## vllm_ascend/worker/model_runner_v1.py#L4157-L4177
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4294-L4345
 
 ```python
-    def _allocate_kv_cache_tensors(self, kv_cache_config: KVCacheConfig) -> dict[str, torch.Tensor]:
-        """
-        Initializes the KV cache buffer with the correct size. The buffer needs
-        to be reshaped to the desired shape before being used by the models.
-
-        NOTE: To support prefill disaggregation, we need to split kvcache tensor into
-        k_cache and v cache, and the addr of both are aligned by 2M
-
-        Args:
-            kv_cache_config: The KV cache config
-        Returns:
-            dict[str, torch.Tensor]: A map between layer names to their
-            corresponding memory buffer for KV cache.
-            dict[str, tuple(torch.Tensor, torch.Tensor)] A map between layer names
-            to their corresponding memory buffer for K cache and V cache.
-        """
-        # init kv cache tensors
-        kv_cache_raw_tensors: dict[str, torch.Tensor | tuple[torch.Tensor, ...]] = {}
-        # prefill disaggregation need the addr of cache tensor be aligned with 2M
-        alignment = 2 * 1024 * 1024
-        layer_kv_cache_spec = self._get_layer_kv_cache_specs(kv_cache_config)
-```
-
-引用理由：2 MiB 对齐常量与「K/V 必须拆成两个张量」的原因（P/D 分离）。这是昇腾与上游布局分歧的直接说明。
-
-## vllm_ascend/worker/model_runner_v1.py#L4079-L4100
-
-```python
-    def _allocate_int8_cache_tensor(
-        self,
-        numel: int,
-        alignment: int,
-    ) -> torch.Tensor:
-        """Allocate an int8 raw cache tensor.
-
-        When KV transfer is enabled, the returned tensor's data_ptr is aligned
-        to `alignment`. This keeps the original Mooncake/ADXL alignment behavior.
-        """
-        if numel <= 0:
-            raise ValueError(f"Invalid cache tensor size: {numel}")
-
-        if self.vllm_config.kv_transfer_config is None:
-            return torch.zeros(numel, dtype=torch.int8, device=self.device)
-
-        raw_tensor = torch.zeros(numel + alignment, dtype=torch.int8, device=self.device)
-        return self._align_memory(raw_tensor, alignment)[:numel]
-```
-
-引用理由：真正的显存申请点。证明一切 KV cache 都先按 `torch.int8` 以字节为单位申请，并且只在开了 KV transfer 时才多申请一个 alignment 做地址对齐。
-
-> 注：本片段在源文件中 `raw_tensor = torch.zeros(...)` 一句跨三行书写（L4095-L4099），此处为可读性折成一行，其余一字未改。
-
-## vllm_ascend/worker/model_runner_v1.py#L4288-L4317
-
-```python
-                elif "attn" in layer_name and layer_name not in kv_cache_raw_tensors and not use_mamba:
-                    # NOTE: We need to init k cache tensor (nope cache tensor in mla) and
-                    # v cache tensor (rope cache tensor in mla) separately to support prefill disaggregation,
-                    # as it only support the 0-dim of kv_cache is `num_blocks`.
-                    # For deepseek mla, we need to spilt cache tensor accrodding to the nope head dim
-                    # and rope head dim.
                     current_kv_cache_spec = layer_kv_cache_spec[layer_name]
                     assert isinstance(current_kv_cache_spec, AttentionSpec)
                     current_sparse_sfa_c8 = self.use_sparse and kv_cache_spec_uses_sparse_sfa_c8(
@@ -429,13 +377,21 @@ def register_ascend_kv_cache_specs() -> None:
                             k_tensor_split_factor, v_tensor_split_factor = calc_split_factor(kv_head_dim_list)
                         k_tensor_size = int(kv_cache_tensor.size // k_tensor_split_factor)
                         v_tensor_size = int(kv_cache_tensor.size // v_tensor_split_factor)
-```
-
-引用理由：注意力层的分配分支。`kv_cache_tensor.size` 是引擎给这一层的总字节数，按 K/V 的 head dim 比例切成两份——GQA 下两者相等，正好一半一半。
-
-## vllm_ascend/worker/model_runner_v1.py#L4333-L4354
-
-```python
+                    if self.sparse_kv_offload_enabled:
+                        assert self.use_sparse, "Sparse KV offload only support sparse attention."
+                        assert not current_sparse_sfa_c8, "Sparse KV offload do not support sparse SFA C8."
+                        assert v_tensor_size is not None
+                        raw_tensors = allocate_kv_cache_tensors_for_sparse_kv_offload(
+                            k_tensor_size,
+                            v_tensor_size,
+                            alignment,
+                            self.tp_rank,
+                            self.sparse_kv_offload_config.keep_device_kv_cache,
+                            self._allocate_int8_cache_tensor,
+                        )
+                        assert len(kv_cache_tensor.shared_by) == 1, "Sparse KV offload do not support HMA."
+                        kv_cache_raw_tensors[layer_name] = raw_tensors
+                        continue
                     # Allocate raw int8 tensors. Even bf16/fp16 KV cache entries
                     # are allocated as int8 raw bytes first and then viewed as
                     # the target dtype in _reshape_kv_cache_tensors.
@@ -449,7 +405,13 @@ def register_ascend_kv_cache_specs() -> None:
                             v_tensor_size,
                             alignment,
                         )
+```
 
+main 上稠密注意力层的分配分支：按 K/V 头维之比把 `kv_cache_tensor.size` 切成两块，各自以 int8 原始字节申请。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4347-L4354
+
+```python
                     for layer_name_inner in kv_cache_tensor.shared_by:
                         # shared the attn kvcache for all shared layers
                         if "attn" in layer_name_inner and "linear_attn" not in layer_name_inner:
@@ -460,9 +422,37 @@ def register_ascend_kv_cache_specs() -> None:
                                 kv_cache_raw_tensors[layer_name_inner] = (k_tensor, v_tensor)
 ```
 
-引用理由：raw tensor 落盘为 `(k_tensor, v_tensor)` 二元组，并按 `kv_cache_tensor.shared_by` 分发给共享同一块显存的所有层。
+稠密路径最终登记的是 `(k_tensor, v_tensor)` 二元组，而不是一整块。
 
-## vllm_ascend/utils.py#L1380-L1382
+## vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4212-L4232
+
+```python
+                    else:
+                        k_dim, v_dim = self._get_attention_kv_cache_dims(layer_name, current_kv_cache_spec)
+                        assert k_dim > 0 and v_dim > 0
+                        kv_head_dim_list = [
+                            k_dim,
+                            v_dim,
+                        ]
+                        if enable_fa_quant(self.vllm_config):
+                            k_tensor_split_factor, v_tensor_split_factor = (
+                                self.vllm_config.quant_config.get_kv_quant_split_factor(layer_name, kv_head_dim_list)
+                            )
+                        else:
+                            k_tensor_split_factor, v_tensor_split_factor = calc_split_factor(kv_head_dim_list)
+
+                    if not (self.use_sparse and current_sparse_sfa_c8):
+                        k_tensor_size = int(kv_cache_tensor.size // k_tensor_split_factor)
+                        v_tensor_size = (
+                            int(kv_cache_tensor.size // v_tensor_split_factor)
+                            if v_tensor_split_factor is not None
+                            else None
+                        )
+```
+
+v0.23.0 上稠密分支的同一段逻辑，切分公式一致。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1380-L1382
 
 ```python
 def calc_split_factor(num_list: list[int]):
@@ -470,66 +460,38 @@ def calc_split_factor(num_list: list[int]):
     return [total / num for num in num_list]
 ```
 
-引用理由：K/V 切分比例的定义。`[d_h, d_h]` 时返回 `[2.0, 2.0]`，即各占一半；MLA 的 `[kv_lora_rank, qk_rope_head_dim]` 则按比例不均分。
+切分因子的定义：GQA 下 `[head_size, head_size]` 得到 `[2.0, 2.0]`。v0.23.0 的 L1611-L1613 逐字相同。
 
-## vllm_ascend/worker/model_runner_v1.py#L4598-L4614
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4054-L4073
 
 ```python
-                    else:
-                        raw_k_tensor, raw_v_tensor = kv_cache_raw_tensors[  # type: ignore
-                            layer_name
-                        ]
-                        sum_page_size_bytes = raw_k_tensor.numel() + raw_v_tensor.numel()
-                    assert raw_k_tensor is not None
-                    assert sum_page_size_bytes % current_kv_cache_spec.page_size_bytes == 0
-                    num_blocks = sum_page_size_bytes // current_kv_cache_spec.page_size_bytes
+    def _get_attention_kv_cache_dims(self, layer_name: str, kv_cache_spec: AttentionSpec) -> tuple[int, int]:
+        if isinstance(kv_cache_spec, AscendMLAAttentionSpec):
+            attn_layers = get_layers_from_vllm_config(
+                self.vllm_config,
+                AttentionLayerBase,
+                [layer_name],
+            )
+            attn_layer = attn_layers[layer_name]
+            if isinstance(attn_layer, MLAAttention):
+                # DeepSeek MLA: K=kv_lora_rank, V=qk_rope_head_dim
+                return attn_layer.kv_lora_rank, attn_layer.qk_rope_head_dim
+            # CacheOnlyAttentionLayer uses AscendMLAAttentionSpec but isn't MLAAttention
+            if isinstance(attn_layer, CacheOnlyAttentionLayer):
+                return kv_cache_spec.head_size, kv_cache_spec.head_size
+            raise TypeError(
+                f"Expected MLAAttention layer for {layer_name}, got {type(attn_layer).__name__}."
+            )
 
-                    # `num_blocks` is the number of blocks the model runner can use.
-                    # `kv_cache_config.num_blocks` is the number of blocks that
-                    # KVCacheManager may allocate.
-                    # Since different GPUs may have different number of layers and
-                    # different memory capacities, `num_blocks` can be different on
-                    # different GPUs, and `kv_cache_config.num_blocks` is set to
-                    # the min of all `num_blocks`. Verify it here.
-                    assert num_blocks >= kv_cache_config.num_blocks
+        head_size_v = kv_cache_spec.head_size_v if hasattr(kv_cache_spec, "head_size_v") else kv_cache_spec.head_size
+        return kv_cache_spec.head_size, head_size_v
 ```
 
-引用理由：`num_blocks = (K 字节 + V 字节) / page_size_bytes`。这一句同时证明了 `page_size_bytes` 在 GQA 下是 K 与 V 两份之和，是推导每 token 字节公式的关键一环。
+K 维与 V 维的来源：GQA 走最后两行，两者都等于 `head_size`，所以切分因子是 2 : 2。
 
-## vllm_ascend/worker/model_runner_v1.py#L4616-L4659
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4647-L4704
 
 ```python
-                    if hasattr(attn_backend, "get_supported_kernel_block_sizes") and self.use_hybrid_blocks:
-                        block_size = attn_backend.get_supported_kernel_block_sizes()[0]
-
-                        block_size_chunk = current_kv_cache_spec.block_size // block_size
-                        kv_cache_shape = attn_backend.get_kv_cache_shape(
-                            num_blocks * block_size_chunk,
-                            block_size,
-                            current_kv_cache_spec.num_kv_heads,
-                            current_kv_cache_spec.head_size,
-                        )
-                        if self.hybrid_with_attn_and_mamba:
-                            if not isinstance(current_kv_cache_spec, AscendMLAAttentionSpec):
-                                attn_tensor_page_size = int(np.prod(kv_cache_shape[1:])) * get_dtype_size(
-                                    current_kv_cache_spec.dtype
-                                )
-                                conv_block_padding_size = raw_k_tensor.numel() - attn_tensor_page_size * 2
-                                raw_kv_tensor = raw_k_tensor[conv_block_padding_size:]
-                                raw_k_tensor = raw_kv_tensor[:attn_tensor_page_size]
-                                raw_v_tensor = raw_kv_tensor[attn_tensor_page_size:]
-                            else:
-                                k_dim, v_dim = self._get_attention_kv_cache_dims(layer_name, current_kv_cache_spec)
-                                nope_page_size = int(np.prod(kv_cache_shape[:-1])) * k_dim * get_dtype_size(
-                                    current_kv_cache_spec.dtype
-                                )
-                                rope_page_size = int(np.prod(kv_cache_shape[:-1])) * v_dim * get_dtype_size(
-                                    current_kv_cache_spec.dtype
-                                )
-                                conv_block_padding_size = raw_k_tensor.numel() - nope_page_size - rope_page_size
-                                raw_kv_tensor = raw_k_tensor[conv_block_padding_size:]
-                                raw_k_tensor = raw_kv_tensor[:nope_page_size]
-                                raw_v_tensor = raw_kv_tensor[nope_page_size:]
                     else:
                         kv_cache_shape = attn_backend.get_kv_cache_shape(
                             num_blocks,
@@ -543,13 +505,30 @@ def calc_split_factor(num_list: list[int]):
                             v_shape = (*kv_cache_shape[1:-1], current_kv_cache_spec.head_size_v)
                         else:
                             v_shape = k_shape
-```
-
-引用理由：spec 的四个数交给后端换成形状的地方；也证明混合块场景下 `spec.block_size` 会被 `get_supported_kernel_block_sizes()[0]` 重新切分，spec 的块大小不等于 kernel 块大小。
-
-## vllm_ascend/worker/model_runner_v1.py#L4684-L4704
-
-```python
+                    else:
+                        # k_cache: nope_cache    v_cache: rope_cache
+                        mla_num_blocks, mla_block_size, num_kv_heads, _ = kv_cache_shape
+                        k_dim, v_dim = self._get_attention_kv_cache_dims(layer_name, current_kv_cache_spec)
+                        k_shape = (
+                            mla_num_blocks,
+                            mla_block_size,
+                            num_kv_heads,
+                            k_dim,
+                        )
+                        if current_sparse_sfa_c8:
+                            k_shape = (
+                                mla_num_blocks,
+                                mla_block_size,
+                                num_kv_heads,
+                                current_kv_cache_spec.head_size,
+                            )
+                            v_dim = 0
+                        v_shape = (
+                            mla_num_blocks,
+                            mla_block_size,
+                            num_kv_heads,
+                            v_dim,
+                        )
                     k_cache_dtype = v_cache_dtype = current_kv_cache_spec.dtype
                     if enable_fa_quant(self.vllm_config):
                         k_cache_dtype, v_cache_dtype = self.vllm_config.quant_config.get_kv_quant_dtype(
@@ -573,68 +552,73 @@ def calc_split_factor(num_list: list[int]):
                         kv_caches[layer_name] = (k_cache, v_cache)
 ```
 
-引用理由：字节张量 `view` 成目标 dtype 与形状的最后一步，以及量化开启时 dtype 由 quant config 覆写 spec 的 dtype。
+reshape 阶段：GQA 的 K、V 各被 view 成 `(num_blocks, block_size, num_kv_heads, head_size)`，也就是 `get_kv_cache_shape` 去掉首维 2。v0.23.0 的 L4592-L4650 结构一致。
 
-## vllm_ascend/worker/model_runner_v1.py#L373-L377
-
-```python
-        self.need_accepted_tokens: bool = False
-
-        self.is_multimodal_model = self.model_config.is_multimodal_model
-        self.block_size = vllm_config.cache_config.block_size
-```
-
-引用理由：spec 里的 `block_size` 来源——直接取自 `cache_config.block_size`，不是后端自己定的。
-
-## docs/source/user_guide/configuration/additional_config.md#L168-L176
-
-```markdown
-| ---- | ---- | ------- | ----------- |
-| `enabled` | bool | `False` | Enable DyntraLB and select a DyntraLB-aware scheduler. |
-| `mode` | str | `"dynamic"` | Use `"static"` or `"dynamic"` activation. |
-| `start_step` | int | `250` | First completed engine-step snapshot allowed to generate a plan. |
-| `end_step` | int | `-1` | Exclusive final snapshot step; `-1` means no upper bound. |
-| `bubble_threshold` | float | `5.0` | Minimum maximum-to-average rank-load difference required to modify scheduling. Values greater than or equal to `1` are KV-cache blocks; values below `1` are normalized ratios. |
-| `long_req_block_threshold` | int | `700` | In dynamic mode, a newly added request above this block count activates balancing. The default threshold corresponds to approximately 89,600 tokens when `block_size=128`. |
-| `dynamic_max_step` | int | `256` | Stop dynamic balancing after this many active steps without another newly added long request. |
-| `enable_diagnostics` | bool | `False` | Enable verbose logs for feature validation and debugging only. It is disabled by default and should remain disabled in production. |
-```
-
-引用理由：官方文档用「700 块 ≈ 89,600 token」反推出 `block_size=128` 是昇腾侧的常态取值（700 × 128 = 89,600）。
-
-## vllm_ascend/worker/v2/attn_utils.py#L64-L94
+## vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4604-L4614
 
 ```python
-def get_kv_cache_spec(vllm_config: VllmConfig) -> dict[str, KVCacheSpec]:
-    """Build Ascend-specific KV cache specs for v2 worker patching."""
-    from vllm.model_executor.models.deepseek_v2 import DeepseekV32IndexerCache
+                    assert sum_page_size_bytes % current_kv_cache_spec.page_size_bytes == 0
+                    num_blocks = sum_page_size_bytes // current_kv_cache_spec.page_size_bytes
 
-    kv_cache_spec: dict[str, KVCacheSpec] = {}
-    attention_layer_names: list[str] = []
-    mamba_specs: dict[str, MambaSpec] = {}
-    layer_type = AttentionLayerBase
-    attn_layers = get_layers_from_vllm_config(vllm_config, layer_type)
-
-    if get_ascend_device_type() == AscendDeviceType.A5:
-        c8_k_cache_dtype = torch.float8_e4m3fn
-        c8_k_scale_cache_dtype = torch.float32
-    else:
-        c8_k_cache_dtype = torch.int8
-        c8_k_scale_cache_dtype = torch.float16
-
-    for layer_name, attn_module in attn_layers.items():
-        if getattr(attn_module, "kv_sharing_target_layer_name", None):
-            continue
-
-        spec = attn_module.get_kv_cache_spec(vllm_config)
-        if spec is None:
-            continue
-
-        if isinstance(spec, MambaSpec):
-            # Keep Mamba groups after attention groups. Ascend graph parameter
-            # updates rely on this stable backend ordering.
-            mamba_specs[layer_name] = spec
-            continue
+                    # `num_blocks` is the number of blocks the model runner can use.
+                    # `kv_cache_config.num_blocks` is the number of blocks that
+                    # KVCacheManager may allocate.
+                    # Since different GPUs may have different number of layers and
+                    # different memory capacities, `num_blocks` can be different on
+                    # different GPUs, and `kv_cache_config.num_blocks` is set to
+                    # the min of all `num_blocks`. Verify it here.
+                    assert num_blocks >= kv_cache_config.num_blocks
 ```
 
-引用理由：v2 worker 走的是同名的独立函数，规则相同（跳过 kv sharing、跳过 spec 为 None 的层）。说明「按层声明」是两条路径共同的契约，不是 v1 的实现细节。
+把「K 字节 + V 字节」除以 `page_size_bytes` 反推块数，并与调度器侧的 `num_blocks` 对账。这是推导每 token 字节公式的关键约束。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/core/kv_cache_interface.py#L50-L65
+
+```python
+    @property
+    def storage_block_size(self) -> int:
+        """Return the physical block size consumed by Ascend kernels."""
+        return self.block_size // self.compress_ratio
+
+    @property
+    def real_page_size_bytes(self) -> int:
+        return (
+            self.storage_block_size
+            * self.num_kv_heads
+            * (self.head_size * get_dtype_size(self.dtype) + self.scale_dim * get_dtype_size(self.scale_dtype))
+        )
+
+    @property
+    def unpadded_page_size_bytes(self) -> int:
+        return self.real_page_size_bytes
+```
+
+main 上 MLA spec 的页字节：属性名是 `real_page_size_bytes`，块大小要先除以 `compress_ratio`。
+
+## vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L101-L121
+
+```python
+        if (
+            self.sparse_head_dim is not None
+            and len(self.sparse_head_dim) == 3
+            and self.sfa_dcp_replicated_indexer_size > 1
+        ):
+            k_head_dim, v_head_dim, index_head_dim = self.sparse_head_dim
+            replicated_head_size = k_head_dim + v_head_dim + index_head_dim * self.sfa_dcp_replicated_indexer_size
+            return (
+                self.block_size
+                * self.num_kv_heads
+                * (
+                    replicated_head_size * get_dtype_size(self.dtype)
+                    + self.scale_dim * get_dtype_size(self.scale_dtype)
+                )
+            )
+
+        return (
+            self.block_size
+            * self.num_kv_heads
+            * (self.head_size * get_dtype_size(self.dtype) + self.scale_dim * get_dtype_size(self.scale_dtype))
+        )
+```
+
+v0.23.0 上 MLA spec 直接覆写 `page_size_bytes`，且把 indexer 的字节算在同一个属性里。与上一段对照说明版本差异。

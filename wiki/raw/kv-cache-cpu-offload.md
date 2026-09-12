@@ -1,12 +1,8 @@
-# KV Cache CPU Offload —— 引用片段
+# KV Cache CPU Offload — 源码片段
 
-全部取自 `vllm-ascend@28bf3a2e`（ref `main`）。
-
-## docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L3-L14
+## vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L13
 
 ```markdown
-## Overview
-
 KV Cache CPU Offload enables offloading inactive KV cache blocks from NPU memory to CPU memory, allowing vLLM to handle longer contexts or more concurrent requests when NPU memory is limited. When a prefix cache miss occurs on the NPU but the data exists in CPU memory, the KV cache is asynchronously loaded back to the NPU, reducing recomputation latency.
 
 This feature is built on vLLM's `OffloadingConnector` framework and provides an Ascend NPU-specific implementation (`NPUOffloadingSpec`) that uses dedicated NPU streams for efficient asynchronous data transfers between NPU and CPU.
@@ -18,22 +14,9 @@ This feature is built on vLLM's `OffloadingConnector` framework and provides an 
 - **LRU Eviction**: The CPU-side block pool uses an LRU (Least Recently Used) eviction policy to manage limited CPU memory efficiently.
 ```
 
-官方文档对特性目标、触发条件（NPU 前缀未命中而 CPU 命中）与三个核心机制的定义，用于「一句话」「为什么需要它」两节。
+官方文档对这个特性的定义、触发条件（NPU 前缀未命中 + CPU 有）与三个核心概念。
 
-## docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L75-L81
-
-```markdown
-## How It Works
-
-1. **Normal inference**: KV cache blocks are computed and stored on the NPU as usual.
-2. **Eviction to CPU**: When NPU memory is full and new blocks are needed, inactive KV cache blocks are asynchronously copied to CPU memory via a dedicated D2H NPU stream.
-3. **Prefix cache hit (CPU)**: When a request shares a prefix with previously computed data, and the prefix cache is not found on NPU but exists in CPU memory, the KV cache blocks are asynchronously loaded back from CPU to NPU via a dedicated H2D NPU stream.
-4. **LRU management**: The CPU block pool uses LRU eviction to discard the least recently used blocks when CPU memory is full.
-```
-
-官方文档给出的四步流程，页面的「怎么工作」以它为骨架；其中第 2 步「显存满了才搬」与 e2e 测试的观察不一致，页面在常见误解里点出。
-
-## docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L73
+## vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L73
 
 ```markdown
 ## Configuration Parameters
@@ -48,9 +31,9 @@ This feature is built on vLLM's `OffloadingConnector` framework and provides an 
 The legacy Ascend-only `num_cpu_blocks` option remains supported for compatibility, but new configurations should use vLLM's native `cpu_bytes_to_use` option.
 ```
 
-配置项的取值与语义，事实表里的配置行直接来自这里；`cpu_bytes_to_use` 是「整机口径」这一条也出自这里。
+main 上的配置项清单，以及「num_cpu_blocks 是遗留项」这一说明。
 
-## docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L104-L111
+## vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L104-L110
 
 ```markdown
 ## Notes
@@ -62,9 +45,24 @@ The legacy Ascend-only `num_cpu_blocks` option remains supported for compatibili
 - For production workloads, benchmark with realistic request patterns to find the optimal `cpu_bytes_to_use` and `blocks_per_chunk` settings.
 ```
 
-使用约束与调参建议，用于「开了的代价」相关的叙述与常见误解第一条（`gpu_memory_utilization` 决定 NPU 侧容量，卸载不会把它变大）。
+官方对使用代价的提示：主机 OOM 风险、pinned 内存、`gpu_memory_utilization` 与卸载活跃度的关系。
 
-## vllm_ascend/distributed/kv_transfer/__init__.py#L63-L73
+## vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L71
+
+```markdown
+## Configuration Parameters
+
+- `kv_connector`: Must be set to `"OffloadingConnector"`.
+- `kv_role`: Set to `"kv_both"` to enable both storing and loading of KV cache.
+- `num_cpu_blocks`: Number of blocks to allocate in CPU memory. Increase this value for longer context scenarios. Each block consumes memory proportional to `block_size × num_layers × (key_size + value_size)`.
+- `block_size`: The CPU-side block size. Should be a multiple of the NPU-side block size. Typical value: `128`.
+- `spec_name`: Must be `"NPUOffloadingSpec"` for Ascend NPU.
+- `spec_module_path`: Must be `"vllm_ascend.kv_offload.npu"`.
+```
+
+v0.23.0 上的同名章节，参数名与 `spec_module_path` 都与 main 不同，是版本差异的直接依据。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/__init__.py#L63-L73
 
 ```python
     # vLLM's native offloading worker assumes attention KV caches are packed
@@ -80,50 +78,66 @@ The legacy Ascend-only `num_cpu_blocks` option remains supported for compatibili
     )
 ```
 
-解释为什么用户填的 `kv_connector="OffloadingConnector"` 实际拿到的是 `AscendOffloadingConnector`，以及昇腾侧只替换了哪一段。
+main 把 `OffloadingConnector` 这个名字从注册表里摘掉重注册成昇腾版本，并写明了为什么（K/V 分离布局）。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L234-L267
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L86-L97
 
 ```python
-                if isinstance(layer_spec, AttentionSpec):
-                    if isinstance(layer_cache, torch.Tensor):
-                        page_size_bytes = layer_spec.page_size_bytes
-                        element_size = layer_cache.element_size()
-                        block_stride_bytes = (
-                            layer_cache.stride(0) * element_size
-                            if layer_is_packed.get(layer_name, False)
-                            else page_size_bytes
-                        )
-                        raw = torch.empty(
-                            0,
-                            dtype=torch.int8,
-                            device=layer_cache.device,
-                        ).set_(layer_cache.untyped_storage())
-                        view = torch.as_strided(
-                            raw,
-                            (num_blocks, page_size_bytes),
-                            (block_stride_bytes, 1),
-                            layer_cache.storage_offset() * element_size,
-                        )
-                        add_view(
-                            layer_name,
-                            view,
-                            layer_spec.unpadded_page_size_bytes,
-                        )
-                    elif isinstance(layer_cache, (tuple, list)):
-                        for view, copy_size_bytes in _canonicalize_split_attention_cache(
-                            layer_cache,
-                            num_blocks,
-                            layer_spec.unpadded_page_size_bytes,
-                        ):
-                            add_view(layer_name, view, copy_size_bytes)
-                    else:
-                        raise TypeError(f"Unsupported KV cache type for {layer_name}: {type(layer_cache).__name__}")
+def _canonicalize_split_attention_cache(
+    cache_parts: Sequence[torch.Tensor],
+    num_blocks: int,
+    unpadded_page_size_bytes: int,
+) -> tuple[tuple[torch.Tensor, int], ...]:
+    """Canonicalize Ascend's separate K/V (and optional scale) tensors.
+
+    Ascend attention keeps cache components as separate tensors while vLLM's
+    native offloading worker expects a canonical block-level representation.
+    The returned views alias the original NPU storage and therefore add no
+    allocation or copy on the model execution path.
+    """
 ```
 
-每块搬多少字节由 KV Cache Spec 的 `page_size_bytes` / `unpadded_page_size_bytes` 决定；昇腾分离的 K/V 张量走 `_canonicalize_split_attention_cache` 变成零拷贝 int8 视图。
+说明 main 为什么要做布局规范化，以及这层视图是零拷贝的（不在模型执行路径上增加开销）。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L27-L55
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L159-L189
+
+```python
+class AscendOffloadingConnectorWorker(OffloadingConnectorWorker):
+    """Offloading worker boundary supporting Ascend's separate K/V layout."""
+
+    def register_kv_caches(
+        self,
+        kv_caches: dict[
+            str,
+            torch.Tensor | list[torch.Tensor] | tuple[torch.Tensor, ...],
+        ],
+    ) -> None:
+        kv_cache_config = self.kv_cache_config
+
+        requires_layout_adaptation = False
+        for group in kv_cache_config.kv_cache_groups:
+            group_spec = group.kv_cache_spec
+            per_layer_specs = group_spec.kv_cache_specs if isinstance(group_spec, UniformTypeKVCacheSpecs) else {}
+            for layer_name in group.layer_names:
+                layer_spec = per_layer_specs.get(layer_name, group_spec)
+                layer_cache = kv_caches[layer_name]
+                if (isinstance(layer_spec, AttentionSpec) and not isinstance(layer_cache, torch.Tensor)) or (
+                    isinstance(layer_spec, MambaSpec) and isinstance(layer_cache, list)
+                ):
+                    requires_layout_adaptation = True
+                    break
+            if requires_layout_adaptation:
+                break
+
+        # Preserve upstream behavior verbatim for upstream-compatible layouts.
+        if not requires_layout_adaptation:
+            super().register_kv_caches(kv_caches)  # type: ignore[arg-type]
+            return
+```
+
+main 的适配只在布局确实不同（AttentionSpec 但不是单张量、或 MambaSpec 是 list）时才介入，其余走上游原路。
+
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L22-L55
 
 ```python
 def _normalize_legacy_num_blocks(
@@ -156,13 +170,33 @@ def _normalize_legacy_num_blocks(
             alignment,
         )
         cpu_bytes_to_use = num_cpu_blocks * aligned_kv_bytes_per_chunk
+
+    normalized_extra_config = dict(extra_config)
+    normalized_extra_config["cpu_bytes_to_use"] = cpu_bytes_to_use
+    return replace(config, extra_config=normalized_extra_config), num_cpu_blocks
 ```
 
-给出 CPU 块数 ↔ 字节数的换算式（`worker_kv_bytes_per_block × world_size × blocks_per_chunk` 再对齐），以及 `cpu_bytes_to_use` 优先于 legacy `num_cpu_blocks`。
+main 上遗留参数 `num_cpu_blocks` 如何被折算成 `cpu_bytes_to_use`：`cpu_bytes_to_use` 优先，块数按「每块字节 × world_size × blocks_per_chunk 再对齐」换算。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L74-L93
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L58-L97
 
 ```python
+class NPUOffloadingSpec(_CPUOffloadingSpec):
+    """Use vLLM's CPU manager with an Ascend-specific transfer worker."""
+
+    # vLLM is skipped by the Ascend mypy invocation, so redeclare the
+    # inherited worker cache without taking over its runtime initialization.
+    _worker: NPUOffloadingWorker | None
+
+    def __init__(self, config: OffloadingConfig):
+        normalized_config, legacy_num_blocks = _normalize_legacy_num_blocks(
+            config,
+            self.BLOCK_SIZE_ALIGNMENT,
+        )
+        super().__init__(normalized_config)
+        if legacy_num_blocks is not None and config.worker_kv_bytes_per_block <= 0:
+            self.num_blocks = legacy_num_blocks
+
     def create_worker(
         self,
         kv_caches: CanonicalKVCaches,
@@ -185,63 +219,9 @@ def _normalize_legacy_num_blocks(
         return self._worker
 ```
 
-`NPUOffloadingSpec` 相对上游 `CPUOffloadingSpec` 只改了平台闸门与 worker 构造，其余（manager、LRU、事件）全部沿用上游。
+main 的 spec：继承上游 `CPUOffloadingSpec`，只换掉 worker 构造与平台门禁；淘汰策略、容量核算仍是上游的。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L267-L314
-
-```python
-class NPUOffloadingWorker(CPUOffloadingWorker):
-    """Native CPU offloading worker backed by Ascend batched DMA."""
-
-    def __init__(
-        self,
-        kv_caches: CanonicalKVCaches,
-        blocks_per_chunk: int,
-        num_cpu_blocks: int,
-    ) -> None:
-        pin_memory = is_pin_memory_available()
-        logger.info("Allocating %d CPU tensors...", len(kv_caches.tensors))
-
-        npu_tensors: list[torch.Tensor] = []
-        cpu_tensors: list[torch.Tensor] = []
-        for kv_cache_tensor in kv_caches.tensors:
-            npu_page_size_bytes = kv_cache_tensor.page_size_bytes
-            npu_tensor = kv_cache_tensor.tensor
-            if npu_tensor.dtype != torch.int8 or npu_tensor.ndim != 2:
-                raise ValueError(
-                    "Canonical NPU KV cache tensors must be two-dimensional "
-                    f"int8 views, got shape={tuple(npu_tensor.shape)}, "
-                    f"dtype={npu_tensor.dtype}"
-                )
-            if npu_tensor.shape[1] != npu_page_size_bytes:
-                raise ValueError(
-                    "Canonical NPU KV cache page size mismatch: "
-                    f"shape[1]={npu_tensor.shape[1]}, "
-                    f"page_size_bytes={npu_page_size_bytes}"
-                )
-            cpu_page_size_bytes = npu_page_size_bytes * blocks_per_chunk
-
-            start_time = time.monotonic()
-            cpu_tensor = torch.zeros(
-                (num_cpu_blocks, cpu_page_size_bytes),
-                dtype=torch.int8,
-                device="cpu",
-                pin_memory=pin_memory,
-            )
-            logger.debug(
-                "Allocated pinned CPU tensor %d x %d (%.2f GB): %.3f s",
-                num_cpu_blocks,
-                cpu_page_size_bytes,
-                num_cpu_blocks * cpu_page_size_bytes / 1e9,
-                time.monotonic() - start_time,
-            )
-            npu_tensors.append(npu_tensor)
-            cpu_tensors.append(cpu_tensor)
-```
-
-CPU 侧内存在 worker 构造时一次性 `torch.zeros` 预分配（可用则锁页），形状是 `[num_cpu_blocks, npu_page_size_bytes × blocks_per_chunk]`，每个 canonical 张量一份。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L56-L94
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L56-L94
 
 ```python
 class SingleDirectionNPUOffloadingHandler:
@@ -284,32 +264,9 @@ class SingleDirectionNPUOffloadingHandler:
         self._buffer_pool: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = []
 ```
 
-两个方向各一个 handler、各自独立的流池与事件池；CPU 页宽恰为 NPU 页宽的 `blocks_per_chunk` 倍这条硬约束写在 assert 里。
+main 的单方向搬运器：CPU 侧每块正好是 NPU 侧每块的 `blocks_per_chunk` 倍（断言锁死），两侧张量都是 int8 二维视图；一个方向一个实例。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L116-L131
-
-```python
-        num_copy_ops = sum(
-            group_size * len(group_data_refs)
-            for group_size, group_data_refs in zip(group_sizes, self.kv_cache_groups_data_refs)
-        )
-        batch_src, batch_dst, batch_sizes = (
-            self._buffer_pool.pop() if self._buffer_pool else _new_descriptor_buffers(num_copy_ops)
-        )
-        if batch_src.numel() < num_copy_ops:
-            batch_src, batch_dst, batch_sizes = _new_descriptor_buffers(num_copy_ops)
-
-        src = batch_src[:num_copy_ops]
-        dst = batch_dst[:num_copy_ops]
-        sizes = batch_sizes[:num_copy_ops]
-        all_src = src.numpy()
-        all_dst = dst.numpy()
-        all_sizes = sizes.numpy()
-```
-
-一次传输拆成多少条 memcpy 描述符：`Σ(组内块数 × 该组的 canonical 引用数)`；描述符缓冲区从池里复用。
-
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L187-L222
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L187-L222
 
 ```python
         stream = self._stream_pool.pop() if self._stream_pool else torch.npu.Stream()
@@ -350,9 +307,9 @@ class SingleDirectionNPUOffloadingHandler:
         return True
 ```
 
-传输的流序：D2H 先 `wait_stream(current_stream)` 等模型流写完 KV，H2D 不等；同方向的相邻传输用 `wait_event` 串成一条链。
+main 的下发时序：D2H 先等模型主流写完 KV；同方向的后一笔等前一笔的 `end_event`；实际拷贝是一次 `swap_blocks_batch`。
 
-## vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L224-L247
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L224-L247
 
 ```python
     def get_finished(self) -> list[TransferResult]:
@@ -377,29 +334,60 @@ class SingleDirectionNPUOffloadingHandler:
                     transfer.batch_sizes,
                 )
             )
+            del self._transfer_events[transfer.job_id]
+        return results
 ```
 
-完成检测是非阻塞的 `Event.query()`；传输字节数与耗时（秒）作为 `TransferResult` 上报，这是页面里「带宽代价可观测」的依据。
+回收路径：传输字节数与 event 实测耗时被一起上报，流 / event / 描述符缓冲全部回池复用。
 
-## csrc/torch_binding.cpp#L136-L175
+## vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L276-L313
+
+```python
+        pin_memory = is_pin_memory_available()
+        logger.info("Allocating %d CPU tensors...", len(kv_caches.tensors))
+
+        npu_tensors: list[torch.Tensor] = []
+        cpu_tensors: list[torch.Tensor] = []
+        for kv_cache_tensor in kv_caches.tensors:
+            npu_page_size_bytes = kv_cache_tensor.page_size_bytes
+            npu_tensor = kv_cache_tensor.tensor
+            if npu_tensor.dtype != torch.int8 or npu_tensor.ndim != 2:
+                raise ValueError(
+                    "Canonical NPU KV cache tensors must be two-dimensional "
+                    f"int8 views, got shape={tuple(npu_tensor.shape)}, "
+                    f"dtype={npu_tensor.dtype}"
+                )
+            if npu_tensor.shape[1] != npu_page_size_bytes:
+                raise ValueError(
+                    "Canonical NPU KV cache page size mismatch: "
+                    f"shape[1]={npu_tensor.shape[1]}, "
+                    f"page_size_bytes={npu_page_size_bytes}"
+                )
+            cpu_page_size_bytes = npu_page_size_bytes * blocks_per_chunk
+
+            start_time = time.monotonic()
+            cpu_tensor = torch.zeros(
+                (num_cpu_blocks, cpu_page_size_bytes),
+                dtype=torch.int8,
+                device="cpu",
+                pin_memory=pin_memory,
+            )
+            logger.debug(
+                "Allocated pinned CPU tensor %d x %d (%.2f GB): %.3f s",
+                num_cpu_blocks,
+                cpu_page_size_bytes,
+                num_cpu_blocks * cpu_page_size_bytes / 1e9,
+                time.monotonic() - start_time,
+            )
+            npu_tensors.append(npu_tensor)
+            cpu_tensors.append(cpu_tensor)
+```
+
+main 的 CPU 池分配公式：每个规范张量一块 `[num_cpu_blocks, npu_page_size_bytes × blocks_per_chunk]` 的 int8 pinned 内存。
+
+## vllm-ascend@28bf3a2e:csrc/torch_binding.cpp#L152-L175
 
 ```cpp
-void swap_blocks_batch(const torch::Tensor& src_ptrs,
-                       const torch::Tensor& dst_ptrs,
-                       const torch::Tensor& sizes,
-                       int64_t direction) {
-
-    TORCH_CHECK(src_ptrs.device().is_cpu(), "src_ptrs must be on CPU");
-    TORCH_CHECK(dst_ptrs.device().is_cpu(), "dst_ptrs must be on CPU");
-    TORCH_CHECK(sizes.device().is_cpu(), "sizes must be on CPU");
-    TORCH_CHECK(src_ptrs.dtype() == torch::kInt64, "src_ptrs must be int64");
-    TORCH_CHECK(dst_ptrs.dtype() == torch::kInt64, "dst_ptrs must be int64");
-    TORCH_CHECK(sizes.dtype() == torch::kInt64, "sizes must be int64");
-
-    const int64_t n = src_ptrs.size(0);
-    TORCH_CHECK(dst_ptrs.size(0) == n, "dst_ptrs length must match src_ptrs");
-    TORCH_CHECK(sizes.size(0) == n, "sizes length must match src_ptrs");
-
     if (n == 0) return;
 
     const int64_t* src_data = src_ptrs.data_ptr<int64_t>();
@@ -426,11 +414,14 @@ void swap_blocks_batch(const torch::Tensor& src_ptrs,
     }
 ```
 
-方向码与 `aclrtMemcpyKind` 的对应；算子取的是「当前 NPU 流」，所以 Python 侧的 `with torch.npu.stream(stream)` 决定它落在哪条流上。
+direction 整数到 `aclrtMemcpyKind` 的映射，以及拷贝挂在「当前 NPU 流」上——所以 Python 侧的 `with torch.npu.stream(...)` 决定了它跑在哪条流。
 
-## csrc/torch_binding.cpp#L180-L231
+## vllm-ascend@28bf3a2e:csrc/torch_binding.cpp#L177-L231
 
 ```cpp
+    // =========================================================================
+    // path 1: aclrtMemcpyBatchAsync (CANN 8.5+)
+    // =========================================================================
 #if defined(CANN_MEMCPY_BATCH_ASYNC)
     if (memcpy_kind != ACL_MEMCPY_DEVICE_TO_DEVICE) {
         static_assert(sizeof(void*) == sizeof(int64_t),
@@ -482,12 +473,11 @@ void swap_blocks_batch(const torch::Tensor& src_ptrs,
                     " with error code ", result);
         return;
     }
-#endif
 ```
 
-快路径：整批描述符一次 `aclrtMemcpyBatchAsync` 下发，仅在编译期定义了 `CANN_MEMCPY_BATCH_ASYNC` 且方向不是 D2D 时走。
+CANN 8.5+ 上整批描述符压成一次 `aclrtMemcpyBatchAsync` 下发，这是「一次传输 = 一次下发」的依据。
 
-## csrc/torch_binding.cpp#L233-L256
+## vllm-ascend@28bf3a2e:csrc/torch_binding.cpp#L233-L247
 
 ```cpp
     // =========================================================================
@@ -505,113 +495,236 @@ void swap_blocks_batch(const torch::Tensor& src_ptrs,
             copy_size,
             memcpy_kind,
             stream);
-
-        TORCH_CHECK(ret == ACL_SUCCESS,
-                    "aclrtMemcpyAsync failed at index ", i,
-                    " with error code ", ret,
-                    ", src=", src_data[i],
-                    ", dst=", dst_data[i],
-                    ", size=", size_data[i]);
-    }
-}
 ```
 
-回退路径：逐条 `aclrtMemcpyAsync`，下发次数等于描述符条数——页面用它说明 `blocks_per_chunk` 与层数如何放大下发开销。
+没有批量接口时的退化路径：逐个描述符一次 `aclrtMemcpyAsync`，下发次数等于描述符个数。
 
-## csrc/torch_binding.cpp#L2119-L2123
+## vllm-ascend@2c59ff10:csrc/torch_binding.cpp#L149-L172
 
 ```cpp
-    // swap_blocks_batch takes CPU tensors (int64 pointer/size arrays), not NPU
-    // tensors, so dispatch must be registered on the CPU backend. The function
-    // internally submits async memcpy on the current NPU stream.
-    ops.def("swap_blocks_batch(Tensor x, Tensor y, Tensor z, int direction) -> ()");
-    ops.impl("swap_blocks_batch", torch::kCPU, &vllm_ascend::swap_blocks_batch);
+    aclrtStream stream = c10_npu::getCurrentNPUStream().stream();
+
+    aclrtMemcpyKind memcpy_kind;
+    switch (direction) {
+        case 0:
+            memcpy_kind = ACL_MEMCPY_HOST_TO_DEVICE;
+            break;
+        case 1:
+            memcpy_kind = ACL_MEMCPY_DEVICE_TO_HOST;
+            break;
+        case 2:
+            memcpy_kind = ACL_MEMCPY_DEVICE_TO_DEVICE;
+            break;
+        default:
+            TORCH_CHECK(false,
+                        "swap_blocks_batch: invalid direction ", direction,
+                        " (expected 0=H2D, 1=D2H, 2=D2D)");
+    }
+
+    // =========================================================================
+    // path 1: aclrtMemcpyBatchAsync (CANN 8.5+)
+    // =========================================================================
+#if defined(CANN_MEMCPY_BATCH_ASYNC)
+    if (memcpy_kind != ACL_MEMCPY_DEVICE_TO_DEVICE) {
 ```
 
-算子注册在 kCPU 分发键上——解释了为什么描述符张量必须留在 CPU（且做成锁页内存）。
+v0.23.0 的 `swap_blocks_batch` 与 main 逐字相同：同样的 direction 编码、同样的 CANN 8.5+ 批量分支，证明底层拷贝路径两版一致。
 
-## vllm_ascend/attention/attention_v1.py#L113-L121
+## vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L16-L43
 
 ```python
-    @staticmethod
-    def get_kv_cache_shape(
-        num_blocks: int,
-        block_size: int,
-        num_kv_heads: int,
-        head_size: int,
-        cache_dtype_str: str = "",
-    ) -> tuple[int, ...]:
-        return (2, num_blocks, block_size, num_kv_heads, head_size)
+class NPUOffloadingSpec(OffloadingSpec):
+    def __init__(self, vllm_config: VllmConfig, kv_cache_config: KVCacheConfig | None = None):
+        super().__init__(vllm_config, kv_cache_config)
+
+        num_cpu_blocks = self.extra_config.get("num_cpu_blocks")
+        if not num_cpu_blocks:
+            raise Exception("num_cpu_blocks must be specified in kv_connector_extra_config")
+        self.num_cpu_blocks: int = num_cpu_blocks
+
+        # scheduler-side
+        self._manager: OffloadingManager | None = None
+
+        # worker-side
+        self._handler: OffloadingHandler | None = None
+
+    def get_manager(self) -> OffloadingManager:
+        if not self._manager:
+            kv_events_config = self.vllm_config.kv_events_config
+            enable_events = kv_events_config is not None and kv_events_config.enable_kv_cache_events
+            assert len(self.gpu_block_size) == 1
+            gpu_block_size = self.gpu_block_size[0]
+            offloaded_block_size = gpu_block_size * self.block_size_factor
+            self._manager = CPUOffloadingManager(
+                block_size=offloaded_block_size,
+                num_blocks=self.num_cpu_blocks,
+                enable_events=enable_events,
+            )
+        return self._manager
 ```
 
-真实数字一节算 `page_size_bytes` 用的形状：K 与 V 是最外层维度为 2 的两份 `[num_blocks, block_size, num_kv_heads, head_size]`。
+v0.23.0 的 spec：`num_cpu_blocks` 是必填项（缺了直接抛异常），CPU 块大小 = NPU 块大小 × `block_size_factor`，淘汰交给上游 `CPUOffloadingManager`。
 
-## vllm_ascend/attention/attention_v1.py#L151-L153
+## vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L54-L108
 
 ```python
-    @staticmethod
-    def get_supported_kernel_block_sizes() -> list[int]:
-        return [128]
+class CpuNpuOffloadingHandler(OffloadingHandler):
+    def __init__(
+        self,
+        gpu_block_size: int,
+        cpu_block_size: int,
+        num_cpu_blocks: int,
+        gpu_caches: dict[str, torch.Tensor],
+        attn_backends: dict[str, type[AttentionBackend]],
+    ):
+        assert cpu_block_size % gpu_block_size == 0
+        self.block_size_factor = cpu_block_size // gpu_block_size
+
+        # npu streams for npu->cpu and cpu->npu
+        self.d2h_stream = torch.npu.Stream()
+        self.h2d_stream = torch.npu.Stream()
+
+        # Ordered queue of in-flight transfers per direction
+        self._d2h_transfers: deque[Transfer] = deque()
+        self._h2d_transfers: deque[Transfer] = deque()
+
+        # Reusable event pool to avoid allocation overhead
+        self._event_pool: list[torch.npu.Event] = []
+
+        pin_memory = is_pin_memory_available()
+
+        # allocate cpu tensors
+        logger.info("Allocating %d CPU tensors...", len(gpu_caches))
+        self.npu_tensors: list[torch.Tensor] = []
+        self.cpu_tensors: list[torch.Tensor] = []
+        for layer_name, gpu_tensor in gpu_caches.items():
+            self.npu_tensors.append(gpu_tensor)
+
+            gpu_shape = gpu_tensor[0].shape
+
+            num_blocks_idx = 0
+            cpu_shape = list(gpu_shape)
+            cpu_shape[num_blocks_idx] = num_cpu_blocks * self.block_size_factor
+
+            logger.debug("Allocating CPU tensor of shape %r", cpu_shape)
+            self.cpu_tensors.append(
+                (
+                    torch.zeros(
+                        cpu_shape,
+                        dtype=gpu_tensor[0].dtype,
+                        device="cpu",
+                        pin_memory=pin_memory,
+                    ),
+                    torch.zeros(
+                        cpu_shape,
+                        dtype=gpu_tensor[0].dtype,
+                        device="cpu",
+                        pin_memory=pin_memory,
+                    ),
+                )
+            )
 ```
 
-`AscendAttentionBackend` 只支持 128 token 的块，真实数字一节据此取 `block_size = 128`。
+v0.23.0 的 handler：两条固定流；CPU 张量保留原 dtype 与原 shape（只改第 0 维），每层固定分配两张（K、V）。
 
-## tests/ut/kv_offload/test_native_cpu_offload.py#L80-L101
+## vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L205-L230
 
 ```python
-def test_npu_offloading_spec_uses_upstream_cpu_manager() -> None:
-    bytes_per_chunk = 64 * 2 * 2
-    aligned_bytes_per_chunk = round_up(
-        bytes_per_chunk,
-        NPUOffloadingSpec.BLOCK_SIZE_ALIGNMENT,
+        if is_d2h:
+            # Wait for model computation to finish before reading NPU data
+            stream.wait_stream(torch.npu.current_stream())
+        if transfers:
+            # Ensure this transfer starts only after the previous one completes
+            last_transfer = transfers[-1]
+            stream.wait_event(last_transfer.end_event)
+
+        with torch.npu.stream(stream):
+            start_event.record(stream)
+            if total > 0:
+                direction = 0 if not is_d2h else 1
+                torch.ops._C_ascend.swap_blocks_batch(batch_src, batch_dst, batch_sizes, direction)
+            end_event.record(stream)
+
+        transfers.append(
+            Transfer(
+                job_id=job_id,
+                stream=stream,
+                start_event=start_event,
+                end_event=end_event,
+                num_bytes=src_sub_block_count * self._total_bytes_per_block,
+            )
+        )
+
+        return True
+```
+
+v0.23.0 的下发时序与 main 同构：D2H 等模型主流、同方向串行、同一个 `swap_blocks_batch`。
+
+## vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L87
+
+```python
+    KVConnectorFactory.register_connector(
+        "UCMConnector", "vllm_ascend.distributed.kv_transfer.kv_pool.ucm_connector", "UCMConnectorV1"
     )
-    spec = NPUOffloadingSpec(_make_config({"cpu_bytes_to_use": 10 * aligned_bytes_per_chunk}))
 
-    assert spec.num_blocks == 10
-    assert isinstance(spec.get_manager(), CPUOffloadingManager)
-
-def test_npu_offloading_spec_supports_legacy_num_cpu_blocks() -> None:
-    extra_config: dict[str, object] = {"num_cpu_blocks": 10}
-    spec = NPUOffloadingSpec(_make_config(extra_config))
-    aligned_bytes_per_chunk = round_up(
-        64 * 2 * 2,
-        NPUOffloadingSpec.BLOCK_SIZE_ALIGNMENT,
+    KVConnectorFactory.register_connector(
+        "LMCacheAscendConnector",
+        "vllm_ascend.distributed.kv_transfer.kv_pool.lmcache_ascend_connector",
+        "LMCacheConnectorV1",
     )
 
-    assert spec.num_blocks == 10
-    assert spec.extra_config["cpu_bytes_to_use"] == 10 * aligned_bytes_per_chunk
+    # Override the upstream SimpleCPUOffloadConnector with the NPU
+    # adaptation that uses aclrtMemcpyBatchAsync + torch.npu streams.
+    # Only override if the upstream module exists in this vLLM version.
+    try:
+        import vllm.v1.simple_kv_offload  # noqa: F401
+    except ImportError:
+        pass
+    else:
+        if "SimpleCPUOffloadConnector" in KVConnectorFactory._registry:
+            KVConnectorFactory._registry.pop("SimpleCPUOffloadConnector")
+        KVConnectorFactory.register_connector(
+            "SimpleCPUOffloadConnector",
+            "vllm_ascend.distributed.kv_transfer.kv_pool.simple_cpu_offload.simple_cpu_offload_connector",  # noqa: E501
+            "AscendSimpleCPUOffloadConnector",
+        )
+
+    KVConnectorFactory.register_connector(
+        "RecomputeCPUOffloadConnector",
+        "vllm_ascend.distributed.kv_transfer.kv_pool.recompute_cpu_offload.recompute_cpu_offload_connector",
+        "RecomputeCPUOffloadConnectorV1",
+    )
 ```
 
-单测把 `num_blocks = cpu_bytes_to_use ÷ round_up(worker_kv_bytes_per_block × world_size × blocks_per_chunk)` 这条换算钉死（用例里 64×2×2 即 `worker_kv_bytes_per_block=64`、`world_size=2`、`blocks_per_chunk=2`），也确认 manager 用的是上游 `CPUOffloadingManager`（LRU 在上游）。
+v0.23.0 的 `register_connector` 末尾：这里覆盖了 `SimpleCPUOffloadConnector`，但整份文件里没有 `OffloadingConnector` 这一项（全文件 grep 无匹配），说明 v0.23.0 用的是上游原版连接器，昇腾只经 `spec_module_path` 插入 spec。
 
-## tests/e2e/pull_request/one_card/test_cpu_offloading.py#L108-L119
-
-```python
-def _accuracy_test(llm: LLM, subscriber: MockSubscriber):
-    sampling_params = SamplingParams(max_tokens=1)
-    cpu_block_size = llm.llm_engine.vllm_config.kv_transfer_config.kv_connector_extra_config["block_size"]
-
-    subscriber.get_new_cpu_stored_events()
-
-    # prepend prompt to be cpu block aligned
-    prompt = "Let's count to 10. One, two, three, four,"
-    while len(llm.generate(prompt, use_tqdm=False)[0].prompt_token_ids) % cpu_block_size != 0:
-        prompt = ". " + prompt
-
-    assert subscriber.get_new_cpu_stored_events()
-```
-
-e2e 测试要把 prompt 补齐到 CPU 块对齐才保证有 `BlockStored(medium="CPU")` 事件——常见误解「不足一个 chunk 的尾巴也会被存下」的反证。
-
-## tests/e2e/pull_request/one_card/test_cpu_offloading.py#L130-L165
+## vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147
 
 ```python
+@pytest.mark.skip(reason="cpu offload connector is deprecated.")
 def test_cpu_offloading() -> None:
     """
     Tests OffloadingConnector with CPUOffloadingSpec.
     """
 
-    # Configure OffloadingConnector with the Ascend transfer worker.
+    # configure OffloadingConnector (spec_name=CPUOffloadingSpec by default)
+    kv_transfer_config = KVTransferConfig(
+        kv_connector="OffloadingConnector",
+        kv_role="kv_both",
+        kv_connector_extra_config={
+            "num_cpu_blocks": 1000,
+            "block_size": 128,
+            "spec_name": "NPUOffloadingSpec",
+            "spec_module_path": "vllm_ascend.kv_offload.npu",
+        },
+    )
+```
+
+v0.23.0 的 e2e 用例被 skip 掉，理由写的是「cpu offload connector is deprecated」——这条路径在该版本上没有 CI 守着。
+
+## vllm-ascend@28bf3a2e:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L136-L145
+
+```python
     kv_transfer_config = KVTransferConfig(
         kv_connector="OffloadingConnector",
         kv_role="kv_both",
@@ -622,78 +735,26 @@ def test_cpu_offloading() -> None:
             "spec_module_path": "vllm_ascend.distributed.kv_transfer.kv_pool.kv_offload.native.npu",
         },
     )
-
-    port: int
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("0.0.0.0", 0))
-        port = s.getsockname()[1]
-
-    events_endpoint = f"tcp://*:{port}"
-    kv_events_config = KVEventsConfig(
-        enable_kv_cache_events=True,
-        publisher="zmq",
-        endpoint=events_endpoint,
-        topic="test",
-    )
-
-    llm = LLM(
-        model="Qwen/Qwen3-0.6B",
-        gpu_memory_utilization=0.5,
-        kv_events_config=kv_events_config,
-        kv_transfer_config=kv_transfer_config,
-    )
 ```
 
-仓库内实际跑的配置：除文档写的 `blocks_per_chunk` 外还可用 `block_size`（chunk 的 token 数）指定同一件事；同时说明这个用例跑的是 Qwen3-0.6B、`gpu_memory_utilization=0.5`——NPU 侧并没有显存压力，却仍然产生了 CPU 侧的 `BlockStored` 事件。
+main 的 e2e 用例正常执行，但传的分块键名是 `block_size` 而不是文档里的 `blocks_per_chunk`。
 
-## tests/e2e/pull_request/one_card/test_cpu_offloading.py#L61-L105
+## vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1167-L1180
 
 ```python
-def _latency_test(llm: LLM, subscriber: MockSubscriber):
-    sampling_params = SamplingParams(max_tokens=1)
+def refresh_block_size(vllm_config):
+    """
+    Refresh the block size in cache config.
+    """
+    cache_config = vllm_config.cache_config
+    scheduler_config = vllm_config.scheduler_config
+    model_config = vllm_config.model_config
 
-    num_times_cpu_better_than_cold = 0
-    num_tests = 10
-    total_cold_time = 0.0
-    total_gpu_hit_time = 0.0
-    total_cpu_hit_time = 0.0
-    prompt_token_ids = [0] * 10001
-    for i in range(num_tests):
-        prompt_token_ids[0] = i
-        prompts = [TokensPrompt(prompt_token_ids=prompt_token_ids)]
+    if not cache_config:
+        return
 
-        # run generation - this should trigger saving KV cache
-        start_time = time.time()
-        llm.generate(prompts, sampling_params, use_tqdm=False)
-        cold_time = time.time() - start_time
-        total_cold_time += cold_time
-
-        # run generation again - should hit the GPU prefix cache
-        start_time = time.time()
-        llm.generate(prompts, sampling_params, use_tqdm=False)
-        gpu_hit_time = time.time() - start_time
-        total_gpu_hit_time += gpu_hit_time
-
-        # reset prefix cache to avoid GPU hit.
-        llm.reset_prefix_cache()
-
-        assert subscriber.get_new_cpu_stored_events()
-
-        # run generation again - this should trigger loading from CPU
-        start_time = time.time()
-        llm.generate(prompts, sampling_params, use_tqdm=False)
-        cpu_hit_time = time.time() - start_time
-        total_cpu_hit_time += cpu_hit_time
-
-        if cpu_hit_time < cold_time:
-            num_times_cpu_better_than_cold += 1
-
-    print("Average times:")
-    print(f"    Cold: {total_cold_time * 1000 / num_tests:.2f}ms")
-    print(f"    GPU hit: {total_gpu_hit_time * 1000 / num_tests:.2f}ms")
-    print(f"    CPU hit: {total_cpu_hit_time * 1000 / num_tests:.2f}ms")
-
-    assert num_times_cpu_better_than_cold >= 0.8 * num_tests
+    if cache_config.block_size is None:
+        cache_config.block_size = 128
 ```
 
-仓库对「值不值」的唯一量化承诺：10001 token 的 prompt、清掉 NPU 前缀缓存后，从 CPU 命中要在 10 次里至少 8 次快过冷启动——只是 `<` 关系，没有给出加速比。
+NPU 侧块大小默认 128 token，是本页所有字节数算例的起点。

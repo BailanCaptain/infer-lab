@@ -2,149 +2,158 @@
 id: paged-attention
 title: PagedAttention
 type: feature
-summary: 把每层 KV Cache 切成定长块散放在显存里，attention 算子拿着块表按块去取，序列不必占一段连续显存。
-aliases: [分页注意力, 分页 Attention, PA]
+summary: 昇腾后端把 KV Cache 切成 128 token 的定长块，decode 时由块表指路、算子按块号跳着取 K/V；专用的 _npu_paged_attention 算子默认不启用，需手工配 pa_shape_list。
+aliases: [分页注意力, PA, PagedAttention 算子]
 chapters: ["11"]
 sources:
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L77-L83
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L121
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L153
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L200-L210
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L239-L253
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1324-L1333
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1561-L1580
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L153
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L144
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4647-L4659
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4693-L4704
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1660-L1681
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1694-L1705
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1456-L1477
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L206-L222
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L94-L137
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/utils.py#L104-L120
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1561-L1580
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1363-L1382
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1307-L1345
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L239-L253
   - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1167-L1204
-  - vllm-ascend@28bf3a2e:vllm_ascend/device/device_op.py#L44-L53
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L61
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/graph_mode.md#L33-L37
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/graph_mode.md#L76-L79
-  - https://arxiv.org/abs/2309.06180
+  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L380-L383
+  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L242-L246
+  - vllm-ascend@28bf3a2e:vllm_ascend/device/device_op.py#L43-L53
+  - vllm-ascend@2c59ff10:vllm_ascend/device/device_op.py#L47-L52
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L83-L138
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1253-L1268
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1143-L1155
+  - vllm-ascend@28bf3a2e:docs/source/faqs.md#L304-L306
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L59-L61
+  - vllm-ascend@28bf3a2e:docs/source/tutorials/models/Qwen3-Dense.md#L524-L543
+  - vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95
 evidence: "C"
-relations: []
+relations:
+  - to: block-table
+    kind: builds-on
+    note: 块表张量就是 _npu_paged_attention 的 block_table 入参，本页只讲它怎么进算子，怎么建的看那一页
+  - to: kv-cache-spec
+    kind: builds-on
+    note: get_kv_cache_shape 后三维的 block_size / num_kv_heads / head_size 全部取自 spec
+  - to: kv-cache-memory-profiling
+    kind: builds-on
+    note: 形状里的 num_blocks 不是配置项，是显存预估算完剩余显存后除出来的
 contradicts: []
 updated: "2026-09-12"
 ---
 
 ## 一句话
 
-PagedAttention 把每一层的 KV Cache 切成定长的块（昇腾上固定 128 token 一块）散放在显存里，序列不再需要一段连续显存；attention 算子改成拿着一张「逻辑块序号 → 物理块号」的块表按块寻址取 K/V。昇腾后端把这套布局落在 `(2, num_blocks, block_size, num_kv_heads, head_size)` 这个形状上 [C2]，读的时候有两个算子可选：默认的 `npu_fused_infer_attention_score`（FIA）和名字里带 PA 的 `_npu_paged_attention`。
+昇腾后端把每层的 K、V 各存成一个 `(num_blocks, 128, num_kv_heads, head_size)` 的大张量，一块固定装 128 个 token；decode 时算子拿着块表逐行跳读，不要求一条序列的 KV 在显存里连续。名字容易误导的一点是：这套**分块布局始终生效**，而叫 `_npu_paged_attention` 的那个**算子默认不启用**——默认走的是 FIA（`npu_fused_infer_attention_score`），它同样吃块表 [C11][S21]。两版行为一致。
 
 ## 为什么需要它
 
-没有分页时，一个序列的 KV Cache 必须按 `max_model_len` 预留一整段连续显存。请求实际只生成几百 token，预留的几万 token 空间就白占着——原始论文把这种浪费概括为「碎片与冗余复制会显著浪费这块显存，从而限制批大小」，并提出借用操作系统虚拟内存与分页的思路来做 KV Cache 管理 [S18]。分页之后，显存按块分配、用多少给多少，块与块之间无需相邻，还顺带让不同请求共享相同前缀的块成为可能（那是 [prefix caching](prefix-caching.md) 的事）。
+不分块的做法是给每条序列预留一段连续显存，长度按 `max_model_len` 取。一条 5500 token 上限的 Qwen3-0.6B 请求，即使只生成 20 个 token，也得先占满 5500 个 token 的 KV 空间；并发一上来，显存全被没写过的空洞吃掉。分块把「预留」的粒度从「一条序列」降到「128 个 token」，只有写满了才要下一块，浪费上限从 `max_model_len - 实际长度` 降到不足一块。
 
-代价是 attention 算子不能再假设「一个序列的 K/V 在显存里是连着的」。它必须多收一个入参——块表——并在算子内部做一次地址翻译。所以 PagedAttention 与其说是一个优化，不如说是一份**算子与显存管理之间的契约**：显存管理器负责按块分配并维护 [block table](block-table.md)，算子负责按块读。昇腾侧要做的事，就是把这份契约在 CANN 的算子上重新实现一遍——它不是复用上游任何一个现成后端，而是以 `CUSTOM` 名义整套自己注册进 vLLM 的后端表。
+代价是地址不再连续：第 300 个 token 在哪，得查表。这张表就是[块表](block-table.md)，算子每算一步都要顺着它取物理块号。所以「分块」这件事必须由 attention 算子本身支持——不能在算子外面先把 KV 拼成连续的再算，那样等于白分。
+
+昇腾侧和上游 vLLM 的差别集中在两处。其一，上游 CUDA 后端的 `PagedAttention` 是这条路径上的唯一实现；昇腾这里有两个算子都能按块读——FIA 是默认，`_npu_paged_attention` 是备选，官方把后者定性为「FIA 在某些 batch 上表现不佳时的临时调优口子，将来 FIA 优化完就会移除」[S21]（<https://docs.vllm.ai/projects/ascend/en/latest/faqs.html>）。其二，块大小没有选择余地：后端只声明支持 128 [C1][C2]，而上游 CUDA 后端常用 16。
 
 ## 怎么工作
 
-一层 attention 的 KV Cache 是一个五维张量 `(2, num_blocks, block_size, num_kv_heads, head_size)`，第 0 维的 2 是 K 和 V 各一份。所有序列的所有块都住在这一个张量里，谁占哪一块由块表记录。
+后端声明形状 `(2, num_blocks, block_size, num_kv_heads, head_size)` [C1][C2]。前导的 2 不是张量的一个维度——model runner 拿到形状后取 `kv_cache_shape[1:]` 作为 K 的形状，V 同形，分别 `view` 成两个独立的 4 维张量 [C3][C4]。所以算子收到的永远是 `key_cache`、`value_cache` 两个入参，而不是一个 5 维张量。
 
-**写**（每步 prefill/decode 都做）：新算出的 K/V 是逐 token 的 `[num_tokens, num_kv_heads, head_size]`，按 `slot_mapping` 散写进块化缓存。`slot_mapping` 是**展平后的全局槽号**——源码注释举的例子是 block_size=16 时槽号 35 对应「第 2 块的第 3 个槽」，即 `slot = block_id * block_size + offset` [C4]。落地算子是 `npu_scatter_pa_kv_cache`。
-
-**读**：`forward_impl` 在两条路径之间分派。
+写入侧按 slot 号散写，读取侧按块号跳读，两侧共用同一份分块布局：
 
 ```mermaid
 flowchart TD
-    Q["query [num_tokens, num_heads, head_size]"] --> FI["AscendAttentionBackendImpl.forward_impl"]
-    KV["key/value [num_tokens, num_kv_heads, head_size]"] --> RC["BaseDeviceAdaptor.reshape_and_cache"]
-    SM["AscendMetadata.slot_mapping"] --> RC
-    RC --> SCAT["npu_scatter_pa_kv_cache"]
-    SCAT --> CACHE[("key_cache / value_cache<br/>(2, num_blocks, block_size, num_kv_heads, head_size)")]
-
-    FI --> GATE{"attn_state == DecodeOnly<br/>and sliding_window is None<br/>and using_paged_attention(...)"}
-    GATE -->|"是"| PA["forward_paged_attention"]
-    GATE -->|"否（默认）"| FIA["forward_fused_infer_attention"]
-
-    PA --> PAOP["torch_npu._npu_paged_attention<br/>block_table + context_lens"]
-    FIA --> GFP["_get_fia_params:<br/>key_cache.view(num_block, block_size, -1)"]
-    GFP --> FIAOP["npu_fused_infer_attention_score<br/>block_table + block_size"]
-
-    BT["AscendMetadata.block_tables<br/>(batch_size, max_blocks_per_seq)"] --> PAOP
-    BT --> FIAOP
-    CACHE --> PAOP
-    CACHE --> GFP
+    subgraph 写入
+      RC["AscendAttentionBackendImpl.reshape_and_cache"] -->|slot_mapping| SC["DeviceOperator.reshape_and_cache"]
+      SC --> KC[("key_cache / value_cache<br/>(num_blocks, 128, num_kv_heads, head_size)")]
+    end
+    subgraph 读取
+      FI["forward_impl"] --> UPA{"attn_state == DecodeOnly<br/>and sliding_window is None<br/>and using_paged_attention()"}
+      UPA -->|True| FPA["forward_paged_attention"]
+      UPA -->|False| FFIA["forward_fused_infer_attention"]
+      FPA --> PA["torch_npu._npu_paged_attention"]
+      FFIA --> GFP["_get_fia_params"]
+      GFP --> FIA["torch_npu.npu_fused_infer_attention_score"]
+    end
+    KC --> PA
+    KC --> GFP
+    BT["AscendMetadata.block_tables"] --> PA
+    BT --> FIA
+    SL["AscendMetadata.seq_lens"] -->|context_lens| PA
 ```
 
-两条路径消费块表的方式不一样，这是昇腾侧最容易踩的细节：
+**分派**：`forward_impl` 里只有一个 if，三个条件全真才走 PA——当前批次是纯 decode（`AscendAttentionState.DecodeOnly`）、这一层不是滑动窗口层、且 `using_paged_attention()` 返回真 [C5][C6]。任何一条不满足都落到 FIA。两版这段逐字相同。
 
-- `_npu_paged_attention` 直接吃四维的 `key_cache` / `value_cache`，**没有 `block_size` 入参**，块大小由 `key_cache.shape[1]` 隐含给出；每序列的 KV 长度用 `context_lens=attn_metadata.seq_lens` 传 [C7]。
-- FIA 要求先把缓存 `view(num_block, block_size, -1)` 压成三维，再同时传 `block_table` 和显式的 `block_size`，KV 长度走 `actual_seq_lengths_kv` [C6]。
+**`using_paged_attention` 的门槛**依次是：`speculative_config` 非 None 直接假；设备是 A5 直接假；`head_size == 512`（Gemma4 大头维回退）直接真；`cudagraph_mode` 不是 `FULL_DECODE_ONLY` 假；最后才看当前 batch 的 token 数在不在 `pa_shape_list` 里 [C7][C8]。默认 `pa_shape_list = []` [C14][C15][S22]，所以最后这一步默认恒假——**默认配置下 `_npu_paged_attention` 永远不执行**。
 
-`using_paged_attention` 这道门把 PA 算子挡在默认路径之外：开了投机解码返回 `False`，设备是 A5 返回 `False`，`cudagraph_mode` 不是 `FULL_DECODE_ONLY` 返回 `False`，最后还要求当前 batch 的 token 数出现在 `pa_shape_list` 里 [C10]。`pa_shape_list` 默认是空列表 [S14]，`cudagraph_mode` 默认是 `FULL_AND_PIECEWISE` [S16]——两道默认值各自都足以让 PA 关着。唯一的例外是 head_size 命中 Gemma4 那个 512 维分支时强制返回 `True`。
+**块表怎么进算子**：`AscendMetadata.block_tables` 直接作为 `block_table=` 传给 `_npu_paged_attention`，`seq_lens` 作为 `context_lens=` 一起传，key/value cache 保持 4 维原样 [C9][C10]。走 FIA 时略有不同：`_get_fia_params` 先从 `key_cache.shape` 反推出 `block_size`，再把 K/V 压成三维 `(num_block, block_size, num_kv_heads*head_size)` 才交给算子，块表照样传 [C11]。四种 `attn_state` 里只有 `PrefillNoCache` 不传块表（`block_table = None`），因为那一步的 K/V 就在手上，还没进缓存。
 
-走 ACLGraph 全图捕获时，块表还要额外处理一次：捕获期记下的块表在重放时被丢弃，每一步用当步真实的 `block_table` 与 `seq_lens` 重新下发算子 [C11]——否则重放会一直读捕获那一刻的物理块。
+**图捕获下的差异**（这是两版唯一实质分叉）：捕获时 PA 走 `full_graph_pa`，把 query、K/V cache、块表、seq_lens 等打包存进 `graph_params.attn_params`，重放前再把新的块表和 seq_lens 换进去重新下发。v0.23.0 存的是裸 9 元组 [C20]，重放侧靠 `using_paged_attention` 一次性判定整张图走 PA 还是走 FIA，两种算子不能混在同一张重放列表里；main 引入了带类型的 `PagedAttentionGraphParam`（额外带一个 `layer_name`）和 `update_paged_attention_graph_param`，重放时用 `isinstance` 逐个分流，于是同一个模型里 PA 层和 FIA 层可以共存 [C18][C19] `[!]`。
+
+**KV 写入算子也换了** `[!]`：v0.23.0 调 `torch_npu._npu_reshape_and_cache(..., slot_indices=slot_mapping)` [C17]，main 改成 `torch_npu.npu_scatter_pa_kv_cache(..., slot_mapping=..., cache_mode="Norm")` [C16]。对使用者是透明的，但抓 profiling 时算子名字对不上。
 
 ## 拿真实数字走一遍
 
-Qwen3-0.6B：`num_kv_heads = 8`，`head_size = 128`，28 层，bf16（2 字节），`block_size = 128` [C3]，设 `max_model_len = 32768`。
+Qwen3-0.6B：28 层，`num_kv_heads = 8`，`head_size = 128`，bf16（2 字节）。设 `max_model_len = 5500`。
 
-**一块有多大**
+**一块有多大。** `get_kv_cache_shape(num_blocks, 128, 8, 128)` 返回 `(2, num_blocks, 128, 8, 128)`，落成两个 `(num_blocks, 128, 8, 128)` 的张量 [C1][C3]。
 
-- 每 token 每层（K 和 V 各一份）：`2 × 8 × 128 × 2 B = 4096 B = 4 KiB`
-- 每块每层：`4 KiB × 128 = 512 KiB`
-- 每块跨 28 层：`512 KiB × 28 = 14 MiB` [D]
+- 一块一层的 K：`128 × 8 × 128 × 2 B = 262144 B = 256 KiB`
+- K + V：`512 KiB`
+- 28 层合起来，一个逻辑块占：`512 KiB × 28 = 14 MiB` [D]
+- 换算到每 token：`8 × 128 × 2 × 2 B = 4 KiB` 每层，28 层 `112 KiB` [D]
 
-**张量长什么样**
+（这两条标 `[D]`：源码只给出单层张量形状，「乘 28 层」是把它推广到整模型，前提是 28 层同构、无 KV 共享层。）
 
-设 profiling 给 KV Cache 留了 40 GiB，则 `num_blocks = 40 × 1024 ÷ 14 ≈ 2925` [D]，每层张量形状是 `(2, 2925, 128, 8, 128)`，占 `2925 × 512 KiB = 1.43 GiB`，28 层合计约 40 GiB，总容纳 `2925 × 128 = 374400` 个 token。
+**块表多宽。** `max_num_blocks_per_req = cdiv(5500, 128) = 43` [C12]。所以块表是 `(batch_size, 43)`，每行 43 个物理块号。
 
-**块表有几列**
+**一次 decode 的入参。** batch = 48、每条已积累 5000 token 时：
 
-`max_num_blocks_per_req = cdiv(32768, 128) = 256` [C5]，所以块表是 `(batch_size, 256)`。
+- `query`：`(48, 16, 128)`（`num_heads = 16`）
+- `block_table`：`(48, 43)`，每行前 `cdiv(5000, 128) = 40` 个格子有效
+- `context_lens`：`(48,)`，每个元素 5000
+- 实际占用：`48 × 40 = 1920` 块 → `1920 × 14 MiB = 26.25 GiB` [D]
 
-**一次 decode 怎么寻址**
+走 FIA 时同一份 `key_cache` 会先被 `view` 成 `(num_blocks, 128, 1024)`（`8 × 128 = 1024`）再传入 [C11]。
 
-某请求已有 1000 个 token，正在生成第 1001 个（0-based 位置 1000）：
-
-- 它占用 `cdiv(1000, 128) = 8` 个逻辑块，最后一块只填了 `1000 − 7 × 128 = 104` 个槽
-- 新 token 落在逻辑块 `1000 // 128 = 7`，块内偏移 `1000 % 128 = 104`
-- 查块表得物理块号，设 `block_tables[r][7] = 1911`，则 `slot_mapping = 1911 × 128 + 104 = 244712`
-- 读的时候算子拿 `block_tables[r][0:8]` 这 8 个物理块号去取 K/V，靠 `context_lens = 1000` 把最后一块多出来的 24 个槽截掉；这 24 个槽是这个序列当前的全部浪费，跨 28 层是 `24 × 4 KiB × 28 = 2.6 MiB` [D]
-- 这一步该请求读入的 KV：每层 `1000 × 4 KiB = 3.91 MiB`，28 层合计 **109 MiB** [D]
-
-**把 PA 算子真的打开**
-
-三个条件缺一不可，`pa_shape_list` 里填的是要走 PA 的 batch token 数：
+**把 PA 真正打开的配置**（以官方 Qwen3 高吞吐示例为底本裁剪 [S23]）：
 
 ```bash
-vllm serve Qwen/Qwen3-0.6B \
-  --max-model-len 32768 \
-  --compilation-config '{"cudagraph_mode": "FULL_DECODE_ONLY"}' \
-  --additional-config '{"pa_shape_list": [8, 16, 32]}'
+vllm serve /path/to/Qwen3-0.6B \
+    --max-model-len 5500 \
+    --block-size 128 \
+    --no-enable-prefix-caching \
+    --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY","cudagraph_capture_sizes":[4,8,16,32,48,64,96,128]}' \
+    --additional-config '{"pa_shape_list":[32,48,64,96,128]}'
 ```
 
-`--compilation-config` 的写法取自官方 graph mode 文档的示例 [S17]；`8 / 16 / 32` 要与实际捕获的 decode batch 规模对齐，对不上就一步也走不到 PA。此外这台机器不能是 A5、不能开投机解码。
+每个值的来由：
+
+- `--block-size 128`：后端只支持这一个值 [C1]；不写也会被 `refresh_block_size` 补成 128 [C13]，写出来是为了让配置自解释。
+- `--no-enable-prefix-caching`：不是 PA 的前提，是为了让 `--block-size` 保持是你写的那个值——一旦开了 prefix caching 或 chunked prefill，`refresh_block_size` 会无条件把它改回 128 [C13]。
+- `cudagraph_mode: FULL_DECODE_ONLY`：`using_paged_attention` 的硬门槛，其它模式下后面的 `pa_shape_list` 一律不看 [C7]。
+- `pa_shape_list`：**这里填的是 batch 的 token 数，不是块大小**。只有运行时 token 数正好等于列表里的某个值才切到 PA [C7][S21]，所以官方示例干脆把 32–256 逐个列全 [S23]。
+- 不能出现 `--speculative-config`：见下。
 
 ## 事实表
 
-| 项 | 值 |
-| --- | --- |
-| 每层 KV Cache 形状 | `(2, num_blocks, block_size, num_kv_heads, head_size)` |
-| 支持的 block_size | `[128]`（只此一个） |
-| block_size 默认值 | `128`；开 prefix caching 或 chunked prefill 时强制改回 `128` |
-| block_size 例外 | `deepseek_v4` 用 `32`（允许 32/64/128）；hybrid 模型走模型专属逻辑 |
-| `block_tables` 形状 | `(batch_size, max_blocks_per_seq)` |
-| 块表列数 | `cdiv(max_model_len, 128)` |
-| `slot_mapping` 形状 / 语义 | `(num_tokens,)`；`slot = block_id * block_size + offset` |
-| 写入算子 | `torch_npu.npu_scatter_pa_kv_cache(cache_mode="Norm")` |
-| 默认读取算子 | `npu_fused_infer_attention_score`，`input_layout="TND"` |
-| FIA 读缓存的视图 | `key_cache.view(num_block, block_size, -1)` |
-| PA 算子入参 | `query, key_cache, value_cache, num_kv_heads, num_heads, scale_value, block_table, context_lens, out` |
-| PA 算子生效条件 | `attn_state == DecodeOnly` 且 `sliding_window is None` 且 `using_paged_attention()` |
-| `using_paged_attention` 四道门 | 无 speculative_config、非 A5、`cudagraph_mode == FULL_DECODE_ONLY`、`num_tokens ∈ pa_shape_list` |
-| `pa_shape_list` 默认值 | `[]`（list） |
-| `cudagraph_mode` 默认值 | `FULL_AND_PIECEWISE` |
-| 后端注册名 | `AttentionBackendEnum.CUSTOM` / `"ASCEND"`，`get_name()` 返回 `"CUSTOM"` |
-| v0.23.0 状态 | PA 算子与 `pa_shape_list` 被列入 Ready to Deprecate |
+| 项 | v0.23.0 | main | 意味着什么 |
+|---|---|---|---|
+| `get_kv_cache_shape` 返回 | `(2, num_blocks, block_size, num_kv_heads, head_size)` | 同 | 前导 2 在分配时被拆成两个独立的 4 维张量，算子拿到的是 `key_cache` 和 `value_cache` 两个入参 [C3][C4] |
+| `get_supported_kernel_block_sizes` | `[128]` | 同 | 块大小没得选；块表列数只能是 `cdiv(max_model_len, 128)` [C12] |
+| `block_size` 实际取值 | 未指定→128；开 prefix caching 或 chunked prefill→强制 128 | 同 | 想试别的块大小，这两个开关都得关，否则你写的值会被静默改掉 [C13] |
+| `pa_shape_list` 默认 | `[]` | `[]` | 正因为默认是空列表，`_npu_paged_attention` 默认永远不执行，实际跑的是 FIA |
+| PA 生效的三个条件 | `attn_state == DecodeOnly` 且 `sliding_window is None` 且 `using_paged_attention()` | 同 | prefill、chunked prefill、滑窗层一律 FIA，同一次推理里两个算子可能都出现 |
+| `using_paged_attention` 的早退 | `speculative_config` 非 None → 假；A5 → 假；`head_size == 512` → 真 | 同 | 开了任何投机解码，`pa_shape_list` 写了也没用 |
+| `cudagraph_mode` 要求 | 必须 `FULL_DECODE_ONLY` | 同 | 默认图模式下 `pa_shape_list` 是死参数 |
+| 一块的大小（Qwen3-0.6B，bf16） | K+V 每层 512 KiB，28 层共 14 MiB | 同 | 显存按 14 MiB 一格分配，估容量时用它除剩余显存 [D] |
+| KV 写入算子 | `torch_npu._npu_reshape_and_cache`（`slot_indices=`） | `torch_npu.npu_scatter_pa_kv_cache`（`slot_mapping=`, `cache_mode="Norm"`） | 行为等价，但 profiling 里算子名对不上 `[!]` |
+| 图重放列表里 PA 与 FIA 混存 | 不支持（存裸 9 元组） | 支持（`PagedAttentionGraphParam` 带 `layer_name`） | main 上混合注意力模型（如 512 头维层回退 PA）才能整图捕获 `[!]` |
 
 ## 常见误解
 
-- **「昇腾上的 decode 走的是 PagedAttention 算子」**——默认不走。默认路径是 `npu_fused_infer_attention_score`，`_npu_paged_attention` 要同时满足四道门槛才启用，而 `pa_shape_list` 默认为空 [C10]。官方 v0.23.0 release notes 已把 PA 算子与 `pa_shape_list` 列为计划废弃 [S15]。
-- **「分页只是显存管理的事，算子不用改」**——恰恰相反，块表是算子的必需入参，两个读算子还各有各的吃法：PA 吃四维缓存不带 `block_size`，FIA 要先压成三维并显式传 `block_size`。
-- **「block_size 可以调小以减少浪费」**——昇腾后端只声明支持 128，而且一旦开了 prefix caching 或 chunked prefill，启动时会把它改回 128 [C12]。想省那点尾块浪费是省不到的，尾块最多浪费 127 个 token 的空间。
-- **「分页把浪费降到零」**——降到「不超过一个块」。论文说的是 near-zero waste [S18]，上面的算例里那 2.6 MiB 尾块浪费是分页方案固有的内部碎片。
+- **「昇腾后端默认在用 PagedAttention 算子」**——不是。分块布局一直在用，但 `_npu_paged_attention` 这个算子默认不执行：`pa_shape_list` 默认空 [C14][C15]，`using_paged_attention` 最后一句恒假 [C7]。默认按块读 KV 的是 FIA [S21]。
+- **「配了 `pa_shape_list` 就会生效」**——还得 `cudagraph_mode == FULL_DECODE_ONLY` 且没开投机解码 [C7]。官方的 suffix 投机解码教程里同时给了 `--speculative-config` 和 `pa_shape_list`，而 `using_paged_attention` 第一句就在 `speculative_config` 非 None 时返回 False——那条命令里 PA 实际不会启用 [C7][S24] `[!]`。
+- **「`pa_shape_list` 填的是块大小或候选块大小」**——填的是 batch 的 token 数。它和 `--block-size` 无关，命中的是「这一步喂进去多少 token」[C7]。

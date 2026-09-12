@@ -2,253 +2,174 @@
 id: kv-cache-layerwise-offload
 title: Layerwise KV Offload
 type: feature
-summary: 把「整份 KV 一次搬」拆成「算完一层搬一层」，用 NPU event 让第 i 层的搬运与第 i+1 层的计算重叠；多个层还可共用少数几块物理 buffer 来省 HBM。
+summary: 把 KV 的存取从「整趟前向做完一次性搬」改成「每层算完立刻搬」，搬运与下一层计算重叠；main 上还能让多层共用一份 HBM buffer。
 aliases: [逐层 KV 卸载, 逐层 KV 传输, Layerwise KV Cache Offload, Layerwise KV Cache Offloading, Layerwise KV Pool, Layerwise Prefill Offload]
 chapters: ["11"]
 sources:
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L473-L521
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L1898-L1913
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L2016-L2020
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L1651-L1659
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L1695-L1700
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/context_parallel/dsa_cp.py#L1430-L1434
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L27-L61
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L64-L91
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L76-L91
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L227-L236
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L155-L157
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L183-L185
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L467-L491
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L510-L534
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L821-L837
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1618-L1665
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1672-L1699
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L426-L477
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1335-L1372
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1467-L1479
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1481-L1535
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L70-L102
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L114-L135
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L136-L178
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L245-L267
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L300-L357
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py#L31-L57
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/ascend_multi_connector.py#L71-L95
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L48-L54
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L242-L243
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3917-L3925
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L18-L36
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L14-L36
   - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L77-L88
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L224-L245
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L220-L245
+  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L75-L84
   - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L144-L196
   - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L260-L268
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L19-L27
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L92-L146
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/utils.py#L473-L501
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L1898-L1913
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/mla_v1.py#L2013-L2020
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L27-L61
+  - vllm-ascend@2c59ff10:vllm_ascend/memcache_comm_fence.py#L27-L61
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1618-L1664
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1672-L1699
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1399
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1407-L1430
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1358-L1372
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1481-L1536
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1467-L1479
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L114-L134
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L136-L178
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L341-L357
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L76-L115
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L227-L251
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L226-L241
+  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L414-L434
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3917-L3923
 evidence: "C"
 relations:
   - to: kv-pool
-    kind: builds-on
-    note: 逐层只是 AscendStoreConnector 的一种传输模式，池的键空间、lookup、backend 选择仍由 KV Pool 定义
+    kind: variant-of
+    note: layerwise 是 AscendStore KV Pool 的一种传输模式，池的后端选型、key 组织、P/D 角色都在那一页
   - to: kv-cache-spec
     kind: builds-on
-    note: 两层能共用一块物理 buffer 的硬条件是它们的 KVCacheSpec 完全相等，规划器按 spec 分桶
+    note: 共享 buffer 只能合并 KVCacheSpec 完全相同的层，spec 决定了哪些层可以共用一份 HBM
   - to: kv-cache-memory-profiling
     kind: builds-on
-    note: 显存分析先定下每层 KVCacheTensor 的 size，逐层复用再把多个描述符合并成一个，实际分配量因此低于按层数算出的预算
-contradicts: ["kv-pool: 官方参数表写 layerwise_prefetch_layers 默认 1，但 memcache(GVA) 路径实际默认 min(layerwise_num_shared_buffers, 8)，默认 1 只在非 memcache 路径生效"]
+    note: main 上开启层复用后，探测出的 KV 预算要再乘「层数 ÷ 缓冲区个数」，返回值不再等于主公式
+  - to: kv-cache-cpu-offload
+    kind: alternative-to
+    note: 同样把 KV 挪出 HBM，但那边按请求整块搬到本机主存，这边按层搬进 memcache 共享池
+contradicts: []
 updated: "2026-09-12"
 ---
 
 ## 一句话
 
-逐层 KV 卸载（Layerwise KV Offload）把「整份 KV 一次搬完」改成「算完一层搬一层」：注意力后端在每层前后各插一个挂钩点，`AscendStoreConnector` 据此把这一层的 KV 存进 / 取出 Memcache 池，搬运交给后台线程，与下一层的计算重叠。在此之上，多个逻辑层还可以共用少数几块物理 KV buffer，把 Prefill 侧主 KV 的 HBM 占用压到 `物理 buffer 数 / 层数`。
+Layerwise KV Offload 把 KV 的存取粒度从「一次请求」降到「一层」：第 *i* 层算完就立刻把它的 KV 发往 memcache 池，第 *i+1* 层的计算与这次搬运并行；反向的加载也一样，算第 *i* 层前只等第 *i* 层的 KV 到位 [S1]。开关是 `AscendStoreConnector` 的 `use_layerwise: true`。main 在此之上多了一层：让多层轮流复用同一份 HBM buffer，把 Prefill 侧的 KV 显存占用压到常数份——这部分 v0.23.0 没有 [!]。
 
 ## 为什么需要它
 
-不开逐层时，一个请求的 KV 是一次 bulk 操作：前向全部跑完才整份存进池，或者整份取回池才开始前向 [S32]。长 prompt 下这段传输完全串行在计算之外——池在 host 或远端，几十层的 KV 一次性过总线，这段时间 NPU 空转。
+不开 layerwise 时，一个请求的 KV 是整趟前向结束后一次性写出去（或开始前一次性读进来）的。这就是一个串行的墙：长 prompt 下这一次搬运动辄上百 MiB，期间 NPU 只能干等。搬运的总字节数不变，但它被压在了一个点上。
 
-逐层把这段串行时间摊进前向里：第 *i* 层算完就立刻发出这一层的保存，第 *i+1* 层的计算与它并行；取的方向对称，进第 *i* 层之前只等第 *i* 层到位，第 *i+1* 层在后台继续拉。
+按层切开之后，同样的字节数摊到 28（或 61）个层间隙里。每个间隙里的搬运量只有原来的 1/层数，而每个间隙后面都跟着一层实打实的计算可以拿来遮盖。这是典型的用流水线把一次长阻塞换成多次短阻塞——总时间不变的前提下，可被重叠的部分大幅增加。
 
-为什么这招在 Prefill 上成立、在 Decode 上不成立，上游设计文档给了明确理由：Prefill 每层计算量大，足以掩盖一整层的传输；Decode 每 token 计算量小，每步拉一整层的延迟藏不住，所以 Decode 改用只搬 top-k 命中行的做法 [S37]。两者在同一套 P/D 分离部署里是配合关系，Decode 侧的做法见 [Sparse KV Offload](kv-cache-sparse-offload.md)。
+main 上还有第二个动机，而且它解决的是显存而不是延迟：如果 KV 反正要马上搬走，那本地这份 HBM buffer 就没必要每层留一个。让第 4 层复用第 1 层的 buffer（等第 1 层确实搬完之后），28 层就只需要 `1 + layerwise_num_shared_buffers` 份 buffer。代价是引入了一个新的等待——第 4 层开始前必须确认第 1 层的 D2H 真的完成了。官方文档把这条路径称作 Prefill 侧的 NPU 显存削减，配合 Decode 侧的[稀疏 KV 卸载](kv-cache-sparse-offload.md)组成一套 P/D 分离部署 [S5]。它额外要求 Memcache 后端与 eager 模式，并且暂时不能与 `MooncakeLayerwiseConnector` 同时使用——按 buffer 粒度的传输完成门控还没实现。
 
-第二个动机与重叠无关，是省显存。既然任一时刻只有少数几层的 KV 真正在被读写，Prefill 节点就不必为每层各留一块 buffer：把兼容的层轮转映射到 B 块共享 buffer 上，主 KV 的 HBM 占用比例约等于 `物理 buffer 数 / 层数` [S38]。代价是引入了一条新的正确性约束——一块 buffer 被覆盖前，上一轮内容的所有消费者都必须读完。
-
-池本身（键怎么算、backend 怎么选、命中怎么查）属于 [KV Pool](kv-pool.md)，这里不重复。
+存取本身怎么组织、池后端怎么装、key 怎么算，见 [KV Pool](kv-pool.md)。
 
 ## 怎么工作
 
-分三件事：启动期的 buffer 规划、每层的挂钩点与同步点、后台线程真正做的搬运。
+三层结构：注意力后端里的两个挂钩点 → connector → 两个后台传输线程。挂钩点在 `vllm_ascend/attention/utils.py`，是 `wait_for_kv_layer_from_connector` 与 `maybe_save_kv_layer_to_connector`，都只是把调用转给当前的 KV transfer group。`AscendStoreConnector` 在这两个方法里检查 `use_layerwise`，没开就直接返回。
 
-### 启动期：把每层一个张量合并成每 slot 一个
-
-`apply_layerwise_kv_cache_plan` 在 `initialize_kv_cache` 里、真正分配 KV 张量之前改写 `kv_cache_config.kv_cache_tensors`。它把同一 slot 的若干逻辑层合并成一个 `KVCacheTensor(shared_by=[...], size=...)`——`size` 不变，描述符数量变少，省下来的显存就是这么来的 [C26]。合并前有两道硬校验：同 slot 各层的 tensor size 必须相等、cache spec 必须完全相同，否则直接抛错而不是错位共享。MTP 层参与同一套规划。
-
-这条路径只在「连接器是 `AscendStoreConnector`（或 `MooncakeConnectorStoreV1`）、`backend` 是 `memcache`、`use_layerwise` 为真」时才启用，且支持从 `MultiConnector` 的子连接器配置里把这段挖出来。worker 侧对应的判定式就是 `use_gva_layerwise = self.use_layerwise and self.backend_name == "memcache"` [C11]。
-
-```mermaid
-flowchart LR
-    subgraph logical["28 个逻辑层"]
-        L0["layer 0"]
-        L1["layer 1 / 4 / 7 / ... / 25"]
-        L2["layer 2 / 5 / 8 / ... / 26"]
-        L3["layer 3 / 6 / 9 / ... / 27"]
-    end
-    subgraph physical["4 个 KVCacheTensor"]
-        B0["独立 buffer"]
-        S0["shared slot 0"]
-        S1["shared slot 1"]
-        S2["shared slot 2"]
-    end
-    L0 -->|independent_layers| B0
-    L1 -->|buffer_slots| S0
-    L2 -->|buffer_slots| S1
-    L3 -->|buffer_slots| S2
-    S0 -.->|"prefetch_layer_map[4] = 1"| S0
-```
-
-虚线是 `prefetch_layer_map`：层 4 要覆盖的这块 buffer 上一轮属于层 1，所以加载层 4 之前必须先确认层 1 的保存已经落地 [C25]。
-
-### 每层：四个挂钩点、两类 event
-
-注意力实现里按顺序出现四个调用（以 MLA 为例）：
-
-- `wait_for_kv_layer_from_connector(layer_name)`——只在 `has_prefill` 时调，进这一层前等 KV 到位；
-- KV 写入 paged cache 后立刻 `notify_kv_cache_written(layer_name)`，让连接器在 scatter 处就能派发传输；
-- 提交 attention 算子之前 `record_attention_compute_start()`，在计算流上打一个 NPU event；
-- 层尾（`o_proj` 之后）`maybe_save_kv_layer_to_connector(layer_name, list(kv_cache))`。
-
-前两个与最后一个都会先检查有没有 KV transfer group、`attn_metadata` 是否为空，再转给连接器；连接器侧若没开 `use_layerwise` 则直接返回，这就是「不开就完全无开销」的地方 [C10]。
+关键在于摆放位置。以 `AscendMLAImpl` 为例：等待放在 `mla_preprocess_*` 之前，而且**只在 `has_prefill` 为真时才等**；保存放在本层 `o_proj` 之后、返回之前。中间还有第三个点——`record_attention_compute_start()`，它在 attention 算子即将下发前记一个 NPU Event，让后台线程能对齐到计算流真正走到 attention 的时刻，而不是 Python 调用返回的时刻。
 
 ```mermaid
 sequenceDiagram
-    participant A as AscendMLAImpl.forward
-    participant C as AscendStoreConnector
-    participant W as KVPoolWorker
-    participant R as KVCacheStoreLayerRecvingThread
-    participant S as KVCacheStoreLayerSendingThread
+    participant Impl as AscendMLAImpl.forward（计算流）
+    participant Conn as AscendStoreConnector
+    participant Worker as KVPoolWorker
+    participant Recv as KVCacheStoreLayerRecvingThread
+    participant Send as KVCacheStoreLayerSendingThread
 
-    A->>C: wait_for_kv_layer_from_connector
-    C->>W: wait_for_layer_load()
-    W->>W: reset_attention_compute_start_gate()
-    W->>R: _submit_ready_layer_loads()（提交后续层）
-    W-->>W: 阻塞等 layer_load_finished_events[i]
-    R->>R: 等 layer_save_finished_events[复用源层]
-    R->>R: sync_save_events[复用源层].synchronize()
-    R->>R: external_slot_release_waiter(i)
-    R->>R: attention_start_gate.wait()
-    R->>R: batch_copy(direction=1, G2L)
-    R-->>W: set layer_load_finished_events[i]
-    A->>A: 写 KV → notify_kv_cache_written
-    A->>A: record_attention_compute_start()（放行后台预取）
-    A->>A: attention + o_proj
-    A->>C: maybe_save_kv_layer_to_connector
-    C->>W: save_kv_layer()
-    W->>W: sync_save_events[i].record()
-    W->>S: add_request(layer_save_tasks[i])（不阻塞）
-    S->>S: sync_save_events[i].synchronize()
-    S->>S: batch_copy(direction=0, L2G)
-    S-->>R: set layer_save_finished_events[i]
+    Note over Impl: 第 i 层开始
+    Impl->>Conn: wait_for_kv_layer_from_connector(layer_name)
+    Conn->>Worker: wait_for_layer_load()
+    Worker->>Worker: reset_attention_compute_start_gate()
+    Worker->>Recv: _submit_ready_layer_loads() 投递 LayerLoadTask(i+k)
+    Worker-->>Worker: 阻塞在 layer_load_finished_events[i]
+    Recv->>Recv: sync_save_events[reuse_source].synchronize()
+    Recv->>Recv: attention_start_gate.wait()
+    Recv-->>Worker: layer_load_finished_events[i].set()
+    Impl->>Impl: record_attention_compute_start()
+    Impl->>Impl: attention 算子 + o_proj
+    Impl->>Conn: maybe_save_kv_layer_to_connector(layer_name, kv_cache)
+    Conn->>Worker: save_kv_layer()
+    Worker->>Worker: sync_save_events[i].record()
+    Worker->>Send: add_request(layer_save_tasks[i])
+    Note over Worker,Impl: 不等待，立刻进入第 i+1 层
+    Send->>Send: sync_save_events[i].synchronize() 再 batch_copy
+    Send-->>Worker: layer_save_finished_events[i].set()
 ```
 
-几个容易看漏的点：
+**同步点一共三类，两类在 CPU 侧、一类在 NPU 侧：**
 
-- **保存不阻塞。** `save_kv_layer` 记完 event 就把任务丢进发送线程队列并让 `current_layer += 1`；只有最后一层才会在这里等 `layer_save_finished_events[num_layers - 1]` [C17]。
-- **加载会阻塞，但只阻塞当前层。** `wait_for_layer_load` 先重置栅栏、再提交后续层的加载任务，然后才等当前层的 `threading.Event`，超时 10 秒只是打日志继续等 [C16]。
-- **预取深度只在第 0 层用满。** 第 0 层一次提交 `num_prefetch_layers` 个加载任务，之后每层补提交一个，形成滑动窗口。
-- **栅栏是每层一个。** `AttentionComputeStartGate` 记录的是计算流上的 NPU event；后台线程等的是「计算流真正走到 attention」，而不是「Python 调到了这一行」[C7]。预取任务提交时抓住当时那一只栅栏，只有非当前层的加载才挂栅栏（当前层本来就要立刻等）。
+- `sync_save_events[i]`：`torch.npu.Event`。保存侧在 `save_kv_layer` 里 `record()`，发送线程在真正 `batch_copy` 之前 `synchronize()`。作用是保证「KV 已经写进 paged cache」这件事在设备上真的完成了，而不只是 Python 调用返回了。
+- `layer_load_finished_events[i]` / `layer_save_finished_events[i]`：`threading.Event`。前向线程与两个传输线程之间的 CPU 握手。
+- `AttentionComputeStartGate`：跨线程 + 跨流。前向线程 `record()` 一个 Event，传输线程 `wait()` 时对它 `synchronize()`。只对**预取**的层生效——当前层本来就要立刻用，不需要让路。
 
-### 搬运：后台线程 + Memcache 的 batch_copy
+**预取深度决定重叠多少。** `_submit_ready_layer_loads` 在第 0 层一次性投递 `num_prefetch_layers` 个任务，之后每层补一个，始终保持 `num_prefetch_layers` 层在飞。
 
-`use_layerwise` 为真时，worker 按层数各建一组 `threading.Event`（load / save 完成）与一组 `torch.npu.Event`（`sync_save_events`），再起一对线程。真正的搬运是 Memcache 的 `batch_copy(gvas, addrs, sizes, direction)`，`direction=0` 是存（L2G）、`1` 是取（G2L）；`layerwise_max_transfer_blocks` / `layerwise_max_transfer_bytes` 在这里把一次大批切成多次。
+**没有独立的传输 stream。** 搬运由 Python 后台线程调 memcache 的 `batch_copy` 发起，与前向的重叠靠的是线程并行加 Event 定序，不是同一进程内两条 NPU stream 互相 `wait_event` [D]。多 TP rank 同时发 H2D 会抢总线，`h2d_stagger_us` 用忙等错开，错开量是 `(tp_rank + layer_id) % tp_size * h2d_stagger_us` [C18]。
 
-所以**这里没有第二条 NPU stream**：传输由 CPU 侧线程发起，跨越计算流的只有两类 event——`sync_save_events[i]`（发送线程搬之前 `synchronize()`，确保这一层 KV 已写完）和 `AttentionComputeStartGate`（接收线程搬之前等，确保不抢计算的起跑时间）。多 TP 时 `h2d_stagger_us` 按 `(tp_rank + layer_id) % tp_size` 算出槽位并忙等错峰，避免各 rank 同时压总线 [C20]。
+### 两个版本的差别
 
-### 联合部署：谁说了算「这块 buffer 可以覆盖了」
+| | v0.23.0 | main |
+|---|---|---|
+| 逐层存取的主干 | 已完整（`wait_for_layer_load` / `save_kv_layer` / 三类同步点） | 同 |
+| 共享 buffer 复用 | 无：`wait_for_save_layer` 恒为 `None`，仓库里没有 `layerwise_cache_layout.py` | 有：`prefetch_layer_map` 给出「第 i 层复用第 j 层的 buffer」，接收线程据此先等 j 层落盘 |
+| 栅栏所在模块 | `vllm_ascend/memcache_comm_fence.py` | `.../ascend_store/attention_fence.py`，代码逐字相同 |
+| 等待超时的处理 | `wait(timeout=10)` 超时只打一行日志就往下走 | 改成 `while not ...wait(timeout=10)` 循环等，并每轮 `raise_if_failed()` |
+| 用户文档 | 只有 [Layerwise KV Pool](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layerwise_kv_pool.html)，正文与 main 逐字相同 | 另有 [Layerwise and Sparse KV Cache Offloading](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html) 讲共享 buffer 与 P/D 组合部署；[Layerwise KV Pool](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_kv_pool.html) 仍在 |
 
-Prefill 用 `MultiConnector` 同时挂 `SfaRemoteD2HConnector` 与 `AscendStoreConnector` 时，前者自报 `supports_layerwise_buffer_reuse = True` 并提供 `wait_for_layer_reuse`（等价于等这一层发送完成）。`AscendMultiConnector` 把这个等待包成 `external_slot_release_waiter` 注入 AscendStore，并保证「完成信号提供方」总是先于其它连接器执行——不管配置里两者的书写顺序如何。于是 buffer 复用的闸门要求 Memcache 保存与 Decode 远端读**都**完成。
+超时那一条值得单独留意 [!]：v0.23.0 上如果某层的 KV 10 秒没到齐，前向会带着未就绪的 buffer 继续算下去，症状是精度异常而不是报错。
 
 ## 拿真实数字走一遍
 
-拿 28 层、`layerwise_num_shared_buffers: 3`、`layerwise_independent_layers: [0]` 走一遍 `build_layerwise_cache_layout`。28 是本 wiki 教学模型 Qwen3-0.6B 的层数，但**它本身走不到这条路径**（`attention_v1` 没接入逐层调用），这里只借它的层数做算术。
+`layerwise_num_shared_buffers` 的效果只跟**层数**有关，与 hidden size、头数都无关，所以可以直接拿 Qwen3-0.6B 的 28 层做算术（注意这个模型自己跑不了 layerwise，见下面的误解一节）。配置取官方样例的那一组 [S5]：
 
-1. 独立层 `independent_layers = [0]`，可复用层 `reused_layers = [1, 2, ..., 27]`，共 27 个。
-2. `has_layer_reuse = 27 > 3 = True`——只要可复用层数不超过 buffer 数，这里就是 `False`，整套复用直接不启用。
-3. `prefetch_layer_map`：对 `next_index` 从 3 到 26，`reused[next_index] → reused[next_index - 3]`，即层 4→1、5→2、…、27→24，共 24 条。规律是**层 L 复用层 L-3 的 buffer**。
-4. `storage_indices`：`[[0]]`，再加三个共享槽
-   - slot 0 = 层 1, 4, 7, 10, 13, 16, 19, 22, 25（9 层）
-   - slot 1 = 层 2, 5, 8, 11, 14, 17, 20, 23, 26（9 层）
-   - slot 2 = 层 3, 6, 9, 12, 15, 18, 21, 24, 27（9 层）
-5. 物理 buffer 数 = `I + min(B, R)` = `1 + min(3, 27)` = **4**；主 KV 的 HBM 占用比例 ≈ 4 / 28 = **14.3%**。若每层主 KV buffer 是 *S* 字节，总量从 28*S* 降到 4*S* [D]。
-6. `num_prefetch_layers` 没配，取 `min(num_shared_buffers, 8)` = `min(3, 8)` = **3**——第 0 层一次提交 3 个加载任务 [C23]。
-
-对应的 Prefill 启动配置（取自官方指南 [S35]，[在线版](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html)）：
-
-```bash
---enforce-eager \
---kv-transfer-config '{
-    "kv_connector": "MultiConnector",
+```json
+{
+    "kv_connector": "AscendStoreConnector",
     "kv_role": "kv_producer",
     "kv_connector_extra_config": {
-        "connectors": [
-            {
-                "kv_connector": "SfaRemoteD2HConnector",
-                "kv_role": "kv_producer",
-                "kv_connector_extra_config": {
-                    "transfer_backend": "memfabric"
-                }
-            },
-            {
-                "kv_connector": "AscendStoreConnector",
-                "kv_role": "kv_producer",
-                "kv_connector_extra_config": {
-                    "backend": "memcache",
-                    "use_layerwise": true,
-                    "layerwise_num_shared_buffers": 3,
-                    "layerwise_independent_layers": [0]
-                }
-            }
-        ]
+        "backend": "memcache",
+        "use_layerwise": true,
+        "layerwise_num_shared_buffers": 3,
+        "layerwise_independent_layers": [0]
     }
-}'
+}
 ```
 
-每个值的来由：`MultiConnector` 是为了让 `SfaRemoteD2HConnector` 提供「Decode 已读完」的完成信号，否则 buffer 复用没有第二道闸门 [C27]；`backend: "memcache"` 是硬条件，别的 backend 下 `use_gva_layerwise` 为假、整套规划不启用；`3` 对应上面算出的 4 块物理 buffer，官方建议从 2~4 起调；`[0]` 是默认值，第 0 层保持独占；`--enforce-eager` 来自共享 buffer 部署的限制 [S36]。
+`build_layerwise_cache_layout(num_layers=28, ...)` 逐步算 [C20]：
 
-启动后可以拿这行日志核对规划结果（描述符数量应从 28+ 降到 buffer 数）：
+1. `independent_layers = [0]`——第 0 层独占一份 buffer。
+2. `reused_layers = [1, 2, ..., 27]`，共 27 层参与复用。
+3. `has_layer_reuse = 27 > 3` → `True`，复用生效。
+4. `prefetch_layer_map = {reused[n]: reused[n-3] for n in 3..26}`。代入就是 `{4:1, 5:2, 6:3, 7:4, ..., 27:24}`，共 24 条，规律是 **第 L 层复用第 L−3 层的 buffer**。
+5. `storage_indices`：`[[0]]` 再加 3 个 slot，`slot k = reused_layers[k::3]`：
+   - slot 0 → `[1, 4, 7, 10, 13, 16, 19, 22, 25]`（9 层）
+   - slot 1 → `[2, 5, 8, 11, 14, 17, 20, 23, 26]`（9 层）
+   - slot 2 → `[3, 6, 9, 12, 15, 18, 21, 24, 27]`（9 层）
+6. `num_prefetch_layers = min(3, 8) = 3`——没显式写 `layerwise_prefetch_layers` 时取 `min(num_shared_buffers, _DEFAULT_MAX_PREFETCH_LAYERS)`，**不是文档写的 1** [C19]。
 
-```text
-Layerwise KV cache reuse merged ... descriptors into ... descriptors using ... buffer assignments.
-```
+于是 28 个 `KVCacheTensor` 描述符被 `apply_layerwise_kv_cache_plan` 合并成 `1 + 3 = 4` 个，日志会打 `Layerwise KV cache reuse merged 28 descriptors into 4 descriptors using 4 buffer assignments.`。这一步发生在 `initialize_kv_cache` 里、KV cache 真正分配之前，所以省下的是真实 HBM：本地 KV buffer 从 28 份降到 4 份，约 **1/7** [D]。
+
+代价也能从同一张表读出来：第 4 层要开始时，必须先确认第 1 层的 D2H 搬完。`layerwise_num_shared_buffers` 越小越省显存、越容易卡在这个等待上；官方建议从 2~4 起步 [S5]。
 
 ## 事实表
 
-| 项 | 值 | 来源 |
-| :-- | :-- | :-- |
-| `use_layerwise` 默认 | `false` | `layerwise_kv_pool.md#L81` |
-| `backend` 要求 | 仅 `memcache`；判定式 `use_layerwise and backend_name == "memcache"` | `pool_worker.py#L155-L157` |
-| `layerwise_num_shared_buffers` 默认 | 未配置时 = 层数（等价于不复用） | `layerwise_cache_layout.py#L118-L126` |
-| `layerwise_independent_layers` 默认 | `[0]`；可写负索引、可写 `"all"`（全独占） | `layerwise_cache_layout.py#L136-L156` |
-| `layerwise_prefetch_layers` 默认 | GVA 路径：`min(num_shared_buffers, 8)`；非 GVA 路径：`1` | `layerwise_cache_layout.py#L128-L134`、`pool_worker.py#L434` |
-| `layerwise_max_transfer_blocks` / `_bytes` 默认 | `0` / `0`（不限） | `pool_worker.py#L183-L185` |
-| `h2d_stagger_us` 默认 | `0`；延迟 = `((tp_rank + layer_id) % tp_size) * h2d_stagger_us` 微秒忙等 | `kv_transfer.py#L1467-L1479` |
-| 物理 buffer 数 | `I + min(B, R)`，`R = N - I` | 设计文档 `#L100-L109` |
-| 主 KV HBM 占用比例 | ≈ 物理 buffer 数 / 层数（仅主 KV，不含 indexer） | 设计文档 `#L107-L114` |
-| 复用启用条件 | `has_layer_reuse = len(reused_layers) > num_shared_buffers` | `layerwise_cache_layout.py#L160` |
-| 每层同步对象 | `layer_load_finished_events[i]`、`layer_save_finished_events[i]`（`threading.Event`）、`sync_save_events[i]`（`torch.npu.Event`） | `pool_worker.py#L467-L471` |
-| 传输线程（GVA 路径） | `KVCacheStoreLayerSendingThread` / `KVCacheStoreLayerRecvingThread` | `pool_worker.py#L473-L534` |
-| 搬运原语与方向 | `batch_copy(gvas, addrs, sizes, direction)`，`0` = 存（L2G）、`1` = 取（G2L） | `kv_transfer.py#L438-L473` |
-| 保存侧同步点 | 发送线程搬运前 `sync_save_events[layer].synchronize()` | `kv_transfer.py#L1359` |
-| 加载侧同步点 | 复用源层的 save 事件 + `sync_save_events[源层].synchronize()` + `external_slot_release_waiter` + `attention_start_gate.wait()` | `kv_transfer.py#L1489-L1535` |
-| 阻塞点 | 仅「当前层加载」与「最后一层保存」阻塞前向 | `pool_worker.py#L1661`、`#L1688-L1691` |
-| 已接入的注意力后端 | `mla_v1`、`sfa_v1`、`dsa_v1`、`dsa_cp` | `mla_v1.py#L1901`、`sfa_v1.py#L1698`、`dsa_v1.py#L1284`、`dsa_cp.py#L1434` |
-| 未接入 | `attention_v1`、`attention_cp`、`mla_cp`、`sfa_cp`（无 wait/save 调用） | `layerwise_kv_pool.md#L229-L231` |
-| 图模式 | `use_layerwise` 为真时 `requires_piecewise_for_cudagraph` 返回 `True`（禁整图） | `ascend_store_connector.py#L77-L83` |
-| 共享 buffer 部署要求 | Memcache + eager 模式 | `layerwise_and_sparse_kv_cache_offloading.md#L262` |
-| 不支持 | hybrid KV cache（非 `AttentionSpec` 直接 `NotImplementedError`）、预共享/打包的 tensor 描述符、与 `MooncakeLayerwiseConnector` 组合复用 | `layerwise_cache_layout.py#L255-L267`、`#L302-L305`、`layerwise_and_sparse_kv_cache_offloading.md#L266-L268` |
-| PD 分离额外要求 | 需专用 layerwise 代理（提供 `/v1/metaserver`），普通 disagg 代理不行 | `layerwise_kv_pool.md#L242-L245` |
+| 项 | v0.23.0 | main | 意味着什么 |
+|---|---|---|---|
+| `use_layerwise` 默认 | `false` | `false` | 不写就是整趟前向搬一次，layerwise 的代码路径完全不进 |
+| 要求的 `backend` | `memcache` | `memcache` | `mooncake` / `yuanrong` 上设了也没用，得先把 memcache_hybrid 装起来 |
+| `layerwise_prefetch_layers` 缺省 | `1` | `min(num_shared_buffers, 8)`，而 `num_shared_buffers` 不填等于层数 → 实际 8 | 同一份配置换到 main 上预取深度从 1 跳到 8，飞行中的临时 buffer 也涨 8 倍 |
+| `layerwise_num_shared_buffers` | 不存在 | 缺省 = 层数（即不复用） | 不显式写就拿不到显存收益，只有流水线收益 |
+| `layerwise_independent_layers` | 不存在 | 缺省 `[0]`；填 `"all"` 关掉复用 | 第 0 层默认独占，因为它最早被写、最晚有机会被复用 |
+| `h2d_stagger_us` 默认 | `0` | `0` | 多 TP rank 抢总线时才需要调；实现是忙等，设大了直接烧 CPU |
+| 每层的同步点 | NPU Event ×1 + threading.Event ×2 | 同 | 逐层不是零成本，层数越多固定开销越明显 |
+| 加载超时 10s 后 | 放行，继续算 | 循环继续等并检查线程异常 | v0.23.0 上超时表现为精度问题而非报错 [!] |
+| `use_layerwise` + TP mismatch | `ValueError` | `ValueError` | P/D 两侧 TP 不一致时这条路走不通，传输线程没实现重切分 |
+| 图模式 | 强制 PIECEWISE | 强制 PIECEWISE | `requires_piecewise_for_cudagraph` 返回 `use_layerwise`；逐层挂钩点必须能在图里断开 |
 
 ## 常见误解
 
-- **「开了 `use_layerwise` 就省显存」——不。** 它换来的是重叠；省显存来自 `layerwise_num_shared_buffers`，而且只有当可复用层数**严格大于** buffer 数时 `has_layer_reuse` 才为真、描述符才会合并；不配这一项时它默认等于层数，规划算出来就是「不复用」。
-- **「传输跑在另一条 NPU stream 上」——不。** 搬运由 CPU 侧后台线程调 Memcache 的 `batch_copy` 发起，与计算流的关系只通过两类 event 表达：`sync_save_events[i]` 保证搬之前 KV 已写完 [C19]，`AttentionComputeStartGate` 保证搬不早于计算流进入 attention。调不了 stream 优先级，能调的是 `h2d_stagger_us` 与两个 `max_transfer_*`。
-- **「CP 都没接入」——文档如此，代码已经不完全是。** 官方文档点名 `mla_cp` / `sfa_cp` / `attention_cp` 未接入逐层 wait/save [S34]，这三个在本 commit 确实没有；但 `dsa_cp.py` 已经直接调用了 `wait_for_kv_layer_from_connector` [C6]，文档未同步 [!]。判断能不能用请以自己那条后端路径的源码为准。
+- **「layerwise 对任何模型都能开。」** 不是。两个版本里调用这对挂钩点的只有 `mla_v1.py`、`sfa_v1.py`、`dsa_v1.py` 和 `dsa_cp.py`；`attention_v1.py` 只调了 `record_attention_compute_start()`，没有 wait/save [C7]。所以 Qwen3 这类普通 GQA 模型即使配上 `use_layerwise: true` 也不会真的逐层搬——开关生效在 connector 层，但没人去调它 [D]。
+- **「文档说 `layerwise_prefetch_layers` 默认是 1。」** 那是非 memcache 路径的默认值。而 layerwise 只支持 memcache，所以 main 上实际永远走 `build_layerwise_cache_layout` 那条分支，缺省是 `min(num_shared_buffers, 8)`。文档这一行两个版本都写着 `1` [S2]，在 main 上已经对不上代码。
+- **「CP 和 hybrid KV cache 都不支持。」** 文档这么写 [S3]，但 `dsa_cp.py` 在两个版本里都调了 `wait_for_kv_layer_from_connector` 与 `maybe_save_kv_layer_to_connector`；源码里与 layerwise 相关的硬报错只有 TP mismatch 那一条 [C24]。稳妥的读法是：文档说的是「未验证」而非「代码里拦住了」，真要用请自己验 [D]。

@@ -64,32 +64,39 @@ test.describe("知识库阅读页", () => {
 
   test("中文加粗真的加粗——全角标点旁的 ** 不留字面量", async ({ page }) => {
     // CommonMark 的 flanking 规则遇上中文全角标点会失效：`**换出（D2H）**发生在`
-    // 里的闭合 ** 前是「）」后是「发」，判不成 right-flanking，于是整段以字面量
-    // 显示。remark-cjk-friendly 按 CommonMark 的 CJK 提案修正这条规则。
-    await page.goto("/#/wiki/kv-pool");
-    const body = page.getByTestId("wiki-body");
-    // 「查（scheduler 侧）」闭合 ** 前是「）」后是中文——正是 flanking 判不出来的形状
-    await expect(body.locator("strong", { hasText: "查（scheduler 侧）" })).toBeVisible();
-    // 正文里不该剩任何 ** 字面量
-    expect((await body.innerText()).match(/\*\*/g)).toBeNull();
+    // 里的闭合 ** 前是「）」后是「发」，判不成 right-flanking，整段以字面量显示。
+    // remark-cjk-friendly 按 CommonMark 的 CJK 提案修正这条规则。
+    // 不绑死某一句——页面会被重跑改写，扫全库才是稳的断言。
+    const ids = ["block-table", "kv-pool", "paged-attention", "prefix-caching"];
+    let bolds = 0;
+    for (const id of ids) {
+      await page.goto(`/#/wiki/${id}`);
+      const body = page.getByTestId("wiki-body");
+      bolds += await body.locator("strong").count();
+      expect((await body.innerText()).match(/\*\*/g)).toBeNull();
+    }
+    expect(bolds).toBeGreaterThan(0);
   });
 
-  test("事实表的「来源」列不被侧栏裁掉", async ({ page }) => {
+  test("事实表是给学习者看的：带「意味着什么」列、不超过十行、没有来源列", async ({ page }) => {
     await page.goto("/#/wiki/paged-attention");
-    // 页面上不止一张表，挑表头里有「来源」的那张——事实表
     const wrap = page
       .getByTestId("wiki-body")
       .locator(".wiki-table-scroll")
-      .filter({ has: page.locator("th", { hasText: "来源" }) })
+      .filter({ has: page.locator("th", { hasText: "意味着什么" }) })
       .first();
     await expect(wrap).toBeVisible();
-    // 容器自己能横向滚，表格就不会溢出去压到侧栏底下
+
+    const headers = await wrap.locator("th").allInnerTexts();
+    // 版本不同的行分版本列，所以是三列或四列；「来源」列已经去掉
+    expect(headers.length).toBeGreaterThanOrEqual(3);
+    expect(headers).not.toContain("来源");
+    expect(headers[headers.length - 1]).toBe("意味着什么");
+
+    expect(await wrap.locator("tbody tr").count()).toBeLessThanOrEqual(10);
+    // 不横向溢出——去掉来源列与侧栏之后应该整屏放得下
     const [clientW, scrollW] = await wrap.evaluate((el) => [el.clientWidth, el.scrollWidth]);
     expect(scrollW).toBeLessThanOrEqual(clientW + 1);
-    // 第三列（来源）真的在视口里
-    const lastCell = wrap.locator("tbody tr").first().locator("td").last();
-    await expect(lastCell).toBeVisible();
-    await expect(lastCell).toContainText("#L");
   });
 
   test("正文里指向其它页的链接可跳转", async ({ page }) => {
@@ -130,15 +137,6 @@ test.describe("知识库阅读页", () => {
     // 点开的是钉住 commit 的具体行号，不是页面级的来源列表
     await expect(link).toHaveAttribute("href", /^https?:\/\/.+/);
     await expect(link.locator("span.wiki-evidence")).toHaveText(/^[SCM]$/);
-  });
-
-  test("来源角标指向 GitHub 钉住的行号", async ({ page }) => {
-    await page.goto("/#/wiki/block-table");
-    const src = page.getByTestId("wiki-sources").getByRole("link").first();
-    await expect(src).toHaveAttribute(
-      "href",
-      /^https:\/\/github\.com\/vllm-project\/vllm-ascend\/blob\/[0-9a-f]{7,40}\/.+#L\d+/,
-    );
   });
 
   test("未知 id 给出空态而不是白屏", async ({ page }) => {

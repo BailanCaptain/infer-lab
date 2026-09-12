@@ -2,173 +2,171 @@
 id: kv-cache-spec
 title: KV Cache Spec
 type: feature
-summary: 每个注意力层自己申报一条 spec——块大小、KV 头数、head dim、dtype——引擎据此算出能开多少块，Worker 据此把显存切成真正的张量。
-aliases: [KV Cache 规格, KV Cache 声明, KVCacheSpec, 按层 KV 规格声明]
+summary: 每个注意力层向引擎声明自己的 KV Cache 长什么样——块大小、KV 头数、头维、dtype，引擎据此换算每块字节数并决定分配多少块。
+aliases: [KV 缓存规格, KV Cache 规格, KV Cache 声明, KVCacheSpec, 按层 KV 规格声明]
 chapters: ["11"]
 sources:
   - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L983-L994
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L891-L892
   - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4947-L4986
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4988-L5014
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/kv_cache_interface.py#L33-L65
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/kv_cache_interface.py#L100-L107
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/kv_cache_interface.py#L227-L242
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4946
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5031-L5047
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L5005-L5011
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5076-L5089
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L121
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112
   - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L153
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L174-L174
   - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L1009-L1020
   - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3910-L3938
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3986-L4030
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4032-L4052
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4157-L4177
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4079-L4100
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4288-L4317
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4333-L4354
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3986-L4004
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4294-L4345
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4347-L4354
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4212-L4232
   - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1380-L1382
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4598-L4614
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4616-L4659
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4684-L4704
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L373-L377
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L168-L176
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/v2/attn_utils.py#L64-L94
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4054-L4073
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4647-L4704
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4604-L4614
+  - vllm-ascend@28bf3a2e:vllm_ascend/core/kv_cache_interface.py#L50-L65
+  - vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L101-L121
 evidence: "C"
 relations:
   - to: paged-attention
     kind: builds-on
-    note: spec 申报的 block_size 就是分页的页大小，页内怎么摆由 spec 的 num_kv_heads/head_size/dtype 定死
+    note: spec 里的 block_size 与 page_size_bytes 描述的就是 PagedAttention 的那一页
 contradicts: []
 updated: "2026-09-12"
 ---
 
 ## 一句话
 
-KV Cache Spec 是「模型有什么」与「显存怎么切」之间唯一的契约：每个需要缓存的注意力层申报一条 `KVCacheSpec`（块大小、KV 头数、head dim、dtype），引擎用它把可用显存换算成块数，Worker 再用它把一大片 int8 字节 view 成 K/V 张量。不需要缓存的层——比如跨层共享 KV 的层——根本不出现在这张表里。
+`get_kv_cache_spec()` 遍历模型里每个注意力层，为每层产出一个 `KVCacheSpec`：块大小、KV 头数、头维、dtype，以及由这四项算出的「一块多少字节」。引擎拿这些声明去做显存探测，把结果封成 `KVCacheConfig` 交回来，`initialize_kv_cache()` 再按它把显存真正切成张量。声明与分配分处引擎启动的一前一后，中间隔着一次显存探测。
 
 ## 为什么需要它
 
-显存分配要的是三个精确的数：**这一层要不要缓存**、**一页多少字节**、**张量最终什么形状**。这三个数没有任何一方独自知道。模型代码知道自己有 28 层、每层 8 个 KV 头，但不知道昇腾 kernel 要求 K 和 V 各自独立成张量；后端 kernel 知道自己要 `(2, num_blocks, block_size, num_kv_heads, head_size)` 这种排布 [C7]，但不知道第 12 层是不是复用了第 11 层的缓存。把两边硬接在一起，结果就是两种典型故障：要么写死一套形状，遇上 MLA（`num_kv_heads` 恒为 1、`head_size` 是 `kv_lora_rank + qk_rope_head_dim`）[C3] 或 Mamba 混合模型直接崩；要么显存探测按一套公式估、真正分配按另一套公式切，两边差几个百分点就是启动即 OOM。
+引擎启动时要回答一个具体问题：**剩下这些显存能装多少个块**。这个问题只有模型自己能回答，因为「一块多少字节」取决于每层有几个 KV 头、头维多大、用什么 dtype 存——而这些在 vLLM 里是每层独立的，不是全模型一个数。
 
-spec 的解法是把「申报」和「分配」彻底分开，中间只传数。`get_kv_cache_spec()` 遍历静态前向上下文里的所有注意力层，问每一层要一条 spec，不需要的层直接不进字典——跨层 KV 共享的层被记进 `shared_kv_cache_layers` 后 `continue`，encoder-only 这类层则因为返回 `None` 而被跳过。这张 `{层名: spec}` 表交给引擎，引擎算出 `KVCacheConfig`（总块数、每层分多少字节、哪些层归一组）再发回来，Worker 照单分配。
+于是就有了 spec 这一层：每层报一份自己的规格，引擎负责把「可用字节」除以「每块单价」得到块数（见 [KV Cache 显存探测](kv-cache-memory-profiling.md)），再把块数发回来让 worker 分配。倒过来做不行——分配之前必须先知道单价。
 
-昇腾侧在这条通路上加了自己的东西，原因是硬件与部署形态。第一，昇腾的 GQA kernel 只认 128 这一个物理块大小 [C8]，所以 `spec.block_size` 与 kernel 实际用的块大小在混合块场景下会分家 [C19]。第二，为支持 P/D 分离，K 与 V 必须是两个首地址各自 2 MiB 对齐的独立张量，而不是上游那种一个张量装下 K 和 V 的布局——源码注释把这条写得很直白：「it only support the 0-dim of kv_cache is `num_blocks`」[C13]。第三，昇腾定义了自己的 spec 子类（`AscendMLAAttentionSpec`、`AscendSFAIndexerCacheSpec`、`AscendSlidingWindowMLASpec`），并把它们注册回上游的 `KVCacheSpecRegistry`，好让调度侧的 `FullAttentionManager` 认得它们。
+**为什么是按层报而不是按模型报**，有四个现实原因，都在 `get_kv_cache_spec()` 的分发逻辑里留了痕迹：
 
-这一页只讲「声明什么、怎么落成张量」。块号到显存地址的那一跳见 [Block Table](block-table.md)，分页缓存本身的道理见 [PagedAttention](paged-attention.md)，可用字节从哪来见 [KV Cache 显存探测](kv-cache-memory-profiling.md)。
+- 跨层 KV 共享的层压根不需要自己的缓存，它们被记进 `shared_kv_cache_layers` 后直接跳过，不产生 spec，也就不占块；
+- 同一个模型里可以混着 GQA、MLA、Mamba、draft model 的 cache-only 层，每类的形状算法完全不同；
+- Mamba 混合模型里，注意力层的页要被 padding 到 Mamba 页的大小才能共用一套块编号，这一步是在所有 spec 收齐之后统一做的；
+- 量化、稀疏、offload 这些特性改的正是 spec 里的 dtype 与 head_size（见 [KV Cache 量化](kv-cache-quantization.md)、[稀疏 KV Offload](kv-cache-sparse-offload.md)），改在 spec 上就等于改在了显存账本上。
+
+**昇腾侧和上游最大的不同在分配趟，不在声明趟。** 上游把一层的 KV 申请成一整块 `(2, num_blocks, ...)` 的张量；vllm-ascend 把它拆成 K、V 两条独立张量分别 `torch.zeros`，理由写在注释里——PD 分离（prefill/decode 分离）的传输侧只接受首维是 `num_blocks` 的张量，带着前缀 2 的形状过不去 [C17]。这个拆分带来一串连锁后果，下一节会走一遍。
 
 ## 怎么工作
 
-整条链是「申报 → 引擎算账 → 分配 → 绑定」四步，跨 Worker 与引擎两次往返：
+两趟，中间隔着引擎的显存探测。
 
 ```mermaid
 flowchart TD
-    subgraph Worker1 [Worker：申报]
+    subgraph Declare["声明趟"]
         A[NPUWorker.get_kv_cache_spec] --> B[NPUModelRunner.get_kv_cache_spec]
-        B --> C["遍历 AttentionLayerBase<br/>Attention / MLAAttention / MambaBase"]
-        C --> D["dict 层名 to KVCacheSpec"]
+        B --> C{"attn_module 是哪一类"}
+        C -->|"Attention（GQA）"| D["attn_module.get_kv_cache_spec()"]
+        C -->|MLAAttention| E[AscendMLAAttentionSpec]
+        C -->|MambaBase| F["mamba_module.get_kv_cache_spec()"]
+        C -->|"kv_sharing_target_layer_name 非空"| G["记入 shared_kv_cache_layers<br/>不建 spec"]
+        D --> H["dict[layer_name, KVCacheSpec]"]
+        E --> H
+        F --> H
     end
-    D --> E[引擎：算出 KVCacheConfig]
-    E --> F[NPUWorker.initialize_from_config]
-    subgraph Worker2 [Worker：分配]
-        F --> G[NPUModelRunner.initialize_kv_cache]
-        G --> H[apply_layerwise_kv_cache_plan]
-        G --> I[initialize_attn_backend]
-        G --> J[initialize_kv_cache_tensors]
-        J --> K["_allocate_kv_cache_tensors<br/>按字节申请 int8"]
-        K --> L["_reshape_kv_cache_tensors<br/>view 成 K/V 张量"]
-        L --> M[bind_kv_cache]
+    H -.->|"引擎显存探测，得到 KVCacheConfig"| I
+    subgraph Allocate["分配趟"]
+        I[NPUWorker.initialize_from_config] --> J[NPUModelRunner.initialize_kv_cache]
+        J --> K[initialize_attn_backend]
+        J --> L[may_reinitialize_input_batch]
+        J --> M[initialize_kv_cache_tensors]
+        M --> N["_allocate_kv_cache_tensors<br/>按 calc_split_factor 切成 k_tensor / v_tensor<br/>全部按 torch.int8 申请"]
+        N --> O["_reshape_kv_cache_tensors<br/>view 成 (num_blocks, block_size, num_kv_heads, head_size)"]
+        O --> P[bind_kv_cache]
     end
 ```
 
-**申报**。`NPUWorker.get_kv_cache_spec` 只是转发，真正干活的是 model runner。循环里按层类型分流：普通 `Attention` 直接采用上游层自己返回的 spec；`MLAAttention` 被重建成 `AscendMLAAttentionSpec` 并把 `num_kv_heads` 写死成 1；`MambaBase` 攒到最后处理，因为昇腾的图参数更新依赖注意力组排在 Mamba 组前面。v2 worker 走的是 `vllm_ascend/worker/v2/attn_utils.py` 里的同名函数，规则一致——「按层申报、可以缺席」是两条路径共同的契约，不是 v1 的实现细节。
+**声明趟。** `NPUWorker.get_kv_cache_spec()` 把活转给 model runner，后者从 static forward context 里取出所有 `AttentionLayerBase` 子类，按 `isinstance` 逐层分发。GQA 这条最普通的路径直接调用层自己的 `get_kv_cache_spec()`，也就是上游 vLLM 的实现——vllm-ascend 不接管稠密注意力的 spec 构造。MLA 这条则被接管：vllm-ascend 用自己的 `AscendMLAAttentionSpec` 重建一遍，因为昇腾的 nope/rope 拆分方式和上游不同。收尾时若模型里有 Mamba 层，注意力层的 `page_size_padded` 会被顶到 Mamba 页大小。
 
-**算账**由引擎完成，产物是 `KVCacheConfig`：`num_blocks`（全局块数）、`kv_cache_tensors`（每项一个 `size` 字节数 + 一个 `shared_by` 层名列表）、`kv_cache_groups`（把 spec 相同的层归组）。
+**分配趟。** 入口是 `NPUWorker.initialize_from_config()`，引擎把探测好的 `KVCacheConfig` 递进来，sleep mode 下还会套一层 `CaMemAllocator` 的 `kv_cache` 内存池，方便整体释放。`initialize_kv_cache()` 的主干顺序在两版上一致：改写 config（补 encoder-only 层、补 KV 共享层）→ `initialize_attn_backend` 选后端 → `may_reinitialize_input_batch` 按各组 block_size 重建块表（见 [Block Table](block-table.md)）→ `initialize_kv_cache_tensors` 真正动显存。
 
-**分配**。`initialize_kv_cache` 的顺序是有讲究的：先改写 config（补 encoder-only 层、套 layerwise 计划、补 kv sharing 组），再建后端，最后才碰显存。由于 config 里挂的是组级 spec，分配前要用 `_get_layer_kv_cache_specs` 把它还原回层级 spec。真正的申请点是 `_allocate_int8_cache_tensor`：**不管 spec 的 dtype 是 bf16 还是 fp8，一律先按 `torch.int8` 以字节为单位申请** [C14]；只有开了 KV transfer 才多申请一个 alignment 再切出对齐地址。注意力层的那一份字节按 K/V 的 head dim 比例切成两半，比例由 `calc_split_factor` 给出——`[d_h, d_h]` 返回 `[2.0, 2.0]`，正好一半一半。
+`initialize_kv_cache_tensors()` 本身只做三件事：申请原始 buffer、view 成目标形状、把 KV 共享层的指针指到目标层上。
 
-**reshape**。`_reshape_kv_cache_tensors` 先反推块数：`num_blocks = (K 字节 + V 字节) ÷ page_size_bytes` [C18]。这一句顺带证明了 GQA 下 `page_size_bytes` 是 K 与 V 两份之和。然后把 spec 的四个数交给后端换成形状，最后 `raw_k_tensor.view(dtype).view(k_shape)` 落成真正的张量。开了 KV 量化时，dtype 会被 quant config 覆写掉 spec 里申报的那个 [C20]。
+真正的分配在 `_allocate_kv_cache_tensors()`。稠密注意力层走这样一条路：
 
-**绑定**。`bind_kv_cache` 把 `{层名: (k_cache, v_cache)}` 挂回 `static_forward_context`，前向时每层就能就地取到自己的缓存；跨层共享的层在这一步被指到目标层的同一个张量上。
+1. `_get_attention_kv_cache_dims()` 取出 K 维和 V 维。GQA 下两者都等于 `head_size`；
+2. `calc_split_factor([k_dim, v_dim])` 返回 `[total/k_dim, total/v_dim]`，GQA 下就是 `[2.0, 2.0]` [C20]；
+3. `kv_cache_tensor.size` 被这两个因子各除一次，得到 `k_tensor_size` 和 `v_tensor_size`，恰好各占一半；
+4. 两条张量各自 `torch.zeros(..., dtype=torch.int8)` ——**不管 spec 声明的是 bf16 还是 fp16，申请阶段一律按原始字节走**，dtype 要到 reshape 时才用上 [C17]；
+5. 最终登记进 `kv_cache_raw_tensors[layer_name]` 的是 `(k_tensor, v_tensor)` 二元组。
+
+这一整段在 v0.23.0 上逐字相同，稠密模型上没有版本差异。
+
+`_reshape_kv_cache_tensors()` 负责把字节变成张量。它先用「K 字节 + V 字节」除以 `page_size_bytes` 反推块数，并断言不小于调度器侧的 `kv_cache_config.num_blocks` [C23]；再调后端的 `get_kv_cache_shape()` 拿到 `(2, num_blocks, block_size, num_kv_heads, head_size)` [C8]，对非 MLA 的 spec 取 `kv_cache_shape[1:]` 作为 K 和 V 各自的形状，最后 `raw_k_tensor.view(dtype).view(k_shape)`。
+
+**版本差异集中在 MLA / SFA 这一侧，稠密 GQA 不受影响。** 两处 [!]：
+
+- **MLA 页字节的算法位置换了。** v0.23.0 直接覆写 `page_size_bytes`，并把 SFA indexer 的 K、scale 字节算进同一个属性里 [C25]；main 改成 `real_page_size_bytes`，并引入 `storage_block_size = block_size // compress_ratio`——调度器看到的块大小和算子看到的块大小从此是两个数 [C24]。
+- **SFA indexer 从「折进 MLA spec」变成「独立一类 spec」。** v0.23.0 明确跳过 `DeepseekV32IndexerCache` 层，indexer 的 k_cache 由 `IndexerWrapper` 顶替，字节折算在 `AscendMLAAttentionSpec.sparse_head_dim` 里；main 为它单独建 `AscendSFAIndexerCacheSpec`，走独立的物理张量。
+
+另有一处不影响主线但会改变行为的差异：EC transfer 场景下的早退条件在 v0.23.0 是 `get_ec_transfer().is_producer`，main 是 `not get_ec_transfer().is_consumer` `[!]`。
 
 ## 拿真实数字走一遍
 
-Qwen3-0.6B：28 层，H=1024，n_q=16，n_kv=8，d_h=128，bf16（每元素 2 字节），`block_size=128`。后者是昇腾侧的常态取值——官方文档在解释 DyntraLB 阈值时写「700 块 ≈ 89,600 token」，700 × 128 = 89,600 正是这个值 [S22]（线上版：<https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html>）。
+Qwen3-0.6B：28 层，H=1024，n_q=16，n_kv=8，d_h=128，KV 用 bf16（每元素 2 字节）。块大小取昇腾 GQA 后端唯一支持的 128 [C10]，官方文档在别处的参数说明里也把 `block_size=128` 当既定前提（700 块 ≈ 89,600 token，700 × 128 = 89,600）[S12]。
 
-**一、每 token 每层多少字节。** GQA 后端的形状是 `(2, num_blocks, block_size, num_kv_heads, head_size)`，首维 2 就是 K 和 V 各一份：
-
-```
-每 token 每层 = 2 × n_kv × d_h × sizeof(bf16)
-             = 2 × 8 × 128 × 2 B
-             = 4096 B = 4 KiB
-```
-
-28 层合计：`28 × 4096 = 114,688 B = 112 KiB / token`。一个 4K 的 prompt 就是 448 MiB。
-
-**二、一页（一块）多少字节。**
+**第一步：一层一块多少字节。** 块张量形状是 `(2, num_blocks, 128, 8, 128)`，去掉 `num_blocks` 这一维就是一块的内容：
 
 ```
 page_size_bytes = 2 × block_size × n_kv × d_h × sizeof(bf16)
-                = 2 × 128 × 8 × 128 × 2 B
-                = 524,288 B = 512 KiB   （每层每块）
+                = 2 × 128 × 8 × 128 × 2
+                = 524,288 字节 = 512 KiB
 ```
 
-全模型一块：`28 × 524,288 = 14,680,064 B = 14 MiB`。
+这个公式是**推出来的**，不是从某一行抄的 [D]。推法：`get_kv_cache_shape` 给出首维为 2 的形状，`calc_split_factor` 把该层预算对半切给 K 和 V，而 `_reshape_kv_cache_tensors` 要求「K 字节 + V 字节」能被 `page_size_bytes` 整除、商即块数。三者要同时成立，`page_size_bytes` 只能是上式。**前提是稠密 GQA、未开 FA 量化、无 `head_size_v` 差异**——这三条一破（例如 MLA 的 K 维是 `kv_lora_rank`、V 维是 `qk_rope_head_dim`），公式就不成立。
 
-**三、能开多少块。** 假设显存探测给出 40 GiB 可用 [A]：
-
-```
-40 GiB = 42,949,672,960 B
-num_blocks = 42,949,672,960 ÷ 14,680,064 = 2925.7 → 2925 块
-可缓存 token 数 = 2925 × 128 = 374,400
-```
-
-**四、张量长什么样。** 引擎给每层的 `kv_cache_tensor.size = 2925 × 524,288 = 1,533,542,400 B`，`calc_split_factor([128, 128]) = [2.0, 2.0]` [C17]，于是：
+**第二步：每 token 每层多少字节。** 一块装 128 个 token：
 
 ```
-k_tensor_size = v_tensor_size = 1,533,542,400 ÷ 2 = 766,771,200 B   （int8 申请）[C15]
-反推校验:  (766,771,200 + 766,771,200) ÷ 524,288 = 2925 ✓
-k_cache.shape = v_cache.shape = (2925, 128, 8, 128), dtype = bfloat16
+524,288 ÷ 128 = 4,096 字节 = 4 KiB / token / 层
 ```
 
-**五、一条最长请求的上界。** `max_model_len = 40960` 时，`max_memory_usage_bytes = ceil(40960 / 128) × 524,288 = 320 × 524,288 = 167,772,160 B = 160 MiB`（每层），28 层共 4.375 GiB [C5][D]——即这台机器最多只能同时喂下 9 条打满上下文的请求。
+也可以直接写成 `2 × n_kv × d_h × sizeof(bf16) = 2 × 8 × 128 × 2 = 4,096`。
 
-复现用的配置：
+**第三步：全模型每 token 多少字节。**
 
-```bash
-vllm serve Qwen/Qwen3-0.6B \
-  --block-size 128 \            # 与昇腾 GQA kernel 唯一支持的物理块大小对齐
-  --max-model-len 40960 \       # 决定上面第五步的单请求上界
-  --gpu-memory-utilization 0.9  # 决定第三步的可用字节，进而决定 num_blocks
+```
+4,096 × 28 = 114,688 字节 = 112 KiB / token
 ```
 
-`--block-size` 的值会经 `cache_config.block_size` 原样进到 spec 里；`--gpu-memory-utilization` 不进 spec，它只影响分子。
+**第四步：反过来算能装多少 token。** 假设显存探测最后给每层 1 GiB：
+
+```
+num_blocks = 1,073,741,824 ÷ 524,288 = 2,048 块
+容量       = 2,048 × 128 = 262,144 token
+```
+
+此时 `k_tensor` 与 `v_tensor` 各申请 `1 GiB ÷ 2 = 512 MiB`（以 int8 计就是 536,870,912 个元素），各自 view 成 `(2048, 128, 8, 128)` 的 bf16 张量。全模型 28 层共 28 GiB，交叉验算：262,144 × 112 KiB = 28 GiB ✓。
 
 ## 事实表
 
-| 项 | 值 | 来源 |
-|---|---|---|
-| Worker 侧申报入口 | `NPUWorker.get_kv_cache_spec()` → `NPUModelRunner.get_kv_cache_spec()` | `vllm_ascend/worker/worker.py#L983-L994` |
-| Worker 侧分配入口 | `NPUWorker.initialize_from_config()` → `initialize_kv_cache()` | `vllm_ascend/worker/worker.py#L1009-L1020` |
-| 返回值类型 | `dict[str, KVCacheSpec]`，不需缓存的层不出现 | `vllm_ascend/worker/model_runner_v1.py#L4947-L4986` |
-| `spec.block_size` 来源 | `vllm_config.cache_config.block_size` | `vllm_ascend/worker/model_runner_v1.py#L373-L377` |
-| GQA kernel 支持的块大小 | `[128]` | `vllm_ascend/attention/attention_v1.py#L151-L153` |
-| GQA KV cache shape | `(2, num_blocks, block_size, num_kv_heads, head_size)` | `vllm_ascend/attention/attention_v1.py#L113-L121` |
-| GQA k_cache / v_cache shape | 各 `(num_blocks, block_size, num_kv_heads, head_size)` | `vllm_ascend/worker/model_runner_v1.py#L4616-L4659` |
-| GQA `page_size_bytes` | `2 × block_size × num_kv_heads × head_size × sizeof(dtype)` | 推导自 `vllm_ascend/worker/model_runner_v1.py#L4598-L4614` |
-| 每 token 每层字节（GQA） | `2 × num_kv_heads × head_size × sizeof(dtype)` | 推导自 `vllm_ascend/attention/attention_v1.py#L113-L121` |
-| MLA `num_kv_heads` | 恒为 `1` | `vllm_ascend/worker/model_runner_v1.py#L4988-L5014` |
-| MLA `head_size` | `kv_lora_rank + qk_rope_head_dim` | `vllm_ascend/worker/model_runner_v1.py#L4988-L5014` |
-| MLA `real_page_size_bytes` | `storage_block_size × num_kv_heads × (head_size × sizeof(dtype) + scale_dim × sizeof(scale_dtype))` | `vllm_ascend/core/kv_cache_interface.py#L33-L65` |
-| `storage_block_size` | `block_size // compress_ratio` | `vllm_ascend/core/kv_cache_interface.py#L33-L65` |
-| 单请求显存上界 | `ceil(max_model_len / block_size) × page_size_bytes`；DCP>1 时 `max_model_len` 先除以 dcp 世界大小 | `vllm_ascend/core/kv_cache_interface.py#L100-L107` |
-| 原始分配 dtype | `torch.int8`（按字节申请，之后再 view） | `vllm_ascend/worker/model_runner_v1.py#L4079-L4100` |
-| 地址对齐 | `2 * 1024 * 1024`（2 MiB），仅当 `kv_transfer_config is not None` 时生效 | `vllm_ascend/worker/model_runner_v1.py#L4157-L4177`、`#L4079-L4100` |
-| K/V 切分比例 | `calc_split_factor([k_dim, v_dim]) = [total/k_dim, total/v_dim]` | `vllm_ascend/utils.py#L1380-L1382` |
-| raw tensor 形态 | `(k_tensor, v_tensor)` 二元组，按 `kv_cache_tensor.shared_by` 分发 | `vllm_ascend/worker/model_runner_v1.py#L4333-L4354` |
-| 块数反推 | `num_blocks = (k.numel() + v.numel()) // page_size_bytes`，且断言 `>= kv_cache_config.num_blocks` | `vllm_ascend/worker/model_runner_v1.py#L4598-L4614` |
-| 昇腾自定义 spec 类型 | `AscendMLAAttentionSpec`、`AscendSFAIndexerCacheSpec`、`AscendSlidingWindowMLASpec` | `vllm_ascend/core/kv_cache_interface.py#L227-L242` |
-| v2 worker 的申报函数 | `vllm_ascend/worker/v2/attn_utils.py::get_kv_cache_spec` | `vllm_ascend/worker/v2/attn_utils.py#L64-L94` |
+| 项 | v0.23.0 | main | 意味着什么 |
+|---|---|---|---|
+| GQA 块张量形状 | `(2, num_blocks, block_size, num_kv_heads, head_size)` | 同左 | 首维的 2 是 K 和 V；但 reshape 后它们是两条各自 view 的张量，不是一块连续内存 |
+| GQA 后端支持的 kernel block size | `[128]` | 同左 | 想靠调小 block_size 减少块内碎片，在这个后端上做不到 |
+| 每层每块字节（Qwen3-0.6B，bf16） | 512 KiB [D] | 同左 | 一个块就锁住半兆；28 层的同编号块合起来 14 MiB |
+| 每 token 每层字节（Qwen3-0.6B，bf16） | 4 KiB [D] | 同左 | 乘层数乘上下文长度，就是单请求 KV 上限 |
+| 每 token 全模型字节（28 层） | 112 KiB [D] | 同左 | 28 GiB 的 KV 池约等于 26 万 token |
+| K/V 切分因子（GQA） | `[2.0, 2.0]` | 同左 | 每层申请两条张量、各占该层预算一半 |
+| raw buffer 的 dtype | `torch.int8` | 同左 | spec 里的 dtype 不影响申请多少字节，只影响 reshape 时怎么 view |
+| raw buffer 地址对齐 | 未配 `kv_transfer_config` 时不对齐；配了则对齐到 2 MiB | 同左 | 开 PD 分离时每条张量会多申请 2 MiB 用于对齐 |
+| MLA 页字节的属性名 | 覆写 `page_size_bytes` | 新增 `real_page_size_bytes`，并引入 `storage_block_size` | 按属性名取 MLA 页大小的脚本跨版本会读到不同的值 `[!]` |
+| SFA indexer 的 spec | 折进 `AscendMLAAttentionSpec.sparse_head_dim` | 独立的 `AscendSFAIndexerCacheSpec` | main 上 indexer 走独立物理张量，v0.23.0 上它和 MLA 主缓存共用一次分配 `[!]` |
 
 ## 常见误解
 
-**「`spec.block_size` 就是 kernel 实际用的块大小。」** 不一定。开了混合块（`use_hybrid_blocks`，即存在多个注意力组）时，reshape 会取 `get_supported_kernel_block_sizes()[0]` 作为真正的块大小，把 `spec.block_size` 按 `block_size_chunk` 再切一刀 [C19]；MLA 压缩场景下 kernel 用的是 `storage_block_size = block_size // compress_ratio` [C4]。`spec.block_size` 是**调度器**记账的单位，不是 kernel 的物理页。
-
-**「`page_size_bytes` 是 K 的大小。」** 对 GQA 不是——它是 K 与 V 两份之和，因为块数是用 `k.numel() + v.numel()` 除以它反推的 [C18]。把它当成 K 的大小，算出的块数会翻倍。反过来，MLA 只有一份潜在向量缓存，它的 `real_page_size_bytes` 里就没有这个因子 2；把 GQA 那条「乘 2」的公式照搬到 MLA 上会高估一倍 [D]。
-
-**「`get_kv_cache_spec()` 返回的条目数等于模型层数。」** 不等于。跨层共享 KV 的层被记进 `shared_kv_cache_layers` 后直接跳过，spec 返回 `None` 的层（如 encoder-only attention）也不进字典 [C2]。这些层的缓存在 `initialize_kv_cache_tensors` 末尾才被指向目标层的同一个张量——它们有 KV cache，只是没有自己的那份。
+- **「spec 里的 `block_size` 就是算子看到的块大小。」** 稠密 GQA 上成立，MLA 上不成立：main 里算子用的是 `storage_block_size = block_size // compress_ratio`，调度器用的才是 `block_size` [C24]。
+- **「一层的 KV 是一块 `(2, num_blocks, ...)` 的连续显存。」** 在昇腾上不是。K 和 V 是两次独立的 `torch.zeros`，地址之间没有任何关系；首维的 2 只活在 `get_kv_cache_shape()` 的返回值里，reshape 时立刻被 `kv_cache_shape[1:]` 切掉。
+- **「spec 声明 bf16，所以申请的是 bf16 张量。」** 申请阶段一律 `torch.int8`，spec 的 dtype 只在 `_reshape_kv_cache_tensors` 里用来 `.view(dtype)`。这也是为什么量化改 dtype 能直接改出显存收益——字节数是算出来的，不是类型带出来的。

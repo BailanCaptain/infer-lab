@@ -2,163 +2,133 @@
 id: prefix-caching
 title: Prefix Caching
 type: feature
-summary: 把已算过的 KV 按块哈希存下来，新请求前缀相同就直接挂上旧块，只对未命中的尾部做 prefill。
+summary: 把已算过的 KV 块按内容哈希留在池子里，下一条请求若开头完全相同就直接复用这些块，只对不同的尾巴做前向。
 aliases: [前缀缓存, 自动前缀缓存, Automatic Prefix Caching, APC]
 chapters: ["11"]
 sources:
-  - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1167-L1204
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L161
+  - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1200-L1204
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1402-L1406
+  - vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L1208-L1212
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L669-L671
   - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1542-L1569
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1307-L1323
-  - vllm-ascend@28bf3a2e:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L51-L84
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L657-L687
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L107-L128
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1506
+  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1167-L1176
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L156-L162
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1313-L1323
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1200-L1210
+  - vllm-ascend@28bf3a2e:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L65-L84
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L127-L147
+  - vllm-ascend@28bf3a2e:tests/ut/patch/platform/test_prefix_cache_cp_patches.py#L239-L263
   - vllm-ascend@28bf3a2e:vllm_ascend/models/layer/attention/layer.py#L121-L127
+  - vllm-ascend@2c59ff10:vllm_ascend/models/layer/attention/layer.py#L114-L120
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/dsa_v1.py#L146-L173
   - vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker/v2/model_runner.py#L104-L106
-  - vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L325-L345
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/v2/attn_utils.py#L305-L336
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/support_matrix/supported_features.md#L9-L12
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L71
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L1600
-  - vllm-ascend@28bf3a2e:docs/source/tutorials/models/Qwen3.8-27B.md#L462-L464
-evidence: "I"
+  - vllm-ascend@28bf3a2e:vllm_ascend/patch/platform/patch_mamba_config.py#L143-L146
+  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L151-L153
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/support_matrix/feature_matrix.md#L17-L17
+  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L2110-L2110
+  - vllm-ascend@28bf3a2e:tests/e2e/pull_request/two_card/test_prefix_caching.py#L63-L90
+  - https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/
+evidence: "C"
 relations:
-  - to: paged-attention
-    kind: builds-on
-    note: 前缀能共享的前提是 KV 按固定大小的物理块存放，同一块可被多条请求同时引用
   - to: block-table
     kind: builds-on
-    note: 命中的旧块是通过往新请求的块表里填旧块号完成复用的，KV 本身不搬动
+    note: 命中的历史块靠 block_tables 接到本请求上，PrefillCacheHit 分支直接把它切片喂给算子
   - to: kv-cache-spec
     kind: builds-on
-    note: 哈希粒度 hash_block_size 由各 KV cache group 的 spec.block_size 决定，多组时取 gcd
+    note: 哈希粒度 hash_block_size 由各 KV cache group 的 spec.block_size 取 gcd 得出
+  - to: paged-attention
+    kind: builds-on
+    note: 命中后新 token 要读散在别处的历史块，只有按块表寻址的分页算子做得到
 contradicts: []
 updated: "2026-09-12"
 ---
 
 ## 一句话
 
-前缀缓存（Automatic Prefix Caching，APC）把已经算完的 KV 以**块**为单位算出哈希登记在表里；新请求进来时逐块比对哈希，相同的前缀直接把旧物理块挂到新请求的块表上，prefill 只需要计算未命中的那一段。vLLM V1 引擎下它**默认开启** [S13]。
+前缀缓存（Automatic Prefix Caching，APC）把算完的 KV 块按「这一块之前的全部 token 内容」哈希索引起来；下一条请求开头若与某条已缓存序列逐 token 相同，调度器把那些物理块的编号直接填进新请求的块表，模型只对不同的尾巴做前向。昇腾侧不实现缓存管理本身——匹配、引用计数、淘汰全在上游 vLLM；vllm-ascend 做的是三件适配：开 APC 时把 `block_size` 强制成 128、在上下文并行下重算哈希块大小、为命中后的批次单列一个 `AscendAttentionState.PrefillCacheHit` 走带块表的算子入参。
 
 ## 为什么需要它
 
-同一个服务里的请求往往共享很长的开头：一段几百到几千 token 的系统提示、一组 few-shot 示例、一份被反复追问的文档。没有前缀缓存时，每个请求都要把这段开头从头 prefill 一遍——同样的权重、同样的输入、同样的结果，算 N 次。prefill 的代价与 token 数成正比，共享前缀越长，浪费越大。官方调优表把它的适用场景直接写成「重复前缀（共享系统提示、few-shot 示例）」，并提醒收益完全取决于命中率 [S15]。
+多轮对话、few-shot 模板、长 system prompt、同一篇文档反复提问——这些场景里请求之间共享的开头往往占总长的九成以上。没有前缀缓存时，每来一条请求都要把这段共享开头重新过一遍：28 层的 QKV 投影、注意力、MLP 全部重算一次，算完的 KV 写进新分配的块，上一条请求算出的一模一样的 KV 在旁边被当作垃圾释放掉。TTFT 因此几乎与 prompt 全长成正比，而不是与「新增的那点内容」成正比。
 
-前缀缓存的做法是：既然 KV Cache 里存的 K、V 只由「这个 token 及它前面所有 token」唯一决定（形状与布局见 [KV Cache Spec](kv-cache-spec.md)），那么只要两条请求的前 n 个 token 完全一样，它们前 n 个位置的 KV 就是逐位相同的，没有理由算两次。于是把已经算好的 KV 块登记进一张哈希表，下次查得到就直接引用。
+前缀缓存的想法很朴素：既然 KV 只取决于「这个 token 和它前面所有 token」，那么两条请求只要开头字节级相同，这段开头的 KV 就必然逐位相同，可以直接共用同一份物理块。它是无损优化——昇腾 CI 的验收方式正是把开 APC 和关 APC 的输出做逐 token 相等断言，MHA（Qwen3-8B）与 MLA（DeepSeek-V2-Lite）各跑一遍 [C23]。
 
-**这一整套机制的主体实现在上游 vLLM，不在 vllm-ascend。** 判断依据有三：其一，昇腾平台层 `platform.py` 里唯一读 `enable_prefix_caching` 的地方是 `update_block_size_for_backend`，它只用这个标志在 mamba align 路径上选分支，既没有开关也没有校验 [C10]；其二，块哈希的生成（`request.block_hashes`）与最长命中查找（`find_longest_cache_hit_per_group`）在昇腾自带调度器里都是直接调用上游对象的方法 [C7]；其三，官方支持矩阵开篇就写明本项目的特性支持原则是 "aligned with vLLM"，APC 一栏标为 🟢 Functional 并链到上游 issue [S12]。昇腾侧做的是适配与约束，下一节逐条列出。
+昇腾上这件事和 chunked prefill 是同一批打通的：官方 release note 记录，把 CANN 升到 8.1.RC1 才同时支持了 chunked prefill 与 `--enable_prefix_caching`。这个历史耦合留下了痕迹——`refresh_block_size` 里两者共用同一个 `if` 分支、把块大小一起强制成 128。但它们并不互斥，官方互斥矩阵里 APC 与 chunked prefill 那一格是 ✅ [S21]；只是同时开启时，`_build_attn_state` 会优先给出 `ChunkedPrefill` 而不是 `PrefillCacheHit`。
 
-块表怎么把旧块挂回新请求、物理块怎么被多条请求共享，见 [Block Table](block-table.md) 与 [PagedAttention](paged-attention.md)，这里不展开。
+块是复用的最小单位，也是哈希的最小单位——为什么是块而不是 token，见 [块表](block-table.md)；块内怎么排布、一块多少字节，见 [KV Cache Spec](kv-cache-spec.md)。
 
 ## 怎么工作
 
-昇腾侧的介入点集中在三段：启动期把块大小钉死、调度期的哈希粒度、执行期的注意力状态。
-
 ```mermaid
 flowchart TD
-  subgraph S1["启动期（配置）"]
-    A["refresh_block_size(vllm_config)"] -->|"enable_prefix_caching 或<br/>enable_chunked_prefill 为真"| B["cache_config.block_size = 128"]
-    B --> C["get_supported_kernel_block_sizes()<br/>返回 [128]"]
-    C --> D["_ascend_resolve_kv_cache_block_sizes<br/>→ (scheduler_block_size, hash_block_size)"]
-  end
-  subgraph S2["调度期（查表）"]
-    D --> E["request.block_hashes<br/>每 hash_block_size 个 token 一格"]
-    E --> F["find_longest_cache_hit_per_group"]
-    F --> G["num_computed_tokens 前移到命中边界"]
-  end
-  subgraph S3["执行期（算子）"]
-    G --> H["_build_attn_state"]
-    H -->|"enable_chunked_prefill = False"| I["AscendAttentionState.PrefillCacheHit"]
-    H -->|"enable_chunked_prefill = True"| J["AscendAttentionState.ChunkedPrefill"]
-    I --> K["_get_fia_params：传 block_tables，<br/>KV 长度取 seq_lens_list（整条序列）"]
-    J --> K
-  end
+    A["platform.py 配置检查<br/>refresh_block_size(vllm_config)"] -->|enable_prefix_caching 为真| B["cache_config.block_size = 128"]
+    B --> C["_ascend_resolve_kv_cache_block_sizes<br/>返回 (scheduler_block_size, hash_block_size)"]
+    C --> D["上游 vLLM 调度器<br/>按 hash_block_size 逐块哈希并查表"]
+    D -->|命中| E["num_computed_tokens_cpu[req] = 命中 token 数<br/>block_tables 填入复用的物理块号"]
+    E --> F["positions = num_computed_tokens_cpu + query_pos<br/>只有未命中的尾巴进前向"]
+    F --> G["_build_attn_state"]
+    G -->|enable_chunked_prefill| H["AscendAttentionState.ChunkedPrefill"]
+    G -->|否则| I["AscendAttentionState.PrefillCacheHit"]
+    H --> J["_get_fia_params<br/>block_table + seq_lens_list（全长）"]
+    I --> J
 ```
 
-图中 `_ascend_resolve_kv_cache_block_sizes` 只在「多个 KV cache group 且 DCP ≠ 1」这一支里自己算 `hash_block_size = gcd(各组 block_size)`；单组或 DCP = 1 时它把调用转回上游原函数 [C5]。
+**配置阶段。** `platform.py` 在配置检查里调用 `refresh_block_size`；只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 为真，`block_size` 就被无条件改成 128，只打一条 info 日志 [C1]。这与 `AscendAttentionBackend.get_supported_kernel_block_sizes()` 返回 `[128]` 是一致的。
 
-**启动期。** `refresh_block_size` 是昇腾侧唯一把「开了前缀缓存」翻译成硬件约束的地方：只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 任一为真，`block_size` 就被改写成 128 并打一行 info 日志 [C1]。两个特性写在同一个 `or` 里，因为约束的来源是同一个——算子只认 128 这个块大小，`AscendAttentionBackend.get_supported_kernel_block_sizes()` 直接返回 `[128]` [C2]。注意这条规则有两处早退：`deepseek_v4` 模型走自己的 32/64/128 分支，混合（attention + mamba）模型直接返回，都够不到这个 `or`。
+**哈希粒度。** vllm-ascend 打了 `_ascend_resolve_kv_cache_block_sizes` 覆盖上游同名函数，返回的是一个二元组 `(scheduler_block_size, hash_block_size)` ——「哈希以块为单位」这件事直接写在这个接口的形状里。单 KV cache group 时两者相等；多 group 且开了上下文并行时，调度块取各 group 块大小的 lcm 再乘 CP 因子，而哈希块在开 APC 时取 gcd。**这里两版不同** [!]：main 只把 `decode_context_parallel_size` 乘进去、只在 `dcp != 1` 时走这条分支；v0.23.0 还额外乘 `prefill_context_parallel_size`，且 `pcp != 1` 单独就能触发 [C13]。
 
-**调度期。** 哈希不是按 token 算的，是按块算的，而且是**链式**的：第 i 格的哈希把第 i−1 格的哈希当输入，因此「最后一格的细粒度哈希唯一标识整个更大的块」[C6]。这个性质是块粒度哈希能当前缀匹配用的关键——比中一格就等于比中了从序列开头到这一格结尾的全部内容，不需要再往回核对。查表的入口是 `request.block_hashes`（一个按块排列的哈希序列）与 `find_longest_cache_hit_per_group`，命中结果最终体现为 `num_computed_tokens` 往前移。
+**命中后跳过什么。** 调度器把命中的 token 数写进 `num_computed_tokens_cpu`，模型运行器算 position 时以它为起点：`positions = num_computed_tokens_cpu[req_indices] + query_pos` [C7]。命中的那段 token 根本不出现在这一步的输入张量里——省掉的是它们的 embedding、QKV 投影、注意力和 MLP，整整 28 层。**没省掉的是注意力对历史 KV 的读取**：`_build_attn_state` 判定出 `PrefillCacheHit` 后，`_get_fia_params` 把 `block_tables` 切片和 `seq_lens_list` 交给算子，而 `seq_lens_list` 是含已命中部分的完整序列长度 [C10]。
 
-**执行期。** `num_computed_tokens` 一旦不为 0，`_build_attn_state` 就不会选 `PrefillNoCache`；分支往下走，若 chunked prefill 关着则落到 `PrefillCacheHit`，开着则落到 `ChunkedPrefill`。两个状态在算子入参上的差别看 `_get_fia_params`：`PrefillNoCache` 传 `block_table=None` 且把 KV 长度设成与 query 长度相同；`PrefillCacheHit` 改为传 `attn_metadata.block_tables` 并把 KV 长度取成 `seq_lens_list`（整条序列的长度），而 query 里只有未命中的那几个 token [C4]。**命中时跳过的就是这部分 query 上的全部计算**：QKV 投影、注意力、O 投影、MLP 全都不再跑，被跳过的 token 只以「KV 已经在块里」的身份参与后续 token 的注意力。这段描述以 GQA 后端的 FIA 路径为据，MLA、SFA 各有自己的元数据构造，未逐一核对。
+**状态判定。** `_build_attn_state` 的第一条分支是 `num_computed_tokens_cpu` 全为 0 才算 `PrefillNoCache`；只要有任何一条请求命中了前缀，这条分支就不成立，批次最终落到 `ChunkedPrefill`（开了 chunked prefill）或 `PrefillCacheHit`（没开）。两条路在 `_get_fia_params` 里都走带 `block_table` 的分页路径，区别只在 `block_table` 是否按 batch_size 切片。这套判定在 v2 模型运行器的 `build_attn_state` 里逐条重复了一遍，两版一致。
 
 ## 拿真实数字走一遍
 
-Qwen3-0.6B：H = 1024，n_q = 16，n_kv = 8，d_h = 128，28 层，bf16。`block_size` 被强制成 128。
+Qwen3-0.6B：28 层，`n_kv = 8`，`d_h = 128`，bf16。开 APC 后 `block_size = 128`。
 
-**一块 KV 有多大。** 每 token 每层要存 K 和 V 各一份：
+两条请求共享一段 1700 token 的 system prompt + 文档，第二条请求总长 1712 token（1700 共享 + 12 token 的新问题）。
 
+1. **能命中多少。** 哈希按 128 token 一块做，只有**写满的**块才有哈希。1700 ÷ 128 = 13 余 36，所以命中 13 块 = **1664 token**；尾部那 36 个 token 落在没写满的块里，拿不到哈希，不参与匹配。
+2. **本轮要算多少。** `num_computed_tokens_cpu[0] = 1664`，本次调度 1712 − 1664 = **48 个 token** 进前向。
+3. **position 从哪开始。** `positions = 1664 + [0, 1, …, 47]` = 1664…1711。
+4. **省下的前向量。** 1 − 48 / 1712 = **97.2%** 的 embedding / QKV 投影 / MLP 计算不再发生。
+5. **没省下的读取量。** 注意力拿到的 `actual_seq_lengths_kv = seq_lens_list = [1712]`，块表给出 ⌈1712 / 128⌉ = **14** 个块号。每 token 每层的 K+V 字节数为 2 × 8 × 128 × 2 B = 4 KiB，28 层合计 112 KiB [D]；这一次前向要读的 KV 约 1712 × 112 KiB ≈ **187 MiB** [D]。一整块（128 token × 28 层）占 **14 MiB** [D]。
+
+这一步的算式沿用通用 GQA 布局，MLA 模型（DeepSeek 系）的每 token 字节数按另一套公式算，见 [KV Cache Spec](kv-cache-spec.md)。
+
+结论：前缀缓存砍的是**计算**，不是**显存带宽**。前缀越长、共享比例越高，收益越接近上限；而注意力的读带宽一分没少。
+
+启动配置：
+
+```python
+from vllm import LLM
+
+llm = LLM(
+    model="Qwen/Qwen3-0.6B",
+    enable_prefix_caching=True,   # 官方文档要求显式设置此项开启 APC [S24]
+    max_model_len=2048,
+    # 不要设 block_size：refresh_block_size 会在 APC 开启时把它改回 128
+)
 ```
-2 × n_kv × d_h × 2 B = 2 × 8 × 128 × 2 = 4096 B = 4 KiB
-```
-
-28 层合计 `28 × 4 KiB = 112 KiB` / token。一块 128 个 token，全 28 层就是 `128 × 112 KiB = 14 MiB`。[D]
-
-**一次命中省了多少。** 设系统提示长 1000 token，第一个请求把它算完并登记。第二个请求 = 同样的 1000 token 系统提示 + 50 token 的问题，共 1050 token。
-
-- 能哈希的整块数：`1000 ÷ 128 = 7` 块，覆盖 `7 × 128 = 896` token。
-- 剩下的 `1000 − 896 = 104` token 凑不满一块，不参与哈希，只能重算。
-- 命中 896 token，本次需要 prefill 的 token 数 = `1050 − 896 = 154`。
-
-省下的 KV 写入：`896 × 112 KiB = 98 MiB`，与 `7 × 14 MiB = 98 MiB` 对得上。[D]
-
-省下的投影计算（只数 q/k/v/o 四个线性层，每层按 `2 × in × out` 计，不含 MLP 与注意力打分）：
-
-```
-q_proj : 2 × 1024 × (16×128) = 4.19 MFLOP
-k_proj : 2 × 1024 × ( 8×128) = 2.10 MFLOP
-v_proj : 2 × 1024 × ( 8×128) = 2.10 MFLOP
-o_proj : 2 × (16×128) × 1024 = 4.19 MFLOP
-         ─────────────────────────────────
-每 token 每层 12.58 MFLOP → 28 层 352.3 MFLOP/token
-896 token → 896 × 352.3 MFLOP ≈ 316 GFLOP
-```
-
-[D]
-
-**尾巴上的 104 个 token 是块大小的代价。** 如果块大小能设成 64，`1000 ÷ 64 = 15` 块可覆盖 960 token，多命中 64 个。但在昇腾上做不到——`--block-size 64` 会被 `refresh_block_size` 改回 128 [C1]。
-
-一个可复制的起步配置：
-
-```bash
-vllm serve Qwen/Qwen3-0.6B \
-  --max-model-len 4096 \
-  --block-size 128
-```
-
-`--block-size 128` 写出来只是为了和被强制的值保持一致、避免日志里出现意外改写；APC 不需要写 `--enable-prefix-caching`，V1 下默认就是开的，要关用 `--no-enable-prefix-caching`。
 
 ## 事实表
 
-| 项 | 值 | 来源 |
-|---|---|---|
-| 开关字段 | `cache_config.enable_prefix_caching` | `vllm_ascend/platform.py#L334-L335` |
-| 命令行 | `--enable-prefix-caching` / `--no-enable-prefix-caching` | `docs/source/tutorials/models/Qwen3.8-27B.md#L464` |
-| V1 引擎默认值 | 开启 | `docs/source/user_guide/release_notes.md#L71` |
-| 官方支持状态 | 🟢 Functional | `docs/source/user_guide/support_matrix/supported_features.md#L12` |
-| 开启后 `block_size` | 强制 128（deepseek_v4 与 hybrid 模型除外） | `vllm_ascend/utils.py#L1195-L1204` |
-| 算子支持的块大小 | `[128]` | `vllm_ascend/attention/attention_v1.py#L151-L153` |
-| 哈希粒度 | `hash_block_size`；多 group 且 DCP≠1 时 = `gcd(各组 block_size)` | `vllm_ascend/patch/platform/patch_kv_cache_utils.py#L77-L82` |
-| 哈希形式 | 链式，末格哈希唯一标识整段前缀 | `..._pool/ascend_store/metadata.py#L684-L687` |
-| 哈希序列字段 | `request.block_hashes` | `vllm_ascend/core/recompute_scheduler.py#L122-L125` |
-| 命中状态枚举 | `AscendAttentionState.PrefillCacheHit = 1` | `vllm_ascend/attention/attention_v1.py#L156-L161` |
-| MRv1 判「无命中」的条件 | `num_computed_tokens_cpu[:num_reqs] == 0` 全为真 | `vllm_ascend/worker/model_runner_v1.py#L1543-L1544` |
-| MRv2 判「无命中」的条件 | `seq_lens_np[:num_reqs] == num_scheduled_tokens` | `vllm_ascend/worker/v2/attn_utils.py#L314-L315` |
-| `PrefillCacheHit` 生效前提 | `enable_chunked_prefill` 为 False | `vllm_ascend/worker/model_runner_v1.py#L1559-L1562` |
-| 命中时算子入参 | `block_table = block_tables[:batch_size]`，KV 长度 = `seq_lens_list` | `vllm_ascend/attention/attention_v1.py#L1313-L1323` |
-| 未命中时算子入参 | `block_table = None`，KV 长度 = `actual_seq_lengths_q` | `vllm_ascend/attention/attention_v1.py#L1307-L1310` |
-| 会被静默关闭的场景 | DSA attention layer 且后端为 `TRITON_MLA` / `FLASHINFER` | `vllm_ascend/models/layer/attention/layer.py#L122-L127` |
-| 硬性不支持 | 310P + model runner v2 → `NotImplementedError` | `vllm_ascend/_310p/worker/v2/model_runner.py#L104-L106` |
-| 逐请求旁路字段 | `request.skip_reading_prefix_cache` | `vllm_ascend/core/recompute_scheduler.py#L116-L118` |
-| 历史互斥（v0.10.2rc1） | Ascend scheduler 下勿与 chunked prefill 同开 | `docs/source/user_guide/release_notes.md#L1600` |
-
-官方文档在线地址：[Supported Features](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/support_matrix/supported_features.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/release_notes.html)。
+| 项 | v0.23.0 | main | 意味着什么 |
+|---|---|---|---|
+| 开关 | `enable_prefix_caching` / `--enable-prefix-caching` | 同左 | 昇腾侧没有自己的开关，直接用上游 `CacheConfig` 字段 |
+| 开启后的 `block_size` | 强制 128 | 同左 | 你在命令行给的 `--block-size 64` 会被静默改回 128，只留一条 info 日志 |
+| `hash_block_size`（多 group + CP） | `gcd(各 group block_size)` | 同左 | 混合模型开 CP 时哈希块比调度块小，匹配粒度更细 |
+| `scheduler_block_size`（多 group + CP） | `lcm(...) × dcp × pcp` | `lcm(...) × dcp` | [!] v0.23.0 把 PCP 也乘进去，main 不乘；同一套 PCP 配置两版块大小不同 |
+| 命中后的 `attn_state` | 开 chunked prefill → `ChunkedPrefill`；否则 `PrefillCacheHit` | 同左 | 两条路都走带块表的分页算子，不会退回连续 KV 路径 |
+| `PrefillCacheHit` 的 KV 长度 | `seq_lens_list`（含已命中部分） | 同左 | 注意力仍读全长 KV，省的是投影和 MLP |
+| `AscendAttentionBackend` 支持的 kernel block size | `[128]` | 同左 | 想为省内存把块调小无从下手 |
+| 310P model runner v2 | 该路径不存在 | 开 APC 直接 `NotImplementedError` | [!] main 新增的 310P MRV2 明确不支持 APC，用 310P 要留意选哪条 runner |
+| `mamba_block_size`（混合模型 + `mamba_cache_mode="align"`） | 开 APC → `block_size`；否则 `max_model_len` | 同左 | 关掉 APC 会让 mamba 状态按 `max_model_len` 整条分配，显存占用差一个量级 |
+| 与 chunked prefill | 官方矩阵 ✅ | 同左 | 不互斥，可同时开；同开时 attn_state 由 chunked prefill 优先决定 |
 
 ## 常见误解
 
-**「开了前缀缓存，命中的 prefill 就会走 `PrefillCacheHit` 状态。」** 不一定。`_build_attn_state` 的分支顺序里，`enable_chunked_prefill` 的判断排在前面，chunked prefill 开着时命中的 prefill 落进 `ChunkedPrefill` 而不是 `PrefillCacheHit` [C3]。V1 下 chunked prefill 通常是开的，所以 `PrefillCacheHit` 在实际服务里反而少见——它主要出现在显式关掉 chunked prefill 的配置里。
-
-**「命中多少 token 就省多少 token。」** 不对。哈希以块为单位，尾部凑不满一整块的 token 不参与匹配。block_size = 128 时，1000 token 的共享前缀实际只能命中 896 个 [C6]。
-
-**「`platform.py` 里有前缀缓存的开关或校验。」** 没有。该文件里唯一一处 `enable_prefix_caching` 在 `update_block_size_for_backend`，只用来在 mamba align 路径上选分支。真正会把这个标志悄悄改成 `False` 的是 DeepSeek-V4 DSA 的 attention layer 构造函数——它在特定后端下直接改写 `cache_config.enable_prefix_caching`，用户侧不会收到任何提示 [C8]。
+- **「命中了就不用读 KV 了。」** 不是。命中省掉的是把前缀 token 再过一遍 embedding / QKV 投影 / MLP；注意力算子拿到的 `actual_seq_lengths_kv` 仍是完整序列长度，命中的那部分 KV 一个字节不少地从 HBM 读进来。所以 APC 改善 TTFT 很明显，对 decode 阶段的吞吐几乎没有影响。
+- **「`--block-size 64` 可以和前缀缓存一起用。」** 不能。`refresh_block_size` 在 APC 或 chunked prefill 打开时把 `block_size` 无条件改成 128，不报错也不警告，只有一条 info 级日志 [C1][C2]。以为自己在用 64 却实际在用 128，显存估算会全盘偏掉。
+- **「`layer.py` 里那句 `cache_config.enable_prefix_caching = False` 说明昇腾会在某些模型上自动关掉 APC。」** 实际上不会触发。那条分支要求后端名等于 `TRITON_MLA` 或 `FLASHINFER`，而这条路径上能取到的后端只有 `AscendDSABackend` 及其子类，`get_name()` 返回的是 `ASCEND_DSA` / `ASCEND_DSA_C4` / `ASCEND_DSA_C128` / `ASCEND_DSA_SWA`——它是从 CUDA 侧照搬过来的死分支 [D]。

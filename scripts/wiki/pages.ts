@@ -7,7 +7,8 @@ import { basename, join } from "node:path";
 import matter from "gray-matter";
 import { type PageFrontmatter, pageFrontmatterSchema } from "../../src/content/wiki/schema";
 
-export const PAGE_DIRS = ["concepts", "sources"] as const;
+/** 参数页单独一个目录：它的「版本谱系」由脚本生成，与手写页的处理不同 */
+export const PAGE_DIRS = ["concepts", "params", "sources"] as const;
 
 export interface WikiPage {
   /** 相对 wikiRoot 的 posix 路径 */

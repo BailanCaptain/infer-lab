@@ -349,6 +349,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     "Grep",
     "Glob",
     "Edit(concepts/**)",
+    "Edit(params/**)",
     "Edit(_drafts/_integration.json)",
     "--disallowedTools",
     ...INTEGRATE_DISALLOWED,
@@ -397,7 +398,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     args,
     stdin,
     timeoutMs: ctx.timeoutMs,
-    allowedWrites: ["concepts/**", "_drafts/_integration.json"],
+    allowedWrites: ["concepts/**", "params/**", "_drafts/_integration.json"],
   };
 }
 
@@ -623,6 +624,9 @@ function titleOf(wikiRoot: string, rel: string): string {
   return m?.[1]?.trim() ?? rel;
 }
 
+/** 晋升目标目录，与 integrateRequest 的写白名单一致 */
+const PROMOTE_DIRS = ["concepts", "params"] as const;
+
 export function applyIntegration(
   wikiRoot: string,
   d: Integration,
@@ -631,14 +635,14 @@ export function applyIntegration(
   const problems: string[] = [];
   const logLines: string[] = [];
   for (const id of d.promoted) {
-    if (!existsSync(join(wikiRoot, `concepts/${id}.md`))) {
-      problems.push(`promoted ${id} 但 concepts/${id}.md 不存在，草稿保留`);
+    // 参数页落在 params/，概念页落在 concepts/——两处都找
+    const rel = PROMOTE_DIRS.map((dir) => `${dir}/${id}.md`).find((r) => existsSync(join(wikiRoot, r)));
+    if (!rel) {
+      problems.push(`promoted ${id} 但 ${PROMOTE_DIRS.join(" / ")} 下都没有 ${id}.md，草稿保留`);
       continue;
     }
     rmSync(join(wikiRoot, `_drafts/${id}.md`), { force: true });
-    logLines.push(
-      `## [${today}] ingest | ${titleOf(wikiRoot, `concepts/${id}.md`)}\n晋升 concepts/${id}.md\n`,
-    );
+    logLines.push(`## [${today}] ingest | ${titleOf(wikiRoot, rel)}\n晋升 ${rel}\n`);
   }
   for (const m of d.merged) {
     rmSync(join(wikiRoot, `_drafts/${m.from}.md`), { force: true });

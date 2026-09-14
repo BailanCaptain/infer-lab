@@ -226,10 +226,18 @@ describe("integrateRequest", () => {
       req.args.indexOf("--allowedTools") + 1,
       req.args.indexOf("--disallowedTools"),
     );
-    expect(allowed).toEqual(["Read", "Grep", "Glob", "Edit(concepts/**)", "Edit(_drafts/_integration.json)"]);
+    // 参数页落在 params/，概念页落在 concepts/，两处都要能写
+    expect(allowed).toEqual([
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit(concepts/**)",
+      "Edit(params/**)",
+      "Edit(_drafts/_integration.json)",
+    ]);
     expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toBe("PF\n\nIN");
     expect(req.stdin).toContain("_drafts/a.md");
-    expect(req.allowedWrites).toEqual(["concepts/**", "_drafts/_integration.json"]);
+    expect(req.allowedWrites).toEqual(["concepts/**", "params/**", "_drafts/_integration.json"]);
   });
 });
 

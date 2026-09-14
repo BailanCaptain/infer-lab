@@ -127,3 +127,19 @@ export function renderLineage(l: Lineage): string {
   }
   return out.join("\n");
 }
+
+/**
+ * 整节替换 markdown 里的某个 H2 小节，前后小节原样保留。
+ *
+ * 参数页的「版本谱系」由 `wiki:lineage:apply` 每次重算覆盖——不管上一次是
+ * agent 写的还是脚本生成的。放在库里而不是 CLI 里，是为了让它能被单测直接
+ * 引用而不触发 CLI 的副作用。
+ */
+export function replaceSection(body: string, section: string, content: string): string {
+  const i = body.indexOf(section);
+  if (i < 0) return `${body.trimEnd()}\n\n${content}\n`;
+  const rest = body.slice(i + section.length);
+  const next = rest.search(/^##\s/m);
+  const tail = next < 0 ? "" : rest.slice(next);
+  return `${body.slice(0, i)}${content}\n\n${tail}`.replace(/\n{3,}/g, "\n\n");
+}

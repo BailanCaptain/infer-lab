@@ -1,0 +1,150 @@
+# 参数页第一批：v0.23.0 有、main 已删的 8 个 additional_config 参数。
+#
+# 选它们当第一批的理由：这正是「我在 v0.23.0 上开发，它什么时候没的、被谁删的、
+# 删了有什么影响」这个场景——用户最早提的 layer_sharding 就在其中。
+# 官方参数表 v0.23.0 列了 60 个、main 列了 86 个，这 8 个是差集里被删的那边。
+#
+# 跑法：
+#   pnpm wiki:ingest --seeds wiki/seeds/params-removed.yaml --phase extract
+#   pnpm wiki:lineage:apply          # 版本谱系一节由脚本重算，agent 不写
+#   pnpm wiki:ingest --seeds wiki/seeds/params-removed.yaml --phase integrate
+repos:
+  vllm-ascend:
+    url: https://github.com/vllm-project/vllm-ascend
+    path: tools/repos/vllm-ascend
+    refs:
+      main: 28bf3a2e
+      "releases/v0.23.0": 2c59ff10
+
+features:
+  - id: layer-sharding
+    title: layer_sharding
+    type: param
+    chapters: ["13"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry:
+      [
+        vllm_ascend/ops/layer_shard_linear.py,
+        vllm_ascend/ascend_config.py,
+        vllm_ascend/ops/linear_op.py,
+        vllm_ascend/distributed/parallel_state.py,
+      ]
+    docs:
+      [
+        docs/source/user_guide/configuration/additional_config.md,
+        docs/source/user_guide/feature_guide/layer_sharding.md,
+      ]
+    ask: |
+      官方参数表（v0.23.0）：`layer_sharding` | dict | `{}` | Configuration options for
+      Layer Sharding Linear. Layer Sharding can only be enabled in PD-disaggregated's P node.
+      它把什么切开、切到哪几张卡上；为什么只能在 PD 分离的 P 节点开；dict 里有哪些键、
+      各自默认值；开了之后哪些算子走 LayerShardLinear、对显存与通信各有什么代价；
+      与 TP / flashcomm2 / o_shard 的关系。**它在 main 上已经被整体删除**，正文要说清
+      在 v0.23.0 上怎么用、在新版上该改用什么。
+
+  - id: weight-prefetch-config
+    title: weight_prefetch_config
+    type: param
+    chapters: ["19"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）：`weight_prefetch_config` | dict | `{}` | Configuration options
+      for weight prefetch。它预取什么权重、预取到哪一级存储、什么时候触发；与
+      `prefetch_ratio` 的关系；开了对首 token 延迟与显存的影响。main 上已删，说明去向。
+
+  - id: prefetch-ratio
+    title: prefetch_ratio
+    type: param
+    chapters: ["19"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）默认值是嵌套 dict：
+      `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}`。
+      每个比例分别控制哪一类权重预取多少；为什么 moe 的 gate_up 是 0.8 而不是 1.0；
+      调大调小各有什么代价。main 上已删，说明去向。
+
+  - id: fuse-allreduce-rms
+    title: fuse_allreduce_rms
+    type: param
+    chapters: ["13"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）：`fuse_allreduce_rms` | bool | `False` | Whether to enable
+      fuse_allreduce_rms pass. It's set to False because of conflict with SP.
+      它把 allreduce 与 RMSNorm 融成什么；**为什么与 SP（序列并行）冲突**——这条要说清，
+      它是默认关闭的原因。main 上已删，说明去向。
+
+  - id: enable-matmul-allreduce
+    title: enable_matmul_allreduce
+    type: param
+    chapters: ["13"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）：`enable_matmul_allreduce` | bool | `False`，并提到迁移期
+      可以用环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 配置。
+      它把 matmul 与 allreduce 怎么重叠、省的是什么；环境变量与配置项谁优先；
+      什么规模下才划算。main 上已删，说明去向。
+
+  - id: multistream-overlap-gate
+    title: multistream_overlap_gate
+    type: param
+    chapters: ["14"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）：`multistream_overlap_gate` | bool | `False` | This option only
+      takes effect on MoE models with shared experts.
+      它让哪两段计算并到不同 stream 上；**为什么只对带共享专家的 MoE 生效**；
+      开了省多少、代价是什么。main 上已删，说明去向。
+
+  - id: enable-async-exponential
+    title: enable_async_exponential
+    type: param
+    chapters: ["19"]
+    priority: 3
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）：`enable_async_exponential` | bool | `False`。
+      这里的 exponential 指的是 softmax 里的哪一步、异步重叠的是什么；
+      开了对精度有没有影响。main 上已删，说明去向。
+
+  - id: enable-sleep-mode-extra-cleanup
+    title: enable_sleep_mode_extra_cleanup
+    type: param
+    chapters: ["19"]
+    priority: 3
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: |
+      官方参数表（v0.23.0）：`enable_sleep_mode_extra_cleanup` | bool | `False` | Enables
+      extra sleep-mode cleanup for RL workloads, including HCCL process-group release and
+      ACL graph workspace cleanup. Disabled by default because wakeup may need to restore
+      HCCL and recapture ACL graphs.
+      sleep mode 是什么、RL 负载为什么需要额外清理；**默认关闭的理由**（唤醒要重建 HCCL、
+      重新捕获 ACL 图）要说清——这是「开了的代价」那一节的主体。main 上已删，说明去向。

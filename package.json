@@ -29,6 +29,7 @@
     "wiki:gaps": "tsx scripts/wiki-gaps.ts",
     "wiki:stale": "tsx scripts/wiki-stale.ts",
     "wiki:lineage": "tsx scripts/wiki-lineage.ts",
+    "wiki:lineage:apply": "tsx scripts/wiki-lineage-apply.ts",
     "wiki:ingest": "tsx scripts/wiki-ingest.ts",
     "wiki:clone": "tsx scripts/wiki-clone.ts",
     "dev:server": "tsx watch server/index.ts",

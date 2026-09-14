@@ -1,4 +1,4 @@
-# 交接说明（2026-09-11 更新：阅读页与问答上线，HANDBOOK 重写，立 F004）
+# 交接说明（2026-09-14 更新：知识库 19 页，双版本对照 + 参数版本谱系落地）
 
 ## 当前开篇：大模型推理之旅 · 城市背景
 
@@ -12,52 +12,79 @@
 
 ## 现状（一句话）
 
-**主干只剩地基，没有任何教学画面；另有一条 `feat/llm-wiki` 分支在做知识库，已有可用的阅读页与问答（见下方 F001 一节）。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
+**主干只剩地基，没有任何教学画面；另有一条 `feat/llm-wiki` 分支在做知识库，19 页可读、问答会沿关系图串多页作答、参数页带 git 算出的版本谱系（见下方 F001 / F002 一节）。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
 
-## 知识库 F001（分支 `feat/llm-wiki`，未合入 main）
+## 知识库 F001 / F002（分支 `feat/llm-wiki`，未合入 main）
 
-真相源四份，接手先读：聚合文件 `docs/features/F001-llm-wiki.md`、实施计划 `docs/plans/llm-wiki-plan.md`、试点人审报告 `docs/plans/llm-wiki-pilot-review.md`、**问题台账 `docs/plans/llm-wiki-open-questions.md`**（用户 09-10 至 09-11 提的 17 个问题及处置，含几处我判断错后的更正）。
+真相源：`docs/features/F001-llm-wiki.md`（12 条 AC）、`docs/features/F002-param-lineage.md`（6 条 AC）、实施计划 `docs/plans/llm-wiki-plan.md` 与 `docs/plans/param-lineage-plan.md`、试点人审报告 `docs/plans/llm-wiki-pilot-review.md`、**问题台账 `docs/plans/llm-wiki-open-questions.md`**（用户 09-10 起提的问题及处置，含几处我判断错后的更正）。
 
 **目标**：agent 写、人只审、进 git 的课程知识库，学习者在 `#/wiki` 问名词就有基于知识库的回答。
 
-**十二条验收标准，已完成八条**：AC1 骨架派生、AC2 lint、AC3 ingest 引擎、AC4 试点批、AC6 阅读页、AC7 聊天问答、AC9 多 ref 与完整克隆、AC10 检索接口。
-**剩四条**：AC5 批量灌种（要额度，且有四条前置改造，见下）、AC8 存进 wiki、AC11 图与逐条证据标记、AC12 关系呈现（检索侧已完成）。
+**F001 · 12 条 AC 达成 10 条**。剩 **AC5 批量灌种**（现在 19 页，目标 120–160 页）与 **AC8 存进 wiki + PR ingest**（没动）。
+**F002 · 6 条 AC 达成 2 条**（AC3 版本谱系、AC5 选择性补正文）。剩 AC1 扫描器、AC2 疑似项复核、**AC4 骨架页**、AC6 每日同步。
+
+**产出**：`wiki/concepts/` 11 页（11 章 KV Cache）+ `wiki/params/` 8 页（v0.23.0 有、main 已删的参数），共 19 页。
+
+**每页现在长这样**（与最初的四节版已完全不同）：
+
+- 概念页六节：一句话 / 为什么需要它 / 怎么工作（必须有 mermaid 图）/ 拿真实数字走一遍 / 事实表 / 常见误解。「接着看」不手写，由 `relations` 生成。
+- **一页覆盖两个版本**：`releases/v0.23.0` 与 `main` 同时读，行为不同的必须写清哪版是哪样并标 `[!]`（现有 44 处）。
+- **事实表四列**：`项 / v0.23.0 / main / 意味着什么`，≤10 行，不放来源列。两版一致的行写「同」，无差异的页退化成三列。
+- **边有类型有方向**：`relations: [{to, kind, note}]`，kind 取 `builds-on` / `variant-of` / `conflicts-with` / `alternative-to`；一条边只写在依赖方那侧，反向边由 `wiki:build` 派生成 `backlinks`。现有 31 条。
+- **内联证据标记带来源编号**：`[C6]` 指向 `sources` 第 6 条，点开跳 GitHub 钉住的行号。每页 ≤20 处（初版 400 处、66% 是 `[C]`，等于没有信息）。
+- 参数页四节 + 一节 **`## 版本谱系`，由脚本从 git 算、整节覆盖**，agent 写什么都会被冲掉——它会编 PR 号。
 
 **已经能用的命令**
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm wiki:clone --seeds <yaml>` | **完整克隆**源码仓库到 `tools/repos/`，抓全部分支与 tag，按 seeds 里声明的每个 ref 建一份工作树 |
-| `pnpm wiki:ingest --seeds <yaml>` | 扇出提取（每 feature 一次 `claude -p`，并发 3）+ 串行整合 |
-| `pnpm wiki:build` | 由 frontmatter 派生 `wiki/index.md`、`wiki/log.md`、`src/content/wiki/registry.json` |
+| `pnpm wiki:clone --seeds <yaml>` | **完整克隆**源码仓库到 `tools/repos/`，抓全部分支与 tag，按 seeds 声明的每个 ref 建一份工作树 |
+| `pnpm wiki:ingest --seeds <yaml> --phase extract` / `--phase integrate` | 扇出提取（每 feature 一次 `claude -p`，并发 3，多 ref 时每个 ref 各给一个 `--add-dir`）+ 串行整合 |
+| `pnpm wiki:build` | 由 frontmatter 派生 `wiki/index.md`、`registry.json`，并算出反向边 `backlinks` |
 | `pnpm wiki:lint` | 静态规则，已进 `pnpm check` |
 | `pnpm wiki:audit --seeds <yaml>` | 把每条来源行号拿到钉住的仓库里核对是否真实存在 |
-| `pnpm dev` | 前端；`#/wiki` 是阅读页 |
-| `pnpm dev:server` | 问答服务（`server/`，默认 8790），前端经 vite proxy 打过来 |
-| `pnpm dev:all` | 前后端一起起 |
+| `pnpm wiki:gaps` | **漏洞**：跨页反复引用但没有页的概念 + 指向不存在页的断边 |
+| `pnpm wiki:stale` | **过期**：哪几页引用的上游代码已经变了，直接给出 `--only` 重跑命令 |
+| `pnpm wiki:lineage <名字>` | 一个标识符在各分支的存亡 + 引入/移除 PR + 影响面，输出即「版本谱系」一节 |
+| `pnpm wiki:lineage:apply` | 把上面的结果整节写进 `wiki/params/*.md` |
+| `pnpm dev` / `pnpm dev:server` / `pnpm dev:all` | 前端（`#/wiki`）/ 问答服务（8790）/ 两者一起 |
 
-**`wiki/HANDBOOK.md` 是这套系统唯一的规则文件**，176 行，按六个二级标题切片分别注入不同角色的 agent（提取 / 整合 / 问答 / 复核）。映射表在 `scripts/wiki/handbook.ts:9`。**改规则只改这一个文件，不动代码**——09-10 至 09-11 用户提的页面格式、加图、证据等级、占位符四类问题，全部只改了它。代价是：**规则改了页面不会自己变，要重跑才生效**，所以现有 11 页仍是旧格式。
+**`wiki/HANDBOOK.md` 是这套系统唯一的规则文件**，按六个二级标题切片分别注入不同角色的 agent。映射表在 `scripts/wiki/handbook.ts:9`。**改规则只改这一个文件，不动代码。** 代价是：**规则改了页面不会自己变，要重跑才生效**。
 
-**产出**：`wiki/concepts/` 11 页（11 章 KV Cache 特性，`vllm-ascend@28bf3a2e`），174 条来源行号全部核对属实，70 条双向交叉链接（密度 64%，无孤立页）。`wiki/raw/` 是对应摘录。
+**踩过的坑，别再踩**
 
-**成本实测**：试点批 11 页 28 美元等值，约每页 2.5 美元，一批 11 个打满一个额度窗口。AC5 要灌 120–160 页，约 300 美元等值，跨多个窗口。
+- `--allowedTools` 在 `-p` 无人值守模式下是**白名单**不是免确认表。放开联网要两步：从黑名单拿掉、往白名单加上，只做前者等于没做。
+- 越界守卫只删**本批新建**的文件。它曾把 `wiki/HANDBOOK.md`（规则唯一真相源）当越界写入删掉，并让 11 个正常 agent 全判失败——那次改动来自引擎外部，agent 根本没有写它的权限。
+- **`TaskStop` 只杀外层 shell，`claude.exe` 子进程会活下来继续写文件**。要停 ingest 用 `taskkill /pid <pnpm 的 pid> /t /f`。
+- 定性规则（「只留三类」「删到合理密度」）实测不落地，**换成硬指标并由引擎算好数字写进任务**才有效——标记数与事实表行数都是这么治住的。
+- 整合 agent 没有 `--add-dir` 也不能联网，它只读草稿与现有页。所以它能发现**页与页之间的矛盾**，发现不了**页与源码之间的偏差**（实测漏掉一处过度概括）。要抓后者得扩 `wiki:audit` 或加一个能读源码的核对角色。
+- 正文不走 `rehype-raw`：裸 HTML 标签与 `<!-- 注释 -->` 都会原样显示在页面上。`stray-tag` 规则管这个。
+- 别用 python heredoc 写含 `\n` 的 TS——反斜杠会被吃掉，正则和字符串都会断。用 Edit 工具。
 
-**下一步：AC5 有四条前置改造，都在 `llm-wiki-plan.md` 的 Phase 4.5（Task 26–29），必须先做完再开跑**——灌种一旦开始就是上百页上百美元，跑完才发现规则不对要全部重来：
+**成本实测**（试点至今共约 $165）：
 
-1. **Task 26 解 R2**：整合阶段现在读 `concepts/` 全部现有页，11 页 96 KB 没事，160 页约 1.4 MB 会撞上下文
-2. **Task 27**：seeds 的 `entry` 要同时列源码与文档（现在全指 `.py`，152 个文档只碰到 9 个）
-3. **Task 28**：本地文档有 226 处 `{{ }}` 占位符，照抄会写出跑不了的安装命令
-4. **Task 29**：HANDBOOK 声明了六条新 lint 规则但代码没写，声明了不执行等于没有
+| 批次 | 提取 | 整合 |
+|---|---|---|
+| 初版 11 页 | $36.77 | $7.48 |
+| 按图重写 11 页 | $36.43 | $7.11 |
+| 双版本重写 11 页 | $45.45 | $6.98 |
+| 参数页 8 页 | $21.02 | $4.14 |
+
+概念页约每页 $4，参数页约每页 $3。**AC5 灌 120–160 页约 $660。**
+
+**下一步的判断**：先补 **F002 的 AC1 + AC4**（参数扫描器 + 骨架页生成器）。官方参数表 main 有 86 个参数，8 个花了 $25，86 个按同一单价约 $240；而绝大多数参数只需要「名字 / 类型 / 默认值 / 官方一句话」（文档表里全有）加版本谱系（脚本算），骨架页方案接近 $0。**AC4 是 AC5 放量前的前置，这次顺序颠倒了要补回来。**
 
 **接手注意**
 
 - `tools/repos/` 已 gitignore，全新检出要先跑 `pnpm wiki:clone`。**完整克隆约 96 MB**，每个非 main 的 ref 另占一份工作树。
-- `src/content/wiki/registry.json`、`wiki/index.md`、`wiki/log.md` 都是生成物，不要手改；registry 已排除在 biome 格式化外。
+- `src/content/wiki/registry.json`、`wiki/index.md`、`wiki/log.md` 都是生成物，不要手改。
+- 页面目录清单有两处要同步：`scripts/wiki/pages.ts` 的 `PAGE_DIRS` 与 `src/content/wiki/index.ts` 的 `import.meta.glob`。漏一处就是 registry 有页而前端读不到（加 `params/` 时漏过一次，被一致性测试抓住）。
 - ingest 用 `Edit(路径)` 做按路径写入限制（`Write(路径)` 不被 CLI 识别，黑名单放 `Edit` 会连 Write 一起禁掉），另有批级快照差集兜底。
-- **检索只能走 `src/content/wiki/retrieve.ts`**，聊天层不许自己 grep（AC10，风险 R1 的应对）。
-- 官方文档站 <https://docs.vllm.ai/projects/ascend/> 有 26 个活跃版本，内容由仓库 `docs/source/` 渲染。**读本地拿不到版本号**——占位符只有渲染后才有值，所以本地与线上两路都要读。
+- **检索只能走 `src/content/wiki/retrieve.ts`**，聊天层不许自己 grep（AC10）。
+- 官方文档站 <https://docs.vllm.ai/projects/ascend/> 有 26 个活跃版本，内容由仓库 `docs/source/` 渲染。
+- **知识库当前钉在 `28bf3a2e`（2026-08-29），而 `origin/main` 已超前 276 个提交**，19 页引用的文件里绝大多数已变过。`pnpm wiki:stale` 会告诉你该重跑哪几页。
 
-## 后续三个 feature：F002 / F003 / F004（均未开工）
+## 后续 feature：F003 / F004（文档已写，**计划一个字没写，代码零**）
 
 用户 09-10 至 09-11 提出三类 F001 结构上答不了的需求，各立一个 feature。四份 feature 文档已互相引用、依赖标清、冲突已解（做过一轮交叉审查）。
 

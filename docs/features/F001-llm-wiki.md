@@ -8,7 +8,7 @@ created: 2026-09-07
 
 # F001 — LLM Wiki：课程知识库 + 右侧问答
 
-**Status**: in-progress（AC1–AC4、AC6、AC7、AC9、AC10 达成；剩 AC5 批量灌种、AC8 存进 wiki、AC11 图、AC12 关系）
+**Status**: in-progress（12 条 AC 达成 10 条；剩 AC5 批量灌种、AC8 存进 wiki 与 PR ingest）
 **Created**: 2026-09-07
 
 ## Why
@@ -48,8 +48,15 @@ created: 2026-09-07
 - [x] **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 **14** 个文件（部分克隆下是 11 或 13，见 Design Decisions）。
 - [x] **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
 
-- [ ] **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。
-- [ ] **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `related` 作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 related 扩展来的页并标出来源，抽屉里出现相关页入口。
+- [x] **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。**2026-09-14 达成**：11 页全部含图（11/11，验收线八成），共 18 张；内联标记 201 处且**带来源编号**（`[C6]` 指向 `sources` 第 6 条，点开跳 GitHub 钉住的行号——恢复 PLAN §1.4 的原设计，此前落地成光秃秃的字母，用户反馈「又不能点」）；`diagram-identifier`、`mark-index`、`mark-unnumbered`、`mark-flood` 四条规则各有一红一绿测试。密度也被治住：初版 400 处标记里 66% 是 `[C]`，现在每页 ≤20 处，由引擎在整合任务里直接算出每页超了多少，定性规则「只留三类」实测不落地。
+- [x] **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `related` 作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 related 扩展来的页并标出来源，抽屉里出现相关页入口。**2026-09-12 达成，有前后实测对比**：改前 agent 只 `Read` 了 `block-table.md` 一个文件，把一页压缩成答案，回答里的 PagedAttention / Prefix Caching 链接抄自该页正文里已有的话，那两页根本没打开；改后读了 block-table / paged-attention / kv-cache-spec / prefix-caching **四个文件**，按「它依赖什么 → 它是什么 → 谁用到它 → 边界」组织，依赖处给出列数公式 `cdiv(max_model_len, block_size × dcp_world_size)`。
+
+  根因不在检索而在页面格式：原先每页都要写「为什么需要它」，于是每页都用散文重讲一遍邻居——`block-table.md` 里有整段 PagedAttention、整段 prefix caching。一页本身**已经是**稀释版的「串起来」，图上的边没东西可加，agent 读一页就停是理性的。把页面做成自给自足的，等于把图做成了装饰。三处改动：
+  1. `related: [id]` 换成有类型有方向的 `relations: [{to, kind, note}]`，kind 取 `builds-on` / `variant-of` / `conflicts-with` / `alternative-to`；一条边只写在依赖方那一侧，反向边由 `wiki:build` 派生成 `backlinks`（`related-asymmetric` 规则随之删除）。
+  2. HANDBOOK 明写「邻居一句话带过加链接」，判断标准是**这段在对方那页写得更好，就不该出现在这页**。
+  3. server 把命中页的地基 / 下游 / 同层连同每条边的 `note` 一起注入 stdin，「查询」切片要求按四步组织回答。
+
+  横向边只有整合 agent 能补——提取 agent 并行跑、彼此只知道对方 id，实测第一轮 15 条边里 14 条是 `builds-on`，一条 `variant-of` / `conflicts-with` 都没有；把「逐对过一遍，找变体与互斥」写进整合切片后，31 条边里出现了 6 条 `alternative-to`、2 条 `conflicts-with`。
 
 **Out of scope**（写明触发条件）：向量检索（2026-09-10 用户拍板先不加；触发条件改为「AC10 的 grep 实现在一组真实问题上命中率不足」，且只用于 F003 的 issue 语料，不用于 wiki 页——参数类问题按名字精确查表，语义检索反而更差）；codex 作为 ingest agent（claude 试点合格后再接，runner 接口已留 `agent` 字段）；多 agent 并发写同一页所需的租约 / 围栏令牌 / CAS（本设计下并行 agent 不写同一文件，不需要）；cron 巡检与写入账本；章节页右栏（章节页尚不存在，抽屉先落在 `#/wiki`）。
 

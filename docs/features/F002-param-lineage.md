@@ -1,15 +1,16 @@
 ---
 id: F002
 title: vLLM-Ascend 参数清单与版本谱系
-status: planned
+status: in-progress
 owner: BailanCaptain
 created: 2026-09-10
 ---
 
 # F002 — vLLM-Ascend 参数清单与版本谱系
 
-**Status**: planned
+**Status**: in-progress（6 条 AC 达成 2 条：AC3 版本谱系、AC5 选择性补正文；剩 AC1 扫描器、AC2 疑似项复核、AC4 骨架页、AC6 每日同步）
 **Created**: 2026-09-10
+**Updated**: 2026-09-14
 
 ## Why
 
@@ -53,9 +54,15 @@ F001 结构上答不了这类问题，三个原因：
 
 - [ ] **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`（如 `additional_config["eplb_config"]["dynamic_eplb"]`）、`file`、`line`、`comment`（字段上方注释）、`constraints`（从 validator 的报错字符串提取的取值范围与联动）、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别（见 Design Decisions「四种定义形态」）。
 - [ ] **AC2 · 疑似项由 LLM 复核**：`confidence: suspect` 的条目走一次 agent 调用复核，输出 `确认是参数 / 不是参数 / 拿不准` 三态与理由，写回 `params-<ref>.json`。拿不准的留在清单里并标记，不静默丢弃。验收：故意混入一个非参数标识符，复核后被标为「不是参数」且带理由。
-- [ ] **AC3 · 版本谱系**：`pnpm wiki:lineage` 对每个参数跨全部 ref 计算 `wiki/lineage/<param>.json`：各 ref 有无、首次出现的提交与 PR 号、被删除的提交与 PR 号、含它的 tag 列表。PR 号从 squash 提交信息尾部的 `(#NNNN)` 提取。验收：`layer_sharding` 的谱系文件与上方 Why 里那张实测表一致，且给出 v0.23→v0.24 之间的删除提交。
+- [x] **AC3 · 版本谱系**：`pnpm wiki:lineage` 对每个参数跨全部 ref 计算 `wiki/lineage/<param>.json`：各 ref 有无、首次出现的提交与 PR 号、被删除的提交与 PR 号、含它的 tag 列表。**2026-09-12 达成**（落在 `scripts/wiki/lineage.ts` + `pnpm wiki:lineage <名字>`，输出直接就是参数页「版本谱系」一节的 markdown，未落 `wiki/lineage/<param>.json` 中间文件）。实测 `layer_sharding`：v0.13.0~v0.23.0 有（6→8 个文件）、v0.24.0rc 起全无；移除 2026-07-15 PR #11953 `[Refactor] remove layer sharding`；影响面 `ops/layer_shard_linear.py −296`、`ops/flashcomm2_oshard_manager.py −103` 等五个文件。四条命令即可：`git grep -l` 每分支有无、`git log -S` 找存亡翻转的提交、提交标题末尾的 `(#NNNN)` 取 PR、`git show --numstat` 算影响面。**引入点要走「最后一个还有它的分支」的历史**——走最新分支会取到改名而不是诞生点。这一节由 `pnpm wiki:lineage:apply` 整节覆盖写进页面，agent 写什么都会被冲掉（它会编 PR 号）。PR 号从 squash 提交信息尾部的 `(#NNNN)` 提取。验收：`layer_sharding` 的谱系文件与上方 Why 里那张实测表一致，且给出 v0.23→v0.24 之间的删除提交。
 - [ ] **AC4 · 骨架页零成本覆盖全部参数**：`pnpm wiki:build-param-pages` 由 `params-*.json` + 谱系确定性生成 `wiki/params/<name>.md`，含 frontmatter、定义位置、默认值、约束、版本表，正文标记为「骨架，待补」。不调用任何 LLM。验收：跑一次生成全部参数页，`pnpm wiki:lint` 通过，`git diff` 在重复运行后为空（幂等）。
-- [ ] **AC5 · LLM 选择性补正文**：`pnpm wiki:ingest --params <name,...>` 把骨架页交给提取 agent 补「是什么 / 为什么存在 / 开了的代价 / 和谁互斥」四节，骨架部分（版本表、定义位置）由脚本重新覆盖，agent 不得改动。验收：补完一页后重跑 `wiki:build-param-pages`，版本表被脚本刷新而正文保留。
+- [x] **AC5 · LLM 选择性补正文**：`pnpm wiki:ingest --params <name,...>` 把骨架页交给提取 agent 补「是什么 / 为什么存在 / 开了的代价 / 和谁互斥」四节，骨架部分（版本表、定义位置）由脚本重新覆盖，agent 不得改动。验收：补完一页后重跑 `wiki:build-param-pages`，版本表被脚本刷新而正文保留。
+
+  **2026-09-14 部分达成，有一处与设计的偏差要记下**：已跑通 8 个参数页（`wiki/seeds/params-removed.yaml`，即 v0.23.0 官方参数表有 60 个、main 有 86 个，差集里被删掉的那 8 个：`layer_sharding`、`weight_prefetch_config`、`prefetch_ratio`、`fuse_allreduce_rms`、`enable_matmul_allreduce`、`multistream_overlap_gate`、`enable_async_exponential`、`enable_sleep_mode_extra_cleanup`），提取 $21.02 + 整合 $4.14，落在 `wiki/params/`。
+
+  偏差：**本该先做 AC4 铺骨架页、LLM 只补重要的那几页正文，实际是让 LLM 整页生成**。8 个尚可，86 个按同一单价约 $240，而绝大多数参数只需要「名字 / 类型 / 默认值 / 官方一句话」（文档表里全有）加版本谱系（脚本算），根本不必花 LLM。**AC4 是 AC5 放量前的前置**，顺序颠倒了要补回来。
+
+  这批的实际收获：`layer_sharding` 页把用户最早那串问题一次答全（干嘛的 / 哪版移除 / 移除 PR / 哪些分支还有 / 影响面），且谱系那节不可能是编的；agent 还抓到一处**文档与代码不符**并经人工核对属实——官方参数表写 `dict`、默认 `{}`，实际 `ascend_config.py` 是 `get("layer_sharding", None)`、`platform.py` 里 `or []` 当列表用。
 - [ ] **AC6 · 每日同步与新参数触发**：`pnpm wiki:sync` 拉全部 ref、重跑扫描与谱系、与上次结果 diff；新增参数进 `wiki/_drafts/_param-queue.json` 并自动生成骨架页；消失的参数在页面上标注移除版本与 PR；默认值变化写进 `wiki/log.md`。失败非零退出并在 log 留原因。注册为 Windows 计划任务每日运行。验收：把上次结果人为改掉一条，跑 sync 能报出「新增 1 / 删除 1 / 变更 1」并落到对应文件。
 
 **Out of scope**：vllm 上游仓库的参数（先只做 vllm-ascend，需要时同一套引擎加一个 repo）；参数的运行时实测行为（属于 PLAN 的 M 级证据，本 feature 只做静态事实）；GitHub issue / PR 语料与报错检索（→ F003）；前端展示（复用 F001 AC6 的阅读页，本 feature 只产数据）。

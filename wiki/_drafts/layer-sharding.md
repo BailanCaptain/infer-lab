@@ -1,0 +1,124 @@
+---
+id: layer-sharding
+title: layer_sharding
+type: param
+summary: 点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。
+aliases: [Layer Sharding Linear, 层间权重分片, 按层切权重]
+chapters: ["13"]
+sources:
+  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L56
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L285-L296
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L412-L417
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L712-L724
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L191-L226
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1293-L1297
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549
+  - vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775
+  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18
+  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42
+  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86
+  - vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128
+  - vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359
+  - vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486
+  - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1324-L1337
+  - vllm-ascend@28bf3a2e:vllm_ascend/quantization/tp_weight_switch.py#L70-L106
+  - vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184
+evidence: "C"
+relations: []
+contradicts: []
+updated: "2026-09-14"
+---
+
+## 一句话
+
+`layer_sharding` 接一个层名列表（**不是官方表写的 dict**），把这些名字对应的 Linear 权重按层号轮流分配到一个通信组的 K 张卡上——第 `i` 层只存在 rank `i % K` 上，其余卡上这块权重被置空，前向时靠异步 broadcast 提前一层取回 [C3][C4][C15]。用一次全层广播换掉 (K-1)/K 的权重显存。它只能在 PD 分离的 P 节点启用，否则启动直接报错 [C2]；在 v0.23.0 上它已被官方列入待废弃清单 [S18]，在 main（`28bf3a2e`）上参数、实现文件、feature guide 已被整体删除 [!]。
+
+官方文档对应页：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)（latest 版下前两者已不存在）。
+
+## 事实表
+
+| 项 | v0.23.0 (`2c59ff10`) | main (`28bf3a2e`) | 意味着什么 |
+|---|---|---|---|
+| 是否存在 | 有 | **已删除**：`vllm_ascend/` 下 `layer_sharding` 零命中，`ops/layer_shard_linear.py` 与 feature guide 均不存在 | 照 v0.23.0 的教程往新版上搬，这个键会被 vLLM 当未知配置忽略，显存一点都省不下来 |
+| 实际类型 / 默认值 | `list[str]`，默认 `None` | — | 官方表写的 `dict` / `{}` 两项都是错的 [!]；写成 `{"o_proj": ...}` 不会报错，但 `"o_proj" in {...}` 的语义变成查键，行为不是你想要的 |
+| 取值 | 层名，取 `prefix` 最后一段，如 `["o_proj", "q_b_proj"]` | — | 名字拼错只有一条 `warning_once`，不报错、静默不切，得去日志里找 |
+| 子键 | **没有**，它是扁平列表 | — | 不存在「dict 里有哪些键」这回事；`prefetch_step` 在两个注册点都写死 1，用户无法调 |
+| 权重归属 | 第 `i` 层落在组内 rank `i % K` | — | K 是 `shard_weight` 组大小，不是 TP size；TP 切层内、它切层间，两者正交 |
+| 常驻缓冲 | `prefetch_step + 1 = 2` 份整权重 / 每个 series | — | 省下的不是 1/K 而是 `总量/K + 2×单层`，层数少时这 2 份能吃掉大半收益 |
+| 启用前提 | `kv_role` 必须是 `kv_producer`，否则启动抛 `ValueError` | — | 混部（无 `kv_transfer_config`）、`kv_both`、D 节点一律起不来 |
+| 配 FlashComm2 时取值 | 只能严格等于 `["o_proj"]`，否则 `ValueError` | FlashComm2 本身也已从 `vllm_ascend/` 删除 | 想同时切 `q_b_proj` 就不能开 FlashComm2，只能走 DSA-CP 那条路 |
+| 配 RFork 时 | 静默降级：RFork 被绕过，退回默认 loader | — | 只有一条 warning，模型加载变慢而不报错，容易被当成「RFork 没生效」排查半天 |
+| 官方状态 | 已列入 Ready to Deprecate，与 FlashComm2 同批 | 已执行 | 新部署不要引入；已有部署要准备迁移 |
+
+## 为什么存在
+
+深层模型里有一类权重矩阵，**每层结构完全一样、数值各不相同，而且每层都必须以完整形态驻留**。最典型的是 DeepSeek-V3/R1 这类 61 层模型的 `o_proj`：一旦开了 FlashComm2 或 DSA-CP，输出投影矩阵在该层前向时需要全量在手，没法靠 TP 继续摊薄 [S15]。61 份全量矩阵压在每张卡上，纯粹是容量问题——不是算得慢，是放不下。
+
+`layer_sharding` 的做法是换一个维度切：**TP 切的是层内（一个矩阵切给多张卡），它切的是层间（多个矩阵轮流放）**。注册时，不归本卡的层直接 `dispose_tensor` 把张量置空，并把 `weight_loader` 换成 no-op——连从磁盘读都省了 [C4]。前向时靠 `reach_layer` 发一个异步 `dist.broadcast`，到该层 `forward` 入口再 `wait_weight` 收 [C5]。因为 `prefetch_step` 恒为 1 [C6][C7]，能用来遮掩这次通信的，正好是一层 attention 的计算时间。
+
+```mermaid
+flowchart TD
+    A["additional_config<br/>layer_sharding: ['o_proj']"] --> B["_validate_layer_sharding_config<br/>kv_role 必须是 kv_producer"]
+    B --> C["get_shard_weight_group()<br/>在 TP 之外的正交维度建 K 卡组"]
+    C --> D["register_layer_to_shard_weight_series<br/>按 prefix 末段分 series"]
+    D --> E{"is_source(i)<br/>i % K == rank ?"}
+    E -->|是| F["保留本卡权重"]
+    E -->|否| G["dispose_tensor(weight)<br/>weight_loader 置为 no-op"]
+    F --> H["reach_layer(i)<br/>异步 broadcast 第 i+1 层"]
+    G --> H
+    H --> I["wait_weight(i)<br/>在 forward 入口阻塞等待"]
+```
+
+「只能在 P 节点」不是实现凑合，是设计前提。上游把理由直接写在代码注释里：广播只有被更重的 prefill 计算盖住才划算，所以只在 P 侧实例启用 [C12]。Decode 阶段每层计算量小得多，同样一次广播遮不住，就成了净亏。这条在 `platform.py` 里是启动期硬校验，不是建议 [C2]。
+
+组建在哪几张卡上，取决于走哪条分支：FlashComm2 场景用 otp 组、DSA-CP 场景按全复制建、其余用全局 TP 组 [C9]。注意那里的判据是 `layer_sharding is not None`，所以传一个空列表 `[]` 会照样建出 `shard_weight` 组，却因为 `platform.py` 对空值提前返回而跳过 P 节点校验 [C2][C9]——空列表是个既不报错也不生效、只白建一个通信组的状态。
+
+## 开了的代价
+
+**显存这笔账（DeepSeek-V3/R1，W8A8，单节点 16 卡、TP16、PP1）。** `o_proj` 权重形状是 `[hidden_size, num_heads × v_head_dim] = [7168, 128 × 128] = [7168, 16384]`，即 117,440,512 个元素；int8 每元素 1 字节，单层 **112 MiB**。61 层全量驻留 = `112 MiB × 61 = 6832 MiB ≈ 6.67 GiB`。切到 K = 16 张卡后，本卡只留 `6832 / 16 = 427 MiB`，再加 2 份窗口缓冲 `2 × 112 = 224 MiB`，共 **651 MiB**，省下约 **6.0 GiB** [D]。这里的维度取自 DeepSeek-V3 的公开配置、K 由上面的组建规则推算，两者都不是从源码直接读出的常数，故标 `[D]`。
+
+**通信这笔账。** 每张卡对它不负责的那 15/16 的层都要收一份全量权重：`61 × (15/16) × 112 MiB ≈ 6.3 GiB`，**每次前向、每张卡**。摊到每层约 105 MiB，必须在一层 attention 的计算时间内传完 [D]。这就是为什么它对 batch 小、序列短的场景是纯负收益——官方在配置读取处直接告警：不配 FlashComm2 / DSA-CP 就开，性能会显著退化 [C1]。
+
+**和谁抢 `o_proj`。** `_get_row_parallel_op` 的分派是有序的：`ShardedCPRowParallelOp`（DSA-CP + layer sharding 的 `o_proj` 路径）排在 `oproj_tensor_parallel_size`、matmul-allreduce、FlashComm2 各条之前 [C8]。也就是说 DSA-CP 场景下切了 `o_proj`，这一层就不会再走 matmul-allreduce 或 FlashComm2 的 row-parallel 实现——不报错，静默生效，看 profiling 时容易困惑。
+
+**文档自相矛盾的一处，配之前务必确认。** feature guide 的 DSA-CP 示例是 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1` 配 `["q_b_proj", "o_proj"]` [S16]，DeepSeek-V3.2 教程也给了 `["q_b_proj", "o_proj"]` + `enable_dsa_cp: true` 的可复制启动行 [S20]；但 GLM5 / GLM5.2 / InternVL3.5 三篇教程都写着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S19]。源码层面 DSA-CP + `o_proj` 的路径是存在且被专门分派的 [C8]，所以这条限制更像是模型相关而非全局，但上游没有任何一处把话说圆 [!]。按模型选对应教程的说法，不要跨模型套用。
+
+**迁移到 main 该改用什么。** 不需要改配置——因为已经没有配置可改了。main 上 `enable_dsa_cp_with_layer_shard` 被 `enable_dsa_cp_with_o_proj_tp` 取代，注释说明了新做法：`o_proj` 权重常驻 TP 分片态，DSA-CP prefill 需要全量时由运行时**异步 all-gather 出一份临时全量权重**，用完即弃 [C21]。承接这件事的是量化侧的 `TPWeightSwitchMixin`，由量化方法声明哪些张量要 gather、哪些要 repeat，`supports_tp_weight_switch` 是统一的开关位 [C22]。整套机制没有用户开关，也就不需要「只能在 P 节点」这类约束——它按 `kv_role` 自动判断。换句话说，v0.23.0 让用户手工点名要切哪几层，main 把同一件事收进了 DSA-CP 的内部实现。
+
+需要留意的是，main 上 `layer_sharding` 并没有清理干净：GLM5.2 教程里还留着「开了 DSA-CP 就不能把 `o_proj` 放进 `layer_sharding`」这句话 [C23]。那是过时文字，main 上这个参数已经完全不存在，读到时不要当成还能配。
+
+## 版本谱系
+
+<!-- 由 pnpm wiki:lineage 生成，勿手改 -->
+
+| 版本 | 是否存在 |
+| --- | --- |
+| releases/v0.13.0 | 有（6 个文件） |
+| releases/v0.18.0 | 有（7 个文件） |
+| releases/v0.20.2rc | 有（7 个文件） |
+| releases/v0.21.0rc | 有（7 个文件） |
+| releases/v0.22.1rc | 有（7 个文件） |
+| releases/v0.23.0 | 有（8 个文件） |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| main | 无 |
+
+**移除**：2026-07-15，PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) —— [Refactor] remove layer sharding (#11953)
+
+影响面（删除行数最多的几个文件）：
+
+- `vllm_ascend/ops/layer_shard_linear.py` −296
+- `vllm_ascend/ops/flashcomm2_oshard_manager.py` −103
+- `vllm_ascend/ops/linear_op.py` −72
+- `vllm_ascend/distributed/parallel_state.py` −51
+- `vllm_ascend/attention/sfa_v1.py` −37
+
+**引入**：2026-01-08，PR [#5181](https://github.com/vllm-project/vllm-ascend/pull/5181) —— [refactor] Refactor the interface for shard weight and remove the flashcomm2 o_shared interface. (#5181)

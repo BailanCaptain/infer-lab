@@ -136,3 +136,27 @@ layerwise_prefetch_layers 的默认值：官方参数表写 1，memcache(GVA) �
 ## [2026-09-12] ingest | Recompute CPU Offload
 晋升 concepts/recompute-cpu-offload.md
 
+## [2026-09-14] ingest | enable_async_exponential
+晋升 params/enable-async-exponential.md
+
+## [2026-09-14] ingest | enable_matmul_allreduce
+晋升 params/enable-matmul-allreduce.md
+
+## [2026-09-14] ingest | enable_sleep_mode_extra_cleanup
+晋升 params/enable-sleep-mode-extra-cleanup.md
+
+## [2026-09-14] ingest | fuse_allreduce_rms
+晋升 params/fuse-allreduce-rms.md
+
+## [2026-09-14] ingest | layer_sharding
+晋升 params/layer-sharding.md
+
+## [2026-09-14] ingest | multistream_overlap_gate
+晋升 params/multistream-overlap-gate.md
+
+## [2026-09-14] ingest | prefetch_ratio
+晋升 params/prefetch-ratio.md
+
+## [2026-09-14] ingest | weight_prefetch_config
+晋升 params/weight-prefetch-config.md
+

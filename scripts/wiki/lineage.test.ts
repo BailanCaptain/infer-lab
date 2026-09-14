@@ -90,7 +90,9 @@ describe("renderLineage", () => {
   it("渲染成带 PR 链接的表格，并标明勿手改", () => {
     const md = renderLineage(buildLineage("layer_sharding", REFS, PATHS, deps));
     expect(md).toContain("## 版本谱系");
-    expect(md).toContain("勿手改");
+    // 不能是 HTML 注释——正文不走 rehype-raw，注释会原样显示在页面上
+    expect(md).not.toContain("<!--");
+    expect(md).toContain("从 git 历史算出");
     expect(md).toContain("| releases/v0.23.0 | 有（8 个文件） |");
     expect(md).toContain("| main | 无 |");
     expect(md).toContain("https://github.com/vllm-project/vllm-ascend/pull/11953");

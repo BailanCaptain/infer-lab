@@ -73,6 +73,182 @@
       ]
     },
     {
+      "id": "enable-async-exponential",
+      "title": "enable_async_exponential",
+      "type": "param",
+      "summary": "把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除。",
+      "aliases": [
+        "异步指数分布重叠",
+        "Asynchronous exponential overlap"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L256-L263",
+        "vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L90-L103",
+        "vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L182-L191",
+        "vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L20-L43",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2283",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L76",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L122",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_sampler.py#L72-L96",
+        "vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L20-L44",
+        "vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L74-L85",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L1328",
+        "https://huggingface.co/Qwen/Qwen3-0.6B"
+      ],
+      "evidence": "C",
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/enable-async-exponential.md",
+      "backlinks": []
+    },
+    {
+      "id": "enable-matmul-allreduce",
+      "title": "enable_matmul_allreduce",
+      "type": "param",
+      "summary": "把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 有，main 已整体移除。",
+      "aliases": [
+        "matmul allreduce 开关",
+        "VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE",
+        "MatmulAllReduce 融合"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L167-L172",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L353-L365",
+        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L69-L71",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L895-L896",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L420-L441",
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L76-L93",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L5-L27",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L96-L96",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/two_card/test_external_launcher.py#L209-L229",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L36",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L154-L159",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1764-L1779",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ops/linear_op.py#L311-L318",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L367-L373",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1316-L1322",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1351-L1360",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L7-L24",
+        "vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69",
+        "https://www.hiascend.com/developer/techArticles/20240729-1"
+      ],
+      "evidence": "C",
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/enable-matmul-allreduce.md",
+      "backlinks": [
+        {
+          "from": "fuse-allreduce-rms",
+          "kind": "alternative-to",
+          "note": "同一个 Matmul+AllReduce 瓶颈的两条路——那个开关在 eager 里直接换用 npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm 一起吃掉；main 上两条一起被删"
+        },
+        {
+          "from": "layer-sharding",
+          "kind": "conflicts-with",
+          "note": "同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj 的那一层就静默不再走 matmul-allreduce 融合算子，没有告警"
+        }
+      ]
+    },
+    {
+      "id": "enable-sleep-mode-extra-cleanup",
+      "title": "enable_sleep_mode_extra_cleanup",
+      "type": "param",
+      "summary": "sleep 时额外销毁 HCCL 通信域并清空 ACL 图工作区，把更多显存还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。",
+      "aliases": [
+        "sleep 模式额外清理",
+        "rl_config.sleep_mode_extra_cleanup"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L162-L163",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L216-L228",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L272-L280",
+        "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64",
+        "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128",
+        "vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L172-L186",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L82-L82",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sleep_mode.md#L48-L58",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L177-L208",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L246-L249",
+        "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L288-L291",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1351-L1395",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L239-L239",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L286-L293",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63",
+        "vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L450-L453",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/rl.md#L102-L116"
+      ],
+      "evidence": "S",
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/enable-sleep-mode-extra-cleanup.md",
+      "backlinks": []
+    },
+    {
+      "id": "fuse-allreduce-rms",
+      "title": "fuse_allreduce_rms",
+      "type": "param",
+      "summary": "把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main 上已整体删除。",
+      "aliases": [
+        "Matmul AllReduce RMSNorm 融合",
+        "MatmulAllReduceAddRMSNormPass"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L84",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L75-L99",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L37-L44",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L491-L521",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L167-L173",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L135-L142",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1223-L1223",
+        "vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L44-L58",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L403-L406",
+        "vllm-ascend@28bf3a2e:vllm_ascend/config_utils.py#L43-L50",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L620-L624",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L103-L109"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "enable-matmul-allreduce",
+          "kind": "alternative-to",
+          "note": "同一个 Matmul+AllReduce 瓶颈的两条路——那个开关在 eager 里直接换用 npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm 一起吃掉；main 上两条一起被删"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/fuse-allreduce-rms.md",
+      "backlinks": []
+    },
+    {
       "id": "kv-cache-cpu-offload",
       "title": "KV Cache CPU Offload",
       "type": "feature",
@@ -643,6 +819,101 @@
       ]
     },
     {
+      "id": "layer-sharding",
+      "title": "layer_sharding",
+      "type": "param",
+      "summary": "点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。",
+      "aliases": [
+        "Layer Sharding Linear",
+        "层间权重分片",
+        "按层切权重"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L56",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L285-L296",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L412-L417",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L712-L724",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L191-L226",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1293-L1297",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549",
+        "vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486",
+        "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1324-L1337",
+        "vllm-ascend@28bf3a2e:vllm_ascend/quantization/tp_weight_switch.py#L70-L106",
+        "vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "enable-matmul-allreduce",
+          "kind": "conflicts-with",
+          "note": "同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj 的那一层就静默不再走 matmul-allreduce 融合算子，没有告警"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/layer-sharding.md",
+      "backlinks": []
+    },
+    {
+      "id": "multistream-overlap-gate",
+      "title": "multistream_overlap_gate",
+      "type": "param",
+      "summary": "v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上已整体删除。",
+      "aliases": [
+        "FlashComm3 多流重叠门控",
+        "多流门控重叠"
+      ],
+      "chapters": [
+        "14"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L140",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L78-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L372-L383",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L600-L640",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L655-L658",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L834-L881",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L883-L894",
+        "vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L42",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L52-L59",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L104-L108",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/utils.py#L21-L47",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L269",
+        "vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L82-L87",
+        "vllm-ascend@2c59ff10:vllm_ascend/_310p/fused_moe/fused_moe.py#L182-L184",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L120",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L58-L60",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369"
+      ],
+      "evidence": "C",
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/multistream-overlap-gate.md",
+      "backlinks": []
+    },
+    {
       "id": "paged-attention",
       "title": "PagedAttention",
       "type": "feature",
@@ -721,6 +992,54 @@
           "note": "命中后新 token 要读散在别处的历史块，只有按块表寻址的分页算子做得到"
         }
       ]
+    },
+    {
+      "id": "prefetch-ratio",
+      "title": "prefetch_ratio",
+      "type": "param",
+      "summary": "weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定\"预取权重的前百分之几\"；v0.23.0 存在，main 已随整个 weight prefetch 一起删除。",
+      "aliases": [
+        "权重预取比例",
+        "weight prefetch ratio"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L34",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L46-L69",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L104",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L158-L186",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L126-L131",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L74-L89",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158",
+        "vllm-ascend@2c59ff10:tests/ut/ops/a2/test_weight_prefetch.py#L45-L52",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L11-L32",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L232-L261",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128",
+        "vllm-ascend@28bf3a2e:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L73-L76"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "weight-prefetch-config",
+          "kind": "builds-on",
+          "note": "只有 weight_prefetch_config.enabled 为 true 时这张比例表才会被读到，比例本身不能开关特性"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/prefetch-ratio.md",
+      "backlinks": []
     },
     {
       "id": "prefix-caching",
@@ -871,6 +1190,61 @@
       "updated": "2026-09-12",
       "file": "concepts/recompute-cpu-offload.md",
       "backlinks": []
+    },
+    {
+      "id": "weight-prefetch-config",
+      "title": "weight_prefetch_config",
+      "type": "param",
+      "summary": "v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。",
+      "aliases": [
+        "权重预取配置",
+        "weight prefetch",
+        "enable_prefetch"
+      ],
+      "chapters": [
+        "19"
+      ],
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L1-L5",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L25-L32",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/weight_prefetch.html",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L66-L69",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L15",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L26-L34",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L46-L69",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L86",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L88-L104",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L134-L156",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L158-L186",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L126-L145",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L509-L528",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L336-L338",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L81-L89",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74",
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369",
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128",
+        "vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95"
+      ],
+      "evidence": "C",
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-14",
+      "file": "params/weight-prefetch-config.md",
+      "backlinks": [
+        {
+          "from": "prefetch-ratio",
+          "kind": "enables",
+          "note": "只有 weight_prefetch_config.enabled 为 true 时这张比例表才会被读到，比例本身不能开关特性"
+        }
+      ]
     }
   ]
 }

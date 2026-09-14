@@ -100,7 +100,9 @@ export function renderLineage(l: Lineage): string {
   const out = [
     "## 版本谱系",
     "",
-    "<!-- 由 pnpm wiki:lineage 生成，勿手改 -->",
+    // 不用 HTML 注释：正文不走 rehype-raw，注释会原样显示在页面上（2026-09-14 实测）。
+    // 而且这句话对读者有用——它说明这一节是从 git 算出来的，不是谁写的。
+    "> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。",
     "",
     "| 版本 | 是否存在 |",
     "| --- | --- |",

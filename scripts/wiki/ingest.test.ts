@@ -150,7 +150,7 @@ describe("extractRequest · 多 ref", () => {
     );
     const s = parseSeeds(both);
     const req = extractRequest(s.features[0]!, s, ctx);
-    const dirs = req.args.filter((a, i) => req.args[i - 1] === "--add-dir");
+    const dirs = req.args.filter((_, i) => req.args[i - 1] === "--add-dir");
     expect(dirs).toEqual(["C:/w/tools/repos/vllm-ascend@releases-v0.23.0", "C:/w/tools/repos/vllm-ascend"]);
     // 两个 commit 前缀都要给，agent 才知道各自怎么写 sources
     expect(req.stdin).toContain("9b4b1e2a");

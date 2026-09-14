@@ -79,7 +79,7 @@ const H2_RE = /^##\s+(.+?)\s*$/gm;
  * 2026-09-12 整合 agent 给全部 11 页尾部都留了一个 `</content>`，页面上原样显示。
  * 正文不走 rehype-raw，任何裸标签都只会变成字面量，没有正当用途。
  */
-const STRAY_TAG_RE = /^\s*<\/?[a-zA-Z][a-zA-Z0-9-]*\s*\/?>\s*$/;
+const STRAY_TAG_RE = /^\s*(?:<\/?[a-zA-Z][a-zA-Z0-9-]*\s*\/?>|<!--[\s\S]*?-->)\s*$/;
 const FENCE_RE = /^\s*```/;
 const PLACEHOLDER_RE = /\{\{[^}]*\}\}/;
 const MERMAID_RE = /```mermaid\r?\n([\s\S]*?)```/g;
@@ -129,6 +129,17 @@ function splitRow(row: string): string[] {
   }
   out.push(cur.trim());
   return out;
+}
+
+/**
+ * 一条来源算不算「官方文档」：仓库里的 `docs/` 本地副本，或「官方」「论文」档的 URL。
+ *
+ * 两个判据必须共用一个函数。分开写过一次，结果 docCount 认 `:docs/`、hasOfficial
+ * 不认，同一条来源在一个分支里算官方、另一个分支里不算，把一页引了三份官方文档的
+ * 参数页判成「evidence 标 S 但没有官方来源」（2026-09-14）。
+ */
+function isOfficialDoc(ref: string): boolean {
+  return ref.includes(":docs/") || supportsOfficialEvidence(classifySource(ref));
 }
 
 /** 代码围栏外、整行是标签的行号（1 起） */
@@ -421,11 +432,9 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
     // 试点 7 页就是源码 15 条、文档 2 条，标 C 是对的（2026-09-11 实测）。
     // 「官方文档来源」= 仓库里的 docs/ 本地副本，或官方/论文档的 URL。
     // 生态站（PyTorch、HF 等）不算——它们能引，但不是本项目的权威说法。
-    const docCount = p.fm.sources.filter(
-      (x) => x.includes(":docs/") || supportsOfficialEvidence(classifySource(x)),
-    ).length;
+    const docCount = p.fm.sources.filter(isOfficialDoc).length;
     const otherCount = p.fm.sources.length - docCount;
-    const hasOfficial = kinds.some((k) => supportsOfficialEvidence(k.kind));
+    const hasOfficial = p.fm.sources.some(isOfficialDoc);
     if (docCount > otherCount && p.fm.evidence !== "S") {
       problems.push({
         file: p.file,

@@ -8,7 +8,7 @@
  * 页面里原有的这一节（不管是 agent 写的还是上一次生成的）整节替换。
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { replaceSection } from "./wiki/lineage";
 

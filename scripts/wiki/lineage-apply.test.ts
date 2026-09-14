@@ -6,7 +6,17 @@ const lines = (...xs: string[]) => `${xs.join("\n")}\n`;
 
 describe("replaceSection", () => {
   it("整节替换：原有内容被换掉，前后小节都保留", () => {
-    const body = lines("## 一句话", "x", "", "## 版本谱系", "", "agent 瞎写的 PR #999", "", "## 为什么存在", "y");
+    const body = lines(
+      "## 一句话",
+      "x",
+      "",
+      "## 版本谱系",
+      "",
+      "agent 瞎写的 PR #999",
+      "",
+      "## 为什么存在",
+      "y",
+    );
     const out = replaceSection(body, "## 版本谱系", GEN);
     expect(out).toContain("| 版本 | 是否存在 |");
     // agent 编的 PR 号必须消失——这正是这一节改由脚本生成的原因

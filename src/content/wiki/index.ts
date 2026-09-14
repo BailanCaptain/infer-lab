@@ -16,7 +16,9 @@ const REPO_GITHUB: Record<string, string> = {
   vllm: "vllm-project/vllm",
 };
 
-const RAW_MODULES = import.meta.glob("/wiki/{concepts,sources}/*.md", {
+// 目录清单要与 scripts/wiki/pages.ts 的 PAGE_DIRS 一致——漏一个目录，registry
+// 里有页而前端读不到正文（2026-09-14 加 params/ 时就漏过一次，被一致性测试抓住）
+const RAW_MODULES = import.meta.glob("/wiki/{concepts,params,sources}/*.md", {
   query: "?raw",
   import: "default",
   eager: true,

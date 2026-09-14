@@ -190,6 +190,10 @@ describe("lintPages · HANDBOOK 新规则", () => {
     const leaked = lintPages([mkRaw("a", {}, `${fullBody}\n</content>`)], opts);
     expect(leaked.find((p) => p.rule === "stray-tag")?.message).toContain("HTML 标签");
 
+    // HTML 注释同样会原样显示——wiki:lineage 自己就漏过一个（2026-09-14）
+    const comment = lintPages([mkRaw("a", {}, `${fullBody}\n<!-- 由脚本生成，勿手改 -->`)], opts);
+    expect(comment.map((p) => p.rule)).toContain("stray-tag");
+
     // mermaid 节点标签里的 <br/> 是合法的，围栏内不能误伤
     const fenced = [fullBody, "```mermaid", "flowchart TD", '  A["x<br/>y"]', "```"].join("\n");
     expect(lintPages([mkRaw("a", {}, fenced)], opts).map((p) => p.rule)).not.toContain("stray-tag");
@@ -344,6 +348,32 @@ describe("lintPages · 可引来源分级", () => {
     const rules = lintPages([eco], opts).map((p) => p.rule);
     expect(rules).not.toContain("source-domain");
     expect(rules).toContain("doc-evidence");
+  });
+
+  it("doc-evidence：仓库里的 docs/ 本地副本算官方来源，两个分支判据一致", () => {
+    // 2026-09-14：docCount 认 :docs/ 而 hasOfficial 不认，同一条来源在一个分支
+    // 算官方、另一个分支不算，把引了三份官方文档的参数页判成「标 S 却没有官方来源」
+    const localDocs = mkRaw(
+      "a",
+      {
+        sources: [
+          "r@abc1234:docs/source/user_guide/feature_guide/sleep_mode.md#L48-L58",
+          "r@abc1234:vllm_ascend/worker/worker.py#L216-L228",
+          "r@abc1234:vllm_ascend/worker/worker.py#L272-L280",
+        ],
+        evidence: "S",
+      },
+      body,
+    );
+    expect(lintPages([localDocs], opts).map((p) => p.rule)).not.toContain("doc-evidence");
+
+    // 一条官方文档都没有时才该报
+    const noDocs = mkRaw(
+      "a",
+      { sources: ["r@abc1234:vllm_ascend/worker/worker.py#L1-L2"], evidence: "S" },
+      body,
+    );
+    expect(lintPages([noDocs], opts).map((p) => p.rule)).toContain("doc-evidence");
   });
 
   it("生态站配 D 就没问题", () => {

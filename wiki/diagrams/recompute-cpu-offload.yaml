@@ -1,0 +1,132 @@
+layout: scene
+id: recompute-cpu-offload
+caption: 一次抢占的两条时间线：D2H 必须赶在 HBM 块被别人拿走之前（main 快照 b255ab59）
+size: [900, 700]
+
+boundaries:
+  - at: 470
+    from: 96
+    to: 616
+    label: 进程边界 · metadata 跟着 SchedulerOutput 下去
+
+spines:
+  - y: 148
+    from: 132
+    to: 860
+    tone: ascend
+    segments: [{ x: 470, tone: upstream }]
+  - y: 458
+    from: 132
+    to: 860
+    tone: ascend
+    segments: [{ x: 470, tone: upstream }]
+
+stops:
+  - x: 170
+    side: below
+    title: 分不出块了
+    detail: 挑中一条正在跑的请求
+    fn: allocate_slots
+    icon: grid
+    tone: upstream
+  - x: 350
+    side: below
+    title: 问连接器接不接
+    detail: 空闲 CPU 块不够就返 False
+    fn: update_state_before_preempt
+    icon: split
+    tone: accent
+  - x: 600
+    side: below
+    title: 阻塞 D2H
+    detail: 赶在 _update_states 之前
+    fn: handle_preemptions
+    icon: bolt
+    tone: ascend
+  - x: 790
+    side: below
+    title: 本 rank 报一声
+    detail: 集齐 world_size 份才算存好
+    fn: completed_store_events
+    icon: clock
+    tone: ascend
+  - x: 150
+    spine: 1
+    side: below
+    title: 能恢复多少 token
+    detail: 没存完就返 None，这步先跳过
+    fn: get_num_new_matched_tokens
+    icon: queue
+    tone: accent
+  - x: 362
+    spine: 1
+    side: below
+    title: 拿到新的 HBM 块
+    detail: 建 CPU→HBM 回填表
+    fn: update_state_after_alloc
+    icon: grid
+    tone: upstream
+  - x: 600
+    spine: 1
+    side: below
+    title: 阻塞 H2D
+    detail: 前向之前把块搬回来
+    fn: start_load_kv
+    icon: bolt
+    tone: ascend
+  - x: 790
+    spine: 1
+    side: below
+    title: 让前向流等一下
+    detail: 等的是 load_stream
+    fn: wait_for_layer_load
+    icon: clock
+    tone: ascend
+
+bands:
+  - label: 调度侧只记块号
+    sub: 复用上游 BlockPool 管空闲与共享
+    fn: cpu_block_pool
+    icon: queue
+    at: [20, 306]
+    size: [430, 82]
+    tone: upstream
+  - label: worker 侧才有字节
+    sub: 启动时一次开好的 pinned 张量
+    fn: pin_memory=True
+    icon: box
+    at: [470, 306]
+    size: [410, 82]
+    tone: ascend
+
+arrows:
+  - { from: [600, 288], to: [600, 304], tone: ascend }
+  - { from: [700, 390], to: [700, 452], tone: ascend }
+  - { from: [452, 347], to: [466, 347], tone: accent, style: dashed }
+
+strips:
+  - at: [44, 620]
+    cells: 5
+    cell: 40
+    gap: 8
+    highlights: [0, 1, 2, 3]
+    tone: ascend
+    label: 16 GiB/卡 ≈ 1170 个 CPU 块：同时最多保住 4 条 32K 的请求，第 5 条只能退回重算
+
+notes:
+  - { at: [20, 152], text: ① 抢占这一步, size: 13.5, strong: true }
+  - { at: [20, 462], text: ② 恢复那一步, size: 13.5, strong: true }
+  - at: [500, 640]
+    text: D2H 非同步不可：调度器可能在同一步里就把这些 HBM 块 id 分给别人，晚一步搬到的就是别人的数据。
+    size: 12.5
+    width: 380
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L316-L373
+    symbols: [allocate_slots]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L284-L334
+    symbols: [update_state_before_preempt, get_num_new_matched_tokens, update_state_after_alloc, cpu_block_pool, world_size]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
+    symbols: [handle_preemptions, start_load_kv, wait_for_layer_load, completed_store_events, load_stream, pin_memory]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2197-L2202
+    symbols: [_update_states]

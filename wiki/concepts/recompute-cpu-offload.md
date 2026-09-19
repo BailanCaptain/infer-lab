@@ -1,173 +1,118 @@
 ---
 id: recompute-cpu-offload
-title: Recompute CPU Offload
+title: "Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算"
 type: feature
-summary: PD 分离的 Decode 节点抢占请求时，把它已算好的 KV 块从 HBM 拷到锁页 CPU 内存里存着，恢复时再拷回来，避免整条请求被打回 Prefill 重算。
-aliases: [重算 CPU 卸载, RecomputeCPUOffloadConnector]
+summary: PD 分离的 Decode 节点抢占一条请求时，先把它已算好的 KV 块同步拷进锁页主机内存，重新排上再拷回来，省掉一整轮 prefill。main 开发主线已把它改名成 PreemptOffloadConnector。
+aliases: [重算 CPU 卸载, RecomputeCPUOffloadConnector, Preempt Offload, PreemptOffloadConnector, 抢占卸载, 抢占 KV 卸载]
 chapters: ["11", "12"]
 sources:
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L415-L467
+  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L316-L373
   - vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L294-L347
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L222-L239
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L1054-L1073
-  - vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L621-L635
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L84-L107
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L148-L172
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L195-L216
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L268-L320
+  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L103-L166
+  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L992-L1021
+  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L504-L521
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L90-L113
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L154-L188
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L211-L232
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L284-L334
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L251-L299
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L534-L570
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L39-L95
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L90-L122
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L175
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L223-L253
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L2088-L2093
-  - vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L966-L996
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L550-L586
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L44-L111
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L99-L134
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L146-L177
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
+  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2197-L2202
+  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1012-L1042
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L710
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1191-L1214
+  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1421-L1444
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L142
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/__init__.py#L91-L95
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L40-L74
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L119-L123
+  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L40-L80
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L63-L74
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L256-L274
+  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L262-L281
+  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L313-L317
+  - vllm-ascend@b255ab59:vllm_ascend/worker/v2/model_runner.py#L309-L314
+  - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html
 evidence: "C"
 relations:
   - to: block-table
     kind: builds-on
-    note: 卸载与回填都按块进行，CPU 侧维持一份与 HBM 块表逐位对齐的 CPU 块 id 表，滑窗留下的空洞位用 0 占位而不压缩
+    note: 卸载与回填都按块进行，CPU 侧维持一份与 HBM 块表逐位对齐的块 id 表，滑窗留下的空洞位用 0 占位而不压缩
   - to: kv-cache-spec
     kind: builds-on
     note: CPU 块池直接复用 GPU 侧 KVCacheConfig 的 kv_cache_groups，每组的 block_size 决定 token 到块的换算
   - to: prefix-caching
     kind: builds-on
     note: enable_offload_prefix_caching 打开后，已算满的块按 prefix cache 的 block_hash 在多个被抢占请求间共享同一个 CPU 块
+  - to: vllm-kv-block-allocation
+    kind: builds-on
+    note: 这一页的入口就是那一页里 allocate_slots 要不到块的那一刻——抢占谁、接下来怎么办，才轮到本页
   - to: kv-cache-cpu-offload
     kind: alternative-to
-    note: 两者都往 CPU DRAM 搬 KV，但那条路径搬的是可复用的 prefix cache 冷块，这条只保被抢占请求自己的活跃 KV
+    note: 两者都往主机内存搬 KV，但那条路搬的是块池 LRU 要淘汰的可复用前缀块，这条按请求点名、只保被抢占请求自己的活跃 KV
 contradicts: []
-updated: "2026-09-12"
+updated: "2026-09-20"
 ---
 
 ## 一句话
 
-在 PD 分离的 Decode 节点上，当 HBM 的 KV 块不够、`RecomputeScheduler` 必须踢掉一个正在跑的请求时，`RecomputeCPUOffloadConnector` 先把这个请求已经算好的 KV 块拷到锁页 CPU 内存，等它重新被调度时再拷回 HBM，从而避免把整条请求打回 Prefill 节点重算一遍 prompt。它是可选的：不配这个 connector、或 CPU 容量不够时，调度器静默退回原来的重算行为。
+PD 分离的 Decode 节点上 HBM 块不够用时，调度器会踢掉一条正在 decode 的请求。**没有这个连接器，那条请求被直接终止、退回 Prefill 节点把整条 prompt 重算一遍**；有了它，它已经算好的 KV 块先同步拷进锁页主机内存，重新排上再拷回来，一个 token 都不用重算。**它在 main 开发主线上已经改名搬家**：连接器名从 `RecomputeCPUOffloadConnector` 变成 `PreemptOffloadConnector` [C21]，旧名字在 main 的注册表里已经查无此项，配置照抄过去连接器根本造不出来 `[!]`。
 
-## 为什么需要它
-
-先看没有它会发生什么。Decode 节点是按 decode 调优的：`max_num_batched_tokens` 通常只开到 `max_num_seqs * (1 + num_spec_tokens)` 那个量级，够每个请求每步吐一两个 token 就行 [S22]。这时如果 KV 显存吃紧，调度器踢掉一个请求，那个请求的几万个 prompt token 就得重新走一遍 —— 而这台机器的 token 预算根本不是为跑长 prefill 准备的。
-
-vllm-ascend 在这条路上的原始做法更直接：`RecomputeScheduler` 在 `kv_role` 不是 `kv_producer` 的节点上，被抢占的请求不是退回等待队列重算，而是**直接以 `stop_reason="recomputed"` 终止**，由 PD proxy 把它重新投给 Prefill 节点 [C4]。这比本地重算合理（Prefill 节点本来就是干这个的），但代价是整条 prompt 的计算和一次完整的跨节点 KV 传输全部重来。
-
-Recompute CPU offload 换了个思路：这些 KV 明明还在 HBM 里、内容完全有效，被抢占只是因为**块要让给别人用**。那就把它挪到 CPU DRAM 存着 —— DRAM 比 HBM 便宜得多，一台 A3 上留 16 GiB/卡 做这件事不算奢侈。请求回来时把块拷回去，从被打断的位置接着 decode，一个 token 都不用重算。
-
-这条路和它旁边那条容易混：[KV Cache CPU Offload](kv-cache-cpu-offload.md) 搬的是**可跨请求复用的 prefix cache 冷块**，服务于缓存命中率；这条搬的是**某个特定请求自己的活跃 KV**，服务于抢占恢复。官方 FAQ 专门澄清了这一点 [S24]。
-
-## 怎么工作
-
-整条链路横跨调度器、connector 和 worker 三侧，关键在于**D2H 必须早于 HBM 块被复用**。
-
-```mermaid
-sequenceDiagram
-    participant S as RecomputeScheduler
-    participant M as RecomputeCPUOffloadScheduler
-    participant R as NPUModelRunner
-    participant W as RecomputeCPUOffloadWorker
-
-    Note over S: 分配不出 HBM 块，选中受害者
-    S->>M: update_state_before_preempt(req, block_ids, num_computed_tokens)
-    M->>M: _create_preempt_state() 查 CPU 空闲块、建 HBM→CPU 映射
-    M-->>S: True = 已登记 / False = 容量不够
-    S->>M: build_connector_meta()
-    M-->>R: RecomputeCPUOffloadMetadata(preempt_store_*)
-    R->>W: handle_preemptions()（在 _update_states 之前）
-    W->>W: _submit_transfer(is_store=True, sync=True) 阻塞 D2H
-    W-->>M: build_connector_worker_meta() 上报 completed_store_events
-    M->>M: 集齐 world_size 份后 _process_preempt_store_event() → ready=True
-
-    Note over S: 请求重新进入 waiting 循环
-    S->>M: get_num_new_matched_tokens(req, 0)
-    M-->>S: (可恢复 token 数, True)
-    S->>M: update_state_after_alloc(req, 新 HBM 块)
-    M->>M: _prepare_preempt_load_after_alloc() 建 CPU→HBM 回填映射
-    R->>W: start_load_kv()
-    W->>W: _submit_transfer(is_store=False, sync=True) 阻塞 H2D
-    R->>W: wait_for_layer_load() 让前向流等 load_stream
-    W-->>M: get_finished() → finished_recving
-    M->>M: _cleanup_preempt_load_request() 释放 CPU 块
+```wiki-diagram
+file: recompute-cpu-offload
 ```
 
-几处值得单独说：
+## 那条请求碰不到它，因为它根本不在 D 节点上
 
-**受害者选出来之后才问 connector。** `RecomputeScheduler.schedule()` 先按策略挑出 `preempted_req`，再对它调 `update_state_before_preempt`；钩子返回 `True` 就走正常的 `_preempt_request()`（请求转 PREEMPTED、回等待队列），返回 `False` 才落到 `_finish_recomputed_request()` 终止请求。**注意这里两版的受害者选择不一样**：main 在 `kv_consumer` 分支之前已经按 `SchedulingPolicy.PRIORITY` 选过 `max(r.priority, r.arrival_time)`；v0.23.0 的 `kv_consumer` 分支写死了 `self.running.pop()`，不看调度策略 [!][C1]。
+[那条请求](one-request.md)是单卡、无 PD、队列里唯一的一条。它在这一页上三重不合格：`recompute_scheduler_enable` 只在 `kv_role == "kv_consumer"` 的节点上生效，PD 混布或没有 `kv_transfer_config` 直接 `ValueError` [C17]；就算配上，一条请求不可能把自己的块抢光；237 个 token 也只占 2 块。
 
-**D2H 是阻塞的，而且必须阻塞。** 模型侧在 `_update_states()` **之前**调 `handle_preemptions()`，因为调度器可能在同一步里就把这些块 id 分给别的请求 [C16]。worker 侧的 `_submit_transfer` 以 `sync=True` 提交，进循环前还有一次全设备 `torch.npu.synchronize()`，实现是逐块逐张量的 `torch.Tensor.copy_`，源码自带 TODO 说还没换成专用算子 [C15]。H2D 侧同样是 `sync=True`。
+要让这一页有数可算，得把它搬到一台 PD 分离的 Decode 节点上：`--max-model-len 32768`、并发跑满、每卡 `cpu_bytes_to_use_per_rank` 给 16 GiB，其余设定（Qwen3-0.6B、`block_size` 128）不变 [A]。
 
-**「存好了」要全体 worker 点头。** 每个 worker 上报 `{event_idx: 1}`，scheduler 侧累加到 `world_size` 才把请求置 `ready=True` [C11]。在那之前 `get_num_new_matched_tokens` 返回 `None`，调度器看到 `None` 就把请求挪进 skipped 队列、这一步不调度它 —— 恢复因此被自然推迟到 D2H 真正落盘之后，不需要额外的等待状态。
+| 这一步在算什么 | 值 | 依据 |
+|---|---|---|
+| 一个块的 KV 多少字节 | 128 × 112 KiB = **14 MiB** | 和[那条请求](one-request.md)是同一个数 |
+| 16 GiB/卡 换成几个 CPU 块 | 16384 ÷ 14 = **1170 块** | 算式是 `num_gpu_blocks × 预算 ÷ HBM 池总字节`，等价于预算 ÷ 每块字节 [C7] |
+| 保得住多少 token | 1170 × 128 = **149760 个** | 每条 32K 的请求占 32768 ÷ 128 = 256 块 [D] |
+| 同时保得住几条 | 1170 ÷ 256 = 4.57 → **4 条** | 第 5 条 `_create_preempt_state` 发现空闲块不够，打一条 warning 返回 `False` [C9] |
+| 保一条要搬多少字节 | 256 × 14 MiB = **3.5 GiB** | D2H、H2D 各一次，两次都在调度关键路径上同步阻塞 |
 
-**空洞位保留，不压缩。** 滑窗模型的块表里会有 0（窗口外的 token 没有块）。`_create_preempt_state` 对 `block_id <= 0` 的位置往 CPU 列表里塞 `None`/`0` 占位，让两侧下标严格对齐，只搬非零块。
+**最该记住的是「什么都不配」时会发生什么。** main 删掉了 8 GiB 的字节默认值，改成按比例开：两个字节参数都不给时走 `offload_host_memory_ratio`，默认 `1`，于是 `num_cpu_blocks = HBM 块数` [S22]——等于把整个 HBM KV 池的大小原样再锁一份 pinned 主机内存，而且是启动时一次性分配好的。真机上还要记得 Docker 的 `--shm-size`：官方建议 A3 上按 16 GiB/卡 的预算给 `--shm-size=1024g`，给小了会在启动阶段 OOM 或挂住（在线版见 <https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html> [S27]）。
 
-**两版的 `_create_preempt_state` 有两处实质差异** [!]：main 多了 Mamba 组分支（Mamba 组只卸载最后 `1 + num_spec_tokens` 块），v0.23.0 完全没有这段、所有组都按普通 attention 的 block_size 逻辑处理；反过来 v0.23.0 多一个 `_maybe_evict_cached_block` 循环，把「本步 `allocate_slots()` 刚打上 hash、但前向还没写入」的 GPU 块从 prefix cache 里逐出，main 上这段被删掉了。
+## D2H 必须阻塞，因为块 id 可能在同一步里就被发给别人
 
-**开关和部署形态的校验在 platform 里。** 只有 `kv_role == "kv_consumer"` 才真的把 `scheduler_config` 换成 `RecomputeSchedulerConfig`；`kv_producer` 上警告并强制关闭；PD 混布（`kv_both` 或没有 `kv_transfer_config`）直接 `ValueError` [C17]。两版的约束一致，但**开关的键路径不同** [!]：v0.23.0 读 `additional_config["recompute_scheduler_enable"]`，main 读 `additional_config["scheduler_config"]["recompute_scheduler_enable"]`，顶层旧写法仍被接受但会打一条弃用警告。
+这是整条链路上唯一不能商量的地方。模型侧在 `_update_states()` **之前**就调 `handle_preemptions()`，注释写得很直白：调度器可能在这一步里把这些块 id 分给别的请求，晚一点搬就搬到别人的数据了 [C16]。回填走的是另一个入口 `start_load_kv()`，在前向之前把块搬回来，再由 `wait_for_layer_load()` 让前向流等一下那条 load 流。
 
-## 拿真实数字走一遍
+搬运本身谈不上优化：`_submit_transfer` 进循环前先来一次全设备 `torch.npu.synchronize()`，然后逐块、逐张量地 `torch.Tensor.copy_`，源码自带 TODO 说还没换成专用算子 [C15]。两个方向都是 `sync=True`，提交完就 `event.synchronize()` 等在那儿。**所以这条路径不是「省显存」，是拿一次同步的全量往返换掉一整轮 prefill**——省不省得回来，取决于被抢占请求的 prompt 有多长。要看异步、批量 DMA 是什么样子，去看隔壁那条路的 [KV Cache CPU Offload](kv-cache-cpu-offload.md)，两者的搬运实现完全不同源。
 
-用 Qwen3-0.6B（28 层、`n_kv=8`、`d_h=128`、bf16）配 `--block-size 128`，算一下 16 GiB/卡 的预算能保住什么。
+## 「存好了」要全体 worker 点头，恢复才敢排上
 
-每 token 每层的 KV：`2 (K 和 V) × 8 × 128 × 2 B = 4096 B = 4 KiB`。
-28 层合计：`4 KiB × 28 = 112 KiB/token` [D]。
-一个块 128 个 token：`112 KiB × 128 = 14336 KiB = 14 MiB/块` [D]。
+每个 worker 存完把 `{event_idx: 1}` 报上来，调度侧累加到 `world_size` 才把这条请求置 `ready=True` [C11]。在那之前它的 `get_num_new_matched_tokens` 返回的不是 0 而是 **`None`** [C8]，而调度器看到 `None` 的反应是把请求弹出队列、塞进 `step_skipped_waiting`、这一步不调度它。
 
-CPU 块数由 `cpu_capacity_per_rank // 每块字节数` 决定 [C13]：
+这个设计值得单独记一笔：**恢复被推迟到 D2H 真正落盘之后，靠的是复用「connector 说不清楚就先跳过」这条既有语义，没有为它加任何等待状态**。同一条规则在 `enable_offload_prefix_caching` 打开时也够用——那时多条被抢占请求会按 `block_hash` 共享同一个 CPU 块，谁先把块存实，`_process_preempt_store_event` 就把它插进 CPU 块池的哈希表，后来者直接 `touch` 复用，跨请求共享的判定交给[前缀缓存](prefix-caching.md)那套哈希，这一页不重复造。
 
-```
-16 GiB / 14 MiB = 16384 MiB / 14 MiB = 1170.28 → 1170 块
-1170 × 128 = 149760 token
-```
+## 容量不够就静默退回原路，这是设计不是 bug
 
-也就是说这张卡的 CPU 侧最多同时保住约 15 万个 token 的 KV。按每条请求 32K 上下文算，一条要占 `32768 / 128 = 256` 块，`1170 / 256 = 4.57` → **同时最多保住 4 条被抢占的请求**，第 5 条来的时候 `_create_preempt_state` 发现空闲块不够，打一条 warning 返回 `False`，那条请求就退回原来的重算路径 [C9]。
+`_preempt_or_recompute()` 是整条特性的开关点：它先拿 `update_state_before_preempt` 这个钩子问连接器接不接，接了就走正常的 `_preempt_request()`（请求转 PREEMPTED、回等待队列），不接就落到 `_finish_recomputed_request()`。「不接」有三种：没配连接器、CPU 空闲块不够、钩子抛异常——main 用 try/except 把第三种兜住了，连接器出问题不会打死引擎，只是退回重算 [C3]。
 
-搬运量也值得看一眼：保一条 32K 的请求要同步搬 `256 × 14 MiB = 3.5 GiB`，D2H 和 H2D 各一次，都在调度关键路径上阻塞。
+退回重算长什么样？请求以 `FINISHED_ABORTED` 终止，`update_from_output` 额外给客户端插一条 `stop_reason="recomputed"`、`new_token_ids=[]` 的输出，由 PD proxy 把它重新投给 Prefill 节点 [C4]。**这是一次彻底的重来**：整条 prompt 重算，外加一次完整的跨节点 KV 传输。日志里只有一行 warning，没有报错、没有排队——**预算配小了，等于白配**。
 
-完整配置（main / `latest`）：
+## 两个分支在这一页上的差别
 
-```bash
-vllm serve /path/to/model \
-    --block-size 128 \
-    --additional-config '{"scheduler_config":{"recompute_scheduler_enable":true}}' \
-    --kv-transfer-config '{
-        "kv_connector": "RecomputeCPUOffloadConnector",
-        "kv_role": "kv_consumer",
-        "kv_connector_extra_config": {
-            "cpu_bytes_to_use_per_rank": 17179869184,
-            "enable_offload_prefix_caching": false
-        }
-    }'
-```
+main 开发主线（源码快照 `b255ab59`，2026-09-19）在 `9eb752ab`（PR #16510，2026-09-16）把这个特性整体改名搬家：目录从 `kv_pool/recompute_cpu_offload/` 挪到 `kv_pool/kv_offload/preempt_offload/`，和 [KV Cache CPU Offload](kv-cache-cpu-offload.md) 并进同一个 `kv_offload/` 下；所有 `RecomputeCPUOffload*` 标识符在 main 上已不存在。v0.23 维护分支（源码快照 `2c59ff10`）仍是老名字、老路径，用户文档也还叫 `recompute_cpu_offload.md` [S23]。调度器那一侧的类名 `RecomputeScheduler` 两版都没变。
 
-每个值的来由：`kv_connector` 写注册名 `RecomputeCPUOffloadConnector`（实现类叫 `RecomputeCPUOffloadConnectorV1`，注册表负责这层映射）；`kv_role` 必须是 `kv_consumer`，否则 platform 直接报错；`17179869184 = 16 GiB`，用 `_per_rank` 而不是 `cpu_bytes_to_use` 是为了绕开「再除一次 `world_size`」的坑 [C12]；`enable_offload_prefix_caching` 保持 `false`，官方标它为实验性。
-
-**在 v0.23.0 上，`--additional-config` 那一行要写成 `'{"recompute_scheduler_enable":true}'`** [!]。
-
-真机上还得记得 Docker 的 `--shm-size`：CPU 侧是启动时一次性分配的 pinned 张量，官方建议 A3 上按 16 GiB/卡 的预算给 `--shm-size=1024g`，给小了会在启动阶段 OOM 或挂住。
-
-## 事实表
-
-| 项 | v0.23.0 | main | 意味着什么 |
+| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| 开关键路径 | `additional_config.recompute_scheduler_enable` | `additional_config.scheduler_config.recompute_scheduler_enable`（顶层写法仍接受，打弃用警告） | 把 main 的嵌套写法照抄到 v0.23.0，开关会被静默忽略、特性根本没生效 |
-| `kv_role` 约束 | 必须 `kv_consumer`；`kv_producer` 警告后关闭；其余 `ValueError` | 同左 | PD 混布下开这个开关是启动失败，不是降级运行 |
-| `cpu_bytes_to_use` 默认 | 8 GiB（整实例） | 8 GiB（整实例） | 不显式配，DP8 上每卡只剩 1 GiB，几乎保不住几条请求 |
-| `cpu_bytes_to_use_per_rank` | 无默认；设了就覆盖 `cpu_bytes_to_use // world_size` | 同左 | 这是唯一不会被 `world_size` 再除一次的写法，DP 部署里优先用它 |
-| `enable_offload_prefix_caching` 默认 | `false` | `false` | 默认每个被抢占请求的 CPU 块完全私有，不跨请求共享 |
-| CPU 块数 | `每卡预算 // 每块字节数` | 同左 | 预算直接换算成「能保住多少块」，和 HBM 块大小同构 |
-| D2H / H2D 同步性 | 两个方向都 `sync=True`，逐块 `torch.copy_` | 同左 | 每次抢占和每次恢复都在关键路径上同步阻塞一次全量拷贝 |
-| 容量不足时 | `_create_preempt_state` 返回 `False` | 同左 | 不报错也不排队，直接静默退回原重算路径，只在日志里留一条 warning |
-| Mamba / 混合模型组 | 无专门分支，按普通 attention 组处理 | 只卸载最后 `1 + num_spec_tokens` 块 | 混合模型上两版行为不同，v0.23.0 未针对 Mamba 状态做适配 [!] |
-| dcp / pcp | 断言必须均为 1 | 同左 | 开了 decode/prefill context parallel 就直接 assert 失败，两者不能同时用 |
+| 连接器注册名 | `RecomputeCPUOffloadConnector` | `PreemptOffloadConnector` | `[!]` 名字照抄过去，注册表里查无此项，不是「开了没效果」那种降级 |
+| 开关键路径 | `additional_config.recompute_scheduler_enable` [C20] | 嵌进 `additional_config.scheduler_config.…`，顶层旧写法仍接受但打弃用警告 | `[!]` 反方向抄同样出事：main 的嵌套写法在 v0.23 上被静默忽略 |
+| 两个容量参数都不写 | `cpu_bytes_to_use` 默认 8 GiB（整实例，再除 `world_size`） | 没有字节默认值了，按 `offload_host_memory_ratio` 开，默认 1 : 1 对齐 HBM 块数 | `[!]` 同一份「什么都不配」的配置，两版锁掉的主机内存量完全不同 |
+| 受害者怎么挑 | `kv_consumer` 分支写死 `self.running.pop()`，不看调度策略 [C2] | 和普通抢占共用一套选择：`PRIORITY` 策略下挑 `max(priority, arrival_time)` | 开了优先级调度的 D 节点，v0.23 踢掉的不是最该踢的那条 |
+| `_create_preempt_state` 挑哪些块 | 所有组按 attention 的 `block_size` 一视同仁；另有一段 `_maybe_evict_cached_block`，把本步刚打上 hash、前向还没写入的 GPU 块从前缀缓存里摘掉 [C10] | Mamba 组只卸载最后 `1 + num_spec_tokens` 块；那段逐出循环已删 [C9] | `[!]` 混合模型上两版行为不同，v0.23 未针对 Mamba 状态适配 |
+| 模型执行器 | 只有 model_runner_v1 | v1 与 v2 两个执行器都调 `handle_preemptions` [C26] | MRV2 上也能用了，这正是改名那个 PR 的主题 |
+
+两版一致的部分：`kv_role` 必须是 `kv_consumer`，`kv_producer` 上警告后强制关闭，其余情况 `ValueError` [C18]；`enable_offload_prefix_caching` 默认 `false` 且官方标为实验性；`cpu_bytes_to_use_per_rank` 优先级最高、不会被 `world_size` 再除一次 [C12]；`decode_context_parallel_size` 与 `prefill_context_parallel_size` 都断言必须为 1，开了 dcp / pcp 就 assert 失败 [C6]。
 
 ## 常见误解
 
-- **「它和 KV Cache CPU Offload 是一回事」** —— 不是。那条路径把**可复用的 prefix cache 冷块**搬到 CPU 以提高命中率，任何请求都能命中；这条只保**被抢占请求自己的 KV**，别的请求碰不到，官方 FAQ 专门澄清过。
-- **「开了就一定不会重算」** —— 不一定。CPU 空闲块不够时 `_create_preempt_state` 返回 `False`，调度器照样把请求终止掉走原来的重算路径，而且这是静默降级、只有日志里一条 warning。预算配小了，等于白配。
-- **「PD 混布也能开，顶多没效果」** —— 会直接启动失败。`kv_role` 不是 `kv_consumer`（也没有 `kv_transfer_config`）时 platform 抛 `ValueError`，两版都一样。
+- **「它和 KV Cache CPU Offload 是一回事」**——不是。那条路搬的是块池 LRU 要淘汰的**可复用前缀块**，任何后续请求都可能命中；这条按请求点名，只保**被抢占请求自己的活跃 KV**，别的请求碰不到。官方 FAQ 专门写了一条澄清这件事 [S25]，两者的 worker 侧搬运代码也毫无共用。
+- **「开了就一定不会重算」**——不一定。CPU 空闲块不够、或者钩子抛异常时，调度器照样把请求终止掉走原来的重算路径，而且是静默降级、日志里只有一条 warning。
+- **「只要是 Decode 节点就能开」**——还有两道硬门槛。`dcp` / `pcp` 任一大于 1 就 assert 失败；官方还写明 Qwen3.5 配异步调度尚未完全支持，用这个特性时要把 `async_scheduling` 关掉 [S24]。

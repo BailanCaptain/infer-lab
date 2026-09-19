@@ -72,7 +72,7 @@ export function findStale(
 
 /** 供 `pnpm wiki:ingest --only` 直接使用的 id 列表 */
 /**
- * commit → 它在哪条分支上。seeds 里钉的那个 commit 直接认；别的 commit 按 git 祖先关系判断。
+ * commit → 它在哪条分支上，按 git 祖先关系判断（seeds 给它标的那条分支优先试）。
  *
  * 只认 seeds 钉点的话，页面一旦重钉到更新的提交（夜间参数页、2026-09-20 重写的那批页都是），
  * 就查不到分支、被 findStale 静默跳过——永远显示「不过期」。
@@ -82,8 +82,13 @@ export function refOfCommit(
   commit: string,
   isAncestor: (commit: string, ref: string) => boolean,
 ): string | undefined {
-  const pinned = Object.entries(refs).find(([, c]) => c.startsWith(commit) || commit.startsWith(c))?.[0];
-  return pinned ?? Object.keys(refs).find((ref) => isAncestor(commit, ref));
+  // seeds 标的那条分支优先，但标签不等于事实：克隆脚本要求主工作树叫 main，于是 vllm 的 v0.23.0 发布版
+  // 也被标成了 main。它不在 main 的历史上，拿去和 main 比只会把「有意钉住发布版」的页全报成过期。
+  const labelled = Object.entries(refs).find(([, c]) => c.startsWith(commit) || commit.startsWith(c))?.[0];
+  const order = labelled
+    ? [labelled, ...Object.keys(refs).filter((ref) => ref !== labelled)]
+    : Object.keys(refs);
+  return order.find((ref) => isAncestor(commit, ref));
 }
 
 export function staleIds(stale: PageStale[]): string {

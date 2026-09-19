@@ -89,11 +89,14 @@ describe("findStale", () => {
 
 describe("refOfCommit", () => {
   const refs = { main: "28bf3a2e", "releases/v0.23.0": "2c59ff10" };
-  // 祖先关系：b255ab59 是 main 上比钉点更新的提交；0ld 是两条分支分叉前的老提交
+  // 祖先关系：钉点各在自己的分支上；b255ab59 是 main 上比钉点更新的提交；0ld 是分叉前的老提交
   const isAncestor = (commit: string, ref: string) =>
-    (commit === "b255ab59" && ref === "main") || commit === "0ld0ld0l";
+    (commit.startsWith("28bf3a2e") && ref === "main") ||
+    (commit === "2c59ff10" && ref === "releases/v0.23.0") ||
+    (commit === "b255ab59" && ref === "main") ||
+    commit === "0ld0ld0l";
 
-  it("seeds 里钉的 commit 直接认", () => {
+  it("seeds 里钉的 commit 认它所标的那条分支", () => {
     expect(refOfCommit(refs, "2c59ff10", isAncestor)).toBe("releases/v0.23.0");
     expect(refOfCommit(refs, "28bf3a2e1234", isAncestor)).toBe("main");
   });
@@ -105,5 +108,10 @@ describe("refOfCommit", () => {
   it("两条分支都包含的老提交按 seeds 里的先后取第一条；哪条都不在就是 undefined", () => {
     expect(refOfCommit(refs, "0ld0ld0l", isAncestor)).toBe("main");
     expect(refOfCommit(refs, "deadbeef", isAncestor)).toBeUndefined();
+  });
+
+  it("seeds 把一个发布版标成 main（克隆脚本要求主工作树叫 main），但它不在 main 的历史上：不拿去和 main 比", () => {
+    // 实例：vllm 的 refs.main = 0fc695fc 其实是 v0.23.0 标签，只在 releases/v0.23.0 上
+    expect(refOfCommit({ main: "0fc695fc" }, "0fc695fc", () => false)).toBeUndefined();
   });
 });

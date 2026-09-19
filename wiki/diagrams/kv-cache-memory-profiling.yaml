@@ -1,0 +1,121 @@
+layout: scene
+id: kv-cache-memory-profiling
+caption: 启动四步与那根 64 GiB 的卡：预算只减掉左边三块，图池落在它右边
+size: [900, 470]
+
+spines:
+  - y: 160
+    from: 52
+    to: 858
+    tone: accent
+    segments:
+      - { x: 672, tone: upstream }
+
+boundaries:
+  - at: 672
+    from: 26
+    to: 200
+    vertical: true
+    label: "KV Cache 张量在这里申请"
+
+stops:
+  - x: 140
+    side: above
+    title: ① 拍快照
+    detail: 整卡 64 GiB 记下来
+    fn: _init_device
+    icon: clock
+    tone: upstream
+  - x: 350
+    side: above
+    title: ② 跑最坏情况
+    detail: 量激活峰值
+    fn: profile_run
+    icon: calc
+    tone: upstream
+  - x: 555
+    side: above
+    title: ③ 立预算
+    detail: 57.60 − 4.61 = 52.99
+    fn: determine_available_memory
+    icon: split
+    tone: neutral
+  - x: 790
+    side: above
+    title: ④ 捕获图
+    detail: 图池这时才吃显存
+    fn: capture_model
+    icon: chip
+    tone: accent
+
+notes:
+  - at: [40, 246]
+    text: "同一件事画到实际比例上：左边那三块是权重 1.11 + 激活峰值 2.30 + 非 torch 1.20，右边两段不在预算里"
+    size: 13.5
+    width: 820
+    strong: true
+  - at: [40, 430]
+    text: "图捕获发生在 KV 张量申请之后：它那 1.80 GiB 吃的是 0.9 切剩下的这段尾巴，不进上面那个减法。尾巴不够，worker 就死在这一步——日志给出的 --kv-cache-memory 建议值正是用来补这个缺口。"
+    size: 12.5
+    width: 820
+
+strips:
+  - at: [40, 290]
+    cells: 1
+    cell: 58
+    h: 48
+    gap: 0
+    highlight: 0
+    tone: ascend
+  - at: [98, 290]
+    cells: 1
+    cell: 662
+    h: 48
+    gap: 0
+    highlight: 0
+    tone: neutral
+  - at: [760, 290]
+    cells: 1
+    cell: 23
+    h: 48
+    gap: 0
+    highlight: 0
+    tone: accent
+  - at: [783, 290]
+    cells: 1
+    cell: 57
+    h: 48
+    gap: 0
+    tone: muted
+
+brackets:
+  - at: [40, 290]
+    span: 58
+    dir: up
+    label: 三块 4.61 GiB
+    tone: ascend
+  - at: [760, 290]
+    span: 23
+    dir: up
+    label: 图池 1.80 GiB（预算外）
+    tone: accent
+  - at: [98, 338]
+    span: 662
+    dir: down
+    label: KV Cache 预算 52.99 GiB = 3875 块 = 496,000 个 token 的位置
+    tone: neutral
+  - at: [40, 374]
+    span: 800
+    dir: down
+    label: 整卡 total_memory 64 GiB
+    tone: muted
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L445-L458
+    symbols: [_init_device, MemorySnapshot, requested_memory, total_memory, gpu_memory_utilization]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L548-L600
+    symbols: [determine_available_memory]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4042-L4058
+    symbols: [profile_run]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5801-L5811
+    symbols: [capture_model]

@@ -75,7 +75,27 @@ const STOPWORDS = new Set([
   "else",
   "for",
   "while",
+  // 配置字面量：页里写「默认 `false`」很常见，不是知识点
+  "true",
+  "false",
+  "none",
+  "null",
+  "enabled",
+  "disabled",
+  // 泛称：整个库都在讲它，不会有单独一页
+  "AI",
+  "LLM",
+  "ID",
+  "IO",
+  "OK",
+  // mermaid 的方向词（graph TD / LR），存量图里会被当成缩写扫到
+  "TD",
+  "LR",
+  "TB",
+  "RL",
 ]);
+/** Python 异常类名：页里引用的是报错现象，不是要补的概念 */
+const EXCEPTION_RE = /(Error|Exception|Warning)$/;
 
 function candidates(text: string): string[] {
   const out: string[] = [];
@@ -111,7 +131,7 @@ export function findGaps(pages: WikiPage[], opts: GapOptions = {}): Gap[] {
   const hits = new Map<string, { n: number; pages: Set<string> }>();
   for (const p of pages) {
     for (const term of candidates(p.body)) {
-      if (STOPWORDS.has(term)) continue;
+      if (STOPWORDS.has(term) || EXCEPTION_RE.test(term)) continue;
       const id = toId(term);
       if (covered.has(id)) continue;
       const rec = hits.get(term) ?? { n: 0, pages: new Set<string>() };

@@ -75,6 +75,12 @@ describe("findGaps", () => {
     expect(findGaps(pages, opts)).toEqual([]);
   });
 
+  it("字面量、异常类名、泛称和 mermaid 方向词不当概念（2026-09 实际出现过的噪声）", () => {
+    const noise = "`false` `enabled` `ValueError` `RuntimeError` AI LLM TD LR ";
+    const pages = ["a", "b", "c"].map((id) => mk(id, rep(noise, 6) + rep("MLA", 6)));
+    expect(findGaps(pages).map((g) => g.term)).toEqual(["MLA"]);
+  });
+
   it("ignore 里的词被跳过", () => {
     const pages = [mk("a", rep("`Triton`", 5)), mk("b", rep("`Triton`", 5))];
     expect(findGaps(pages, { ...opts, ignore: ["Triton"] })).toEqual([]);

@@ -12,7 +12,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-  - vllm-ascend@28bf3a2e:setup.py#L518-L529
+  - vllm-ascend@b255ab59:setup.py#L518-L529
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
 evidence: "C"
 relations:

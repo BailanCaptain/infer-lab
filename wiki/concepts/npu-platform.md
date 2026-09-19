@@ -18,7 +18,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L882
-  - vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L81-L99
+  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332
 evidence: "C"
 relations:

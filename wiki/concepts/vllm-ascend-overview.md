@@ -18,7 +18,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L79
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
   - vllm-ascend@2c59ff10:docs/source/index.md#L24-L26
-  - vllm-ascend@28bf3a2e:setup.py#L518-L529
+  - vllm-ascend@b255ab59:setup.py#L518-L529
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
 evidence: "C"
 relations:

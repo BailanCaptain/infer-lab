@@ -15,7 +15,7 @@
 
 [真实缺口接续](wiki-real-gap-review.md)：生产三次问答、唯一排队、诊断、四类前测及现有页修订已推进至用户批准发布；公式与来源浏览器验证通过，收费后测因新未知费用暂停，尚未关闭缺口。
 
-新会话先读 [最新 handoff](../../HANDOFF-LLM-WIKI.md)：包含 F001–F004 的全部 34 条 AC 摘要、三项未执行批量工作及 09-16 上午的新运行状态。
+新会话先读 [最新 handoff](../../HANDOFF-LLM-WIKI.md)：现状怎么查、接下来做什么、踩过的坑。逐条证据见 [2026-09-19 审视](wiki-audit-2026-09-19.md)；更早的逐轮流水账在 [归档](handoff-archive-2026-09-19.md)。状态数字一律现查，不在索引里抄。
 
 [可读性与问答接续](wiki-readable-versions-review.md) 保留上一阶段记录：版本名称已改为可读分支，问答输入冲突已修复，32 次调用额度已用满，最终代码修改后尚未真实复测。[扩额、正式补页与真实对照](wiki-budget-30-review.md) 保留前轮记录：用户授权累计 $30 以下，参数页已批准发布，六题前后测完成但质量未全部通过；[原前测与补写停点](wiki-real-baseline-review.md) 保留此前 $10 / 8 次失败记录；[预算恢复记录](wiki-budget-resume-review.md) 保留恢复实现和批准留痕；[证据核查](wiki-evidence-review.md) 保留过度纠错撤回、107 条 raw 提示核查及显存修订发布；[维护接续](wiki-resume-review.md) 和 [独立复查](wiki-independent-closure-review.md) 保留更早证据。[旧收尾报告](wiki-nonbulk-review.md) 也是历史快照，不能覆盖当前状态。
 

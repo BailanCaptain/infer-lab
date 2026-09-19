@@ -321,6 +321,30 @@
       ]
     },
     {
+      "id": "combine-quant-mode-2a3f7cd47997",
+      "title": "combine_quant_mode",
+      "type": "param",
+      "origin": "seed",
+      "summary": "combine_quant_mode 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L473"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/combine-quant-mode-2a3f7cd47997.md",
+      "backlinks": []
+    },
+    {
       "id": "enable-async-exponential",
       "title": "enable_async_exponential",
       "type": "param",
@@ -361,6 +385,30 @@
       "contradicts": [],
       "updated": "2026-09-14",
       "file": "params/enable-async-exponential.md",
+      "backlinks": []
+    },
+    {
+      "id": "enable-force-eplb-b7ec3661121f",
+      "title": "enable_force_eplb",
+      "type": "param",
+      "origin": "seed",
+      "summary": "enable_force_eplb 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/enable-force-eplb-b7ec3661121f.md",
       "backlinks": []
     },
     {
@@ -426,6 +474,30 @@
       ]
     },
     {
+      "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+      "title": "enable_pcp_o_proj_weight_sharding",
+      "type": "param",
+      "origin": "seed",
+      "summary": "enable_pcp_o_proj_weight_sharding 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L467"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
+      "backlinks": []
+    },
+    {
       "id": "enable-sleep-mode-extra-cleanup",
       "title": "enable_sleep_mode_extra_cleanup",
       "type": "param",
@@ -470,6 +542,30 @@
       "contradicts": [],
       "updated": "2026-09-14",
       "file": "params/enable-sleep-mode-extra-cleanup.md",
+      "backlinks": []
+    },
+    {
+      "id": "enable-super-kernel-ce990e186bfa",
+      "title": "enable_super_kernel",
+      "type": "param",
+      "origin": "seed",
+      "summary": "enable_super_kernel 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L115"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/enable-super-kernel-ce990e186bfa.md",
       "backlinks": []
     },
     {
@@ -625,6 +721,30 @@
       "contradicts": [],
       "updated": "2026-09-19",
       "file": "concepts/graph-mode-layer.md",
+      "backlinks": []
+    },
+    {
+      "id": "group-2b49ce9bdb0a",
+      "title": "group",
+      "type": "param",
+      "origin": "seed",
+      "summary": "group 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L49"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/group-2b49ce9bdb0a.md",
       "backlinks": []
     },
     {
@@ -1289,6 +1409,30 @@
           "note": "layerwise 是 AscendStore KV Pool 的一种传输模式，池的后端选型、key 组织、P/D 角色都在那一页"
         }
       ]
+    },
+    {
+      "id": "kvpp-config-0445bd352140",
+      "title": "kvpp_config",
+      "type": "param",
+      "origin": "seed",
+      "summary": "kvpp_config 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L517"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/kvpp-config-0445bd352140.md",
+      "backlinks": []
     },
     {
       "id": "layer-sharding",
@@ -2469,6 +2613,102 @@
           "note": "存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转"
         }
       ]
+    },
+    {
+      "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+      "title": "sfa_dcp_force_tmajor_restore",
+      "type": "param",
+      "origin": "seed",
+      "summary": "sfa_dcp_force_tmajor_restore 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L465"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "backlinks": []
+    },
+    {
+      "id": "size-40a1c2ca47b8",
+      "title": "size",
+      "type": "param",
+      "origin": "seed",
+      "summary": "size 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L64"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/size-40a1c2ca47b8.md",
+      "backlinks": []
+    },
+    {
+      "id": "use-fused-overlap-75a180fff6ab",
+      "title": "use_fused_overlap",
+      "type": "param",
+      "origin": "seed",
+      "summary": "use_fused_overlap 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L1468"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/use-fused-overlap-75a180fff6ab.md",
+      "backlinks": []
+    },
+    {
+      "id": "use-layerwise-b475778cd352",
+      "title": "use_layerwise",
+      "type": "param",
+      "origin": "seed",
+      "summary": "use_layerwise 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-d3d9a827c7c10514c64a59996d439dd3073b7e210488d124f267f418725693c2.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/use-layerwise-b475778cd352.md",
+      "backlinks": []
     },
     {
       "id": "vllm-ascend-overview",

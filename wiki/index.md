@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 47 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 57 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -45,14 +45,24 @@
 - [Recompute CPU Offload](concepts/recompute-cpu-offload.md) — PD 分离的 Decode 节点抢占请求时，把它已算好的 KV 块从 HBM 拷到锁页 CPU 内存里存着，恢复时再拷回来，避免整条请求被打回 Prefill 重算。 `11 12`
 
 ## 参数（param）
+- [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — combine_quant_mode 的静态定义，正文待补。
 - [enable_async_exponential](params/enable-async-exponential.md) — 把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除。 `19`
+- [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md) — enable_force_eplb 的静态定义，正文待补。
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md) — 把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 有，main 已整体移除。 `13`
+- [enable_pcp_o_proj_weight_sharding](params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) — enable_pcp_o_proj_weight_sharding 的静态定义，正文待补。
 - [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md) — sleep 时额外销毁 HCCL 通信域并清空 ACL 图工作区，把更多显存还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。 `19`
+- [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md) — enable_super_kernel 的静态定义，正文待补。
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md) — 把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main 上已整体删除。 `13`
+- [group](params/group-2b49ce9bdb0a.md) — group 的静态定义，正文待补。
+- [kvpp_config](params/kvpp-config-0445bd352140.md) — kvpp_config 的静态定义，正文待补。
 - [layer_sharding](params/layer-sharding.md) — 点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。 `13`
 - [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上已整体删除。 `14`
 - [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定"预取权重的前百分之几"；v0.23.0 存在，main 已随整个 weight prefetch 一起删除。 `19`
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 通过启动时的 profiling 调整 chunk 大小，默认关闭。main 开发主线要求 PP>1，且不能与负载均衡调度同时开启；与 v0.23 维护分支对 need_timing 的处理不同。 `12 13`
+- [sfa_dcp_force_tmajor_restore](params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md) — sfa_dcp_force_tmajor_restore 的静态定义，正文待补。
+- [size](params/size-40a1c2ca47b8.md) — size 的静态定义，正文待补。
+- [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — use_fused_overlap 的静态定义，正文待补。
+- [use_layerwise](params/use-layerwise-b475778cd352.md) — use_layerwise 的静态定义，正文待补。
 - [weight_prefetch_config](params/weight-prefetch-config.md) — v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。 `19`
 
 ## 按章节

@@ -213,3 +213,34 @@ layerwise_prefetch_layers 的默认值：官方参数表写 1，memcache(GVA) �
 ## [2026-09-19] ingest | Prefill
 晋升 concepts/prefill.md
 
+## [2026-09-19] ingest | 参数增量
+
+vllm-ascend@main 28bf3a2e8e8db396ee5dcfa6812626eee2d394ab → b255ab59662d8c665e5534e926f913b1c1179b1c；新增 157 / 删除 19 / 变更 23。
+
+- enable_npugraph_ex: 默认表达式 "True" → "True"
+- enable_static_kernel: 默认表达式 "False" → "False"
+- enable_dsa_cp: 默认表达式 "False" → "False"
+- mega_moe_max_tokens: 默认表达式 "131072" → "65536"
+- enable_fused_mc2: 默认表达式 "0" → "0"
+- eplb_config: 默认表达式 "dataclasses.field(default_factory=EplbConfig)" → "dataclasses.field(default_factory=EplbConfig)"
+- scheduler_cls: 默认表达式 "'vllm_ascend.core.recompute_scheduler.RecomputeScheduler'" → "'vllm_ascend.core.recompute_scheduler.RecomputeScheduler'"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- num_heads: 默认表达式 "<unknown>" → "None"
+- architectures: 默认表达式 "<unknown>" → "None"
+- factor: 默认表达式 "1.0" → "<unknown>"
+
+## [2026-09-19] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

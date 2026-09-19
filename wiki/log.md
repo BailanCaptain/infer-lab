@@ -244,3 +244,39 @@ vllm-ascend@main 28bf3a2e8e8db396ee5dcfa6812626eee2d394ab → b255ab59662d8c665e
 ## [2026-09-19] review | 周期维护
 
 本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-09-19] ingest | 参数增量
+
+vllm-ascend@main 28bf3a2e8e8db396ee5dcfa6812626eee2d394ab → b255ab59662d8c665e5534e926f913b1c1179b1c；新增 4 / 删除 0 / 变更 27。
+
+- seqused_ori_kv: 默认表达式 "<unknown>" → "None"
+- max_seqlen_cmp_kv: 默认表达式 "<unknown>" → "None"
+- max_seqlen_ori_kv: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- store: 默认表达式 "{}" → "None"
+- comm_resource_config: 默认表达式 "{}" → "None"
+- qos: 默认表达式 "<unknown>" → "None"
+- merge_size: 默认表达式 "None" → "self.merge_size"
+- num_heads: 默认表达式 "<unknown>" → "None"
+- architectures: 默认表达式 "<unknown>" → "None"
+- factor: 默认表达式 "1.0" → "<unknown>"
+
+## [2026-09-19] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

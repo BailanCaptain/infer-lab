@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 57 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 61 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -56,14 +56,18 @@
 - [group](params/group-2b49ce9bdb0a.md) — group 的静态定义，正文待补。
 - [kvpp_config](params/kvpp-config-0445bd352140.md) — kvpp_config 的静态定义，正文待补。
 - [layer_sharding](params/layer-sharding.md) — 点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。 `13`
+- [mask](params/mask-e1795029cbdd.md) — mask 的静态定义，正文待补。
 - [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上已整体删除。 `14`
 - [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定"预取权重的前百分之几"；v0.23.0 存在，main 已随整个 weight prefetch 一起删除。 `19`
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 通过启动时的 profiling 调整 chunk 大小，默认关闭。main 开发主线要求 PP>1，且不能与负载均衡调度同时开启；与 v0.23 维护分支对 need_timing 的处理不同。 `12 13`
+- [rank](params/rank-d6a905e66735.md) — rank 的静态定义，正文待补。
 - [sfa_dcp_force_tmajor_restore](params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md) — sfa_dcp_force_tmajor_restore 的静态定义，正文待补。
+- [shard_axis](params/shard-axis-036e26ba7f4b.md) — shard_axis 的静态定义，正文待补。
 - [size](params/size-40a1c2ca47b8.md) — size 的静态定义，正文待补。
 - [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — use_fused_overlap 的静态定义，正文待补。
 - [use_layerwise](params/use-layerwise-b475778cd352.md) — use_layerwise 的静态定义，正文待补。
 - [weight_prefetch_config](params/weight-prefetch-config.md) — v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。 `19`
+- [world_size](params/world-size-bbb55aac584a.md) — world_size 的静态定义，正文待补。
 
 ## 按章节
 

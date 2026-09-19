@@ -1495,6 +1495,30 @@
       "backlinks": []
     },
     {
+      "id": "mask-e1795029cbdd",
+      "title": "mask",
+      "type": "param",
+      "origin": "seed",
+      "summary": "mask 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/xlite/utils.py#L355"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-7208a7a5310b669614d3fd4c6a11405a02ade0a36f1a32d477d45864d928afeb.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/mask-e1795029cbdd.md",
+      "backlinks": []
+    },
+    {
       "id": "multistream-overlap-gate",
       "title": "multistream_overlap_gate",
       "type": "param",
@@ -2403,6 +2427,30 @@
       "backlinks": []
     },
     {
+      "id": "rank-d6a905e66735",
+      "title": "rank",
+      "type": "param",
+      "origin": "seed",
+      "summary": "rank 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L51"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/rank-d6a905e66735.md",
+      "backlinks": []
+    },
+    {
       "id": "reading-vllm-ascend",
       "title": "怎么读这个仓库",
       "type": "concept",
@@ -2636,6 +2684,30 @@
       "contradicts": [],
       "updated": "2026-09-19",
       "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
+      "backlinks": []
+    },
+    {
+      "id": "shard-axis-036e26ba7f4b",
+      "title": "shard_axis",
+      "type": "param",
+      "origin": "seed",
+      "summary": "shard_axis 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L52"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/shard-axis-036e26ba7f4b.md",
       "backlinks": []
     },
     {
@@ -3188,6 +3260,30 @@
           "note": "读这一页之前要先知道两边各管什么，否则会把接缝当成主体"
         }
       ]
+    },
+    {
+      "id": "world-size-bbb55aac584a",
+      "title": "world_size",
+      "type": "param",
+      "origin": "seed",
+      "summary": "world_size 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L50"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "params/world-size-bbb55aac584a.md",
+      "backlinks": []
     }
   ]
 }

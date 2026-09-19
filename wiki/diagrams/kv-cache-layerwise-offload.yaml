@@ -1,0 +1,97 @@
+layout: scene
+id: kv-cache-layerwise-offload
+caption: 一层的一来一回：计算流上四个点，两个后台线程夹在中间（main 快照 b255ab59）
+size: [900, 645]
+
+bands:
+  - label: 接收线程 KVCacheStoreLayerRecvingThread
+    sub: 先等复用源那一层落盘，再等 attention 的 Event，最后才把第 i 层搬进来
+    fn: _handle_request
+    icon: queue
+    at: [20, 60]
+    size: [860, 72]
+    tone: neutral
+  - label: 发送线程 KVCacheStoreLayerSendingThread
+    sub: 先 synchronize 第 i 层的 Event，确认 KV 已经写进 paged cache，再发出去
+    fn: sync_save_events
+    icon: bolt
+    at: [20, 452]
+    size: [860, 72]
+    tone: upstream
+
+spines:
+  - { y: 300, from: 60, to: 840, tone: ascend }
+
+pills:
+  - { at: [86, 300], text: 第 i 层, tone: ascend }
+
+stops:
+  - x: 150
+    side: above
+    title: 投递下 N 层的预取
+    detail: 第 0 层一次投 N 个，之后每层补一个
+    fn: _submit_ready_layer_loads
+    icon: queue
+    tone: neutral
+  - x: 390
+    side: above
+    title: 等第 i 层到位
+    detail: 只在 has_prefill 时等
+    fn: wait_for_layer_load
+    icon: clock
+    tone: neutral
+  - x: 630
+    side: above
+    title: 记 attention Event
+    detail: 让预取给当前计算让路
+    fn: record_attention_compute_start
+    icon: bolt
+    tone: accent
+  - x: 790
+    side: below
+    title: 交给发送线程
+    detail: 不等待，直接进第 i+1 层
+    fn: save_kv_layer
+    icon: plug
+    tone: upstream
+
+arrows:
+  - { from: [150, 158], to: [150, 136], tone: neutral }
+  - { from: [390, 136], to: [390, 158], tone: neutral }
+  - { from: [630, 158], to: [630, 136], tone: accent }
+  - { from: [790, 433], to: [790, 450], tone: upstream }
+  - { from: [36, 448], to: [36, 138], style: dashed, tone: accent }
+
+strips:
+  - at: [44, 566]
+    cells: 28
+    cell: 22
+    gap: 4
+    highlights: [1, 4, 7, 10, 13, 16, 19, 22, 25]
+    tone: accent
+    label: "实心的 9 层共用同一份 buffer：第 L 层复用第 L−3 层的那一份"
+
+notes:
+  - { at: [20, 548], text: "main 才有的第二件事：28 层轮流用 4 份 HBM buffer", size: 13.5, strong: true }
+  - at: [20, 626]
+    text: "左边那条虚线就是代价：第 L 层开始装之前，接收线程必须先确认第 L−3 层的 D2H 真的做完了。"
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2296-L2323
+    symbols: [_submit_ready_layer_loads]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2325-L2358
+    symbols: [wait_for_layer_load]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2366-L2401
+    symbols: [save_kv_layer]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1556-L1560
+    symbols: [KVCacheStoreLayerSendingThread]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1826-L1830
+    symbols: [KVCacheStoreLayerRecvingThread, _handle_request]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1779-L1793
+    symbols: [sync_save_events]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L86-L91
+    symbols: [record_attention_compute_start]
+  - source: vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L2045-L2048
+    symbols: [has_prefill]

@@ -4,7 +4,7 @@
  * lint 只管格式，这里管「行号是不是真的」，是 F001 AC4 的自动化部分。
  */
 import { parseRawRef, parseRepoRef } from "../../src/content/wiki/schema";
-import type { BlobRead } from "./git";
+import { type BlobRead, warmBlobs } from "./git";
 import type { WikiPage } from "./pages";
 
 export type RefVerdict = "ok" | "invalid-commit" | "missing-file" | "out-of-range" | "unknown-repo" | "url";
@@ -32,6 +32,20 @@ export interface AuditDeps {
 
 export function sourceLines(text: string): string[] {
   return text === "" ? [] : text.replace(/\r?\n$/, "").split(/\r?\n/);
+}
+
+/** 把这批页面引用的全部源码文件一次读进缓存，之后逐条核对不再起 git 进程 */
+export function warmPageSources(pages: WikiPage[], repoRoots: Record<string, string>): void {
+  const byRoot = new Map<string, { commit: string; path: string }[]>();
+  for (const page of pages)
+    for (const source of page.fm.sources) {
+      const ref = parseRepoRef(source);
+      const root = ref && repoRoots[ref.repo];
+      if (!ref || !root) continue;
+      if (!byRoot.has(root)) byRoot.set(root, []);
+      byRoot.get(root)!.push({ commit: ref.commit, path: ref.path });
+    }
+  for (const [root, requests] of byRoot) warmBlobs(root, requests);
 }
 
 export function auditPage(page: WikiPage, deps: AuditDeps): RefAudit[] {

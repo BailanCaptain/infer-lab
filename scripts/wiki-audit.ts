@@ -5,7 +5,7 @@
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { auditPage, type RefAudit, summarize } from "./wiki/audit";
+import { auditPage, type RefAudit, summarize, warmPageSources } from "./wiki/audit";
 import { auditDiagram } from "./wiki/diagram-audit";
 import { loadDiagrams } from "./wiki/diagrams";
 import { createBlobReader } from "./wiki/git";
@@ -57,6 +57,7 @@ const deps = {
   readSnapshot: (path: string): string => readRawSnapshot(wikiRoot, path),
 };
 
+warmPageSources(pages, repoRoots);
 const all: RefAudit[] = [];
 const symbolProblems = [...diagramProblems, ...pages.flatMap((page) => auditDiagram(page, deps))];
 for (const p of symbolProblems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);

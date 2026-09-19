@@ -8,7 +8,7 @@ import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
 import { getPresetSpec } from "../../src/sim/modelspec/presets";
-import { sourceLines } from "./audit";
+import { sourceLines, warmPageSources } from "./audit";
 import { auditDiagram } from "./diagram-audit";
 import { loadDiagrams } from "./diagrams";
 import { createBlobReader } from "./git";
@@ -577,6 +577,7 @@ export function runLint(
     readBlob: createBlobReader(),
     diagrams,
   };
+  warmPageSources(pages, diagramDeps.repoRoots);
   problems.push(...pages.flatMap((page) => auditDiagram(page, diagramDeps)));
   // spec 在但 SVG 没生成，页面上就是一个空框——渲染层读的是 SVG，不是 spec
   for (const diagram of diagrams.values())

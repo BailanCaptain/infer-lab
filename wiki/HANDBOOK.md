@@ -435,6 +435,7 @@ CLI 的 `--max-budget-usd` 不是账单硬上限：真实调用已出现本次�
 
 - 目录：`concepts/` 术语与特性页，`sources/` 来源摘要与 PR 页，`raw/` 不可变摘录（agent 写一次后不改），`_drafts/` 待整合与人审，`seeds/` 灌种清单，`index.md` 与 `log.md` 派生物。
 - 命令：`pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml [--only a,b] [--skip-existing] [--retry-failed] [--dry-run] [--phase extract|integrate|all]`；`pnpm wiki:build`；`pnpm wiki:lint [--terms]`；`pnpm wiki:clone --seeds …`。
+- `pnpm wiki:stage --ids a,b [--touch concepts/邻居.md]` 把 `_drafts/` 里**已经写好**的草稿原样送审：不调用模型、不花钱，但过的是同一套生产校验，产出的也是待审包。直接读源码写好了页就走这条路，不要把页直接放进 `concepts/` 绕过审阅。`--touch` 用来把「给邻居页补一条 relations」放进同一个待审包；改写既有页的正文不走这里。
 - 默认 phase 为 `extract`，只产草稿。真实提取必须显式传入 `--job-budget-usd <每任务累计额度>`、`--attempt-budget-usd <单次额度>`、`--max-attempts <总次数>`；累计预算按每个任务分别计算，不是整批共享预算。单次额度传给本机 CLI 的 `--max-budget-usd`，未知消耗保留预留额，重启和重试不清零。
 - 工作状态在 `_jobs/<指纹>.json`，`pnpm wiki:jobs list` 只读查看；`pnpm wiki:jobs recover` 将持有进程已退出的任务标成失败，不启动 agent。`--retry-failed` 才尝试重领。同证据、目标与配方复用已有工作，不因日期或入口不同重复编译。
 - 每次提取使用独立尝试目录，校验后核对 attempt 与原文件再写回自己的草稿，并按「链接与来源」保存快照和映射。新摘录不会覆盖旧 `raw/<id>.md`；已有成功草稿或快照被手动修改时，不会冒充缓存成功或通过整合入口核对。本地来源引用已可点击；文本投喂和来源入口角标已经接入，真实内容质量仍待验收。

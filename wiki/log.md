@@ -204,3 +204,12 @@ layerwise_prefetch_layers 的默认值：官方参数表写 1，memcache(GVA) �
 ## [2026-09-18] review | 周期维护
 
 本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+## [2026-09-19] ingest | KV Cache
+晋升 concepts/kv-cache.md
+
+## [2026-09-19] ingest | RoPE (Rotary Position Embedding)
+晋升 concepts/rope.md
+
+## [2026-09-19] ingest | Prefill
+晋升 concepts/prefill.md
+

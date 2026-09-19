@@ -35,6 +35,7 @@
     "wiki:jobs": "tsx scripts/wiki-jobs.ts",
     "wiki:work": "tsx scripts/wiki-work.ts",
     "wiki:compile": "tsx scripts/wiki-compile.ts",
+    "wiki:stage": "tsx scripts/wiki-stage.ts",
     "wiki:review": "tsx scripts/wiki-review.ts",
     "wiki:eval": "tsx scripts/wiki-eval.ts",
     "wiki:clone": "tsx scripts/wiki-clone.ts",

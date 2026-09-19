@@ -628,6 +628,55 @@
       "backlinks": []
     },
     {
+      "id": "kv-cache",
+      "title": "KV Cache",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。",
+      "aliases": [
+        "KV 缓存",
+        "键值缓存",
+        "kv cache",
+        "KV 显存"
+      ],
+      "chapters": [
+        "05",
+        "11"
+      ],
+      "order": 5,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L145-L162",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L182-L200",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "缓存是 prefill 那一步一次写满前 37 格、之后 decode 每步追加一格；先分清这两种步，才看得懂缓存什么时候写、什么时候读"
+        },
+        {
+          "to": "rope",
+          "kind": "builds-on",
+          "note": "存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/kv-cache.md",
+      "backlinks": [
+        {
+          "from": "kv-cache-spec",
+          "kind": "enables",
+          "note": "spec 描述的是「缓存的一块长什么样、多大」；缓存本身为什么存在、存的是什么，在那一页"
+        }
+      ]
+    },
+    {
       "id": "kv-cache-cpu-offload",
       "title": "KV Cache CPU Offload",
       "type": "feature",
@@ -1094,6 +1143,11 @@
           "to": "paged-attention",
           "kind": "builds-on",
           "note": "spec 里的 block_size 与 page_size_bytes 描述的就是 PagedAttention 的那一页"
+        },
+        {
+          "to": "kv-cache",
+          "kind": "builds-on",
+          "note": "spec 描述的是「缓存的一块长什么样、多大」；缓存本身为什么存在、存的是什么，在那一页"
         }
       ],
       "related": [],
@@ -1635,6 +1689,11 @@
           "note": "这五个口在那条请求发出之前就已经用完了，是它能被昇腾接住的前提"
         },
         {
+          "from": "prefill",
+          "kind": "enables",
+          "note": "这一页所有的数（37 个 token 一步算完、之后 199 步每步 1 个）都是那条请求的数"
+        },
+        {
           "from": "prepare-inputs-flow",
           "kind": "enables",
           "note": "那条请求第 92 步的 slot 下标就是在这里算出来的"
@@ -1978,6 +2037,54 @@
       "updated": "2026-09-14",
       "file": "params/prefetch-ratio.md",
       "backlinks": []
+    },
+    {
+      "id": "prefill",
+      "title": "Prefill",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "生成第一个字之前，把整段问题一次过完模型、把每个 token 的 K 和 V 写进缓存的那一步。它算得多、只做一次，决定了「多久出第一个字」。",
+      "aliases": [
+        "预填充",
+        "首 token 阶段",
+        "prompt 阶段",
+        "prefill 阶段",
+        "TTFT"
+      ],
+      "chapters": [
+        "05"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "这一页所有的数（37 个 token 一步算完、之后 199 步每步 1 个）都是那条请求的数"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/prefill.md",
+      "backlinks": [
+        {
+          "from": "kv-cache",
+          "kind": "enables",
+          "note": "缓存是 prefill 那一步一次写满前 37 格、之后 decode 每步追加一格；先分清这两种步，才看得懂缓存什么时候写、什么时候读"
+        },
+        {
+          "from": "vllm-scheduler",
+          "kind": "enables",
+          "note": "先知道人们说的 prefill 和 decode 各指什么，才看得懂「调度器里没有这两个阶段」这句话在否定什么"
+        }
+      ]
     },
     {
       "id": "prefix-caching",
@@ -2325,6 +2432,45 @@
       "backlinks": []
     },
     {
+      "id": "rope",
+      "title": "RoPE (Rotary Position Embedding)",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」转一个角度。转完之后，两个 token 的注意力分数只取决于它们相隔多远。",
+      "aliases": [
+        "旋转位置编码",
+        "旋转位置嵌入",
+        "rotary embedding",
+        "位置编码"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L145-L162",
+        "vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/base.py#L80-L103",
+        "vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/common.py#L164-L177",
+        "vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L33-L40",
+        "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
+        "https://arxiv.org/abs/2104.09864"
+      ],
+      "evidence": "C",
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/rope.md",
+      "backlinks": [
+        {
+          "from": "kv-cache",
+          "kind": "enables",
+          "note": "存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转"
+        }
+      ]
+    },
+    {
       "id": "vllm-ascend-overview",
       "title": "vLLM-Ascend 是什么",
       "type": "concept",
@@ -2609,6 +2755,11 @@
           "to": "vllm-engine-core",
           "kind": "builds-on",
           "note": "这段代码是循环体的第一句，谁在什么时候调它写在那一页"
+        },
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "先知道人们说的 prefill 和 decode 各指什么，才看得懂「调度器里没有这两个阶段」这句话在否定什么"
         }
       ],
       "related": [],

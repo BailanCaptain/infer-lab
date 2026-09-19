@@ -36,6 +36,9 @@ relations:
   - to: paged-attention
     kind: builds-on
     note: spec 里的 block_size 与 page_size_bytes 描述的就是 PagedAttention 的那一页
+  - to: kv-cache
+    kind: builds-on
+    note: spec 描述的是「缓存的一块长什么样、多大」；缓存本身为什么存在、存的是什么，在那一页
 contradicts: []
 updated: "2026-09-12"
 ---

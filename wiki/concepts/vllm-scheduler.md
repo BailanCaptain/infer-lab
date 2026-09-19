@@ -22,6 +22,9 @@ relations:
   - to: vllm-engine-core
     kind: builds-on
     note: 这段代码是循环体的第一句，谁在什么时候调它写在那一页
+  - to: prefill
+    kind: builds-on
+    note: 先知道人们说的 prefill 和 decode 各指什么，才看得懂「调度器里没有这两个阶段」这句话在否定什么
 contradicts: []
 updated: "2026-09-19"
 origin: seed

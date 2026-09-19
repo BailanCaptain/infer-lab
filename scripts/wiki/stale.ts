@@ -56,7 +56,7 @@ export function findStale(
     for (const [key, { repo, paths }] of citedPaths(page)) {
       const pinned = key.slice(key.indexOf("@") + 1);
       const ref = refOf(repo, pinned);
-      if (!ref) continue; // 不在 seeds 里钉过的 commit，不归这里管
+      if (!ref) continue; // 不在 seeds 任何一条分支上的 commit，不归这里管
       const tip = deps.tipOf(repo, ref);
       if (!tip || tip.startsWith(pinned) || pinned.startsWith(tip)) continue;
       const changed = deps.changedFiles(repo, pinned, tip, [...paths].sort());
@@ -71,6 +71,21 @@ export function findStale(
 }
 
 /** 供 `pnpm wiki:ingest --only` 直接使用的 id 列表 */
+/**
+ * commit → 它在哪条分支上。seeds 里钉的那个 commit 直接认；别的 commit 按 git 祖先关系判断。
+ *
+ * 只认 seeds 钉点的话，页面一旦重钉到更新的提交（夜间参数页、2026-09-20 重写的那批页都是），
+ * 就查不到分支、被 findStale 静默跳过——永远显示「不过期」。
+ */
+export function refOfCommit(
+  refs: Record<string, string>,
+  commit: string,
+  isAncestor: (commit: string, ref: string) => boolean,
+): string | undefined {
+  const pinned = Object.entries(refs).find(([, c]) => c.startsWith(commit) || commit.startsWith(c))?.[0];
+  return pinned ?? Object.keys(refs).find((ref) => isAncestor(commit, ref));
+}
+
 export function staleIds(stale: PageStale[]): string {
   return stale.map((s) => s.id).join(",");
 }

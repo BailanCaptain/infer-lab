@@ -13,7 +13,7 @@ import { worktreeDir } from "./wiki/clone";
 import { gitText } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
 import { loadPages } from "./wiki/pages";
-import { findStale, staleIds } from "./wiki/stale";
+import { findStale, refOfCommit, staleIds } from "./wiki/stale";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -44,11 +44,18 @@ if (process.argv.includes("--fetch")) {
   }
 }
 
-/** commit → ref 名，从 seeds 反查 */
+/** commit → ref 名：先认 seeds 钉点，再按祖先关系（见 refOfCommit） */
 const refOf = (repo: string, commit: string): string | undefined => {
   const r = seeds.repos[repo];
   if (!r) return undefined;
-  return Object.entries(r.refs).find(([, c]) => c.startsWith(commit) || commit.startsWith(c))?.[0];
+  return refOfCommit(r.refs, commit, (c, ref) => {
+    try {
+      git(repo, ["merge-base", "--is-ancestor", c, `origin/${ref}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  });
 };
 
 const { pages } = loadPages(join(root, "wiki"));

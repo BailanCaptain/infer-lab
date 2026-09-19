@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WikiPage } from "./pages";
-import { citedPaths, findStale, staleIds } from "./stale";
+import { citedPaths, findStale, refOfCommit, staleIds } from "./stale";
 
 const mk = (id: string, sources: string[]): WikiPage => ({
   file: `concepts/${id}.md`,
@@ -84,5 +84,26 @@ describe("findStale", () => {
   it("staleIds 直接拼成 --only 能吃的形式", () => {
     const pages = [mk("a", ["vllm-ascend@28bf3a2e:a.py#L1"]), mk("b", ["vllm-ascend@28bf3a2e:b.py#L1"])];
     expect(staleIds(findStale(pages, refOf, deps))).toBe("a,b");
+  });
+});
+
+describe("refOfCommit", () => {
+  const refs = { main: "28bf3a2e", "releases/v0.23.0": "2c59ff10" };
+  // 祖先关系：b255ab59 是 main 上比钉点更新的提交；0ld 是两条分支分叉前的老提交
+  const isAncestor = (commit: string, ref: string) =>
+    (commit === "b255ab59" && ref === "main") || commit === "0ld0ld0l";
+
+  it("seeds 里钉的 commit 直接认", () => {
+    expect(refOfCommit(refs, "2c59ff10", isAncestor)).toBe("releases/v0.23.0");
+    expect(refOfCommit(refs, "28bf3a2e1234", isAncestor)).toBe("main");
+  });
+
+  it("页面重钉到比 seeds 更新的提交，仍然认得出它在哪条分支上——否则这页永远不会被查过期", () => {
+    expect(refOfCommit(refs, "b255ab59", isAncestor)).toBe("main");
+  });
+
+  it("两条分支都包含的老提交按 seeds 里的先后取第一条；哪条都不在就是 undefined", () => {
+    expect(refOfCommit(refs, "0ld0ld0l", isAncestor)).toBe("main");
+    expect(refOfCommit(refs, "deadbeef", isAncestor)).toBeUndefined();
   });
 });

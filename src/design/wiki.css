@@ -68,13 +68,62 @@
   color: var(--color-accent);
 }
 
-.wiki-toc-group h2 {
+/* 目录四部分：部分标题醒目，部分内的小组标题弱化 */
+.wiki-toc-part {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-rail-line);
+}
+
+.wiki-toc-head + .wiki-toc-part {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.wiki-toc-part-head {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin: 0 0 6px;
-  font-size: var(--text-caption);
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: var(--text-compact);
+  font-weight: 700;
+  color: var(--color-ink-inverse);
+}
+
+.wiki-toc-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 400;
+  color: var(--color-rail-muted);
+}
+
+summary.wiki-toc-part-head {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.wiki-toc-part-head::-webkit-details-marker {
+  display: none;
+}
+
+.wiki-toc-part > summary .wiki-toc-count::after {
+  content: " ▸";
+}
+
+.wiki-toc-part[open] > summary .wiki-toc-count::after {
+  content: " ▾";
+}
+
+.wiki-toc-part:not([open]) > .wiki-toc-part-head {
+  margin-bottom: 0;
+}
+
+.wiki-toc-section {
+  margin: 2px 0 4px;
+  padding-left: 8px;
+  font-size: var(--text-micro);
   font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--color-rail-muted);
 }
 

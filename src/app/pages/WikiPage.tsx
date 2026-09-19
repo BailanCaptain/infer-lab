@@ -18,6 +18,7 @@ import { Mermaid } from "../../content/wiki/Mermaid";
 import { groupRelations } from "../../content/wiki/relations";
 import { parseRepoRef, type RegistryEntry, rawSourceHref } from "../../content/wiki/schema";
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
+import { buildToc } from "../../content/wiki/toc";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { wikiRequest } from "../wiki/api";
 import { WikiPanel } from "../wiki/WikiPanel";
@@ -83,7 +84,7 @@ export function WikiPage() {
     import.meta.hot?.on("wiki:changed", onChanged);
     return () => import.meta.hot?.off("wiki:changed", onChanged);
   }, [refresh]);
-  const groups = useMemo(() => groupByChapter(pages), [pages]);
+  const toc = useMemo(() => buildToc(pages), [pages]);
   const page = id ? getPage(id) : undefined;
 
   return (
@@ -101,23 +102,51 @@ export function WikiPage() {
           </small>
           {snapshotError && <small role="status">{snapshotError}</small>}
         </div>
-        {groups.map(([chapter, list]) => (
-          <section key={chapter} className="wiki-toc-group">
-            <h2>
-              <span className="wiki-toc-chapter">{chapter}</span>
-              {CHAPTER_TITLES[chapter] ?? "未归章"}
-            </h2>
-            <ul>
-              {list.map((p) => (
-                <li key={p.id}>
-                  <Link className={p.id === id ? "is-active" : undefined} to={`/wiki/${p.id}`}>
-                    {p.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {toc.map((part, i) => {
+          const count = part.sections.reduce((n, s) => n + s.pages.length, 0);
+          const body = part.sections.map((section) => (
+            <section key={section.title} className="wiki-toc-group">
+              {section.title && <h3 className="wiki-toc-section">{section.title}</h3>}
+              <ul>
+                {section.pages.map((p) => (
+                  <li key={p.id}>
+                    <Link className={p.id === id ? "is-active" : undefined} to={`/wiki/${p.id}`}>
+                      {p.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ));
+          const head = (
+            <>
+              <span className="wiki-toc-chapter">{"一二三四"[i]}</span>
+              {part.title}
+              <small className="wiki-toc-count">{count}</small>
+            </>
+          );
+          // 参数页每晚都在长，默认收起；正在读的就是参数页时展开
+          return part.id === "params" ? (
+            <details
+              key={part.id}
+              className="wiki-toc-part"
+              data-testid={`toc-${part.id}`}
+              open={part.sections.some((s) => s.pages.some((p) => p.id === id)) || undefined}
+            >
+              <summary className="wiki-toc-part-head" title={part.blurb}>
+                {head}
+              </summary>
+              {body}
+            </details>
+          ) : (
+            <div key={part.id} className="wiki-toc-part" data-testid={`toc-${part.id}`}>
+              <h2 className="wiki-toc-part-head" title={part.blurb}>
+                {head}
+              </h2>
+              {body}
+            </div>
+          );
+        })}
       </nav>
 
       <main className="wiki-main">
@@ -167,8 +196,8 @@ function Landing({ count }: { count: number }) {
           贯穿全书的那条请求 <ArrowRight size={14} />
         </Link>
         <p className="wiki-start-hint">
-          左侧目录里，<strong>章号只说这页属于哪个主题</strong>，<strong>章内从上到下就是该读的顺序</strong>
-          ——这两件事是分开的。
+          左侧目录分四部分：<strong>推理基础知识</strong>、<strong>代码全流程</strong>、<strong>特性</strong>
+          、<strong>参数</strong>。前两部分从上到下就是该读的顺序；后两部分是用到再查的。
         </p>
       </section>
 
@@ -355,20 +384,4 @@ function WhatsNext({ page }: { page: RegistryEntry }) {
       ))}
     </section>
   );
-}
-
-function groupByChapter(pages: RegistryEntry[]): [string, RegistryEntry[]][] {
-  const map = new Map<string, RegistryEntry[]>();
-  for (const p of pages) {
-    const keys = p.chapters.length > 0 ? p.chapters : ["--"];
-    for (const k of keys) {
-      const list = map.get(k) ?? [];
-      list.push(p);
-      map.set(k, list);
-    }
-  }
-  // 章内按 order 排，没写 order 的落在中间；同 order 再按标题，保证顺序是稳定的
-  for (const list of map.values())
-    list.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, "zh"));
-  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }

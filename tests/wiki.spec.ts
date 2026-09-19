@@ -22,6 +22,22 @@ test.describe("知识库阅读页", () => {
     await expect(page.getByRole("heading", { name: "一句话" })).toBeVisible();
   });
 
+  test("目录分四部分：基础 → 全流程 → 特性 → 参数；参数默认收起，读参数页时展开", async ({ page }) => {
+    await page.goto("/#/wiki");
+    const toc = page.getByTestId("wiki-toc");
+    await expect(toc.locator(".wiki-toc-part-head")).toContainText([
+      "推理基础知识",
+      "代码全流程",
+      "特性",
+      "参数",
+    ]);
+    await expect(toc).not.toContainText("未归章");
+    await expect(page.getByTestId("toc-flow").locator(".wiki-toc-section").first()).toHaveText("先看全貌");
+    await expect(page.getByTestId("toc-params").getByRole("link").first()).toBeHidden();
+    await page.goto("/#/wiki/layer-sharding");
+    await expect(page.getByTestId("toc-params").getByRole("link", { name: "layer_sharding" })).toBeVisible();
+  });
+
   test("七节结构齐全，顺序与 HANDBOOK 一致", async ({ page }) => {
     await page.goto("/#/wiki/block-table");
     const h2 = page.getByTestId("wiki-body").getByRole("heading", { level: 2 });

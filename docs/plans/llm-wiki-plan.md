@@ -2,21 +2,9 @@
 
 **Feature:** F001 — `docs/features/F001-llm-wiki.md`
 **Goal:** 让课程拥有一个由 agent 写、人只审、进 git 累积、互相链接的知识库，学习者在 `#/wiki` 右侧问名词就有基于知识库的回答。
-**Acceptance Criteria:**（照抄 feature doc，本计划全覆盖）
-- AC1 · 骨架与派生：`wiki/HANDBOOK.md` 六个 H2 切片可被程序切出；`pnpm wiki:build` 从 frontmatter 派生 `index.md` 与 `registry.json`，重复运行 `git diff` 为空。
-- AC2 · Lint 把关：`pnpm wiki:lint` 拒收空 sources、非法 frontmatter、重复 id/alias、断链、孤页，非零退出并指名文件与规则；纳入 `pnpm check`。
-- AC3 · ingest 引擎：扇出提取（每 feature 一次 `claude -p`，并发 3，每 agent 只写自己两个文件）+ 串行整合；失败不阻塞并记录；`--only / --skip-existing / --retry-failed / --dry-run`；spawn stub 单测。
-- AC4 · 试点批 10 页合格：11 章 KV Cache 组，sources 指向 `vllm-ascend@28bf3a2e` 真实行号，抽 3 页人核，agent 未越界。
-- AC5 · 批量灌种：10 到 21 章全部特性 + 30 个 `Step.terms`；`wiki:lint --terms` 通过；`pnpm check` 全绿。
-- AC6 · 站内消费：`#/wiki` 阅读页 + `<Term>` 悬停卡，Playwright 验收。
-- AC7 · 聊天问答：`server/` spawn `claude -p` 只读白名单，SSE 流式，`--resume` 多轮。
-- AC8 · 存进 wiki 与 PR ingest：草稿产出、PR ingest 经 sanitize、批准 / 驳回面板。
-- AC9 · 多 ref 钉定与完整克隆：一个 repo 钉一组 ref，feature 可声明适用 ref；克隆改完整克隆。**已完成 2026-09-11。**
-- AC10 · 检索接口可替换：`retrieve(query)` 单一入口，聊天层不内联 grep。**已完成 2026-09-11。**
-- AC11 · 页面要有图与逐条证据标记：mermaid 图 + 内联 `[S]`/`[C]`/`[D]` 标记 + 对应 lint 规则。
-- AC12 · 回答要体现页与页的关系：`retrieve()` 一跳图扩展、chat 传关系、回答附「接着看」。**检索侧已完成 2026-09-11。**
+**Acceptance Criteria:** 规范与当前验收状态统一引用 [F001](../features/F001-llm-wiki.md#acceptance-criteria)，本计划只保留实施任务。2026-09-14 的逐项复核已区分本轮通过、历史验收和部分实现，不按旧完成数推断全 feature 进度。
 
-**Architecture:** 三层（`wiki/raw` 不可变摘录、`wiki/concepts|sources` agent 维护的页面、`wiki/HANDBOOK.md` schema）+ 三操作（ingest / query / lint）。ingest 是「扇出提取 + 串行整合」：并行 agent 各写自己的 `_drafts/<id>.md` 与 `raw/<id>.md`，整合 agent 一次一个跨页写，程序按批前批后快照差集判越界，所以不需要任何锁。`index.md` 与 `registry.json` 由程序从 frontmatter 派生，agent 禁写。站内消费只读 `registry.json` 与页面原文；聊天由 `server/` 薄运行器 spawn 同一套 CLI 封装。
+**Architecture:** 三层（`wiki/raw` 不可变摘录、`wiki/concepts|sources` agent 维护的页面、`wiki/HANDBOOK.md` schema）+ 三操作（ingest / query / lint）。ingest 是「扇出提取 + 串行整合」：并行 agent 各写自己的 `_drafts/<id>.md` 与 `raw/<id>.md`，整合 agent 一次一个跨页写，提取阶段保留批级快照检查；整合在副本校验后通过短时发布锁写回，持久任务与审阅恢复按 F004 计划实现。`index.md` 与 `registry.json` 由程序从 frontmatter 派生，agent 禁写。站内消费只读 `registry.json` 与页面原文；聊天由 `server/` 薄运行器 spawn 同一套 CLI 封装。
 **Tech Stack:** TypeScript + tsx 脚本（`scripts/wiki/*` 纯函数 + `scripts/wiki-*.ts` 入口）、zod 3（schema 脚本与前端共用）、gray-matter（frontmatter）、yaml（种子清单）、vitest 5、本机 `claude` CLI 2.1.263、Node 22 `child_process`。
 
 ---

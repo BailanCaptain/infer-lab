@@ -12,6 +12,10 @@
  * 不能伪装成知识库结论。教学场景里这比检索本身更要紧。
  */
 
+import { type CorpusDocument, retrieveCorpus } from "./corpus-retrieve";
+import { buildAdjacency } from "./relations";
+import type { Relation } from "./schema";
+
 export interface PageIndex {
   id: string;
   title: string;
@@ -19,7 +23,8 @@ export interface PageIndex {
   summary: string;
   chapters: string[];
   evidence: string;
-  /** 双向 related（HANDBOOK「整合」保证对称），图扩展靠它 */
+  relations?: Relation[];
+  /** 仅兼容旧页，新页统一使用 relations */
   related?: string[];
   /** 正文原文，用于关键词匹配 */
   text: string;
@@ -32,18 +37,26 @@ export interface Hit {
   evidence: string;
   score: number;
   /** 命中方式，供上层决定要不要继续追问 */
-  how: "exact" | "fuzzy" | "keyword" | "related";
+  how: "exact" | "fuzzy" | "keyword" | "related" | "corpus-exact";
+  url?: string;
+  excerpt?: string;
+  qualification?: string;
+  /** Deterministic community provenance; never upgrades its claims to Wiki evidence. */
+  provenance?: string;
   /** how 为 related 时，说明是从哪一页牵出来的 */
   via?: string;
 }
 
 export interface RetrieveOptions {
+  corpus?: CorpusDocument[];
   limit?: number;
   /**
-   * 图扩展（AC12）：直接命中之后，把命中页的 `related` 也带出来当二级候选。
+   * 图扩展（AC12）：直接命中之后，按声明关系及派生入边返回二级候选。
    * 只走一跳——两跳之后相关性衰减很快，而 70 条边、64% 密度的图两跳几乎等于全库。
    */
   expand?: boolean;
+  /** 扩展候选上限，默认与直接候选 limit 相同 */
+  expansionLimit?: number;
 }
 
 export interface Index {
@@ -53,6 +66,7 @@ export interface Index {
   /** 去掉全部分隔符的形式 → 页，用于宽松匹配 */
   squashed: Map<string, PageIndex>;
   byId: Map<string, PageIndex>;
+  adjacency: Map<string, string[]>;
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -97,7 +111,13 @@ export function buildIndex(pages: PageIndex[]): Index {
       if (k && !squashed.has(k)) squashed.set(k, p);
     }
   }
-  return { pages, exact, squashed, byId: new Map(pages.map((p) => [p.id, p])) };
+  return {
+    pages,
+    exact,
+    squashed,
+    byId: new Map(pages.map((p) => [p.id, p])),
+    adjacency: buildAdjacency(pages),
+  };
 }
 
 /** 拆成检索词：按非字母数字与 CJK 边界切，去掉太短的噪声词。 */
@@ -194,13 +214,15 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
     how,
   });
 
-  if (!opts.expand || direct.length === 0) return direct.map(toHit);
+  const corpus = retrieveCorpus(query, opts.corpus ?? [], limit);
+  const primary = [...corpus, ...direct.map(toHit)].slice(0, limit);
+  if (!opts.expand || direct.length === 0) return primary;
 
   // 一跳扩展：按牵出它的那页的分数排序，且排在全部直接命中之后
   const seen = new Set(direct.map((d) => d.page.id));
   const expanded: Hit[] = [];
   for (const d of direct) {
-    for (const rid of d.page.related ?? []) {
+    for (const rid of index.adjacency.get(d.page.id) ?? []) {
       if (seen.has(rid)) continue;
       const page = index.byId.get(rid);
       if (!page) continue;
@@ -208,7 +230,7 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
       expanded.push({ ...toHit({ page, score: d.score / 2, how: "related" }), via: d.page.id });
     }
   }
-  return [...direct.map(toHit), ...expanded].slice(0, limit + expanded.length);
+  return [...primary, ...expanded.slice(0, Math.max(0, opts.expansionLimit ?? limit))];
 }
 
 export interface CitationVerdict {
@@ -220,8 +242,21 @@ export interface CitationVerdict {
 
 /** 指向 wiki 页的链接：相对 md 链接或 hash 路由。 */
 const PAGE_LINK = /\]\((?:#\/wiki\/[a-z0-9-]+|(?:\.\.\/)?(?:concepts|sources|params)\/[a-z0-9-]+\.md)\)/i;
+export function citedPageLinks(answer: string): string[] {
+  return [...citationProse(answer).matchAll(new RegExp(PAGE_LINK.source, "gi"))].map((m) =>
+    m[0].slice(2, -1),
+  );
+}
+/** Shared exclusion of fenced / inline code examples from answer citation checks. */
+export function citationProse(text: string): string {
+  return text.replace(/^(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\1\s*$/gm, "").replace(/`[^`\n]*`/g, "");
+}
+
+export function matchesCitedPage(href: string, file: string): boolean {
+  return href === file || href === `../${file}` || href === `#/wiki/${file.split("/").at(-1)!.slice(0, -3)}`;
+}
 /** agent 明确声明知识库没有这一条 */
-const UNCOVERED = /（未收录）|\(未收录\)|知识库里?还没有|知识库中没有|尚未收录/;
+const UNCOVERED = /（未收录）|\(未收录\)|知识库里?还没有|知识库[中内]没有|尚未收录/;
 /** 断言式表述：陈述事实而非提问或澄清 */
 const ASSERTION = /[。．.!！]/;
 
@@ -230,7 +265,7 @@ export function citationCheck(answer: string): CitationVerdict {
   if (!text) return { cited: false, selfDeclaredUncovered: false, reason: "回答为空" };
 
   if (UNCOVERED.test(text)) return { cited: true, selfDeclaredUncovered: true };
-  if (PAGE_LINK.test(text)) return { cited: true, selfDeclaredUncovered: false };
+  if (citedPageLinks(text).length) return { cited: true, selfDeclaredUncovered: false };
 
   // 全是疑问句（反问、澄清）不构成断言，不要求引用
   const hasAssertion = ASSERTION.test(text.replace(/[^。．.!！?？]/g, "").replace(/[?？]/g, ""));

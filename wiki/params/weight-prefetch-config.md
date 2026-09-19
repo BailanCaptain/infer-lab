@@ -2,39 +2,58 @@
 id: weight-prefetch-config
 title: weight_prefetch_config
 type: param
-summary: v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。
-aliases: [权重预取配置, weight prefetch, enable_prefetch]
-chapters: ["19"]
+summary: >-
+  v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating
+  / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。
+aliases:
+  - 权重预取配置
+  - weight prefetch
+  - enable_prefetch
+chapters:
+  - '19'
 sources:
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L1-L5
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L25-L32
-  - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/weight_prefetch.html
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L66-L69
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L15
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L26-L34
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L46-L69
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L86
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L88-L104
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L134-L156
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L158-L186
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L126-L145
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L509-L528
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L336-L338
-  - vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L81-L89
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128
-  - vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95
-evidence: "C"
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L1-L5
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L25-L32
+  - >-
+    https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/weight_prefetch.html
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L66-L69
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L13-L15'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L26-L34'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L46-L69'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L71-L86'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L88-L104'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L134-L156'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L158-L186'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/weight_prefetch.py#L230-L238'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L126-L145'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L509-L528'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L336-L338'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L81-L89'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369'
+  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128'
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95
+  - >-
+    vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L52
+evidence: C
 relations: []
 contradicts: []
-updated: "2026-09-14"
+updated: '2026-09-14'
+rawSources:
+  - >-
+    raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md
+  - >-
+    raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---
 
 ## 一句话
@@ -91,31 +110,44 @@ Linear 层在昇腾上的瓶颈常常不在 Cube 而在 MTE——权重从 HBM �
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。
+> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 有（6 个文件） |
-| releases/v0.18.0 | 有（5 个文件） |
-| releases/v0.20.2rc | 有（5 个文件） |
-| releases/v0.21.0rc | 有（5 个文件） |
-| releases/v0.22.1rc | 有（5 个文件） |
-| releases/v0.23.0 | 有（5 个文件） |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（5 个文件） |
 
-**移除**：2026-07-16，PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) —— [Refactor] Remove weight prefetch config (#11949)
+- **引入**：2025-10-09 · ff3757593614964f7ab91dab3da0c4aee568bec8 · PR [#3146](https://github.com/vllm-project/vllm-ascend/pull/3146) —— [1/N][Feat] Add weight prefetch feature for Attention layers (#3146)
+  包含该提交的 tag：v0.11.0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev
+  - `vllm_ascend/utils.py` +10 / −14（文本行变化）
+  - `vllm_ascend/attention/mla_v1.py` +13 / −13（文本行变化）
+  - `vllm_ascend/torchair/torchair_mla.py` +13 / −13（文本行变化）
+  - `vllm_ascend/torchair/models/torchair_deepseek_v2.py` +5 / −4（文本行变化）
+  - `vllm_ascend/ascend_forward_context.py` +11 / −2（文本行变化）
+- **移除**：2026-07-16 · e77502ef715f612f2cc6f3c833174431f26cb765 · PR [#11949](https://github.com/vllm-project/vllm-ascend/pull/11949) —— [Refactor] Remove weight prefetch config (#11949)
+  包含该提交的 tag：v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  - `vllm_ascend/ops/weight_prefetch.py` +0 / −238（文本行变化）
+  - `vllm_ascend/ops/register_custom_ops.py` +1 / −40（文本行变化）
+  - `vllm_ascend/utils.py` +1 / −25（文本行变化）
+  - `vllm_ascend/ascend_config.py` +0 / −22（文本行变化）
+  - `vllm_ascend/quantization/methods/w8a8_static.py` +0 / −15（文本行变化）
 
-影响面（删除行数最多的几个文件）：
+当前含该标识符的 tag：v0.11.0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1
 
-- `vllm_ascend/ops/weight_prefetch.py` −238
-- `vllm_ascend/ops/register_custom_ops.py` −40
-- `vllm_ascend/utils.py` −25
-- `vllm_ascend/ascend_config.py` −22
-- `vllm_ascend/quantization/methods/w8a8_static.py` −15
+## 参数定义（自动生成）
 
-**引入**：2025-10-09，PR [#3146](https://github.com/vllm-project/vllm-ascend/pull/3146) —— [1/N][Feat] Add weight prefetch feature for Attention layers (#3146)
+> 此节由参数扫描结果生成；静态定义不保证运行时最终值。
 
+| 项 | 静态记录 |
+| --- | --- |
+| 标识 | `additional_config["weight_prefetch_config"]` |
+| 类型 | `unknown` |
+| 默认表达式 | `{}` |
+| 定义 | `vllm_ascend/ascend_config.py:52` [C26] |
+| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |
+
+字段注释：
+
+源码未提供字段注释。
+
+约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：

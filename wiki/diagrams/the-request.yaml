@@ -1,0 +1,71 @@
+layout: scene
+id: the-request
+caption: 那条请求的形状：一步胖的 prefill、199 步瘦的 decode，写满两个 block
+size: [900, 540]
+
+regions:
+  - label: 算了几次
+    note: 一次 forward 就是一步。实心的那块是一步，右边每一根竖线也是一步。
+    at: [20, 52]
+    size: [860, 156]
+    tone: neutral
+  - label: KV Cache 里留下了什么
+    note: 两个 block、256 个槽位，真正用掉 237 个。
+    at: [20, 238]
+    size: [860, 250]
+    tone: ascend
+
+strips:
+  - at: [40.0, 124]
+    cells: 37
+    cell: 3.0
+    gap: 0.0
+    h: 34.0
+    tone: neutral
+  - at: [163.0, 124]
+    cells: 199
+    cell: 2.4
+    gap: 0.6
+    h: 34.0
+    tone: ascend
+  - at: [200.0, 314]
+    cells: 37
+    cell: 4.2
+    gap: 0.5
+    h: 16.0
+    tone: neutral
+  - at: [373.9, 314]
+    cells: 91
+    cell: 4.2
+    gap: 0.5
+    h: 16.0
+    tone: ascend
+  - at: [200.0, 404]
+    cells: 109
+    cell: 4.2
+    gap: 0.5
+    h: 16.0
+    tone: ascend
+  - at: [712.3000000000001, 404]
+    cells: 19
+    cell: 4.2
+    gap: 0.5
+    h: 16.0
+    tone: muted
+
+brackets:
+  - { at: [40.0, 166], span: 111.0, label: 第 1 步 · 一次算 37 个 token, dir: down, tone: neutral }
+  - { at: [163.0, 166], span: 597.0, label: 第 2 到第 200 步 · 每步只算 1 个 token, dir: down, tone: ascend }
+  - { at: [200.0, 336], span: 173.9, label: prompt 一次写满, dir: down, tone: neutral }
+  - { at: [373.9, 336], span: 427.7, label: decode 第 1 到第 91 步，每步一格, dir: down, tone: ascend }
+  - { at: [200.0, 426], span: 512.3000000000001, label: decode 第 92 到第 199 步, dir: down, tone: ascend }
+  - { at: [712.3000000000001, 426], span: 89.3, label: 19 格空着，别人也拿不走, dir: down, tone: muted }
+
+pills:
+  - { at: [853.6, 322], text: block 0, tone: ascend }
+  - { at: [853.6, 412], text: block 1, tone: ascend }
+
+notes:
+  - { at: [200.0, 388], text: "第 92 步 decode：block 0 的 128 格写满，上游 KVCacheManager 才去要第二块。", size: 13, strong: true }
+  - { at: [20, 512], text: "每 token 每层 KV = 2（K 与 V）× 8（n_kv）× 128（d_h）× 2 B = 4 KiB；28 层合计 112 KiB。一个 block 128 格 = 14 MiB。", size: 12.5, width: 860 }
+  - { at: [20, 530], text: "237 个 token 真正用掉 25.9 MiB，却占住两个 block 共 28 MiB —— 尾巴上那 19 格是浪费，这就是 PagedAttention 把浪费压到「最多一个 block」的意思。", size: 12.5, width: 860 }

@@ -2,33 +2,48 @@
 id: multistream-overlap-gate
 title: multistream_overlap_gate
 type: param
-summary: v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上已整体删除。
-aliases: [FlashComm3 多流重叠门控, 多流门控重叠]
-chapters: ["14"]
+summary: >-
+  v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare
+  里的动态量化 + all-gather 并行；main 上已整体删除。
+aliases:
+  - FlashComm3 多流重叠门控
+  - 多流门控重叠
+chapters:
+  - '14'
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L140
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L78-L79
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L372-L383
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L600-L640
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L655-L658
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L834-L881
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L883-L894
-  - vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L42
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L52-L59
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L104-L108
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/utils.py#L21-L47
-  - vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L269
-  - vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L82-L87
-  - vllm-ascend@2c59ff10:vllm_ascend/_310p/fused_moe/fused_moe.py#L182-L184
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L120
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L58-L60
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369
-evidence: "C"
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L140'
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L78-L79
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L372-L383'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L600-L640'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L655-L658'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L834-L881'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L883-L894'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L41'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L52-L59'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L104-L108'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/utils.py#L21-L47'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L269
+  - 'vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L82-L87'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/_310p/fused_moe/fused_moe.py#L182-L184'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207'
+  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L120'
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L58-L60
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369'
+  - >-
+    vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140
+evidence: C
 relations: []
 contradicts: []
-updated: "2026-09-14"
+updated: '2026-09-14'
+rawSources:
+  - >-
+    raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md
+  - >-
+    raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---
 
 ## 一句话
@@ -107,31 +122,44 @@ v0.23.0 里 `AscendMoERunner`（新）和 `AscendFusedMoE`（legacy）两套实�
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。
+> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 有（5 个文件） |
-| releases/v0.18.0 | 有（5 个文件） |
-| releases/v0.20.2rc | 有（5 个文件） |
-| releases/v0.21.0rc | 有（6 个文件） |
-| releases/v0.22.1rc | 有（6 个文件） |
-| releases/v0.23.0 | 有（9 个文件） |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（9 个文件） |
 
-**移除**：2026-07-15，PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) —— [Refactor] Remove multistream overlap gate (#11956)
+- **引入**：2025-12-14 · ba28d54f359278c83ed0f55ba78de9b1996f2b12 · PR [#4065](https://github.com/vllm-project/vllm-ascend/pull/4065) —— [Perf]enable prefill flashcommon3 (#4065)
+  包含该提交的 tag：v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  - `vllm_ascend/ops/fused_moe/fused_moe.py` +87 / −21（文本行变化）
+  - `vllm_ascend/quantization/w8a8_dynamic.py` +22 / −12（文本行变化）
+  - `vllm_ascend/ops/fused_moe/prepare_finalize.py` +29 / −5（文本行变化）
+  - `vllm_ascend/distributed/parallel_state.py` +21 / −1（文本行变化）
+  - `vllm_ascend/distributed/utils.py` +32 / −1（文本行变化）
+- **移除**：2026-07-15 · 77baade98ded755b3e5ea30091bcf40a30ae0335 · PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) —— [Refactor] Remove multistream overlap gate (#11956)
+  包含该提交的 tag：v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  - `vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py` +11 / −76（文本行变化）
+  - `vllm_ascend/ops/fused_moe/fused_moe.py` +11 / −75（文本行变化）
+  - `vllm_ascend/flash_common3_context.py` +0 / −41（文本行变化）
+  - `vllm_ascend/distributed/utils.py` +1 / −34（文本行变化）
+  - `vllm_ascend/quantization/methods/w8a8_dynamic.py` +18 / −29（文本行变化）
 
-影响面（删除行数最多的几个文件）：
+当前含该标识符的 tag：v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1
 
-- `vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py` −76
-- `vllm_ascend/ops/fused_moe/fused_moe.py` −75
-- `vllm_ascend/flash_common3_context.py` −41
-- `vllm_ascend/distributed/utils.py` −34
-- `vllm_ascend/quantization/methods/w8a8_dynamic.py` −29
+## 参数定义（自动生成）
 
-**引入**：2025-12-14，PR [#4065](https://github.com/vllm-project/vllm-ascend/pull/4065) —— [Perf]enable prefill flashcommon3 (#4065)
+> 此节由参数扫描结果生成；静态定义不保证运行时最终值。
 
+| 项 | 静态记录 |
+| --- | --- |
+| 标识 | `additional_config["multistream_overlap_gate"]` |
+| 类型 | `unknown` |
+| 默认表达式 | `False` |
+| 定义 | `vllm_ascend/ascend_config.py:140` [C20] |
+| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |
+
+字段注释：
+
+源码未提供字段注释。
+
+约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：

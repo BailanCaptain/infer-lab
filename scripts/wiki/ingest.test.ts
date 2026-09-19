@@ -213,7 +213,7 @@ describe("extractRequest", () => {
 });
 
 describe("integrateRequest", () => {
-  it("白名单：concepts/** 写与编辑、决策文件；stdin 列草稿 id", () => {
+  it("白名单：三个正式页目录与决策文件；stdin 列草稿 id", () => {
     const req = integrateRequest(
       [
         { id: "a", chapters: ["11"], related: [] },
@@ -226,18 +226,24 @@ describe("integrateRequest", () => {
       req.args.indexOf("--allowedTools") + 1,
       req.args.indexOf("--disallowedTools"),
     );
-    // 参数页落在 params/，概念页落在 concepts/，两处都要能写
+    // 目录与 PAGE_DIRS 一致，包含本地材料编译生成的 source 页。
     expect(allowed).toEqual([
       "Read",
       "Grep",
       "Glob",
       "Edit(concepts/**)",
       "Edit(params/**)",
+      "Edit(sources/**)",
       "Edit(_drafts/_integration.json)",
     ]);
     expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toBe("PF\n\nIN");
     expect(req.stdin).toContain("_drafts/a.md");
-    expect(req.allowedWrites).toEqual(["concepts/**", "params/**", "_drafts/_integration.json"]);
+    expect(req.allowedWrites).toEqual([
+      "concepts/**",
+      "params/**",
+      "sources/**",
+      "_drafts/_integration.json",
+    ]);
   });
 });
 
@@ -288,6 +294,11 @@ describe("snapshot / stray", () => {
 });
 
 describe("runPool", () => {
+  it("非法并发不能静默跳过任务", async () => {
+    let calls = 0;
+    await expect(runPool([1], Number.NaN, async () => ++calls)).rejects.toThrow(/concurrency/);
+    expect(calls).toBe(0);
+  });
   it("并发不超过上限，结果按输入顺序", async () => {
     let active = 0;
     let peak = 0;
@@ -335,6 +346,41 @@ describe("runExtractPhase", () => {
   });
   const good = (id: string) =>
     `---\nid: ${id}\ntitle: ${id}\ntype: feature\nsummary: s\nchapters: ["11"]\nsources: [r@28bf3a2e:a.py#L1-L2]\nevidence: "C"\nupdated: "2026-09-07"\n---\n## 是什么\nx\n`;
+
+  it("矛盾的成功信号不能入成功清单，错误 id 的已报费用不能丢失", async () => {
+    const root = setup();
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      concurrency: 2,
+      log: () => {},
+      runAgent: async (req) => {
+        writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+        return {
+          id: req.id === "b" ? "wrong" : req.id,
+          ok: true,
+          exitCode: req.id === "a" ? 2 : 0,
+          costUsd: 0.1,
+          stderrTail: "",
+        };
+      },
+    });
+    expect(out.succeeded).toEqual(["c"]);
+    expect(out.costUsd).toBeCloseTo(0.3);
+  });
+
+  it("runner 抛异常时只失败该项，其他成功草稿仍返回并记录失败", async () => {
+    const root = setup();
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      concurrency: 2,
+      log: () => {},
+      runAgent: async (req) => {
+        if (req.id === "b") throw new Error("spawn failed");
+        writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+        return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+      },
+    });
+    expect(out.succeeded).toEqual(["a", "c"]);
+    expect(out.failures.b?.reason).toContain("spawn failed");
+  });
 
   it("成功的写草稿；越界写判失败并删除；草稿 frontmatter 不合法判失败；记 _failures.json", async () => {
     const root = setup();
@@ -440,6 +486,19 @@ describe("runExtractPhase", () => {
 });
 
 describe("applyIntegration", () => {
+  it("合并目标不存在时不删草稿也不记录成功", () => {
+    const root = mkdtempSync(join(tmpdir(), "wiki-"));
+    mkdirSync(join(root, "_drafts"));
+    writeFileSync(join(root, "_drafts/a.md"), "draft");
+    const result = applyIntegration(
+      root,
+      { promoted: [], merged: [{ from: "a", into: "missing" }], rejected: [], contradictions: [] },
+      "2026-09-14",
+    );
+    expect(result.problems.length).toBeGreaterThan(0);
+    expect(existsSync(join(root, "_drafts/a.md"))).toBe(true);
+    expect(existsSync(join(root, "log.md"))).toBe(false);
+  });
   it("promoted 且 concepts 存在 → 删草稿、写 log；merged 删草稿；rejected 保留；promoted 但 concepts 缺 → problem", () => {
     const root = mkdtempSync(join(tmpdir(), "wiki-"));
     for (const d of ["_drafts", "concepts"]) mkdirSync(join(root, d));
@@ -478,6 +537,21 @@ describe("localDate", () => {
 
 describe("selectRelevantPages（Task 26 · 解风险 R2）", () => {
   const mk = (id: string, chapters: string[], related: string[] = []) => ({ id, chapters, related });
+
+  it("跨章节 relations 关联和同 id 的现有参数页都必须被读取", () => {
+    const drafts = [
+      { ...mk("a", ["11"]), relations: [{ to: "param", kind: "builds-on" as const, note: "需要" }] },
+    ];
+    const existing = [
+      { ...mk("a", ["21"]), file: "params/a.md" },
+      { ...mk("param", ["13"]), file: "params/param.md" },
+    ];
+    expect(selectRelevantPages(drafts, existing).map((p) => p.id)).toEqual(["a", "param"]);
+    const request = integrateRequest(drafts, existing, ctx);
+    expect(request.stdin).toContain("params/a.md");
+    expect(request.stdin).toContain("params/param.md");
+    expect(request.stdin).not.toContain("concepts/param.md");
+  });
 
   it("草稿的 related 指向的现有页要选进来", () => {
     const picked = selectRelevantPages(
@@ -527,7 +601,7 @@ describe("selectRelevantPages（Task 26 · 解风险 R2）", () => {
 describe("integrateRequest（Task 26 · stdin 不随总页数增长）", () => {
   const drafts = [{ id: "a", chapters: ["11"], related: ["kv-cache"] }];
   const mkExisting = (n: number) => [
-    { id: "kv-cache", chapters: ["05"], related: [] },
+    { id: "kv-cache", file: "concepts/kv-cache.md", chapters: ["05"], related: [] },
     ...Array.from({ length: n }, (_, i) => ({ id: `unrelated${i}`, chapters: ["21"], related: [] })),
   ];
 

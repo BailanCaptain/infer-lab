@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 466" width="900" height="466" role="img" aria-label="三种起点，三条固定路线。顺序不能颠倒。">
+  <title>三种起点，三条固定路线。顺序不能颠倒。</title>
+  <rect width="900" height="466" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="44" width="276" height="340" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="58" width="116.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">手上有一条报错</text>
+  <rect x="312" y="44" width="276" height="340" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="328" y="58" width="130" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="339" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">手上有一个配置键</text>
+  <rect x="604" y="44" width="276" height="340" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="620" y="58" width="143.5" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="631" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">手上有一个上游类名</text>
+  <rect x="36" y="104" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="52" y="127.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">从下往上找第一个 vllm_ascend</text>
+  <text x="52" y="145.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">帧</text>
+  <text x="52" y="163.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">找不到就说明问题在上游</text>
+  <rect x="36" y="190" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="52" y="222.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">看它落在哪个子目录</text>
+  <text x="52" y="240.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">用目录地图缩范围</text>
+  <rect x="36" y="276" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="52" y="299.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">在另一个 ref 上看同一文件的 </text>
+  <text x="52" y="317.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">git log</text>
+  <text x="52" y="335.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">确认这段最近改过没有</text>
+  <rect x="328" y="104" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="344" y="136.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">在 ascend_config.py 里搜键名</text>
+  <text x="344" y="154.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">找到就知道属于哪个子配置类</text>
+  <rect x="328" y="190" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="344" y="213.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">顺着 get_ascend_config() 找</text>
+  <text x="344" y="231.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">消费方</text>
+  <text x="344" y="249.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">配置在哪被读，功能就在哪</text>
+  <rect x="328" y="276" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="344" y="308.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">看校验族有没有拦它</text>
+  <text x="344" y="326.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">「配了没生效」多半停在这一步</text>
+  <rect x="620" y="104" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="636" y="136.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">先搜 vllm_ascend/patch/</text>
+  <text x="636" y="154.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">搜到就读它的 Why / Future Plan</text>
+  <rect x="620" y="190" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="636" y="213.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">搜不到再找子类 class X(上游类</text>
+  <text x="636" y="231.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">)</text>
+  <text x="636" y="249.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">顺序反了会漏掉被 patch 改过的情况</text>
+  <rect x="620" y="276" width="244" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="636" y="308.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">两者都没有就是上游原样</text>
+  <text x="636" y="326.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">去读上游</text>
+  <text x="20" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">三条都是从问题反查，不是正向通读。入口只有 5 个 entry point，往下第二层就分叉成 23 个目录——正向读到第二层就散了。</text>
+  <text x="20" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">grep 一个类名可能命中三处：patch 里的替换、子类、以及 _310p/ 里的专用副本。三者含义完全不同，先确认自己在看哪一套。</text>
+</svg>

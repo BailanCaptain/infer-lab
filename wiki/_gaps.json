@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "threshold": 3
+  },
+  "entries": [
+    {
+      "key": "62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
+      "occurrences": [
+        {
+          "eventId": "e69a50c7-a8cf-4bbd-b4ed-566fc65d342e",
+          "question": "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。",
+          "contextQuestions": [],
+          "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+          "candidates": [
+            {
+              "id": "profiling-chunk-config",
+              "score": 836,
+              "how": "fuzzy"
+            },
+            {
+              "id": "kv-cache-layerwise-offload",
+              "score": 13,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-matmul-allreduce",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "fuse-allreduce-rms",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-async-exponential",
+              "score": 10,
+              "how": "keyword"
+            },
+            {
+              "id": "kv-cache-cpu-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-memory-profiling",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-sparse-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-spec",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-pool",
+              "score": 6.5,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：profiling-chunk-config 页及其源码摘录只覆盖 main 2026-08-29 快照中 smooth_factor 的默认值 1.0 与 (0,1] 校验；页面明确把 smooth_factor 语义、二次模型形式列为材料缺口，没有平滑公式和运行时调用位置；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-16T16:44:06.775Z"
+        },
+        {
+          "eventId": "af1cd94b-83b9-4c03-9f08-b312a183957f",
+          "question": "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。",
+          "contextQuestions": [],
+          "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+          "candidates": [
+            {
+              "id": "profiling-chunk-config",
+              "score": 836,
+              "how": "fuzzy"
+            },
+            {
+              "id": "kv-cache-layerwise-offload",
+              "score": 13,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-matmul-allreduce",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "fuse-allreduce-rms",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-async-exponential",
+              "score": 10,
+              "how": "keyword"
+            },
+            {
+              "id": "kv-cache-cpu-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-memory-profiling",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-sparse-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-spec",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-pool",
+              "score": 6.5,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：profiling-chunk-config 页及其源码摘录只有 main 快照中 smooth_factor 默认 1.0 和 (0,1] 校验；页面明确说明缺少语义和二次模型形式，没有平滑公式或实际调用位置。；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-16T16:44:28.270Z"
+        },
+        {
+          "eventId": "36714e68-695d-4525-bde7-8d3d84ae27ca",
+          "question": "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。",
+          "contextQuestions": [],
+          "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+          "candidates": [
+            {
+              "id": "profiling-chunk-config",
+              "score": 836,
+              "how": "fuzzy"
+            },
+            {
+              "id": "kv-cache-layerwise-offload",
+              "score": 13,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-matmul-allreduce",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "fuse-allreduce-rms",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-async-exponential",
+              "score": 10,
+              "how": "keyword"
+            },
+            {
+              "id": "kv-cache-cpu-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-memory-profiling",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-sparse-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-spec",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-pool",
+              "score": 6.5,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：profiling-chunk-config 页及其引用摘录只覆盖 main 快照中 smooth_factor 的默认值 1.0 和 (0,1] 校验；平滑公式与实际调用位置未收录，页面自述为材料缺口；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-16T16:44:49.261Z"
+        }
+      ]
+    }
+  ]
+}

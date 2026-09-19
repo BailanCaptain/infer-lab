@@ -1,0 +1,37 @@
+layout: scene
+id: platform-hooks
+caption: 上游在启动过程里向 Platform 问问题的那几个时刻
+size: [900, 464]
+
+regions:
+  - label: vLLM 启动过程
+    note: 每个站点都是上游主动来问硬件插件一句。插件能改的，就是这些时刻。
+    at: [20, 40]
+    size: [860, 372]
+    tone: upstream
+
+spines:
+  - { y: 240, from: 46, to: 860, tone: upstream }
+
+stops:
+  - { x: 150, side: above, title: 还没解析命令行, detail: 这时候还没有 VllmConfig, fn: pre_register_and_update, icon: gear, tone: upstream }
+  - { x: 330, side: below, title: 配置组装完的最后一步, detail: 全仓只有这一处调用它, fn: check_and_update_config, icon: gear, tone: accent }
+  - { x: 510, side: above, title: 该用哪个注意力后端, detail: 要的是一个类路径字符串, fn: get_attn_backend_cls, icon: pick, tone: upstream }
+  - { x: 680, side: below, title: token 预算默认值给多少, detail: 显存够大就换一档, fn: get_device_total_memory, icon: calc, tone: upstream }
+  - { x: 820, side: above, title: 起 Worker 后设卡, fn: set_device, icon: chip, tone: upstream }
+
+notes:
+  - { at: [20, 436], text: "Platform 基类里一共 88 个 def，上游代码里 current_platform. 出现 873 处。插件不是「挂个钩子」，是把这 88 个口子逐个答上。", size: 13, strong: true, width: 860 }
+  - { at: [20, 458], text: "其中 check_and_update_config 最特别：它只被调用一次，但那一次能改写整份 VllmConfig——昇腾拦掉不支持的配置就在这里。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm@0fc695fc:vllm/platforms/interface.py#L428-L434
+    symbols: [pre_register_and_update]
+  - source: vllm@0fc695fc:vllm/platforms/interface.py#L458-L462
+    symbols: [check_and_update_config]
+  - source: vllm@0fc695fc:vllm/platforms/interface.py#L259-L266
+    symbols: [get_attn_backend_cls]
+  - source: vllm@0fc695fc:vllm/platforms/interface.py#L387-L391
+    symbols: [get_device_total_memory]
+  - source: vllm@0fc695fc:vllm/platforms/interface.py#L415-L419
+    symbols: [set_device]

@@ -1,0 +1,48 @@
+layout: scene
+id: engine-processes
+caption: 三类进程，三条各走各的 patch 注入路——主进程打过的不会被子进程继承
+size: [900, 480]
+
+regions:
+  - label: Main 进程
+    note: 解析命令行 · 选平台
+    at: [20, 76]
+    size: [276, 330]
+    tone: neutral
+  - label: EngineCore 进程
+    note: 调度器 · KV 管理
+    at: [312, 76]
+    size: [276, 330]
+    tone: upstream
+  - label: Worker 进程
+    note: 每张卡一个 · 真正碰 NPU
+    at: [604, 76]
+    size: [276, 330]
+    tone: ascend
+
+boxes:
+  - { at: [36, 172], size: [244, 76], title: 里面跑什么, sub: "argparse、选平台、拉起子进程", fn: NPUPlatform, tone: neutral }
+  - { at: [328, 172], size: [244, 76], title: 里面跑什么, sub: 全是上游 vLLM 的代码, fn: Scheduler, tone: upstream }
+  - { at: [620, 172], size: [244, 76], title: 里面跑什么, sub: 昇腾代码占主体, fn: NPUModelRunner, tone: ascend }
+
+  - { at: [36, 276], size: [244, 96], title: patch 从哪条路进来, sub: 平台层，进程最早, fn: "adapt_patch(True)", tone: accent, icon: patch }
+  - { at: [328, 276], size: [244, 96], title: patch 从哪条路进来, sub: 四个入口各补一次, fn: _ensure_global_patch, tone: accent, icon: patch }
+  - { at: [620, 276], size: [244, 96], title: patch 从哪条路进来, sub: worker 起来的那一刻, fn: "adapt_patch()", tone: accent, icon: patch }
+
+arrows:
+  - { from: [158, 66], to: [158, 74], tone: neutral }
+  - { from: [296, 120], to: [308, 120], tone: muted, label: fork }
+  - { from: [588, 120], to: [600, 120], tone: muted, label: fork }
+
+notes:
+  - { at: [20, 46], text: "起一条昇腾服务", size: 14, strong: true }
+  - { at: [20, 432], text: "中间那一格最不直观：EngineCore 是新起的解释器，Main 里那次 import 的副作用不会被继承，_GLOBAL_PATCH_APPLIED 只在进程内去重——正因如此它才能在每个子进程里各生效一次。", size: 12.5, width: 860 }
+  - { at: [20, 470], text: "排查时倒着用：栈里有调度器 → 中间这格；栈里有 torch_npu → 右边这格；报错在参数校验阶段 → 左边这格。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35
+    symbols: [_ensure_global_patch]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188
+    symbols: [pre_register_and_update]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110
+    symbols: [adapt_patch]

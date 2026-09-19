@@ -1,0 +1,45 @@
+layout: scene
+id: ascend-vs-upstream
+caption: 上游每留一个口子，昇腾就交一个子类；同一行左右两边是同一个位置
+size: [900, 456]
+
+regions:
+  - label: 上游 vLLM 留的口子
+    at: [20, 40]
+    size: [420, 44]
+    tone: upstream
+    chip: top
+  - label: vllm-ascend 交上来的
+    at: [460, 40]
+    size: [420, 44]
+    tone: ascend
+    chip: top
+
+boundaries:
+  - { at: 450, from: 96, to: 424, label: 继承 }
+
+bands:
+  - { label: Platform, sub: 硬件问题全问它, at: [20, 100], size: [420, 56], tone: upstream, icon: gear }
+  - { label: WorkerBase, sub: 一张卡上的生命周期, at: [20, 166], size: [420, 56], tone: upstream, icon: proc }
+  - { label: GPUModelRunner, sub: 一步执行的主循环, at: [20, 232], size: [420, 56], tone: upstream, icon: calc }
+  - { label: AttentionBackend, sub: 注意力算子与 KV 形状, at: [20, 298], size: [420, 56], tone: upstream, icon: pick }
+  - { label: DeviceCommunicatorBase, sub: 跨卡通信, at: [20, 364], size: [420, 56], tone: upstream, icon: plug }
+
+  - { label: NPUPlatform, sub: "platform.py，第 128 行", at: [460, 100], size: [420, 56], tone: ascend }
+  - { label: NPUWorker, sub: "worker/worker.py", at: [460, 166], size: [420, 56], tone: ascend }
+  - { label: NPUModelRunner, sub: "model_runner_v1.py，5251 行", at: [460, 232], size: [420, 56], tone: ascend }
+  - { label: 五个后端类, sub: "attention/ 下 17 个文件", at: [460, 298], size: [420, 56], tone: ascend }
+  - { label: NPUCommunicator, sub: "distributed/ 下 46 个文件", at: [460, 364], size: [420, 56], tone: ascend }
+
+notes:
+  - { at: [20, 446], text: "留不出口子的地方没有这一行——那些只能在运行时把上游对象换掉，也就是 patch。所以「昇腾的某段行为在哪」只有两个答案：某个子类里，或者 patch 目录里。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
+    symbols: [NPUPlatform]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
+    symbols: [NPUWorker]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
+    symbols: [NPUModelRunner]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L79
+    symbols: [AscendAttentionBackend]

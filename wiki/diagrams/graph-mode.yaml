@@ -1,0 +1,39 @@
+layout: scene
+id: graph-mode
+caption: 图模式分两段：启动时把每个尺寸各捕获一次，运行时按 key 查回放
+size: [900, 470]
+
+regions:
+  - label: 启动期 · 捕获
+    note: compile_or_warm_up_model 里按尺寸逐个跑假批
+    at: [20, 44]
+    size: [400, 306]
+    tone: neutral
+  - label: 运行期 · 回放
+    note: 每一步进来先看 key 在不在缓存里
+    at: [480, 44]
+    size: [400, 306]
+    tone: ascend
+
+boxes:
+  - { at: [36, 130], size: [368, 62], title: 取 compile_sizes 与 cudagraph_capture_sizes, sub: 已在捕获列表里的尺寸从 warmup 列表剔掉, tone: neutral }
+  - { at: [36, 204], size: [368, 62], title: 逐个尺寸跑 _dummy_run 并录下来, sub: 每个 compile range 至少保一个尺寸, tone: neutral }
+  - { at: [36, 278], size: [368, 54], title: "enforce_eager 为真时整段跳过", tone: accent, icon: bolt }
+
+  - { at: [496, 130], size: [368, 62], title: 从 forward context 拿 mode 与 batch_descriptor, sub: "docstring 的原话是「无条件信任它们」", tone: ascend }
+  - { at: [496, 204], size: [368, 62], title: mode 不匹配就直接调原函数, sub: 分派决策不在这个类里, tone: ascend }
+  - { at: [496, 278], size: [368, 54], title: 匹配就按 key 查缓存并回放, fn: ACLGraphWrapper, tone: ascend }
+
+arrows:
+  - { from: [424, 240], to: [474, 240], tone: muted, label: 缓存 }
+
+notes:
+  - { at: [20, 386], text: "那条请求的 200 步里，decode 的 199 步批形状一样，所以查到的是同一个 key、回放的是同一张图。启动慢的那几十秒，大部分花在左半边。", size: 12.5, width: 860 }
+  - { at: [20, 424], text: "「为什么这一步没走图」要去查 forward context 怎么定的 mode，不是查 ACLGraphWrapper——它只按上游给的 key 查缓存。", size: 12.5, width: 860 }
+  - { at: [20, 460], text: "排查这一层最快的一刀：开 enforce_eager。问题消失，范围就锁在这里。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L348
+    symbols: [get_compile_backend]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L349-L360
+    symbols: [get_static_graph_wrapper_cls]

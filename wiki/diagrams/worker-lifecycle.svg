@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 502" width="900" height="502" role="img" aria-label="NPUWorker 从建对象到能接请求的六步；第四步之前显存预算还不存在">
+  <title>NPUWorker 从建对象到能接请求的六步；第四步之前显存预算还不存在</title>
+  <rect width="900" height="502" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="860" height="358" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="54" width="143.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一张卡上的启动过程</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">顺序是固定的。每一步的产物都是下一步的前提，所以它们不能换位置。</text>
+  <line x1="44" y1="250" x2="858" y2="250" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <path d="M858 250 l-14 -7 l0 14 z" fill="var(--color-weight, #b87a00)"/>
+  <line x1="112" y1="250" x2="112" y2="222" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="112" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="112" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="92" y="181" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(100 189) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
+  <text x="112" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">打 patch</text>
+  <text x="112" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">换上游行为、注册算子</text>
+  <rect x="75" y="111.5" width="74" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="112" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">__init__</text>
+  <line x1="246" y1="250" x2="246" y2="278" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="246" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="246" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="226" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(234 287) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="246" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选卡、造 runner</text>
+  <text x="246" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">runner 要 self.device</text>
+  <rect x="198.5" y="359.5" width="95" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="246" y="377" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">init_device</text>
+  <line x1="380" y1="250" x2="380" y2="222" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="380" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="380" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="360" y="181" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(368 189) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5M12 12v10"/></g>
+  <text x="380" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">装权重</text>
+  <text x="380" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">sleep mode 决定进哪个池</text>
+  <rect x="336" y="111.5" width="88" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="380" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">load_model</text>
+  <line x1="520" y1="250" x2="520" y2="278" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="520" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="520" cy="250" r="5.5" fill="var(--color-accent, #e85b32)"/>
+  <rect x="500" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
+  <g transform="translate(508 287) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="520" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算出显存预算</text>
+  <text x="520" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">必须真跑一遍假批</text>
+  <rect x="420" y="359.5" width="200" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="520" y="377" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">determine_available_memory</text>
+  <line x1="664" y1="250" x2="664" y2="222" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="664" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="664" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="644" y="181" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(652 189) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
+  <text x="664" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">真正分配 KV 张量</text>
+  <text x="664" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">这一刻起才有 block</text>
+  <rect x="578" y="111.5" width="172" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="664" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">initialize_from_config</text>
+  <line x1="800" y1="250" x2="800" y2="278" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="800" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="800" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="780" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(788 287) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
+  <text x="800" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">捕获图</text>
+  <text x="800" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">enforce_eager 会整段跳过</text>
+  <rect x="707" y="359.5" width="186" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="800" y="377" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">compile_or_warm_up_model</text>
+  <text x="20" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第四步是整条链的枢纽：KV Cache 有多大 = 拿到的显存 − 假批跑完之后非 KV 占用。预算是减出来的，不是配出来的——配了 kv_cache_memory_bytes 也</text>
+  <text x="20" y="442.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">仍然要跑假批，注释说那是为了编译模型。</text>
+  <text x="20" y="466" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">排查启动期报错时倒着用：挂在第一步 → patch 或算子注册；第二步 → 设备可见性；第四步且提示可用显存反而变大 → 那条断言被触发；第六步 → 先开 </text>
+  <text x="20" y="484.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">enforce_eager 把图那段跳过来确认范围。</text>
+</svg>

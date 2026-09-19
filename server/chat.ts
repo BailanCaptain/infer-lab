@@ -7,6 +7,8 @@
  */
 import type { AgentRequest } from "../scripts/wiki/ingest";
 import type { Neighborhood } from "../src/content/wiki/relations";
+import type { Hit } from "../src/content/wiki/retrieve";
+import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
 
 export interface ChatHandbook {
   pageFormat: string;
@@ -18,24 +20,23 @@ export interface ChatContext {
   /** wiki/index.md 全文，注入系统提示让 agent 知道有哪些页 */
   indexMd: string;
   timeoutMs: number;
+  revision?: string;
+  /** Internal evaluation only; HTTP callers cannot select this profile. */
+  control?: { model: string; maxCostUsd: number };
 }
 
-export interface ChatHit {
-  id: string;
-  title: string;
-  summary: string;
-  evidence: string;
-  score: number;
-  how: string;
-}
+export type ChatHit = Hit;
 
 export interface ChatInput {
   message: string;
   sessionId?: string;
+  previousQuestions?: string[];
   /** retrieve() 给出的候选页；由 server 层调用 AC10 的接口取得 */
   hits?: ChatHit[];
   /** 命中页的子图：地基 / 下游 / 同层，每条带说明关系的 note */
   graph?: { id: string; title: string; neighborhood: Neighborhood }[];
+  /** Server-derived copyable forms; never supplied by the HTTP caller. */
+  citationGuide?: { pageLink: string; sourceLinks: string[] }[];
 }
 
 export type ChatEvent =
@@ -51,32 +52,33 @@ export type ChatEvent =
  * 能读官方文档给出带出处的答案才有用。可引来源仍由 HANDBOOK 的白名单约束。
  * 另外，agent 需要上网本身就是知识库缺口的信号，F004 AC3 拿它当补页的触发条件。
  *
- * 放开联网要两步：从 DISALLOWED 拿掉、往 ALLOWED 加上。`--allowedTools` 在 `-p`
- * 模式下是白名单，不在表里的工具会被直接拒（实测 2026-09-11）。
+ * --tools 决定工具是否可用，--allowedTools 只负责自动批准；--restricted 将文件工具
+ * 限在快照 cwd，safe-mode 与空 MCP / settings 防止继承额外入口。
  */
-const ALLOWED = ["Read", "Grep", "Glob", "WebFetch", "WebSearch"];
+const LOCAL_TOOLS = ["Read", "Grep", "Glob"];
+const WEB_TOOLS = ["WebFetch", "WebSearch"];
 const DISALLOWED = ["Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent"];
 
 /**
  * 子图注入。回答「什么是 X」时只读 X 一页是不够的——2026-09-11 实测就是读一页
  * 就停了，因为那时候边是无类型的 `related`，agent 既不知道该去哪页，也不知道
  * 去了之后怎么把两页接起来。现在把地基 / 下游 / 同层连同 note 一起给它，
- * 让答案能按「它依赖什么 → 它是什么 → 谁用它 → 边界」组织。
+ * 关系只提供导航，回答组织规则统一来自 Handbook。
  */
 function graphBlock(graph?: { id: string; title: string; neighborhood: Neighborhood }[]): string[] {
   const out: string[] = [];
   for (const g of graph ?? []) {
     const n = g.neighborhood;
     if (!n.foundations.length && !n.dependents.length && !n.siblings.length) continue;
-    out.push("", `「${g.title}」（${g.id}）的子图——按「查询」规则沿它组织回答：`);
+    out.push("", `「${g.title}」（${g.id}）的相关页面：`);
     const section = (title: string, items: { id: string; note: string }[]) => {
       if (!items.length) return;
       out.push(`  ${title}：`);
       for (const it of items) out.push(`    - ${it.id}：${it.note}`);
     };
-    section("地基（先交代，一句话即可）", n.foundations);
-    section("下游（说清学了有什么用）", n.dependents);
-    section("同层（变体 / 互斥 / 替代，用来划边界）", n.siblings);
+    section("依赖", n.foundations);
+    section("下游", n.dependents);
+    section("同层", n.siblings);
   }
   if (out.length) {
     out.push("", "子图里的页要真的打开读，不要只拿上面这几行拼答案。");
@@ -84,17 +86,34 @@ function graphBlock(graph?: { id: string; title: string; neighborhood: Neighborh
   return out;
 }
 
-export function buildChatRequest(
-  input: ChatInput,
-  handbook: ChatHandbook,
-  ctx: ChatContext,
-): AgentRequest {
+export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: ChatContext): AgentRequest {
+  const control = ctx.control;
+  if (control) {
+    if (input.sessionId !== undefined || input.previousQuestions?.length)
+      throw new Error("离线对照必须使用独立新会话，不接受历史问题");
+    if (
+      !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(control.model) ||
+      !Number.isFinite(control.maxCostUsd) ||
+      control.maxCostUsd <= 0
+    )
+      throw new Error("离线对照必须显式指定模型和正数调用额度");
+  }
+  const allowed = control ? LOCAL_TOOLS : [...LOCAL_TOOLS, ...WEB_TOOLS];
   const system = [
     handbook.pageFormat.trim(),
     handbook.query.trim(),
+    COVERAGE_REPORT_INSTRUCTION,
     "",
     "以下是知识库索引（wiki/index.md），列出了当前全部页面：",
     ctx.indexMd.trim(),
+    ...(ctx.revision
+      ? [`本轮知识版本：${ctx.revision}。本地文件仅从当前快照目录读取，目录外路径不可用。`]
+      : []),
+    ...(control
+      ? [
+          "本轮是离线对照：仅依据当前知识快照作答。不得联网、读取目录外材料或用模型记忆补全事实；库内证据不足时明确说明尚无证据。引用实际读到的 wiki 页面，区分推导与来源事实。",
+        ]
+      : []),
   ].join("\n\n");
 
   const args = [
@@ -107,21 +126,57 @@ export function buildChatRequest(
     system,
     "--max-turns",
     "20",
+    "--restricted",
+    "--safe-mode",
+    "--strict-mcp-config",
+    "--mcp-config",
+    '{"mcpServers":{}}',
+    "--setting-sources",
+    "",
+    "--disable-slash-commands",
+    "--permission-mode",
+    "dontAsk",
+    "--system-prompt-snapshot",
+    "off",
+    "--tools",
+    allowed.join(","),
   ];
-  if (input.sessionId) args.push("--resume", input.sessionId);
-  args.push("--allowedTools", ...ALLOWED, "--disallowedTools", ...DISALLOWED);
+  if (control)
+    args.push(
+      "--model",
+      control.model,
+      "--max-budget-usd",
+      String(control.maxCostUsd),
+      "--no-session-persistence",
+    );
+  if (input.sessionId) args.push("--resume", input.sessionId, "--fork-session");
+  args.push("--allowedTools", ...allowed, "--disallowedTools", ...DISALLOWED, ...(control ? WEB_TOOLS : []));
 
   const lines = [`学习者的问题：${input.message}`];
+  if (input.previousQuestions?.length)
+    lines.push(
+      "知识库已更新，未恢复旧模型会话。以下只是此前的问题，用来理解指代，不是事实证据；必须读取当前页重新核对。指代不清时先澄清：",
+      JSON.stringify(input.previousQuestions),
+    );
   if (input.hits?.length) {
     lines.push(
       "",
       "程序预检索到这些可能相关的页（仅供参考，请自己打开确认）：",
-      ...input.hits.map((h) => `- ${h.id}（${h.title}）[${h.evidence}] ${h.summary}`),
+      ...input.hits.map(
+        (h) =>
+          `- ${h.id}（${h.title}）[${h.evidence}] ${h.summary}${h.via ? `（由 ${h.via} 的关系扩展）` : ""}${h.url ? `\n  社区语料永久链接：${h.url}；${h.qualification}。只有上述匹配片段被提供；需要读取原文及修复提交后才能确认适用性。${h.provenance ? `\n  程序核对的关联、提交祖先关系与文档版本：${h.provenance}` : ""}\n  若答案仅依据这些社区线索，明确写“尚未收录为 Wiki 结论”，链接原 issue/PR 并保留适用性边界；不得伪造 Wiki 页或 C/S 证据。` : ""}`,
+      ),
     );
   } else if (input.hits) {
     lines.push("", "程序预检索没有找到相关页。若你也找不到，请直接说知识库里还没有这一条。");
   }
   lines.push(...graphBlock(input.graph));
+  if (input.citationGuide?.length)
+    lines.push(
+      "",
+      "当前候选页的链接（仅作导航；正文依据与引用方式遵循手册「查询」规则）：",
+      JSON.stringify(input.citationGuide.map(({ pageLink }) => pageLink)),
+    );
 
   return {
     id: "chat",
@@ -140,43 +195,53 @@ export function buildChatRequest(
  * 两个都取会让回答出现两遍（Multi-Agent 的 claude-runtime.ts 同样处理）。
  */
 export function parseChatLine(line: string): ChatEvent | null {
+  return parseChatEvents(line)[0] ?? null;
+}
+
+/** One assistant envelope may contain several tool calls; production must retain all of them. */
+export function parseChatEvents(line: string): ChatEvent[] {
   let obj: Record<string, unknown>;
   try {
     obj = JSON.parse(line) as Record<string, unknown>;
   } catch {
-    return null;
+    return [];
   }
+  if (!obj || typeof obj !== "object") return [];
 
   if (obj.type === "stream_event") {
     const ev = obj.event as { type?: string; delta?: { type?: string; text?: string } } | undefined;
     if (ev?.type === "content_block_delta" && ev.delta?.type === "text_delta") {
       const text = ev.delta.text;
-      if (typeof text === "string" && text.length > 0) return { kind: "text", text };
+      if (typeof text === "string" && text.length > 0) return [{ kind: "text", text }];
     }
-    return null;
+    return [];
   }
 
   if (obj.type === "assistant") {
     const msg = obj.message as
       | { content?: { type: string; name?: string; input?: Record<string, unknown> }[] }
       | undefined;
-    const tool = msg?.content?.find((c) => c.type === "tool_use");
-    if (!tool?.name) return null;
-    const input = tool.input ?? {};
-    const target = (input.file_path ?? input.pattern ?? input.path) as string | undefined;
-    return target !== undefined
-      ? { kind: "tool", name: tool.name, target }
-      : { kind: "tool", name: tool.name };
+    return (Array.isArray(msg?.content) ? msg.content : []).flatMap((tool): ChatEvent[] => {
+      if (tool?.type !== "tool_use" || typeof tool.name !== "string") return [];
+      const input = tool.input ?? {};
+      const target = input.file_path ?? input.pattern ?? input.path ?? input.url ?? input.query;
+      return [
+        typeof target === "string"
+          ? { kind: "tool", name: tool.name, target }
+          : { kind: "tool", name: tool.name },
+      ];
+    });
   }
 
   if (obj.type === "result") {
+    if (typeof obj.is_error !== "boolean") return [];
     const e: ChatEvent = { kind: "result", isError: Boolean(obj.is_error) };
     if (typeof obj.session_id === "string") e.sessionId = obj.session_id;
     if (typeof obj.total_cost_usd === "number") e.costUsd = obj.total_cost_usd;
-    return e;
+    return [e];
   }
 
-  return null;
+  return [];
 }
 
 /** SSE 一帧。data 走 JSON，换行天然被转义，不会破坏帧边界。 */
@@ -192,17 +257,26 @@ export async function runChat(
   req: AgentRequest,
   on: { text: (t: string) => void; tool?: (name: string, target?: string) => void },
 ): Promise<{ ok: boolean; sessionId?: string; costUsd?: number; reason?: string }> {
-  const { spawnClaude } = await import("../scripts/wiki/claude-cli");
+  const { spawnClaude, resolveClaudeCommand } = await import("../scripts/wiki/claude-cli");
+  if (resolveClaudeCommand().shell)
+    return { ok: false, reason: "问答隔离需要可直接执行的 claude 二进制路径（CLAUDE_CLI）" };
+  let results = 0;
   const r = await spawnClaude(req, (line) => {
-    const e = parseChatLine(line);
-    if (!e) return;
-    if (e.kind === "text") on.text(e.text);
-    else if (e.kind === "tool") on.tool?.(e.name, e.target);
-    else return { isError: e.isError, sessionId: e.sessionId, costUsd: e.costUsd };
+    for (const e of parseChatEvents(line)) {
+      if (e.kind === "text") on.text(e.text);
+      else if (e.kind === "tool") on.tool?.(e.name, e.target);
+      else {
+        results++;
+        return { isError: e.isError, sessionId: e.sessionId, costUsd: e.costUsd };
+      }
+    }
   });
-  const out: { ok: boolean; sessionId?: string; costUsd?: number; reason?: string } = { ok: r.ok };
+  const out: { ok: boolean; sessionId?: string; costUsd?: number; reason?: string } = {
+    ok: r.ok && results === 1,
+  };
   if (r.sessionId) out.sessionId = r.sessionId;
   if (r.costUsd !== undefined) out.costUsd = r.costUsd;
   if (r.reason) out.reason = r.reason;
+  else if (results !== 1) out.reason = "问答没有唯一完整的结束记录";
   return out;
 }

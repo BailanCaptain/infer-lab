@@ -1,5 +1,27 @@
 import type { Backlink, Relation, RelationKind } from "./schema";
 
+export interface RelationNode {
+  id: string;
+  relations?: Relation[];
+  /** Compatibility for old documents; new writers use relations only. */
+  related?: string[];
+}
+
+/** One-hop topology for retrieval and integration; reverse edges are always derived. */
+export function buildAdjacency(pages: Iterable<RelationNode>): Map<string, string[]> {
+  const nodes = [...pages];
+  const edges = new Map(nodes.map((p) => [p.id, new Set<string>()]));
+  for (const p of nodes) {
+    const targets = [...(p.relations ?? []).map((r) => r.to), ...(p.related ?? [])];
+    for (const to of targets) {
+      if (to === p.id || !edges.has(to)) continue;
+      edges.get(p.id)?.add(to);
+      edges.get(to)?.add(p.id);
+    }
+  }
+  return new Map([...edges].map(([id, ids]) => [id, [...ids].sort()]));
+}
+
 /**
  * 把一页的出边与派生入边整理成读者看的「接着看」分组。
  *

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "236284ac01a0c14fdd4e9f34b206f30783d29b3c74587417465856b851fb1a12",
+  "input": {
+    "sources": [
+      {
+        "ref": "draft-integration-v1",
+        "hash": "ce7b61b3a0b9919003157ca4bd801522fd558478ca7957d0fdd4b895ed8f9a76"
+      }
+    ],
+    "targets": [
+      "decision-ce7b61b3a0b9919003157ca4bd801522fd558478ca7957d0fdd4b895ed8f9a76"
+    ],
+    "recipeHash": "98e6f0ad7642ce5de6fb7f3fb3749a46bb96a916e33fe50faf3d1c6434ed9d4a"
+  },
+  "origins": [
+    "gap"
+  ],
+  "state": "failed",
+  "policy": {
+    "maxAttempts": 1,
+    "maxCostUsd": 2,
+    "reserveUsd": 1
+  },
+  "attempts": [
+    {
+      "token": "3eea02b2-6e22-49e9-9acb-fcfeb9a6d856",
+      "ownerPid": 39116,
+      "startedAt": "2026-09-16T17:04:55.427Z",
+      "finishedAt": "2026-09-16T17:05:56.135Z",
+      "reservedUsd": 1,
+      "state": "failed",
+      "reason": "Error: 费用未知，共享预算暂停；timeout 60000ms"
+    }
+  ],
+  "createdAt": "2026-09-16T17:04:55.419Z",
+  "updatedAt": "2026-09-16T17:05:56.136Z"
+}

@@ -4,33 +4,51 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { runBuild } from "./wiki/build";
+import { positiveInteger } from "./wiki/batch";
+import { budgetedAgent } from "./wiki/budget";
 import { formatDryRun, runClaude } from "./wiki/claude-cli";
 import { worktreeDir } from "./wiki/clone";
 import { keepUsed, parseDocVars } from "./wiki/docvars";
+import { gitText } from "./wiki/git";
 import { loadHandbook } from "./wiki/handbook";
 import {
-  applyIntegration,
   DEFAULT_REF,
   extractRequest,
   type IngestContext,
   integrateRequest,
-  integrationSchema,
   localDate,
   parseSeeds,
   readFailures,
-  runExtractPhase,
+  selectIngestFeatures,
+  selectIntegrationDrafts,
   selectRelevantPages,
   worktreeKey,
 } from "./wiki/ingest";
-import { factsTable, runLint, splitProblems } from "./wiki/lint";
+import { validateIntegration } from "./wiki/integration-check";
+import { runStagedIntegration } from "./wiki/integration-run";
+import { factsTable } from "./wiki/lint";
 import { loadPages, parsePage } from "./wiki/pages";
+import { runPersistentExtract, syncFailureProjection } from "./wiki/persistent-extract";
+import { WorkflowStore } from "./wiki/workflow";
+import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
   return i >= 0 ? process.argv[i + 1] : def;
 }
 const flag = (name: string) => process.argv.includes(name);
+
+if (flag("--params") || flag("--pr")) {
+  try {
+    if (flag("--params") && flag("--pr")) throw new Error("--params 与 --pr 不能同时使用");
+    if (flag("--params")) await (await import("./wiki-params-ingest")).paramIngestCli(process.argv.slice(2));
+    else await (await import("./wiki-pr-ingest")).prIngestCli(process.argv.slice(2));
+  } catch (error) {
+    console.error(String(error));
+    process.exitCode = 1;
+  }
+  process.exit(process.exitCode ?? 0);
+}
 
 const root = process.cwd();
 const wikiRoot = join(root, "wiki");
@@ -42,9 +60,32 @@ if (!seedsPath) {
   process.exit(2);
 }
 const seeds = parseSeeds(readFileSync(seedsPath, "utf8"));
-const phase = arg("--phase", "all") as "extract" | "integrate" | "all";
+const phase = arg("--phase", "extract") as "extract" | "integrate" | "all";
 const dryRun = flag("--dry-run");
 const today = localDate();
+const concurrency = positiveInteger(Number(arg("--concurrency", "3")), "concurrency");
+const timeoutMs = positiveInteger(Number(arg("--timeout-min", "20")) * 60_000, "timeoutMs");
+if (!["extract", "integrate", "all"].includes(phase)) throw new Error(`非法 phase：${phase}`);
+if (phase === "integrate" && !arg("--only")) throw new Error("独立整合必须用 --only 显式选择草稿");
+const store = new WorkflowStore(root);
+if (
+  !dryRun &&
+  phase !== "integrate" &&
+  seeds.features.length &&
+  ["--max-attempts", "--job-budget-usd", "--attempt-budget-usd"].some((name) => !arg(name))
+) {
+  throw new Error(
+    "提取需显式配置 --job-budget-usd（每任务累计）、--attempt-budget-usd（单次额度）、--max-attempts（总次数）；重试不清零",
+  );
+}
+const policy =
+  !dryRun && phase !== "integrate" && seeds.features.length
+    ? workflowPolicySchema.parse({
+        maxAttempts: Number(arg("--max-attempts")),
+        maxCostUsd: Number(arg("--job-budget-usd")),
+        reserveUsd: Number(arg("--attempt-budget-usd")),
+      })
+    : undefined;
 
 // 一个 ref 一份工作树，键与 extractRequest 里的 worktreeKey 对齐
 const repoRoots: Record<string, string> = {};
@@ -55,25 +96,32 @@ for (const [name, r] of Object.entries(seeds.repos)) {
       console.error(`x 仓库 ${name} 的 ref ${ref} 不在 ${abs}，先跑 pnpm wiki:clone --seeds ${seedsPath}`);
       process.exit(2);
     }
+    if (!dryRun) {
+      const actual = gitText(abs, ["rev-parse", "HEAD"]).trim();
+      const expected = gitText(abs, ["rev-parse", "--verify", `${r.refs[ref]}^{commit}`]).trim();
+      if (actual !== expected)
+        throw new Error(`${name}@${ref} HEAD ${actual} 不等于钉住的 ${expected}，请先运行 wiki:clone`);
+      if (gitText(abs, ["status", "--porcelain", "--untracked-files=all"]).trim()) {
+        throw new Error(`${name}@${ref} 有未提交修改，不能当作钉住版本提取：${abs}`);
+      }
+    }
     repoRoots[worktreeKey(name, ref)] = abs;
   }
 }
-for (const d of ["_drafts", "raw", "concepts", "sources"]) mkdirSync(join(wikiRoot, d), { recursive: true });
+if (!dryRun)
+  for (const d of ["_drafts", "raw", "concepts", "sources"])
+    mkdirSync(join(wikiRoot, d), { recursive: true });
+if (!dryRun) {
+  await store.recover();
+  await syncFailureProjection(store);
+}
 
-let features = seeds.features;
 const only = arg("--only");
-if (only) features = features.filter((f) => only.split(",").includes(f.id));
-if (flag("--retry-failed")) {
-  const failed = Object.keys(readFailures(wikiRoot));
-  features = features.filter((f) => failed.includes(f.id));
-}
-if (flag("--skip-existing")) {
-  features = features.filter(
-    (f) =>
-      !existsSync(join(wikiRoot, `_drafts/${f.id}.md`)) && !existsSync(join(wikiRoot, `concepts/${f.id}.md`)),
-  );
-}
-features = [...features].sort((a, b) => a.priority - b.priority);
+const features = selectIngestFeatures(seeds.features, wikiRoot, {
+  only: only?.split(","),
+  skipExisting: flag("--skip-existing"),
+  retryFailed: flag("--retry-failed"),
+}).sort((a, b) => a.priority - b.priority);
 
 // Task 28：文档变量表在本地解，不让 agent 上网（它的黑名单里有 WebFetch）。
 // 两个版本的构建系统不同：main 是 MkDocs、v0.23.0 还是 Sphinx，两处都认。
@@ -105,38 +153,63 @@ const ctx: IngestContext = {
   ...(Object.keys(docVars).length > 0 ? { docVars } : {}),
   ...(llmsTxt ? { llmsTxt } : {}),
   today,
-  timeoutMs: Number(arg("--timeout-min", "20")) * 60_000,
+  timeoutMs,
   batchIds: features.map((f) => f.id),
 };
 
 async function main() {
+  let succeeded: string[] | undefined;
+  let extractionFailed = false;
   if (phase !== "integrate") {
     if (dryRun) {
       for (const f of features) console.log(formatDryRun(extractRequest(f, seeds, ctx)));
     } else {
       console.log(`提取 ${features.length} 个 feature：${features.map((f) => f.id).join(", ")}`);
-      const r = await runExtractPhase(features, seeds, ctx, {
-        runAgent: runClaude,
-        concurrency: Number(arg("--concurrency", "3")),
+      if (!features.length) {
+        console.log("没有需要提取的任务");
+        return;
+      }
+      if (!policy) throw new Error("提取需显式配置 --job-budget-usd、--attempt-budget-usd、--max-attempts");
+      const r = await runPersistentExtract(features, seeds, ctx, {
+        store,
+        policy,
+        retry: flag("--retry-failed"),
+        runAgent: budgetedAgent(process.cwd(), "seed-extract", runClaude),
+        concurrency,
         log: (s) => console.log(s),
       });
+      succeeded = r.succeeded;
+      extractionFailed = r.failed.length > 0;
       console.log(
-        `提取完成：成功 ${r.succeeded.length}，失败 ${Object.keys(r.failures).length}（见 wiki/_drafts/_failures.json），花费 $${r.costUsd.toFixed(2)}`,
+        `提取完成：成功 ${r.succeeded.length}，失败 ${Object.keys(r.failures).length}（见 wiki/_drafts/_failures.json），已报告费用 $${r.costUsd.toFixed(2)}，费用待核对 ${r.unknownCostIds.length} 项${r.unknownCostIds.length ? `（${r.unknownCostIds.join(", ")}）` : ""}`,
       );
     }
   }
   if (phase !== "extract") {
-    const draftIds = readdirSync(join(wikiRoot, "_drafts"))
+    if (dryRun && phase === "all") {
+      console.log("整合计划：仅接收本次提取成功的草稿；dry-run 不读取旧草稿冒充本次结果。");
+      return;
+    }
+    const available = readdirSync(join(wikiRoot, "_drafts"))
       .filter((n) => n.endsWith(".md"))
       .map((n) => n.slice(0, -3));
+    const draftIds = selectIntegrationDrafts({
+      available,
+      failures: readFailures(wikiRoot),
+      succeeded,
+      only: only?.split(","),
+    });
     if (!draftIds.length) {
       console.log("没有草稿可整合");
+      if (extractionFailed) process.exitCode = 1;
       return;
     }
     // Task 26：程序按 related 与章节交集挑相关页，不再让 agent 扫全库（风险 R2）
-    const toRef = (pg: { fm: { id: string; chapters: string[]; related: string[] } }) => ({
+    const toRef = (pg: import("./wiki/pages").WikiPage) => ({
       id: pg.fm.id,
+      file: pg.file,
       chapters: pg.fm.chapters,
+      relations: pg.fm.relations,
       related: pg.fm.related,
     });
     const MARK_RE = /\[[SCDAIM!]\d*\](?![\w-])/g;
@@ -146,9 +219,9 @@ async function main() {
       const parsed = parsePage(`_drafts/${id}.md`, text);
       const marks = (text.match(MARK_RE) ?? []).length;
       const facts = factsTable(parsed.page?.body ?? text)?.rows ?? 0;
-      return parsed.page
-        ? { ...toRef(parsed.page), marks, facts }
-        : { id, chapters: [], related: [], marks, facts };
+      if (!parsed.page || parsed.problems.length)
+        throw new Error(`草稿 ${id} 不合法：${JSON.stringify(parsed.problems)}`);
+      return { ...toRef(parsed.page), marks, facts };
     });
     const existingRefs = loadPages(wikiRoot).pages.map(toRef);
     const req = integrateRequest(draftRefs, existingRefs, ctx);
@@ -160,33 +233,26 @@ async function main() {
       return;
     }
     console.log(`整合 ${draftIds.length} 份草稿`);
-    const r = await runClaude(req, (e) => {
-      if (e.kind === "tool") console.log(`  integrate: ${e.name} ${e.target ?? ""}`);
-    });
-    if (!r.ok) {
-      console.error(`x 整合失败：${r.reason}\n${r.stderrTail}`);
-      process.exit(1);
-    }
-    const decisionPath = join(wikiRoot, "_drafts/_integration.json");
-    if (!existsSync(decisionPath)) {
-      console.error("x 整合 agent 没有写 _drafts/_integration.json");
-      process.exit(1);
-    }
-    const decision = integrationSchema.parse(JSON.parse(readFileSync(decisionPath, "utf8")));
-    const applied = applyIntegration(wikiRoot, decision, today);
-    for (const p of applied.problems) console.error(`x ${p}`);
-    console.log(
-      `整合完成：晋升 ${decision.promoted.length}，合并 ${decision.merged.length}，拒收 ${decision.rejected.length}，矛盾 ${decision.contradictions.length}，花费 $${(r.costUsd ?? 0).toFixed(2)}`,
+    const validationRepos = Object.fromEntries(
+      Object.entries(seeds.repos).map(([name, repo]) => [name, resolve(root, repo.path)]),
     );
-    const b = runBuild(root);
-    console.log(`wiki:build ${b.pageCount} 页`);
-    // 与 pnpm wiki:lint 同一套警告豁免——否则一条 mark-flood 会让整条流水线在
-    // 11 页都已正确落盘之后报失败（2026-09-12 实际发生过）
-    const { errors, warnings } = splitProblems(runLint(root, { terms: false }));
-    for (const p of warnings) console.warn(`! ${p.file} [${p.rule}] ${p.message}`);
-    for (const p of errors) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
-    if (errors.length) process.exit(1);
+    const r = await runStagedIntegration(root, req, draftIds, today, {
+      runAgent: budgetedAgent(process.cwd(), "integrate", runClaude),
+      onEvent: (e) => {
+        if (e.kind === "tool") console.log(`  integrate: ${e.name} ${e.target ?? ""}`);
+      },
+      repoRoots: validationRepos,
+      validate: (stageRoot) => validateIntegration(stageRoot, validationRepos),
+    });
+    const { decision } = r;
+    console.log(
+      `待审提案：晋升 ${decision.promoted.length}，合并 ${decision.merged.length}，拒收 ${decision.rejected.length}，矛盾 ${decision.contradictions.length}，花费 $${(r.costUsd ?? 0).toFixed(2)}`,
+    );
+    console.log(
+      `wiki:build ${r.pageCount} 页（隔离校验通过，尚未发布）；revision ${r.reviewId}\n查看 pnpm wiki:review show ${r.reviewId}；批准 pnpm wiki:review approve ${r.reviewId}`,
+    );
   }
+  if (extractionFailed) process.exitCode = 1;
 }
 main().catch((e) => {
   console.error(e);

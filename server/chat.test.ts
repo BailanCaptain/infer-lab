@@ -24,7 +24,9 @@ describe("parseChatLine", () => {
   it("工具调用转成 tool 事件，让前端能显示正在查哪一页", () => {
     const line = JSON.stringify({
       type: "assistant",
-      message: { content: [{ type: "tool_use", name: "Read", input: { file_path: "concepts/kv-cache.md" } }] },
+      message: {
+        content: [{ type: "tool_use", name: "Read", input: { file_path: "concepts/kv-cache.md" } }],
+      },
     });
     expect(parseChatLine(line)).toEqual({ kind: "tool", name: "Read", target: "concepts/kv-cache.md" });
   });
@@ -37,10 +39,89 @@ describe("parseChatLine", () => {
   it("非 JSON 与无关事件返回 null", () => {
     expect(parseChatLine("not json")).toBeNull();
     expect(parseChatLine(JSON.stringify({ type: "system" }))).toBeNull();
+    expect(parseChatLine("null")).toBeNull();
+  });
+  it("malformed envelopes are ignored instead of crashing or completing a turn", () => {
+    for (const value of [
+      { type: "assistant", message: { content: "invalid" } },
+      { type: "assistant", message: { content: [null] } },
+      { type: "result" },
+    ])
+      expect(parseChatLine(JSON.stringify(value))).toBeNull();
   });
 });
 
 describe("buildChatRequest", () => {
+  it("引用导航只提供页面链接，不额外诱导模型复制源码角标", () => {
+    const req = buildChatRequest(
+      {
+        message: "读写 KV 使用什么映射？",
+        citationGuide: [
+          {
+            pageLink: "[Block Table](concepts/block-table.md)",
+            sourceLinks: ["[C6](concepts/block-table.md)"],
+          },
+        ],
+      },
+      hb,
+      ctx,
+    );
+    expect(req.stdin).toContain("[Block Table](concepts/block-table.md)");
+    expect(req.stdin).not.toContain("[C6]");
+    expect(req.stdin).not.toContain("sourceLinks");
+    expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toContain(hb.query);
+  });
+
+  it("离线对照禁联网、固定模型和额度，且不持久化会话", () => {
+    const req = buildChatRequest({ message: "control" }, hb, {
+      ...ctx,
+      control: { model: "claude-sonnet-4-6", maxCostUsd: 0.1 },
+    });
+    expect(req.args[req.args.indexOf("--tools") + 1]).toBe("Read,Grep,Glob");
+    expect(req.args[req.args.indexOf("--model") + 1]).toBe("claude-sonnet-4-6");
+    expect(req.args[req.args.indexOf("--max-budget-usd") + 1]).toBe("0.1");
+    expect(req.args).toContain("--no-session-persistence");
+    const denied = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
+    expect(denied).toContain("WebSearch");
+    expect(denied).toContain("WebFetch");
+    expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toContain("离线对照");
+  });
+
+  it("离线对照拒绝复用旧会话、历史问题和无效额度", () => {
+    const control = { model: "claude-sonnet-4-6", maxCostUsd: 0.1 };
+    for (const input of [
+      { message: "x", sessionId: "old" },
+      { message: "x", previousQuestions: ["old"] },
+    ])
+      expect(() => buildChatRequest(input, hb, { ...ctx, control })).toThrow();
+    for (const maxCostUsd of [0, -1, NaN, Infinity])
+      expect(() =>
+        buildChatRequest({ message: "x" }, hb, {
+          ...ctx,
+          control: { ...control, maxCostUsd },
+        }),
+      ).toThrow();
+    expect(() =>
+      buildChatRequest({ message: "x" }, hb, {
+        ...ctx,
+        control: { ...control, model: " " },
+      }),
+    ).toThrow();
+  });
+
+  it("把图扩展的 via 写进 prompt，agent 能区分直接命中和邻居", () => {
+    const req = buildChatRequest(
+      {
+        message: "alpha",
+        hits: [
+          { id: "beta", title: "Beta", summary: "s", evidence: "C", score: 10, how: "related", via: "alpha" },
+        ],
+      },
+      hb,
+      ctx,
+    );
+    expect(req.stdin).toContain("由 alpha 的关系扩展");
+  });
   it("cwd 是 wiki/，系统提示 = 页面格式 + 查询 + index.md", () => {
     const req = buildChatRequest({ message: "KV Cache 是什么" }, hb, ctx);
     expect(req.cwd).toBe("C:/w/wiki");
@@ -52,7 +133,10 @@ describe("buildChatRequest", () => {
 
   it("只给只读工具；写类工具一律禁掉", () => {
     const req = buildChatRequest({ message: "x" }, hb, ctx);
-    const allowed = req.args.slice(req.args.indexOf("--allowedTools") + 1, req.args.indexOf("--disallowedTools"));
+    const allowed = req.args.slice(
+      req.args.indexOf("--allowedTools") + 1,
+      req.args.indexOf("--disallowedTools"),
+    );
     expect(allowed).toEqual(["Read", "Grep", "Glob", "WebFetch", "WebSearch"]);
     const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
     for (const t of ["Write", "Edit", "Bash"]) {
@@ -64,7 +148,10 @@ describe("buildChatRequest", () => {
     // `--allowedTools` 在 -p 模式下是白名单：只从黑名单拿掉不够，实测会被拒
     // （Claude requested permissions to use WebFetch, but you haven't granted it yet.）
     const req = buildChatRequest({ message: "x" }, hb, ctx);
-    const allowed = req.args.slice(req.args.indexOf("--allowedTools") + 1, req.args.indexOf("--disallowedTools"));
+    const allowed = req.args.slice(
+      req.args.indexOf("--allowedTools") + 1,
+      req.args.indexOf("--disallowedTools"),
+    );
     const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
     for (const t of ["WebFetch", "WebSearch"]) {
       expect(allowed).toContain(t);
@@ -89,7 +176,10 @@ describe("buildChatRequest", () => {
 
   it("检索到的候选页写进 stdin，给 agent 指路", () => {
     const req = buildChatRequest(
-      { message: "KV Cache 是什么", hits: [{ id: "kv-cache", title: "KV Cache", summary: "s", evidence: "C", score: 1000, how: "exact" }] },
+      {
+        message: "KV Cache 是什么",
+        hits: [{ id: "kv-cache", title: "KV Cache", summary: "s", evidence: "C", score: 1000, how: "exact" }],
+      },
       hb,
       ctx,
     );

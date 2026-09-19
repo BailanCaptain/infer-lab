@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="条的长度就是每个 token 每一层真正占掉的字节数（block_size 128、bf16）">
+  <title>条的长度就是每个 token 每一层真正占掉的字节数（block_size 128、bf16）</title>
+  <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="44" width="860" height="316" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="58" width="213.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">存一个 token，一层要多少字节</text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">上面那条是那条请求走的路；下面三条是 MLA 系，代价差三倍以上。</text>
+  <rect x="262" y="112" width="400" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="262" y="174" width="112.5" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="262" y="236" width="137.5" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="262" y="298" width="125.2" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <text x="250" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">普通 GQA</text>
+  <text x="672" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">4096 B／token／层</text>
+  <text x="672" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">2 × 8 × 128 × 2 B    五维，带 K/V 两份</text>
+  <text x="250" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">MLA</text>
+  <text x="384.5" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1152 B／token／层</text>
+  <text x="384.5" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1 × (512 + 64) × 2 B    四维，没有独立的 K/V 两份</text>
+  <text x="250" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">MLA + 稀疏 indexer</text>
+  <text x="409.5" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1408 B／token／层</text>
+  <text x="409.5" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1 × (512 + 64 + 128) × 2 B    多存一份 indexer 的 key</text>
+  <text x="250" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">稀疏 + C8 量化 indexer</text>
+  <text x="397.2" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1282 B／token／层</text>
+  <text x="397.2" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">576×2 + 128×1 + 1×2 B    indexer 的 key 换成 int8</text>
+</svg>

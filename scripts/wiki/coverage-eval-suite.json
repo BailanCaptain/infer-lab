@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "scope": "真实模型分类，固定知识副本；观察信号为合成对照，不代表真实用户三次提问",
+  "cases": [
+    {
+      "id": "covered",
+      "question": "在 v0.23.0（2c59ff10）中，multistream_overlap_gate 的默认值是什么？",
+      "originalCandidates": "retrieved",
+      "expected": "covered",
+      "basis": "wiki/params/multistream-overlap-gate.md：一句话与事实表明确默认 False。"
+    },
+    {
+      "id": "retrieval-miss",
+      "question": "同一版本 v0.23.0（2c59ff10）里，multistream_overlap_gate 默认启用吗？",
+      "originalCandidates": "empty",
+      "expected": "retrieval-miss",
+      "basis": "故意令原候选为空，当前同 revision 的参数页已回答默认值。"
+    },
+    {
+      "id": "missing",
+      "question": "main（28bf3a2e）上的 num_speculative_tokens 默认值与约束分别是什么？",
+      "originalCandidates": "retrieved",
+      "expected": "missing-knowledge",
+      "basis": "本轮固定的 19 页知识副本没有该参数的默认值和约束；只判断给定材料，不断言上游不存在。"
+    },
+    {
+      "id": "version-covered",
+      "question": "main（28bf3a2e）还能开启 multistream_overlap_gate 吗？",
+      "originalCandidates": "retrieved",
+      "expected": "covered",
+      "basis": "参数页同时说明旧版存在和该 main commit 已删除；保留版本差异本身不是页面过期。"
+    },
+    {
+      "id": "ambiguous",
+      "question": "它现在默认开着吗？",
+      "originalCandidates": "empty",
+      "expected": "undetermined",
+      "basis": "没有历史上下文，无法确定指代和版本，不能强行判缺知识或漏检。"
+    }
+  ]
+}

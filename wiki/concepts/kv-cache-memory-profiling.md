@@ -2,38 +2,59 @@
 id: kv-cache-memory-profiling
 title: KV Cache Memory Profiling
 type: feature
-summary: 启动时跑一遍假数据前向，量出权重、激活峰值、非 torch 三块占用，再用「整卡容量 × gpu_memory_utilization 减去这三块」定下 KV Cache 能拿多少字节。
-aliases: [显存探测, KV Cache 显存探测, KV Cache 显存测算, KV Cache 内存探测, KV Cache 显存预算, 显存预算探测, 显存 profiling, determine_available_memory]
-chapters: ["11"]
+summary: >-
+  启动时跑一遍假数据前向，量出权重、激活峰值、非 torch 三块占用，再用「整卡容量 × gpu_memory_utilization 减去这三块」定下
+  KV Cache 能拿多少字节。
+aliases:
+  - 显存探测
+  - KV Cache 显存探测
+  - KV Cache 显存测算
+  - KV Cache 内存探测
+  - KV Cache 显存预算
+  - 显存预算探测
+  - 显存 profiling
+  - determine_available_memory
+chapters:
+  - '11'
 sources:
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L441-L454
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L464-L480
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L536-L584
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L586-L630
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L526-L574
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L576-L597
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L500-L534
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L778-L821
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L730-L771
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3713-L3727
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3684-L3697
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3834-L3837
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5175-L5185
-  - vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker_310p.py#L113-L133
-  - vllm-ascend@2c59ff10:vllm_ascend/_310p/worker_310p.py#L103-L123
-  - vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_multi_instance.py#L172-L223
-  - vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_multi_instance.py#L146-L168
-  - vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L1109-L1116
-  - vllm-ascend@28bf3a2e:docs/source/faqs.md#L138-L148
-  - vllm-ascend@28bf3a2e:docs/source/tutorials/models/Dots3-Note.md#L398-L408
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L109-L110
-evidence: "C"
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L441-L454'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L464-L480'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L536-L584'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L586-L630'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L526-L574'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L576-L597'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L500-L534'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L778-L821'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L730-L771'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3713-L3727'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3684-L3697'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3834-L3837'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5175-L5185'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker_310p.py#L113-L133'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/_310p/worker_310p.py#L103-L123'
+  - >-
+    vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_multi_instance.py#L172-L223
+  - >-
+    vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_multi_instance.py#L146-L168
+  - 'vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L1109-L1116'
+  - 'vllm-ascend@28bf3a2e:docs/source/faqs.md#L138-L148'
+  - 'vllm-ascend@28bf3a2e:docs/source/tutorials/models/Dots3-Note.md#L398-L408'
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L109-L110
+  - >-
+    https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/utils.py#L405-L425
+evidence: C
 relations:
   - to: kv-cache-spec
     kind: builds-on
     note: profiling 只产出一个字节数，除以 spec 声明的每块字节数才变成块数
 contradicts: []
-updated: "2026-09-12"
+updated: '2026-09-16'
+rawSources:
+  - >-
+    raw/sha256-28e0c42a4da3e1d1ae42ea272529d11b6a688cde2e0759b672471cc832358025.md
+  - >-
+    raw/sha256-a1026f7df3575e077953d95909c1d1d1639fcad49299256f5fcb3069614b9e26.md
 ---
 
 ## 一句话
@@ -46,7 +67,7 @@ KV Cache 要的是「剩下的全部显存」，可这个「剩下」在启动�
 
 所以 vLLM 选择实测：先拍一张启动快照，再故意跑一次「最坏情况」的前向，两张快照一减就是模型跑起来真正要吃掉的量。剩下的都给 KV Cache。
 
-昇腾侧和上游的关键分歧在**分母**。`gpu_memory_utilization` 乘的是 `init_snapshot.total_memory`，也就是整卡容量，而不是启动时的空闲容量 [C1]。这条选择是有代价也有理由的：好处是同一张卡上起两个实例，各自 `--gpu-memory-utilization 0.4`，第二个实例照样按 `64 × 0.4 = 25.6 GiB` 立预算，不会因为第一个实例已经占了 25.6 GiB 就把自己算成负数——上游为此专门留了回归测试。坏处是这个乘法不认账：卡上被别的进程占走的显存不会自动从预算里扣，只在启动时做一次「空闲 < 请求量就直接报 `ValueError`」的粗检查。
+这里的预算按**整卡显存**计算，上游 vLLM v0.23.0 也是这样算的 [C22]。`gpu_memory_utilization` 乘的是 `init_snapshot.total_memory`，也就是整卡容量，而不是启动时的空闲容量 [C1]。这条选择是有代价也有理由的：好处是同一张卡上起两个实例，各自 `--gpu-memory-utilization 0.4`，第二个实例照样按 `64 × 0.4 = 25.6 GiB` 立预算，不会因为第一个实例已经占了 25.6 GiB 就把自己算成负数——上游为此专门留了回归测试。坏处是这个乘法不认账：卡上被别的进程占走的显存不会自动从预算里扣，只在启动时做一次「空闲 < 请求量就直接报 `ValueError`」的粗检查。
 
 官方文档把 `gpu_memory_utilization`（默认 `0.9`）定位成 OOM 时的第一个旋钮：调小它是为了给运行期的显存碎片留余量。CPU offload 的文档更直接，把调小它当作驱动卸载的手柄——具体见 [KV Cache CPU Offload](kv-cache-cpu-offload.md)。
 
@@ -156,3 +177,49 @@ suggested_to_gpu_limit = 63.20 − 6.41 − 0.146 = 56.64 GiB
 - **「`gpu_memory_utilization=0.9` 是最多用掉空闲显存的 90%」**——分母是整卡 `total_memory`，不是 `free_memory`。卡上已经跑着别的东西时，0.9 意味着你要走的是整卡的九成，只有启动那一刻的「空闲够不够」会被检查一次。
 - **「profiling 过了就不会 OOM」**——预算里没有图池那一块，`capture_model()` 在 KV Cache 分配之后才吃显存。官方模型手册里就有 profiling 通过、图捕获把 worker 撑死的实测记录 [S20]。
 - **「预算算成负数会兜底成 0」**——不会，`int()` 之后原样返回负值，单元测试专门锁住了这个行为 [C18]。真正的报错要等到按这个字节数去切块时才出现。
+
+## 已废弃的说法
+
+### 2026-09-16 · 修订 ce37962dd2e9737a
+
+旧说法（历史记录，已废弃）：
+
+```text
+昇腾侧和上游的关键分歧在**分母**。
+```
+
+替代结论：
+
+```text
+这里的预算按**整卡显存**计算，上游 vLLM v0.23.0 也是这样算的 [C22]。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/utils.py#L405-L425`
+
+- `vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L441-L454`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L441-L454`
+2. `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L464-L480`
+3. `vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L536-L584`
+4. `vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L586-L630`
+5. `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L526-L574`
+6. `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L576-L597`
+7. `vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L500-L534`
+8. `vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L778-L821`
+9. `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L730-L771`
+10. `vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3713-L3727`
+11. `vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3684-L3697`
+12. `vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L3834-L3837`
+13. `vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5175-L5185`
+14. `vllm-ascend@28bf3a2e:vllm_ascend/_310p/worker_310p.py#L113-L133`
+15. `vllm-ascend@2c59ff10:vllm_ascend/_310p/worker_310p.py#L103-L123`
+16. `vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_multi_instance.py#L172-L223`
+17. `vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_multi_instance.py#L146-L168`
+18. `vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L1109-L1116`
+19. `vllm-ascend@28bf3a2e:docs/source/faqs.md#L138-L148`
+20. `vllm-ascend@28bf3a2e:docs/source/tutorials/models/Dots3-Note.md#L398-L408`
+21. `vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L109-L110`

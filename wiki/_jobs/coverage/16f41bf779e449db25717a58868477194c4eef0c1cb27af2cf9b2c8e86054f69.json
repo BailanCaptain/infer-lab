@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "jobId": "16f41bf779e449db25717a58868477194c4eef0c1cb27af2cf9b2c8e86054f69",
+  "gapKey": "62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
+  "revision": "7ef9438da5fe24fda95723c21bccbfca7497b0663b43b3820b7e05afc8eed761",
+  "observationHash": "3c6e7c1a45240adf608c514d3f13ee0b984490b6be2b726b6fe3f140dd47da95",
+  "decision": {
+    "satisfied": false,
+    "classification": "missing-knowledge",
+    "reason": "所问范围是 main 2026-08-29 快照中 smooth_factor 的平滑公式、默认值和实际调用位置。在所提供的材料中，只有 profiling-chunk-config 一页涉及该参数。该页摘录只写了 smooth_factor 必须在 (0, 1] 内，否则抛 ValueError，并且明确说材料没有解释这个系数的语义。页面还自述只依据配置源码摘录，并列出未说明预测出的 chunk 在调度中怎么用。摘录中没有出现 smooth_factor 的默认值。平滑公式和调度侧调用位置在摘录中都没有覆盖。该页摘录被截断（truncated=true），但已提供部分的自述缺口直接指向语义与调用未收录。索引中的其他页面标题和概述都与该参数无关。这一结论只是本次提供范围内的待补来源诊断，不证明全库或上游没有这项知识。原知识版本与当前版本不同，因此不作漏检判断。",
+    "evidence": [
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "材料没有解释这个系数的语义"
+      },
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "本页只依据配置源码摘录，没有性能实验。"
+      },
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "预测出的 chunk 在调度中具体怎么用；"
+      }
+    ]
+  },
+  "scope": {
+    "kind": "provided-excerpts",
+    "index": {
+      "hash": "694eb27790c1aa6e2aaa0cc741f0745067fbc13b4b15b282867a255ec3d33cd5",
+      "chars": 4636,
+      "truncated": false
+    },
+    "pages": [
+      {
+        "hash": "2a9d36d31d3369e72569ca22d4faa41f85233f86e5276377d1021be8869fc959",
+        "chars": 3000,
+        "truncated": true,
+        "id": "profiling-chunk-config"
+      },
+      {
+        "hash": "5227daf1499a099e1033fd1f9d54b4ff29f95e611c95aad2eba9f4092d3e0fa8",
+        "chars": 3000,
+        "truncated": true,
+        "id": "kv-cache-layerwise-offload"
+      },
+      {
+        "hash": "4fa140fad02041cb85a3a9b25bb098d6f03536ed4428820cc69d77428069cd31",
+        "chars": 3000,
+        "truncated": true,
+        "id": "enable-matmul-allreduce"
+      }
+    ],
+    "externalSourcesReviewed": false
+  },
+  "validation": {
+    "evidence": "exact-quotes-only",
+    "reason": "unverified",
+    "classification": "model-judgment"
+  }
+}

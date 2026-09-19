@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 456" width="900" height="456" role="img" aria-label="上游每留一个口子，昇腾就交一个子类；同一行左右两边是同一个位置">
+  <title>上游每留一个口子，昇腾就交一个子类；同一行左右两边是同一个位置</title>
+  <rect width="900" height="456" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="420" height="44" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="54" width="144" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 留的口子</text>
+  <rect x="460" y="40" width="420" height="44" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="476" y="54" width="162.4" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="487" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 交上来的</text>
+  <rect x="20" y="100" width="420" height="56" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="20" y="100" width="5" height="56" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(43.8 117.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
+  <text x="78" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Platform</text>
+  <text x="78" y="145" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">硬件问题全问它</text>
+  <rect x="20" y="166" width="420" height="56" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="20" y="166" width="5" height="56" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(43.8 183.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z M4 9h16M8 5v4"/></g>
+  <text x="78" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">WorkerBase</text>
+  <text x="78" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一张卡上的生命周期</text>
+  <rect x="20" y="232" width="420" height="56" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="20" y="232" width="5" height="56" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(43.8 249.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="78" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">GPUModelRunner</text>
+  <text x="78" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一步执行的主循环</text>
+  <rect x="20" y="298" width="420" height="56" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="20" y="298" width="5" height="56" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(43.8 315.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
+  <text x="78" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AttentionBackend</text>
+  <text x="78" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">注意力算子与 KV 形状</text>
+  <rect x="20" y="364" width="420" height="56" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="20" y="364" width="5" height="56" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(43.8 381.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
+  <text x="78" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DeviceCommunicatorBase</text>
+  <text x="78" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">跨卡通信</text>
+  <rect x="460" y="100" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="460" y="100" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="482" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NPUPlatform</text>
+  <text x="482" y="145" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">platform.py，第 128 行</text>
+  <rect x="460" y="166" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="460" y="166" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="482" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NPUWorker</text>
+  <text x="482" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">worker/worker.py</text>
+  <rect x="460" y="232" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="460" y="232" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="482" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NPUModelRunner</text>
+  <text x="482" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">model_runner_v1.py，5251 行</text>
+  <rect x="460" y="298" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="460" y="298" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="482" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">五个后端类</text>
+  <text x="482" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">attention/ 下 17 个文件</text>
+  <rect x="460" y="364" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="460" y="364" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="482" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NPUCommunicator</text>
+  <text x="482" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">distributed/ 下 46 个文件</text>
+  <line x1="450" y1="96" x2="450" y2="424" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="450" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">继承</text>
+  <text x="20" y="446" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">留不出口子的地方没有这一行——那些只能在运行时把上游对象换掉，也就是 patch。所以「昇腾的某段行为在哪」只有两个答案：某个子类里，或者 patch </text>
+  <text x="20" y="464.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目录里。</text>
+</svg>

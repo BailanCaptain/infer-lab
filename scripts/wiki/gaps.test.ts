@@ -6,11 +6,13 @@ const mk = (id: string, body: string, over: Partial<WikiPage["fm"]> = {}): WikiP
   file: `concepts/${id}.md`,
   body,
   fm: {
+    origin: "seed",
     id,
     title: id,
     type: "concept",
     summary: "s",
     aliases: [],
+    order: 500,
     chapters: ["11"],
     prerequisites: [],
     sources: ["https://x"],

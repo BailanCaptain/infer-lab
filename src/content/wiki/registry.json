@@ -2,9 +2,251 @@
   "version": 1,
   "pages": [
     {
+      "id": "ascend-config-system",
+      "title": "AscendConfig 配置系统",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "--additional-config 的那段 JSON 由 AscendConfig 按键拆成十来个子配置对象，存成进程内单例；环境变量走另一条路。",
+      "aliases": [
+        "AscendConfig",
+        "additional_config",
+        "additional-config",
+        "init_ascend_config",
+        "get_ascend_config",
+        "envs.py"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 100,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L524-L530",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L598-L604",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L680-L690",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L913-L930",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L118-L122",
+        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L21-L50"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "init_ascend_config 是 NPUWorker.__init__ 的一步，单例什么时候有值由启动时序决定"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求没配任何昇腾开关，走的全是这套默认值"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/ascend-config-system.md",
+      "backlinks": [
+        {
+          "from": "npu-platform",
+          "kind": "enables",
+          "note": "check_and_update_config 改写与最终定稿的，就是那一页解出来的那份配置"
+        }
+      ]
+    },
+    {
+      "id": "ascend-patch-system",
+      "title": "Patch 机制",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "上游没留口子的地方，昇腾在运行时把上游的类和函数换掉。两个目录对应两个时机，靠 import 副作用生效。",
+      "aliases": [
+        "patch",
+        "adapt_patch",
+        "monkey patch",
+        "patch/platform",
+        "patch/worker",
+        "补丁机制"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 90,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L29-L80",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L20-L40",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "npu-platform",
+          "kind": "builds-on",
+          "note": "platform 层 patch 的触发点就是 NPUPlatform.pre_register_and_update，时机由平台类决定"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/ascend-patch-system.md",
+      "backlinks": [
+        {
+          "from": "engine-processes",
+          "kind": "enables",
+          "note": "三类进程的差别落到代码上就是 patch 打在哪，机制本身在那一页"
+        },
+        {
+          "from": "reading-vllm-ascend",
+          "kind": "enables",
+          "note": "第三条路线整条都建立在 patch 机制上，先读那一页才知道为什么先搜 patch 目录"
+        },
+        {
+          "from": "who-owns-what",
+          "kind": "enables",
+          "note": "上游没留口子的那部分怎么办，是这条边界唯一说不清的地方，机制在那一页"
+        }
+      ]
+    },
+    {
+      "id": "attention-backend-family",
+      "title": "注意力后端家族",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "attention/ 下五个后端类，按 (use_mla, use_sparse, use_compress) 三元组查表选出；普通后端的 KV 形状是五维，MLA 系是四维。",
+      "aliases": [
+        "AscendAttentionBackend",
+        "AscendMLABackend",
+        "AscendSFABackend",
+        "AscendDSABackend",
+        "AscendFABackend",
+        "get_attn_backend_cls",
+        "注意力后端"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L844-L870",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L106",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L165",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L217",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "paged-attention",
+          "kind": "builds-on",
+          "note": "五个后端都在实现同一套分页读 KV 的方案，原理与算子行为在那一页"
+        },
+        {
+          "to": "npu-platform",
+          "kind": "builds-on",
+          "note": "选哪个后端不是后端自己决定的，是平台类的 get_attn_backend_cls 查表定的"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求走最左边那个后端，它的 KV 形状是五维的，算显存要乘 2"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/attention-backend-family.md",
+      "backlinks": [
+        {
+          "from": "attention-cost",
+          "kind": "enables",
+          "note": "那一页讲三元组怎么查出一个后端，这一页讲查中之后各自要付多少字节"
+        },
+        {
+          "from": "ops-and-kernels",
+          "kind": "enables",
+          "note": "注意力是算子层最大的一个消费方，后端选完之后调到的就是这一层"
+        }
+      ]
+    },
+    {
+      "id": "attention-cost",
+      "title": "四种注意力的代价",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。",
+      "aliases": [
+        "KV 占用",
+        "每 token 字节数",
+        "MLA 省多少",
+        "page_size_bytes",
+        "稀疏注意力代价",
+        "indexer"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L99-L106",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L158-L165",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L212-L217",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L28-L55",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L66-L121",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L19-L25",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4976-L4986",
+        "vllm-ascend@2c59ff10:tests/ut/attention/a2/test_mla_cp.py#L269-L272",
+        "vllm-ascend@2c59ff10:tests/ut/worker/a2/test_model_runner_v1.py#L338-L342",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L194-L200",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L295-L315"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "attention-backend-family",
+          "kind": "builds-on",
+          "note": "那一页讲三元组怎么查出一个后端，这一页讲查中之后各自要付多少字节"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求走的是这四条里最贵的一条，它那 112 KiB 就是从这儿来的"
+        },
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "GQA 那一条的完整推导在那一页，这里只取结果拿来跟另外三条并排比"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/attention-cost.md",
+      "backlinks": []
+    },
+    {
       "id": "block-table",
       "title": "Block Table",
       "type": "concept",
+      "origin": "seed",
       "summary": "一张 (请求数 × 每请求最大块数) 的 int32 表，把序列内第几个块翻译成显存里的物理块号，再由它算出每个 token 的写入槽位。",
       "aliases": [
         "块表",
@@ -14,6 +256,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L37-L95",
@@ -66,6 +309,11 @@
           "note": "命中的历史块靠 block_tables 接到本请求上，PrefillCacheHit 分支直接把它切片喂给算子"
         },
         {
+          "from": "prepare-inputs-flow",
+          "kind": "enables",
+          "note": "表的行列含义、逻辑块到物理块的映射在那一页，这里只讲它在数据流里的位置与上下游"
+        },
+        {
           "from": "recompute-cpu-offload",
           "kind": "enables",
           "note": "卸载与回填都按块进行，CPU 侧维持一份与 HBM 块表逐位对齐的 CPU 块 id 表，滑窗留下的空洞位用 0 占位而不压缩"
@@ -76,6 +324,7 @@
       "id": "enable-async-exponential",
       "title": "enable_async_exponential",
       "type": "param",
+      "origin": "seed",
       "summary": "把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除。",
       "aliases": [
         "异步指数分布重叠",
@@ -84,6 +333,7 @@
       "chapters": [
         "19"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L256-L263",
@@ -98,9 +348,14 @@
         "vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L20-L44",
         "vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L74-L85",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L1328",
-        "https://huggingface.co/Qwen/Qwen3-0.6B"
+        "https://huggingface.co/Qwen/Qwen3-0.6B",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L262"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md",
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
+      ],
       "relations": [],
       "related": [],
       "contradicts": [],
@@ -112,6 +367,7 @@
       "id": "enable-matmul-allreduce",
       "title": "enable_matmul_allreduce",
       "type": "param",
+      "origin": "seed",
       "summary": "把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 有，main 已整体移除。",
       "aliases": [
         "matmul allreduce 开关",
@@ -121,6 +377,7 @@
       "chapters": [
         "13"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L167-L172",
@@ -142,9 +399,14 @@
         "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1351-L1360",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L7-L24",
         "vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69",
-        "https://www.hiascend.com/developer/techArticles/20240729-1"
+        "https://www.hiascend.com/developer/techArticles/20240729-1",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L167"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
+        "raw/sha256-d5c125851e3280b711281df305903b41288f91d920a6b6719b01d35509a91043.md"
+      ],
       "relations": [],
       "related": [],
       "contradicts": [],
@@ -167,6 +429,7 @@
       "id": "enable-sleep-mode-extra-cleanup",
       "title": "enable_sleep_mode_extra_cleanup",
       "type": "param",
+      "origin": "seed",
       "summary": "sleep 时额外销毁 HCCL 通信域并清空 ACL 图工作区，把更多显存还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。",
       "aliases": [
         "sleep 模式额外清理",
@@ -175,6 +438,7 @@
       "chapters": [
         "19"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L162-L163",
@@ -193,9 +457,14 @@
         "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L286-L293",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63",
         "vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L450-L453",
-        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/rl.md#L102-L116"
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/rl.md#L102-L116",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L163"
       ],
       "evidence": "S",
+      "rawSources": [
+        "raw/sha256-024d8bdfc8e0a81cafa0b07e205478201aefcd1adf86c717b31c22e7c02f74cf.md",
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
+      ],
       "relations": [],
       "related": [],
       "contradicts": [],
@@ -204,9 +473,63 @@
       "backlinks": []
     },
     {
+      "id": "engine-processes",
+      "title": "三个进程与 patch 注入点",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "V1 引擎跑起来是 Main、EngineCore、Worker 三类进程；昇腾的 patch 要分别进这三处，用的是三条不同的路。",
+      "aliases": [
+        "EngineCore",
+        "Main 进程",
+        "Worker 进程",
+        "进程边界",
+        "V1 引擎进程"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 80,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_multiproc_executor.py#L24-L199",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ascend-patch-system",
+          "kind": "builds-on",
+          "note": "三类进程的差别落到代码上就是 patch 打在哪，机制本身在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/engine-processes.md",
+      "backlinks": [
+        {
+          "from": "platform-plugin-registration",
+          "kind": "enables",
+          "note": "四个 general plugin 为什么每个都要先补一次 patch，理由只在进程边界那一页说得清"
+        }
+      ]
+    },
+    {
       "id": "fuse-allreduce-rms",
       "title": "fuse_allreduce_rms",
       "type": "param",
+      "origin": "seed",
       "summary": "把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main 上已整体删除。",
       "aliases": [
         "Matmul AllReduce RMSNorm 融合",
@@ -215,6 +538,7 @@
       "chapters": [
         "13"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L84",
@@ -232,9 +556,14 @@
         "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L403-L406",
         "vllm-ascend@28bf3a2e:vllm_ascend/config_utils.py#L43-L50",
         "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L620-L624",
-        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L103-L109"
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L103-L109",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-59a95308536d065059c9cc558e2d55136e4689c7d61259182be752ea3ba3e582.md",
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
+      ],
       "relations": [
         {
           "to": "enable-matmul-allreduce",
@@ -249,9 +578,60 @@
       "backlinks": []
     },
     {
+      "id": "graph-mode-layer",
+      "title": "图模式层",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。",
+      "aliases": [
+        "ACL Graph",
+        "ACLGraphWrapper",
+        "AscendCompiler",
+        "图模式",
+        "graph mode",
+        "piecewise",
+        "xlite"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L134",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L176-L182",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L892-L897",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L55-L64",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L65-L85",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L680-L690",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L1-L14",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html"
+      ],
+      "evidence": "S",
+      "relations": [
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "捕获与回放包的就是 runner 的执行体，_dummy_run 是跑假批的那一步"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求的 199 步 decode 形状一样，回放的是同一张图——图模式的收益几乎全在这里"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/graph-mode-layer.md",
+      "backlinks": []
+    },
+    {
       "id": "kv-cache-cpu-offload",
       "title": "KV Cache CPU Offload",
       "type": "feature",
+      "origin": "seed",
       "summary": "把 NPU 上要被淘汰的 KV 块异步拷到主机内存留一份备份，下次同一前缀在 NPU 上没命中但 CPU 池里还在，就再异步拷回来，省掉重新 prefill。",
       "aliases": [
         "KV Cache CPU 卸载",
@@ -263,6 +643,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L13",
@@ -345,6 +726,7 @@
       "id": "kv-cache-layerwise-offload",
       "title": "Layerwise KV Offload",
       "type": "feature",
+      "origin": "seed",
       "summary": "把 KV 的存取从「整趟前向做完一次性搬」改成「每层算完立刻搬」，搬运与下一层计算重叠；main 上还能让多层共用一份 HBM buffer。",
       "aliases": [
         "逐层 KV 卸载",
@@ -357,6 +739,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L14-L36",
@@ -425,6 +808,7 @@
       "id": "kv-cache-memory-profiling",
       "title": "KV Cache Memory Profiling",
       "type": "feature",
+      "origin": "seed",
       "summary": "启动时跑一遍假数据前向，量出权重、激活峰值、非 torch 三块占用，再用「整卡容量 × gpu_memory_utilization 减去这三块」定下 KV Cache 能拿多少字节。",
       "aliases": [
         "显存探测",
@@ -439,6 +823,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L441-L454",
@@ -461,9 +846,14 @@
         "vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L1109-L1116",
         "vllm-ascend@28bf3a2e:docs/source/faqs.md#L138-L148",
         "vllm-ascend@28bf3a2e:docs/source/tutorials/models/Dots3-Note.md#L398-L408",
-        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L109-L110"
+        "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L109-L110",
+        "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/utils.py#L405-L425"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-28e0c42a4da3e1d1ae42ea272529d11b6a688cde2e0759b672471cc832358025.md",
+        "raw/sha256-a1026f7df3575e077953d95909c1d1d1639fcad49299256f5fcb3069614b9e26.md"
+      ],
       "relations": [
         {
           "to": "kv-cache-spec",
@@ -473,7 +863,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-12",
+      "updated": "2026-09-16",
       "file": "concepts/kv-cache-memory-profiling.md",
       "backlinks": [
         {
@@ -485,6 +875,11 @@
           "from": "kv-cache-sparse-offload",
           "kind": "enables",
           "note": "profiling 算出的可用显存是 plan_sparse_kv_offload_memory 三个块数上限中的 npu 那一项"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "第四步那次 profile 到底怎么算出可用字节数，公式和扣减项在那一页"
         }
       ]
     },
@@ -492,6 +887,7 @@
       "id": "kv-cache-quantization",
       "title": "KV Cache Quantization",
       "type": "feature",
+      "origin": "seed",
       "summary": "用 ModelSlim 标定好的静态 scale 把 KV cache 存成 int8，decode 时交给 npu_fused_infer_attention_score 就地反量化；由 checkpoint 里的 kv_cache_type = C8 触发，不看 --kv-cache-dtype。",
       "aliases": [
         "KV Cache 量化",
@@ -505,6 +901,7 @@
         "11",
         "17"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/quantization/configs/modelslim_config.py#L1097-L1115",
@@ -573,6 +970,7 @@
       "id": "kv-cache-sparse-offload",
       "title": "Sparse KV Offload",
       "type": "feature",
+      "origin": "seed",
       "summary": "PD 分离的 D 节点上，主 KV 全部住在主机内存，每步只把 indexer 选中的 top-k token 里未命中的那几行搬回 NPU 热缓冲区。",
       "aliases": [
         "稀疏 KV 卸载",
@@ -583,6 +981,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L203-L241",
@@ -648,6 +1047,7 @@
       "id": "kv-cache-spec",
       "title": "KV Cache Spec",
       "type": "feature",
+      "origin": "seed",
       "summary": "每个注意力层向引擎声明自己的 KV Cache 长什么样——块大小、KV 头数、头维、dtype，引擎据此换算每块字节数并决定分配多少块。",
       "aliases": [
         "KV 缓存规格",
@@ -659,6 +1059,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L983-L994",
@@ -701,6 +1102,11 @@
       "file": "concepts/kv-cache-spec.md",
       "backlinks": [
         {
+          "from": "attention-cost",
+          "kind": "enables",
+          "note": "GQA 那一条的完整推导在那一页，这里只取结果拿来跟另外三条并排比"
+        },
+        {
           "from": "block-table",
           "kind": "enables",
           "note": "表的列数与逻辑块大小由 spec 的 block_size 和 max_num_blocks_per_req 算出，BlockTable 自己不决定"
@@ -731,6 +1137,16 @@
           "note": "开关直接写进 AscendMLAAttentionSpec 的 store_on_host，由 spec 区分哪些层的 KV 落主机、哪些留设备"
         },
         {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "第五步按 KVCacheConfig 分配张量，每层每块的形状由 spec 决定"
+        },
+        {
+          "from": "one-request",
+          "kind": "enables",
+          "note": "每 token 112 KiB、每块 14 MiB 这两个数是那一页从块张量形状算出来的，这里只取结果拿来用"
+        },
+        {
           "from": "prefix-caching",
           "kind": "enables",
           "note": "哈希粒度 hash_block_size 由各 KV cache group 的 spec.block_size 取 gcd 得出"
@@ -746,6 +1162,7 @@
       "id": "kv-pool",
       "title": "KV Pool",
       "type": "feature",
+      "origin": "seed",
       "summary": "把 KV Cache 存进 HBM 之外、跨节点共享的存储池，让前缀命中不再受单卡显存与单节点边界限制。",
       "aliases": [
         "KV Cache Pool",
@@ -756,6 +1173,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/kv_pool.md#L3-L43",
@@ -822,6 +1240,7 @@
       "id": "layer-sharding",
       "title": "layer_sharding",
       "type": "param",
+      "origin": "seed",
       "summary": "点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。",
       "aliases": [
         "Layer Sharding Linear",
@@ -831,6 +1250,7 @@
       "chapters": [
         "13"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112",
@@ -855,9 +1275,14 @@
         "vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486",
         "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1324-L1337",
         "vllm-ascend@28bf3a2e:vllm_ascend/quantization/tp_weight_switch.py#L70-L106",
-        "vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184"
+        "vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L105"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
+        "raw/sha256-d5ae5978ab15999f012c8b4e21f00edf25723b330a507f4453b4a61869032de9.md"
+      ],
       "relations": [
         {
           "to": "enable-matmul-allreduce",
@@ -875,6 +1300,7 @@
       "id": "multistream-overlap-gate",
       "title": "multistream_overlap_gate",
       "type": "param",
+      "origin": "seed",
       "summary": "v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上已整体删除。",
       "aliases": [
         "FlashComm3 多流重叠门控",
@@ -883,6 +1309,7 @@
       "chapters": [
         "14"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L140",
@@ -892,7 +1319,7 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L655-L658",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L834-L881",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L883-L894",
-        "vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L42",
+        "vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L41",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L52-L59",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399",
         "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L104-L108",
@@ -903,9 +1330,14 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L120",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L58-L60",
-        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369"
+        "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md",
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
+      ],
       "relations": [],
       "related": [],
       "contradicts": [],
@@ -914,9 +1346,445 @@
       "backlinks": []
     },
     {
+      "id": "npu-model-runner",
+      "title": "NPUModelRunner 怎么读",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "5251 行的单文件，继承上游 GPUModelRunner。按九个区读，不要从头读；每个区对应一个可以单独进入的方法。",
+      "aliases": [
+        "NPUModelRunner",
+        "model_runner_v1",
+        "model_runner_v1.py",
+        "execute_model"
+      ],
+      "chapters": [
+        "09"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L211-L267",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L282",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3375",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3850",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "prepare-inputs-flow",
+          "kind": "builds-on",
+          "note": "最长那一区做的事单独成页，张量怎么拼出来在那里讲"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求的一步只走过这个文件里的四段，其余都是启动期或另一条路径"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/npu-model-runner.md",
+      "backlinks": [
+        {
+          "from": "graph-mode-layer",
+          "kind": "enables",
+          "note": "捕获与回放包的就是 runner 的执行体，_dummy_run 是跑假批的那一步"
+        },
+        {
+          "from": "request-call-chain",
+          "kind": "enables",
+          "note": "第四到第七跳都在同一个文件里，那一页讲这个文件怎么分区"
+        }
+      ]
+    },
+    {
+      "id": "npu-platform",
+      "title": "NPUPlatform",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "继承上游 Platform 的那个类。vLLM 一切硬件相关的问题都问它，它还会在启动时真的改写用户给的配置。",
+      "aliases": [
+        "NPUPlatform",
+        "platform.py",
+        "平台类",
+        "PlatformEnum.OOT"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 60,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L176-L182",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L204",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L290",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L312-L333",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L348",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L349-L360",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L361-L449",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L882",
+        "vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L81-L99",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "check_and_update_config 改写与最终定稿的，就是那一页解出来的那份配置"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求的 block_size、注意力后端、token 预算档位，三个数都是这个类定的"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/npu-platform.md",
+      "backlinks": [
+        {
+          "from": "ascend-patch-system",
+          "kind": "enables",
+          "note": "platform 层 patch 的触发点就是 NPUPlatform.pre_register_and_update，时机由平台类决定"
+        },
+        {
+          "from": "attention-backend-family",
+          "kind": "enables",
+          "note": "选哪个后端不是后端自己决定的，是平台类的 get_attn_backend_cls 查表定的"
+        }
+      ]
+    },
+    {
+      "id": "npu-worker-lifecycle",
+      "title": "NPUWorker 启动时序",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "从建对象到能接请求，六步固定顺序：打 patch、选卡建 runner、装权重、profile 出显存预算、分配 KV 张量、编译与捕获图。",
+      "aliases": [
+        "NPUWorker",
+        "worker 启动",
+        "init_device",
+        "compile_or_warm_up_model",
+        "启动时序"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 110,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L130",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L535",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L558-L595",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L692",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "第四步那次 profile 到底怎么算出可用字节数，公式和扣减项在那一页"
+        },
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "第五步按 KVCacheConfig 分配张量，每层每块的形状由 spec 决定"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求能不能在第 92 步要到第二块，取决于启动第四步算出的那个预算"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/npu-worker-lifecycle.md",
+      "backlinks": [
+        {
+          "from": "ascend-config-system",
+          "kind": "enables",
+          "note": "init_ascend_config 是 NPUWorker.__init__ 的一步，单例什么时候有值由启动时序决定"
+        },
+        {
+          "from": "request-call-chain",
+          "kind": "enables",
+          "note": "这条链路每一跳都假定 worker 已经走完六步启动，KV 张量和图都就位了"
+        }
+      ]
+    },
+    {
+      "id": "one-request",
+      "title": "贯穿全书的那条请求",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。",
+      "aliases": [
+        "那条请求",
+        "样例请求",
+        "贯穿例子",
+        "37 token",
+        "一条请求走到哪"
+      ],
+      "chapters": [
+        "00"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L250",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L348",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L116-L118",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "每 token 112 KiB、每块 14 MiB 这两个数是那一页从块张量形状算出来的，这里只取结果拿来用"
+        },
+        {
+          "to": "paged-attention",
+          "kind": "builds-on",
+          "note": "这条请求尾巴上空着的 19 个槽位，就是分页方案承诺的「浪费最多一个块」的那个上限"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/one-request.md",
+      "backlinks": [
+        {
+          "from": "ascend-config-system",
+          "kind": "enables",
+          "note": "那条请求没配任何昇腾开关，走的全是这套默认值"
+        },
+        {
+          "from": "ascend-patch-system",
+          "kind": "enables",
+          "note": "那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch"
+        },
+        {
+          "from": "attention-backend-family",
+          "kind": "enables",
+          "note": "那条请求走最左边那个后端，它的 KV 形状是五维的，算显存要乘 2"
+        },
+        {
+          "from": "attention-cost",
+          "kind": "enables",
+          "note": "那条请求走的是这四条里最贵的一条，它那 112 KiB 就是从这儿来的"
+        },
+        {
+          "from": "engine-processes",
+          "kind": "enables",
+          "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
+        },
+        {
+          "from": "graph-mode-layer",
+          "kind": "enables",
+          "note": "那条请求的 199 步 decode 形状一样，回放的是同一张图——图模式的收益几乎全在这里"
+        },
+        {
+          "from": "npu-model-runner",
+          "kind": "enables",
+          "note": "那条请求的一步只走过这个文件里的四段，其余都是启动期或另一条路径"
+        },
+        {
+          "from": "npu-platform",
+          "kind": "enables",
+          "note": "那条请求的 block_size、注意力后端、token 预算档位，三个数都是这个类定的"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "那条请求能不能在第 92 步要到第二块，取决于启动第四步算出的那个预算"
+        },
+        {
+          "from": "op-to-ai-core",
+          "kind": "enables",
+          "note": "走的是那条请求每一步都要跑 56 次的那个算子，次数和收益都按它算"
+        },
+        {
+          "from": "ops-and-kernels",
+          "kind": "enables",
+          "note": "那条请求每层碰到的三个算子都停在 torch_npu 那一层，没下到 csrc/"
+        },
+        {
+          "from": "platform-plugin-registration",
+          "kind": "enables",
+          "note": "这五个口在那条请求发出之前就已经用完了，是它能被昇腾接住的前提"
+        },
+        {
+          "from": "prepare-inputs-flow",
+          "kind": "enables",
+          "note": "那条请求第 92 步的 slot 下标就是在这里算出来的"
+        },
+        {
+          "from": "reading-vllm-ascend",
+          "kind": "enables",
+          "note": "拿那条请求的三个具体问题各走一遍，是这三条路线最快的练法"
+        },
+        {
+          "from": "request-call-chain",
+          "kind": "enables",
+          "note": "上图画的就是那条请求第 92 步的调用栈"
+        },
+        {
+          "from": "vllm-ascend-overview",
+          "kind": "enables",
+          "note": "那条请求碰到的每一个昇腾对象，都是顺着这五个入口之一进来的"
+        },
+        {
+          "from": "vllm-ascend-repo-map",
+          "kind": "enables",
+          "note": "跟完那条请求只需要读两个目录，其余 394 个文件它一个都不碰"
+        },
+        {
+          "from": "vllm-v1-shape",
+          "kind": "enables",
+          "note": "这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来"
+        },
+        {
+          "from": "who-owns-what",
+          "kind": "enables",
+          "note": "那条请求是这条界线两侧分工最具体的例子"
+        }
+      ]
+    },
+    {
+      "id": "op-to-ai-core",
+      "title": "一个算子从 Python 走到 AI Core",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "拿 RMSNorm 走一遍四层。最关键的一段是 ops/layernorm.py 里的一个 if——它两边一边是自己编的融合算子，一边是 CANN 现成的算子加一次额外的逐元素加法。",
+      "aliases": [
+        "算子链路",
+        "RMSNorm",
+        "AscendRMSNorm",
+        "AscendC",
+        "op_kernel",
+        "op_host",
+        "tiling",
+        "tiling key",
+        "UB",
+        "算子四层"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207",
+        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L186-L196",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L111-L120",
+        "vllm-ascend@2c59ff10:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L30-L45",
+        "vllm-ascend@2c59ff10:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L18-L40",
+        "vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L215",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "那一页画的是四层地图和各层的职责，这一页拿一个真算子从最上面走到最下面"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "走的是那条请求每一步都要跑 56 次的那个算子，次数和收益都按它算"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/op-to-ai-core.md",
+      "backlinks": []
+    },
+    {
+      "id": "ops-and-kernels",
+      "title": "算子层与自定义算子",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "ops/ 用 CustomOp 注册把上游算子换成昇腾实现；再往下是 torch_npu，最底下是 csrc/ 编出来的自定义 aclnn 算子，绑在 torch.ops._C_ascend 上。",
+      "aliases": [
+        "ops",
+        "register_ascend_customop",
+        "aclnn",
+        "csrc",
+        "torch_npu",
+        "自定义算子",
+        "_C_ascend"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L54",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L415",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L113-L118",
+        "vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L215",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "attention-backend-family",
+          "kind": "builds-on",
+          "note": "注意力是算子层最大的一个消费方，后端选完之后调到的就是这一层"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求每层碰到的三个算子都停在 torch_npu 那一层，没下到 csrc/"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/ops-and-kernels.md",
+      "backlinks": [
+        {
+          "from": "op-to-ai-core",
+          "kind": "enables",
+          "note": "那一页画的是四层地图和各层的职责，这一页拿一个真算子从最上面走到最下面"
+        }
+      ]
+    },
+    {
       "id": "paged-attention",
       "title": "PagedAttention",
       "type": "feature",
+      "origin": "seed",
       "summary": "昇腾后端把 KV Cache 切成 128 token 的定长块，decode 时由块表指路、算子按块号跳着取 K/V；专用的 _npu_paged_attention 算子默认不启用，需手工配 pa_shape_list。",
       "aliases": [
         "分页注意力",
@@ -927,6 +1795,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L153",
@@ -962,6 +1831,11 @@
       "file": "concepts/paged-attention.md",
       "backlinks": [
         {
+          "from": "attention-backend-family",
+          "kind": "enables",
+          "note": "五个后端都在实现同一套分页读 KV 的方案，原理与算子行为在那一页"
+        },
+        {
           "from": "block-table",
           "kind": "enables",
           "note": "块表就是分页方案里的那张页表，attention 算子按它逐块取 KV"
@@ -987,6 +1861,11 @@
           "note": "池里一条 key 对应 HBM 里一个 block 的全部层，地址由 block_id × block_stride 直接算出"
         },
         {
+          "from": "one-request",
+          "kind": "enables",
+          "note": "这条请求尾巴上空着的 19 个槽位，就是分页方案承诺的「浪费最多一个块」的那个上限"
+        },
+        {
           "from": "prefix-caching",
           "kind": "enables",
           "note": "命中后新 token 要读散在别处的历史块，只有按块表寻址的分页算子做得到"
@@ -994,9 +1873,62 @@
       ]
     },
     {
+      "id": "platform-plugin-registration",
+      "title": "插件注册机制",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "装包时声明两组 entry point，vLLM 启动时扫出来：一个给平台类，四个给连接器、加载器、profiling 与模型注册。",
+      "aliases": [
+        "entry point",
+        "entry_points",
+        "vllm.platform_plugins",
+        "vllm.general_plugins",
+        "插件注册"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 50,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:setup.py#L543-L551",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
+        "vllm-ascend@28bf3a2e:setup.py#L518-L529",
+        "https://docs.vllm.ai/projects/ascend/en/latest/index.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "engine-processes",
+          "kind": "builds-on",
+          "note": "四个 general plugin 为什么每个都要先补一次 patch，理由只在进程边界那一页说得清"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "这五个口在那条请求发出之前就已经用完了，是它能被昇腾接住的前提"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/platform-plugin-registration.md",
+      "backlinks": [
+        {
+          "from": "vllm-ascend-overview",
+          "kind": "enables",
+          "note": "「是插件不是 fork」这个定位唯一的依据就是那两组 entry point，机制写在那一页"
+        }
+      ]
+    },
+    {
       "id": "prefetch-ratio",
       "title": "prefetch_ratio",
       "type": "param",
+      "origin": "seed",
       "summary": "weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定\"预取权重的前百分之几\"；v0.23.0 存在，main 已随整个 weight prefetch 一起删除。",
       "aliases": [
         "权重预取比例",
@@ -1005,6 +1937,7 @@
       "chapters": [
         "19"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53",
@@ -1025,9 +1958,14 @@
         "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L232-L261",
         "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128",
-        "vllm-ascend@28bf3a2e:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L73-L76"
+        "vllm-ascend@28bf3a2e:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L73-L76",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L709"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
+        "raw/sha256-f59692c49c1984e93f232c96cec3de2bfd3c1627bb1bec2502b284fce4d71a86.md"
+      ],
       "relations": [
         {
           "to": "weight-prefetch-config",
@@ -1045,6 +1983,7 @@
       "id": "prefix-caching",
       "title": "Prefix Caching",
       "type": "feature",
+      "origin": "seed",
       "summary": "把已算过的 KV 块按内容哈希留在池子里，下一条请求若开头完全相同就直接复用这些块，只对不同的尾巴做前向。",
       "aliases": [
         "前缀缓存",
@@ -1055,6 +1994,7 @@
       "chapters": [
         "11"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1200-L1204",
@@ -1123,9 +2063,150 @@
       ]
     },
     {
+      "id": "prepare-inputs-flow",
+      "title": "prepare_inputs 数据流",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "调度器给的请求集合，经 NPUInputBatch 与 BlockTable 变成算子要的四个张量；槽位由一个 Triton kernel 算出来。",
+      "aliases": [
+        "prepare_inputs",
+        "_prepare_inputs",
+        "NPUInputBatch",
+        "slot_mapping",
+        "compute_slot_mapping"
+      ],
+      "chapters": [
+        "09"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/npu_input_batch.py#L33-L40",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L12-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L108-L130",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L305-L318",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L323-L330",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "block-table",
+          "kind": "builds-on",
+          "note": "表的行列含义、逻辑块到物理块的映射在那一页，这里只讲它在数据流里的位置与上下游"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求第 92 步的 slot 下标就是在这里算出来的"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/prepare-inputs-flow.md",
+      "backlinks": [
+        {
+          "from": "npu-model-runner",
+          "kind": "enables",
+          "note": "最长那一区做的事单独成页，张量怎么拼出来在那里讲"
+        }
+      ]
+    },
+    {
+      "id": "profiling-chunk-config",
+      "title": "动态切块配置（profiling_chunk_config）",
+      "type": "param",
+      "origin": "seed",
+      "summary": "通过启动时的 profiling 调整 chunk 大小，默认关闭。main 开发主线要求 PP>1，且不能与负载均衡调度同时开启；与 v0.23 维护分支对 need_timing 的处理不同。",
+      "aliases": [
+        "profiling chunk",
+        "动态 chunk 大小",
+        "ProfilingChunkConfig",
+        "smooth_factor"
+      ],
+      "chapters": [
+        "12",
+        "13"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "raw:sha256-9e727546228dccd4202221fadbabf5e7327a90a2133453ec62eaae1cc2bb2e88.md#L1-L130",
+        "raw:sha256-2a352fc9453bfcd0bd297b7e521f82bf11365fda371d6e0ed69185712bcf375f.md#L1-L339"
+      ],
+      "evidence": "I",
+      "rawSources": [
+        "raw/sha256-9e727546228dccd4202221fadbabf5e7327a90a2133453ec62eaae1cc2bb2e88.md",
+        "raw/sha256-2a352fc9453bfcd0bd297b7e521f82bf11365fda371d6e0ed69185712bcf375f.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-17",
+      "file": "params/profiling-chunk-config.md",
+      "backlinks": []
+    },
+    {
+      "id": "reading-vllm-ascend",
+      "title": "怎么读这个仓库",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "三条定位路线：手上有 traceback、有特性名、有上游类名各走一条；两个 ref 的对照法与三个会得出错结论的查法。",
+      "aliases": [
+        "怎么读源码",
+        "定位方法",
+        "查代码",
+        "版本对照",
+        "读源码"
+      ],
+      "chapters": [
+        "20"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
+        "vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L81-L99"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-ascend-repo-map",
+          "kind": "builds-on",
+          "note": "三条路线里有两条的第一步都是「这个文件落在哪个目录」，目录职责在地图那一页"
+        },
+        {
+          "to": "ascend-patch-system",
+          "kind": "builds-on",
+          "note": "第三条路线整条都建立在 patch 机制上，先读那一页才知道为什么先搜 patch 目录"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "拿那条请求的三个具体问题各走一遍，是这三条路线最快的练法"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/reading-vllm-ascend.md",
+      "backlinks": []
+    },
+    {
       "id": "recompute-cpu-offload",
       "title": "Recompute CPU Offload",
       "type": "feature",
+      "origin": "seed",
       "summary": "PD 分离的 Decode 节点抢占请求时，把它已算好的 KV 块从 HBM 拷到锁页 CPU 内存里存着，恢复时再拷回来，避免整条请求被打回 Prefill 重算。",
       "aliases": [
         "重算 CPU 卸载",
@@ -1135,6 +2216,7 @@
         "11",
         "12"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@28bf3a2e:vllm_ascend/core/recompute_scheduler.py#L415-L467",
@@ -1192,9 +2274,416 @@
       "backlinks": []
     },
     {
+      "id": "request-call-chain",
+      "title": "一次请求的调用链",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "从 HTTP 到 token 一共七跳。前两跳在上游 vLLM，进程边界在第二跳与第三跳之间，之后全在昇腾侧。",
+      "aliases": [
+        "调用链",
+        "call chain",
+        "请求路径",
+        "一次请求",
+        "execute_model 链路"
+      ],
+      "chapters": [
+        "09"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L640",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L678-L680",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "这条链路每一跳都假定 worker 已经走完六步启动，KV 张量和图都就位了"
+        },
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "第四到第七跳都在同一个文件里，那一页讲这个文件怎么分区"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "上图画的就是那条请求第 92 步的调用栈"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/request-call-chain.md",
+      "backlinks": []
+    },
+    {
+      "id": "vllm-ascend-overview",
+      "title": "vLLM-Ascend 是什么",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "一个装在 vLLM 旁边的硬件插件：自己是独立的 Python 包，靠 entry point 把昇腾实现挂进 vLLM 的各层，不改上游一行代码。",
+      "aliases": [
+        "vllm-ascend",
+        "vLLM Ascend",
+        "昇腾插件",
+        "out-of-tree 插件"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 40,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:setup.py#L543-L551",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L882",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567",
+        "vllm-ascend@2c59ff10:docs/source/index.md#L24-L26",
+        "vllm-ascend@28bf3a2e:setup.py#L518-L529",
+        "https://docs.vllm.ai/projects/ascend/en/latest/index.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "who-owns-what",
+          "kind": "builds-on",
+          "note": "读这一页之前要先知道两边各管什么，否则会把接缝当成主体"
+        },
+        {
+          "to": "platform-plugin-registration",
+          "kind": "builds-on",
+          "note": "「是插件不是 fork」这个定位唯一的依据就是那两组 entry point，机制写在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求碰到的每一个昇腾对象，都是顺着这五个入口之一进来的"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-ascend-overview.md",
+      "backlinks": [
+        {
+          "from": "vllm-ascend-repo-map",
+          "kind": "enables",
+          "note": "看地图之前要先知道这个仓库为什么存在，边界在哪里"
+        }
+      ]
+    },
+    {
+      "id": "vllm-ascend-repo-map",
+      "title": "vllm_ascend 目录地图",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "23 个子目录、442 个 .py、130661 行。按职责分成六组，主干只有 worker、attention、ops 三个。",
+      "aliases": [
+        "目录结构",
+        "代码结构",
+        "仓库结构",
+        "repo map",
+        "vllm_ascend 目录"
+      ],
+      "chapters": [
+        "20"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33",
+        "vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L81-L99"
+      ],
+      "evidence": "D",
+      "relations": [
+        {
+          "to": "vllm-ascend-overview",
+          "kind": "builds-on",
+          "note": "看地图之前要先知道这个仓库为什么存在，边界在哪里"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "跟完那条请求只需要读两个目录，其余 394 个文件它一个都不碰"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-ascend-repo-map.md",
+      "backlinks": [
+        {
+          "from": "reading-vllm-ascend",
+          "kind": "enables",
+          "note": "三条路线里有两条的第一步都是「这个文件落在哪个目录」，目录职责在地图那一页"
+        }
+      ]
+    },
+    {
+      "id": "vllm-engine-core",
+      "title": "EngineCore：那个 while 循环",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "整个推理引擎的心脏是一个不到十行的 while 循环。那条请求的 200 步，就是它转了 200 圈。",
+      "aliases": [
+        "busy loop",
+        "引擎循环",
+        "engine step",
+        "EngineCoreProc",
+        "一步是什么",
+        "引擎主循环"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1250",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L341-L350",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L474-L482",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L492",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-v1-shape",
+          "kind": "builds-on",
+          "note": "这个循环跑在三个进程里的中间那个，边界上传什么在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-engine-core.md",
+      "backlinks": [
+        {
+          "from": "vllm-scheduler",
+          "kind": "enables",
+          "note": "这段代码是循环体的第一句，谁在什么时候调它写在那一页"
+        }
+      ]
+    },
+    {
+      "id": "vllm-kv-block-allocation",
+      "title": "block 是怎么分出来的",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "那条请求一共要了两次块：第 1 步要了一块，第 92 步 decode 又要了一块。要块、给块、还块，全在上游的 EngineCore 进程里。",
+      "aliases": [
+        "BlockPool",
+        "KVCacheManager",
+        "allocate_slots",
+        "get_new_blocks",
+        "分块",
+        "块分配",
+        "第 92 步"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L250",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L215",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L216-L226",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L444",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L348",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L165-L172",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L218",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "每次调度挑中一条请求，紧接着就调 allocate_slots；块不够就退回去抢占"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-kv-block-allocation.md",
+      "backlinks": []
+    },
+    {
+      "id": "vllm-platform-interface",
+      "title": "Platform：上游留给硬件的那张问卷",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "上游把「凡是跟硬件有关的事」收成一个 Platform 类，88 个口子，全仓 873 处在问它。昇腾插件要做的就是把这张问卷答上。",
+      "aliases": [
+        "Platform",
+        "current_platform",
+        "平台抽象",
+        "platform_plugins",
+        "硬件插件接口",
+        "OOT"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 70,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/platforms/interface.py#L105-L140",
+        "vllm@0fc695fc:vllm/platforms/interface.py#L428-L434",
+        "vllm@0fc695fc:vllm/platforms/interface.py#L458-L462",
+        "vllm@0fc695fc:vllm/platforms/interface.py#L259-L266",
+        "vllm@0fc695fc:vllm/platforms/__init__.py#L212-L232",
+        "vllm@0fc695fc:vllm/platforms/__init__.py#L233-L252",
+        "vllm@0fc695fc:vllm/config/vllm.py#L1330-L1338",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2316-L2335",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-v1-shape",
+          "kind": "builds-on",
+          "note": "这些口子分散在那三个进程的启动路径上，哪一层在哪个进程写在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-platform-interface.md",
+      "backlinks": []
+    },
+    {
+      "id": "vllm-scheduler",
+      "title": "调度器：没有 prefill 和 decode 之分",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "调度器只做一道减法——每条请求还差多少 token 没算——再拿 token 预算去填。prefill 和 decode 是这道减法的两个结果，不是两条代码路径。",
+      "aliases": [
+        "Scheduler",
+        "schedule",
+        "token 预算",
+        "max_num_batched_tokens",
+        "chunked prefill",
+        "调度一步"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L358-L362",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L376-L380",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L416",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L479-L487",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L564-L570",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L870-L876",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L42-L49",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2316-L2335",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L280"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "这段代码是循环体的第一句，谁在什么时候调它写在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-scheduler.md",
+      "backlinks": [
+        {
+          "from": "vllm-kv-block-allocation",
+          "kind": "enables",
+          "note": "每次调度挑中一条请求，紧接着就调 allocate_slots；块不够就退回去抢占"
+        }
+      ]
+    },
+    {
+      "id": "vllm-v1-shape",
+      "title": "vLLM 的形状：三个进程，两道边界",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "那条请求要下去两层再上来两层。每跨一道边界，它携带的东西就换一种：字 → 整数 → 张量。",
+      "aliases": [
+        "vLLM V1 架构",
+        "vLLM 进程结构",
+        "AsyncLLM",
+        "EngineCore 进程",
+        "前端进程"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L242-L250",
+        "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L290",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L341-L350",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231",
+        "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L582",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650",
+        "vllm@0fc695fc:vllm/v1/worker/worker_base.py#L142-L158",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L115",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/vllm-v1-shape.md",
+      "backlinks": [
+        {
+          "from": "vllm-engine-core",
+          "kind": "enables",
+          "note": "这个循环跑在三个进程里的中间那个，边界上传什么在那一页"
+        },
+        {
+          "from": "vllm-platform-interface",
+          "kind": "enables",
+          "note": "这些口子分散在那三个进程的启动路径上，哪一层在哪个进程写在那一页"
+        }
+      ]
+    },
+    {
       "id": "weight-prefetch-config",
       "title": "weight_prefetch_config",
       "type": "param",
+      "origin": "seed",
       "summary": "v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。",
       "aliases": [
         "权重预取配置",
@@ -1204,6 +2693,7 @@
       "chapters": [
         "19"
       ],
+      "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L1-L5",
@@ -1230,9 +2720,14 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74",
         "vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369",
         "vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128",
-        "vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95"
+        "vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95",
+        "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L52"
       ],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md",
+        "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
+      ],
       "relations": [],
       "related": [],
       "contradicts": [],
@@ -1243,6 +2738,63 @@
           "from": "prefetch-ratio",
           "kind": "enables",
           "note": "只有 weight_prefetch_config.enabled 为 true 时这张比例表才会被读到，比例本身不能开关特性"
+        }
+      ]
+    },
+    {
+      "id": "who-owns-what",
+      "title": "vLLM 与昇腾各管什么",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "vLLM 决定这一步算哪些 token，昇腾决定这些 token 怎么算出来。分界线落在调度交出 SchedulerOutput 的那一刻，也正好是进程边界。",
+      "aliases": [
+        "分工",
+        "边界",
+        "vLLM 与 vllm-ascend",
+        "关键代码在哪",
+        "版本锁"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/platforms/interface.py#L105-L112",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L65-L70",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L120",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L140",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L95-L100",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L610-L626",
+        "vllm-ascend@2c59ff10:docs/source/community/versioning_policy.md#L1-L3",
+        "vllm-ascend@2c59ff10:docs/source/community/versioning_policy.md#L119-L126",
+        "https://docs.vllm.ai/projects/ascend/en/latest/community/versioning_policy.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ascend-patch-system",
+          "kind": "builds-on",
+          "note": "上游没留口子的那部分怎么办，是这条边界唯一说不清的地方，机制在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求是这条界线两侧分工最具体的例子"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-19",
+      "file": "concepts/who-owns-what.md",
+      "backlinks": [
+        {
+          "from": "vllm-ascend-overview",
+          "kind": "enables",
+          "note": "读这一页之前要先知道两边各管什么，否则会把接缝当成主体"
         }
       ]
     }

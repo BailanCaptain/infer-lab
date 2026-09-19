@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "term": "multistream_overlap_gate",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 6
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 6
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 9
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "5f12bbf34a530cd6c87463c56404535246af6e94",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "9934c93ee9bf196d228c8ff6648dfc83d876b937",
+      "files": 0
+    },
+    {
+      "ref": "main",
+      "commit": "84d6dc83a9b0016c1dcc7d3ed059acb829b61091",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "ba28d54f359278c83ed0f55ba78de9b1996f2b12",
+      "date": "2025-12-14",
+      "subject": "[Perf]enable prefill flashcommon3 (#4065)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe.py",
+          "added": 87,
+          "removed": 21
+        },
+        {
+          "path": "vllm_ascend/quantization/w8a8_dynamic.py",
+          "added": 22,
+          "removed": 12
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
+          "added": 29,
+          "removed": 5
+        },
+        {
+          "path": "vllm_ascend/distributed/parallel_state.py",
+          "added": 21,
+          "removed": 1
+        },
+        {
+          "path": "vllm_ascend/distributed/utils.py",
+          "added": 32,
+          "removed": 1
+        }
+      ],
+      "pr": 4065,
+      "containedIn": {
+        "tags": [
+          "v0.13.0",
+          "v0.13.0rc1",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann"
+        ]
+      }
+    },
+    {
+      "commit": "77baade98ded755b3e5ea30091bcf40a30ae0335",
+      "date": "2026-07-15",
+      "subject": "[Refactor] Remove multistream overlap gate (#11956)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py",
+          "added": 11,
+          "removed": 76
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/fused_moe.py",
+          "added": 11,
+          "removed": 75
+        },
+        {
+          "path": "vllm_ascend/flash_common3_context.py",
+          "added": 0,
+          "removed": 41
+        },
+        {
+          "path": "vllm_ascend/distributed/utils.py",
+          "added": 1,
+          "removed": 34
+        },
+        {
+          "path": "vllm_ascend/quantization/methods/w8a8_dynamic.py",
+          "added": 18,
+          "removed": 29
+        }
+      ],
+      "pr": 11956,
+      "containedIn": {
+        "tags": [
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/rfc/megakernel"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.13.0",
+    "v0.13.0rc1",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0rc1"
+  ]
+}

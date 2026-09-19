@@ -15,9 +15,15 @@ import {
 import { join, relative } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { buildAdjacency, type RelationNode } from "../../src/content/wiki/relations";
 import { ID_RE, PAGE_TYPES } from "../../src/content/wiki/schema";
+import { type AgentEvent, type AgentRequest, type RunAgent, runBatch } from "./batch";
 import type { HandbookSlices } from "./handbook";
-import { parsePage } from "./pages";
+import { PAGE_DIRS, parsePage } from "./pages";
+import { revisionDateSchema, revisionSchema } from "./revisions";
+
+// Compatibility exports: the shared contract and executor are defined only in batch.ts.
+export { type AgentEvent, type AgentRequest, type AgentResult, type RunAgent, runPool } from "./batch";
 
 // ---------- 种子清单 ----------
 
@@ -135,16 +141,6 @@ export interface IngestContext {
   docVars?: Record<string, Record<string, string>>;
   /** 上游 docs/source/llms.txt 原文，当作找文档的地图 */
   llmsTxt?: string;
-}
-
-export interface AgentRequest {
-  id: string;
-  cwd: string;
-  args: string[];
-  stdin: string;
-  timeoutMs: number;
-  /** 相对 cwd 的允许写路径（glob），供越界检查 */
-  allowedWrites: string[];
 }
 
 /**
@@ -284,10 +280,10 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
 }
 
 /** 整合阶段需要知道的最少信息，草稿与现有页共用这个形状 */
-export interface PageRef {
-  id: string;
+export interface PageRef extends RelationNode {
+  /** Actual path from loadPages; required for every selected existing page. */
+  file?: string;
   chapters: string[];
-  related: string[];
   /** 草稿当前的内联标记数。整合 agent 要删到 MARK_BUDGET 以内，引擎先替它数好。 */
   marks?: number;
   /** 草稿事实表的行数。同理，删到 FACTS_BUDGET 以内。 */
@@ -312,8 +308,8 @@ export interface SelectOptions {
  * 重读一遍，成本随页数增长。
  *
  * 挑选规则按相关性从强到弱：
- *   1. 草稿的 related 直接指向它
- *   2. 它的 related 回指草稿（双向图理论上与 1 等价，但草稿阶段链还没建好）
+ *   1. 同 id 的现有页（更新时必须读旧结论）
+ *   2. relations 一跳邻居，反向边派生
  *   3. 章节有交集
  * 前两类是明确的语义关联，优先保留；第三类只是「可能相关」，超上限时先砍它。
  */
@@ -324,19 +320,22 @@ export function selectRelevantPages(
 ): PageRef[] {
   const max = opts.max ?? 30;
   const draftIds = new Set(drafts.map((d) => d.id));
-  const wantedIds = new Set(drafts.flatMap((d) => d.related));
+  const graph = buildAdjacency([...existing, ...drafts]);
+  const wantedIds = new Set(drafts.flatMap((d) => graph.get(d.id) ?? []));
   const wantedChapters = new Set(drafts.flatMap((d) => d.chapters));
 
+  const sameId: PageRef[] = [];
   const linked: PageRef[] = [];
   const sameChapter: PageRef[] = [];
   for (const p of existing) {
-    if (draftIds.has(p.id)) continue;
-    if (wantedIds.has(p.id) || p.related.some((r) => draftIds.has(r))) linked.push(p);
+    if (draftIds.has(p.id)) sameId.push(p);
+    else if (wantedIds.has(p.id)) linked.push(p);
     else if (p.chapters.some((c) => wantedChapters.has(c))) sameChapter.push(p);
   }
   // 组内按 id 排序，保证同样输入给出同样结果
   const byId = (a: PageRef, b: PageRef) => a.id.localeCompare(b.id);
-  return [...linked.sort(byId), ...sameChapter.sort(byId)].slice(0, max);
+  if (sameId.length > max) throw new Error("同 id 的现有页超过整合上限，请拆小批次");
+  return [...sameId.sort(byId), ...linked.sort(byId), ...sameChapter.sort(byId)].slice(0, max);
 }
 
 export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: IngestContext): AgentRequest {
@@ -348,8 +347,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     "Read",
     "Grep",
     "Glob",
-    "Edit(concepts/**)",
-    "Edit(params/**)",
+    ...PAGE_DIRS.map((dir) => `Edit(${dir}/**)`),
     "Edit(_drafts/_integration.json)",
     "--disallowedTools",
     ...INTEGRATE_DISALLOWED,
@@ -359,7 +357,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
   const overBudget = drafts.filter((d) => (d.marks ?? 0) > MARK_BUDGET);
   const factsOver = drafts.filter((d) => (d.facts ?? 0) > FACTS_BUDGET);
   const stdin = [
-    `任务：整合 ${draftIds.length} 份草稿进 concepts/。今天是 ${ctx.today}。`,
+    `任务：整合 ${draftIds.length} 份草稿到对应的正式页面目录。今天是 ${ctx.today}。`,
     "",
     "草稿文件：",
     ...drafts.map(
@@ -386,9 +384,12 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
       : []),
     "",
     relevant.length > 0
-      ? "需要对照的现有页（程序已按 related 与章节交集挑出，**只读这些，不要扫全库**）："
-      : "现有页里没有与本批相关的（程序已按 related 与章节交集查过），直接晋升即可，不要扫全库。",
-    ...relevant.map((p) => `- concepts/${p.id}.md`),
+      ? "需要对照的现有页（程序已按同 id、relations 与章节交集挑出，**只读这些，不要扫全库**）："
+      : "现有页里没有与本批相关的（程序已按 relations 与章节交集查过），核对草稿后处理，不要扫全库。",
+    ...relevant.map((p) => {
+      if (!p.file) throw new Error(`现有页 ${p.id} 缺少实际 file 路径`);
+      return `- ${p.file}`;
+    }),
     "",
     "按「整合」规则处理，写 _drafts/_integration.json，回复 DONE integrate promoted=<n> merged=<n> rejected=<n>。",
   ].join("\n");
@@ -398,26 +399,11 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     args,
     stdin,
     timeoutMs: ctx.timeoutMs,
-    allowedWrites: ["concepts/**", "params/**", "_drafts/_integration.json"],
+    allowedWrites: [...PAGE_DIRS.map((dir) => `${dir}/**`), "_drafts/_integration.json"],
   };
 }
 
 // ---------- stream-json ----------
-
-export type AgentEvent =
-  | { kind: "tool"; name: string; target?: string }
-  | { kind: "result"; isError: boolean; sessionId?: string; costUsd?: number };
-
-export interface AgentResult {
-  id: string;
-  ok: boolean;
-  exitCode: number | null;
-  sessionId?: string;
-  costUsd?: number;
-  reason?: string;
-  stderrTail: string;
-}
-export type RunAgent = (req: AgentRequest, onEvent?: (e: AgentEvent) => void) => Promise<AgentResult>;
 
 export function parseStreamJsonLine(line: string): AgentEvent | null {
   let obj: Record<string, unknown>;
@@ -507,25 +493,6 @@ export function classifyStray(stray: string[], before: Snapshot): { created: str
   return { created, modified };
 }
 
-// ---------- 并发池 ----------
-
-export async function runPool<T, R>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i] as T);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, worker));
-  return results;
-}
-
 // ---------- 扇出提取 ----------
 
 export interface FailureRecord {
@@ -535,6 +502,39 @@ export interface FailureRecord {
   stderrTail?: string;
 }
 export type Failures = Record<string, FailureRecord>;
+
+export function selectIngestFeatures<T extends { id: string }>(
+  features: T[],
+  wikiRoot: string,
+  opts: { only?: string[]; skipExisting?: boolean; retryFailed?: boolean } = {},
+): T[] {
+  const known = new Set(features.map((f) => f.id));
+  for (const id of opts.only ?? []) if (!known.has(id)) throw new Error(`未知 feature id：${id}`);
+  const failures = opts.retryFailed ? readFailures(wikiRoot) : {};
+  return features.filter(
+    (f) =>
+      (!opts.only || opts.only.includes(f.id)) &&
+      (!opts.retryFailed || Object.hasOwn(failures, f.id)) &&
+      (!opts.skipExisting ||
+        !["_drafts", ...PAGE_DIRS].some((dir) => existsSync(join(wikiRoot, dir, `${f.id}.md`)))),
+  );
+}
+
+export function selectIntegrationDrafts(state: {
+  available: string[];
+  failures: Failures;
+  succeeded?: string[];
+  only?: string[];
+}): string[] {
+  const requested = state.succeeded ?? state.only;
+  if (!requested) throw new Error("独立整合必须用 --only 显式选择草稿");
+  for (const id of requested) {
+    if (!ID_RE.test(id)) throw new Error(`非法草稿 id：${id}`);
+    if (!state.available.includes(id)) throw new Error(`草稿不存在：${id}`);
+    if (Object.hasOwn(state.failures, id)) throw new Error(`草稿 ${id} 上次提取失败，请先重试提取`);
+  }
+  return [...new Set(requested)].sort();
+}
 
 export const FAILURES_FILE = "_drafts/_failures.json";
 
@@ -558,7 +558,7 @@ export async function runExtractPhase(
   seeds: Seeds,
   ctx: IngestContext,
   deps: ExtractDeps,
-): Promise<{ succeeded: string[]; failures: Failures; costUsd: number }> {
+): Promise<{ succeeded: string[]; failures: Failures; costUsd: number; unknownCostIds: string[] }> {
   const before = snapshotDir(ctx.wikiRoot);
   const allowedAll = new Set<string>([FAILURES_FILE]);
   const requests = features.map((f) => extractRequest(f, seeds, ctx));
@@ -566,15 +566,14 @@ export async function runExtractPhase(
 
   const failures: Failures = readFailures(ctx.wikiRoot);
   const succeeded: string[] = [];
-  let costUsd = 0;
-  const results = await runPool(requests, deps.concurrency, async (req) => {
-    deps.log(`▶ ${req.id}`);
-    const r = await deps.runAgent(req, (e) => {
-      if (e.kind === "tool") deps.log(`  ${req.id}: ${e.name} ${e.target ?? ""}`);
-    });
-    costUsd += r.costUsd ?? 0;
-    deps.log(`${r.ok ? "✓" : "✗"} ${req.id}${r.reason ? ` (${r.reason})` : ""}`);
-    return r;
+  const { results, costUsd, unknownCostIds } = await runBatch(requests, {
+    concurrency: deps.concurrency,
+    runAgent: deps.runAgent,
+    onStart: (id) => deps.log(`▶ ${id}`),
+    onEvent: (id, e) => {
+      if (e.kind === "tool") deps.log(`  ${id}: ${e.name} ${e.target ?? ""}`);
+    },
+    onResult: (r) => deps.log(`${r.ok ? "✓" : "✗"} ${r.id}${r.reason ? ` (${r.reason})` : ""}`),
   });
 
   const stray = strayPaths(diffSnapshot(before, snapshotDir(ctx.wikiRoot)), allowedAll);
@@ -604,16 +603,19 @@ export async function runExtractPhase(
     }
   }
   writeFailures(ctx.wikiRoot, failures);
-  return { succeeded, failures, costUsd };
+  return { succeeded, failures, costUsd, unknownCostIds };
 }
 
 // ---------- 整合决策 ----------
 
+const integrationId = z.string().regex(ID_RE);
 export const integrationSchema = z.object({
-  promoted: z.array(z.string()),
-  merged: z.array(z.object({ from: z.string(), into: z.string() })),
-  rejected: z.array(z.object({ id: z.string(), reason: z.string() })),
-  contradictions: z.array(z.object({ a: z.string(), b: z.string(), note: z.string() })).default([]),
+  promoted: z.array(integrationId),
+  merged: z.array(z.object({ from: integrationId, into: integrationId })),
+  rejected: z.array(z.object({ id: integrationId, reason: z.string() })),
+  contradictions: z.array(z.object({ a: integrationId, b: integrationId, note: z.string() })).default([]),
+  revisions: z.array(revisionSchema).optional(),
+  revisionDate: revisionDateSchema.optional(),
 });
 export type Integration = z.infer<typeof integrationSchema>;
 
@@ -625,7 +627,7 @@ function titleOf(wikiRoot: string, rel: string): string {
 }
 
 /** 晋升目标目录，与 integrateRequest 的写白名单一致 */
-const PROMOTE_DIRS = ["concepts", "params"] as const;
+const PROMOTE_DIRS = PAGE_DIRS;
 
 export function applyIntegration(
   wikiRoot: string,
@@ -645,10 +647,13 @@ export function applyIntegration(
     logLines.push(`## [${today}] ingest | ${titleOf(wikiRoot, rel)}\n晋升 ${rel}\n`);
   }
   for (const m of d.merged) {
+    const rel = PAGE_DIRS.map((dir) => `${dir}/${m.into}.md`).find((r) => existsSync(join(wikiRoot, r)));
+    if (!rel) {
+      problems.push(`merged ${m.from} → ${m.into} 但目标页不存在，草稿保留`);
+      continue;
+    }
     rmSync(join(wikiRoot, `_drafts/${m.from}.md`), { force: true });
-    logLines.push(
-      `## [${today}] ingest | ${titleOf(wikiRoot, `concepts/${m.into}.md`)}\nmerged ${m.from} → ${m.into}\n`,
-    );
+    logLines.push(`## [${today}] ingest | ${titleOf(wikiRoot, rel)}\nmerged ${m.from} → ${m.into}\n`);
   }
   for (const c of d.contradictions)
     logLines.push(`## [${today}] review | 矛盾 ${c.a} vs ${c.b}\n${c.note}\n`);

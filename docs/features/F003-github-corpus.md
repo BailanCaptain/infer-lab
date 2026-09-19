@@ -1,14 +1,14 @@
 ---
 id: F003
 title: GitHub issue / PR 语料与报错溯源
-status: planned
+status: in-progress
 owner: BailanCaptain
 created: 2026-09-10
 ---
 
 # F003 — GitHub issue / PR 语料与报错溯源
 
-**Status**: planned
+**Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
 **Created**: 2026-09-10
 
 ## Why
@@ -37,24 +37,41 @@ created: 2026-09-10
 
 ## Acceptance Criteria
 
-- [ ] **AC1 · 全量拉取**：`pnpm wiki:sync-github --full` 把 vllm-ascend 全部 issue 与 PR 拉到 `tools/corpus/vllm-ascend/{issues,prs}/<n>.md`，每条含标题、正文、状态、标签、作者、创建与关闭时间、关联引用（`fixes #n`、`closes #n`）、合并提交 sha。纯文本、不进 git（`.gitignore` 加 `tools/corpus/`）。断点续拉：中断后重跑从上次编号继续。验收：拉完条数与 API 报告的 total_count 一致，随机抽 5 条与网页版对照无缺字段。
-- [ ] **AC2 · 增量更新**：`pnpm wiki:sync-github` 按 `updated_at` 增量拉取，只取上次同步之后有变动的条目。验收：连跑两次，第二次拉取条数为 0 且退出码 0。
-- [ ] **AC3 · 失败可见**：API 限额、网络失败、token 失效各自给出可区分的报错信息，非零退出，并在 `wiki/log.md` 写一条同步记录（时间、拉取数、失败数、原因）。验收：用无效 token 跑一次，报错指明是鉴权问题而不是笼统的网络错误。
-- [ ] **AC4 · 报错检索**：聊天层通过 F001 AC10 的 `retrieve()` 接口接入语料。第一版实现：从用户贴的报错里抽取稳定片段（异常类名、错误信息主干、去掉路径与行号等易变部分）做精确 grep。验收：取 10 条真实 issue 里的 traceback 作为输入，能命中原 issue 的条数 ≥ 7；不达标则记录实测数据，按 F001 的约定评估是否给语料加向量检索。
-- [ ] **AC5 · 溯源链路**：命中 issue 后顺着 `fixed by #NNNN` 找到 PR，再查 F002 的谱系得出修复进了哪些 tag 与分支。验收：给定一条已修复的 issue，输出链路完整（issue → PR → 合并提交 → 含该提交的 tag 列表）。
-- [ ] **AC6 · 重要 PR 升级为 wiki 页**：PR 的 diff 若触及 seeds 里声明的入口文件或 F002 的参数定义文件，自动排进 ingest 队列生成草稿；社区不可信文本（PR 正文、评论）经 sanitize 模块处理后才进 prompt。验收：挑一个真实的参数改动 PR，草稿生成且 diff 可读；构造一条含提示注入的评论，sanitize 后注入片段不出现在 prompt 里。
+### 2026-09-16 当前验收核对
 
-- [ ] **AC7 · 解析 issue 里引用的文档链接**：社区讨论大量引用官方文档 URL（`docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html`）。抓取时把这类链接解析成结构化引用（版本 + 路径），并映射到本地 `docs/source/` 的对应文件，让「这条 issue 讲的是哪一页文档」可被检索与跳转。链接指向的版本与当前钉住的版本不同时要标出来。验收：取 10 条含文档链接的真实 issue，链接全部被解析出版本与路径，且能映射到本地文件（映射不到的要给出原因，例如该页已被删除）。
+独立复查修复、最终测试和人工停点见 [当前交接报告](../plans/wiki-independent-closure-review.md)；下表不把固定输出机制测试等同真实语义效果。
+
+规范文本与当前验收表保留在本 feature，计划不维护第二份状态。工程、真实样本和未验证边界分开列示；最近完整验证见 [独立复查报告](../plans/wiki-independent-closure-review.md)，2026-09-16 上午运行状态变化及新会话接续见 [最新 handoff](../../HANDOFF-LLM-WIKI.md)。
+
+| AC | 当前结论 | 证据与未满足条件 |
+|---|---|---|
+| AC1 | 采集器与断点回归通过；全量为排除项 | 101 条分页中断后从第二页续跑并补查更新；真实只保存 2 issue / 2 PR，不声称全量完成。 |
+| AC2 | 离线增量及真实小样本幂等通过 | 正文、评论编辑/删除滚动核对、失败检查点保留；真实相同 2 条样本重复抓取 changed=0。全库计数对照未做。 |
+| AC3 | 真实鉴权和离线故障验证通过 | 真实无效 token 返回 GitHub auth (401)，日志记失败且未推进；网络/限额/404 分开测试。 |
+| AC4 | 真实固定样本达到当前验收线 | 预先冻结 10 个真实 traceback，在 30 个真实 issue 正文中测得 Top-1=9/10、Top-5=9/10，无匹配对照=0；冻结投影及正文 SHA 留存，无全量召回承诺。 |
+| AC5 | 真实静态链路通过 | issue #15815 → PR #15981 → 87c345c1 → origin/releases/v0.26.0rc，tags=[]；无已含此提交的本地 tag，不伪造发布版本。PR #11953 的提交包含列表另核对到 3 tags。 |
+| AC6 | 共用升级链路产出待审提案，真实草稿未通过 | seeds / config 变更排队、PR 来源指纹、实际 Git 合并差异、清洗和来源等级保护。真实 PR #11953 编译 60 秒超时，未知费用暂停，不标已生成草稿。 |
+| AC7 | 真实 10 条样本映射验证通过 | 12 个文档链接均解析，9 个映射到本地文件，3 个因本地无对应版本 ref 给出原因；不同 pin 明示。trace CLI 与问答预检索上下文共用映射。 |
+
+
+- **AC1 · 全量拉取**：`pnpm wiki:sync-github --full` 把 vllm-ascend 全部 issue 与 PR 拉到 `tools/corpus/vllm-ascend/{issues,prs}/<n>.md`，每条含标题、正文、状态、标签、作者、创建与关闭时间、关联引用（`fixes #n`、`closes #n`）、合并状态与提交 sha，以及带永久链接的讨论评论。纯文本、不进 git（`.gitignore` 加 `tools/corpus/`）。断点续拉：保留分页进度与已落盘条目，重试按仓库、类型、编号去重，并补扫中断期间的更新。验收：完整遍历分页，分开统计 issue / PR，与同一观测窗口的 API 计数核对；变动导致的差异须补扫并解释，不能用最大编号充当条数。随机抽 5 条与网页版对照无缺字段。
+- **AC2 · 增量更新**：`pnpm wiki:sync-github` 按 `updated_at` 增量拉取，覆盖正文、状态和评论更新，检查点只在本轮完整成功后推进。验收：上游无变化时连跑两次，第二次新增 / 更新落盘条数为 0 且退出码 0；允许为边界去重发起重叠查询。
+- **AC3 · 失败可见**：API 限额、网络失败、token 失效各自给出可区分的报错信息，非零退出，并在 `wiki/log.md` 写一条同步记录（时间、拉取数、失败数、原因）。验收：用无效 token 跑一次，报错指明是鉴权问题而不是笼统的网络错误。
+- **AC4 · 报错检索**：聊天层通过 F001 AC10 的 `retrieve()` 接口接入语料。第一版实现：从用户贴的报错里抽取稳定片段（异常类名、错误信息主干、去掉路径与行号等易变部分）做精确 grep。验收：预先固定 10 条真实 issue traceback，Top-5 包含原 issue 的条数 ≥ 7，同时报告 Top-1；调参样本另取，检索输入不含 issue 编号、URL 或答案标注。另设无匹配对照，不得把词面相似呈现成已确认修复。不达标记录实测数据，按 F001 的约定评估是否给语料加向量检索。
+- **AC5 · 溯源链路**：命中 issue 后顺着 `fixed by #NNNN` 找到 PR，再查 F002 的谱系得出修复进了哪些 tag 与分支。验收：给定一条已修复的 issue，输出链路完整（issue → PR → 合并提交 → 含该提交的 tag 列表）。
+- **AC6 · 重要 PR 升级为 wiki 页**：PR 的 diff 若触及 seeds 里声明的入口文件或 F002 的参数定义文件，自动排进 ingest 队列生成草稿；社区不可信文本（PR 正文、评论）经 sanitize 模块处理后才进 prompt。验收：挑一个真实的参数改动 PR，草稿生成且 diff 可读；构造一条含提示注入的评论，sanitize 后注入片段不出现在 prompt 里。
+
+- **AC7 · 解析 issue 里引用的文档链接**：社区讨论大量引用官方文档 URL（`docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html`）。抓取时把这类链接解析成结构化引用（版本 + 路径），并映射到本地 `docs/source/` 的对应文件，让「这条 issue 讲的是哪一页文档」可被检索与跳转。链接指向的版本与当前钉住的版本不同时要标出来。验收：取 10 条含文档链接的真实 issue，链接全部被解析出版本与路径，且能映射到本地文件（映射不到的要给出原因，例如该页已被删除）。
 
 **Out of scope**：向量检索（先做 AC4 的 grep 实现并实测命中率，不达标再评估）；vllm 上游仓库的 issue（需要时同一套脚本加一个 repo）；把全部 issue 转成 wiki 页（成本不成立，见 Why）；GitHub webhook 实时推送（每日增量足够）。
 
 ## Dependencies
 
-- **GitHub token（阻塞 AC1）**：只读 `public_repo` 权限，放本机环境变量 `GITHUB_TOKEN`，不进仓库。匿名限额 60 次/小时，拉 1.6 万条需约 270 小时；带 token 为 5000 次/小时，全量首拉约数小时。
+- **GitHub 访问（真实全量验收前检查）**：凭据放本机环境变量 `GITHUB_TOKEN`，不进仓库、不输出值。按实际端点选择最低所需读取权限；请求量、限额与首拉耗时实测记录，不沿用按条数估时。离线开发与计划编写不依赖 token。
 - **F001 AC10（阻塞 AC4）**：可替换的 `retrieve()` 接口。
 - **F002（阻塞 AC5）**：版本谱系提供「修复进了哪个 tag / 哪些分支」。
 - **官方文档站与本地 `docs/source/`（AC7）**：解析 issue 里的文档链接需要两边的映射关系。
-- **sanitize 模块（AC6）**：从 `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\` 整目录复制（5 文件 1492 行，含 510 行测试，零外部依赖），与 F001 AC8 共用。
+- **F004 共用编译与审阅管线（AC6）**：sanitize、队列、草稿和批准后的整合由 [F004 plan](../plans/knowledge-loop-plan.md) 定义一次；参考 Multi-Agent 的 sanitize 纯函数与测试，核对后引入，不整套搬运。
 
 ## Design Decisions
 
@@ -65,19 +82,20 @@ created: 2026-09-10
 | 拉取方式 | GitHub REST 逐条 / GraphQL 批量 | **REST + 分页**，先做对再谈快 | REST 的限额与错误语义更直白，断点续拉容易实现；不够快再换 GraphQL |
 | 报错检索第一版 | 直接上向量 / 先精确 grep 并实测 | **先 grep，实测命中率再决定**（用户 2026-09-10 拍板先不加向量） | issue 里的 traceback 多为原样粘贴，精确片段命中率可能已足够；向量要引入嵌入模型、向量库与重嵌入流程，且会成为第二个真相源 |
 | PR 号与 issue 的关联 | 只存原文让 agent 自己找 / 解析出结构化关联 | **解析 `fixes/closes #n` 存成字段** | 溯源链路要能被脚本跟随，不能每次都靠 LLM 读原文 |
-| 不可信文本 | 直接进 prompt / 先 sanitize | **先 sanitize** | issue 正文与评论是任意用户可写的，是本项目唯一的不可信输入面 |
+| 不可信文本 | 直接进 prompt / 先 sanitize | **先 sanitize，并限制编译 agent 的工具与读取范围** | issue、PR 正文、评论、投喂及聊天都不能作为工具指令；文本清洗本身不是完整隔离 |
 
-**Design Gate**：数据管线级（新目录 `tools/corpus/`、新增外部 API 依赖与凭据）。待用户批准实施计划，且需先拿到 token。
+历史实施与真实收费记录见 [非批量收尾报告](../plans/wiki-nonbulk-review.md) 引用的分阶段证据。当前缺项以本页验收表为准。
 
 ## Timeline
 
 | 日期 | 事件 |
 |------|------|
 | 2026-09-10 | 用户提出报错溯源需求；查明仓库规模 12,074 PR / 4,188 issue；确认全量转页成本不成立，定为检索语料；用户表示会提供 token。立此 feature |
+| 2026-09-14 | 补实施计划；校正分页、增量去重与验收口径，明确评论覆盖和 F004 共用依赖。全部 AC 仍待实施与验证 |
 
 ## Links
 
-- Plan: 待写（拿到 token 且 F002 进行中时再写）
+- Plan: [github-corpus-plan.md](../plans/github-corpus-plan.md)
 - 依赖: [F001](F001-llm-wiki.md) AC10、[F002](F002-param-lineage.md)
 - sanitize 来源: `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\`
 

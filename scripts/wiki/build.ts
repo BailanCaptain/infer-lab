@@ -92,6 +92,7 @@ export function runBuild(rootDir: string): { pageCount: number; problems: number
   const wikiRoot = join(rootDir, "wiki");
   const { pages, problems } = loadPages(wikiRoot);
   for (const p of problems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
+  if (problems.length) return { pageCount: pages.length, problems: problems.length };
   writeFileSync(join(wikiRoot, "index.md"), renderIndex(pages));
   const outDir = join(rootDir, "src/content/wiki");
   mkdirSync(outDir, { recursive: true });

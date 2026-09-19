@@ -10,5 +10,12 @@
     "allowImportingTsExtensions": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "scripts", "server"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "scripts",
+    "server",
+    "src/wiki-snapshot.d.ts"
+  ]
 }

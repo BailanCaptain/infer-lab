@@ -1,16 +1,21 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildRegistry, renderIndex } from "./build";
+import { buildRegistry, renderIndex, runBuild } from "./build";
 import type { WikiPage } from "./pages";
+import { wikiFixture } from "./test-fixture";
 
 const page = (id: string, type: WikiPage["fm"]["type"], chapters: string[]): WikiPage => ({
   file: `${type === "source" ? "sources" : "concepts"}/${id}.md`,
   body: "",
   fm: {
+    origin: "seed",
     id,
     title: id.toUpperCase(),
     type,
     summary: `${id} 摘要`,
     aliases: [],
+    order: 500,
     prerequisites: [],
     chapters,
     sources: ["https://x"],
@@ -23,6 +28,19 @@ const page = (id: string, type: WikiPage["fm"]["type"], chapters: string[]): Wik
 });
 
 describe("renderIndex", () => {
+  it("schema 失败时保留上一份 index 与 registry，不发布残缺派生物", () => {
+    const f = wikiFixture();
+    try {
+      f.write("wiki/concepts/broken.md", "---\nid: broken\n---\n");
+      f.write("wiki/index.md", "previous index");
+      f.write("src/content/wiki/registry.json", "previous registry");
+      expect(runBuild(f.root).problems).toBeGreaterThan(0);
+      expect(readFileSync(join(f.root, "wiki/index.md"), "utf8")).toBe("previous index");
+      expect(readFileSync(join(f.root, "src/content/wiki/registry.json"), "utf8")).toBe("previous registry");
+    } finally {
+      f.cleanup();
+    }
+  });
   it("按 type 分组再按章节分组，输出确定且不含时间", () => {
     const pages = [
       page("b", "concept", ["11"]),

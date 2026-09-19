@@ -7,10 +7,10 @@
  * 判据是「这页引用的文件变了」，不是「仓库有新提交」——上游每天几十个提交，
  * 绝大多数跟某一页无关；按引用路径过滤才能把重跑压到该跑的那几页。
  */
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { worktreeDir } from "./wiki/clone";
+import { gitText } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
 import { loadPages } from "./wiki/pages";
 import { findStale, staleIds } from "./wiki/stale";
@@ -33,12 +33,8 @@ for (const [name, r] of Object.entries(seeds.repos)) {
 
 const git = (repo: string, args: string[]): string => {
   const dir = repoDir[repo];
-  if (!dir) return "";
-  try {
-    return execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", maxBuffer: 32 << 20 });
-  } catch {
-    return "";
-  }
+  if (!dir) throw new Error(`来源仓库未配置：${repo}，尚未验证是否过期`);
+  return gitText(dir, args);
 };
 
 if (process.argv.includes("--fetch")) {

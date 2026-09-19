@@ -124,6 +124,37 @@ describe("citationCheck", () => {
 });
 
 describe("retrieve · 图扩展（AC12）", () => {
+  it("只声明单向 relations 的页也能从两端扩展，且不走第二跳", () => {
+    const graph = buildIndex([
+      {
+        ...pages[0]!,
+        id: "alpha",
+        title: "Alpha",
+        aliases: [],
+        related: [],
+        text: "alpha",
+        relations: [{ to: "beta", kind: "builds-on" as const, note: "依赖" }],
+      },
+      {
+        ...pages[0]!,
+        id: "beta",
+        title: "Beta",
+        aliases: [],
+        related: [],
+        text: "beta",
+        relations: [{ to: "gamma", kind: "variant-of" as const, note: "变体" }],
+      },
+      { ...pages[0]!, id: "gamma", title: "Gamma", aliases: [], related: [], text: "gamma", relations: [] },
+    ]);
+    expect(retrieve("alpha", graph, { limit: 1, expand: true }).map((h) => h.id)).toEqual(["alpha", "beta"]);
+    expect(retrieve("beta", graph, { limit: 1, expand: true, expansionLimit: 2 })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "alpha", how: "related", via: "beta" }),
+        expect.objectContaining({ id: "gamma", how: "related", via: "beta" }),
+      ]),
+    );
+    expect(retrieve("beta", graph, { limit: 1, expand: true, expansionLimit: 1 })).toHaveLength(2);
+  });
   it("命中一页后，把它的 related 作为二级候选带出来", () => {
     const plain = retrieve("kv-cache", index).map((h) => h.id);
     expect(plain).not.toContain("chunked-prefill");

@@ -1,14 +1,16 @@
-/**
- * wiki 页面读取器：registry.json 提供 frontmatter，import.meta.glob 提供正文原文。
- *
- * 正文来自仓库根的 `wiki/`（不在 src/ 下），用绝对 glob 路径读取；registry 由
- * `pnpm wiki:build` 派生，两者的一致性由本文件的测试保证。
- */
-import registryJson from "./registry.json";
+/** Build and live readers share one content snapshot, including its revision. */
+import buildSnapshot from "virtual:wiki-reader-snapshot";
+import { createReaderStore } from "./reader-store";
 import { buildIndex, type Hit, type Index, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
-import { type RegistryEntry, type RepoRef, registrySchema } from "./schema";
+import type { RegistryEntry, RepoRef } from "./schema";
 
-const registry = registrySchema.parse(registryJson);
+const reader = createReaderStore(buildSnapshot);
+export const getReaderState = reader.getState;
+export const subscribeReader = reader.subscribe;
+export const installReaderSnapshot = reader.install;
+export const refreshReaderSnapshot = reader.refresh;
+export const getPage = reader.getPage;
+export type { WikiPage } from "./reader-store";
 
 /** 仓库名 → GitHub 仓库路径。未列出的仓库不猜 URL。 */
 const REPO_GITHUB: Record<string, string> = {
@@ -16,53 +18,15 @@ const REPO_GITHUB: Record<string, string> = {
   vllm: "vllm-project/vllm",
 };
 
-// 目录清单要与 scripts/wiki/pages.ts 的 PAGE_DIRS 一致——漏一个目录，registry
-// 里有页而前端读不到正文（2026-09-14 加 params/ 时就漏过一次，被一致性测试抓住）
-const RAW_MODULES = import.meta.glob("/wiki/{concepts,params,sources}/*.md", {
-  query: "?raw",
-  import: "default",
-  eager: true,
-}) as Record<string, string>;
-
-/** 文件路径 → id（文件名去掉 .md）。HANDBOOK 规定文件名与 id 一致。 */
-const bodyById = new Map<string, string>();
-for (const [path, text] of Object.entries(RAW_MODULES)) {
-  const id = path.slice(path.lastIndexOf("/") + 1, -".md".length);
-  bodyById.set(id, stripFrontmatter(text));
-}
-
-/** 去掉开头的 YAML frontmatter，只留正文。前端不需要再解析一遍 YAML。 */
-function stripFrontmatter(text: string): string {
-  if (!text.startsWith("---")) return text.trim();
-  const end = text.indexOf("\n---", 3);
-  if (end < 0) return text.trim();
-  const after = text.indexOf("\n", end + 1);
-  return after < 0 ? "" : text.slice(after + 1).trim();
-}
-
-export interface WikiPage {
-  fm: RegistryEntry;
-  body: string;
-}
-
-const byId = new Map(registry.pages.map((p) => [p.id, p]));
-
 export function listPages(): RegistryEntry[] {
-  return [...registry.pages].sort((a, b) => a.title.localeCompare(b.title, "en"));
-}
-
-export function getPage(id: string): WikiPage | undefined {
-  const fm = byId.get(id);
-  const body = bodyById.get(id);
-  if (!fm || body === undefined) return undefined;
-  return { fm, body };
+  return [...reader.getState().pages];
 }
 
 /** id / title / aliases 三者任一命中即可，忽略大小写与首尾空白。 */
 export function findByAlias(text: string): RegistryEntry | undefined {
   const key = text.trim().toLowerCase();
   if (!key) return undefined;
-  for (const p of registry.pages) {
+  for (const p of reader.getState().pages) {
     if (p.id.toLowerCase() === key) return p;
     if (p.title.toLowerCase() === key) return p;
     if (p.aliases.some((a) => a.toLowerCase() === key)) return p;
@@ -96,18 +60,22 @@ export function rewriteRelativeLink(href: string): string {
 // ---------- 检索（AC10 的单一入口）----------
 
 let searchIndex: Index | null = null;
+reader.subscribe(() => {
+  searchIndex = null;
+});
 
 function ensureIndex(): Index {
   if (searchIndex) return searchIndex;
   searchIndex = buildIndex(
-    registry.pages.map((p) => ({
+    reader.getState().pages.map((p) => ({
       id: p.id,
       title: p.title,
       aliases: p.aliases,
       summary: p.summary,
       chapters: p.chapters,
       evidence: p.evidence,
-      text: bodyById.get(p.id) ?? "",
+      relations: p.relations,
+      text: getPage(p.id)?.body ?? "",
     })),
   );
   return searchIndex;

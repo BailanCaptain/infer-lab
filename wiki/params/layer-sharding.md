@@ -2,40 +2,59 @@
 id: layer-sharding
 title: layer_sharding
 type: param
-summary: 点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。
-aliases: [Layer Sharding Linear, 层间权重分片, 按层切权重]
-chapters: ["13"]
+summary: >-
+  点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main
+  上已整体删除。
+aliases:
+  - Layer Sharding Linear
+  - 层间权重分片
+  - 按层切权重
+chapters:
+  - '13'
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L56
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L285-L296
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L412-L417
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L712-L724
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L191-L226
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1293-L1297
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549
-  - vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86
-  - vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128
-  - vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359
-  - vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486
-  - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1324-L1337
-  - vllm-ascend@28bf3a2e:vllm_ascend/quantization/tp_weight_switch.py#L70-L106
-  - vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184
-evidence: "C"
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L56'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L285-L296'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L412-L417'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L712-L724'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L191-L226'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1293-L1297'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247
+  - 'vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775'
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86
+  - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128'
+  - 'vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359'
+  - 'vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1324-L1337'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/quantization/tp_weight_switch.py#L70-L106'
+  - 'vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184'
+  - >-
+    vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L105
+evidence: C
 relations:
   - to: enable-matmul-allreduce
     kind: conflicts-with
-    note: 同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj 的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
+    note: >-
+      同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
+      的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
 contradicts: []
-updated: "2026-09-14"
+updated: '2026-09-14'
+rawSources:
+  - >-
+    raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
+  - >-
+    raw/sha256-d5ae5978ab15999f012c8b4e21f00edf25723b330a507f4453b4a61869032de9.md
 ---
 
 ## 一句话
@@ -98,31 +117,44 @@ flowchart TD
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。
+> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 有（6 个文件） |
-| releases/v0.18.0 | 有（7 个文件） |
-| releases/v0.20.2rc | 有（7 个文件） |
-| releases/v0.21.0rc | 有（7 个文件） |
-| releases/v0.22.1rc | 有（7 个文件） |
-| releases/v0.23.0 | 有（8 个文件） |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（8 个文件） |
 
-**移除**：2026-07-15，PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) —— [Refactor] remove layer sharding (#11953)
+- **引入**：2026-01-08 · f7db812ed7514194f15ef479817997113bf115bd · PR [#5181](https://github.com/vllm-project/vllm-ascend/pull/5181) —— [refactor] Refactor the interface for shard weight and remove the flashcomm2 o_shared interface. (#5181)
+  包含该提交的 tag：v0.13.0、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  - `vllm_ascend/distributed/parallel_state.py` +67 / −51（文本行变化）
+  - `vllm_ascend/attention/sfa_v1.py` +23 / −34（文本行变化）
+  - `vllm_ascend/ops/{shared_weight_layer.py => layer_shard_linear.py}` +56 / −28（文本行变化）
+  - `vllm_ascend/attention/mla_v1.py` +23 / −27（文本行变化）
+  - `vllm_ascend/utils.py` +34 / −15（文本行变化）
+- **移除**：2026-07-15 · 896012151dbaaa444e940f19106fde877d616dc9 · PR [#11953](https://github.com/vllm-project/vllm-ascend/pull/11953) —— [Refactor] remove layer sharding (#11953)
+  包含该提交的 tag：v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  - `vllm_ascend/ops/layer_shard_linear.py` +0 / −296（文本行变化）
+  - `vllm_ascend/ops/flashcomm2_oshard_manager.py` +0 / −103（文本行变化）
+  - `vllm_ascend/ops/linear_op.py` +1 / −72（文本行变化）
+  - `vllm_ascend/distributed/parallel_state.py` +1 / −51（文本行变化）
+  - `vllm_ascend/attention/sfa_v1.py` +3 / −37（文本行变化）
 
-影响面（删除行数最多的几个文件）：
+当前含该标识符的 tag：v0.13.0、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1
 
-- `vllm_ascend/ops/layer_shard_linear.py` −296
-- `vllm_ascend/ops/flashcomm2_oshard_manager.py` −103
-- `vllm_ascend/ops/linear_op.py` −72
-- `vllm_ascend/distributed/parallel_state.py` −51
-- `vllm_ascend/attention/sfa_v1.py` −37
+## 参数定义（自动生成）
 
-**引入**：2026-01-08，PR [#5181](https://github.com/vllm-project/vllm-ascend/pull/5181) —— [refactor] Refactor the interface for shard weight and remove the flashcomm2 o_shared interface. (#5181)
+> 此节由参数扫描结果生成；静态定义不保证运行时最终值。
 
+| 项 | 静态记录 |
+| --- | --- |
+| 标识 | `additional_config["layer_sharding"]` |
+| 类型 | `unknown` |
+| 默认表达式 | `None` |
+| 定义 | `vllm_ascend/ascend_config.py:105` [C24] |
+| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |
+
+字段注释：
+
+源码未提供字段注释。
+
+约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：

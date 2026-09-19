@@ -4,7 +4,28 @@
  */
 import { z } from "zod";
 
+/** Static discoveries are not runtime guarantees; suspect rows require explicit review. */
+export const paramEntrySchema = z.object({
+  name: z.string().min(1),
+  type: z.string(),
+  default: z.string(),
+  class: z.string(),
+  json_path: z.string(),
+  file: z.string(),
+  line: z.number().int().positive(),
+  comment: z.string(),
+  constraints: z.array(z.string()),
+  confidence: z.enum(["certain", "suspect"]),
+  form: z.enum(["field", "dict-key", "string-lookup"]),
+  occurrences: z.array(z.object({ file: z.string(), line: z.number().int().positive() })).optional(),
+  review: z
+    .object({ verdict: z.enum(["param", "not-param", "undetermined"]), reason: z.string().min(1) })
+    .optional(),
+});
+export type ParamEntry = z.infer<typeof paramEntrySchema>;
+
 export const PAGE_TYPES = ["concept", "feature", "param", "source", "pr"] as const;
+export const PAGE_ORIGINS = ["seed", "drop", "chat", "pr", "gap"] as const;
 export type PageType = (typeof PAGE_TYPES)[number];
 
 /** 证据等级，沿用 PLAN.md §1.4 七档 */
@@ -15,9 +36,32 @@ export const ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** repo@commit:path#L起-L止（行号可省略） */
 export const REPO_REF_RE = /^([a-z0-9][a-z0-9-]*)@([0-9a-f]{7,40}):([^\s#]+)(?:#L(\d+)(?:-L(\d+))?)?$/;
 export const URL_RE = /^https?:\/\/\S+$/;
+/** Engine-owned immutable excerpt files, relative to wiki/. */
+export const RAW_SNAPSHOT_RE = /^raw\/sha256-([a-f0-9]{64})\.md$/;
+
+export interface RawRef {
+  path: string;
+  lineStart: number;
+  lineEnd: number;
+}
+
+/** Only content-addressed wiki files, never arbitrary local paths. */
+export function parseRawRef(ref: string): RawRef | null {
+  const match = /^raw:([^#]+)#L([1-9]\d*)(?:-L([1-9]\d*))?$/.exec(ref);
+  if (!match || !RAW_SNAPSHOT_RE.test(`raw/${match[1]}`)) return null;
+  const lineStart = Number(match[2]);
+  const lineEnd = Number(match[3] ?? match[2]);
+  if (!Number.isSafeInteger(lineStart) || !Number.isSafeInteger(lineEnd) || lineEnd < lineStart) return null;
+  return { path: `raw/${match[1]}`, lineStart, lineEnd };
+}
+
+export function rawSourceHref(ref: string): string | null {
+  const parsed = parseRawRef(ref);
+  return parsed ? `/api/wiki/raw?ref=${encodeURIComponent(ref)}#L${parsed.lineStart}` : null;
+}
 
 export function isSourceRef(s: string): boolean {
-  return REPO_REF_RE.test(s) || URL_RE.test(s);
+  return REPO_REF_RE.test(s) || URL_RE.test(s) || parseRawRef(s) !== null;
 }
 
 export interface RepoRef {
@@ -80,15 +124,32 @@ export const pageFrontmatterSchema = z.object({
   id: idField,
   title: z.string().min(1),
   type: z.enum(PAGE_TYPES),
+  origin: z.enum(PAGE_ORIGINS).default("seed"),
   summary: z.string().min(1).max(200, "summary 是一句话，不超过 200 字"),
   aliases: z.array(z.string().min(1)).default([]),
   chapters: z.array(z.string().regex(/^\d{2}$/)).default([]),
+  /**
+   * 同一章里的阅读顺序，小的排前面。不写就是 500，落在写了顺序的页中间。
+   *
+   * 为什么需要：目录原本按 registry 顺序列，等于按文件名排——「vLLM 的形状」
+   * 这种入门页会排在「NPUPlatform」后面，读者第一眼看不出从哪进。章号只说
+   * 「这页属于哪个主题」，不说「先读哪一页」，这两件事得分开记。
+   */
+  order: z.number().int().min(1).max(999).default(500),
   /** @deprecated 已并入 relations 的 builds-on；只为读旧页保留 */
   prerequisites: z.array(idField).default([]),
   sources: z
-    .array(z.string().refine(isSourceRef, "sources 每项必须是 repo@commit:path#L起-L止 或 https URL"))
+    .array(
+      z
+        .string()
+        .refine(
+          isSourceRef,
+          "sources 每项必须是 repo@commit:path#L起-L止、HTTP(S) URL 或带行号的 raw 快照引用",
+        ),
+    )
     .min(1, "sources 不得为空"),
   evidence: z.enum(EVIDENCE_LEVELS),
+  rawSources: z.array(z.string().regex(RAW_SNAPSHOT_RE)).min(1).optional(),
   /** 有类型、有方向的边。新页用这个。 */
   relations: z.array(relationSchema).default([]),
   /** @deprecated 旧的无类型边；重跑后归零，届时删掉 */
@@ -120,3 +181,26 @@ export const registrySchema = z.object({
   pages: z.array(registryEntrySchema),
 });
 export type Registry = z.infer<typeof registrySchema>;
+
+/** The build and local API deliver the same complete reader payload. */
+export const readerSnapshotSchema = z
+  .object({
+    revision: z.string().regex(/^[a-f0-9]{64}$/),
+    registry: registrySchema,
+    pageTexts: z.array(z.object({ file: z.string(), text: z.string() })),
+    /** 正文 ```wiki-diagram 围栏引用的图，渲染层直接内联这段 SVG */
+    diagrams: z.array(z.object({ id: z.string().regex(ID_RE), svg: z.string().min(1) })).default([]),
+  })
+  .superRefine(({ registry, pageTexts }, ctx) => {
+    const paths = new Set(pageTexts.map((p) => p.file));
+    const pages = registry.pages;
+    if (
+      paths.size !== pageTexts.length ||
+      pages.length !== pageTexts.length ||
+      new Set(pages.map((p) => p.id)).size !== pages.length ||
+      new Set(pages.map((p) => p.file)).size !== pages.length ||
+      pages.some((p) => !paths.has(p.file))
+    )
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "知识库快照目录与正文不完整或重复" });
+  });
+export type ReaderSnapshot = z.infer<typeof readerSnapshotSchema>;

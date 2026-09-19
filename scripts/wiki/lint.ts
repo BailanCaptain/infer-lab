@@ -4,11 +4,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
-import { isSymmetric } from "../../src/content/wiki/schema";
+import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
 import { getPresetSpec } from "../../src/sim/modelspec/presets";
+import { sourceLines } from "./audit";
+import { auditDiagram } from "./diagram-audit";
+import { loadDiagrams } from "./diagrams";
+import { createBlobReader } from "./git";
 import { loadPages, type PageProblem, type WikiPage } from "./pages";
+import { readPageRaw, readRawSnapshot } from "./raw";
+import { configuredRepoRoots } from "./repo-roots";
 import { classifySource, supportsOfficialEvidence } from "./sources";
 
 /**
@@ -63,15 +69,42 @@ function linkTargets(page: WikiPage): string[] {
 /**
  * 各页型的必需 H2，与 HANDBOOK「页面格式」一一对应。
  * 改这里之前先改 HANDBOOK——规则的真相源是那份文件，这里只是执行。
+ *
+ * 2026-09-19 放开固定骨架：知识点各不相同，原来那套「为什么需要它 / 怎么工作 /
+ * 事实表 / 常见误解」按住所有 concept 与 feature，等于每页都长一个样。现在只留
+ * `## 一句话`——它确实承重（compile-raw.ts 拿它当草稿准入门槛，阅读页与问答都拿它
+ * 当开场），其余小节按这一页讲的东西自己定。质量由证据类规则守（sources 非空、
+ * 标记编号绑定、relation note、来源白名单），不由标题模板守。
+ * 参数页保持四节：那四节是 params/pages.ts 生成的参考骨架，不是人写的排版。
  */
 const REQUIRED_SECTIONS: Record<string, string[]> = {
-  concept: ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"],
-  feature: ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"],
+  concept: ["一句话"],
+  feature: ["一句话"],
   param: ["一句话", "事实表", "为什么存在", "开了的代价"],
 };
 
 /** 2026-09-11 改版前的四节格式，用于识别待迁移的旧页 */
 const LEGACY_SECTIONS = ["是什么", "形状与数值", "在哪一步出现", "常见误解"];
+
+/**
+ * 样板标题：cross-page-overlap 比对正文时要跳过它们，否则每页的「一句话」都会
+ * 互相撞。以前这张表是从 REQUIRED_SECTIONS 派生的，2026-09-19 放开必需小节时
+ * 必须解耦——否则「不再强制」会顺手把重复检测也一起关掉。
+ */
+const BOILERPLATE_HEADINGS = [
+  "一句话",
+  "为什么需要它",
+  "怎么工作",
+  "事实表",
+  "常见误解",
+  "为什么存在",
+  "开了的代价",
+  ...LEGACY_SECTIONS,
+  "版本谱系",
+  "参数定义（自动生成）",
+  "已废弃的说法",
+  "拿真实数字走一遍",
+];
 
 const H2_RE = /^##\s+(.+?)\s*$/gm;
 /**
@@ -399,6 +432,13 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
     // 能读什么不限，能引什么才限——白名单见 HANDBOOK「可引来源」，
     // 与 sources.ts 的 CITABLE_DOMAINS 由测试锁住一致
     const kinds = p.fm.sources.map((x) => ({ ref: x, kind: classifySource(x) }));
+    if (p.fm.evidence === "C" && kinds.every((k) => k.kind === "raw")) {
+      problems.push({
+        file: p.file,
+        rule: "source-local-evidence",
+        message: "仅存下本地材料不构成源码实证；补可核对的上游引用或降低证据等级",
+      });
+    }
     const unlisted = kinds.filter((k) => k.kind === "unlisted");
     if (unlisted.length > 0) {
       // 白名单管的是「什么配得上高等级证据」，不是「什么都不许引」。
@@ -473,6 +513,37 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       });
     }
   }
+  const templateHeadings = new Set(BOILERPLATE_HEADINGS);
+  const signatures = (page: WikiPage) => {
+    const body = page.body.replace(/```[\s\S]*?```/g, "");
+    const normalize = (s: string) => s.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+    return new Set(
+      [...body.matchAll(/^##\s+([^\r\n]+)\r?\n+([^#\r\n][\s\S]*?)(?=\r?\n\s*\r?\n|\r?\n##|$)/gm)]
+        .filter((m) => !templateHeadings.has(m[1]!.trim()) && normalize(m[2]!).length >= 16)
+        .map((m) => `${normalize(m[1]!)}\n${normalize(m[2]!)}`),
+    );
+  };
+  const linked = (a: WikiPage, b: WikiPage) =>
+    a.fm.relations.some((r) => r.to === b.fm.id) ||
+    a.fm.related.includes(b.fm.id) ||
+    linkTargets(a).includes(b.file);
+  const fingerprints = pages.map(signatures);
+  for (let i = 0; i < pages.length; i++)
+    for (let j = i + 1; j < pages.length; j++) {
+      const a = pages[i]!;
+      const b = pages[j]!;
+      if (linked(a, b) || linked(b, a) || ![...fingerprints[i]!].some((s) => fingerprints[j]!.has(s)))
+        continue;
+      for (const [page, other] of [
+        [a, b],
+        [b, a],
+      ] as const)
+        problems.push({
+          file: page.file,
+          rule: "cross-page-overlap",
+          message: `与 ${other.file} 的非模板标题和首段重复，缺少交叉引用`,
+        });
+    }
   return problems;
 }
 
@@ -493,9 +564,46 @@ export function collectStepTerms(): string[] {
   return [...new Set(tl.steps.flatMap((s) => s.terms))].sort();
 }
 
-export function runLint(rootDir: string, flags: { terms: boolean }): PageProblem[] {
+export function runLint(
+  rootDir: string,
+  flags: { terms: boolean; repoRoots?: Record<string, string> },
+): PageProblem[] {
   const wikiRoot = join(rootDir, "wiki");
   const { pages, problems } = loadPages(wikiRoot);
+  const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
+  problems.push(...diagramProblems);
+  const diagramDeps = {
+    repoRoots: flags.repoRoots ?? configuredRepoRoots(rootDir),
+    readBlob: createBlobReader(),
+    diagrams,
+  };
+  problems.push(...pages.flatMap((page) => auditDiagram(page, diagramDeps)));
+  // spec 在但 SVG 没生成，页面上就是一个空框——渲染层读的是 SVG，不是 spec
+  for (const diagram of diagrams.values())
+    if (!existsSync(join(wikiRoot, diagram.svgFile)))
+      problems.push({
+        file: diagram.specFile,
+        rule: "diagram-missing",
+        message: `缺 ${diagram.svgFile}，跑 pnpm wiki:diagrams 生成`,
+      });
+  for (const page of pages) {
+    try {
+      if (page.fm.rawSources) readPageRaw(wikiRoot, page.fm.id, page.fm.rawSources);
+      for (const source of page.fm.sources) {
+        const ref = parseRawRef(source);
+        if (!ref) continue;
+        const total = sourceLines(readRawSnapshot(wikiRoot, ref.path)).length;
+        if (ref.lineEnd > total)
+          problems.push({
+            file: page.file,
+            rule: "raw-line-range",
+            message: `${source} 超出原文 ${total} 行`,
+          });
+      }
+    } catch (error) {
+      problems.push({ file: page.file, rule: "raw-integrity", message: String(error) });
+    }
+  }
   const opts: LintOptions = { chapterIds: CHAPTER_IDS, existsFile: (rel) => existsSync(join(wikiRoot, rel)) };
   if (flags.terms) opts.requiredTerms = collectStepTerms();
   const logPath = join(wikiRoot, "log.md");

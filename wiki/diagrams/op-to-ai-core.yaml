@@ -1,0 +1,39 @@
+layout: scene
+id: op-to-ai-core
+caption: 一次 RMSNorm 从 Python 掉到 AI Core：中间那个 if 就是第三层和第二层的分界
+size: [900, 604]
+
+bands:
+  - { label: 上游决定「这个算子归谁」, sub: "is_out_of_tree() 为真，于是分派到 forward_oot", fn: dispatch_forward, at: [20, 56], size: [860, 68], tone: upstream, icon: split }
+  - { label: 昇腾接住它, sub: "ops/layernorm.py 里的 AscendRMSNorm", fn: forward_oot, at: [20, 138], size: [860, 68], tone: ascend, icon: layers }
+
+boxes:
+  - { at: [20, 252], size: [420, 96], title: "enable_custom_op() 为真", sub: 一次调用把 add、norm、bias 一起算完, fn: "torch.ops._C_ascend", tone: accent, icon: bolt }
+  - { at: [460, 252], size: [420, 96], title: 为假，退回 CANN 现成算子, sub: 先 npu_add_rms_norm，再单独加一次 bias, fn: torch_npu, tone: neutral, icon: box }
+
+  - { at: [20, 386], size: [420, 76], title: "csrc/…/op_host", sub: tiling 在 CPU 上算：一次往 UB 里塞多少个元素, tone: accent }
+  - { at: [20, 476], size: [420, 76], title: "csrc/…/op_kernel", sub: "__global__ __aicore__，真正跑在 AI Core 上", tone: accent }
+
+  - { at: [460, 386], size: [420, 166], title: CANN 已经编好的算子, sub: 不用自己编，但 bias 要多走一趟 elementwise, tone: neutral }
+
+arrows:
+  - { from: [230, 206], to: [230, 248], tone: accent }
+  - { from: [670, 206], to: [670, 248], tone: muted, label: 够用就停在这 }
+  - { from: [230, 348], to: [230, 382], tone: accent }
+  - { from: [230, 462], to: [230, 472], tone: accent }
+
+boundaries:
+  - { at: 368, from: 20, to: 880, vertical: false, label: 这条线以下要过完整的 CMake 构建 }
+
+notes:
+  - { at: [20, 232], text: "同一个方法体里的一个 if，两条路的代价完全不同", size: 13, strong: true }
+  - { at: [20, 578], text: "那条请求每一步 forward 要跑 28 层，每层两次 RMSNorm——一步 56 次，200 步 11200 次。省下的那一趟 elementwise 是乘以 11200 的。", size: 12.5, width: 860 }
+  - { at: [20, 598], text: "判断顺序自上而下：能用现成算子拼出来就别往下走。COMPILE_CUSTOM_KERNELS 关掉时，下面那两层根本不编。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207
+    symbols: [dispatch_forward, forward_oot]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88
+    symbols: [forward_oot, npu_add_rms_norm]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432
+    symbols: [enable_custom_op]

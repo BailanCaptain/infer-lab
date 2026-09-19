@@ -16,5 +16,9 @@ tools/hf-cache/
 # tsc 增量缓存（每次 typecheck 都变）
 *.tsbuildinfo
 
-# wiki ingest 的源码仓库（浅克隆，钉 wiki/seeds/*.yaml 的 commit；pnpm wiki:clone 重建）
+# Wiki 上游完整克隆、社区语料与本机运行数据
 tools/repos/
+tools/wiki-runtime/
+tools/corpus/
+wiki/_jobs/budget/
+wiki/_jobs/sync/

@@ -477,7 +477,10 @@
 
 @media (max-width: 1024px) {
   .wiki-shell {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr) 而不是 1fr：1fr 的最小值是 min-content，正文里只要有一个
+       比窗口宽的东西（900 宽的图、宽表格），整列就会被撑开，横向滚动条跑到
+       整页上去。给下界 0，超宽的东西就只在它自己那层滚。 */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .wiki-toc {
@@ -545,6 +548,15 @@
 .wiki-chat > header strong {
   font-size: var(--text-compact);
   font-weight: 700;
+}
+
+.wiki-save button,
+.wiki-review button,
+.wiki-toc-head button {
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .wiki-chat > header button {
@@ -750,7 +762,9 @@
 }
 
 /* ---------- 正文里的图 ---------- */
-/* mermaid 图。正文最宽 72ch，图常常比这宽，所以允许它溢出到 96ch 并可横向滚。 */
+/* 图比正文宽：正文散文限 72ch，图用满整幅阅读栏（980px）。
+   手写 spec 的画布定宽 900，加上 16px 内边距正好在阅读栏里 1:1 渲染——
+   以前限到 96ch 会把画布缩到 0.78 倍，图上的等宽小字就糊了。 */
 .wiki-diagram {
   margin: 0 0 16px;
   padding: 16px;
@@ -758,17 +772,24 @@
   border-radius: var(--radius-card);
   background: var(--color-surface);
   overflow-x: auto;
-  max-width: min(96ch, 100%);
+  max-width: 100%;
 }
 
 .wiki-diagram-svg {
   display: flex;
-  justify-content: center;
+  /* safe：图放得下就居中，放不下就靠左。少了 safe，溢出的部分会被均分到两侧，
+     左边那一半滚不到——图会缺一块左边，而且怎么拖都拖不出来。 */
+  justify-content: safe center;
 }
 
+/* 图不缩放：画布定宽 900，缩到 0.8 倍那些等宽小字就糊了。
+   窗口不够宽时让外面那层横向滚（.wiki-diagram 已有 overflow-x: auto），
+   宁可让读者横拖一下，也不给他一张糊的图。 */
 .wiki-diagram-svg svg {
-  max-width: 100%;
+  max-width: none;
   height: auto;
+  /* 居中是靠 flex 做的，而 flex 子项默认会被压扁——不写这一行，max-width: none 白写 */
+  flex-shrink: 0;
 }
 
 /* 图还没渲染出来时占住高度，避免正文跳动 */
@@ -865,4 +886,149 @@
   border: 0;
   text-decoration: none;
   color: inherit;
+}
+
+.wiki-sources {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+  font-size: var(--text-compact);
+  overflow-wrap: anywhere;
+}
+
+.wiki-sources summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.wiki-sources p {
+  color: var(--color-ink-muted);
+}
+
+.wiki-save {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.wiki-save label,
+.wiki-review label {
+  display: grid;
+  gap: 6px;
+}
+
+.wiki-save input,
+.wiki-review select,
+.wiki-review textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-surface-floating);
+  color: var(--color-ink);
+}
+
+.wiki-review {
+  width: min(1000px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-surface-floating);
+  color: var(--color-ink);
+  overflow: auto;
+}
+
+.wiki-review::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+.wiki-review header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.wiki-review p {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.wiki-review-diff {
+  max-height: 45dvh;
+  overflow: auto;
+  padding: 16px;
+  font: 12px / 1.6 monospace;
+  background: rgb(128 128 128 / 8%);
+  border: 1px solid var(--color-line);
+}
+.wiki-review footer {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.wiki-review button:disabled,
+.wiki-save button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wiki-origin.is-drop {
+  color: #8a4b0f;
+  background: #fff1d6;
+  border: 1px solid #d8aa61;
+}
+
+[data-testid="chat-related"] {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.wiki-chat [data-testid="chat-related"] ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+/* 落地页的「从这里开始」：44 页摊开时，读者第一眼要看见的是入口，不是目录 */
+.wiki-start {
+  margin: 2rem 0 2.5rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
+  background: var(--color-accent-soft, #fff0e9);
+  border: 1px solid var(--color-accent, #e85b32);
+}
+
+.wiki-start h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+}
+
+.wiki-start p {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+}
+
+.wiki-start-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: var(--color-accent, #e85b32);
+  color: var(--color-ink-inverse, #fff);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wiki-start-link:hover {
+  filter: brightness(0.94);
+}
+
+.wiki-start-hint {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-muted, #5b6763);
 }

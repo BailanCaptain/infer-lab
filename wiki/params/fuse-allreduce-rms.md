@@ -2,33 +2,55 @@
 id: fuse-allreduce-rms
 title: fuse_allreduce_rms
 type: param
-summary: 把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main 上已整体删除。
-aliases: [Matmul AllReduce RMSNorm 融合, MatmulAllReduceAddRMSNormPass]
-chapters: ["13"]
+summary: >-
+  把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main
+  上已整体删除。
+aliases:
+  - Matmul AllReduce RMSNorm 融合
+  - MatmulAllReduceAddRMSNormPass
+chapters:
+  - '13'
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L84
-  - vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159
-  - vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79
-  - vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L75-L99
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L37-L44
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L491-L521
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L167-L173
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L135-L142
-  - vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1223-L1223
-  - vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L44-L58
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L403-L406
-  - vllm-ascend@28bf3a2e:vllm_ascend/config_utils.py#L43-L50
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L620-L624
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L103-L109
-evidence: "C"
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L28-L84
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L75-L99
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L37-L44'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L491-L521'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/platform.py#L167-L173'
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L135-L142
+  - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1223-L1223'
+  - >-
+    vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L44-L58'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L403-L406'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/config_utils.py#L43-L50'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L620-L624'
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L103-L109
+  - >-
+    vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508
+evidence: C
 relations:
   - to: enable-matmul-allreduce
     kind: alternative-to
-    note: 同一个 Matmul+AllReduce 瓶颈的两条路——那个开关在 eager 里直接换用 npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm 一起吃掉；main 上两条一起被删
+    note: >-
+      同一个 Matmul+AllReduce 瓶颈的两条路——那个开关在 eager 里直接换用
+      npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm
+      一起吃掉；main 上两条一起被删
 contradicts: []
-updated: "2026-09-14"
+updated: '2026-09-14'
+rawSources:
+  - >-
+    raw/sha256-59a95308536d065059c9cc558e2d55136e4689c7d61259182be752ea3ba3e582.md
+  - >-
+    raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---
 
 ## 一句话
@@ -98,31 +120,44 @@ vllm serve Qwen/Qwen3-0.6B \
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。
+> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 有（2 个文件） |
-| releases/v0.20.2rc | 有（2 个文件） |
-| releases/v0.21.0rc | 有（2 个文件） |
-| releases/v0.22.1rc | 有（2 个文件） |
-| releases/v0.23.0 | 有（2 个文件） |
-| releases/v0.24.0rc | 有（2 个文件） |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（2 个文件） |
 
-**移除**：2026-07-18，PR [#12119](https://github.com/vllm-project/vllm-ascend/pull/12119) —— [Refactor] Remove matmulallreduce and pass optimization techniques (#12119)
+- **引入**：2026-01-19 · c929bd1e8d4f955a0b5434bf72ba7061068ccd14 · PR [#5034](https://github.com/vllm-project/vllm-ascend/pull/5034) —— [Fusion] [Graph]Add Matmul Allreduce Rmsnorm fusion Pass (#5034)
+  包含该提交的 tag：v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  - `vllm_ascend/ascend_config.py` +6 / −1（文本行变化）
+  - `vllm_ascend/compilation/graph_fusion_pass_manager.py` +5 / −0（文本行变化）
+  - `vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py` +153 / −0（文本行变化）
+  - `vllm_ascend/patch/__init__.py` +12 / −0（文本行变化）
+  - `vllm_ascend/patch/worker/__init__.py` +1 / −0（文本行变化）
+- **移除**：2026-07-18 · 2ee50f3847e4873e61d280911b2a24d85f5278d6 · PR [#12119](https://github.com/vllm-project/vllm-ascend/pull/12119) —— [Refactor] Remove matmulallreduce and pass optimization techniques (#12119)
+  包含该提交的 tag：v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  - `vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py` +0 / −159（文本行变化）
+  - `vllm_ascend/ops/linear_op.py` +0 / −45（文本行变化）
+  - `vllm_ascend/ascend_config.py` +1 / −40（文本行变化）
+  - `vllm_ascend/compilation/graph_fusion_pass_manager.py` +0 / −5（文本行变化）
+  - `vllm_ascend/utils.py` +0 / −4（文本行变化）
 
-影响面（删除行数最多的几个文件）：
+当前含该标识符的 tag：v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1
 
-- `vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py` −159
-- `vllm_ascend/ops/linear_op.py` −45
-- `vllm_ascend/ascend_config.py` −40
-- `vllm_ascend/compilation/graph_fusion_pass_manager.py` −5
-- `vllm_ascend/utils.py` −4
+## 参数定义（自动生成）
 
-**引入**：2026-01-19，PR [#5034](https://github.com/vllm-project/vllm-ascend/pull/5034) —— [Fusion] [Graph]Add Matmul Allreduce Rmsnorm fusion Pass (#5034)
+> 此节由参数扫描结果生成；静态定义不保证运行时最终值。
 
+| 项 | 静态记录 |
+| --- | --- |
+| 标识 | `vllm_config.additional_config.get('ascend_compilation_config', {})["fuse_allreduce_rms"]` |
+| 类型 | `unknown` |
+| 默认表达式 | `True` |
+| 定义 | `vllm_ascend/ascend_config.py:508` [C17] |
+| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |
+
+字段注释：
+
+源码未提供字段注释。
+
+约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：

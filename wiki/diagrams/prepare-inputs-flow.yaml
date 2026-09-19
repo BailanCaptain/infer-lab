@@ -1,0 +1,47 @@
+layout: scene
+id: prepare-inputs-flow
+caption: 第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」
+size: [900, 510]
+
+regions:
+  - label: 上游交过来的
+    note: 全是整数，没有一个张量
+    at: [20, 40]
+    size: [300, 190]
+    tone: upstream
+  - label: 昇腾算出来的
+    note: 算子真正要吃的东西
+    at: [580, 40]
+    size: [300, 190]
+    tone: ascend
+
+boxes:
+  - { at: [36, 116], size: [268, 44], title: "num_scheduled_tokens = 1", tone: upstream }
+  - { at: [36, 168], size: [268, 44], title: "block_ids = [b0, b1]", tone: upstream }
+  - { at: [596, 108], size: [268, 38], title: "input_ids   (1,)", tone: ascend }
+  - { at: [596, 152], size: [268, 38], title: "positions   (1,)  值是 128", tone: ascend }
+  - { at: [596, 196], size: [268, 38], title: "slot_mapping   (1,)", tone: ascend }
+
+  - { at: [336, 96], size: [238, 118], title: _prepare_inputs, sub: "第 862 行起，共 802 行", fn: Triton kernel 算槽位, tone: accent, icon: calc }
+
+arrows:
+  - { from: [308, 155], to: [332, 155], tone: upstream }
+  - { from: [578, 155], to: [592, 155], tone: ascend }
+
+strips:
+  - { at: [140, 306], cells: 2, cell: 34, gap: 6, highlight: 1, tone: neutral, label: "block_table 这一行：两列，第 92 步用到的是第 1 列" }
+  - { at: [420, 306], cells: 12, cell: 22, gap: 3, highlight: 0, tone: ascend, label: "b1 这一块的 128 个槽位（画出前 12 个），这一步写第 0 格" }
+
+notes:
+  - { at: [20, 272], text: "中间那一步具体在算什么", size: 13.5, strong: true }
+  - { at: [140, 372], text: "位置 128 ÷ 128 = 第 1 列", size: 12.5 }
+  - { at: [420, 372], text: "128 % 128 = 第 0 格", size: 12.5 }
+  - { at: [20, 412], text: "slot = block_table[req][128 // 128] × 128 + 128 % 128 = b1 × 128 + 0", size: 14, strong: true }
+  - { at: [20, 446], text: "这道除法和取模就是「分页」在代码里的全部形态。上游只给了 b0、b1 两个整数，落到哪一格是这里算的——两件事分在两个进程里。", size: 12.5, width: 860 }
+  - { at: [20, 482], text: "批里没排满的位置要填 PAD_SLOT_ID：一个哨兵槽位，写进去不会弄坏任何人的 KV。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880
+    symbols: [_prepare_inputs]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180
+    symbols: [compute_slot_mapping]

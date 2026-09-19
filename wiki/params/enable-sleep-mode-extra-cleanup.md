@@ -3,30 +3,48 @@ id: enable-sleep-mode-extra-cleanup
 title: enable_sleep_mode_extra_cleanup
 type: param
 summary: sleep 时额外销毁 HCCL 通信域并清空 ACL 图工作区，把更多显存还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。
-aliases: [sleep 模式额外清理, rl_config.sleep_mode_extra_cleanup]
-chapters: ["19"]
+aliases:
+  - sleep 模式额外清理
+  - rl_config.sleep_mode_extra_cleanup
+chapters:
+  - '19'
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L162-L163
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L216-L228
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L272-L280
-  - vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
-  - vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128
-  - vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L172-L186
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L82-L82
-  - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sleep_mode.md#L48-L58
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L177-L208
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L246-L249
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L288-L291
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1351-L1395
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L239-L239
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L286-L293
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63
-  - vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L450-L453
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/rl.md#L102-L116
-evidence: "S"
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L162-L163'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L216-L228'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L272-L280'
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128
+  - >-
+    vllm-ascend@2c59ff10:vllm_ascend/device_allocator/sleep_mem_optimized.py#L172-L186
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L82-L82
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sleep_mode.md#L48-L58
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L177-L208'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L246-L249'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/worker/worker.py#L288-L291'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1351-L1395'
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L239-L239
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L286-L293
+  - >-
+    vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63
+  - 'vllm-ascend@28bf3a2e:tests/ut/worker/a2/test_worker_v1.py#L450-L453'
+  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/rl.md#L102-L116'
+  - >-
+    vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L163
+evidence: S
 relations: []
 contradicts: []
-updated: "2026-09-14"
+updated: '2026-09-14'
+rawSources:
+  - >-
+    raw/sha256-024d8bdfc8e0a81cafa0b07e205478201aefcd1adf86c717b31c22e7c02f74cf.md
+  - >-
+    raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---
 
 ## 一句话
@@ -104,31 +122,44 @@ v0.23.0 上的等价写法是 `--additional-config '{"enable_sleep_mode_extra_cl
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。
+> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 无 |
-| releases/v0.20.2rc | 无 |
-| releases/v0.21.0rc | 无 |
-| releases/v0.22.1rc | 无 |
-| releases/v0.23.0 | 有（2 个文件） |
-| releases/v0.24.0rc | 有（2 个文件） |
-| releases/v0.25.1rc | 有（2 个文件） |
-| releases/v0.26.0rc | 有（2 个文件） |
-| releases/v0.27.1rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（2 个文件） |
 
-**移除**：2026-08-24，PR [#13838](https://github.com/vllm-project/vllm-ascend/pull/13838) —— [Refactor][Config] Migrate AscendConfig to @config pydantic dataclass (#13838)
+- **引入**：2026-06-22 · 92eeab2fe9a73394d2118de3c8459d69cc9d8e62 · PR [#9585](https://github.com/vllm-project/vllm-ascend/pull/9585) —— [Feature] vllm-ascend sleep mode optimization for residual memory usage (#9585)
+  包含该提交的 tag：v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  - `vllm_ascend/patch/worker/patch_distributed.py` +85 / −49（文本行变化）
+  - `vllm_ascend/ascend_config.py` +2 / −0（文本行变化）
+  - `vllm_ascend/compilation/acl_graph.py` +2 / −0（文本行变化）
+  - `vllm_ascend/device_allocator/sleep_mem_optimized.py` +186 / −0（文本行变化）
+  - `vllm_ascend/ops/fused_moe/token_dispatcher.py` +7 / −0（文本行变化）
+- **移除**：2026-08-24 · 9cf7a0a23944b032d512040f4da542777042cc3e · PR [#13838](https://github.com/vllm-project/vllm-ascend/pull/13838) —— [Refactor][Config] Migrate AscendConfig to @config pydantic dataclass (#13838)
+  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  - `vllm_ascend/ascend_config.py` +674 / −748（文本行变化）
+  - `vllm_ascend/utils.py` +17 / −25（文本行变化）
+  - `vllm_ascend/compilation/graph_fusion_pass_manager.py` +7 / −5（文本行变化）
+  - `vllm_ascend/model_loader/rfork/rfork_loader.py` +3 / −5（文本行变化）
+  - `vllm_ascend/spec_decode/llm_base_proposer.py` +5 / −3（文本行变化）
 
-影响面（删除行数最多的几个文件）：
+当前含该标识符的 tag：v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1
 
-- `vllm_ascend/ascend_config.py` −748
-- `vllm_ascend/utils.py` −25
-- `vllm_ascend/compilation/graph_fusion_pass_manager.py` −5
-- `vllm_ascend/model_loader/rfork/rfork_loader.py` −5
-- `vllm_ascend/spec_decode/llm_base_proposer.py` −3
+## 参数定义（自动生成）
 
-**引入**：2026-06-22，PR [#9585](https://github.com/vllm-project/vllm-ascend/pull/9585) —— [Feature] vllm-ascend sleep mode optimization for residual memory usage (#9585)
+> 此节由参数扫描结果生成；静态定义不保证运行时最终值。
 
+| 项 | 静态记录 |
+| --- | --- |
+| 标识 | `additional_config["enable_sleep_mode_extra_cleanup"]` |
+| 类型 | `unknown` |
+| 默认表达式 | `False` |
+| 定义 | `vllm_ascend/ascend_config.py:163` [C18] |
+| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |
+
+字段注释：
+
+源码未提供字段注释。
+
+约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：

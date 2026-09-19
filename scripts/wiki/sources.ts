@@ -17,20 +17,22 @@
  * 这份表与 `wiki/HANDBOOK.md`「可引来源」一节必须逐条一致，有测试锁住。
  */
 
-export type SourceKind = "repo" | "official" | "paper" | "ecosystem" | "unlisted";
+import { parseRawRef, parseRepoRef } from "../../src/content/wiki/schema";
+
+export type SourceKind = "repo" | "raw" | "official" | "paper" | "ecosystem" | "community" | "unlisted";
 
 export interface CitableDomain {
   domain: string;
   /** 限定组织时给出路径前缀，如 github.com 只认 vllm-project */
   prefix?: string;
-  kind: Exclude<SourceKind, "repo" | "unlisted">;
+  kind: Exclude<SourceKind, "repo" | "raw" | "unlisted">;
 }
 
 export const CITABLE_DOMAINS: CitableDomain[] = [
   { domain: "docs.vllm.ai", kind: "official" },
   { domain: "www.hiascend.com", kind: "official" },
   { domain: "blog.vllm.ai", kind: "official" },
-  { domain: "discuss.vllm.ai", kind: "official" },
+  { domain: "discuss.vllm.ai", kind: "community" },
   { domain: "github.com", prefix: "/vllm-project/", kind: "official" },
   { domain: "gitee.com", prefix: "/ascend/", kind: "official" },
   { domain: "gitcode.com", prefix: "/Ascend/", kind: "official" },
@@ -45,7 +47,9 @@ export const CITABLE_DOMAINS: CitableDomain[] = [
 
 /** 把一条 `sources` 归类。仓库引用与三档 URL 之外一律 `unlisted`。 */
 export function classifySource(ref: string): SourceKind {
-  if (!/^https?:\/\//i.test(ref)) return "repo";
+  if (parseRawRef(ref)) return "raw";
+  if (parseRepoRef(ref)) return "repo";
+  if (!/^https?:\/\//i.test(ref)) return "unlisted";
   let url: URL;
   try {
     url = new URL(ref);
@@ -54,6 +58,11 @@ export function classifySource(ref: string): SourceKind {
   }
   // 用 host 全等而不是后缀匹配：`arxiv.org.evil.com` 不能蒙混过关
   const host = url.hostname.toLowerCase();
+  if (
+    host === "github.com" &&
+    /^\/vllm-project\/[^/]+\/(?:issues|pull|discussions)(?:\/|$)/.test(url.pathname)
+  )
+    return "community";
   for (const d of CITABLE_DOMAINS) {
     if (host !== d.domain) continue;
     if (d.prefix && !url.pathname.startsWith(d.prefix)) continue;
@@ -67,7 +76,7 @@ export function supportsOfficialEvidence(kind: SourceKind): boolean {
   return kind === "official" || kind === "paper";
 }
 
-const ROW_RE = /^\|\s*`([^`]+)`\s*\|\s*([^|]*?)\s*\|\s*(官方|论文|生态)\s*\|/;
+const ROW_RE = /^\|\s*`([^`]+)`\s*\|\s*([^|]*?)\s*\|\s*(官方|论文|生态|社区)\s*\|/;
 
 /**
  * 从 HANDBOOK 的「可引来源」表里解析域名清单，用于与代码常量比对。
@@ -78,6 +87,7 @@ export function handbookDomains(markdown: string): CitableDomain[] {
     官方: "official",
     论文: "paper",
     生态: "ecosystem",
+    社区: "community",
   };
   const out: CitableDomain[] = [];
   for (const line of markdown.split(/\r?\n/)) {

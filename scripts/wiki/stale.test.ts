@@ -6,11 +6,13 @@ const mk = (id: string, sources: string[]): WikiPage => ({
   file: `concepts/${id}.md`,
   body: "",
   fm: {
+    origin: "seed",
     id,
     title: id,
     type: "feature",
     summary: "s",
     aliases: [],
+    order: 500,
     chapters: ["11"],
     prerequisites: [],
     sources,

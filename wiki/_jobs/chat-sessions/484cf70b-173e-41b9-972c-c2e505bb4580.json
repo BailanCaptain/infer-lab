@@ -1,0 +1,8 @@
+{
+  "id": "484cf70b-173e-41b9-972c-c2e505bb4580",
+  "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+  "agentSessionId": "4c5f0e5e-eed5-40e7-a383-700bbae4c81e",
+  "questions": [
+    "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。"
+  ]
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CHAPTER_TITLES } from "./chapters";
-import { pageFrontmatterSchema, parseRepoRef, registrySchema } from "./schema";
+import { pageFrontmatterSchema, parseRawRef, parseRepoRef, registrySchema } from "./schema";
 
 const ok = {
   id: "kv-cache",
@@ -16,11 +16,31 @@ const ok = {
 };
 
 describe("pageFrontmatterSchema", () => {
+  it("accepts only immutable local references with bounded positive line numbers", () => {
+    const path = `sha256-${"a".repeat(64)}.md`;
+    const ref = `raw:${path}#L2-L3`;
+    expect(parseRawRef(ref)).toEqual({ path: `raw/${path}`, lineStart: 2, lineEnd: 3 });
+    expect(pageFrontmatterSchema.parse({ ...ok, sources: [ref] }).sources).toEqual([ref]);
+    for (const bad of [
+      `raw:../${path}#L1`,
+      `raw:C:/${path}#L1`,
+      `raw:${path}`,
+      `raw:${path}#L0`,
+      `raw:${path}#L3-L2`,
+      `raw:${path}#L9007199254740992`,
+      `raw:%2e%2e/${path}#L1`,
+    ]) {
+      expect(parseRawRef(bad)).toBeNull();
+      expect(pageFrontmatterSchema.safeParse({ ...ok, sources: [bad] }).success).toBe(false);
+    }
+  });
   it("合法页通过，可选数组有默认值", () => {
     const r = pageFrontmatterSchema.parse({ ...ok, aliases: undefined, related: undefined });
     expect(r.aliases).toEqual([]);
     expect(r.related).toEqual([]);
     expect(r.contradicts).toEqual([]);
+    expect(r.origin).toBe("seed");
+    expect(pageFrontmatterSchema.parse({ ...ok, origin: "drop" }).origin).toBe("drop");
   });
   it("空 sources 拒收", () => {
     expect(() => pageFrontmatterSchema.parse({ ...ok, sources: [] })).toThrow(/sources/);

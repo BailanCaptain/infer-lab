@@ -6,6 +6,7 @@
  * - 来源角标指向 GitHub 钉住的行号。
  */
 import { expect, test } from "@playwright/test";
+import { checkAnswerCitations } from "../server/citations";
 
 test.describe("知识库阅读页", () => {
   test("目录列出页面，点开能读正文", async ({ page }) => {
@@ -154,6 +155,29 @@ function sse(frames: [string, unknown][]): string {
 }
 
 test.describe("问答抽屉", () => {
+  test("知识库内没有相关页面的真实拒答不会显示无引用警告", async ({ page }, info) => {
+    const answer = "知识库内没有任何页面涉及 profiling_chunk_config，无法比较两个版本的配置解析行为。";
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route("**/api/wiki/chat", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: sse([
+          ["text", { text: answer }],
+          ["cite", checkAnswerCitations(answer, [])],
+          ["done", {}],
+        ]),
+      }),
+    );
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    await page.getByTestId("chat-input").fill("比较 profiling_chunk_config 的版本差异");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-log")).toContainText(answer);
+    await expect(page.getByTestId("chat-uncited")).toHaveCount(0);
+    await page.screenshot({ path: info.outputPath("honest-abstention-mobile.png"), fullPage: true });
+  });
+
   test("发问后流式渲染，答案里的页面链接可跳转", async ({ page }) => {
     await page.route("**/api/wiki/chat", async (route) => {
       await route.fulfill({

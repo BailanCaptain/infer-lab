@@ -1,0 +1,99 @@
+---
+id: ascend-patch-system
+title: Patch 机制
+type: feature
+summary: 上游没留口子的地方，昇腾在运行时把上游的类和函数换掉。两个目录对应两个时机，靠 import 副作用生效。
+aliases: [patch, adapt_patch, monkey patch, patch/platform, patch/worker, 补丁机制]
+chapters: ["10"]
+order: 90
+sources:
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L29-L80
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L20-L40
+  - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
+  - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html
+evidence: "C"
+relations:
+  - to: npu-platform
+    kind: builds-on
+    note: platform 层 patch 的触发点就是 NPUPlatform.pre_register_and_update，时机由平台类决定
+  - to: one-request
+    kind: builds-on
+    note: 那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch
+contradicts: []
+updated: "2026-09-19"
+origin: seed
+---
+
+## 一句话
+
+`vllm_ascend/patch/` 下面是 59 个 patch 文件，它们在运行时替换上游 vLLM 的类与函数 [D]。分成 `platform` 与 `worker` 两个子目录，对应两个不同的生效时机；两边都靠 `import` 的副作用生效，没有注册表。
+
+```wiki-diagram
+file: patch-timing
+```
+
+## 那条请求走到这里
+
+那条请求跑完 200 步，**一次都不会看见 patch 这个词**。它在 `vllm_ascend/patch/` 下面没有任何一行代码。
+
+但它能跑起来，是因为这些替换在它到达之前就已经生效了。一个能查证的例子：`patch/platform/patch_multiproc_executor.py` 把子进程的 `daemon` 从 `True` 改成 `False`——而那条请求的 Worker 进程，正是被这个改过的执行器拉起来的。
+
+这就是 patch 最难查的地方：**它不出现在任何一条调用链里**。排查时只能反过来——怀疑某个上游行为不对劲，就去 `patch/` 下搜那个类名或函数名。搜到了，说明你手上那份上游文档在昇腾上不作数。
+
+## 两个时机由一个布尔值分流
+
+`adapt_patch` 的函数体只有四行：`is_global_patch` 为真就 `from vllm_ascend.patch import platform`，否则 `from vllm_ascend.patch import worker` [C3]。没有第三种时机。
+
+`patch/__init__.py` 顶部的注释块把两个时机写成了规范 [C1]：
+
+- `platform`：worker 启动**之前**生效，由 `NPUPlatform.pre_register_and_update()` 里的 `adapt_patch(is_global_patch=True)` 调起 [C4]。
+- `worker`：worker 启动**时**生效，由每个 worker 的 `__init__` 里的 `adapt_patch()` 调起 [C5]。
+
+在 `NPUWorker.__init__` 里，`adapt_patch()` 是注释 `# register patch for vllm` 之后的第一件实质工作，排在注册算子、解 AscendConfig、调 `super().__init__()` 之前 [C5]。顺序有意义：后面那些步骤会用到被 patch 过的上游行为。
+
+## 生效方式是 import，所以顺序等于打补丁顺序
+
+两个子目录的 `__init__.py` 就是开关。`patch/platform/__init__.py` 里是一串 `import vllm_ascend.patch.platform.patch_xxx  # noqa`，而且带条件 [C6]：
+
+- `is_310p()` 为真导入 `patch_mamba_config_310`，否则导入 `patch_mamba_config`；
+- `vllm_version_is("0.23.0")` 为真时才多导入 5 个，其中包括 `patch_shm_broadcast`。
+
+`patch/worker/__init__.py` 同样按 `is_310p()`、`vllm_version_is`、`HAS_TRITON` 分支导入 [C7]。所以「某个 patch 到底有没有生效」不能只看文件存在，要看这两个 `__init__.py` 在当前环境下走了哪条分支。
+
+## 清单是自文档的，格式是硬约定
+
+`patch/__init__.py` 的注释块要求每加一个 patch 就在这个文件里补一段描述，格式固定为四项：**Why**（为什么要改）、**How**（怎么改的）、**Related PR**（有没有上游 PR，没有要解释）、**Future Plan**（什么条件下能删掉）[C1][C2]。
+
+举一个完整的例子 [C2]：`platform/patch_mamba_config.py` 改的是上游 `HybridAttentionMambaModelConfig.verify_and_update_config`，Why 是「vLLM 把 block size 设成 16，昇腾不支持」，How 是「在 npu 上设成 128」，Related PR 写着「我们很快会在 vLLM 里修掉」，Future Plan 是「上游合了 PR 之后删掉这个 patch」。
+
+这个格式是这套机制最值钱的部分：**它让每个 patch 都自带退出条件**。读一遍这个文件，就知道哪些 patch 是临时的、哪些是硬件差异导致的长期存在。
+
+官方设计文档把态度写得更直白：patch 不是好办法，只是临时方案，最好的办法是把改动贡献回 vLLM；并给了三条原则——「Less is more，除非目前只有这条路，否则不要打 patch」「一旦加了 patch，必须写清未来移除它的计划」「任何时候清理 patch 代码都是受欢迎的」[S8]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html)）。所以 59 这个数字本身不是结论，要连着每条的 Future Plan 一起读。
+
+```wiki-diagram
+file: patch-inventory
+```
+
+## 文件数
+
+| 项 | 值 | 意味着什么 |
+|---|---|---|
+| `patch/platform/patch_*.py` | 28 个 [D] | worker 起来之前要改的上游行为 |
+| `patch/worker/patch_*.py` | 24 个 [D] | 每个 worker 进程内要改的 |
+| `patch/worker/patch_v2/patch_*.py` | 7 个 [D] | 配合实验性的 v2 model runner |
+| 合计 | 59 个 [D] | 「插件模式不碰上游代码」在这里失效 |
+
+## 怎么判断某个上游行为被改过
+
+这是读这个仓库时最常用的一个动作，也是 patch 机制存在的直接后果：**先在 `vllm_ascend/patch/` 下搜那个上游类名或函数名**。搜到了，说明昇腾上的行为和上游文档不一样，要读 patch 文件；搜不到，再找它的子类；两者都没有，这块行为就是上游原样。完整的三条定位路线在 [怎么读这个仓库](reading-vllm-ascend.md)。
+
+## 常见误解
+
+- **「patch 目录里的文件都在生效」**——不一定。两个 `__init__.py` 按 `is_310p()`、`vllm_version_is()`、`HAS_TRITON` 分支导入，没被 import 的文件等于没打 [C6][C7]。
+- **「platform 与 worker 的区别是改的对象不同」**——区别是**时机**，不是对象类型。同名的 `patch_distributed.py` 和 `patch_fused_moe.py` 在两个目录下都存在 [D]，因为同一类对象在两个时机都需要处理。
+- **「patch 越少越好，所以数量多说明质量差」**——清单里每条都写了 Related PR 与 Future Plan [C1]，相当一部分是在等上游合 PR。判断质量要看那两栏，不是看总数。

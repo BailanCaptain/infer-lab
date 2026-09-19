@@ -5,6 +5,13 @@ const GEN = ["## 版本谱系", "", "| 版本 | 是否存在 |"].join("\n");
 const lines = (...xs: string[]) => `${xs.join("\n")}\n`;
 
 describe("replaceSection", () => {
+  it("ignores example headings inside fences and preserves unrelated whitespace", () => {
+    const body = "## Example\n\n```md\n## 版本谱系\nexample\n```\n\n\n## 版本谱系\nold\n\n## Tail\nkeep\n";
+    const result = replaceSection(body, "## 版本谱系", GEN);
+    expect(result).toContain("```md\n## 版本谱系\nexample\n```\n\n\n");
+    expect(result).not.toContain("\nold\n");
+    expect(result).toContain("## Tail\nkeep\n");
+  });
   it("整节替换：原有内容被换掉，前后小节都保留", () => {
     const body = lines(
       "## 一句话",

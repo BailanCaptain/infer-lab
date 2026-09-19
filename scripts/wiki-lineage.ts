@@ -6,12 +6,14 @@
  *
  * 这一节由脚本算而不是 agent 写：agent 会编 PR 号，而这些事实 git 里全有。
  */
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { worktreeDir } from "./wiki/clone";
+import { gitText } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
-import { buildLineage, type Commit, type FileStat, renderLineage } from "./wiki/lineage";
+import { gitLineage, renderVerifiedLineage } from "./wiki/lineage-git";
+import { localFile } from "./wiki/review-files";
+import { atomicText } from "./wiki/workflow";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -31,15 +33,9 @@ const repo = seeds.repos[repoName];
 if (!repo) throw new Error("seeds 里没有 repo");
 const dir = resolve(root, worktreeDir(repo, Object.keys(repo.refs)[0] as string));
 
-const git = (args: string[]): string => {
-  try {
-    return execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", maxBuffer: 64 << 20 });
-  } catch {
-    return "";
-  }
-};
+const git = (args: string[]): string => gitText(dir, args, args[0] === "grep");
 
-/** 默认按版本从旧到新——移除点靠相邻两版的有无翻转判定，顺序不能乱 */
+/** 默认展示发布分支；事件由提交与父提交的实际存在性计算。 */
 const defaultRefs = git(["branch", "-r", "--list", "origin/releases/*"])
   .split(/\r?\n/)
   .map((l) => l.trim().replace(/^origin\//, ""))
@@ -48,28 +44,10 @@ const defaultRefs = git(["branch", "-r", "--list", "origin/releases/*"])
 
 const refs = (arg("--refs")?.split(",") ?? [...defaultRefs, "main"]).map((r) => r.trim());
 const paths = (arg("--paths", "vllm_ascend/") as string).split(",");
-
-const lineage = buildLineage(term, refs, paths, {
-  countIn: (ref, t, ps) =>
-    git(["grep", "-l", "--fixed-strings", t, `origin/${ref}`, "--", ...ps])
-      .split(/\r?\n/)
-      .filter((l) => l.trim().length > 0).length,
-  historyOf: (ref, t, ps) =>
-    git(["log", `--format=%h%x09%ad%x09%s`, "--date=short", "-S", t, `origin/${ref}`, "--", ...ps])
-      .split(/\r?\n/)
-      .filter((l) => l.includes("\t"))
-      .map((l) => {
-        const [sha = "", date = "", ...rest] = l.split("\t");
-        return { sha, date, subject: rest.join("\t") } satisfies Commit;
-      }),
-  statOf: (sha, ps) =>
-    git(["show", "--numstat", "--format=", sha, "--", ...ps])
-      .split(/\r?\n/)
-      .filter((l) => /^\d+\t\d+\t/.test(l))
-      .map((l) => {
-        const [a = "0", r = "0", path = ""] = l.split("\t");
-        return { path, added: Number(a), removed: Number(r) } satisfies FileStat;
-      }),
-});
-
-console.log(renderLineage(lineage));
+const lineage = gitLineage(dir, term, refs, paths);
+const path = localFile(root, arg("--out") ?? `wiki/lineage/${term}.json`);
+mkdirSync(dirname(path), { recursive: true });
+atomicText(path, JSON.stringify(lineage, null, 2));
+console.log(
+  process.argv.includes("--json") ? JSON.stringify(lineage, null, 2) : renderVerifiedLineage(lineage),
+);

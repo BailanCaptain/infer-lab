@@ -21,7 +21,7 @@ test.describe("证据等级要看得懂", () => {
 
   test("空间紧的悬停卡仍用字母，但有 tooltip 兜底", async ({ page }) => {
     await page.goto("/#/wiki/block-table");
-    await page.getByTestId("wiki-related").getByRole("link").first().hover();
+    await page.getByTestId("wiki-next").getByRole("link").first().hover();
     const badge = page.getByRole("tooltip").locator(".wiki-evidence");
     await expect(badge).toBeVisible();
     await expect(badge).toHaveAttribute("title", /源码|文档|推导|假设|推断|实测|冲突/);

@@ -1,14 +1,17 @@
 ---
 id: F004
 title: 知识库闭环：投喂、补写、巡检
-status: planned
+status: in-progress
 owner: BailanCaptain
 created: 2026-09-11
 ---
 
 # F004 — 知识库闭环：投喂、补写、巡检
 
-**Status**: planned
+**Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
+
+当前工程、真实样本、费用和待验收边界见 [独立审视后的交接报告](../plans/wiki-independent-closure-review.md)。历史记录保留为当时证据，不代表当前仍缺相同代码。
+
 **Created**: 2026-09-11
 
 ## Why
@@ -19,17 +22,17 @@ created: 2026-09-11
 
 > Multi-Agent 中是可以手动 drop 资料进来的，我们有吗？如果有逻辑是怎么样，如果没有，我需要。
 
-诚实的现状：**F001 是一次性生产，不是闭环**。批量灌种 → 人审 → 静态页，问答只读不回写。用一百次和用一次，知识库是一样的。逐条差距：
+截至 2026-09-14 的现状：**已有手动生产与重跑管线，尚无使用驱动的知识积累闭环**。问答只读不回写；仅增加问答次数不会改变正式知识库。逐条差距：
 
 | 能力 | F001 现状 |
 |---|---|
 | 查不到怎么办 | 只会答「知识库里还没有这一条」，然后用自身知识回答并标「（未收录）」。**不记录、不回写** |
-| 自动整合写 wiki 给人审 | 无。AC8 只有聊天里手动点「存进 wiki」 |
-| 交叉审视、建链 | 有一半：整合 agent 建双向 `related`，lint 有 `related-asymmetric`——但**只在 ingest 当次跑** |
+| 自动整合写 wiki 给人审 | F001 AC8 的「存进 wiki」与审阅面板尚未实现 |
+| 交叉审视、建链 | 页面已使用单向 `relations`，`backlinks` 由 build 派生；整合与检索仍有旧 `related` 路径待统一，**无周期性全库审视** |
 | 死链定期审查 | 有一半：lint 有 `broken-link` 规则，但只在 `pnpm check` 时跑，**无定期巡检** |
 | 手动投喂资料 | **完全没有** |
 
-规划 F001 时砍掉了 Multi-Agent 的租约 / CAS / cron 巡检，理由是「扇出 + 整合不需要锁」。那个理由对**并发保护**成立，但闭环是另一件事——当时把需求理解成「批量灌种 + 问答」，没把闭环当需求。用户已明确要求，本 feature 补上。
+规划 F001 时砍掉了 Multi-Agent 的租约 / CAS / cron 巡检，理由是「扇出 + 整合不需要锁」。它只覆盖单次 ingest 内的写入安排；闭环增加 HTTP、CLI 和每日任务后，仍需本地单写入者与中断恢复。当时把需求理解成「批量灌种 + 问答」，没把闭环当需求，本 feature 补上。
 
 ## What
 
@@ -42,55 +45,77 @@ created: 2026-09-11
 
 ## Acceptance Criteria
 
-- [ ] **AC1 · 手动投喂**：`pnpm wiki:drop <文件或目录> --why "<为什么值得收>"` 把资料变成待审草稿。链路：读取 → `sanitizeRawDrop` 洗提示注入 → agent 按「投喂」切片编译成符合「页面格式」的草稿 → 落 `wiki/_drafts/`，原文存 `wiki/raw/drop-<日期>-<序号>.md`。验收：投一份真实 markdown，草稿生成且 `sources` 指向存下来的原文；构造一份含提示注入的文件，注入片段不出现在 agent 的 prompt 里（断言 prompt 文本）。
-- [ ] **AC2 · 投喂隔离区**：连续投喂做交叉关联检测——7 天窗口内比对历史投喂，命中「关键词链」或「互相引用」或「同来源高相似」的判为 `chained_suspect`，草稿进 `wiki/_drafts/_quarantine/` 而不是正常待审区，并在 warnings 里告警。验收：用 Multi-Agent 的 `series-vs-chained` 样例形态构造两组输入，续传的判为同系列放行、拆分注入的判为隔离。
-- [ ] **AC3 · 知识缺口捕捉**：问答走 F001 AC10 的 `retrieve()`；**「够不够」由 LLM 判定而不是阈值**——检索完让 agent 回答 `satisfied: true/false` 加理由（借 Multi-Agent 的 critique agent，`adaptive-recall/critique-agent.ts`），判不够就把问题、时间、检索到的候选、判定理由写进 `wiki/_gaps.json`。**问答 agent 联网查了官方文档也算一次缺口信号**——它需要上网说明知识库没覆盖这一块，这个信号比 LLM 判定更硬，直接记。判定要有预算上限（最多 N 次调用），触顶直接记缺口不再追问。同一缺口累计到阈值（默认 3 次）自动排进 ingest 队列，产出草稿等人审。验收：连问三次知识库没有的词，`_gaps.json` 计数到 3 并出现在队列里；跑一次补写产出草稿。
-- [ ] **AC4 · 定期巡检**：`pnpm wiki:patrol` 复用 `lintPages` 的纯函数，加三项时间维度检查——死链、孤页、`updated` 超过 N 天且其 `sources` 指向的**源码或文档**在钉住 ref 上已变动的页（两类来源都要查——实测有参数代码里删了、文档还留着的情况，这种不一致正是学习者会踩的坑）。结果写 `wiki/warnings/patrol-<日期>.md`，有问题非零退出。挂进 F002 的每日调度。验收：人为造一条死链与一页过期，巡检报出两项并指名文件。
-- [ ] **AC5 · 页面来源标记**：frontmatter 增加可选 `origin` 字段（`seed` / `drop` / `chat` / `pr` / `gap`，默认 `seed`），阅读页显示来源角标，投喂来源的页有视觉区分。验收：现有 11 页不改一字仍通过 lint（默认值生效）；投喂产出的页 `origin: drop` 且页面上可见。
-- [ ] **AC6 · 周期性交叉审视**：`pnpm wiki:reconcile` 定期重跑整合的四件事（判重、建双向链、标矛盾、修 `related`），范围是全库而不只当批草稿。为控制上下文，只读 `index.md` 摘要 + 按 chapter 与 related 拉取相关页，不读全量正文。验收：人为把一条 `related` 改成单向，reconcile 后恢复双向且 lint 通过。
+### 2026-09-16 当前验收核对
 
-- [ ] **AC7 · 结论被推翻要留痕**：页面正文被改写时，若新结论与旧结论矛盾（不是补充而是否定），旧结论不能被静默覆盖——在页面里保留一节「已废弃的说法」，记原文、废弃日期、依据（哪个 commit / PR 让它不成立）。借 Multi-Agent 决策账本的 tombstone / `superseded_by` 协议（`viewfinder/decision-ledger.ts`），但落到 markdown 而不是 SQL。验收：构造一页说「X 默认开启」，用新事实「X 已被移除」重写，改后页面同时能看到新结论与被废弃的旧结论。
-- [ ] **AC8 · 页面衰减检测**：`pnpm wiki:drift [--sample N]` 定期对抽样页面重跑一次提取，把新产出与现有页做 token 集合的 jaccard 对比，`drift = 1 - jaccard`；超过阈值（默认 0.3）判定该页已衰减，写进 warnings 并排进重写队列。借 Multi-Agent 的 `viewfinder/monthly-snapshot.ts`。验收：拿一页人为删掉半篇正文，drift 判定超阈值并进队列；未改动的页 drift 接近 0。
-- [ ] **AC9 · 跨页内容重复 lint**：新增 lint 规则 `cross-page-overlap`——两页的 H2 标题与首段出现显式重叠，**且彼此没有 `related` 或正文链接**时报红；有交叉引用则放行。借 Multi-Agent 的 `cross-file-dedupe-lint.ts` 协议（重叠 + 有 cross-ref = 合规，重叠 + 无 cross-ref = 违规）。验收：造两页讲同一件事且互不引用，lint 报红并指名两个文件；给其中一页加上 `related` 后转绿。
+独立复查修复、最终测试和人工停点见 [当前交接报告](../plans/wiki-independent-closure-review.md)；下表不把固定输出机制测试等同真实语义效果。
+
+规范文本与当前验收表保留在本 feature，计划不维护第二份状态。工程、真实样本和未验证边界分开列示；最近完整验证见 [独立复查报告](../plans/wiki-independent-closure-review.md)，2026-09-16 上午运行状态变化及新会话接续见 [最新 handoff](../../HANDOFF-LLM-WIKI.md)。
+
+| AC | 当前结论 | 证据与未满足条件 |
+|---|---|---|
+| AC1 | 工程投喂闭环通过，真实入口编译未验证 | 文本归档、清洗、目录边界、幂等、why、持久草稿后自动跨页整合及统一 reviewId；已有页合并通过完整校验器；固定输出验证不当作真实内容质量。 |
+| AC2 | 隔离回归通过 | 七日关键词链、互相引用、同来源高重叠、普通分章例外；隔离原文和 warnings，不启动模型。 |
+| AC3 | 真实验收推进中，尚未全部通过 | 已有生产三次观察→唯一任务→missing-knowledge诊断→四类前测→编译→离线整合→用户批准发布。正式页浏览器与发布清单一致性通过；自动整合超时，后测和关闭尚未完成。见 [真实缺口接续](../plans/wiki-real-gap-review.md)。 |
+| AC4 | 巡检回归与真实源码隔离复验通过；生产调度待复验 | 首次 03:00 维护失败；已修复当前现场复现的解释器不兼容及参数超限阻断后续巡检。真实源码副本在暂缓 13 个新参数页后完成巡检，findings=[]，不代表生产到点执行通过。详见 [接续报告](../plans/wiki-resume-review.md)。 |
+| AC5 | schema 与真实浏览器操作通过 | 旧页默认 seed；drop 角标及视觉区分，相关页点击实测。origin 与证据等级分开。 |
+| AC6 | 工程交叉审视通过 | 分批覆盖全库，双端逐字引文与类型补边 diff；完整批准校验后反向边由 build 派生，重跑无重复；矛盾及重复单独保留待审记录。真实判断质量未验证。 |
+| AC7 | 历史留痕回归通过，已有真实纠错批准发布 | 显存预算错误对比经用户批准，以 e6061568… 发布，保留旧结论、日期和来源；正式写入与批准包逐字一致。Prefix Caching 过度纠错已撤回。详见 [证据核查](../plans/wiki-evidence-review.md)；不把这一例外推为所有模型纠错判断均准确。 |
+| AC8 | 差异检测及队列回归通过 | 固定提取结果比较，规范化相同为 0、差异超阈值入重写队列；源码重提取入口受共享预算约束，真实随机波动未验证。 |
+| AC9 | 跨页重复 lint 回归通过 | 非模板 H2+首段重复且无关系/链接时报两页；加正确方向关系后通过。 |
+
+
+**闭环效果判准**：先用一条有证据的聊天答案跑通保存、跨页审阅、批准和新会话复用，再接入投喂与自动缺口补写。前后验证使用相同模型配置、工具权限和固定来源范围；除原问题外，必须有未用于编译的等价改写问题，并保留版本不同与无证据的反例。只增加页面、命中链接或复述上一轮聊天不算通过；需核对答案是否正确、引用是否支持结论、版本边界是否保留。具体样本和操作步骤由 plan 的 T6 承接，全部 AC 完成前仍保持 feature 未完成。
+
+- **AC1 · 手动投喂**：`pnpm wiki:drop <文件或目录> --why "<为什么值得收>"` 把资料变成待审草稿。链路：读取 → 共用清洗与输入准备器 → agent 按「投喂」切片编译成符合「页面格式」的草稿 → 落 `wiki/_drafts/`，原文按 HANDBOOK「链接与来源」存为不可变快照；保留原始标识、采集时间与投喂理由。验收：投一份真实 markdown，草稿生成且 `sources` 指向存下来的原文；构造一份含提示注入的文件，注入片段不出现在 agent 的 prompt 里（断言 prompt 文本）。
+- **AC2 · 投喂隔离区**：连续投喂做交叉关联检测——7 天窗口内比对历史投喂，命中「关键词链」或「互相引用」或「同来源高相似」的判为 `chained_suspect`，草稿进 `wiki/_drafts/_quarantine/` 而不是正常待审区，并在 warnings 里告警。验收：用 Multi-Agent 的 `series-vs-chained` 样例形态构造两组输入，续传的判为同系列放行、拆分注入的判为隔离。
+- **AC3 · 知识缺口捕捉**：问答走 F001 AC10 的 `retrieve()`；**「够不够」由 LLM 判定而不是阈值**——检索完让 agent 回答 `satisfied: true/false` 加理由（借 Multi-Agent 的 critique agent，`adaptive-recall/critique-agent.ts`），判不够就把问题、时间、检索到的候选、判定理由写进 `wiki/_gaps.json`。**问答 agent 联网查了官方文档也算一次缺口信号**，直接记录，但访问可能是查新或验证，不能单凭访问就断言库内没有知识。判定要有预算上限（最多 N 次调用），触顶记录「尚未判明」而不再追问。同一缺口累计到阈值（默认 3 次）自动排进处理队列；预算内先区分知识缺失、已有页漏检、版本过期与判定失败。知识缺失走补写，已有页漏检优先修检索或建链，版本过期更新原页，判定失败不得自动当成新知识生成。验收：连问三次知识库没有的词，`_gaps.json` 计数到 3 并只排一项；跑一次补写产出草稿；已有页漏检的对照不产生重复新页。
+- **AC4 · 定期巡检**：`pnpm wiki:patrol` 复用 `lintPages` 的纯函数，检查死链、孤页，以及 `updated` 超过 N 天且引用的**源码或文档**相对于对应受跟踪 ref 的新 tip 已变动的页。引用里的 commit 不会自行变化；报告必须列出旧 commit、新 tip 和变动路径。文件变动只表示待复核，不直接断言结论错误；两类来源都要查。结果写 `wiki/warnings/patrol-<日期>.md`，有问题非零退出。挂进 F002 的每日调度。验收：人为造一条死链与一页满足年龄和来源变动条件的页，巡检报出两项并指名文件；只有年龄增长、来源没变的页不报过期。
+- **AC5 · 页面来源标记**：frontmatter 增加可选 `origin` 字段（`seed` / `drop` / `chat` / `pr` / `gap`，默认 `seed`），阅读页显示来源角标，投喂来源的页有视觉区分。`origin` 表示生产入口，不能替代事实的证据等级。验收：现有正式页不改一字仍通过 lint（默认值生效）；投喂产出的页 `origin: drop` 且页面上可见。
+- **AC6 · 周期性交叉审视**：`pnpm wiki:reconcile` 定期生成判重、补关系、标矛盾的待审变更，范围是全库而不只当批草稿。复用现有 `relations` 类型，只存声明方向，反向 `backlinks` 由 build 派生，不恢复双写 `related`。为控制上下文，只读 `index.md` 摘要 + 按 chapter、检索和关系选取相关页，分批覆盖全库。验收：构造证据支持但遗漏的一条关系，reconcile 提出含类型、方向与理由的补边 diff；批准后两端分别显示声明边和派生反向边，lint 通过；再跑不产生重复边。
+
+- **AC7 · 结论被推翻要留痕**：页面正文被改写时，若新结论与旧结论矛盾（不是补充而是否定），旧结论不能被静默覆盖——在页面里保留一节「已废弃的说法」，记原文、废弃日期、依据（哪个 commit / PR 让它不成立）。借 Multi-Agent 决策账本的 tombstone / `superseded_by` 协议（`viewfinder/decision-ledger.ts`），但落到 markdown 而不是 SQL。验收：构造一页说「X 默认开启」，用新事实「X 已被移除」重写，改后页面同时能看到新结论与被废弃的旧结论。
+- **AC8 · 页面衰减检测**：`pnpm wiki:drift [--sample N]` 定期对抽样页面重跑一次提取，把新产出与现有页做 token 集合的 jaccard 对比，`drift = 1 - jaccard`；超过阈值（默认 0.3）记为「内容差异待复核」，写进 warnings 并排进重写队列，不据此自动认定事实过期。借 Multi-Agent 的 `viewfinder/monthly-snapshot.ts`。验收：用固定提取结果和含不同内容词的样本，删掉半篇后分数超阈值并进队列；相同规范化内容分数为 0。真实 agent 重跑的波动另行记录，不能声称未改动页必定接近 0。
+- **AC9 · 跨页内容重复 lint**：新增 lint 规则 `cross-page-overlap`——两页的 H2 标题与首段出现显式重叠（排除公共模板标题），**且彼此没有 `relations` 或正文链接**时报红；有交叉引用则放行。借 Multi-Agent 的 `cross-file-dedupe-lint.ts` 协议（重叠 + 有 cross-ref = 合规，重叠 + 无 cross-ref = 违规）。验收：造两页讲同一件事且互不引用，lint 报红并指名两个文件；给其中一页加上语义适当的 `relations` 后转绿。
 
 **Out of scope**：向量检索（F001 已定按实测命中率决定，且只考虑 issue 语料）；自动晋升（草稿一律人审，不做自动合入）；投喂二进制与图片（先只收文本类）；多用户与权限（单机单人）。
 
-**有意不搬的 Multi-Agent 机制**（都已核对源码后判定不适用）：`wiki_events` 写入账本与 `startup-reconciler` 崩溃恢复（我们是单机单人 + git，git 历史已经是账本）；ACL 引擎与租约 / 围栏令牌（F001 的扇出写不相交、整合串行，无并发写）；SQLite FTS5 + `memory-preflight` 的嵌入召回（F001 已定不上向量）；`capability-registry` 的 handoff 中性改写（那是多 agent 互相委派场景，本项目没有）。
+**有意不整套搬的 Multi-Agent 机制**：SQL `wiki_events` 与通用 `startup-reconciler`、多用户 ACL 与分布式租约 / 围栏令牌、SQLite FTS5 与嵌入召回、跨 agent 的 handoff 中性改写。本项目仍需最小的本地工作状态、排他写入和批准变更的恢复 manifest；git 历史保留知识版本，不能替代未完成任务和多文件写入的恢复。
 
 ## Dependencies
 
 - **F001 AC10（阻塞 AC3）**：可替换的 `retrieve()` 接口。若 AC7 把 grep 内联进聊天层，AC3 要重写聊天层——见 F001 的风险登记。
-- **F001 AC8（共享）**：sanitize 模块。AC8、F003 AC6、本 feature AC1 三处共用，谁先做谁引入，从 `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\` 整目录复制（5 文件 1492 行，含 510 行测试，零外部依赖）。
+- **F001 AC8（共同交付）**：本 feature 的最小闭环实现聊天保存与草稿批准 / 驳回；F003 AC6 接入同一管线。sanitize 参考 `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\` 的纯函数和测试，核对适用部分后引入，全项目共用一份。
 - **F002 Task 21/22（共享）**：`wiki:sync` 的调度器与 Windows 计划任务，AC4 的巡检搭同一班车。
 - **`runBatch` 重构（阻塞 AC1、AC3）**：见 Design Decisions 第一条。**[F002](F002-param-lineage.md) AC2/AC5 同样需要它**，若 F002 先做则本 feature 直接受益，无需重复。
-- **[F002](F002-param-lineage.md) 的 GENERATED 区约定（约束 AC6）**：参数页含脚本生成区（F002 D7），`wiki:reconcile` 改 `related` 时必须只动标记区之外的内容，否则会覆盖每日刷新的版本表。
+- **[F002](F002-param-lineage.md) 的生成区约定（约束 AC6）**：骨架页与生成区尚待 F002 AC4 落地；届时 reconcile 与整合必须保护该区，标记格式和渲染器只由 F002 定义。此前也必须保持现有脚本生成的版本节，不能假定生成区已经存在。
 
 ## Design Decisions
 
 | 决策 | 选项 | 结论 | 原因 |
 |------|------|------|------|
-| 驱动器与 seeds 解耦 | 各写各的池 / 抽出 `runBatch` | **抽出 `runBatch(requests: AgentRequest[], ctx, deps)`** | `AgentRequest`（`ingest.ts:77`）本来就是通用形状，`extractRequest` 与 `integrateRequest` 只是工厂；但 `runExtractPhase` 签名绑死 `SeedFeature[]`，而它之后四十行（快照 → 并发池 → 越界检查 → 失败账本）与 seeds 无关。十行的机械重构，现有测试继续有效 |
+| 驱动器与 seeds 解耦 | 各写各的池 / 抽出 `runBatch` | **抽出共用请求执行器**，seed / drop / chat / gap / pr 只负责构造请求 | 保留并发限制、超时、路径约束和失败记录；先补成功清单与失败隔离的回归用例，不按「十行重构」估算 |
 | 链式注入检测的相似度 | 引入 embedding / 不用向量 | **不用向量**：关键词链 + 互相引用 + 来源指纹三路 | F001 已决定不引入嵌入与向量库；Multi-Agent 的 `keyword-chain.ts` 与 `reference-link.ts` 本来就不依赖向量，够用。真不够再议 |
 | 缺口触发阈值 | 一次就写 / 累计 N 次 | **累计 3 次（可配）** | 一次就写会被随口一问触发，浪费额度；累计能筛出真实反复出现的缺口 |
-| 投喂产物去向 | 直接进 `concepts/` / 进草稿区 | **一律进草稿区，人审后才晋升** | 投喂是本项目唯一的不可信输入面，沿用 F001「agent 写、人只审」的底线 |
-| `origin` 字段 | 必填 / 可选带默认 | **可选，默认 `seed`** | 现有 11 页不用回改；zod `.default()` 生效后 lint、build、registry 自动带上 |
-| 巡检的「过期」定义 | 只看日期 / 日期 + 源码变动 / 日期 + 源码与文档双查 | **日期 + 源码与文档双查** | 只看日期会把稳定页面误报成过期。两类来源都要查：源码变了说明行为变了；文档变了说明官方对它的说法变了。两者不一致（代码删了文档还在）本身就该报出来 |
+| 投喂产物去向 | 直接进正式区 / 进草稿区 | **一律进草稿区，人审后才晋升** | 所有入口共用同一审阅流程；不因输入来源不同绕过审阅 |
+| `origin` 字段 | 必填 / 可选带默认 | **可选，默认 `seed`** | 现有页无需回改；schema 默认值须由 lint、build、registry 与读者侧测试验证 |
+| 巡检的「过期」定义 | 只看日期 / 日期 + 源码与文档双查 | **日期 + 来源路径变动，报告待复核** | 文件 diff 不能直接证明行为或结论变化；记录版本差异，再由证据复核语义 |
 | 文档占位符的巡检 | 不管 / 报红 | **报红** | 页面正文出现 `{{ }}` 说明照抄了本地文档的占位符，学习者复制到的是跑不了的命令。lint 的 `unexpanded-placeholder` 规则在巡检里同样执行 |
 | 周期性交叉审视的读取范围 | 读全量正文 / 读索引 + 相关页 | **索引 + 相关页** | 见 F001 风险登记「整合读全量页会撞上下文」。本 feature 的 AC6 直接按新策略写，不重蹈 |
-| reconcile 与生成区 | 全文改写 / 只改标记区外 | **只改标记区外**，并在改写前断言 GENERATED 区完整 | 参数页的版本表由 F002 每日重算；reconcile 若整页重写会把它冲掉，下次 sync 又改回来，两边互相覆盖 |
-| 巡检失败的处置 | 自动修 / 只报告 | **只报告，不自动改页面** | 自动改会让人失去对知识库的掌控；`related` 单向这类机械问题由 AC6 的 reconcile 显式修 |
+| reconcile 与生成区 | 全文改写 / 保护脚本产物 | **保护现有版本节；F002 AC4 落地后复用其生成区协议** | 版本表由脚本维护，agent 不能覆盖；生成区格式只定义一次 |
+| 巡检失败的处置 | 自动修 / 只报告 | **只报告，不自动改页面** | AC6 生成待审变更；批准后复用统一整合入口 |
 
-**Design Gate**：管线级（新增投喂入口、隔离区、缺口账本、巡检调度）。待用户批准实施计划。
+历史实施与真实收费记录见 [非批量收尾报告](../plans/wiki-nonbulk-review.md) 引用的分阶段证据。当前缺项以本页验收表为准。
 
 ## Timeline
 
 | 日期 | 事件 |
 |------|------|
 | 2026-09-11 | 用户指出 F001 不满足「越用越聪明」，并明确要手动投喂能力。核对 Multi-Agent 的 `multi-drop`、`llm-compile`、`sanitize`、`promote-audit` 后立此 feature；同时评估出对 F001–F003 的改动为「小」，唯一机械重构是 `runBatch` |
+| 2026-09-14 | 补实施计划；按现有代码校正关系模型、生成区状态及差异检测语义；把新会话复问作为最小闭环验收，撤回对共享执行器改动量的过早判断。全部 AC 仍待实施与验证 |
 
 ## Links
 
-- Plan: 待写（F001 AC7/AC8 落地后再写，届时 sanitize 与 retrieve 的实际形态才确定）
+- Plan: [knowledge-loop-plan.md](../plans/knowledge-loop-plan.md)
 - 依赖: [F001](F001-llm-wiki.md) AC8、AC10；[F002](F002-param-lineage.md) 调度器
 - 参照实现: `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\` 的 `multi-drop/`、`llm-compile/`、`sanitize/`、`promote-audit/`
 

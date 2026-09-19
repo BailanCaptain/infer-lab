@@ -5,10 +5,12 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import { defineConfig } from "vite";
+import { wikiReaderPlugin } from "./scripts/wiki/reader-plugin";
 
 export default defineConfig({
   base: "./",
   plugins: [
+    wikiReaderPlugin(),
     // 只处理 .mdx：wiki/ 下的 .md 要以 ?raw 原文读取，交给 react-markdown 渲染，
     // 若让 MDX 插件接手会被编译成组件（曾导致 text.startsWith is not a function）。
     {

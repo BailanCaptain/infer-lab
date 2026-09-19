@@ -1,0 +1,42 @@
+layout: scene
+id: locate-routes
+caption: 三种起点，三条固定路线。顺序不能颠倒。
+size: [900, 466]
+
+regions:
+  - label: 手上有一条报错
+    at: [20, 44]
+    size: [276, 340]
+    tone: neutral
+    chip: top
+  - label: 手上有一个配置键
+    at: [312, 44]
+    size: [276, 340]
+    tone: ascend
+    chip: top
+  - label: 手上有一个上游类名
+    at: [604, 44]
+    size: [276, 340]
+    tone: upstream
+    chip: top
+
+boxes:
+  - { at: [36, 104], size: [244, 72], title: 从下往上找第一个 vllm_ascend 帧, sub: 找不到就说明问题在上游, tone: neutral }
+  - { at: [36, 190], size: [244, 72], title: 看它落在哪个子目录, sub: 用目录地图缩范围, tone: neutral }
+  - { at: [36, 276], size: [244, 72], title: 在另一个 ref 上看同一文件的 git log, sub: 确认这段最近改过没有, tone: neutral }
+
+  - { at: [328, 104], size: [244, 72], title: "在 ascend_config.py 里搜键名", sub: 找到就知道属于哪个子配置类, tone: ascend }
+  - { at: [328, 190], size: [244, 72], title: "顺着 get_ascend_config() 找消费方", sub: 配置在哪被读，功能就在哪, tone: ascend }
+  - { at: [328, 276], size: [244, 72], title: 看校验族有没有拦它, sub: 「配了没生效」多半停在这一步, tone: accent }
+
+  - { at: [620, 104], size: [244, 72], title: "先搜 vllm_ascend/patch/", sub: 搜到就读它的 Why / Future Plan, tone: accent }
+  - { at: [620, 190], size: [244, 72], title: "搜不到再找子类 class X(上游类)", sub: 顺序反了会漏掉被 patch 改过的情况, tone: upstream }
+  - { at: [620, 276], size: [244, 72], title: 两者都没有就是上游原样, sub: 去读上游, tone: upstream }
+
+notes:
+  - { at: [20, 412], text: "三条都是从问题反查，不是正向通读。入口只有 5 个 entry point，往下第二层就分叉成 23 个目录——正向读到第二层就散了。", size: 12.5, width: 860 }
+  - { at: [20, 450], text: "grep 一个类名可能命中三处：patch 里的替换、子类、以及 _310p/ 里的专用副本。三者含义完全不同，先确认自己在看哪一套。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720
+    symbols: [get_ascend_config]

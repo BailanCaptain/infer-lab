@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="model_runner_v1.py 的 5251 行按真实行号切开：_prepare_inputs 一个方法占了近六分之一">
+  <title>model_runner_v1.py 的 5251 行按真实行号切开：_prepare_inputs 一个方法占了近六分之一</title>
+  <rect width="900" height="480" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="860" height="412" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="54" width="138.6" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一个文件，5251 行</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不要从第 1 行往下读。先决定要改什么行为，再直接跳进对应那一段。</text>
+  <rect x="180" y="112" width="26" height="16.6" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="180" y="128.6" width="26" height="28.6" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="180" y="157.2" width="26" height="8.3" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="180" y="165.5" width="26" height="49.8" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="180" y="215.2" width="26" height="17.8" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="180" y="233" width="26" height="28.2" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="180" y="261.2" width="26" height="59.8" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="180" y="321" width="26" height="29.6" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="180" y="350.5" width="26" height="66.2" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="180" y="416.7" width="26" height="21.3" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <text x="170" y="124.3" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L1</text>
+  <text x="216" y="124.3" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">文件头与 import</text>
+  <text x="170" y="146.9" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L268</text>
+  <text x="216" y="146.9" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">类定义与 __init__   NPUModelRunner</text>
+  <text x="170" y="165.3" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L729</text>
+  <text x="216" y="165.3" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">把调度结果合进本卡状态   _update_states</text>
+  <text x="170" y="194.4" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L862</text>
+  <text x="216" y="194.4" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">把请求摊成张量   _prepare_inputs</text>
+  <text x="170" y="228.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L1664</text>
+  <text x="216" y="228.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">辅助与中间状态</text>
+  <text x="170" y="251.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L1950</text>
+  <text x="216" y="251.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">一步执行的主循环   execute_model</text>
+  <text x="170" y="295.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L2404</text>
+  <text x="216" y="295.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">采样与输出   sample_tokens</text>
+  <text x="170" y="339.8" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L3367</text>
+  <text x="216" y="339.8" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">假批：profile 与图捕获   _dummy_run</text>
+  <text x="170" y="387.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L3843</text>
+  <text x="216" y="387.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">KV 张量怎么分配   initialize_kv_cache</text>
+  <text x="170" y="431.4" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="11.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">L4909</text>
+  <text x="216" y="431.4" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">每层每块的 KV 形状声明   get_kv_cache_spec</text>
+  <text x="20" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">它继承上游 GPUModelRunner：这个文件里没有的方法不是缺失，是沿用上游。</text>
+</svg>

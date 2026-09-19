@@ -1,3 +1,5 @@
+> 新会话优先阅读 [LLM WIKI 最新交接（2026-09-17）](HANDOFF-LLM-WIKI.md)。smooth_factor 补充已获用户批准并写入正式参数页，公式、默认值、算例及两个来源已通过浏览器验证。正式库仍20页，其余19页和原raw未变；四题后测尚未运行。累计占用 $17.3115764、48/52 次、paused=true，金额上限仍29美元；保留新增$1未知预留，具体恢复方案待确认。 全部34条AC、三项暂缓批量工作、维护失败与接续顺序均在新交接中。以下保留历史项目背景。
+
 # 交接说明（2026-09-14 更新：知识库 19 页，双版本对照 + 参数版本谱系落地）
 
 ## 当前开篇：大模型推理之旅 · 城市背景
@@ -14,14 +16,15 @@
 
 **主干只剩地基，没有任何教学画面；另有一条 `feat/llm-wiki` 分支在做知识库，19 页可读、问答会沿关系图串多页作答、参数页带 git 算出的版本谱系（见下方 F001 / F002 一节）。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
 
-## 知识库 F001 / F002（分支 `feat/llm-wiki`，未合入 main）
+## 知识库 F001–F004（分支 `feat/llm-wiki`，未合入 main）
 
 真相源：`docs/features/F001-llm-wiki.md`（12 条 AC）、`docs/features/F002-param-lineage.md`（6 条 AC）、实施计划 `docs/plans/llm-wiki-plan.md` 与 `docs/plans/param-lineage-plan.md`、试点人审报告 `docs/plans/llm-wiki-pilot-review.md`、**问题台账 `docs/plans/llm-wiki-open-questions.md`**（用户 09-10 起提的问题及处置，含几处我判断错后的更正）。
 
 **目标**：agent 写、人只审、进 git 的课程知识库，学习者在 `#/wiki` 问名词就有基于知识库的回答。
 
-**F001 · 12 条 AC 达成 10 条**。剩 **AC5 批量灌种**（现在 19 页，目标 120–160 页）与 **AC8 存进 wiki + PR ingest**（没动）。
-**F002 · 6 条 AC 达成 2 条**（AC3 版本谱系、AC5 选择性补正文）。剩 AC1 扫描器、AC2 疑似项复核、**AC4 骨架页**、AC6 每日同步。
+**Feature 进度只看各 feature 的当前验收节**：[F001](docs/features/F001-llm-wiki.md#2026-09-16-当前验收核对)、[F002](docs/features/F002-param-lineage.md#2026-09-16-当前验收核对)、[F003](docs/features/F003-github-corpus.md)、[F004](docs/features/F004-knowledge-loop.md)。旧的 F001“10/12”、F002“2/6”混用了部分实现与完整验收，已撤回；[本轮核对记录](docs/plans/feature-progress-review.md) 留命令证据，这里不再复制完成数。
+
+**2026-09-16 独立复查后**：[当前修复与人工交接](docs/plans/wiki-independent-closure-review.md)。已修复草稿不自动整合、旧参数 ID 脱节、复测方案后置和中文缺口漏记；8 个旧参数页接入静态生成区。真实效果尚未通过：停在内容提案人审与未知费用核对，收费仍暂停。F001–F004 均未完整验收。旧“非批量全部接通”结论已撤回。
 
 **产出**：`wiki/concepts/` 11 页（11 章 KV Cache）+ `wiki/params/` 8 页（v0.23.0 有、main 已删的参数），共 19 页。
 
@@ -39,17 +42,18 @@
 | 命令 | 作用 |
 |---|---|
 | `pnpm wiki:clone --seeds <yaml>` | **完整克隆**源码仓库到 `tools/repos/`，抓全部分支与 tag，按 seeds 声明的每个 ref 建一份工作树 |
-| `pnpm wiki:ingest --seeds <yaml> --phase extract` / `--phase integrate` | 扇出提取（每 feature 一次 `claude -p`，并发 3，多 ref 时每个 ref 各给一个 `--add-dir`）+ 串行整合 |
+| `pnpm wiki:ingest --seeds <yaml> --phase extract` / `--phase integrate --only <ids>` | 提取草稿 / 隔离整合后生成待审包；integrate 不再直接发布 |
+| `pnpm wiki:review list` / `show <revision>` / `approve <revision>` / `reject <revision> --reason <原因>` / `recover <revision>` | 审阅及发布恢复；行为与限制见 [HANDBOOK 人类须知](wiki/HANDBOOK.md#人类须知)，证据见 [发布验收](docs/plans/wiki-review-publication.md) |
 | `pnpm wiki:build` | 由 frontmatter 派生 `wiki/index.md`、`registry.json`，并算出反向边 `backlinks` |
 | `pnpm wiki:lint` | 静态规则，已进 `pnpm check` |
 | `pnpm wiki:audit --seeds <yaml>` | 把每条来源行号拿到钉住的仓库里核对是否真实存在 |
 | `pnpm wiki:gaps` | **漏洞**：跨页反复引用但没有页的概念 + 指向不存在页的断边 |
 | `pnpm wiki:stale` | **过期**：哪几页引用的上游代码已经变了，直接给出 `--only` 重跑命令 |
 | `pnpm wiki:lineage <名字>` | 一个标识符在各分支的存亡 + 引入/移除 PR + 影响面，输出即「版本谱系」一节 |
-| `pnpm wiki:lineage:apply` | 把上面的结果整节写进 `wiki/params/*.md` |
+| `pnpm wiki:lineage:apply` | 持锁核对原文后刷新生成节；不会覆盖并发改动 |
 | `pnpm dev` / `pnpm dev:server` / `pnpm dev:all` | 前端（`#/wiki`）/ 问答服务（8790）/ 两者一起 |
 
-**`wiki/HANDBOOK.md` 是这套系统唯一的规则文件**，按六个二级标题切片分别注入不同角色的 agent。映射表在 `scripts/wiki/handbook.ts:9`。**改规则只改这一个文件，不动代码。** 代价是：**规则改了页面不会自己变，要重跑才生效**。
+**`wiki/HANDBOOK.md` 是这套系统唯一的规则文件**，按六个二级标题切片分别注入不同角色的 agent。映射表在 `scripts/wiki/handbook.ts:9`。**人读规则在 HANDBOOK，机器契约在共用 schema；改规则后须同步必要代码并通过一致性测试。** 代价是：**规则改了页面不会自己变，要重跑才生效**。
 
 **踩过的坑，别再踩**
 
@@ -84,17 +88,17 @@
 - 官方文档站 <https://docs.vllm.ai/projects/ascend/> 有 26 个活跃版本，内容由仓库 `docs/source/` 渲染。
 - **知识库当前钉在 `28bf3a2e`（2026-08-29），而 `origin/main` 已超前 276 个提交**，19 页引用的文件里绝大多数已变过。`pnpm wiki:stale` 会告诉你该重跑哪几页。
 
-## 后续 feature：F003 / F004（文档已写，**计划一个字没写，代码零**）
+## F002–F004 的设计与历史发现
 
 用户 09-10 至 09-11 提出三类 F001 结构上答不了的需求，各立一个 feature。四份 feature 文档已互相引用、依赖标清、冲突已解（做过一轮交叉审查）。
 
 | Feature | 做什么 | 状态 |
 |---|---|---|
 | **[F002](docs/features/F002-param-lineage.md)** · 参数清单与版本谱系 | 「`layer_sharding` 干嘛的、哪个版本移除、哪些分支还有」。参数扫描器 + 跨 ref 谱系 + 每日触发。**全是确定性脚本，不花 LLM 额度**，LLM 只复核疑似项和补正文 | feature + [plan](docs/plans/param-lineage-plan.md)（333 行，15 条锚点核验）已写 |
-| **[F003](docs/features/F003-github-corpus.md)** · GitHub 语料与报错溯源 | 「贴一段报错，找到对应 issue/PR」。12,074 PR / 4,188 issue 拉成检索语料，**不做成 wiki 页**（全量转页要约 4 万美元） | feature 已写，plan 等 `GITHUB_TOKEN` |
-| **[F004](docs/features/F004-knowledge-loop.md)** · 知识库闭环 | 「越用越聪明」：手动投喂、查不到自动补写、定期巡检、页面衰减检测、跨页重复 lint。九条 AC | feature 已写，plan 待写 |
+| **[F003](docs/features/F003-github-corpus.md)** · GitHub 语料与报错溯源 | 报错检索与修复链；全部社区内容作为检索语料，选择性生成 PR 草稿 | [plan](docs/plans/github-corpus-plan.md) 已写并已实施；当前验收见 feature，不再复制状态 |
+| **[F004](docs/features/F004-knowledge-loop.md)** · 知识库闭环 | 投喂、补写、巡检、差异与交叉审视，人审后沉淀 | [plan](docs/plans/knowledge-loop-plan.md) 已写并已实施；真实效果边界见 feature |
 
-**接手前必须知道的实测结论**
+**历史设计依据（当时的完成标记不替代上方当前验收表）**
 
 1. **单 commit 钉定不成立**。`layer_sharding` 在分支间非单调：v0.13.0 有 8 个文件、v0.18.0 有 9 个、v0.23.0 有 **14** 个、v0.24.0rc 起主线为 0、v0.26.0rc 又有 1 处（那 1 处是单测里的残留赋值 `self.impl.layer_sharding_kwargs = []`，不是功能回归）。「哪个版本移除」只能按 ref 列表答。**已修，AC9 完成。**
 
@@ -104,7 +108,7 @@
 
 4. **查文档不能用全词精确匹配**。文档里写 `Layer sharding.` 而不是 `layer_sharding`，精确匹配会漏掉整份 `release_notes.md`（2267 行、**1137 个 PR 链接**、39 个版本小节——这是谱系的一等来源）。`retrieve()` 已改成宽松匹配（压平分隔符 + 公共前缀），学习者问「layer share 是什么」也能命中。
 
-5. **`runBatch` 重构是 F002 就需要的**，不是 F004 才需要。F002 AC2/AC5 都是非 `SeedFeature` 形状的 agent 调用，而 `runExtractPhase` 签名绑死了它。十行机械重构，F002 先做则 F004 白捡。
+5. **共用执行器已经落在 `scripts/wiki/batch.ts`**，生产入口复用受限调用、持久任务和共享预算；旧 `runExtractPhase` 仅兼容，不作为新的实现基座。不能再按“十行机械重构”描述完整闭环的工作量。
 
 ## 地基有什么（全部有测试，不要动）
 

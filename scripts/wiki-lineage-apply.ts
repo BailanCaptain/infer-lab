@@ -8,9 +8,12 @@
  * 页面里原有的这一节（不管是 agent 写的还是上一次生成的）整节替换。
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { replaceSection } from "./wiki/lineage";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import matter from "gray-matter";
+import { LINEAGE_SECTION, replaceSection } from "./wiki/lineage";
+import { publishLineage } from "./wiki/lineage-publish";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -19,6 +22,7 @@ function arg(name: string, def?: string): string | undefined {
 
 const root = process.cwd();
 const dir = arg("--dir", process.argv.includes("--drafts") ? "_drafts" : "params") as string;
+if (!["params", "_drafts"].includes(dir)) throw new Error("谱系刷新目录限 params / _drafts");
 const pagesDir = join(root, "wiki", dir);
 if (!existsSync(pagesDir)) {
   console.error(`x 目录不存在：wiki/${dir}`);
@@ -26,14 +30,13 @@ if (!existsSync(pagesDir)) {
 }
 
 const seedsArg = arg("--seeds", "wiki/seeds/params-removed.yaml") as string;
-const SECTION = "## 版本谱系";
 
 /** 页面 title 就是参数名（参数页的约定），拿它去算谱系 */
 function titleOf(text: string): string | undefined {
-  return /^title:\s*(.+)$/m.exec(text.split("---")[1] ?? "")?.[1]?.trim();
+  return matter(text).data.title;
 }
 
-let done = 0;
+const updates: { path: string; before: string; after: string }[] = [];
 for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
   const file = join(pagesDir, name);
   const text = readFileSync(file, "utf8");
@@ -43,10 +46,11 @@ for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
   if (!/^type:\s*param\s*$/m.test(text.split("---")[1] ?? "")) continue;
 
   const md = execFileSync(
-    "node",
+    process.execPath,
     [
-      resolve(root, "node_modules/tsx/dist/cli.mjs"),
-      resolve(root, "scripts/wiki-lineage.ts"),
+      "--import",
+      import.meta.resolve("tsx"),
+      fileURLToPath(new URL("./wiki-lineage.ts", import.meta.url)),
       term,
       "--seeds",
       seedsArg,
@@ -54,8 +58,9 @@ for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
     { encoding: "utf8", cwd: root, maxBuffer: 32 << 20 },
   ).trim();
 
-  writeFileSync(file, replaceSection(text, SECTION, md));
-  console.log(`ok ${dir}/${name} ← ${term}`);
-  done++;
+  const after = replaceSection(text, LINEAGE_SECTION, md);
+  if (text !== after) updates.push({ path: `wiki/${dir}/${name}`, before: text, after });
 }
+const done = await publishLineage(root, updates);
+for (const update of updates) console.log(`ok ${update.path}`);
 console.log(done ? `\n${done} 个参数页的版本谱系已重算。` : "没有找到参数页（type: param）。");

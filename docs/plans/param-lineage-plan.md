@@ -9,14 +9,7 @@ Feature 文档：[F002-param-lineage.md](../features/F002-param-lineage.md)
 
 ## Acceptance Criteria
 
-逐条抄自 F002：
-
-- **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`、`file`、`line`、`comment`、`constraints`、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别。
-- **AC2 · 疑似项由 LLM 复核**：`confidence: suspect` 的条目走一次 agent 调用复核，输出「确认是参数 / 不是参数 / 拿不准」三态与理由，写回 JSON。拿不准的留在清单里并标记，不静默丢弃。验收：故意混入一个非参数标识符，复核后被标为「不是参数」且带理由。
-- **AC3 · 版本谱系**：`pnpm wiki:lineage` 对每个参数跨全部 ref 计算 `wiki/lineage/<param>.json`：各 ref 有无、首次出现的提交与 PR 号、被删除的提交与 PR 号、含它的 tag 列表。PR 号从 squash 提交信息尾部的 `(#NNNN)` 提取。验收：`layer_sharding` 的谱系文件与实测表一致，且给出 v0.23→v0.24 之间的删除提交。
-- **AC4 · 骨架页零成本覆盖全部参数**：`pnpm wiki:build-param-pages` 由 `params-*.json` + 谱系确定性生成 `wiki/params/<name>.md`。不调用任何 LLM。验收：跑一次生成全部参数页，`pnpm wiki:lint` 通过，重复运行 `git diff` 为空。
-- **AC5 · LLM 选择性补正文**：`pnpm wiki:ingest --params <name,...>` 把骨架页交给提取 agent 补四节正文，骨架部分由脚本重新覆盖，agent 不得改动。验收：补完一页后重跑 `wiki:build-param-pages`，版本表被刷新而正文保留。
-- **AC6 · 每日同步与新参数触发**：`pnpm wiki:sync` 拉全部 ref、重跑扫描与谱系、与上次结果 diff；新增参数进队列并生成骨架页；消失的参数标注移除版本与 PR；默认值变化写进 `wiki/log.md`。失败非零退出并留原因。验收：人为改掉一条上次结果，跑 sync 能报「新增 1 / 删除 1 / 变更 1」并落到对应文件。
+验收规范及当前状态只保留在 [F002 的 Acceptance Criteria](../features/F002-param-lineage.md#acceptance-criteria)。本计划的任务分别覆盖 AC1 扫描、AC2 复核、AC3 谱系、AC4 骨架、AC5 补正文、AC6 同步；实施步骤不作为完成证明。2026-09-14 复核确认 AC3 / AC5 只有部分实现，不能沿用旧“2/6 达成”。
 
 ## Architecture
 
@@ -44,7 +37,7 @@ wiki/params/<name>.md           参数页：脚本骨架 + LLM 正文
 
 沿用 F001：TypeScript + tsx + vitest 5 + zod 3 + gray-matter。新增：
 
-- **Python 3**（本机 `/f/ProgramData/Anaconda3/python`，3.9.13）只用标准库 `ast` 与 `json`。`ast.parse()` 解析源码文本，不执行、不 import，所以**不需要安装 vllm 或 pydantic**。
+- **Python 3.11+**（运行配置与当前要求见 [F002 Dependencies](../features/F002-param-lineage.md#dependencies)）只用标准库 `ast` 与 `json`。`ast.parse()` 解析源码文本，不执行、不 import，所以**不需要安装 vllm 或 pydantic**。
 - 不新增 npm 依赖。
 
 ## Straight-Line Check

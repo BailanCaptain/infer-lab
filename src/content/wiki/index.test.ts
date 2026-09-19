@@ -6,7 +6,7 @@ describe("读取器", () => {
   it("registry 与 wiki/ 下的 md 文件集合一致", () => {
     const pages = listPages();
     expect(pages.length).toBeGreaterThan(0);
-    // 每页都能拿到正文，说明 glob 覆盖了 registry 里的每个 id
+    // 构建快照覆盖全部正式页，不依赖另一份手动维护的 glob 清单。
     for (const p of pages) {
       const full = getPage(p.id);
       expect(full, `registry 有 ${p.id} 但找不到对应 md`).toBeTruthy();

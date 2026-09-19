@@ -3,11 +3,15 @@
  * 把页面（默认 concepts/ 与 sources/；--drafts 时改审 _drafts/）的每条来源
  * 拿到 tools/repos/ 下钉住的仓库里核对行号是否真实存在。
  */
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { auditPage, type RefAudit, summarize } from "./wiki/audit";
+import { auditDiagram } from "./wiki/diagram-audit";
+import { loadDiagrams } from "./wiki/diagrams";
+import { createBlobReader } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
 import { loadPages, parsePage, type WikiPage } from "./wiki/pages";
+import { readPageRaw, readRawSnapshot } from "./wiki/raw";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -43,19 +47,19 @@ if (useDrafts) {
   for (const p of r.problems) schemaProblems.push(`${p.file} [${p.rule}] ${p.message}`);
 }
 
+const { diagrams, problems: diagramProblems } = loadDiagrams(wikiRoot);
+
 const deps = {
   repoRoots,
-  countLines: (repoRoot: string, path: string): number | null => {
-    const abs = join(repoRoot, path);
-    return existsSync(abs) ? readFileSync(abs, "utf8").split(/\r?\n/).length : null;
-  },
-  readRaw: (id: string): string => {
-    const abs = join(wikiRoot, `raw/${id}.md`);
-    return existsSync(abs) ? readFileSync(abs, "utf8") : "";
-  },
+  readBlob: createBlobReader(),
+  diagrams,
+  readRaw: (id: string, paths?: string[]): string => readPageRaw(wikiRoot, id, paths),
+  readSnapshot: (path: string): string => readRawSnapshot(wikiRoot, path),
 };
 
 const all: RefAudit[] = [];
+const symbolProblems = [...diagramProblems, ...pages.flatMap((page) => auditDiagram(page, deps))];
+for (const p of symbolProblems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
 for (const page of pages) {
   const audits = auditPage(page, deps);
   all.push(...audits);
@@ -68,19 +72,27 @@ for (const page of pages) {
   for (const a of audits) {
     const mark = a.verdict === "ok" ? "✓" : a.verdict === "url" ? "·" : "✗";
     const note = a.verdict === "ok" ? `文件 ${a.totalLines} 行` : a.verdict;
-    console.log(`  ${mark} ${a.ref}  (${note})${a.inRaw ? "" : "  [raw 无对应片段]"}`);
+    console.log(
+      `  ${mark} ${a.ref}  (${note})${a.inRaw ? "" : "  [raw 未定位同版本完整引用，摘录尚未验证]"}`,
+    );
   }
 }
 
 const s = summarize(all);
 console.log(`\n审计 ${pages.length} 页，来源 ${all.length} 条`);
 console.log(
-  `  行号有效 ${s.ok}，URL ${s.url}，文件不存在 ${s["missing-file"]}，行号越界 ${s["out-of-range"]}，未知仓库 ${s["unknown-repo"]}，raw 缺片段 ${s.notInRaw}`,
+  `  行号有效 ${s.ok}，URL 未联网验证 ${s.url}，无效 commit ${s["invalid-commit"]}，文件不存在 ${s["missing-file"]}，行号越界 ${s["out-of-range"]}，未知仓库 ${s["unknown-repo"]}，raw 引用待核对 ${s.notInRaw}`,
 );
 for (const p of schemaProblems) console.error(`x ${p}`);
-const failed = s["missing-file"] + s["out-of-range"] + s["unknown-repo"] + schemaProblems.length;
+const failed =
+  s["invalid-commit"] +
+  s["missing-file"] +
+  s["out-of-range"] +
+  s["unknown-repo"] +
+  schemaProblems.length +
+  symbolProblems.length;
 if (failed) {
   console.error(`\nwiki:audit 失败：${failed} 处`);
   process.exit(1);
 }
-console.log("ok wiki:audit 通过");
+console.log("ok wiki:audit 本地引用与行号校验通过（URL、raw 摘录内容和结论语义不在本次通过范围内）");

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 578" width="900" height="578" role="img" aria-label="那条请求要穿过两道进程边界，下去一次、上来一次（vLLM v0.23.0）">
+  <title>那条请求要穿过两道进程边界，下去一次、上来一次（vLLM v0.23.0）</title>
+  <rect width="900" height="578" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="44" width="860" height="150" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="58" width="76" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">前端进程</text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">收 HTTP · 分词 · 反分词。这里只有文字和 token id，没有一个张量。</text>
+  <rect x="20" y="218" width="860" height="150" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="232" width="130" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="250.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程</text>
+  <text x="38" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">排队 · 调度 · 分 KV block。这里只有整数，没有一个 NPU 算子。</text>
+  <rect x="20" y="392" width="860" height="150" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="406" width="99.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="424.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Worker 进程</text>
+  <text x="38" y="449" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">建张量 · 跑 28 层 · 采样。到这里才第一次碰硬件。</text>
+  <line x1="20" y1="206" x2="880" y2="206" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">进程边界 ① · ZMQ：下去的是 EngineCoreRequest，上来的是 EngineCoreOutputs</text>
+  <line x1="20" y1="380" x2="880" y2="380" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="371" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">进程边界 ② · 下去的是 SchedulerOutput，上来的是 ModelRunnerOutput</text>
+  <rect x="60" y="122" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="72" y="135" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(78.4 141.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></g>
+  <text x="112" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">把问题切成 token</text>
+  <text x="112" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">得到 37 个 token id</text>
+  <text x="112" y="174" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">InputProcessor</text>
+  <rect x="326" y="122" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="338" y="135" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(344.4 141.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
+  <text x="378" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">交给 EngineCore</text>
+  <text x="378" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">打包成 EngineCoreRequest</text>
+  <text x="378" y="174" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">AsyncLLM.add_request</text>
+  <rect x="592" y="122" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="604" y="135" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(610.4 141.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="644" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">收回 token 再变成字</text>
+  <text x="644" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一个一个往外吐</text>
+  <text x="644" y="174" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">OutputProcessor</text>
+  <rect x="60" y="296" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="72" y="309" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(78.4 315.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="112" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">排进队列</text>
+  <text x="112" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">waiting 与 running 两条队</text>
+  <text x="112" y="348" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">EngineCore.add_request</text>
+  <rect x="326" y="296" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="338" y="309" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(344.4 315.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="378" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">这一步算谁、算几个</text>
+  <text x="378" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第 1 步给它 37 个名额</text>
+  <text x="378" y="348" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">Scheduler.schedule</text>
+  <rect x="592" y="296" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="604" y="309" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(610.4 315.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
+  <text x="644" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">分 KV block</text>
+  <text x="644" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第 92 步才要第二块</text>
+  <text x="644" y="348" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">KVCacheManager</text>
+  <rect x="60" y="470" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="72" y="483" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(78.4 489.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="112" y="487" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">把请求摊成张量</text>
+  <text x="112" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">block_table 与 slot_mapping</text>
+  <text x="112" y="522" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_prepare_inputs</text>
+  <rect x="326" y="470" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="338" y="483" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(344.4 489.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="378" y="487" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">跑 28 层</text>
+  <text x="378" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">注意力算子读写 KV</text>
+  <text x="378" y="522" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">NPUModelRunner</text>
+  <rect x="592" y="470" width="258" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="604" y="483" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(610.4 489.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="644" y="487" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">采样</text>
+  <text x="644" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">吐出 1 个 token id</text>
+  <text x="644" y="522" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">sample_tokens</text>
+  <path d="M300 194 L300 216" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M300 216 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M600 216 L600 194" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
+  <path d="M600 194 l-5.5 11 l11 0 z" fill="var(--color-kv, #4c65b6)"/>
+  <path d="M300 368 L300 390" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M300 390 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M600 390 L600 368" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M600 368 l-5.5 11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <text x="20" y="566" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">越往下越具体：上面一层只认字，中间一层只认整数，最下面一层才认张量和显存地址。跨一次边界就换一种东西。</text>
+</svg>

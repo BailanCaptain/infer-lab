@@ -1,0 +1,13 @@
+{
+  "id": "026efb56e45be57a1e86c4dcce9a40bdaebc425486e268f6341d094e87af9d88",
+  "input": {
+    "kind": "pr",
+    "repo": "vllm-project/vllm-ascend",
+    "number": 11953,
+    "sourceHash": "e3248f04a90ac23bb79c63b06b510590e020167ac16058da08accfcf91f086ca"
+  },
+  "state": "failed",
+  "createdAt": "2026-09-15T16:47:38.297Z",
+  "attempts": 1,
+  "reason": "Error: Error: 费用未知，共享预算暂停；timeout 60000ms"
+}

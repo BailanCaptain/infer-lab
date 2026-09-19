@@ -1,0 +1,39 @@
+layout: scene
+id: attention-cost
+caption: 条的长度就是每个 token 每一层真正占掉的字节数（block_size 128、bf16）
+size: [900, 470]
+
+regions:
+  - label: 存一个 token，一层要多少字节
+    note: 上面那条是那条请求走的路；下面三条是 MLA 系，代价差三倍以上。
+    at: [20, 44]
+    size: [860, 316]
+    tone: neutral
+
+strips:
+  - { at: [262.0, 112], cells: 1, cell: 400.0, h: 26, highlight: 0, tone: ascend }
+  - { at: [262.0, 174], cells: 1, cell: 112.5, h: 26, highlight: 0, tone: neutral }
+  - { at: [262.0, 236], cells: 1, cell: 137.5, h: 26, highlight: 0, tone: upstream }
+  - { at: [262.0, 298], cells: 1, cell: 125.2, h: 26, highlight: 0, tone: muted }
+
+notes:
+  - { at: [250.0, 130], text: 普通 GQA, size: 13, anchor: end, strong: true }
+  - { at: [672.0, 124], text: "4096 B／token／层", size: 12 }
+  - { at: [672.0, 140], text: "2 × 8 × 128 × 2 B    五维，带 K/V 两份", size: 11.5 }
+  - { at: [250.0, 192], text: MLA, size: 13, anchor: end, strong: true }
+  - { at: [384.5, 186], text: "1152 B／token／层", size: 12 }
+  - { at: [384.5, 202], text: "1 × (512 + 64) × 2 B    四维，没有独立的 K/V 两份", size: 11.5 }
+  - { at: [250.0, 254], text: MLA + 稀疏 indexer, size: 13, anchor: end, strong: true }
+  - { at: [409.5, 248], text: "1408 B／token／层", size: 12 }
+  - { at: [409.5, 264], text: "1 × (512 + 64 + 128) × 2 B    多存一份 indexer 的 key", size: 11.5 }
+  - { at: [250.0, 316], text: 稀疏 + C8 量化 indexer, size: 13, anchor: end, strong: true }
+  - { at: [397.2, 310], text: "1282 B／token／层", size: 12 }
+  - { at: [397.2, 326], text: "576×2 + 128×1 + 1×2 B    indexer 的 key 换成 int8", size: 11.5 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
+    symbols: [get_kv_cache_shape]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L99-L106
+    symbols: [get_kv_cache_shape]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L66-L121
+    symbols: [page_size_bytes]

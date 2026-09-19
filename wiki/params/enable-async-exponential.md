@@ -2,27 +2,40 @@
 id: enable-async-exponential
 title: enable_async_exponential
 type: param
-summary: 把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除。
-aliases: [异步指数分布重叠, Asynchronous exponential overlap]
-chapters: ["19"]
+summary: >-
+  把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main
+  上已整体删除。
+aliases:
+  - 异步指数分布重叠
+  - Asynchronous exponential overlap
+chapters:
+  - '19'
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L256-L263
-  - vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L90-L103
-  - vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L182-L191
-  - vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L20-L43
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2283
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537
-  - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L76
-  - vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L122
-  - vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_sampler.py#L72-L96
-  - vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L20-L44
-  - vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L74-L85
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L1328
-  - https://huggingface.co/Qwen/Qwen3-0.6B
-evidence: "C"
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L256-L263'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L90-L103'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L182-L191'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L20-L43'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2278-L2283'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L531-L537'
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L76
+  - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L122'
+  - 'vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_sampler.py#L72-L96'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L20-L44'
+  - 'vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L74-L85'
+  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L1328'
+  - 'https://huggingface.co/Qwen/Qwen3-0.6B'
+  - >-
+    vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L262
+evidence: C
 relations: []
 contradicts: []
-updated: "2026-09-14"
+updated: '2026-09-14'
+rawSources:
+  - >-
+    raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md
+  - >-
+    raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---
 
 ## 一句话
@@ -102,29 +115,40 @@ llm = LLM(
 
 ## 版本谱系
 
-> 本节由 `pnpm wiki:lineage` 从 git 历史算出，不由人或 agent 撰写。
+> 本节由 `pnpm wiki:lineage` 从 git 历史算出。标识符的文本存在不等同于运行时功能可用；引入／移除均比较提交与父提交。
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 有（3 个文件） |
-| releases/v0.18.0 | 有（3 个文件） |
-| releases/v0.20.2rc | 有（3 个文件） |
-| releases/v0.21.0rc | 有（3 个文件） |
-| releases/v0.22.1rc | 有（3 个文件） |
-| releases/v0.23.0 | 有（3 个文件） |
-| releases/v0.24.0rc | 有（3 个文件） |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
 | main | 无 |
+| releases/v0.23.0 | 有（3 个文件） |
 
-**移除**：2026-07-18，PR [#12306](https://github.com/vllm-project/vllm-ascend/pull/12306) —— [Refactor] asnc exponential optimization unset (#12306)
+- **引入**：2025-12-20 · 5d02eed16f6e4e5187259583f9db16a916095ab3 · PR [#4501](https://github.com/vllm-project/vllm-ascend/pull/4501) —— [Performance] Add async exponential while model executing (#4501)
+  包含该提交的 tag：v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  - `vllm_ascend/ascend_config.py` +5 / −0（文本行变化）
+  - `vllm_ascend/sample/sampler.py` +30 / −0（文本行变化）
+  - `vllm_ascend/worker/model_runner_v1.py` +6 / −0（文本行变化）
+- **移除**：2026-07-18 · 4f0a38a95c439b30948c30e777403633e0dd638b · PR [#12306](https://github.com/vllm-project/vllm-ascend/pull/12306) —— [Refactor] asnc exponential optimization unset (#12306)
+  包含该提交的 tag：v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  - `vllm_ascend/sample/sampler.py` +0 / −33（文本行变化）
+  - `vllm_ascend/ascend_config.py` +0 / −9（文本行变化）
+  - `vllm_ascend/worker/model_runner_v1.py` +0 / −7（文本行变化）
 
-影响面（删除行数最多的几个文件）：
+当前含该标识符的 tag：v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1
 
-- `vllm_ascend/sample/sampler.py` −33
-- `vllm_ascend/ascend_config.py` −9
-- `vllm_ascend/worker/model_runner_v1.py` −7
+## 参数定义（自动生成）
 
-**引入**：2025-12-20，PR [#4501](https://github.com/vllm-project/vllm-ascend/pull/4501) —— [Performance] Add async exponential while model executing (#4501)
+> 此节由参数扫描结果生成；静态定义不保证运行时最终值。
 
+| 项 | 静态记录 |
+| --- | --- |
+| 标识 | `additional_config["enable_async_exponential"]` |
+| 类型 | `unknown` |
+| 默认表达式 | `False` |
+| 定义 | `vllm_ascend/ascend_config.py:262` [C14] |
+| 版本 | releases/v0.23.0 · 2c59ff1047573f40a471cf7535f01a8877344415 |
+
+字段注释：
+
+源码未提供字段注释。
+
+约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：

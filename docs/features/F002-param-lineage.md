@@ -8,9 +8,9 @@ created: 2026-09-10
 
 # F002 — vLLM-Ascend 参数清单与版本谱系
 
-**Status**: in-progress（6 条 AC 达成 2 条：AC3 版本谱系、AC5 选择性补正文；剩 AC1 扫描器、AC2 疑似项复核、AC4 骨架页、AC6 每日同步）
+**Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
 **Created**: 2026-09-10
-**Updated**: 2026-09-14
+**Updated**: 2026-09-16
 
 ## Why
 
@@ -52,26 +52,43 @@ F001 结构上答不了这类问题，三个原因：
 
 ## Acceptance Criteria
 
-- [ ] **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`（如 `additional_config["eplb_config"]["dynamic_eplb"]`）、`file`、`line`、`comment`（字段上方注释）、`constraints`（从 validator 的报错字符串提取的取值范围与联动）、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别（见 Design Decisions「四种定义形态」）。
-- [ ] **AC2 · 疑似项由 LLM 复核**：`confidence: suspect` 的条目走一次 agent 调用复核，输出 `确认是参数 / 不是参数 / 拿不准` 三态与理由，写回 `params-<ref>.json`。拿不准的留在清单里并标记，不静默丢弃。验收：故意混入一个非参数标识符，复核后被标为「不是参数」且带理由。
-- [x] **AC3 · 版本谱系**：`pnpm wiki:lineage` 对每个参数跨全部 ref 计算 `wiki/lineage/<param>.json`：各 ref 有无、首次出现的提交与 PR 号、被删除的提交与 PR 号、含它的 tag 列表。**2026-09-12 达成**（落在 `scripts/wiki/lineage.ts` + `pnpm wiki:lineage <名字>`，输出直接就是参数页「版本谱系」一节的 markdown，未落 `wiki/lineage/<param>.json` 中间文件）。实测 `layer_sharding`：v0.13.0~v0.23.0 有（6→8 个文件）、v0.24.0rc 起全无；移除 2026-07-15 PR #11953 `[Refactor] remove layer sharding`；影响面 `ops/layer_shard_linear.py −296`、`ops/flashcomm2_oshard_manager.py −103` 等五个文件。四条命令即可：`git grep -l` 每分支有无、`git log -S` 找存亡翻转的提交、提交标题末尾的 `(#NNNN)` 取 PR、`git show --numstat` 算影响面。**引入点要走「最后一个还有它的分支」的历史**——走最新分支会取到改名而不是诞生点。这一节由 `pnpm wiki:lineage:apply` 整节覆盖写进页面，agent 写什么都会被冲掉（它会编 PR 号）。PR 号从 squash 提交信息尾部的 `(#NNNN)` 提取。验收：`layer_sharding` 的谱系文件与上方 Why 里那张实测表一致，且给出 v0.23→v0.24 之间的删除提交。
-- [ ] **AC4 · 骨架页零成本覆盖全部参数**：`pnpm wiki:build-param-pages` 由 `params-*.json` + 谱系确定性生成 `wiki/params/<name>.md`，含 frontmatter、定义位置、默认值、约束、版本表，正文标记为「骨架，待补」。不调用任何 LLM。验收：跑一次生成全部参数页，`pnpm wiki:lint` 通过，`git diff` 在重复运行后为空（幂等）。
-- [x] **AC5 · LLM 选择性补正文**：`pnpm wiki:ingest --params <name,...>` 把骨架页交给提取 agent 补「是什么 / 为什么存在 / 开了的代价 / 和谁互斥」四节，骨架部分（版本表、定义位置）由脚本重新覆盖，agent 不得改动。验收：补完一页后重跑 `wiki:build-param-pages`，版本表被脚本刷新而正文保留。
+### 2026-09-16 当前验收核对
+
+独立复查修复、最终测试和人工停点见 [当前交接报告](../plans/wiki-independent-closure-review.md)；下表不把固定输出机制测试等同真实语义效果。
+
+规范文本与当前验收表保留在本 feature，计划不维护第二份状态。工程、真实样本和未验证边界分开列示；最近完整验证见 [独立复查报告](../plans/wiki-independent-closure-review.md)，2026-09-16 上午运行状态变化及新会话接续见 [最新 handoff](../../HANDOFF-LLM-WIKI.md)。
+
+| AC | 当前结论 | 证据与未满足条件 |
+|---|---|---|
+| AC1 | 工程与真实扫描验证通过 | Python AST 四种形态、注释字典键、调用交叉引用、条件约束、同名类作用域测试；前次 main pin 扫出 542 候选，其中 405 suspect；本次补 get 默认表达式及 Ascend 包装器，v0.23.0 的 8 个旧定义已核对，未冒充全部确认参数。 |
+| AC2 | 工程验证通过，真实语义复核未验证 | 三态与逐字引文、保留 undetermined、疑似项显式选择、全 AST 身份校验和共享预算；固定模型输出不能替代真实分类准确率。 |
+| AC3 | 本轮真实静态谱系验证通过 | wiki/lineage/layer_sharding.json 记录全部约定 ref、范围 *.py、完整提交、tags；8/9/14/0/0/1/0/0 与原实测表一致，移除提交 89601215 / PR #11953。文本残留不等于功能回归。 |
+| AC4 | 单参数骨架与幂等通过；全量为排除项 | 真实 CLI fixture 生成骨架、再次生成不改正文；保护定义与版本区。未生成全部参数页。新页 id 含定义身份摘要；旧页显式映射共用 identities.json。真实 8 个旧页已刷新生成区及本轮源码快照，8/8 正文保持，新增页 0。 |
+| AC5 | 工程补文与保护验证通过，真实补文未验证 | ingest --params 只允许模型返回正文，组装确定性生成区，持久草稿和引用校验；重刷保留正文。收费已暂停。 |
+| AC6 | 增量回归通过；维护阻塞修复，生产调度待复验 | 09-16 03:00 返回 1，无历史 stderr；当前隔离副本稳定复现 Python 3.9 语法不兼容及新增 13 页超上限 3。同步已固定本机 3.12；超限保持整批暂缓与检查点，后续巡检继续，阶段/异常持久落盘。真实源码副本巡检 findings=[]，非生产到点验收；未放宽批量与费用限制。详见 [接续报告](../plans/wiki-resume-review.md)。 |
+
+
+- **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`（如 `additional_config["eplb_config"]["dynamic_eplb"]`）、`file`、`line`、`comment`（字段上方注释）、`constraints`（从 validator 的报错字符串提取的取值范围与联动）、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别（见 Design Decisions「四种定义形态」）。
+- **AC2 · 疑似项由 LLM 复核**：`confidence: suspect` 的条目走一次 agent 调用复核，输出 `确认是参数 / 不是参数 / 拿不准` 三态与理由，写回 `params-<ref>.json`。拿不准的留在清单里并标记，不静默丢弃。验收：故意混入一个非参数标识符，复核后被标为「不是参数」且带理由。
+- **AC3 · 版本谱系**：`pnpm wiki:lineage <标识符>` 按所选 ref 计算并保存 `wiki/lineage/<标识符>.json`，`--out` 可指定输出。包含每个 ref 的完整 commit、搜索路径、文本存在性、逐提交核实的引入/移除边界、提交标题里的 PR 号、包含提交的 tag/分支及文本增删行数。普通分支名优先解析受跟踪的 origin tip，显式 SHA 保持 pin；不能把本地旧 checkout 当最新分支。引入/移除比较提交与父提交，不再把最近一次 pickaxe 改动直接当删除。验收：用 `--paths '*.py'` 检查 Why 中八个 ref，结果为 8/9/14/0/0/1/0/0，并给出 v0.23→v0.24 之间的移除提交 89601215 / PR #11953。v0.26 的单测文本残留不代表功能回归。Markdown 与 JSON 来自同一计算结果；`lineage:apply` 只刷新生成节，持锁检查原文指纹后更新派生索引，保留人工正文。
+
+- **AC4 · 骨架页零成本覆盖全部参数**：`pnpm wiki:build-param-pages` 由 `params-*.json` + 谱系确定性生成 `wiki/params/<stable-id>.md`，含 frontmatter、定义位置、默认值、约束、版本表，正文标记为「骨架，待补」。不调用任何 LLM。验收：跑一次生成全部参数页，`pnpm wiki:lint` 通过，`git diff` 在重复运行后为空（幂等）。
+- **AC5 · LLM 选择性补正文**：`pnpm wiki:ingest --params <name,...>` 把骨架页交给提取 agent 补「是什么 / 为什么存在 / 开了的代价 / 和谁互斥」四节，骨架部分（版本表、定义位置）由脚本重新覆盖，agent 不得改动。验收：补完一页后重跑 `wiki:build-param-pages`，版本表被脚本刷新而正文保留。
 
   **2026-09-14 部分达成，有一处与设计的偏差要记下**：已跑通 8 个参数页（`wiki/seeds/params-removed.yaml`，即 v0.23.0 官方参数表有 60 个、main 有 86 个，差集里被删掉的那 8 个：`layer_sharding`、`weight_prefetch_config`、`prefetch_ratio`、`fuse_allreduce_rms`、`enable_matmul_allreduce`、`multistream_overlap_gate`、`enable_async_exponential`、`enable_sleep_mode_extra_cleanup`），提取 $21.02 + 整合 $4.14，落在 `wiki/params/`。
 
   偏差：**本该先做 AC4 铺骨架页、LLM 只补重要的那几页正文，实际是让 LLM 整页生成**。8 个尚可，86 个按同一单价约 $240，而绝大多数参数只需要「名字 / 类型 / 默认值 / 官方一句话」（文档表里全有）加版本谱系（脚本算），根本不必花 LLM。**AC4 是 AC5 放量前的前置**，顺序颠倒了要补回来。
 
   这批的实际收获：`layer_sharding` 页把用户最早那串问题一次答全（干嘛的 / 哪版移除 / 移除 PR / 哪些分支还有 / 影响面），且谱系那节不可能是编的；agent 还抓到一处**文档与代码不符**并经人工核对属实——官方参数表写 `dict`、默认 `{}`，实际 `ascend_config.py` 是 `get("layer_sharding", None)`、`platform.py` 里 `or []` 当列表用。
-- [ ] **AC6 · 每日同步与新参数触发**：`pnpm wiki:sync` 拉全部 ref、重跑扫描与谱系、与上次结果 diff；新增参数进 `wiki/_drafts/_param-queue.json` 并自动生成骨架页；消失的参数在页面上标注移除版本与 PR；默认值变化写进 `wiki/log.md`。失败非零退出并在 log 留原因。注册为 Windows 计划任务每日运行。验收：把上次结果人为改掉一条，跑 sync 能报出「新增 1 / 删除 1 / 变更 1」并落到对应文件。
+- **AC6 · 每日同步与新参数触发**：`pnpm wiki:sync` 拉全部 ref、重跑扫描与谱系、与上次结果 diff；新增参数进 `wiki/_drafts/_param-queue.json` 并自动生成骨架页；消失的参数在页面上标注移除版本与 PR；默认值变化写进 `wiki/log.md`。失败非零退出并在 log 留原因。注册为 Windows 计划任务每日运行。验收：把上次结果人为改掉一条，跑 sync 能报出「新增 1 / 删除 1 / 变更 1」并落到对应文件。
 
 **Out of scope**：vllm 上游仓库的参数（先只做 vllm-ascend，需要时同一套引擎加一个 repo）；参数的运行时实测行为（属于 PLAN 的 M 级证据，本 feature 只做静态事实）；GitHub issue / PR 语料与报错检索（→ F003）；前端展示（复用 F001 AC6 的阅读页，本 feature 只产数据）。
 
 ## Dependencies
 
 - **F001 AC9（阻塞）**：多 ref 钉定与完整克隆。参数扫描要跨分支跑，部分克隆会静默漏文件（实测 v0.23.0 漏 2 个）。
-- **Python 3**（本机 `/f/ProgramData/Anaconda3/python`，3.9.13）：扫描器用 Python 的 `ast` 模块解析 `.py`。`ast.parse()` 只解析源码文本、不执行也不 import，因此**不需要安装 vllm 或 pydantic**。缺 Python 时脚本给出明确报错而不是静默降级到正则。
-- **F001 的 ingest 引擎 + `runBatch` 重构（阻塞 AC2、AC5）**：AC2 的疑似项复核与 AC5 的补正文都是 agent 调用，但都不是 `SeedFeature` 形状，而 `runExtractPhase` 签名绑死了 `SeedFeature[]`（`scripts/wiki/ingest.ts:304`）。要把它拆成 `runBatch(requests: AgentRequest[], ctx, deps)` + 薄壳——`AgentRequest`（同文件 :77）本来就是通用形状，快照 / 并发池 / 越界检查 / 失败账本这四十行与 seeds 无关。这是十行的机械重构，现有测试继续有效。[F004](F004-knowledge-loop.md) 也依赖它，F002 先做则 F004 免费拿到。
+- **Python 3.11+**：当前上游已使用旧 3.9 无法解析的 starred subscription。本机维护配置固定 Python 3.12；独立命令与测试可通过 `WIKI_PYTHON` 指定。扫描器只用 `ast` 解析源码文本，不执行、不 import，因此不需要安装 vllm 或 pydantic；解析失败明确报错，不跳文件或降级正则。具体配置见 HANDBOOK。
+- **共用 agent 执行器**：已抽出 `scripts/wiki/batch.ts`，与受限调用、持久任务和共享预算配合；AC2 / AC5 / F004 复用同一底座。早期 plan 的执行器拆分已不构成阻塞。用户现已扩额至累计 $30 以下；新增 profiling_chunk_config 是独立源码补页，不能代替本 feature 的真实分类、生成区补文和全量骨架验收，见 [最新接续](../plans/wiki-budget-30-review.md)。
 - 不依赖 GitHub token（PR 号从本地 git 提交信息里取，不查 API）。
 - **官方文档站**（<https://docs.vllm.ai/projects/ascend/>）：版本清单查 ReadTheDocs API；参数页里的版本号、安装命令等含占位符的内容取渲染后的值。这是唯一需要联网的部分，失败时降级为「只出代码侧谱系」并在 warnings 里注明，不阻塞。
 

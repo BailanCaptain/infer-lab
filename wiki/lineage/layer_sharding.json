@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "term": "layer_sharding",
+  "paths": [
+    "*.py"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 8
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 9
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 14
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "5f12bbf34a530cd6c87463c56404535246af6e94",
+      "files": 1
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "9934c93ee9bf196d228c8ff6648dfc83d876b937",
+      "files": 0
+    },
+    {
+      "ref": "main",
+      "commit": "84d6dc83a9b0016c1dcc7d3ed059acb829b61091",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "f7db812ed7514194f15ef479817997113bf115bd",
+      "date": "2026-01-08",
+      "subject": "[refactor] Refactor the interface for shard weight and remove the flashcomm2 o_shared interface. (#5181)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/distributed/parallel_state.py",
+          "added": 67,
+          "removed": 51
+        },
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "added": 23,
+          "removed": 34
+        },
+        {
+          "path": "vllm_ascend/ops/{shared_weight_layer.py => layer_shard_linear.py}",
+          "added": 56,
+          "removed": 28
+        },
+        {
+          "path": "vllm_ascend/attention/mla_v1.py",
+          "added": 23,
+          "removed": 27
+        },
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 34,
+          "removed": 15
+        }
+      ],
+      "pr": 5181,
+      "containedIn": {
+        "tags": [
+          "v0.13.0",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann"
+        ]
+      }
+    },
+    {
+      "commit": "896012151dbaaa444e940f19106fde877d616dc9",
+      "date": "2026-07-15",
+      "subject": "[Refactor] remove layer sharding (#11953)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "tests/ut/ops/test_flashcomm2_oshard_manager.py",
+          "added": 0,
+          "removed": 487
+        },
+        {
+          "path": "tests/ut/ops/test_layer_shard_linear.py",
+          "added": 0,
+          "removed": 468
+        },
+        {
+          "path": "vllm_ascend/ops/layer_shard_linear.py",
+          "added": 0,
+          "removed": 296
+        },
+        {
+          "path": "vllm_ascend/ops/flashcomm2_oshard_manager.py",
+          "added": 0,
+          "removed": 103
+        },
+        {
+          "path": "tests/ut/attention/a2/test_mla_v1.py",
+          "added": 1,
+          "removed": 77
+        }
+      ],
+      "pr": 11953,
+      "containedIn": {
+        "tags": [
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/rfc/megakernel"
+        ]
+      }
+    },
+    {
+      "commit": "23cfbd5bae8028dc31d8ddd66673f985cf66e5f5",
+      "date": "2026-07-31",
+      "subject": "[Feature][v0.26.0rc] Support Kimi K3 on Ascend (#12950)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/moe_mlp.py",
+          "added": 863,
+          "removed": 686
+        },
+        {
+          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
+          "added": 543,
+          "removed": 544
+        },
+        {
+          "path": "tests/ut/ops/test_moe_comm_method.py",
+          "added": 328,
+          "removed": 270
+        },
+        {
+          "path": "vllm_ascend/ops/register_custom_ops.py",
+          "added": 282,
+          "removed": 259
+        },
+        {
+          "path": "tests/ut/ops/test_prepare_finalize.py",
+          "added": 253,
+          "removed": 207
+        }
+      ],
+      "pr": 12950,
+      "containedIn": {
+        "tags": [
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "origin/releases/v0.26.0rc"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.13.0",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0rc1",
+    "v0.26.0rc1"
+  ]
+}

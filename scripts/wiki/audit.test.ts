@@ -6,11 +6,13 @@ const page = (sources: string[]): WikiPage => ({
   file: "concepts/x.md",
   body: "",
   fm: {
+    origin: "seed",
     id: "x",
     title: "X",
     type: "feature",
     summary: "s",
     aliases: [],
+    order: 500,
     prerequisites: [],
     chapters: ["11"],
     sources,
@@ -24,11 +26,23 @@ const page = (sources: string[]): WikiPage => ({
 
 const deps: AuditDeps = {
   repoRoots: { "vllm-ascend": "/repo" },
-  countLines: (_root, path) => (path === "a.py" ? 100 : null),
-  readRaw: () => "## a.py#L1-L10\n代码",
+  readBlob: (_root, _commit, path) =>
+    path === "a.py" ? { kind: "ok", text: "line\n".repeat(100) } : { kind: "missing-file" },
+  readRaw: () => "## vllm-ascend@28bf3a2e:a.py#L1-L10\n代码",
 };
 
 describe("auditPage", () => {
+  it("checks the addressed local snapshot rather than classifying raw as an unverified URL", () => {
+    const ref = `raw:sha256-${"a".repeat(64)}.md#L2`;
+    const local = { ...deps, readSnapshot: () => "first\r\nsecond\r\n" };
+    expect(auditPage(page([ref]), local)[0]).toMatchObject({ verdict: "ok", totalLines: 2, inRaw: true });
+    expect(auditPage(page([ref.replace("#L2", "#L3")]), local)[0]?.verdict).toBe("out-of-range");
+  });
+  it("同文件的不同 commit 或未覆盖的行号不能冒充 raw 对应引用", () => {
+    expect(auditPage(page(["vllm-ascend@deadbee:a.py#L1-L10"]), deps)[0]?.inRaw).toBe(false);
+    expect(auditPage(page(["vllm-ascend@28bf3a2e:a.py#L11-L20"]), deps)[0]?.inRaw).toBe(false);
+    expect(auditPage(page(["vllm-ascend@28bf3a2e:a.py#L2-L9"]), deps)[0]?.inRaw).toBe(true);
+  });
   it("行号在范围内判 ok，并识别 raw 里有对应片段", () => {
     const [a] = auditPage(page(["vllm-ascend@28bf3a2e:a.py#L1-L10"]), deps);
     expect(a).toMatchObject({ verdict: "ok", totalLines: 100, inRaw: true });

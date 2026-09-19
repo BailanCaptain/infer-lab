@@ -1,0 +1,36 @@
+layout: scene
+id: attention-backend-choice
+caption: 选后端是三道闸，最后一道查的是三元组——不是二元组
+size: [900, 474]
+
+bands:
+  - { label: 闸一 · 显式选了 FLASH_ATTN, sub: "还要过 _validate_fa3_backend 校验；过了直接返回 AscendFABackend", at: [20, 48], size: [860, 62], tone: muted, icon: search }
+  - { label: 闸二 · is_310p(), sub: "走另一张表 backend_map_310；查不到会回落到 (False, False) 那一项", at: [20, 120], size: [860, 62], tone: muted, icon: search }
+  - { label: "闸三 · 查主表 backend_map[(use_mla, use_sparse, use_compress)]", sub: "直接下标访问，不合法的组合直接 KeyError，不会回落", at: [20, 192], size: [860, 62], tone: accent, icon: pick }
+
+boxes:
+  - { at: [20, 292], size: [206, 76], title: AscendAttentionBackend, sub: "(False, False, False)", fn: 普通 MHA / GQA, tone: ascend }
+  - { at: [238, 292], size: [206, 76], title: AscendMLABackend, sub: "(True, False, False)", fn: MLA 模型, tone: ascend }
+  - { at: [456, 292], size: [206, 76], title: AscendSFABackend, sub: "(True, True, False)", fn: 稀疏 MLA, tone: ascend }
+  - { at: [674, 292], size: [206, 76], title: AscendDSABackend, sub: "(True, False, True)", fn: DSA, tone: ascend }
+
+strips:
+  - { at: [20, 394], cells: 1, cell: 206, h: 20, highlight: 0, tone: neutral }
+  - { at: [238, 394], cells: 1, cell: 206, h: 20, tone: muted }
+  - { at: [456, 394], cells: 1, cell: 206, h: 20, tone: muted }
+  - { at: [674, 394], cells: 1, cell: 206, h: 20, tone: muted }
+
+notes:
+  - { at: [20, 282], text: "主表只有这四项", size: 13, strong: true }
+  - { at: [20, 388], text: "KV 形状", size: 12.5, anchor: start }
+  - { at: [24, 432], text: "五维，最前面那个 2 是 K 和 V", size: 12 }
+  - { at: [242, 432], text: "四维，没有独立的 K/V", size: 12 }
+  - { at: [460, 432], text: "四维", size: 12 }
+  - { at: [678, 432], text: "四维 + 单独一块 scale", size: 12 }
+  - { at: [20, 462], text: "那条请求走的是最左边一条：Qwen3-0.6B 是 GQA，三个布尔量都是 False。算显存时它那个 2 必须乘上，MLA 那三条不能乘——一个公式套不了所有后端。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
+    symbols: [get_attn_backend_cls]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112
+    symbols: [AscendAttentionBackend]

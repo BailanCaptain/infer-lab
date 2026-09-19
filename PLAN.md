@@ -303,8 +303,13 @@ M1 = 地基 + 样板章 `03` + 工作台 v1。
 
 单个 feature 的聚合文件放 `docs/features/F{NNN}-name.md`（Status / Why / What / AC / 决策 / Timeline），实施计划放 `docs/plans/`，写法参照 Multi-Agent 的 `feat-lifecycle` 与 `writing-plans` skill。
 
-| ID | 名称 | 状态 | 文档 |
+| ID | 名称 | 规范与当前验收状态 | 实施计划 |
 |---|---|---|---|
-| F001 | LLM Wiki：课程知识库 + 右侧问答（agent 写、人审、进 git；`#/wiki` 阅读与聊天；批量灌种 vLLM-Ascend 特性与 30 个术语） | in-progress（Phase 1 完成，11 页已入库；分支 `feat/llm-wiki`） | [F001](docs/features/F001-llm-wiki.md) · [计划](docs/plans/llm-wiki-plan.md) · [试点人审](docs/plans/llm-wiki-pilot-review.md) |
+| F001 | 课程知识库与问答 | [F001](docs/features/F001-llm-wiki.md) | [计划](docs/plans/llm-wiki-plan.md) |
+| F002 | 参数清单与版本谱系 | [F002](docs/features/F002-param-lineage.md) | [计划](docs/plans/param-lineage-plan.md) |
+| F003 | GitHub 语料与报错溯源 | [F003](docs/features/F003-github-corpus.md) | [计划](docs/plans/github-corpus-plan.md) |
+| F004 | 使用驱动的知识积累闭环 | [F004](docs/features/F004-knowledge-loop.md) | [计划](docs/plans/knowledge-loop-plan.md) |
+
+验收状态只在 feature 更新；[全 feature 核对记录](docs/plans/feature-progress-review.md) 保存本轮证据，索引不再复制状态和页数。
 
 F001 同时给 §2.6 内容管线提供 Term 注册表：`<Term id>` 的 id 与摘要来自 `src/content/wiki/registry.json`（由 `wiki/concepts/` 派生），不再另建 terms 表。

@@ -12,11 +12,13 @@ const mk = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiPage
   file: `concepts/${id}.md`,
   body: body ? `${SKELETON}\n${body}` : SKELETON,
   fm: {
+    origin: "seed",
     id,
     title: id,
     type: "concept",
     summary: "s",
     aliases: [],
+    order: 500,
     prerequisites: [],
     chapters: ["11"],
     sources: ["https://docs.vllm.ai/projects/ascend/en/latest/index.html"],
@@ -29,6 +31,35 @@ const mk = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiPage
   },
 });
 const opts = { chapterIds: ["11", "12"], existsFile: (rel: string) => rel === "raw/a.md" };
+
+it("flags substantive cross-page overlap unless either page links to the other", () => {
+  const body = "## 相同的调度限制\n调度队列达到上限之后会暂停接纳新的请求。\n";
+  const a = mk("a", {}, body);
+  const b = mk("b", {}, body);
+  const overlap = () => lintPages([a, b], opts).filter((p) => p.rule === "cross-page-overlap");
+  expect(overlap()).toHaveLength(2);
+  b.fm.relations = [{ to: "a", kind: "builds-on", note: "复用 a 的队列限制" }];
+  expect(overlap()).toHaveLength(0);
+  b.fm.relations = [];
+  b.body += "\n[a](a.md)";
+  expect(overlap()).toHaveLength(0);
+  expect(lintPages([mk("c"), mk("d")], opts).filter((p) => p.rule === "cross-page-overlap")).toEqual([]);
+});
+
+/**
+ * 2026-09-19 放开必需小节时，样板标题表必须和 REQUIRED_SECTIONS 解耦。
+ * 不解耦的话「不再强制骨架」会顺手把重复检测一起关掉：样板小节从豁免名单里
+ * 掉出来，每页的「怎么工作」都会互相撞成 cross-page-overlap。
+ */
+it("样板小节不参与重复比对，自定小节参与", () => {
+  const long = "调度队列达到上限之后会暂停接纳新的请求，直到有请求退出。";
+  const boilerplate = `## 一句话\n${long}\n## 怎么工作\n${long}\n## 常见误解\n${long}\n`;
+  const overlap = (pages: WikiPage[]) =>
+    lintPages(pages, opts).filter((p) => p.rule === "cross-page-overlap");
+  expect(overlap([mkRaw("a", {}, boilerplate), mkRaw("b", {}, boilerplate)])).toEqual([]);
+  const custom = `## 一句话\nx\n## 目录地图\n${long}\n`;
+  expect(overlap([mkRaw("a", {}, custom), mkRaw("b", {}, custom)])).toHaveLength(2);
+});
 
 describe("lintPages", () => {
   it("干净输入无问题", () => {
@@ -162,11 +193,18 @@ describe("lintPages · HANDBOOK 新规则", () => {
   const SECTIONS = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"];
   const fullBody = SECTIONS.map((h) => `## ${h}\nx`).join("\n");
 
-  it("missing-section：缺必需小节报红，齐全放行", () => {
-    const bad = lintPages([mkRaw("a", {}, "## 一句话\nx\n## 常见误解\ny")], opts);
+  // 2026-09-19 放开固定骨架：概念页与特性页只剩 `## 一句话` 一条硬要求，
+  // 其余小节按这一页讲的东西自己定。
+  it("missing-section：缺 ## 一句话 报红", () => {
+    const bad = lintPages([mkRaw("a", {}, "## 怎么工作\nx")], opts);
     expect(bad.map((p) => p.rule)).toContain("missing-section");
-    const good = lintPages([mkRaw("a", {}, fullBody)], opts);
-    expect(good.map((p) => p.rule)).not.toContain("missing-section");
+    expect(bad.find((p) => p.rule === "missing-section")?.message).toContain("一句话");
+  });
+
+  it("有 ## 一句话 的自定分节页放行，不再强制那套七节骨架", () => {
+    const freeform = "## 一句话\nx\n## 目录地图\ny\n## 从报错找到文件\nz";
+    expect(lintPages([mkRaw("a", {}, freeform)], opts).map((p) => p.rule)).not.toContain("missing-section");
+    expect(lintPages([mkRaw("a", {}, fullBody)], opts).map((p) => p.rule)).not.toContain("missing-section");
   });
 
   it("stray-whatsnext：正文手写 ## 接着看报红（它由 relations 生成）", () => {

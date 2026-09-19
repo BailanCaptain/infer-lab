@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "term": "enable_matmul_allreduce",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "5f12bbf34a530cd6c87463c56404535246af6e94",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "9934c93ee9bf196d228c8ff6648dfc83d876b937",
+      "files": 0
+    },
+    {
+      "ref": "main",
+      "commit": "84d6dc83a9b0016c1dcc7d3ed059acb829b61091",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "958daf83205ecad0afec3784be0b2a8b38725cd8",
+      "date": "2026-05-21",
+      "subject": "[Refactor]: migrate env vars to AscendConfig (#9064)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/fused_moe/moe_comm_method.py",
+          "added": 347,
+          "removed": 347
+        },
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 41,
+          "removed": 19
+        },
+        {
+          "path": "vllm_ascend/ascend_forward_context.py",
+          "added": 7,
+          "removed": 7
+        },
+        {
+          "path": "vllm_ascend/batch_invariant.py",
+          "added": 5,
+          "removed": 6
+        },
+        {
+          "path": "vllm_ascend/patch/platform/patch_balance_schedule.py",
+          "added": 21,
+          "removed": 5
+        }
+      ],
+      "pr": 9064,
+      "containedIn": {
+        "tags": [
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann"
+        ]
+      }
+    },
+    {
+      "commit": "2ee50f3847e4873e61d280911b2a24d85f5278d6",
+      "date": "2026-07-18",
+      "subject": "[Refactor] Remove matmulallreduce and pass optimization techniques (#12119)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py",
+          "added": 0,
+          "removed": 159
+        },
+        {
+          "path": "vllm_ascend/ops/linear_op.py",
+          "added": 0,
+          "removed": 45
+        },
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 1,
+          "removed": 40
+        },
+        {
+          "path": "vllm_ascend/compilation/graph_fusion_pass_manager.py",
+          "added": 0,
+          "removed": 5
+        },
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 0,
+          "removed": 4
+        }
+      ],
+      "pr": 12119,
+      "containedIn": {
+        "tags": [
+          "v0.25.1rc1",
+          "v0.26.0rc1"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/rfc/megakernel"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0rc1",
+    "v0.24.0rc1"
+  ]
+}

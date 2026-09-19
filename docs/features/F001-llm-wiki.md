@@ -8,7 +8,7 @@ created: 2026-09-07
 
 # F001 — LLM Wiki：课程知识库 + 右侧问答
 
-**Status**: in-progress（12 条 AC 达成 10 条；剩 AC5 批量灌种、AC8 存进 wiki 与 PR ingest）
+**Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
 **Created**: 2026-09-07
 
 ## Why
@@ -37,19 +37,40 @@ created: 2026-09-07
 
 ## Acceptance Criteria
 
-- [x] **AC1 · 骨架与派生**：`wiki/HANDBOOK.md` 是 schema 唯一真相源，六个 H2 切片（页面格式 / 提取 / 整合 / 查询 / Lint / 人类须知）可被程序按 H2 切出；`pnpm wiki:build` 从 `concepts/`、`sources/` 的 frontmatter 派生 `wiki/index.md` 与 `src/content/wiki/registry.json`，重复运行结果一致。验收：`pnpm wiki:build` 两次，`git diff` 为空。
-- [x] **AC2 · Lint 把关**：`pnpm wiki:lint` 拒收空 `sources`、非法 frontmatter、重复 id 或 alias、断链、孤页，非零退出并指名文件与规则；纳入 `pnpm check`。验收：故意造一页空 sources 与一条断链，lint 非零退出且输出含两个文件名；修复后 `pnpm check` 全绿。
-- [x] **AC3 · ingest 引擎**：`pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml` 按种子清单扇出提取（每个 feature 一次 `claude -p`，默认并发 3，每个 agent 只能写 `_drafts/<id>.md` 与 `raw/<id>.md`），再串行整合进 `concepts/`；单个失败不阻塞其余，记入 `_drafts/_failures.json`；支持 `--only`、`--skip-existing`、`--retry-failed`、`--dry-run`。验收：单元测试用 spawn stub 验 argv、cwd、stdin、并发上限、越界写判失败、失败记录；`--dry-run` 打印每个 feature 的完整命令而不 spawn。
-- [x] **AC4 · 试点批 10 页合格**：11 章 KV Cache 那组约 10 个 feature 跑通，每页 `sources` 指向 `vllm-ascend@28bf3a2e` 的真实文件与行号，随机抽 3 页人工核对源码确实如此；`git status` 证明 agent 未越界写文件。人审通过才进 AC5。
-- [ ] **AC5 · 批量灌种**：种子补全 10 到 21 章全部特性与 `forwardLayer.ts` 的 30 个术语，分章跑，预计 120 到 160 页；`wiki:lint --terms` 确认 30 个 `Step.terms` id 全部有页；`pnpm check` 全绿。**开跑前必须先改整合的读取策略（见风险 R2），否则会在放量中途撞上下文上限。**
-- [x] **AC6 · 站内消费**：`#/wiki` 阅读页（左目录、中页面、related、来源角标）；`<Term id>` 悬停卡显示 `summary`。验收：浏览器打开 `#/wiki`，悬停出摘要，页面间链接跳转正确（Playwright）。
-- [x] **AC7 · 聊天问答**：`server/` 薄运行器 spawn `claude -p`（cwd=`wiki/`，只读工具白名单）；`#/wiki` 右侧抽屉流式回答；多轮用 `--resume`。**必须与 AC10 同批落地**（见风险 R1）。**回答里的事实性论断必须带页面引用**：借 Multi-Agent 的 `adaptive-recall/judge-block.ts` 思路，回答若出现断言式表述却没有指向任何 wiki 页的链接，就不作为「知识库答案」呈现，改标「（未收录，以下是模型自身知识）」。验收：问「KV Cache 是什么」，流式回答含 kv-cache 链接并可跳转；问一个知识库没有的词，回答被标为未收录而不是伪装成知识库结论。
-- [ ] **AC8 · 存进 wiki 与 PR ingest**：抽屉「存进 wiki」把回答写成 `_drafts/` 草稿；`pnpm wiki:ingest --pr <n>` 把一个真实 PR 变成草稿，社区不可信文本经 sanitize；草稿批准 / 驳回面板。验收：草稿文件出现且 diff 可读，`raw/` 与 `tools/repos/` 未被修改。
-- [x] **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 **14** 个文件（部分克隆下是 11 或 13，见 Design Decisions）。
-- [x] **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
+### 2026-09-16 当前验收核对
 
-- [x] **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。**2026-09-14 达成**：11 页全部含图（11/11，验收线八成），共 18 张；内联标记 201 处且**带来源编号**（`[C6]` 指向 `sources` 第 6 条，点开跳 GitHub 钉住的行号——恢复 PLAN §1.4 的原设计，此前落地成光秃秃的字母，用户反馈「又不能点」）；`diagram-identifier`、`mark-index`、`mark-unnumbered`、`mark-flood` 四条规则各有一红一绿测试。密度也被治住：初版 400 处标记里 66% 是 `[C]`，现在每页 ≤20 处，由引擎在整合任务里直接算出每页超了多少，定性规则「只留三类」实测不落地。
-- [x] **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `related` 作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 related 扩展来的页并标出来源，抽屉里出现相关页入口。**2026-09-12 达成，有前后实测对比**：改前 agent 只 `Read` 了 `block-table.md` 一个文件，把一页压缩成答案，回答里的 PagedAttention / Prefix Caching 链接抄自该页正文里已有的话，那两页根本没打开；改后读了 block-table / paged-attention / kv-cache-spec / prefix-caching **四个文件**，按「它依赖什么 → 它是什么 → 谁用到它 → 边界」组织，依赖处给出列数公式 `cdiv(max_model_len, block_size × dcp_world_size)`。
+独立复查修复、最终测试和人工停点见 [当前交接报告](../plans/wiki-independent-closure-review.md)；下表不把固定输出机制测试等同真实语义效果。
+
+规范文本与当前验收表保留在本 feature，计划不维护第二份状态。工程、真实样本和未验证边界分开列示；最近完整验证见 [独立复查报告](../plans/wiki-independent-closure-review.md)，2026-09-16 上午运行状态变化及新会话接续见 [最新 handoff](../../HANDOFF-LLM-WIKI.md)。
+
+| AC | 当前结论 | 证据与未满足条件 |
+|---|---|---|
+| AC1 / AC2 | 工程验证通过 | handbook / build / lint 回归、真实库派生一致性；共享规则见 HANDBOOK 与 schema。最终命令见收尾报告。 |
+| AC3 | 工程验证通过 | batch、persistent-extract、ingest-cli 的并发、失败隔离、pin、dry-run、预算、草稿和整合测试。真实多 ref 提取未在本轮收费重跑。 |
+| AC4 | 历史试点保留，未全面重审语义 | 发布前审计 19 页、418 来源，411 本地行号有效；107 条 raw 提示逐项核查为 99 全范围一致、1 局部原文、6 差异另行阅读、1 URL 可访问。Prefix Caching 过度纠错 dd3bf215… 已撤回；显存预算与上游的错误对比已由用户批准，e6061568… 发布校验通过并写入正式正文。详见 [最新证据核查](../plans/wiki-evidence-review.md)。摘录对应不等于整页语义通过。 |
+| AC5 | 用户暂缓的批量项 | 不运行全量灌种；正式页为 20 页，新增的 profiling_chunk_config 是单页源码补写，不代表章节/术语全量覆盖。 |
+| AC6 | 浏览器功能已实现，最终结果见报告 | tests/wiki.spec.ts、evidence.spec.ts、wiki-reader.spec.ts 与 wiki-review.spec.ts 覆盖目录、证据、快照和跳转。 |
+| AC7 | 真实验收推进中，尚未全部通过 | 最终输入修复后三题引用结构3/3，算数一致898；改写题仍有提交映射疑问，现已将可读分支名直接链接固定源码。smooth_factor补充已批准发布并通过浏览器验证，四题后测未启动；完整真实质量仍未全过。见 [真实缺口接续](../plans/wiki-real-gap-review.md)。 |
+| AC8 | 工程入口接通，真实 PR 草稿未通过 | chat 保存共用审阅；新增 ingest --pr 共用语料、清洗和 worker。真实 PR #11953 编译超时，未生成成功草稿，费用未知已暂停收费。 |
+| AC9 | 本地 pin / clone 回归通过，真实重提取未验证 | 完整 Git 实测全仓 py 中 layer_sharding 为 8/9/14/0/0/1/0/0；该统计不代替真实多 ref agent 提取。 |
+| AC10 | 工程验证通过 | retrieve 单一入口已接稳定报错片段和一跳关系，聊天层复用。 |
+| AC11 | 符号与图证据检查已接通 | 新增 diagram-symbol；生产 lint CLI 虚构类红 / 正确类绿，批准副本使用同一外部钉定仓库；真实页本地审计通过。历史批次 11/11 图统计未作为本轮重跑。 |
+| AC12 | 程序入口和浏览器验证通过 | 只在成功且引用通过后派生实际相关页，浏览器点击跳至目标；不依赖模型主动输出相关链接。 |
+
+
+- **AC1 · 骨架与派生**：`wiki/HANDBOOK.md` 是 schema 唯一真相源，六个 H2 切片（页面格式 / 提取 / 整合 / 查询 / Lint / 人类须知）可被程序按 H2 切出；`pnpm wiki:build` 从 `concepts/`、`sources/` 的 frontmatter 派生 `wiki/index.md` 与 `src/content/wiki/registry.json`，重复运行结果一致。验收：`pnpm wiki:build` 两次，`git diff` 为空。
+- **AC2 · Lint 把关**：`pnpm wiki:lint` 拒收空 `sources`、非法 frontmatter、重复 id 或 alias、断链、孤页，非零退出并指名文件与规则；纳入 `pnpm check`。验收：故意造一页空 sources 与一条断链，lint 非零退出且输出含两个文件名；修复后 `pnpm check` 全绿。
+- **AC3 · ingest 引擎**：`pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml` 按种子清单扇出提取（每个 feature 一次 `claude -p`，默认并发 3，每个 agent 只能写 `_drafts/<id>.md` 与 `raw/<id>.md`），再串行整合进 `concepts/`；单个失败不阻塞其余，记入 `_drafts/_failures.json`；支持 `--only`、`--skip-existing`、`--retry-failed`、`--dry-run`。验收：单元测试用 spawn stub 验 argv、cwd、stdin、并发上限、越界写判失败、失败记录；`--dry-run` 打印每个 feature 的完整命令而不 spawn。
+- **AC4 · 试点批 10 页合格**：11 章 KV Cache 那组约 10 个 feature 跑通，每页 `sources` 指向 `vllm-ascend@28bf3a2e` 的真实文件与行号，随机抽 3 页人工核对源码确实如此；`git status` 证明 agent 未越界写文件。人审通过才进 AC5。
+- **AC5 · 批量灌种**：种子补全 10 到 21 章全部特性与 `forwardLayer.ts` 的 30 个术语，分章跑，预计 120 到 160 页；`wiki:lint --terms` 确认 30 个 `Step.terms` id 全部有页；`pnpm check` 全绿。**开跑前必须先改整合的读取策略（见风险 R2），否则会在放量中途撞上下文上限。**
+- **AC6 · 站内消费**：`#/wiki` 阅读页（左目录、中页面、related、来源角标）；`<Term id>` 悬停卡显示 `summary`。验收：浏览器打开 `#/wiki`，悬停出摘要，页面间链接跳转正确（Playwright）。
+- **AC7 · 聊天问答**：`server/` 薄运行器 spawn `claude -p`（cwd=`wiki/`，只读工具白名单）；`#/wiki` 右侧抽屉流式回答；多轮用 `--resume`。**必须与 AC10 同批落地**（见风险 R1）。**回答里的事实性论断必须带页面引用**：借 Multi-Agent 的 `adaptive-recall/judge-block.ts` 思路，回答若出现断言式表述却没有指向任何 wiki 页的链接，就不作为「知识库答案」呈现，改标「（未收录，以下是模型自身知识）」。验收：问「KV Cache 是什么」，流式回答含 kv-cache 链接并可跳转；问一个知识库没有的词，回答被标为未收录而不是伪装成知识库结论。
+- **AC8 · 存进 wiki 与 PR ingest**：抽屉「存进 wiki」把回答写成 `_drafts/` 草稿；`pnpm wiki:ingest --pr <n>` 把一个真实 PR 变成草稿，社区不可信文本经 sanitize；草稿批准 / 驳回面板。验收：草稿文件出现且 diff 可读，`raw/` 已有快照未被覆盖（允许追加不可变证据快照），`tools/repos/` 未被修改。
+- **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 **14** 个文件（部分克隆下是 11 或 13，见 Design Decisions）。
+- **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
+
+- **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。**2026-09-14 历史实施记录（完整 AC 尚未达成）**：11 页全部含图（11/11，验收线八成），共 18 张；内联标记 201 处且**带来源编号**（`[C6]` 指向 `sources` 第 6 条，点开跳 GitHub 钉住的行号——恢复 PLAN §1.4 的原设计，此前落地成光秃秃的字母，用户反馈「又不能点」）；`diagram-identifier`、`mark-index`、`mark-unnumbered`、`mark-flood` 四条规则各有一红一绿测试。密度也被治住：初版 400 处标记里 66% 是 `[C]`，现在每页 ≤20 处，由引擎在整合任务里直接算出每页超了多少，定性规则「只留三类」实测不落地。
+- **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `related` 作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 related 扩展来的页并标出来源，抽屉里出现相关页入口。**2026-09-12 历史实施记录，有前后实测对比（完整 AC 尚未达成）**：改前 agent 只 `Read` 了 `block-table.md` 一个文件，把一页压缩成答案，回答里的 PagedAttention / Prefix Caching 链接抄自该页正文里已有的话，那两页根本没打开；改后读了 block-table / paged-attention / kv-cache-spec / prefix-caching **四个文件**，按「它依赖什么 → 它是什么 → 谁用到它 → 边界」组织，依赖处给出列数公式 `cdiv(max_model_len, block_size × dcp_world_size)`。
 
   根因不在检索而在页面格式：原先每页都要写「为什么需要它」，于是每页都用散文重讲一遍邻居——`block-table.md` 里有整段 PagedAttention、整段 prefix caching。一页本身**已经是**稀释版的「串起来」，图上的边没东西可加，agent 读一页就停是理性的。把页面做成自给自足的，等于把图做成了装饰。三处改动：
   1. `related: [id]` 换成有类型有方向的 `relations: [{to, kind, note}]`，kind 取 `builds-on` / `variant-of` / `conflicts-with` / `alternative-to`；一条边只写在依赖方那一侧，反向边由 `wiki:build` 派生成 `backlinks`（`related-asymmetric` 规则随之删除）。

@@ -1,0 +1,35 @@
+layout: scene
+id: config-flow
+caption: 昇腾的开关有两条互不相通的路：小写键名走 AscendConfig，大写走环境变量
+size: [900, 470]
+
+regions:
+  - label: 路一 · 小写键名
+    note: "--additional-config 那段 JSON"
+    at: [20, 44]
+    size: [420, 336]
+    tone: ascend
+  - label: 路二 · 大写环境变量
+    note: "名字带 VLLM_ASCEND_ 前缀的"
+    at: [460, 44]
+    size: [420, 336]
+    tone: neutral
+
+boxes:
+  - { at: [36, 128], size: [388, 54], title: 上游只是原样存着, sub: "VllmConfig.additional_config，一个 dict", tone: upstream }
+  - { at: [36, 192], size: [388, 62], title: AscendConfig 按键拆成十来个子配置, sub: "xlite_graph_config、eplb_config 等十来个", fn: ascend_config.py, tone: ascend }
+  - { at: [36, 264], size: [388, 54], title: 全仓用 get_ascend_config() 取, sub: 没初始化就抛 RuntimeError, tone: ascend }
+  - { at: [36, 328], size: [388, 38], title: "NPUPlatform.check_and_update_config 还能改它、拦它", tone: accent }
+
+  - { at: [476, 128], size: [388, 54], title: "envs.py 里一张 env_variables 表", sub: v0.23 分支上 21 个条目, tone: neutral }
+  - { at: [476, 192], size: [388, 62], title: 两类, sub: 一半是构建期的，一半是运行期开关, tone: neutral }
+  - { at: [476, 264], size: [388, 54], title: 代码里直接读 envs_ascend.XXX, sub: 不进 AscendConfig，也不受校验族管, tone: neutral }
+  - { at: [476, 328], size: [388, 38], title: 没有谁在启动时改写它们, tone: muted }
+
+notes:
+  - { at: [20, 410], text: "配了没生效时按这个顺序查：一、键名在 ascend_config.py 里存不存在；二、check_and_update_config 有没有把它改掉或拦掉；三、如果压根搜不到键名，换去 envs.py——它在另一条路上。", size: 12.5, width: 860 }
+  - { at: [20, 452], text: "get_ascend_config() 抛的那条 RuntimeError 说的是时机不对，不是内容不对：这段代码跑在 init_ascend_config 之前。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53
+    symbols: [AscendConfig]

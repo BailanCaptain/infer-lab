@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」">
+  <title>第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」</title>
+  <rect width="900" height="510" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="300" height="190" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="54" width="103" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游交过来的</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">全是整数，没有一个张量</text>
+  <rect x="580" y="40" width="300" height="190" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="596" y="54" width="103" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="607" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">昇腾算出来的</text>
+  <text x="598" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">算子真正要吃的东西</text>
+  <rect x="140" y="306" width="34" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="180" y="306" width="34" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="140" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">block_table 这一行：两列，第 92 步用到的是第 1 列</text>
+  <rect x="420" y="306" width="22" height="22" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="445" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="470" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="495" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="520" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="545" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="570" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="595" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="620" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="645" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="670" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="695" y="306" width="22" height="22" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <text x="420" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">b1 这一块的 128 个槽位（画出前 12 个），这一步写第 0 格</text>
+  <rect x="36" y="116" width="268" height="44" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="52" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">num_scheduled_tokens = 1</text>
+  <rect x="36" y="168" width="268" height="44" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="52" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">block_ids = [b0, b1]</text>
+  <rect x="596" y="108" width="268" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="612" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">input_ids   (1,)</text>
+  <rect x="596" y="152" width="268" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="612" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">positions   (1,)  值是 128</text>
+  <rect x="596" y="196" width="268" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="612" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">slot_mapping   (1,)</text>
+  <rect x="336" y="96" width="238" height="118" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="348" y="139" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(354.4 145.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="388" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">_prepare_inputs</text>
+  <text x="388" y="161" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第 862 行起，共 802 行</text>
+  <text x="388" y="178" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">Triton kernel 算槽位</text>
+  <path d="M308 155 L332 155" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M332 155 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M578 155 L592 155" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M592 155 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <text x="20" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">中间那一步具体在算什么</text>
+  <text x="140" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">位置 128 ÷ 128 = 第 1 列</text>
+  <text x="420" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">128 % 128 = 第 0 格</text>
+  <text x="20" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="600" fill="var(--color-ink, #17211f)">slot = block_table[req][128 // 128] × 128 + 128 % 128 = b1 × 128 + 0</text>
+  <text x="20" y="446" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这道除法和取模就是「分页」在代码里的全部形态。上游只给了 b0、b1 两个整数，落到哪一格是这里算的——两件事分在两个进程里。</text>
+  <text x="20" y="482" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">批里没排满的位置要填 PAD_SLOT_ID：一个哨兵槽位，写进去不会弄坏任何人的 KV。</text>
+</svg>

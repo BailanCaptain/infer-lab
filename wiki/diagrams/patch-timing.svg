@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 452" width="900" height="452" role="img" aria-label="一个布尔量分出两个时机：adapt_patch(is_global_patch) 只有这两条岔路">
+  <title>一个布尔量分出两个时机：adapt_patch(is_global_patch) 只有这两条岔路</title>
+  <rect width="900" height="452" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="158" width="420" height="246" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="172" width="171" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="190.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">is_global_patch=True</text>
+  <text x="38" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">worker 起来之前</text>
+  <rect x="460" y="158" width="420" height="246" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="476" y="172" width="113.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="487" y="190.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">默认（False）</text>
+  <text x="478" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">worker 起来的那一刻</text>
+  <rect x="36" y="246" width="388" height="50" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="246" width="5" height="50" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <text x="58" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">谁调它</text>
+  <text x="58" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">NPUPlatform.pre_register_and_update()</text>
+  <rect x="36" y="304" width="388" height="50" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="304" width="5" height="50" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <text x="58" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">import 哪个包</text>
+  <text x="58" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">from vllm_ascend.patch import platform</text>
+  <rect x="36" y="362" width="388" height="50" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="362" width="5" height="50" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <text x="58" y="384" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">改的是什么</text>
+  <text x="58" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">调度器、执行器这些 worker 之外的上游对象</text>
+  <rect x="476" y="246" width="388" height="50" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="476" y="246" width="5" height="50" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="498" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">谁调它</text>
+  <text x="498" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">NPUWorker.__init__ 的第一件实质工作</text>
+  <rect x="476" y="304" width="388" height="50" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="476" y="304" width="5" height="50" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="498" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">import 哪个包</text>
+  <text x="498" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">from vllm_ascend.patch import worker</text>
+  <rect x="476" y="362" width="388" height="50" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="476" y="362" width="5" height="50" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <text x="498" y="384" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">改的是什么</text>
+  <text x="498" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">模型、算子、通信这些进程内的上游对象</text>
+  <rect x="330" y="44" width="240" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="342" y="59" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(348.4 65.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="382" y="71.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">adapt_patch</text>
+  <text x="382" y="89.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">函数体只有四行</text>
+  <path d="M400 108 L400 130 L230 130 L230 156" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M230 156 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M500 108 L500 130 L670 130 L670 156" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M670 156 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <text x="20" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">没有第三种时机。生效方式是 import 的副作用，没有注册表——所以「顺序」就是两个 __init__.py 里 import 语句的顺序。</text>
+  <text x="20" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">在 NPUWorker.__init__ 里，adapt_patch() 排在注册算子、解 AscendConfig、super().__init__() 之前：后面那些都要用被改过的上游行为。</text>
+</svg>

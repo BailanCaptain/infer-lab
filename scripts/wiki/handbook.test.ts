@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HANDBOOK_H2, HandbookSliceMissingError, loadHandbook, sliceHandbook } from "./handbook";
+import { lintPages } from "./lint";
+import { parsePage } from "./pages";
 
 const doc = `---
 title: x
@@ -48,5 +50,20 @@ describe("sliceHandbook", () => {
     for (const key of Object.keys(HANDBOOK_H2) as (keyof typeof HANDBOOK_H2)[]) {
       expect(s[key].length, key).toBeGreaterThan(50);
     }
+  });
+  it("问答编译规则给出的证据标记能够通过实际 lint", () => {
+    const rules = loadHandbook(`${process.cwd()}/wiki`).pageFormat;
+    const instruction = rules
+      .split("\n")
+      .find((line) => line.startsWith("任务若指定 `purpose: answer-record`"))!;
+    const marks = instruction.match(/\[[SCMDIA!]\d*\]/g) ?? [];
+    expect(marks.length).toBeGreaterThan(0);
+    const page = parsePage(
+      "sources/answer.md",
+      `---\nid: answer\ntitle: Answer\ntype: source\nsummary: 归档问答\nsources: [raw:sha256-${"a".repeat(64)}.md#L1]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n${marks.join(" ")}\n`,
+    ).page!;
+    expect(
+      lintPages([page], { chapterIds: [], existsFile: () => true }).filter((p) => p.rule.startsWith("mark-")),
+    ).toEqual([]);
   });
 });

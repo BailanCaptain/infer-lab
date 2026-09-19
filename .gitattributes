@@ -1,4 +1,6 @@
 * text=auto eol=lf
+# Content-addressed excerpts must retain their exact bytes through git.
+wiki/raw/sha256-*.md -text
 *.png binary
 *.woff binary
 *.ttf binary

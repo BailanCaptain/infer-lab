@@ -1,0 +1,28 @@
+layout: scene
+id: patch-inventory
+caption: 59 个 patch 文件，格子数就是真实文件数
+size: [900, 430]
+
+regions:
+  - label: "vllm_ascend/patch/"
+    note: 每加一个 patch，清单里就要补一段 Why / How / Related PR / Future Plan
+    at: [20, 40]
+    size: [860, 302]
+    tone: neutral
+
+strips:
+  - { at: [60, 120], cells: 28, cell: 24, gap: 4, tone: upstream, label: "patch/platform/ · worker 起来之前改上游，由 NPUPlatform.pre_register_and_update 触发" }
+  - { at: [60, 196], cells: 24, cell: 24, gap: 4, tone: ascend, label: "patch/worker/ · 每个 worker 进程内改，由 NPUWorker.__init__ 触发" }
+  - { at: [60, 272], cells: 7, cell: 24, gap: 4, tone: muted, label: "patch/worker/patch_v2/ · 配合实验性的 v2 model runner" }
+
+notes:
+  - { at: [20, 366], text: "两个 __init__.py 按 is_310p()、vllm_version_is()、HAS_TRITON 分支 import——没被 import 的文件等于没打。所以上面这些格子不是「都在生效」，是「都可能生效」。", size: 12.5, width: 860 }
+  - { at: [20, 404], text: "数量本身不是结论：清单里每条都写了 Related PR 与 Future Plan，相当一部分在等上游合 PR 之后删掉。要判断质量得看那两栏。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27
+    symbols: [is_global_patch]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
+    symbols: [patch_mamba_config]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
+    symbols: [adapt_patch]

@@ -60,6 +60,14 @@ describe("planClone", () => {
       repo,
     );
     expect(plan.addWorktrees).toEqual([]);
+    expect(plan).toHaveProperty("updateWorktrees", [
+      { ref: "releases/v0.23.0", commit: "9b4b1e2a", dir: "tools/repos/vllm-ascend@releases-v0.23.0" },
+    ]);
+  });
+
+  it("不回收该仓库上其他用途的工作树", () => {
+    const plan = planClone({ worktrees: [repo.path, "tools/user-checkout"], isRepo: true }, repo);
+    expect(plan.pruneWorktrees).toEqual([]);
   });
 
   it("回收不再被 seeds 引用的工作树", () => {

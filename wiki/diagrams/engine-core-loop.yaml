@@ -1,0 +1,38 @@
+layout: scene
+id: engine-core-loop
+caption: EngineCore 的 while 循环：那条请求的 200 步都是同一圈跑出来的
+size: [900, 470]
+
+regions:
+  - label: EngineCore 进程
+    note: 整个进程就是一个 while 循环。它转一圈，全部在跑的请求各往前走一步。
+    at: [20, 40]
+    size: [860, 382]
+    tone: upstream
+
+spines:
+  - { y: 250, from: 66, to: 790, tone: upstream }
+
+stops:
+  - { x: 150, side: above, title: 有活干吗, detail: 没有就阻塞在这里等, fn: _process_input_queue, icon: clock, tone: upstream }
+  - { x: 340, side: below, title: 这一步算谁、各算几个, fn: Scheduler.schedule, icon: split, tone: upstream }
+  - { x: 530, side: above, title: 送下去执行, detail: 跨进程，等 Worker 回话, fn: execute_model, icon: chip, tone: ascend }
+  - { x: 710, side: below, title: 按结果更新状态, fn: update_from_output, icon: calc, tone: upstream }
+
+arrows:
+  - from: [810, 250]
+    to: [62, 250]
+    via: [[846, 250], [846, 392], [40, 392], [40, 250]]
+    tone: upstream
+    label: 转下一圈
+
+notes:
+  - { at: [56, 452], text: "那条请求的 200 步，就是这个循环转了 200 圈。第 1 圈给它 37 个 token 的名额，第 2 到第 200 圈各给 1 个——循环体一个字都没改。", size: 12.5, width: 830 }
+
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
+    symbols: [run_busy_loop, _process_input_queue]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346
+    symbols: [Scheduler, schedule]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
+    symbols: [execute_model, update_from_output]

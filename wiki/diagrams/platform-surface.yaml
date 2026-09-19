@@ -1,0 +1,31 @@
+layout: scene
+id: platform-surface
+caption: NPUPlatform 的四类活：只有第二类会真的改掉你给的配置
+size: [900, 486]
+
+bands:
+  - { label: 一、报身份, sub: "device_name=npu · dispatch_key=PrivateUse1 · ASCEND_RT_VISIBLE_DEVICES", at: [20, 48], size: [860, 68], tone: muted, icon: text }
+  - { label: 二、改配置, sub: "pre_register_and_update 打全局 patch、加量化选项；check_and_update_config 改写整份 VllmConfig", at: [20, 128], size: [860, 68], tone: accent, icon: gear }
+  - { label: 三、拦配置, sub: 四个校验按固定顺序跑，不合法的组合在这里抛错, at: [20, 208], size: [860, 68], tone: accent, icon: search }
+  - { label: 四、给跳板, sub: "get_attn_backend_cls · get_device_communicator_cls · get_compile_backend · get_static_graph_wrapper_cls", at: [20, 288], size: [860, 68], tone: ascend, icon: pick }
+
+boxes:
+  - { at: [20, 376], size: [420, 62], title: "get_device_total_memory 故意抛 NotImplementedError", sub: "实现它会过早初始化 torch_npu，而它只允许全局初始化一次", tone: accent, icon: bolt }
+  - { at: [460, 376], size: [420, 62], title: "simple_compile_backend = \"eager\"", sub: "注释写的是 # Disable torch.compile()", tone: accent, icon: bolt }
+
+notes:
+  - { at: [20, 366], text: "两条最容易被当成 bug 的设计", size: 13, strong: true }
+  - { at: [460, 452], text: "不是不支持图，是换了自己那套——昇腾的图模式在另外两个方法里。", size: 12.5, width: 420 }
+  - { at: [20, 480], text: "第二类是这一页的重点：启动参数和实际生效的配置可以不是一回事。排查「我配了但没生效」要先来这一层，不要先怀疑 JSON 写错。", size: 12.5, width: 860 }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
+    symbols: [NPUPlatform, device_name, dispatch_key]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L204
+    symbols: [pre_register_and_update]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472
+    symbols: [check_and_update_config]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L290
+    symbols: [get_device_total_memory]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
+    symbols: [get_attn_backend_cls]

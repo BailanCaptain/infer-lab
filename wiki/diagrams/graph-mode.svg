@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="图模式分两段：启动时把每个尺寸各捕获一次，运行时按 key 查回放">
+  <title>图模式分两段：启动时把每个尺寸各捕获一次，运行时按 key 查回放</title>
+  <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="44" width="400" height="306" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="58" width="105.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期 · 捕获</text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">compile_or_warm_up_model 里按尺寸逐个跑假批</text>
+  <rect x="480" y="44" width="400" height="306" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="496" y="58" width="105.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="507" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">运行期 · 回放</text>
+  <text x="498" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每一步进来先看 key 在不在缓存里</text>
+  <rect x="36" y="130" width="368" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="52" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">取 compile_sizes 与 </text>
+  <text x="52" y="166.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">cudagraph_capture_sizes</text>
+  <text x="52" y="184.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">已在捕获列表里的尺寸从 warmup 列表剔掉</text>
+  <rect x="36" y="204" width="368" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="52" y="231.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">逐个尺寸跑 _dummy_run 并录下来</text>
+  <text x="52" y="249.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个 compile range 至少保一个尺寸</text>
+  <rect x="36" y="278" width="368" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="48" y="289" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(54.4 295.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="88" y="310" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">enforce_eager 为真时整段跳过</text>
+  <rect x="496" y="130" width="368" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="512" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">从 forward context 拿 mode 与 </text>
+  <text x="512" y="166.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">batch_descriptor</text>
+  <text x="512" y="184.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">docstring 的原话是「无条件信任它们」</text>
+  <rect x="496" y="204" width="368" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="512" y="231.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">mode 不匹配就直接调原函数</text>
+  <text x="512" y="249.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">分派决策不在这个类里</text>
+  <rect x="496" y="278" width="368" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="512" y="301.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">匹配就按 key 查缓存并回放</text>
+  <text x="512" y="319.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">ACLGraphWrapper</text>
+  <path d="M424 240 L474 240" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
+  <path d="M474 240 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
+  <rect x="430.5" y="230" width="37" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="449" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">缓存</text>
+  <text x="20" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">那条请求的 200 步里，decode 的 199 步批形状一样，所以查到的是同一个 key、回放的是同一张图。启动慢的那几十秒，大部分花在左半边。</text>
+  <text x="20" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">「为什么这一步没走图」要去查 forward context 怎么定的 mode，不是查 ACLGraphWrapper——它只按上游给的 key 查缓存。</text>
+  <text x="20" y="460" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">排查这一层最快的一刀：开 enforce_eager。问题消失，范围就锁在这里。</text>
+</svg>

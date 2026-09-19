@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CITABLE_DOMAINS, classifySource, handbookDomains } from "./sources";
+import { CITABLE_DOMAINS, classifySource, handbookDomains, supportsOfficialEvidence } from "./sources";
 
 describe("classifySource", () => {
   it("repo@commit:path 形式是仓库来源", () => {
@@ -12,11 +12,20 @@ describe("classifySource", () => {
     for (const u of [
       "https://docs.vllm.ai/projects/ascend/en/v0.23.0/installation.html",
       "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910/x.html",
-      "https://github.com/vllm-project/vllm-ascend/pull/11953",
       "https://blog.vllm.ai/2025/05/12/hardware-plugin.html",
-      "https://discuss.vllm.ai/c/hardware-support/vllm-ascend-support",
     ]) {
       expect(classifySource(u), u).toBe("official");
+    }
+  });
+
+  it("community posts in official spaces do not acquire S merely through their domain", () => {
+    for (const url of [
+      "https://github.com/vllm-project/vllm-ascend/pull/11953",
+      "https://github.com/vllm-project/vllm-ascend/issues/1#issuecomment-2",
+      "https://discuss.vllm.ai/t/topic/1",
+    ]) {
+      expect(classifySource(url)).toBe("community");
+      expect(supportsOfficialEvidence(classifySource(url))).toBe(false);
     }
   });
 

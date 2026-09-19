@@ -33,6 +33,7 @@ export interface ClonePlan {
   /** 主工作树切到 main 钉住的 commit */
   checkoutMain: string[];
   addWorktrees: { ref: string; commit: string; dir: string }[];
+  updateWorktrees: { ref: string; commit: string; dir: string }[];
   pruneWorktrees: string[];
 }
 
@@ -55,7 +56,10 @@ export function planClone(state: CloneState | null, repo: SeedRepo): ClonePlan {
     .map(([dir, ref]) => ({ ref, commit: repo.refs[ref] as string, dir }));
 
   // main 的工作树是仓库本体，不参与回收
-  const pruneWorktrees = [...existing].filter((dir) => dir !== mainDir && !wanted.has(dir));
+  const pruneWorktrees = [...existing].filter((dir) => dir.startsWith(`${repo.path}@`) && !wanted.has(dir));
+  const updateWorktrees = [...wanted.entries()]
+    .filter(([dir]) => dir !== mainDir && existing.has(dir))
+    .map(([dir, ref]) => ({ ref, commit: repo.refs[ref] as string, dir }));
 
   const needClone = !state?.isRepo;
   return {
@@ -64,6 +68,7 @@ export function planClone(state: CloneState | null, repo: SeedRepo): ClonePlan {
     fetch: ["fetch", "origin", "+refs/heads/*:refs/remotes/origin/*", "--tags", "--prune"],
     checkoutMain: ["checkout", "--detach", repo.refs[DEFAULT_REF] as string],
     addWorktrees,
+    updateWorktrees,
     pruneWorktrees,
   };
 }

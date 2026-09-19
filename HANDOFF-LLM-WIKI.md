@@ -37,14 +37,13 @@
 
 ## 4. 接下来做什么（按优先级）
 
-1. **提交。** 2026-09-19/20 的全部改动（见 §6）尚未提交，等用户点头。
-2. **修两个会产生错误结果的逻辑漏洞**（都未动）：
+1. **修两个会产生错误结果的逻辑漏洞**（都未动）：
    - 引用检查：回答里只要出现「知识库里还没有 / 尚未收录」字样，整篇就算通过（`src/content/wiki/retrieve.ts` 的 `UNCOVERED`）。F001 AC7 要的是把这类回答**标成未收录**，不是放行。
    - 夜间维护死循环：待生成参数页 14 个 > 每晚上限 3 → 整批暂缓、检查点不推进 → 每晚都一样（`wiki/sync.config.json`、`last-run.json` 的 `deferred`）。要么分批推进检查点，要么调上限，需用户拍板。另：同步用的 Python 指向 Codex 的私有缓存目录，随时可能失效。
-3. **补走审批的旧账**：2026-09-19 手写直入 `concepts/` 的 24 页没走审阅、没有 raw、`log.md` 没记。用户尚未逐页读过。处理方式待用户定（补审 / 读后认可）。
-4. **31 页引用的上游代码已变**（`wiki:stale`）。先看 diff 判断哪些真过期，不要直接付费重跑。
-5. **文档瘦身**：状态只留在 feature 验收表（现在停在 09-16，比实际旧）；F001 AC11 仍写 mermaid，与 HANDBOOK 矛盾；HANDBOOK 内部「七节」实列六节等多处不自洽；`CLAUDE.md` 与 `AGENTS.md` 逐字重复；`docs/plans/` 下约 29 份逐轮报告可归档。逐条证据（文件与行号）见 [2026-09-19 审视](docs/plans/wiki-audit-2026-09-19.md)。
-6. **小修**：三份 seeds 的仓库表互不包含（默认 seeds 跑 `wiki:audit` 会报 57 处「未知仓库」）；`wiki:gaps` 把 `false`、`enabled`、`AI` 当成待补概念，需要停用词；11 页存量 mermaid 迁到 wiki-diagram 后删 `Mermaid.tsx`；`wiki/sources/` 空目录要么启用要么从 HANDBOOK 删掉；`log.md` 的类型只有 ingest/build/review，问答和 lint 记不进去。
+2. **补走审批的旧账**：2026-09-19 手写直入 `concepts/` 的 24 页没走审阅、没有 raw、`log.md` 没记。用户尚未逐页读过。处理方式待用户定（补审 / 读后认可）。
+3. **31 页引用的上游代码已变**（`wiki:stale`）。先看 diff 判断哪些真过期，不要直接付费重跑。
+4. **文档瘦身**：状态只留在 feature 验收表（现在停在 09-16，比实际旧）；F001 AC11 仍写 mermaid，与 HANDBOOK 矛盾；HANDBOOK 内部「七节」实列六节等多处不自洽；`CLAUDE.md` 与 `AGENTS.md` 逐字重复；`docs/plans/` 下约 29 份逐轮报告可归档。逐条证据（文件与行号）见 [2026-09-19 审视](docs/plans/wiki-audit-2026-09-19.md)。
+5. **小修**：三份 seeds 的仓库表互不包含（默认 seeds 跑 `wiki:audit` 会报 57 处「未知仓库」）；`wiki:gaps` 把 `false`、`enabled`、`AI` 当成待补概念，需要停用词；11 页存量 mermaid 迁到 wiki-diagram 后删 `Mermaid.tsx`；`wiki/sources/` 空目录要么启用要么从 HANDBOOK 删掉；`log.md` 的类型只有 ingest/build/review，问答和 lint 记不进去。
 
 ### 明确挂起（不是取消）
 
@@ -65,7 +64,7 @@
 - `pnpm test` 要带 `WIKI_PYTHON`（取 `wiki/sync.config.json` 的 `python`），否则参数扫描相关测试会用到旧解释器。
 - `pnpm lint` 有 14 条 `noDescendingSpecificity` 警告，是规则只看选择器末尾元素造成的误报，不要为消警告去改选择器。
 
-## 6. 2026-09-19/20 这轮做了什么（均未提交）
+## 6. 2026-09-19/20 这轮做了什么（已提交：`b36d82c` 面板、`4e55b71` 修复、`51a1c3e` 术语试点与 wiki:stage、`e5d4ada` 文档；只在本地，未推送未合并）
 
 - **保底提交** `c815492`：把此前累积的 433 个未提交文件一次提交。
 - **3 页术语试点**已由用户批准发布：`kv-cache`、`rope`、`prefill`；同包给 `kv-cache-spec`、`vllm-scheduler` 各补了一条指向新页的 relations。

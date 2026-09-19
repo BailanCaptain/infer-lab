@@ -10,7 +10,7 @@ import { appendWikiLog } from "./log";
 import { patrol } from "./maintenance";
 import { ParameterBulkDeferred, publishParamSync } from "./params/publish-sync";
 import { scanRepo } from "./params/scan";
-import { parameterDiff } from "./params/sync";
+import { parameterDiff, parameterKey } from "./params/sync";
 import { queueImportantPr } from "./pr-queue";
 import { listTasks } from "./queue";
 import { reconcileCycle } from "./reconcile";
@@ -124,7 +124,17 @@ async function runSync(
         join(warnings, `params-${digest(`${name}:${ref}`).slice(0, 12)}-${tip.slice(0, 12)}.json`),
         JSON.stringify(report, null, 2),
       );
-      atomicText(path, JSON.stringify(next));
+      // 有留到下一轮的新增项时，检查点只记「已处理到哪」、commit 不前进：
+      // 下一晚同一对 commit 再比一次，剩下的自然又是「新增」，谱系区间也不变。
+      const heldBack = new Set(published.heldBackKeys ?? []);
+      atomicText(
+        path,
+        JSON.stringify(
+          heldBack.size
+            ? { commit: old.commit, entries: next.entries.filter((p) => !heldBack.has(parameterKey(p))) }
+            : next,
+        ),
+      );
       parameters.push(report);
     }
   }

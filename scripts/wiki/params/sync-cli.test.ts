@@ -44,6 +44,51 @@ it("runs the shared sync CLI across a real Git delta and checkpoints only the co
   }
 });
 
+it("works an over-limit delta off a few pages per night instead of deferring the same batch forever", () => {
+  const f = wikiFixture();
+  try {
+    const file = "vllm_ascend/config.py";
+    f.write(`repo/${file}`, "class ExampleConfig:\n    existing: int = 1\n");
+    const pin = f.commit("old");
+    f.write(
+      `repo/${file}`,
+      "class ExampleConfig:\n    existing: int = 1\n    alpha_flag: int = 1\n    beta_flag: int = 2\n    gamma_flag: int = 3\n",
+    );
+    const tip = f.commit("new (#7)");
+    f.git(["update-ref", "refs/remotes/origin/main", tip]);
+    f.write(
+      "seeds.yaml",
+      `repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: ${pin}}\nfeatures: []\n`,
+    );
+    f.write("sync.json", JSON.stringify({ seeds: "seeds.yaml", maxNewParamPages: 2 }));
+    const pages = () =>
+      existsSync(join(f.root, "wiki/params")) ? readdirSync(join(f.root, "wiki/params")) : [];
+
+    const first = f.cli("wiki-sync", ["--config", "sync.json"]);
+    expect(first.status, first.stdout + first.stderr).toBe(0);
+    expect(JSON.parse(first.stdout).parameters[0].published).toMatchObject({ added: 2, heldBack: 1 });
+    expect(pages()).toHaveLength(2);
+
+    const second = f.cli("wiki-sync", ["--config", "sync.json"]);
+    expect(second.status, second.stdout + second.stderr).toBe(0);
+    expect(JSON.parse(second.stdout).parameters[0].published).toEqual({
+      added: 1,
+      removed: 0,
+      changed: 0,
+      written: 1,
+    });
+    expect(pages()).toHaveLength(3);
+    // 留到第二晚的页，谱系仍从原检查点算起，带得出引入它的 PR
+    for (const name of pages())
+      expect(readFileSync(join(f.root, "wiki/params", name), "utf8")).toContain("#7");
+
+    const third = f.cli("wiki-sync", ["--config", "sync.json"]);
+    expect(JSON.parse(third.stdout).parameters).toEqual([{ repo: "r", ref: "main", changed: false }]);
+  } finally {
+    f.cleanup();
+  }
+});
+
 it("defers an over-limit parameter delta without advancing its checkpoint and still runs patrol", () => {
   const f = wikiFixture();
   try {

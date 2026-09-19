@@ -3,7 +3,7 @@
   "fetch": true,
   "parameters": true,
   "python": "C:/Users/-/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
-  "maxNewParamPages": 3,
+  "maxNewParamPages": 10,
   "github": true,
   "githubRepo": "vllm-project/vllm-ascend",
   "patrolAgeDays": 30,

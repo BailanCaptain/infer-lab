@@ -1,32 +1,37 @@
 ---
 id: kv-cache-sparse-offload
-title: Sparse KV Offload
+title: "Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行"
 type: feature
-summary: PD 分离的 D 节点上，主 KV 全部住在主机内存，每步只把 indexer 选中的 top-k token 里未命中的那几行搬回 NPU 热缓冲区。
+summary: PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 top-k，再由每层一张 LRU 表决定哪几行要搬回 NPU 热缓冲区。
 aliases: [稀疏 KV 卸载, Sparse Decode Offload, Sparse KV Cache Offload, sparse_kv_offload_config]
 chapters: ["11"]
 sources:
-  - vllm-ascend@28bf3a2e:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L203-L241
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L148-L186
-  - vllm-ascend@28bf3a2e:docs/source/locale/zh_CN/LC_MESSAGES/user_guide/feature_guide/sparse_kv_cache_offload.po#L166-L170
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1227-L1246
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1257-L1292
-  - vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L689-L695
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_v1.py#L111-L142
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L166-L180
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L297-L343
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/sfa_kv_offload.py#L396-L448
-  - vllm-ascend@28bf3a2e:vllm_ascend/device/device_op.py#L1514-L1527
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L53-L84
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L181-L230
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L608-L624
-  - vllm-ascend@28bf3a2e:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp#L115-L173
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L5006-L5014
+  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L211-L251
+  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L154-L192
+  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1457-L1476
+  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1488-L1523
+  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L858-L864
+  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_v1.py#L266-L302
+  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L192-L229
+  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L346-L394
+  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1134
+  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L7-L20
+  - vllm-ascend@b255ab59:vllm_ascend/device/device_op.py#L1367-L1380
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L107-L140
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L235-L295
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L316-L346
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L752-L768
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1307-L1333
+  - vllm-ascend@b255ab59:csrc/torch_binding.cpp#L2304-L2398
+  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5602-L5610
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37
   - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566
   - https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp
 evidence: "C"
 relations:
+  - to: one-request
+    kind: builds-on
+    note: 那条请求在启动校验就被拦下，这一页得换成稀疏注意力模型 + PD 分离的 D 节点才有数可算
   - to: kv-cache-spec
     kind: builds-on
     note: 开关直接写进 AscendMLAAttentionSpec 的 store_on_host，由 spec 区分哪些层的 KV 落主机、哪些留设备
@@ -35,7 +40,7 @@ relations:
     note: indexer 给的是逻辑 token 位置，要先过 block_table 才能换算成主机池里的字节地址
   - to: kv-cache-memory-profiling
     kind: builds-on
-    note: profiling 算出的可用显存是 plan_sparse_kv_offload_memory 三个块数上限中的 npu 那一项
+    note: profiling 算出的可用显存是 plan_sparse_kv_offload_memory 三个块数上限里的 npu 那一项
   - to: kv-cache-layerwise-offload
     kind: alternative-to
     note: 同一份官方文档把两者配成一对——P 节点整层搬、D 节点只搬 top-k，因为两阶段的算力/搬运比完全不同
@@ -46,144 +51,85 @@ relations:
     kind: conflicts-with
     note: enable_sparse_sfa_c8 与本特性互斥，主 KV 必须 BF16；只有 indexer 的 LI C8 还能开
 contradicts: []
-updated: "2026-09-12"
+updated: "2026-09-20"
 ---
 
 ## 一句话
 
-Sparse KV Offload 让 PD 分离部署里的 D 节点**不再分配 NPU 主 KV 缓存**：全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 `index_topk` 个 token，再由一张每层独立的 LRU 表判断哪些已经在 NPU 热缓冲区里，只把未命中的行 H2D 搬回来 [S2]。它只在 main 上存在，v0.23.0 完全没有这个特性 [!]。
+Sparse KV Offload 让 PD 分离部署里的 D 节点**不再分配 NPU 主 KV 缓存**：全量主 KV 住在主机 pinned 内存里，每个 decode 步由模型自带的 indexer 选出 `index_topk` 个 token，再由每层一张 LRU 驻留表判断哪些已经躺在 NPU 热缓冲区里，**只把没命中的那几行 H2D 搬回来** [S2]。搬运量于是正比于 top-k 的未命中数，而不是序列长度——这是它能在算力极少的 decode 阶段成立的全部理由。它只在 main 开发主线上存在：v0.23 维护分支全仓搜 `sparse_kv_offload` 零命中，特性指南目录里也没有这一页 [S19][!]。
 
-## 为什么需要它
-
-上游两篇官方文档配套读：[使用指南](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html)（本页的 S1）讲怎么配，[设计文档](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.html)（S2）讲为什么这么设计。
-
-decode 每步只算一个 token，算力极少，却要读整条历史的 KV。把 KV 整层搬主机（[逐层卸载](kv-cache-layerwise-offload.md) 的做法）在 prefill 能被算力盖住，在 decode 盖不住——搬运时间直接变成 TPOT。
-
-但稀疏注意力模型给了一个出口：DeepSeek-V3.2、GLM-5.x 这类模型的每个 query 本来就只 attend `index_topk` 个 token，其余历史这一步根本用不到 [S1]。既然如此，NPU 上就没必要常驻全量 KV，只需要常驻「最近几步被选中过」的那部分。搬运量于是从「正比于序列长度」变成「正比于 top-k 未命中数」。
-
-这带来一个平时反着的结论：**NPU 侧的 KV 块数上限不再由主 KV 决定**。`plan_sparse_kv_offload_memory` 里 `npu_page_size_bytes` 只算 `store_on_host=False` 的那些 spec（也就是留在设备上的 indexer 缓存），主 KV 的容量改由 `dram_size_per_dp_GB` 卡 [C13]。换句话说，能开多长的 `max_model_len`、多大的 batch，变成了一个主机内存问题。
-
-相邻概念在这里只点一句：哪些层落主机由 [KV Cache Spec](kv-cache-spec.md) 的 `store_on_host` 标记，这个标记就是开关本身；逻辑 token 到物理地址的换算仍走 [块表](block-table.md)；显存怎么量出来见 [显存 profiling](kv-cache-memory-profiling.md)。
-
-## 怎么工作
-
-开关是 `additional_config.sparse_kv_offload_config.enabled`，另外三个字段默认 `topk_buffer_size=4096`、`dram_size_per_dp_GB=128`、`keep_device_kv_cache=false` [C4]。一旦打开，`AscendSFABackend.get_impl_cls()` / `get_builder_cls()` 换成 `AscendSFAKVOffloadImpl` / `AscendSFAKVOffloadMetadataBuilder`，整条卸载逻辑与干净的 `sfa_v1.py` 分开；同时 impl 把预处理固定成 `PreprocessType.NATIVE`，关掉 `sfa_prolog_v3`/mlapo 融合路径。
-
-一个 decode 步在**一层**里发生的事：
-
-```mermaid
-flowchart TD
-    subgraph NPU
-        exec["AscendSFAKVOffloadImpl.exec_kv"]
-        ckv["_compute_kv_only<br/>不写 NPU paged 主缓存"]
-        idx["npu_lightning_indexer<br/>→ topk_indices"]
-        mask["build_valid_topk_mask<br/>越界/padding 置 -1"]
-        buf["topk_buffers_k / topk_buffers_v<br/>[rows, topk_buffer_size, 1, dim]"]
-        attn["DeviceOperator.<br/>execute_sparse_flash_attention_process"]
-    end
-    subgraph Host
-        lru["lru_resident_compact<br/>命中 / 驱逐 / 分配槽位"]
-        addr["compute_lru_resident_addrs<br/>拼出 miss 行的源/目的地址"]
-        pool["k_caches_cpu / v_caches_cpu<br/>全量主 KV，pinned"]
-    end
-
-    exec --> ckv
-    ckv -->|"offload_new_kv<br/>D2H 单 token 行"| pool
-    idx --> mask
-    mask -->|"onload_topk_kv"| lru
-    lru --> addr
-    addr -->|"offload.sparse_copy<br/>只搬 miss 行 H2D"| buf
-    pool -.->|"miss 行来源"| buf
-    buf --> attn
-    lru -->|"current_slots_npu<br/>逻辑位置→物理槽位"| attn
+```wiki-diagram
+file: kv-cache-sparse-offload
 ```
 
-三处值得单独说：
+## 那条请求用不到它
 
-**新 token 的 KV 不经过 NPU 主缓存。** `exec_kv` 在 decode-only 分支里调 `_compute_kv_only` 算出 `k_nope`/`k_pe`，然后以 `k_cache_npu=None` 调 `offload_new_kv`，按 token 行直接 D2H 写进主机池 [C9]。`keep_device_kv_cache=False` 时 NPU 上压根没有主 paged 缓存这个张量。
+[那条请求](one-request.md)是 Qwen3-0.6B、单卡、没有 PD 分离，它在启动时会被 `_validate_preconditions` 连拦两道：模型配置里没有 `index_topk`，直接报 `Sparse KV offload only support sparse attention model.`；就算换了模型，`keep_device_kv_cache=False` 时还要求 `kv_transfer_config.is_kv_consumer`，不是 D 节点就 `AssertionError` [C4]。
 
-**top-k 选谁与卸载无关。** `topk_indices` 由 `torch_npu.npu_lightning_indexer` 读 indexer 的 K 缓存算出 [C11]，这是模型自带的 DSA 机制，开不开卸载都一样。卸载只改变「选中的 KV 从哪里取」。落到卸载路径前还会过一道 `build_valid_topk_mask`，把 ≥ 当前 `seq_len` 的位置和 padding 置成 -1。
-
-**LRU 表是每层一份、每行一份的。** `lru_slots_row` 按最久未用到最近使用排序：命中的槽位被挪到队尾，未命中优先占用队首的可驱逐槽位，然后 `slot_to_token` 更新映射。MTP/投机场景下 `stable_prefix_len` 之后的 token 会被强制作废，因为那段后缀可能已被下一步改写。这段 C++ 跑在 host 上；图模式下通过 `torch_npu.npu._launch_host_func` 挂到计算流上执行。
-
-TP 下 decode 产生的 KV 是复制的，所以只有 TP rank 0 分配主机池并写新 token 行，其它 rank 通过广播出来的全局虚拟地址访问同一块。
-
-**版本差异 [!]**：以上全部只适用于 main（28bf3a2e）。v0.23.0（2c59ff10）全仓 grep `sparse_kv_offload` 零命中，特性指南目录里也没有这一页 [S17]；它有完整的 SFA + lightning indexer 稀疏注意力，但选中的 KV 仍然全部读 NPU 上的 paged 主缓存。
-
-## 拿真实数字走一遍
-
-这一页不能用 Qwen3-0.6B：`_validate_preconditions` 要求模型配置里有 `index_topk`，没有稀疏注意力的稠密模型直接报 `Sparse KV offload only support sparse attention model.`。下面用 DeepSeek-V3.2（`kv_lora_rank=512`、`qk_rope_head_dim=64`、`num_hidden_layers=61`、`index_topk=2048`）[S19]，D 节点 `max_num_seqs=32`、不开 MTP、`block_size=128`。
-
-配置片段（D 节点）：
+要让这一页有数可算，得换三样：稀疏注意力模型、PD 分离的 D 节点、接上 KV 传输。下面这组数用 DeepSeek-V3.2（`kv_lora_rank=512`、`qk_rope_head_dim=64`、61 层、`index_topk=2048`）[S21]，D 节点 `max_num_seqs=32`、不开 MTP、`block_size=128` [A]，配置抄官方指南那一组 [S1]：
 
 ```bash
---additional-config '{
-    "sparse_kv_offload_config": {
-        "enabled": true,
-        "topk_buffer_size": 4096,
-        "dram_size_per_dp_GB": 128
-    }
-}' \
---kv-transfer-config '{
-    "kv_connector": "SfaRemoteD2HConnector",
-    "kv_role": "kv_consumer",
-    "kv_port": 20050,
-    "kv_connector_extra_config": {
-        "transfer_backend": "memfabric",
-        "use_layerwise": true
-    }
-}'
+--additional-config '{"sparse_kv_offload_config": {
+    "enabled": true, "topk_buffer_size": 4096, "dram_size_per_dp_GB": 128 }}' \
+--kv-transfer-config '{"kv_connector": "SfaRemoteD2HConnector", "kv_role": "kv_consumer",
+    "kv_port": 20050, "kv_connector_extra_config": {
+        "transfer_backend": "memfabric", "use_layerwise": true }}'
 ```
 
-`topk_buffer_size = 4096` 这个值同时满足三条：≥ `index_topk`（2048，启动期硬校验 [C5]）、是 `block_size` 的整数倍（128 × 32，运行期硬校验 [C14]）、按文档建议取 `2 × index_topk`。
+`topk_buffer_size = 4096` 一个数同时满足三条约束：≥ `index_topk`（2048，启动期校验 [C4]）、被 `block_size` 整除（128 × 32，建 impl 时再校验一遍 [C7]）、按官方建议取 `2 × index_topk`。
 
-**一、每 token 每层的主 KV 字节数。** MLA 只有一个 KV 头，K 走 `kv_lora_rank`、V 走 `qk_rope_head_dim`，BF16：
+## 省下的是两个数量级
 
-- K：1 × 512 × 2 B = 1024 B
-- V：1 × 64 × 2 B = 128 B
-- 合计 1152 B；61 层 = 70,272 B ≈ 68.6 KiB / token
+MLA 只有一个 KV 头，K 走 `kv_lora_rank`、V 走 `qk_rope_head_dim`，而这条路径上主 KV 被强制成 BF16 [C15]：
 
-**二、主机池能装多少。** 每层每块 = 128 × 1152 = 147,456 B；61 层 = 8,994,816 B ≈ 8.58 MiB / 块。对齐预留 = 61 层 × 3 × 2 MiB = 366 MiB。于是
+| 这一步在算什么 | 算式 | 结果 |
+|---|---|---|
+| 每 token 每层 | `1 × (512 + 64) × 2 B` | 1152 B |
+| 每 token 全模型 | `1152 × 61` | 70,272 B ≈ 68.6 KiB |
+| 主机池装得下几块 | `(128 GiB − 61 × 3 × 2 MiB) ÷ (128 × 1152 × 61)` | **15,237 块** = 1,950,336 个 token 的位置 |
+| NPU 上常驻多少 | `32 × 4096 × (512 + 64) × 2 B × 61` | **8.58 GiB** |
+| 同样长度全放 NPU 要 | `1,950,336 × 70,272 B` | **127.6 GiB** |
 
-```
-usable   = 128 GiB − 366 MiB = 137,055,174,656 B
-dram_limit_blocks = 137,055,174,656 ÷ 8,994,816 = 15,237 块
-                  = 15,237 × 128 = 1,950,336 token 的 KV 历史
-```
+**8.58 GiB 换 127.6 GiB，这就是这个特性的全部意义** [D]。减掉的那一项是主机池的对齐预留，每个落主机的 spec 三个 2 MiB 对齐单位；那个 `32` 是 `max_num_topk_rows = min(max_num_batched_tokens, max_num_seqs × decode_width)`，热缓冲区按它乘 `topk_buffer_size` 整块预分配，与序列实际有多长无关 [C12]。
 
-（这里按 `real_page_size_bytes` 计算，未计入可能的 `page_size_padded` 对齐；真实块数以启动日志里那行 `Sparse KV offload memory plan:` 为准 [D]。）
+这顺手把显存预算翻了个面。`plan_sparse_kv_offload_memory` 里的 `npu_page_size_bytes` **只累加 `store_on_host=False` 的那些 spec**——也就是留在设备上的 indexer 缓存，主 KV 一个字节都不算；最终块数在 npu / dram / workload 三个上限里取最小，代码还专门为「dram 比 npu 小」写了一条劝你调大 `dram_size_per_dp_GB` 的 warning [C13]。**能开多长的 `max_model_len`、多大的 batch，从此是个主机内存问题。** 哪些层落主机由 [KV Cache Spec](kv-cache-spec.md) 的 `store_on_host` 标记决定，这个标记本身就是开关；这一步怎么接在显存探测后面，见 [显存 profiling](kv-cache-memory-profiling.md)。
 
-**三、NPU 上常驻多少。** `max_num_topk_rows = min(max_num_batched_tokens, 32 × 1) = 32` [C12]：
+三个近亲的边界也在这里划开：[CPU Offload](kv-cache-cpu-offload.md) 按整块换入换出、不挑 token；[Layerwise Offload](kv-cache-layerwise-offload.md) 管的是 P 节点把整层搬走；[Recompute CPU Offload](recompute-cpu-offload.md) 只在抢占发生时搬一整条请求的块。只有这一条是每个 decode 步都在搬 top-k 的行。
 
-- `topk_buffers_k`：32 × 4096 × 1 × 512 × 2 B = 128 MiB / 层
-- `topk_buffers_v`：32 × 4096 × 1 × 64 × 2 B = 16 MiB / 层
-- 61 层合计 = 61 × 144 MiB = 8,784 MiB ≈ **8.58 GiB**
+## 热缓冲区必须比 index_topk 大，背后是一条安全性质
 
-对比一下不卸载：把这 1,950,336 个 token 全放 NPU 需要 1,950,336 × 70,272 B ≈ **127.6 GiB**。8.58 GiB 换 127.6 GiB，这就是这个特性的全部意义。
+LRU 那段 C++ 每步做三件事：把命中的槽位挪到队尾、把没命中的 top-k 位置分给队首的可驱逐槽位、再按「剩余可驱逐 → 新分配 → 命中」的顺序重排整条队。分配数是 `assign_count = min(miss_count, evictable_count)` [C17]——**要是可驱逐槽位不够，多出来的 miss 就拿不到槽位，那个 top-k 位置会被静默跳过。**
 
-**四、为什么热缓冲区必须大于 `index_topk`。** 冷启动最坏情况下 2048 个 top-k 全部 miss：每行每层 2048 × 1152 B = 2.25 MiB，32 行 × 61 层 = 4.29 GiB 的 H2D，一个 decode 步绝无可能扛住。稳态下相邻两步的 top-k 高度重叠，miss 只有个位数到几十行，搬运量才降到可接受。缓冲区越大命中率越高、TPOT 越低，代价是上面第三步那笔常驻显存 [S3]。
+而 `evictable_count = capacity − hit_count ≥ topk − hit_count ≥ miss_count`，所以只要 `topk_buffer_size ≥ topk`，`assign_count` 恒等于 `miss_count`，每个 miss 都一定分得到槽位 [D]。前面那条启动期校验存在的理由就是这个。
 
-**五、一条推导出来的安全性质。** 因为启动期强制 `topk_buffer_size ≥ topk`，而 LRU 里 `evictable_count = capacity − hit_count ≥ topk − hit_count ≥ miss_count`，所以 `assign_count = min(miss_count, evictable_count)` 恒等于 `miss_count`——**每一个 miss 都一定分得到槽位，不会出现某个 top-k 位置拿不到 KV 而被静默丢掉** [D]。这条只在 `topk_buffer_size ≥ topk` 成立时为真，也正是那条校验存在的理由。
+缓冲区的大小同时决定了要搬多少。冷启动最坏情况下 2048 个 top-k 全部 miss：每行每层 `2048 × 1152 B = 2.25 MiB`，32 行 × 61 层 = **4.29 GiB** 的 H2D，一个 decode 步绝无可能扛住 [D]。稳态下相邻两步的 top-k 高度重叠，miss 只剩个位数到几十行，搬运量才降到可接受——**缓冲区越大、跨步命中越多、TPOT 越低，代价就是上表里那 8.58 GiB** [D]。
 
-## 事实表
+MTP / 投机场景还多一道作废：`stable_prefix_len` 之后的 token 会被强制清掉，因为那段后缀可能已被下一步改写 [C17]。这段 C++ 跑在 host 上，图模式下由 `torch_npu.npu._launch_host_func` 挂到计算流上执行，算完的地址表再交给 `offload.sparse_copy` 发 H2D。TP 下 decode 产出的 KV 是复制的，所以只有 TP rank 0 分配主机池并写新 token 行，其它 rank 通过广播出来的全局虚拟地址访问同一块 [S2]。
 
-v0.23.0 整个特性不存在，故该列统一为「—」。
+## main 上多了一条文档里没有的融合路径
 
-| 项 | v0.23.0 | main (28bf3a2e) | 意味着什么 |
+整条卸载逻辑住在单独的 `sfa_kv_offload.py`：开关一打开，`AscendSFABackend` 的 `get_impl_cls()` / `get_builder_cls()` 就换成那一对类，`sfa_v1.py` 保持干净；impl 顺手把预处理钉死成 `PreprocessType.NATIVE`，`sfa_prolog_v3`/mlapo 融合预处理被关掉。
+
+main 上新出现的是 `use_fused_overlap`，默认 `False`，而整个 `docs/` 里搜不到这个词 [C3][!]。打开之后 decode 不再走「LRU 搬 miss → 再跑一次稀疏注意力」两步，而是一次 `npu_fused_sparse_attention_overlap`：算子**直接读主机池里的全量 KV**，NPU 上那对 `topk_buffers` 改当一块带 block_status / membership_map 的选择缓存用 [C10]。同一个 PR 还把原来独立的 `sparse_kv_offload.cpp` 整个搬进了 `csrc/torch_binding.cpp`，LRU 主体逐行照搬，只多了一个 `visible_seq_len` 门——MTP 里还没可见的 token 不参与选中 [C17]。
+
+下表对照 **v0.23 维护分支**（源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。前者整个特性不存在，所以那一列统一是「—」：
+
+| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| 特性本身 | —（代码与文档均无） | `sparse_kv_offload_config.enabled` | 稳定分支上照 main 文档配，这个配置项无人接收 [!] |
-| `topk_buffer_size` | — | 默认 4096；须 ≥ `index_topk` 且被 `block_size` 整除 | 两条都是硬校验；正因 ≥ topk，每个 miss 必定分得到槽位 |
-| `block_size` | — | 128（SFA 后端唯一支持值） | `topk_buffer_size` 实际只能取 128 的倍数 |
-| `dram_size_per_dp_GB` | — | 默认 128，每 DP 一份 | 主机总占用 = 该值 × `data_parallel_size`；DP 内 TP 共享一份 |
+| 特性本身 | 代码与文档都没有 | `sparse_kv_offload_config` | 在稳定分支上照 main 文档配，这个键无人接收 [!] |
+| `topk_buffer_size` | — | 默认 4096，须 ≥ `index_topk` 且被 `block_size` 整除 | 两条都是硬校验；正因 ≥ topk，每个 miss 必定分得到槽位 |
+| `dram_size_per_dp_GB` | — | 默认 128，每 DP 一份 | 主机总占用 = 该值 × `data_parallel_size`，DP 内 TP 共享一份 |
 | `keep_device_kv_cache` | — | 默认 `false` | 开了等于不省显存，只为 PD 同机调试；生产必须关 |
-| 主 KV dtype | — | 必须 BF16 | `enable_sparse_sfa_c8` 直接报错；indexer 的 LI C8 不受限 |
-| 每 token 每层字节 | — | `(kv_lora_rank + qk_rope_head_dim) × 2` | MLA 专属公式（`num_kv_heads == 1` 是 assert 出来的） |
-| 部署形态 | — | 仅 PD 分离的 D 节点（`is_kv_consumer`） | 非 D 节点启用直接 `AssertionError` |
-| 并行 | — | DP / TP 支持；CP、PP 报错 | 长序列想同时开 CP 的路走不通 |
-| 预处理路径 | — | 强制 `PreprocessType.NATIVE` | `sfa_prolog_v3`/mlapo 融合预处理被关掉，是确定要付的吞吐代价 |
+| `use_fused_overlap` | — | 默认 `false`，`docs/` 里查不到 | main 新加的融合 decode 路径，文档还没跟上 [!] |
+| 主 KV dtype | — | 必须 BF16 | `enable_sparse_sfa_c8` 直接报错，indexer 的 LI C8 不受限 |
+| 部署形态 | — | 仅 PD 分离的 D 节点 | 非 D 节点启用直接 `AssertionError` |
+| 并行与 runner | — | DP / TP 可用；CP、PP、model runner v2 报错 | 长序列想同时开 CP 的路走不通 |
+| 预处理路径 | — | 强制 `PreprocessType.NATIVE` | 融合预处理被关掉，是确定要付的吞吐代价 |
+
+v0.23 维护分支上有的是完整的 SFA + lightning indexer 稀疏注意力 [C20]：选中的 token 和 main 一样，差别只在这些 KV 从显存取还是从主机取。
 
 ## 常见误解
 
-- **「稀疏卸载会掉精度。」** 不会额外掉。稀疏来自模型自身的 DSA indexer（每步选 `index_topk` 个 token），开不开卸载选出来的都是同一批 token；卸载只决定这些 KV 从主机还是从显存取。真正动精度的是主缓存量化，而它在这条路径上被直接禁掉、强制 BF16。
-- **「热缓冲区调大能省显存。」** 正相反。`topk_buffers_k/v` 是常驻 NPU 的开销，调大是**拿显存换命中率**：命中率上去、H2D 少了、TPOT 才降。省显存靠的是「主 KV 不在设备上」，不是靠这个缓冲区。
-- **「D 节点还留着一份 NPU 主 paged KV，热缓冲区只是加速。」** 默认不留。`keep_device_kv_cache=False` 时 NPU 的 `k_tensor`/`v_tensor` 就是 `None`，新 token 算完直接 D2H [C9]。留着那份是 `keep_device_kv_cache=True` 的调试形态，官方明确写着生产别开 [S1]。
+- **「稀疏卸载会掉精度。」**——不会额外掉。稀疏来自模型自身的 DSA indexer，开不开卸载选出来的都是同一批 token [C11]；卸载只决定这些 KV 从主机还是从显存取。真正动精度的是主缓存量化，而它在这条路径上被直接禁掉、强制 BF16 [C5]。
+- **「热缓冲区调大能省显存。」**——正相反。`topk_buffers_k/v` 是常驻 NPU 的开销，调大是**拿显存换命中率**：命中率上去、H2D 少了、TPOT 才降。省显存靠的是「主 KV 不在设备上」，不是靠这个缓冲区。
+- **「D 节点还留着一份 NPU 主 paged KV，热缓冲区只是加速。」**——默认不留。`keep_device_kv_cache=False` 时那两个设备张量直接是 `None` [C14]，新 token 算完按行 D2H 进主机池。留着那一份是调试形态，官方明确写着生产别开 [S1]。

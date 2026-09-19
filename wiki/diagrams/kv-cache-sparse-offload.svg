@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 532" width="900" height="532" role="img" aria-label="D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（main 开发主线）">
+  <title>D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（main 开发主线）</title>
+  <rect width="900" height="532" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="44" width="380" height="424" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="58" width="118.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">主机 pinned 池</text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个 DP 一份，DP 内 TP 共享。全量主 KV 住这里，能开多大</text>
+  <text x="38" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">batch 变成主机内存问题。</text>
+  <rect x="500" y="44" width="380" height="424" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="516" y="58" width="44.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="527" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU</text>
+  <text x="518" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">只剩 indexer 的 K 缓存和每层一份热缓冲区；主 paged KV </text>
+  <text x="518" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认不分配。</text>
+  <line x1="450" y1="44" x2="450" y2="468" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="450" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">一个 decode 步只跨这条线两次</text>
+  <rect x="42" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="50" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="58" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="66" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="74" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="82" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="90" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="98" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="106" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="114" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="122" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="130" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="138" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="146" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="154" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="162" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="170" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="178" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="186" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="194" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="202" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="210" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="218" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="226" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="234" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="242" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="250" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="258" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="266" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="274" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="282" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="290" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="298" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="306" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="314" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="322" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="330" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="338" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="346" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="354" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="362" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="370" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="378" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="386" y="220" width="7" height="16" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="42" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一行历史 = 1,950,336 个 token 的位置</text>
+  <rect x="522" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="548" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="574" y="322" width="22" height="22" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="600" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="626" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="652" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="678" y="322" width="22" height="22" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="704" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="730" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="756" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="782" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="808" y="322" width="22" height="22" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="834" y="322" width="22" height="22" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <text x="522" y="362" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">热缓冲区一行 = 4096 个槽位，实心的是这一步搬上来的</text>
+  <rect x="42" y="130" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="54" y="149" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(60.4 155.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5M12 12v10"/></g>
+  <text x="94" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">全量主 KV，pinned</text>
+  <text x="94" y="171" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">只有 TP rank 0 分配并写新行</text>
+  <text x="94" y="188" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">k_caches_cpu / v_caches_cpu</text>
+  <rect x="42" y="300" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="54" y="319" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(60.4 325.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="94" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">每层一张 LRU 驻留表</text>
+  <text x="94" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">命中挪队尾，miss 占队首可驱逐槽</text>
+  <text x="94" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">sparse_kv_lru_resident_compact</text>
+  <rect x="522" y="130" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="534" y="149" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(540.4 155.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="574" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">本步的 K 和 V 算完就走</text>
+  <text x="574" y="171" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不落 NPU 主缓存，按 token 行下去</text>
+  <text x="574" y="188" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_compute_kv_only</text>
+  <rect x="522" y="222" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="534" y="241" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(540.4 247.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
+  <text x="574" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">indexer 选中 2048 个历史位置</text>
+  <text x="574" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">模型自带的 DSA，与卸载无关</text>
+  <text x="574" y="280" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">npu_lightning_indexer</text>
+  <rect x="522" y="380" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="538" y="403" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">稀疏注意力只读热缓冲区</text>
+  <text x="538" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">喂进去的是物理槽位</text>
+  <text x="538" y="438" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">execute_sparse_flash_attention_process</text>
+  <path d="M518 152 L382 152" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M382 152 l11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <rect x="402.8" y="142" width="94.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="450" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">新 token 一行</text>
+  <path d="M518 252 L450 252 L450 322 L382 322" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M382 322 l11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <rect x="412.5" y="277" width="75" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="450" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">top-k 位置</text>
+  <path d="M382 333 L518 333" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M518 333 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <rect x="406.3" y="323" width="87.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="450" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">只搬 miss 行</text>
+  <path d="M845 348 L845 376" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M845 376 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <text x="42" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这段 C++ 跑在 host 上；图模式下由 _launch_host_func </text>
+  <text x="42" y="420.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">挂到计算流上执行。</text>
+  <text x="20" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">搬运量正比于「top-k 里没命中的行数」，不再正比于序列长度——这是它能在 decode 阶段成立的全部理由。</text>
+</svg>

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="一份分块布局，两个算子都能按块读；走哪个由 forward_impl 里唯一的那个 if 决定">
+  <title>一份分块布局，两个算子都能按块读；走哪个由 forward_impl 里唯一的那个 if 决定</title>
+  <rect width="900" height="660" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="860" height="162" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="54" width="103" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一份分块布局</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每层的 K 和 V 各是一个 (num_blocks, 128, 8, 128) 的大张量。一块固定装 128 个 token，写满了才要下一块。</text>
+  <line x1="20" y1="224" x2="880" y2="224" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">分岔点：forward_impl 里唯一的那个 if</text>
+  <rect x="44" y="124" width="56" height="46" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="106" y="124" width="56" height="46" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="168" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="230" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="292" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="354" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="416" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="478" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="540" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="602" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="664" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="726" y="124" width="56" height="46" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="44" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">那条请求占第 0、1 两块：第 0 块 128 格写满，第 1 块只用了 109 格</text>
+  <rect x="20" y="236" width="860" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="32" y="255" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(38.4 261.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="72" y="259" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">三个条件全真才走 PA，任何一条不满足都落到 FIA</text>
+  <text x="72" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">attn_state == DecodeOnly 且 sliding_window is None 且 using_paged_attention()</text>
+  <text x="72" y="294" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">forward_impl</text>
+  <rect x="20" y="344" width="420" height="100" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="32" y="378" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(38.4 384.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="72" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">npu_fused_infer_attention_score</text>
+  <text x="72" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">K/V 先压成 (num_block, 128, 1024) 再传</text>
+  <text x="72" y="417" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">_get_kv_cache_view</text>
+  <rect x="460" y="344" width="420" height="100" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="472" y="378" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(478.4 384.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="512" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">_npu_paged_attention</text>
+  <text x="512" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">key_cache / value_cache 四维原样传进去</text>
+  <text x="512" y="417" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">forward_paged_attention</text>
+  <rect x="20" y="474" width="206" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
+  <text x="36" y="508.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">① 投机解码</text>
+  <text x="36" y="526.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开了就直接假</text>
+  <rect x="238" y="474" width="206" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
+  <text x="254" y="508.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">② 硬件档位</text>
+  <text x="254" y="526.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">A5 与 310P 没这项能力</text>
+  <rect x="456" y="474" width="206" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
+  <text x="472" y="508.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">③ 图模式</text>
+  <text x="472" y="526.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">必须 FULL_DECODE_ONLY</text>
+  <rect x="674" y="474" width="206" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="690" y="508.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">④ token 数命中</text>
+  <text x="690" y="526.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认 pa_shape_list 是空表</text>
+  <path d="M240 308 L240 342" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
+  <path d="M240 342 l-5.5 -11 l11 0 z" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="202.8" y="315" width="74.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="240" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">默认走这边</text>
+  <path d="M660 308 L660 342" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M660 342 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <rect x="616.5" y="315" width="87" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="660" y="329" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">命中才走这边</text>
+  <path d="M20 566 l0 9 L880 575 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
+  <text x="450" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">四道门全过才轮到 PA。默认卡在第四道，所以那个算子默认永远不执行</text>
+  <text x="20" y="464" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">条件三 using_paged_attention() 自己又是四道门：</text>
+  <text x="20" y="622" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">块表和 seq_lens 两个算子都要，不同的只是 KV 张量的维数。PrefillNoCache 那一支例外——那一步的 K/V 还在手上，block_table 传 None。</text>
+</svg>

@@ -1,0 +1,98 @@
+layout: scene
+id: kv-cache-spec
+caption: 声明趟数的是层，分配趟数的是字节，中间隔着引擎的一次显存探测（vllm-ascend main）
+size: [900, 710]
+
+regions:
+  - label: 声明趟 · Worker 进程
+    note: 每层报一份 KVCacheSpec，引擎只从里面取一个数：一块多少字节。
+    at: [20, 44]
+    size: [860, 168]
+    tone: ascend
+
+boxes:
+  - { at: [50, 130], size: [256, 66], title: NPUWorker, sub: 只是个转发口, fn: get_kv_cache_spec, icon: plug, tone: ascend }
+  - { at: [322, 130], size: [256, 66], title: NPUModelRunner, sub: 逐层 isinstance 分发, fn: get_kv_cache_spec, icon: split, tone: ascend }
+  - { at: [594, 130], size: [256, 66], title: 28 份 KVCacheSpec, sub: 每份算出 512 KiB / 块, icon: grid, tone: ascend }
+
+arrows:
+  - { from: [308, 163], to: [320, 163], tone: ascend }
+  - { from: [580, 163], to: [592, 163], tone: ascend }
+
+boundaries:
+  - at: 224
+    from: 20
+    to: 880
+    vertical: false
+    label: "引擎显存探测：可用字节 ÷ 每块字节 = 块数，封成 KVCacheConfig 发回来"
+
+bands:
+  - label: 一 · 申请原始 buffer
+    sub: 每层 num_blocks × 512 KiB，一律按 torch.int8 零初始化
+    fn: _allocate_kv_cache_tensors
+    at: [20, 244]
+    size: [860, 64]
+    tone: neutral
+    icon: box
+  - label: 二 · view 成目标形状
+    sub: "raw_k_tensor.view(bf16).view((2048, 128, 8, 128))"
+    fn: _reshape_kv_cache_tensors
+    at: [20, 316]
+    size: [860, 64]
+    tone: neutral
+    icon: layers
+  - label: 三 · 挂到每一层上
+    sub: 跨层共享的层，指针直接指向目标层那条张量
+    fn: bind_kv_cache
+    at: [20, 388]
+    size: [860, 64]
+    tone: muted
+    icon: plug
+
+notes:
+  - at: [20, 478]
+    text: 声明趟数的是层，分配趟数的是字节。倒过来做不行：分配之前必须先知道单价。
+    size: 13.5
+    strong: true
+  - at: [20, 572]
+    text: 一层的那份预算，落到显存里是两条互不相干的 int8 张量——首维那个 2 只活在形状里。
+    size: 13.5
+    strong: true
+  - at: [20, 678]
+    text: 块大小、KV 头数、头维、dtype 这四项是模型定的，引擎只做一次除法。量化之所以能直接换成显存，就是因为它改的是这个除数。
+    size: 12.5
+    width: 860
+
+strips:
+  - at: [40, 498]
+    cells: 28
+    cell: 22
+    gap: 4
+    tone: ascend
+    label: 28 层，每层各报各的；512 KiB × 28 = 14 MiB 才是「一块」的全模型代价
+  - at: [40, 592]
+    cells: 8
+    cell: 44
+    gap: 4
+    tone: ascend
+    label: "k_tensor：一半字节 → view 成 (2048, 128, 8, 128) 的 bf16"
+  - at: [440, 592]
+    cells: 8
+    cell: 44
+    gap: 4
+    tone: neutral
+    label: "v_tensor：另一次 torch.zeros，地址和 k_tensor 毫无关系"
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1088-L1107
+    symbols: [NPUWorker, get_kv_cache_spec]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5556-L5700
+    symbols: [NPUModelRunner, KVCacheSpec]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4791-L4828
+    symbols: [_allocate_kv_cache_tensors]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5225-L5269
+    symbols: [_reshape_kv_cache_tensors]
+  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4337-L4382
+    symbols: [bind_kv_cache]
+  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L116
+    symbols: [get_kv_cache_shape]

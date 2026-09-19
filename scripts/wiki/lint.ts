@@ -12,6 +12,7 @@ import { sourceLines, warmPageSources } from "./audit";
 import { auditDiagram } from "./diagram-audit";
 import { loadDiagrams } from "./diagrams";
 import { createBlobReader } from "./git";
+import { FACTS_BUDGET, MARK_FLOOD } from "./limits";
 import { loadPages, type PageProblem, type WikiPage } from "./pages";
 import { readPageRaw, readRawSnapshot } from "./raw";
 import { configuredRepoRoots } from "./repo-roots";
@@ -127,8 +128,7 @@ function isLegacyPage(p: WikiPage): boolean {
   return p.fm.relations.length === 0 && p.fm.related.length > 0;
 }
 
-/** 事实表上限，与 HANDBOOK「页面格式」第 5 节一致 */
-export const FACTS_BUDGET = 10;
+export { FACTS_BUDGET };
 
 /**
  * 取 `## 事实表` 一节里的表格行（不含表头与分隔行）与表头单元格。
@@ -197,7 +197,6 @@ function sectionsOf(body: string): string[] {
 const MARK_RE = /\[([SCDAIM!])(\d*)\](?![\w-])/g;
 /** 这三档声称「有一手来源可核对」，不给编号读者就核对不了 */
 const NUMBERED_LEVELS = new Set(["S", "C", "M"]);
-const MARK_FLOOD = 30;
 const MARK_DOMINANCE = 0.8;
 
 function markProblems(p: WikiPage): PageProblem[] {

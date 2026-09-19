@@ -19,6 +19,7 @@ import { buildAdjacency, type RelationNode } from "../../src/content/wiki/relati
 import { ID_RE, PAGE_TYPES } from "../../src/content/wiki/schema";
 import { type AgentEvent, type AgentRequest, type RunAgent, runBatch } from "./batch";
 import type { HandbookSlices } from "./handbook";
+import { FACTS_BUDGET, MARK_FLOOD } from "./limits";
 import { PAGE_DIRS, parsePage } from "./pages";
 import { revisionDateSchema, revisionSchema } from "./revisions";
 
@@ -290,10 +291,9 @@ export interface PageRef extends RelationNode {
   facts?: number;
 }
 
-/** 每页内联标记上限，与 HANDBOOK「整合」第 4 条一致 */
-export const MARK_BUDGET = 20;
-/** 事实表行数上限，与 HANDBOOK「页面格式」第 5 节一致 */
-export const FACTS_BUDGET = 10;
+/** 每页内联标记上限：就是 lint `mark-flood` 的阈值 */
+export const MARK_BUDGET = MARK_FLOOD;
+export { FACTS_BUDGET };
 
 export interface SelectOptions {
   /** 相关页数量上限，默认 30 */

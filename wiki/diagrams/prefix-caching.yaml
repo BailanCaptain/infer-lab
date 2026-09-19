@@ -1,0 +1,85 @@
+layout: scene
+id: prefix-caching
+caption: 命中的单位是写满的块；昇腾侧只在块大小、哈希粒度、命中后的算子入参三处插手
+size: [900, 520]
+
+regions:
+  - label: 上游 vLLM 决定的
+    note: 逐块哈希、查表、引用计数、淘汰都在 EngineCore 进程里，昇腾侧没有另写一份
+    at: [20, 26]
+    size: [860, 200]
+    tone: upstream
+  - label: vllm-ascend 做的三件适配
+    note: 不碰匹配逻辑，改的是块多大、哈希按多大切、命中之后算子怎么收参数
+    at: [20, 268]
+    size: [860, 200]
+    tone: ascend
+
+boundaries:
+  - at: 250
+    from: 20
+    to: 880
+    vertical: false
+    label: 命中多少 token、用哪些块，过了这条线已成定局
+
+brackets:
+  - { at: [40, 128], span: 666, dir: up, label: "第二条请求 1712 token = 14 块", tone: muted }
+
+strips:
+  - at: [40, 136]
+    cells: 13
+    cell: 42
+    gap: 6
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    tone: upstream
+    label: "命中 13 块 = 1664 个 token：块号直接填进第二条请求的块表"
+  - at: [664, 136]
+    cells: 1
+    cell: 42
+    highlight: 0
+    tone: accent
+    label: 这一块要现算
+
+boxes:
+  - at: [36, 358]
+    size: [272, 86]
+    title: 块大小顶成 128
+    sub: 开 APC 就改，只留一条 info 日志
+    fn: refresh_block_size
+    tone: ascend
+    icon: gear
+  - at: [314, 358]
+    size: [272, 86]
+    title: 哈希粒度单独算一份
+    sub: 多 group 且开 DCP 时取 gcd
+    fn: resolve_kv_cache_block_sizes
+    tone: ascend
+    icon: grid
+  - at: [592, 358]
+    size: [272, 86]
+    title: 命中后单列一种状态
+    sub: 算子拿块表切片，KV 仍按全长读
+    fn: PrefillCacheHit
+    tone: ascend
+    icon: chip
+
+arrows:
+  - { from: [366, 230], to: [366, 264], tone: ascend }
+
+notes:
+  - at: [40, 216]
+    text: 第 14 块装的是前缀剩下的 36 个 token 加 12 个新 token，它从来没被写满过，也就从来没进过哈希表
+    size: 12.5
+    width: 820
+  - at: [20, 492]
+    text: "省掉的是那 1664 个 token 的 embedding、QKV 投影和 MLP，整整 28 层；没省掉的是注意力对 KV 的读取——块表仍指着 14 块，算子拿到的 KV 长度仍是 1712。"
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/utils.py#L1280-L1300
+    symbols: [refresh_block_size, enable_prefix_caching]
+  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L91-L121
+    symbols: [_ascend_resolve_kv_cache_block_sizes, resolve_kv_cache_block_sizes]
+  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L151-L156
+    symbols: [AscendAttentionState, PrefillCacheHit]

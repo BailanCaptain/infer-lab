@@ -892,6 +892,18 @@
 }
 
 /* 未引用知识库时的提示：教学场景里必须让学习者分得清 */
+/* 诚实的「未收录」不是警告：同样的盒子，中性色 */
+.wiki-chat-uncovered {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-ink-muted);
+}
+
 .wiki-chat-uncited {
   margin: 8px 0 0;
   padding: 7px 10px;

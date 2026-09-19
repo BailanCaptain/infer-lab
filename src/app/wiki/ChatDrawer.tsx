@@ -12,6 +12,8 @@ interface Msg {
   text: string;
   /** 回答没有引用任何页时给出的提示 */
   uncited?: boolean;
+  /** 模型自己声明知识库没有：标「未收录」，不报警 */
+  uncovered?: boolean;
   citationReason?: string;
   reading?: string[];
   answerId?: string;
@@ -126,7 +128,8 @@ export function useChat() {
             cite: (v) =>
               patch((l) => ({
                 ...l,
-                uncited: !v.cited,
+                uncited: !v.cited && !v.selfDeclaredUncovered,
+                uncovered: v.selfDeclaredUncovered,
                 citationReason: v.reason ?? "没有可核对的知识库引用",
               })),
             gap: (v) =>
@@ -251,6 +254,11 @@ export function ChatPane({
               <p className="wiki-chat-uncited" data-testid="chat-uncited">
                 引用检查未通过：{m.citationReason ?? "没有可核对的知识库引用"}
                 。这段回答未经本库核对，暂不能存进 Wiki。
+              </p>
+            )}
+            {m.uncovered && (
+              <p className="wiki-chat-uncovered" data-testid="chat-uncovered">
+                未收录：模型说知识库里没有这部分内容。回答里没带页面引用的说法来自模型自身知识，未经本库核对。
               </p>
             )}
             {m.gapNotice && (

@@ -24,7 +24,7 @@
    - lint 的矛盾检测、过期检测、交叉审视只存在于代码里：`wiki/sync.config.json` 的 `maxTasks`、`reconcileBatches`、`driftSample` 全是 0，从未在生产跑过。
 4. **夜间维护空转。** `wiki/_jobs/sync/last-run.json` 为 `deferred`：待生成参数页 14 个 > 每晚上限 3，整批暂缓、检查点不推进，每晚重复。同步用的 Python 指向 `.cache/codex-runtimes/...`，是别的工具的私有目录。
 5. **知识已过期但没人知道。** `wiki:stale` 报 31 页引用的上游代码已变（main 28bf3a2e → e139b7d57），任何文档都没提。
-6. **引用检查有漏洞。** `src/content/wiki/retrieve.ts` 的 `UNCOVERED` 正则：回答里出现「知识库里还没有」「尚未收录」等字样，整篇就判 `cited: true`。F001 AC7 要的是把这类回答标成未收录。
+6. **未收录的回答没被标出来。** `src/content/wiki/retrieve.ts` 的 `UNCOVERED` 正则：回答里出现「知识库里还没有」「尚未收录」等字样，就判 `cited: true, selfDeclaredUncovered: true`；但前端只看 `cited`，`selfDeclaredUncovered` 没人用，F001 AC7 要的「标成未收录」从未显示。（2026-09-20 更正并修复：本条原先写成「整篇放行的漏洞」，写重了。`cited: true` 是复测验收依赖的既有语义——`retest.ts:244` 要求诚实拒答、「结论带引用 + 其他版本尚未收录」都能判通过；没有页面链接的回答本来就存不进 Wiki（`answers.ts:50`）。缺的只是呈现，已在 `ChatDrawer.tsx` 补上中性的「未收录」标记。）
 7. **缺口发现与验收条件不符。** F004 AC3 要独立评判 agent；实际是回答模型在末尾自报 `satisfied`（`server/coverage.ts:5`），同文件 `:9` 的注释自己承认这不是 AC3 要的那个判定。
 8. **大量内容不在 git 里**（当时 302 条未提交，已由 `c815492` 保底提交解决）。
 

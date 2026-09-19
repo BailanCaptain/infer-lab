@@ -175,7 +175,29 @@ test.describe("问答抽屉", () => {
     await page.getByTestId("chat-send").click();
     await expect(page.getByTestId("chat-log")).toContainText(answer);
     await expect(page.getByTestId("chat-uncited")).toHaveCount(0);
+    // F001 AC7：不报警，但要标成未收录，不能看起来像知识库结论
+    await expect(page.getByTestId("chat-uncovered")).toContainText("未收录");
     await page.screenshot({ path: info.outputPath("honest-abstention-mobile.png"), fullPage: true });
+  });
+
+  test("声明未收录后接着讲模型自己的知识：标成未收录，不伪装成知识库结论", async ({ page }) => {
+    const answer = "知识库里还没有 X 的页面。不过 X 默认开启，阈值是 0.9。";
+    await page.route("**/api/wiki/chat", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: sse([
+          ["text", { text: answer }],
+          ["cite", checkAnswerCitations(answer, [])],
+          ["done", {}],
+        ]),
+      }),
+    );
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    await page.getByTestId("chat-input").fill("X 默认开吗");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-uncovered")).toContainText("模型自身知识");
   });
 
   test("发问后流式渲染，答案里的页面链接可跳转", async ({ page }) => {

@@ -8,6 +8,7 @@ import { handlePages } from "./pages";
 import { handleRawSource } from "./raw";
 import { handleReview } from "./review";
 import { readKnowledgeSnapshot } from "./snapshot";
+import { handleStatus } from "./status";
 
 const root = resolve(process.cwd());
 const port = Number(process.env.WIKI_SERVER_PORT ?? 8790);
@@ -16,6 +17,7 @@ const server = createServer(async (req, res) => {
   if (await handleReview(req, res, root)) return;
   if (await handleAnswers(req, res, root)) return;
   if (await handlePages(req, res, root)) return;
+  if (await handleStatus(req, res, root)) return;
   if (await handleChat(req, res, root)) return;
   if (req.method === "GET" && new URL(req.url ?? "/", "http://localhost").pathname === "/api/wiki/health") {
     try {

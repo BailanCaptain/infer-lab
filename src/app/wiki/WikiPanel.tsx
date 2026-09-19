@@ -3,15 +3,17 @@ import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "re
 import { wikiRequest } from "./api";
 import { ChatPane, useChat } from "./ChatDrawer";
 import { ReviewPane, type ReviewSummary } from "./ReviewPane";
+import { StatusPane } from "./StatusPane";
 
-type Tab = "chat" | "review";
+type Tab = "chat" | "review" | "status";
 const TABS: { id: Tab; label: string }[] = [
   { id: "chat", label: "问答" },
   { id: "review", label: "审阅" },
+  { id: "status", label: "状态" },
 ];
 
 /**
- * 知识库的全部操作收在一个侧栏里：问答、审阅、刷新。
+ * 知识库的全部操作收在一个侧栏里：问答、审阅、刷新，外加一页只读的运行状态。
  * 两个页签常驻渲染、只切显隐——对话记录、滚动位置和读到一半的 diff 都不因切换而丢。
  */
 export function WikiPanel({
@@ -25,7 +27,7 @@ export function WikiPanel({
   /** 返回 true 表示读者快照已更新到最新发布版本 */
   onRefresh: () => Promise<boolean>;
   /** 面板是实打实占一列的，外层网格要知道它现在多宽 */
-  onLayout: (layout: "closed" | "chat" | "review") => void;
+  onLayout: (layout: "closed" | Tab) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("chat");
@@ -162,6 +164,7 @@ export function WikiPanel({
           if (!(await onRefresh())) throw new Error("发布成功；读取新页面失败，请点「刷新知识库」重试。");
         }}
       />
+      <StatusPane hidden={tab !== "status"} onOpenReview={() => setTab("review")} />
     </aside>
   );
 }

@@ -63,7 +63,7 @@ function diagramId(node: unknown): string | null {
 export function WikiPage() {
   const { id } = useParams();
   const { pages, revision, mode, diagrams } = useSyncExternalStore(subscribeReader, getReaderState);
-  const [panel, setPanel] = useState<"closed" | "chat" | "review">("closed");
+  const [panel, setPanel] = useState<"closed" | "chat" | "review" | "status">("closed");
   const [snapshotError, setSnapshotError] = useState("");
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const updated = await refreshReaderSnapshot(() => wikiRequest("pages"), signal);

@@ -23,7 +23,8 @@
 |---|---|
 | 多少页、各类型多少 | `pnpm wiki:build`（看输出）或读 `src/content/wiki/registry.json` |
 | 有没有待审包 | `pnpm wiki:review list`，或阅读页右侧面板「审阅」页签上的数字 |
-| 预算用了多少、是否暂停 | `pnpm wiki:budget status` |
+| 预算、夜间维护、会不会自己花钱、缺哪些术语 | 阅读页右侧面板「状态」页签（只读，数据来自 `GET /api/wiki/status`，`server/status.ts`） |
+| 预算明细 | `pnpm wiki:budget status` |
 | 哪些页引用的上游代码变了 | `pnpm wiki:stale --seeds wiki/seeds/vllm-ascend-code.yaml`（不加 `--fetch` 就是只读） |
 | 引用行号是否属实 | `pnpm wiki:audit --seeds wiki/seeds/vllm-ascend-code.yaml`（**必须用这份 seeds**，见 §5） |
 | 30 个课程术语哪些还没页 | `pnpm wiki:lint --terms` |
@@ -51,9 +52,11 @@
 
 - **27 个课程术语页。** 30 个里已有 `kv-cache`、`rope`、`prefill` 三页试点，**写法用户已认可（2026-09-20）**，其余按同样写法补，用户说不急。做法见 §5「怎么加一页」。缺的是：token, embedding, hidden-size, rmsnorm, linear-projection, query, key, gqa, value, qk-norm, head-dim, position, attention-scores, dot-product, causal-mask, softmax, attention-weights, context-vector, multi-head, output-projection, residual, pre-norm, mlp, swiglu, silu, down-projection, decode。补完后把 `<Term>` 悬停卡接进课程正文（现在只在阅读页用了一处）。三页试点还**没配图**，HANDBOOK 要求讲结构关系的页必须有图。
 - **三项批量工作**，用户早先暂缓：F001 AC5 全量灌种（目标 120–160 页）、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉（现有语料 4 条）。
-- **真实问答后测**。预算处于暂停状态，恢复方案待用户确认；最后一次问答侧代码修复之后没有再用真实模型复测过。
+- **真实问答后测**。最后一次问答侧代码修复之后没有再用真实模型复测过（预算已于 2026-09-20 恢复，见 §5）。
 
 ## 5. 怎么做事，和已经踩过的坑
+
+**预算账本是保险丝，不是功能开关。** 它是 09-15/16 做真实问答测试时加的临时上限，48 次调用几乎全是评测；用户的本意只是「地基做好之前先不大批量导入」。2026-09-20 经用户同意恢复并把上限调到 $100 / 2000 次（账本代码不支持调上限，是直接改本机的 `wiki/_jobs/budget/account.json` 再走 `wiki:budget resume` 留痕；改前备份在同目录）。**大批量导入（全量灌种、全量参数页、GitHub 全库首拉）放在最后一步，必须用户点头后手动执行**；没有任何自动入口会触发它们。注意：任何一次调用超时拿不到账单，账本就会再次自动暂停，状态页签会显示原因。
 
 **怎么加一页（不花钱的路）**：读 `tools/repos/` 里钉住的源码 → 按 HANDBOOK 写 `wiki/_drafts/<id>.md` → `pnpm wiki:stage --ids a,b [--touch concepts/邻居.md]` → 用户在面板「审阅」页签里读、批准。`wiki:stage` 不调模型，但过的是同一套生产校验；`--touch` 用来把「给邻居页补一条 relations」放进同一个待审包。**不要再把手写的页直接放进 `concepts/`。**
 

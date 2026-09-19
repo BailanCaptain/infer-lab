@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 588" width="900" height="588" role="img" aria-label="搬什么、什么时候搬全是上游定的；昇腾只换掉 worker 侧的三处，搬运单位是一个 chunk 不是一个块">
+  <title>搬什么、什么时候搬全是上游定的；昇腾只换掉 worker 侧的三处，搬运单位是一个 chunk 不是一个块</title>
+  <rect width="900" height="588" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="152" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="144" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 的调度侧</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">块池多大、哪几块该被淘汰、什么时候存、什么时候取，全在上游调度侧决定；vllm-ascend 没有另写一份</text>
+  <rect x="20" y="208" width="860" height="348" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="222" width="259.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="240.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 只换了 worker 侧这三处</text>
+  <text x="38" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">配置里写的仍是上游的 CPUOffloadingSpec 和 TieringOffloadingSpec，注册表里它们已经被换成昇腾实现</text>
+  <line x1="20" y1="192" x2="880" y2="192" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">作业过了这条线才变成真正的字节拷贝</text>
+  <rect x="44" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="94" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="144" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="194" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="244" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="294" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="344" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="394" y="420" width="44" height="44" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <text x="44" y="482" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">8 个 NPU 块 = 1024 个 token</text>
+  <rect x="600" y="420" width="44" height="44" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="600" y="482" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">CPU 池里的一格 = 112 MiB</text>
+  <rect x="44" y="106" width="390" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="56" y="119" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(62.4 125.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="96" y="123" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">决定哪几块搬、搬去哪一格</text>
+  <text x="96" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">前缀哈希与 LRU 都在上游，昇腾没重写</text>
+  <text x="96" y="158" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">OffloadingConnector</text>
+  <rect x="458" y="106" width="398" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="470" y="119" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(476.4 125.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="510" y="123" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">发下来的是一个 chunk 的作业</text>
+  <text x="510" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一个 chunk = blocks_per_chunk 个 NPU 块</text>
+  <text x="510" y="158" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">submit_store / submit_load</text>
+  <rect x="44" y="292" width="260" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="56" y="319" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(62.4 325.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
+  <text x="96" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">K 和 V 两张张量拼成一页</text>
+  <text x="96" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每层 2 个 int8 二维视图</text>
+  <text x="96" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_canonicalize_split_cache</text>
+  <rect x="328" y="292" width="248" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="340" y="319" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(346.4 325.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5M12 12v10"/></g>
+  <text x="380" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">按字节开 CPU 池</text>
+  <text x="380" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">pinned 张量，多级用 mmap</text>
+  <text x="380" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">NPUOffloadingWorker</text>
+  <rect x="604" y="292" width="252" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="616" y="319" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(622.4 325.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="656" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">一次批量 DMA 下发</text>
+  <text x="656" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">CANN 8.5+ 压成一次调用</text>
+  <text x="656" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">swap_blocks_batch</text>
+  <path d="M450 180 L450 206" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M450 206 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M300 335 L320 335" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M320 335 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M580 335 L600 335" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M600 335 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M452 442 L590 442" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M590 442 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <text x="44" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个规范视图一块 256 KiB，28 层 × K/V 两张 = 56 个视图；所以一次 store 是 8 × 56 = 448 个拷贝描述符，合计 112 MiB。</text>
+  <text x="44" y="536" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">这就是那条 37 token 的请求碰不到它的原因：一个 chunk 都凑不满，永远没有东西可搬。</text>
+  <text x="20" y="574" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这张图只画 CPU 单层这一路；多级卸载把 CPU 池换成共享 mmap，再挂一层文件系统 tier，搬运路径不变。</text>
+</svg>

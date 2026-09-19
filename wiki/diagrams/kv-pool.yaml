@@ -1,0 +1,117 @@
+layout: scene
+id: kv-pool
+caption: 查表跨一次进程去问 worker，搬数据直接走 HBM 地址（vllm-ascend main 开发主线）
+size: [900, 600]
+
+regions:
+  - label: EngineCore 进程 · 调度器侧
+    note: 这里没有存储客户端，它问出来的只有一个整数：池里一共命中到第几个 token。
+    at: [20, 34]
+    size: [860, 152]
+    tone: upstream
+  - label: Worker 进程 · rank 0 那一个
+    note: 存储客户端只在这里。REP 后台线程替调度器查表，主线程在前向前后搬数据。
+    at: [20, 230]
+    size: [860, 172]
+    tone: ascend
+  - label: 存储引擎
+    note: mooncake / memcache / yuanrong 三选一，接口只有四个动作。
+    at: [20, 442]
+    size: [860, 132]
+    tone: neutral
+
+boundaries:
+  - at: 206
+    from: 20
+    to: 880
+    vertical: false
+    label: 进程边界 · 调度器进程里没有存储客户端，只能走 ipc:// 去问 worker
+  - at: 418
+    from: 20
+    to: 880
+    vertical: false
+    label: 过了这条线不再认 token，只认 (地址, 长度)
+
+boxes:
+  - at: [44, 106]
+    size: [264, 72]
+    title: 先数 HBM 里命中了几个
+    sub: 这个数要一起发给池
+    fn: get_num_new_matched_tokens
+    icon: search
+    tone: upstream
+  - at: [320, 106]
+    size: [264, 72]
+    title: 不足一个粒度直接退出
+    sub: 37 // 128 = 0 < 128，返回 0
+    fn: cache_transfer_granularity
+    icon: split
+    tone: muted
+  - at: [598, 106]
+    size: [238, 72]
+    title: 剩下的才去问池
+    sub: ZMQ REQ，附上 HBM 命中数
+    fn: LookupKeyClient.lookup
+    icon: plug
+    tone: upstream
+  - at: [44, 302]
+    size: [260, 76]
+    title: REP 后台线程
+    sub: rank 0 且非 layerwise 才起
+    fn: LookupKeyServer
+    icon: proc
+    tone: ascend
+  - at: [320, 302]
+    size: [252, 76]
+    title: 逐块问在不在
+    sub: 返回命中到第几个 token
+    fn: exists
+    icon: grid
+    tone: ascend
+  - at: [588, 302]
+    size: [248, 76]
+    title: 前向前后各搬一次
+    sub: get 同步，put 交后台线程
+    fn: start_load_kv
+    icon: bolt
+    tone: accent
+  - at: [600, 496]
+    size: [236, 76]
+    title: addr = base_addr + block_id × block_stride
+    sub: 每层每张量各一条
+    fn: prepare_value
+    tone: neutral
+
+strips:
+  - at: [44, 516]
+    cells: 28
+    cell: 16
+    gap: 3
+    tone: neutral
+    label: 28 层各一条 (addr, size)——非 layerwise 模式下层不是 key 的一部分
+
+arrows:
+  - { from: [240, 188], to: [240, 228], tone: upstream }
+  - { from: [560, 228], to: [560, 188], tone: ascend }
+  - { from: [240, 404], to: [240, 440], tone: accent }
+  - { from: [560, 440], to: [560, 404], tone: neutral }
+
+notes:
+  - at: [20, 592]
+    text: 查表走控制面、跨一次进程；搬数据走数据面：register_buffer 把 HBM 区间登记进去之后，put / get 收的就是裸地址和长度。
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L610-L645
+    symbols: [get_num_new_matched_tokens, LookupKeyClient, cache_transfer_granularity]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L399-L442
+    symbols: [LookupKeyServer]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L3036-L3046
+    symbols: [exists]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1077-L1165
+    symbols: [start_load_kv]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L487-L515
+    symbols: [prepare_value, base_addr, block_id, block_stride]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L73-L158
+    symbols: [register_buffer, put, get]

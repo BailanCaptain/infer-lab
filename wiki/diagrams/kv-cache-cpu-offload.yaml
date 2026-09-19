@@ -1,0 +1,106 @@
+layout: scene
+id: kv-cache-cpu-offload
+caption: 搬什么、什么时候搬全是上游定的；昇腾只换掉 worker 侧的三处，搬运单位是一个 chunk 不是一个块
+size: [900, 588]
+
+regions:
+  - label: 上游 vLLM 的调度侧
+    note: 块池多大、哪几块该被淘汰、什么时候存、什么时候取，全在上游调度侧决定；vllm-ascend 没有另写一份
+    at: [20, 26]
+    size: [860, 152]
+    tone: upstream
+  - label: vllm-ascend 只换了 worker 侧这三处
+    note: 配置里写的仍是上游的 CPUOffloadingSpec 和 TieringOffloadingSpec，注册表里它们已经被换成昇腾实现
+    at: [20, 208]
+    size: [860, 348]
+    tone: ascend
+
+boundaries:
+  - at: 192
+    from: 20
+    to: 880
+    vertical: false
+    label: 作业过了这条线才变成真正的字节拷贝
+
+boxes:
+  - at: [44, 106]
+    size: [390, 58]
+    title: 决定哪几块搬、搬去哪一格
+    sub: 前缀哈希与 LRU 都在上游，昇腾没重写
+    fn: OffloadingConnector
+    icon: queue
+    tone: upstream
+  - at: [458, 106]
+    size: [398, 58]
+    title: 发下来的是一个 chunk 的作业
+    sub: 一个 chunk = blocks_per_chunk 个 NPU 块
+    fn: submit_store / submit_load
+    icon: split
+    tone: upstream
+  - at: [44, 292]
+    size: [260, 86]
+    title: K 和 V 两张张量拼成一页
+    sub: 每层 2 个 int8 二维视图
+    fn: _canonicalize_split_cache
+    icon: layers
+    tone: ascend
+  - at: [328, 292]
+    size: [248, 86]
+    title: 按字节开 CPU 池
+    sub: pinned 张量，多级用 mmap
+    fn: NPUOffloadingWorker
+    icon: box
+    tone: ascend
+  - at: [604, 292]
+    size: [252, 86]
+    title: 一次批量 DMA 下发
+    sub: CANN 8.5+ 压成一次调用
+    fn: swap_blocks_batch
+    icon: bolt
+    tone: ascend
+
+strips:
+  - at: [44, 420]
+    cells: 8
+    cell: 44
+    gap: 6
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    tone: ascend
+    label: 8 个 NPU 块 = 1024 个 token
+  - at: [600, 420]
+    cells: 1
+    cell: 44
+    highlight: 0
+    tone: neutral
+    label: CPU 池里的一格 = 112 MiB
+
+arrows:
+  - { from: [450, 180], to: [450, 206], tone: ascend }
+  - { from: [300, 335], to: [320, 335], tone: ascend }
+  - { from: [580, 335], to: [600, 335], tone: ascend }
+  - { from: [452, 442], to: [590, 442], tone: ascend }
+
+notes:
+  - at: [44, 512]
+    text: 每个规范视图一块 256 KiB，28 层 × K/V 两张 = 56 个视图；所以一次 store 是 8 × 56 = 448 个拷贝描述符，合计 112 MiB。
+    size: 12.5
+    width: 812
+  - at: [44, 536]
+    text: 这就是那条 37 token 的请求碰不到它的原因：一个 chunk 都凑不满，永远没有东西可搬。
+    size: 12.5
+    width: 812
+    strong: true
+  - at: [20, 574]
+    text: 这张图只画 CPU 单层这一路；多级卸载把 CPU 池换成共享 mmap，再挂一层文件系统 tier，搬运路径不变。
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L101
+    symbols: [OffloadingSpecFactory, CPUOffloadingSpec, TieringOffloadingSpec, OffloadingConnector, AscendOffloadingConnector]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L39-L181
+    symbols: [_canonicalize_split_cache]
+  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L233-L329
+    symbols: [NPUOffloadingWorker, submit_store, submit_load, blocks_per_chunk]
+  - source: vllm-ascend@b255ab59:csrc/torch_binding.cpp#L167-L287
+    symbols: [swap_blocks_batch]

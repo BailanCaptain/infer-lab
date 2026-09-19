@@ -1,17 +1,19 @@
 /**
- * pnpm wiki:audit --seeds wiki/seeds/<name>.yaml [--drafts]
+ * pnpm wiki:audit [--seeds wiki/seeds/<name>.yaml] [--drafts]
+ * 不给 --seeds 时认 wiki/seeds/ 下全部 seeds 声明的仓库（与 wiki:lint、wiki:stage 同一个来源）；
+ * 以前必须点名一份 seeds，而三份 seeds 的仓库表互不包含，点错一份就报几十处「未知仓库」。
  * 把页面（默认 concepts/ 与 sources/；--drafts 时改审 _drafts/）的每条来源
  * 拿到 tools/repos/ 下钉住的仓库里核对行号是否真实存在。
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { auditPage, type RefAudit, summarize, warmPageSources } from "./wiki/audit";
 import { auditDiagram } from "./wiki/diagram-audit";
 import { loadDiagrams } from "./wiki/diagrams";
 import { createBlobReader } from "./wiki/git";
-import { parseSeeds } from "./wiki/ingest";
 import { loadPages, parsePage, type WikiPage } from "./wiki/pages";
 import { readPageRaw, readRawSnapshot } from "./wiki/raw";
+import { configuredRepoRoots } from "./wiki/repo-roots";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -20,14 +22,7 @@ function arg(name: string): string | undefined {
 
 const root = process.cwd();
 const wikiRoot = join(root, "wiki");
-const seedsPath = arg("--seeds");
-if (!seedsPath) {
-  console.error("用法：pnpm wiki:audit --seeds wiki/seeds/<name>.yaml [--drafts]");
-  process.exit(2);
-}
-const seeds = parseSeeds(readFileSync(seedsPath, "utf8"));
-const repoRoots: Record<string, string> = {};
-for (const [name, r] of Object.entries(seeds.repos)) repoRoots[name] = resolve(root, r.path);
+const repoRoots = configuredRepoRoots(root, arg("--seeds"));
 
 const useDrafts = process.argv.includes("--drafts");
 let pages: WikiPage[] = [];

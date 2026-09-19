@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 512" width="900" height="512" role="img" aria-label="第 92 步 decode：position 128 经块表翻译成槽位 5376">
+  <title>第 92 步 decode：position 128 经块表翻译成槽位 5376</title>
+  <rect width="900" height="512" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="255" height="176" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="54" width="86.8" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">① 逻辑地址</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">请求自己数：第几个块、块里第几格</text>
+  <rect x="322" y="40" width="255" height="176" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="338" y="54" width="59.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="349" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">② 块表</text>
+  <text x="340" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">唯一的翻译层。行是座位号，列是逻辑</text>
+  <text x="340" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">块号</text>
+  <rect x="625" y="40" width="255" height="176" rx="12" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="641" y="54" width="86.8" height="26.5" rx="13.3" fill="var(--color-accent, #e85b32)"/><text x="652" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">③ 物理槽位</text>
+  <text x="643" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">整个 KV 池里的第几格，算子按它读写</text>
+  <rect x="20" y="268" width="23" height="23" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="47" y="268" width="23" height="23" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="74" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="101" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="128" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="155" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="182" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="209" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="236" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="263" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="290" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="317" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="344" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="371" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="398" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="425" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="452" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="479" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="506" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="533" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="560" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="587" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="614" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="641" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="668" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="695" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="722" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="749" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="776" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="803" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="830" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="857" y="268" width="23" height="23" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="20" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="34" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="48" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="62" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="76" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="90" y="396" width="11" height="11" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="104" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="118" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="132" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="146" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="160" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="174" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="188" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="202" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="216" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="230" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="244" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="258" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="272" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="286" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="300" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="314" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="328" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="342" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="356" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="370" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="384" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="398" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="412" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="426" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="440" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="454" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="468" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="482" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="496" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="510" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="524" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="538" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="552" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="566" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="580" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="594" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="608" y="396" width="11" height="11" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="622" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="636" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="650" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="664" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="678" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="692" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="706" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="720" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="734" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="748" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="762" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="776" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="790" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="804" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="818" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="832" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="846" y="396" width="11" height="11" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="20" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">显存里的全部物理块（画出前 60 个）；块表里那个数就是这排里的下标</text>
+  <rect x="36" y="128" width="223" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="52" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">position = 128</text>
+  <text x="52" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">128 // 128 → 逻辑块 1</text>
+  <text x="52" y="187" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">128 % 128 → 块内第 0 格</text>
+  <rect x="338" y="128" width="223" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="354" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">块表 第 0 行 第 1 列</text>
+  <text x="354" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">block_table.np[0, 1]</text>
+  <text x="354" y="187" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">→ 物理块 42</text>
+  <rect x="641" y="128" width="223" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="657" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">槽位 5376</text>
+  <text x="657" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">42 × 128 + 0</text>
+  <text x="657" y="187" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">reshape_and_cache 写这一格</text>
+  <path d="M266 164 L318 164" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M318 164 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M568 164 L621 164" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M621 164 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M31.5 292 L31.5 360 L95.5 360 L95.5 392" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path d="M95.5 392 l-5.5 -11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
+  <path d="M58.5 292 L58.5 332 L613.5 332 L613.5 392" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M613.5 392 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <rect x="269.5" y="322" width="133" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="336" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">逻辑块 1 → 物理块 42</text>
+  <text x="20" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">块表真正的样子：256 行 × 32 列的 int32；这条请求只用到第 0 行的前两列</text>
+  <text x="120" y="306" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">列号就是逻辑块号；append_row 从行尾追加，commit_block_table 每步把前 num_reqs 行拷到 NPU</text>
+  <text x="20" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="600" fill="var(--color-ink, #17211f)">slot = 物理块号 × block_size + 块内偏移 = 42 × 128 + 0 = 5376</text>
+  <text x="20" y="488" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">表里填 0 表示这一列还没分配：块 0 被当成哨兵，不是指向显存第一块。</text>
+</svg>

@@ -38,21 +38,18 @@ test.describe("知识库阅读页", () => {
     await expect(page.getByTestId("toc-params").getByRole("link", { name: "layer_sharding" })).toBeVisible();
   });
 
-  test("七节结构齐全，顺序与 HANDBOOK 一致", async ({ page }) => {
+  test("页面骨架：一句话开头，讲那条请求，常见误解收尾，其余小标题是结论句", async ({ page }) => {
+    // 2026-09-20 全库统一成这个写法；老的「为什么需要它 / 怎么工作 / 事实表」七节模板已弃用
     await page.goto("/#/wiki/block-table");
-    const h2 = page.getByTestId("wiki-body").getByRole("heading", { level: 2 });
-    await expect(h2).toHaveText([
-      "一句话",
-      "为什么需要它",
-      "怎么工作",
-      "拿真实数字走一遍",
-      "事实表",
-      "常见误解",
-      "接着看",
-    ]);
+    const titles = await page.getByTestId("wiki-body").getByRole("heading", { level: 2 }).allInnerTexts();
+    expect(titles[0]).toBe("一句话");
+    expect(titles).toContain("那条请求走到这里");
+    expect(titles.slice(-2)).toEqual(["常见误解", "接着看"]);
+    for (const old of ["为什么需要它", "怎么工作", "拿真实数字走一遍", "事实表"])
+      expect(titles).not.toContain(old);
   });
 
-  test("mermaid 图渲染成 SVG，不是一段源码", async ({ page }) => {
+  test("图渲染成 SVG，不是一段源码", async ({ page }) => {
     await page.goto("/#/wiki/block-table");
     const fig = page.getByTestId("wiki-body").locator("figure.wiki-diagram");
     await expect(fig.first()).toBeVisible();

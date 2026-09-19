@@ -1,23 +1,23 @@
 ---
 id: block-table
-title: Block Table
+title: Block Table：逻辑块号到物理块号的唯一翻译层
 type: concept
-summary: 一张 (请求数 × 每请求最大块数) 的 int32 表，把序列内第几个块翻译成显存里的物理块号，再由它算出每个 token 的写入槽位。
+summary: 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请求在这一批里的座位号，列是它自己数出来的第几个块，格子里填的是显存里的物理块号。
 aliases: [块表, 块映射表, BlockTable]
 chapters: ["11"]
 sources:
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L37-L95
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L100-L138
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L140-L179
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L278-L283
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/block_table.py#L285-L300
-  - vllm-ascend@28bf3a2e:vllm_ascend/ops/triton/compute_slot_mapping.py#L43-L84
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L113-L153
-  - vllm-ascend@28bf3a2e:vllm_ascend/attention/attention_v1.py#L1646-L1656
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1143-L1147
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L1468-L1472
-  - vllm-ascend@28bf3a2e:vllm_ascend/worker/model_runner_v1.py#L4773-L4799
-  - vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1167-L1181
+  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L36-L108
+  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L110-L148
+  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L150-L190
+  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L291-L296
+  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L298-L313
+  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/compute_slot_mapping.py#L31-L90
+  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L148
+  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1665-L1680
+  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1221-L1225
+  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1546-L1550
+  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5357-L5383
+  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1252-L1278
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L1-L9
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L31-L48
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L92-L106
@@ -25,7 +25,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-  - vllm-ascend@28bf3a2e:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
+  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
+  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
+  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205
 evidence: "C"
 relations:
   - to: paged-attention
@@ -34,108 +36,80 @@ relations:
   - to: kv-cache-spec
     kind: builds-on
     note: 表的列数与逻辑块大小由 spec 的 block_size 和 max_num_blocks_per_req 算出，BlockTable 自己不决定
+  - to: one-request
+    kind: builds-on
+    note: 表里那两个块号、第 92 步换块换的那一列，全是那条请求的数
+  - to: vllm-kv-block-allocation
+    kind: builds-on
+    note: 格子里填的物理块号是上游分出来的；谁分、什么时候分、什么时候还，在那一页
 contradicts: []
-updated: "2026-09-12"
+updated: "2026-09-20"
 ---
 
 ## 一句话
 
-`BlockTable` 维护一张 `(max_num_reqs, max_num_blocks_per_req)` 的 int32 表：第 `i` 行是 batch 里第 `i` 个请求，第 `j` 列填的是这个请求第 `j` 个逻辑块落在显存的哪个物理块上 [C1]。每步推理前，它把这张表的前 `num_reqs` 行拷到 NPU，再用一个 triton kernel 把每个 token 的绝对位置翻译成「物理块号 × block_size + 块内偏移」的槽位号，交给 attention 去读写 KV cache。
+`BlockTable` 是一张 int32 的二维表。**行是请求在这一批里的座位号，列是这个请求自己数出来的第几个块，格子里填的是显存里的物理块号** [C15]。[分页](paged-attention.md)把一条请求的 KV 散到显存各处之后，从「这是第几个 token」到「它该写进哪一格」就只剩这一条路可走——官方设计文档给它的定义正是「把每个块在序列内的逻辑地址翻译成设备显存里的全局物理地址」[S21]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html)）。
 
-## 为什么需要它
-
-[PagedAttention](paged-attention.md) 允许一个请求的 KV cache 散落在显存各处、不要求连续，代价是算子拿到一个 token 的位置后不再能直接算出地址——中间必须有一层翻译。块表就是这层翻译，官方设计文档对它的定义是「把每个块在序列内的逻辑地址翻译成设备显存里的全局物理地址」[S20]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html)）。
-
-问题在于这层翻译每步都要做，而且是 token 级的：一个 batch 一步可能有上万个 token，每个都要查表。如果每步在 CPU 上逐 token 算好地址再传给 NPU，H2D 传输量与 CPU 开销都会压在关键路径上。vllm-ascend 的做法是把「查表」拆成两半——**慢变的表**（哪个请求占了哪些块，只在调度器分配/释放块时变）常驻 CPU、按行增量更新、每步只把前 `num_reqs` 行异步拷过去；**快变的槽位**（这一步每个 token 写哪里）完全在 NPU 上用 kernel 算。
-
-翻译出来的东西有两个消费者，不要混淆：`block_tables` 张量给 attention 算子读历史 KV 用，`slot_mapping` 给 `reshape_and_cache` 写本步新 KV 用。两者都由这一页的类产出。
-
-## 怎么工作
-
-### 表本身
-
-行数默认等于 `max_num_reqs`；只有开了 DCP 且有投机解码时才会乘上一个 `duplicate_size = 1 + num_speculative_tokens`（main）。v0.23.0 的触发条件是 `pcp_world_size * dcp_world_size > 1`，即 PCP 单独打开也会扩行 [!][C15]。
-
-列数是 `max_num_blocks_per_req`，由 KV cache spec 按 `max_model_len` 算出、从外面传进来；hybrid 模式下（一个物理块被切成多个逻辑块给算子用）列数再乘 `blocks_per_phys_block`，写入时 `_convert_physical_to_logical_blocks` 把一个物理块号展开成一串连续逻辑块号。昇腾 GQA 后端的 `get_supported_kernel_block_sizes` 只返回 `[128]`，而平台默认 `block_size` 也是 128 [C7][C12]，所以默认配置下 `blocks_per_phys_block == 1`、hybrid 路径不启用 [D]——这条推广的依据是两者取值相等时 `use_hybrid_blocks` 分支必然走 `False`，但如果用户把 `--block-size` 设成 128 的倍数，拆分就会生效。
-
-`num_blocks_per_row` 是一个 CPU 侧的游标数组，记录每行已经写到第几列。
-
-### 一步推理里的四个动作
-
-```mermaid
-flowchart LR
-    sched["scheduler 分配的 block_ids"] -->|append_row| cpu["block_table.np<br/>(CPU, int32)"]
-    cursor["num_blocks_per_row"] -.->|定位写入列| cpu
-    cpu -->|commit_block_table| gpu["block_table.gpu<br/>(NPU, int32)"]
-    pos["positions"] --> kern["_compute_slot_mapping_kernel"]
-    qsl["query_start_loc"] --> kern
-    gpu --> kern
-    kern --> slot["slot_mapping.gpu"]
-    slot --> rac["reshape_and_cache<br/>写本步 K/V"]
-    gpu --> meta["AscendMetadata.block_tables<br/>算子读历史 KV"]
+```wiki-diagram
+file: block-table
 ```
 
-1. **追加**：调度器为某请求新分配了块，`append_row(block_ids, row_idx)` 从 `num_blocks_per_row[row_idx]` 指的那一列开始写，然后把游标往前推。decode 每步最多追加一个块，通常一个块都不加——所以这一步几乎不花时间。`add_row` 是游标归零后再 append（新请求上批），`move_row` / `swap_row` 在批次重排时整行搬移：行号是**请求在 batch 里的位置**，不是请求 id。
-2. **提交**：`commit_block_table(num_reqs)` 把前 `num_reqs` 行拷到 NPU。它被放在 `_prepare_inputs` 的第一行，注释写明了理由——让这次 H2D 与后面的 CPU 准备工作重叠。main 直接调上游 `CpuGpuBuffer.copy_to_gpu`；v0.23.0 是手写的 `gpu[:n].copy_(cpu[:n].clone().pin_memory(), non_blocking=True)` [!][C17]。
-3. **算槽位**：`compute_slot_mapping(num_reqs, query_start_loc, positions)` 吃的是设备上的 `query_start_loc` 和本步全部 token 的全局 `positions`，起一个 grid 为 `num_reqs + 1` 的 triton kernel，一个 program 管一个请求，最后那个 program 专门把 `num_tokens` 到 `max_num_tokens` 之间的尾巴填成 `PAD_SLOT_ID`。核心三行就是官方文档那四步的代码版：
+## 那条请求走到这里
 
-   ```
-   block_indices = pos // block_size          # 第几个逻辑块
-   block_numbers = block_table[row, block_indices]  # 查表得物理块号
-   slot_ids = block_numbers * block_size + pos % block_size
-   ```
+[那条请求](one-request.md)是队列里唯一的一条，所以它坐第 0 行，256 行里只有这一行有东西。上游分给它的两块记作物理块 5 和 42 [A]——具体是哪两个整数由 [BlockPool](vllm-kv-block-allocation.md) 当时的空闲队列决定，这一页只管把它们放进表里。
 
-   main 上这个 kernel 是 vllm-ascend 自己的（`vllm_ascend/ops/triton/compute_slot_mapping.py`），按 `TILE_BLOCK_SIZE = 1024` 个 token 一批处理，并且只把行内 `BLOCK_TABLE_WINDOW_SIZE` 个相邻列载入片上再 `tl.gather`，避免整行随机访存；v0.23.0 直接从 `vllm.v1.worker.block_table` 导入上游 kernel，分块大小写死 `BLOCK_SIZE=1024`，没有窗口参数 [!][C16]。
-4. **消费**：`slot_mapping` 被切到 `[:num_actual_tokens]` 传给 `reshape_and_cache`，把本步的 K/V 散写进 cache；`block_table.gpu` 的前若干行进 `AscendMetadata.block_tables`，供算子读历史 KV。
+| 时刻 | 第 0 行的前四列 | 这一步在表上做了什么 |
+|---|---|---|
+| 第 1 步 prefill | 5, 0, 0, 0 | `add_row([5], 0)`：游标归零，再写第 0 列 |
+| 第 2–91 步 decode | 不变 | 什么都不做——第 0 块还有空格 |
+| 第 92 步 decode | 5, 42, 0, 0 | `append_row([42], 0)`：从游标指的第 1 列开始写 |
+| 请求结束 | 0, 0, 0, 0 | `clear_row(0)` 把用过的列填回 0 |
 
-开了 DCP（main）或 PCP/DCP（v0.23.0）时走的是另一条纯 torch 的路径，先把位置折算到「虚拟块」再判断这个 token 属不属于本 rank，不属于就填 -1 [!][C3]。
+**整整 200 步里，这张表只被改动过 8 个字节**，而 `slot_mapping` 是 200 步每步全量重算。这两件事的量级根本不同，**把它们拆开，是这一页后面所有设计的出发点**。
 
-## 拿真实数字走一遍
+第 92 步那个 token 的槽位就这么算出来：`block_table[0][128 // 128] × 128 + 128 % 128 = 42 × 128 + 0 = 5376` [D]。
 
-Qwen3-0.6B（28 层，n_kv = 8，d_h = 128，bf16），配置：
+## 行号是座位号，不是请求 id
 
-```bash
-vllm serve Qwen/Qwen3-0.6B \
-  --max-model-len 4096 \
-  --max-num-seqs 256 \
-  --max-num-batched-tokens 8192
-# --block-size 不给，昇腾平台置为 128
+第 `i` 行对应的是「batch 里第 `i` 个位置」，不是某个固定的请求。批次一重排，行就得跟着搬：`move_row(src, tgt)` 整行复制过去，`swap_row` 两行对调 [C2]。表里没有任何地方记着请求 id——请求与行的对应关系在 `NPUInputBatch` 手上，块表只是被它按行号驱动的一块内存。**读源码时最容易迷路的地方就在这里**：在块表里找不到任何请求身份。
+
+CPU 侧还有一个不起眼但关键的东西：`num_blocks_per_row`，一个长度为 `max_num_reqs` 的 numpy 游标数组，记着每行写到第几列了 [C15]。`append_row` 从游标那一列开始写、写完把游标推前；`add_row` 只是「游标归零后再 append」。没有它，追加一个块号之前得先扫一遍行去找末尾。
+
+## 表本身 32 KiB，它指着的东西以 GiB 计
+
+那条请求的配置下（`--max-model-len 4096`、`--max-num-seqs 256`），列数 = `cdiv(4096, 128) = 32`，行数 = 256，整张表 **256 × 32 × 4 B = 32 KiB**；而每一个表项指着一整块 KV——按那条请求的数，一块是 **14 MiB**。四个字节和十四兆，差了六个数量级 [D]。**所以别在这张表上做显存优化**，能省的量在噪声里。
+
+它的形状也基本由不得自己。列数是 `max_num_blocks_per_req`，由 KV cache spec 按 `max_model_len` 算好后传进来 [C11]；`BlockTable` 拿到之后还会按压缩比再调一次，那一段属于 [prepare_inputs 数据流](prepare-inputs-flow.md)。块大小同样如此：昇腾 GQA 后端的 `get_supported_kernel_block_sizes` 只返回 `[128]` [C18]，而上游分出来的物理块也是 128，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)。两者相等，于是 `blocks_per_phys_block == 1`，把一个物理块拆成多串逻辑块的 hybrid 路径默认根本不启用 [D]。
+
+## 慢的那一半留在 CPU，快的那一半留在 NPU
+
+块表变得很慢：只有调度器分配或释放块时才动，decode 一步最多加一个块号。槽位变得极快：每步每个 token 都要重算一遍。这两件事被拆开放在了两侧。
+
+**慢的那一半**常驻 CPU、按行增量更新，每步只把前 `num_reqs` 行异步拷到 NPU。这一句被放在 `_prepare_inputs` 的最前面，源码注释写明了理由——先把拷贝发出去，好和后面那一大段 CPU 准备工作重叠 [C9]。
+
+**快的那一半**根本不回 CPU。`compute_slot_mapping` 起一个 grid 为 `num_reqs + 1` 的 Triton kernel，一个 program 管一个请求，最后那个 program 专门把 `num_tokens` 到 `max_num_tokens` 之间的尾巴填成 `PAD_SLOT_ID` [C6]。kernel 的核心就三行，和官方文档那四步一一对应 [S20]：
+
+```
+block_indices = pos // block_size                # 第几个逻辑块
+block_numbers = block_table[row, block_indices]  # 查表得物理块号
+slot_ids      = block_numbers * block_size + pos % block_size
 ```
 
-**表的形状**：列数 = `cdiv(4096, 128)` = 32，行数 = 256（无 DCP、无投机解码，`duplicate_size = 1`），dtype int32。表本身 256 × 32 × 4 B = **32 KiB** [D]。
+翻译出来的东西有两个消费者，别混：`block_table.gpu` 的前若干行进 `AscendMetadata.block_tables`，供算子读历史 KV；`slot_mapping` 切到 `[:num_actual_tokens]` 交给 `reshape_and_cache`，写本步新算的 K/V [C22][C8]。**这解释了后面很多看起来绕的设计**——同一张表既要按行给算子，又要按 token 展开成槽位，所以它必须同时活在 CPU 和 NPU 两份缓冲里。
 
-**一个表项代表多少显存**：KV cache 每层张量是 `(2, num_blocks, block_size, num_kv_heads, head_size)`，所以每 token 每层 K+V = 2 × 8 × 128 × 2 B = 4 KiB，28 层 = 112 KiB；一个 128 token 的块 = 112 KiB × 128 = **14 MiB** [D]。表里那 4 个字节的整数，指着 14 MiB 显存。
+## 两个分支在这张表上的差别
 
-**prefill 一个 token 的槽位**：设某请求排在 batch 第 2 行，已分配物理块 `[5, 9, 17]`，即第 2 行前三列是 `5 | 9 | 17 | 0 | 0 | ...`。position = 300 的 token：
+下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。
 
-- `block_indices = 300 // 128 = 2`
-- `block_numbers = block_table[2][2] = 17`
-- `slot_offset = 300 % 128 = 44`
-- `slot = 17 × 128 + 44 = 2220`
-
-**decode 追加一个块**：该请求算到第 384 个 token 时，`384 // 128 = 3`，第 4 列还是 0；调度器分配物理块 42，`append_row([42], 2)` 把 42 写进第 3 列（游标此前为 3），游标变 4。这一步只改了 4 个字节的 CPU 内存。该 token 的槽位 = 42 × 128 + 0 = 5376。
-
-**kernel 的窗口参数**（仅 main）：`BLOCK_TABLE_WINDOW_SIZE = _next_power_of_2(cdiv(1024, 128) + 1) = _next_power_of_2(9) = 16`。即一批 1024 个 token 最多跨 9 个块，取 2 的幂后一次载入 16 列。
-
-**slot_mapping 缓冲**：main 为 8192 个 int32 = 32 KiB；v0.23.0 即使不开 PCP 也多留 `2 × 1 × 256` 个元素，共 8704 × 4 B ≈ 34 KiB [!][C15]。
-
-## 事实表
-
-| 项 | v0.23.0 | main | 意味着什么 |
+| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| 表形状 | `(max_num_reqs × duplicate_size, max_num_blocks_per_req)`，int32 | 同左 | 列数只够装满 `max_model_len` 个 token；调长上下文，这张表和整个 KV 池一起变大 |
-| 列数来源 | `kv_cache_spec.max_num_blocks_per_req(...)`，再按 `compress_ratio` / Mamba×CP 二次调整 | 直接用传入值，不再二次调整 | 想算列数看 spec，不要在 BlockTable 里找 |
-| 支持的 kernel block size | `[128]` | `[128]` | 昇腾 GQA 后端只有这一个合法值，别指望调小块换更细的显存粒度 |
-| 默认 `block_size` | 128 | 128 | 不传 `--block-size` 时物理块与逻辑块同尺寸，hybrid 拆分不生效 |
-| 单元格含义 | 物理块号；0 表示未使用 | 同左 | 全 0 的行 = 没有请求；块 0 被当哨兵，别当成一块可用的 KV |
-| 槽位公式 | `block_number × block_size + position % block_size` | 同左 | 槽位是「全局 token 槽」的编号，不是块内偏移 |
-| 行扩展条件 | `pcp × dcp > 1` 时行数 ×`(1 + num_spec_tokens)` | 仅 `dcp > 1` 时 | 同样开 PCP + MTP，两版的表行数不同 |
-| slot_mapping 长度 | `max_num_batched_tokens + 2×pcp×max_num_reqs + mtp` | `max_num_batched_tokens + mtp` | v0.23.0 即使不开 PCP 也多占一小块，不是 bug |
-| 提交方式 | 手写 `clone().pin_memory()` 后异步拷 | `CpuGpuBuffer.copy_to_gpu(num_reqs)` | 行为等价，但 v0.23.0 每步多一次 clone |
-| 表自身开销 | 256 行 × 32 列 × 4 B = 32 KiB [D] | 同左 | 相对它管理的几 GiB KV cache 可以忽略，别为它做优化 |
+| 槽位 kernel | 从 `vllm.v1.worker.block_table` 导入上游那个 [C13]，分块大小写死 `BLOCK_SIZE=1024` [C16] | 昇腾自己的 `ops/triton/compute_slot_mapping.py`，一批 `TILE_BLOCK_SIZE = 1024` 个 token，且只把行内 `BLOCK_TABLE_WINDOW_SIZE` 个相邻列载进片上再 `tl.gather` [C3] | 算出来的槽位一样；main 这版避免了整行随机访存 [!] |
+| 行扩展与缓冲长度 | `pcp × dcp > 1` 时行数乘 `(1 + num_speculative_tokens)`，`slot_mapping` 还多留 `2 × pcp × max_num_reqs` 个元素 [C15] | 只看 `dcp > 1`；`slot_mapping` 就是 `max_num_batched_tokens + MTP 余量` [C1] | 同样开 PCP + 投机解码两版行数不同；v0.23 不开 PCP 也多留 512 个 int32，不是 bug [!] |
+| 提交方式 | 手写 `gpu[:n].copy_(cpu[:n].clone().pin_memory(), non_blocking=True)` [C17] | 直接调上游 `CpuGpuBuffer.copy_to_gpu(num_reqs)` [C4] | 行为等价，v0.23 每步多一次 clone [!] |
+| 环形 KV cache | 没有这条路径 | `is_circular` 的 spec 把整行压成一列，且不许开上下文并行 [C1] | main 新增，默认不触发；读新版 `__init__` 时别被那一段带偏 [!] |
 
 ## 常见误解
 
-- **「块表里存的是显存地址」**——存的是块号，一个 int32。地址要靠 `块号 × block_size + 偏移` 现算，而且算出来的还是槽位号不是字节地址，字节偏移由算子按 `(2, num_blocks, block_size, num_kv_heads, head_size)` 的布局推。
-- **「decode 每步都要重建/重写这张表」**——每步只做两件事：可能往某一行追加一个块号（4 字节），然后把前 `num_reqs` 行拷到 NPU。真正每步全量重算的是 `slot_mapping`，而那是在 NPU 上用 kernel 算的。
-- **「块 0 是一块正常可用的 KV 块」**——上游设计文档明确用 block_0 标记未使用的块 [S20]，`clear_row` 也是把已用列填 0。看到块表里一片 0，那是空位不是都指向第一块。
+- **「块表里存的是显存地址」**——存的是块号，一个 int32。地址要现算，而且算出来的 `slot` 仍然是「第几个 token 槽」，不是字节偏移；字节偏移由算子按块张量的布局推，见 [KV Cache](kv-cache.md)。
+- **「decode 每步都要重建这张表」**——那条请求 199 步 decode 里只往表里写过一次 [D]。每步真正全量重算的是 `slot_mapping`，而它在 NPU 上算。
+- **「块 0 是一块正常可用的 KV 块」**——官方设计文档明确用 block_0 标记未使用的块 [S20]，`clear_row` 也是把用过的列填回 0 [C2]。看到表里一片 0，那是空位，不是都指向第一块。

@@ -1,4 +1,4 @@
-import { CornerDownLeft, MessageSquare, X } from "lucide-react";
+import { ArrowUp, BookOpen } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -83,143 +83,167 @@ async function streamChat(
   }
 }
 
-export function ChatDrawer({ onReview }: { onReview: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
+/** 引导新读者的三个问题：一个名词、一组对比、一个具体时刻 */
+const STARTERS = ["KV Cache 是什么", "prefill 和 decode 有什么区别", "那条请求的第 92 步发生了什么"];
+
+/** 聊天状态放在面板外层：切页签、收起面板都不丢对话 */
+export function useChat() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const sessionId = useRef<string | undefined>(undefined);
   const abort = useRef<AbortController | null>(null);
 
-  const send = useCallback(async () => {
-    const message = input.trim();
-    if (!message || busy) return;
-    setInput("");
-    setBusy(true);
-    const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setMsgs((m) => [
-      ...m,
-      { key: `${turn}-u`, role: "user", text: message },
-      { key: `${turn}-a`, role: "agent", text: "", reading: [] },
-    ]);
+  const send = useCallback(
+    async (preset?: string) => {
+      const message = (preset ?? input).trim();
+      if (!message || busy) return;
+      setInput("");
+      setBusy(true);
+      const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      setMsgs((m) => [
+        ...m,
+        { key: `${turn}-u`, role: "user", text: message },
+        { key: `${turn}-a`, role: "agent", text: "", reading: [] },
+      ]);
 
-    const patch = (fn: (last: Msg) => Msg) =>
-      setMsgs((m) => m.map((item) => (item.key === `${turn}-a` ? fn(item) : item)));
+      const patch = (fn: (last: Msg) => Msg) =>
+        setMsgs((m) => m.map((item) => (item.key === `${turn}-a` ? fn(item) : item)));
 
-    abort.current = new AbortController();
-    try {
-      await streamChat(
-        { message, ...(sessionId.current ? { sessionId: sessionId.current } : {}) },
-        {
-          text: (t) => patch((l) => ({ ...l, text: l.text + t })),
-          related: (pages) => patch((l) => ({ ...l, related: pages })),
-          tool: (target) =>
-            patch((l) => {
-              if (!target) return l;
-              const name = target.split(/[\\/]/).pop() ?? target;
-              return l.reading?.includes(name) ? l : { ...l, reading: [...(l.reading ?? []), name] };
-            }),
-          cite: (v) =>
-            patch((l) => ({ ...l, uncited: !v.cited, citationReason: v.reason ?? "没有可核对的知识库引用" })),
-          gap: (v) =>
-            patch((l) => ({
-              ...l,
-              gapNotice:
-                v.state === "record-failed"
-                  ? "缺口信号未能保存；本次回答仍保留，请稍后重试。"
-                  : v.state === "awaiting-assessment"
-                    ? `缺口信号已记录（${v.count} 次），已进入处理队列；预算内核对后生成待审变更，缺材料时等待补充。`
-                    : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
-            })),
-          knowledge: (v) => {
-            sessionId.current = v.sessionId;
-            patch((l) => ({
-              ...l,
-              revision: v.revision,
-              ...(v.resetReason
-                ? {
-                    versionNotice:
-                      v.resetReason === "knowledge-updated"
-                        ? "知识库已更新，本轮重新检索；旧回答仅保留显示。"
-                        : "原会话不可用，本轮重新检索。",
-                  }
-                : {}),
-            }));
+      abort.current = new AbortController();
+      try {
+        await streamChat(
+          { message, ...(sessionId.current ? { sessionId: sessionId.current } : {}) },
+          {
+            text: (t) => patch((l) => ({ ...l, text: l.text + t })),
+            related: (pages) => patch((l) => ({ ...l, related: pages })),
+            tool: (target) =>
+              patch((l) => {
+                if (!target) return l;
+                const name = target.split(/[\\/]/).pop() ?? target;
+                return l.reading?.includes(name) ? l : { ...l, reading: [...(l.reading ?? []), name] };
+              }),
+            cite: (v) =>
+              patch((l) => ({
+                ...l,
+                uncited: !v.cited,
+                citationReason: v.reason ?? "没有可核对的知识库引用",
+              })),
+            gap: (v) =>
+              patch((l) => ({
+                ...l,
+                gapNotice:
+                  v.state === "record-failed"
+                    ? "缺口信号未能保存；本次回答仍保留，请稍后重试。"
+                    : v.state === "awaiting-assessment"
+                      ? `缺口信号已记录（${v.count} 次），已进入处理队列；预算内核对后生成待审变更，缺材料时等待补充。`
+                      : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
+              })),
+            knowledge: (v) => {
+              sessionId.current = v.sessionId;
+              patch((l) => ({
+                ...l,
+                revision: v.revision,
+                ...(v.resetReason
+                  ? {
+                      versionNotice:
+                        v.resetReason === "knowledge-updated"
+                          ? "知识库已更新，本轮重新检索；旧回答仅保留显示。"
+                          : "原会话不可用，本轮重新检索。",
+                    }
+                  : {}),
+              }));
+            },
+            error: (m) => patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` })),
+            done: (sid, answerId) => {
+              if (sid) sessionId.current = sid;
+              if (answerId) patch((l) => ({ ...l, answerId }));
+            },
           },
-          error: (m) => patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` })),
-          done: (sid, answerId) => {
-            if (sid) sessionId.current = sid;
-            if (answerId) patch((l) => ({ ...l, answerId }));
-          },
-        },
-        abort.current.signal,
-      );
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
+          abort.current.signal,
+        );
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
+        }
+      } finally {
+        setBusy(false);
+        abort.current = null;
       }
-    } finally {
-      setBusy(false);
-      abort.current = null;
-    }
-  }, [input, busy]);
+    },
+    [input, busy],
+  );
 
-  if (!open) {
-    return (
-      <button type="button" className="wiki-chat-fab" data-testid="chat-open" onClick={() => setOpen(true)}>
-        <MessageSquare size={14} /> 问知识库
-      </button>
-    );
-  }
+  const stop = useCallback(() => abort.current?.abort(), []);
+  return { msgs, input, setInput, busy, send, stop };
+}
 
+export function ChatPane({
+  chat,
+  hidden,
+  onReview,
+}: {
+  chat: ReturnType<typeof useChat>;
+  hidden: boolean;
+  onReview: (id: string) => void;
+}) {
+  const { msgs, input, setInput, busy, send } = chat;
   return (
-    <aside className="wiki-chat" data-testid="chat-drawer">
-      <header>
-        <strong>问知识库</strong>
-        <button
-          type="button"
-          aria-label="关闭"
-          data-testid="chat-close"
-          onClick={() => {
-            abort.current?.abort();
-            setOpen(false);
-          }}
-        >
-          <X size={14} />
-        </button>
-      </header>
-
+    <div className="wiki-chat" role="tabpanel" aria-label="问答" hidden={hidden}>
       <div className="wiki-chat-log" data-testid="chat-log">
         {msgs.length === 0 && (
-          <p className="wiki-chat-hint">
-            问什么都行，比如「Block Table 是什么」。回答只基于这个知识库；库里没有的会明说。
-          </p>
+          <div className="wiki-chat-empty">
+            <BookOpen size={20} />
+            <strong>问这个知识库</strong>
+            <p className="wiki-chat-hint">回答只基于库里的页面，每条结论都带引用；库里没有的会明说。</p>
+            <ul>
+              {STARTERS.map((q) => (
+                <li key={q}>
+                  <button type="button" disabled={busy} onClick={() => void send(q)}>
+                    {q}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {msgs.map((m) => (
           <div key={m.key} className={`wiki-chat-msg is-${m.role}`}>
-            {m.revision && (
-              <p className="wiki-chat-reading" data-testid="chat-version">
-                知识版本 {m.revision.slice(0, 12)}
-              </p>
+            {(m.revision || !!m.reading?.length) && (
+              <div className="wiki-chat-meta">
+                {m.revision && (
+                  <p className="wiki-chat-reading" data-testid="chat-version">
+                    知识版本 {m.revision.slice(0, 12)}
+                  </p>
+                )}
+                {m.reading && m.reading.length > 0 && (
+                  <p className="wiki-chat-reading">正在读：{m.reading.join("、")}</p>
+                )}
+              </div>
             )}
             {m.versionNotice && (
               <p role="status" className="wiki-chat-uncited" data-testid="chat-version-notice">
                 {m.versionNotice}
               </p>
             )}
-            {m.reading && m.reading.length > 0 && (
-              <p className="wiki-chat-reading">正在读：{m.reading.join("、")}</p>
-            )}
             {m.role === "agent" ? (
-              <ReactMarkdown
-                skipHtml
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ href, children }) => <a href={rewriteRelativeLink(href ?? "")}>{children}</a>,
-                }}
-              >
-                {m.text}
-              </ReactMarkdown>
+              m.text ? (
+                <ReactMarkdown
+                  skipHtml
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: ({ href, children }) => <a href={rewriteRelativeLink(href ?? "")}>{children}</a>,
+                  }}
+                >
+                  {m.text}
+                </ReactMarkdown>
+              ) : (
+                <p className="wiki-chat-thinking" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </p>
+              )
             ) : (
               m.text
             )}
@@ -274,10 +298,10 @@ export function ChatDrawer({ onReview }: { onReview: (id: string) => void }) {
             }
           }}
         />
-        <button type="submit" data-testid="chat-send" disabled={busy || !input.trim()}>
-          <CornerDownLeft size={13} /> 问
+        <button type="submit" data-testid="chat-send" aria-label="发送" disabled={busy || !input.trim()}>
+          <ArrowUp size={15} />
         </button>
       </form>
-    </aside>
+    </div>
   );
 }

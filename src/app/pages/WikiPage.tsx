@@ -20,8 +20,7 @@ import { parseRepoRef, type RegistryEntry, rawSourceHref } from "../../content/w
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { wikiRequest } from "../wiki/api";
-import { ChatDrawer } from "../wiki/ChatDrawer";
-import { ReviewPanel } from "../wiki/ReviewPanel";
+import { WikiPanel } from "../wiki/WikiPanel";
 import "../../design/wiki.css";
 
 /** 与 scripts/wiki/build.ts 的显示名保持一致；漏一个页型会把原始字符串印在页面上 */
@@ -64,7 +63,7 @@ function diagramId(node: unknown): string | null {
 export function WikiPage() {
   const { id } = useParams();
   const { pages, revision, mode, diagrams } = useSyncExternalStore(subscribeReader, getReaderState);
-  const [review, setReview] = useState<{ id?: string }>();
+  const [panel, setPanel] = useState<"closed" | "chat" | "review">("closed");
   const [snapshotError, setSnapshotError] = useState("");
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const updated = await refreshReaderSnapshot(() => wikiRequest("pages"), signal);
@@ -78,11 +77,17 @@ export function WikiPage() {
     );
     return () => controller.abort();
   }, [refresh]);
+  // dev 下 wiki 文件变了（手改，或一次发布）：就地换数据，不整页重载；问答服务不在才退回重载
+  useEffect(() => {
+    const onChanged = () => void refresh().catch(() => window.location.reload());
+    import.meta.hot?.on("wiki:changed", onChanged);
+    return () => import.meta.hot?.off("wiki:changed", onChanged);
+  }, [refresh]);
   const groups = useMemo(() => groupByChapter(pages), [pages]);
   const page = id ? getPage(id) : undefined;
 
   return (
-    <div className="wiki-shell">
+    <div className={`wiki-shell is-panel-${panel}`}>
       <nav className="wiki-toc" data-testid="wiki-toc" aria-label="知识库目录">
         <Link className="wiki-toc-home" to="/">
           <ArrowLeft size={12} /> 返回首页
@@ -94,19 +99,6 @@ export function WikiPage() {
           <small data-testid="reader-version" title={revision}>
             {`${mode === "build" ? "构建版本" : "知识版本"} ${revision.slice(0, 12)}`}
           </small>
-          <button
-            type="button"
-            onClick={() => {
-              void refresh().catch(() =>
-                setSnapshotError("未能更新，仍显示以上版本。连接问答服务后可重试刷新。"),
-              );
-            }}
-          >
-            刷新知识库
-          </button>
-          <button type="button" onClick={() => setReview({})}>
-            审阅变更
-          </button>
           {snapshotError && <small role="status">{snapshotError}</small>}
         </div>
         {groups.map(([chapter, list]) => (
@@ -140,21 +132,19 @@ export function WikiPage() {
         {page && <Article page={page.fm} body={page.body} diagrams={diagrams} />}
       </main>
 
-      <ChatDrawer onReview={(id) => setReview({ id })} />
-      {review && (
-        <ReviewPanel
-          initialId={review.id}
-          onClose={() => setReview(undefined)}
-          onPublished={async () => {
-            try {
-              if (!(await refresh())) throw new Error("页面更新尚未确认");
-            } catch {
-              setSnapshotError("已发布，但页面刷新失败。");
-              throw new Error("发布成功；读取新页面失败，请刷新页面重试。");
-            }
-          }}
-        />
-      )}
+      <WikiPanel
+        revision={revision}
+        mode={mode}
+        onLayout={setPanel}
+        onRefresh={async () => {
+          try {
+            return await refresh();
+          } catch (error) {
+            setSnapshotError("未能更新，仍显示以上版本。连接问答服务后可重试刷新。");
+            throw error;
+          }
+        }}
+      />
     </div>
   );
 }

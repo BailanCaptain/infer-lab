@@ -162,7 +162,7 @@ test("continuing after publication shows the new version and starts fresh model 
   const before = await page.getByTestId("chat-version").first().innerText();
   await page.getByRole("button", { name: "批准此版本并发布" }).click();
   await expect(page.getByTestId("review-state")).toContainText("已发布");
-  await page.getByRole("button", { name: "关闭审阅" }).click();
+  await page.getByRole("tab", { name: "问答" }).click();
   await page.getByTestId("chat-input").fill("现在再解释一次");
   await page.getByTestId("chat-send").click();
   await expect(page.getByTestId("chat-version-notice")).toContainText("知识库已更新");
@@ -228,7 +228,7 @@ test("save, inspect the real diff, approve, read and retrieve the new publicatio
   await page.screenshot({ path: info.outputPath("wiki-review-pending.png"), fullPage: true });
   await page.getByRole("button", { name: "批准此版本并发布" }).click();
   await expect(page.getByTestId("review-state")).toContainText("已发布");
-  await page.getByRole("button", { name: "关闭审阅" }).click();
+  await page.getByRole("tab", { name: "问答" }).click();
   await page.getByTestId("chat-close").click();
   await page.getByRole("link", { name: "组合诊断", exact: true }).click();
   await expect(page.getByTestId("wiki-body")).toContainText("比较两个条件");

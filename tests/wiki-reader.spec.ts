@@ -29,6 +29,8 @@ test("offline reader identifies the exact build snapshot and can retry", async (
   await expect(page.getByRole("status")).toContainText("仍显示以上版本");
   await page.screenshot({ path: info.outputPath("wiki-reader-offline.png"), fullPage: true });
   online = true;
+  // 刷新与问答、审阅收在同一个侧栏里
+  await page.getByTestId("chat-open").click();
   await page.getByRole("button", { name: "刷新知识库" }).click();
   await expect(page.getByTestId("reader-version")).toHaveText(`知识版本 ${snapshot.revision.slice(0, 12)}`);
   await expect(page.getByRole("status")).toHaveCount(0);

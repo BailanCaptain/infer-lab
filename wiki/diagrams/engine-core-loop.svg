@@ -13,14 +13,14 @@
   <g transform="translate(138 189) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
   <text x="150" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">有活干吗</text>
   <text x="150" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">没有就阻塞在这里等</text>
-  <rect x="71" y="111.5" width="158" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="150" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">_process_input_queue</text>
+  <rect x="66" y="111.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="150" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">_process_input_queue</text>
   <line x1="340" y1="250" x2="340" y2="278" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="340" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="340" cy="250" r="5.5" fill="var(--color-control, #5b6763)"/>
   <rect x="320" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(328 287) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
   <text x="340" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步算谁、各算几个</text>
-  <rect x="269" y="340.5" width="142" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="340" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">Scheduler.schedule</text>
+  <rect x="263.5" y="340.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="340" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">Scheduler.schedule</text>
   <line x1="530" y1="250" x2="530" y2="222" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="530" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="530" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
@@ -28,14 +28,14 @@
   <g transform="translate(518 189) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
   <text x="530" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">送下去执行</text>
   <text x="530" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">跨进程，等 Worker 回话</text>
-  <rect x="475.5" y="111.5" width="109" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="530" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">execute_model</text>
+  <rect x="472.3" y="111.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="530" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">execute_model</text>
   <line x1="710" y1="250" x2="710" y2="278" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="710" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="710" cy="250" r="5.5" fill="var(--color-control, #5b6763)"/>
   <rect x="690" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(698 287) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
   <text x="710" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按结果更新状态</text>
-  <rect x="638" y="340.5" width="144" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="710" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">update_from_output</text>
+  <rect x="633.5" y="340.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="710" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">update_from_output</text>
   <path d="M810 250 L846 250 L846 392 L40 392 L40 250 L62 250" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
   <path d="M62 250 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
   <rect x="412" y="382" width="62" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>

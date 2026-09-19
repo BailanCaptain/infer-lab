@@ -153,8 +153,12 @@ function chip(x: number, y: number, text: string, fill: string, size = 13.5): st
 }
 
 /** 白底描边小胶囊，专放函数名 / 文件名。白底是必须的——用地盘色会和底色糊在一起。 */
+/** 胶囊里是等宽字体，每个字符 0.6em；用正文字体的估宽（0.56em）会让长标识符顶出边框 */
+const chipTextWidth = (text: string, size: number) =>
+  Math.max(textWidth(text, size), [...text].length * 0.6 * size);
+
 function codeChip(cx: number, y: number, text: string, tone: string, size = 12.5): string {
-  const w = textWidth(text, size) + 18;
+  const w = chipTextWidth(text, size) + 18;
   const h = size + 9;
   inkRect(text, cx - w / 2, y - h + 4, w, h);
   return `<rect x="${round(cx - w / 2)}" y="${round(y - h + 4)}" width="${round(w)}" height="${round(h)}" rx="${round(h / 2)}" fill="${SURFACE}" stroke="${tone}" stroke-width="1"/>${label(cx, y, text, { size, fill: tone, anchor: "middle", mono: true })}`;
@@ -245,7 +249,7 @@ export function renderScene(spec: SceneSpec): string {
       }),
       b.sub ? label(x + (b.icon ? 58 : 22), y + h / 2 + 17, b.sub, { size: 12.5, fill: DIM }) : "",
       b.fn
-        ? codeChip(x + w - textWidth(b.fn, 12.5) / 2 - 28, y + h / 2 + 5, b.fn, TONE[b.tone])
+        ? codeChip(x + w - chipTextWidth(b.fn, 12.5) / 2 - 28, y + h / 2 + 5, b.fn, TONE[b.tone])
         : b.right
           ? label(x + w - 16, y + h / 2 + 5, b.right, { size: 12.5, fill: DIM, anchor: "end" })
           : "",

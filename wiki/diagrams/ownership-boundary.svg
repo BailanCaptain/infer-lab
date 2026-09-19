@@ -34,35 +34,35 @@
   <rect x="120" y="205" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(128 213) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
   <text x="140" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">排队与抢占</text>
-  <rect x="96" y="154.5" width="88" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="140" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">EngineCore</text>
+  <rect x="93.5" y="154.5" width="93" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="140" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">EngineCore</text>
   <line x1="270" y1="274" x2="270" y2="302" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="270" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="270" cy="274" r="5.5" fill="var(--color-control, #5b6763)"/>
   <rect x="250" y="303" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(258 311) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
   <text x="270" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步跑哪几条</text>
-  <rect x="199" y="364.5" width="142" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="270" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">Scheduler.schedule</text>
+  <rect x="193.5" y="364.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="270" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">Scheduler.schedule</text>
   <line x1="400" y1="274" x2="400" y2="246" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="400" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="400" cy="274" r="5.5" fill="var(--color-control, #5b6763)"/>
   <rect x="380" y="205" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(388 213) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
   <text x="400" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">分哪几个 block</text>
-  <rect x="342" y="154.5" width="116" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="400" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">KVCacheManager</text>
+  <rect x="338.5" y="154.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="400" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">KVCacheManager</text>
   <line x1="555" y1="274" x2="555" y2="302" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="555" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="555" cy="274" r="5.5" fill="var(--color-weight, #b87a00)"/>
   <rect x="535" y="303" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
   <g transform="translate(543 311) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
   <text x="555" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">用哪个注意力后端</text>
-  <rect x="476" y="364.5" width="158" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="555" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">get_attn_backend_cls</text>
+  <rect x="471" y="364.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="555" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">get_attn_backend_cls</text>
   <line x1="675" y1="274" x2="675" y2="246" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="675" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="675" cy="274" r="5.5" fill="var(--color-weight, #b87a00)"/>
   <rect x="655" y="205" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
   <g transform="translate(663 213) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v8H3z M9 8v8M15 8v8"/></g>
   <text x="675" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">token 落哪个槽位</text>
-  <rect x="596" y="154.5" width="158" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="675" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">compute_slot_mapping</text>
+  <rect x="591" y="154.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="675" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">compute_slot_mapping</text>
   <line x1="800" y1="274" x2="800" y2="302" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="800" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="800" cy="274" r="5.5" fill="var(--color-weight, #b87a00)"/>

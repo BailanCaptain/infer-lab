@@ -13,7 +13,7 @@
   <g transform="translate(138 179) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
   <text x="150" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">还没解析命令行</text>
   <text x="150" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">这时候还没有 VllmConfig</text>
-  <rect x="60.5" y="101.5" width="179" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="150" y="119" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">pre_register_and_update</text>
+  <rect x="54.8" y="101.5" width="190.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="150" y="119" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">pre_register_and_update</text>
   <line x1="330" y1="240" x2="330" y2="268" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="330" cy="240" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="330" cy="240" r="5.5" fill="var(--color-accent, #e85b32)"/>
@@ -21,7 +21,7 @@
   <g transform="translate(318 277) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
   <text x="330" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">配置组装完的最后一步</text>
   <text x="330" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">全仓只有这一处调用它</text>
-  <rect x="240.5" y="349.5" width="179" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="330" y="367" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">check_and_update_config</text>
+  <rect x="234.8" y="349.5" width="190.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="330" y="367" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">check_and_update_config</text>
   <line x1="510" y1="240" x2="510" y2="212" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="510" cy="240" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="510" cy="240" r="5.5" fill="var(--color-control, #5b6763)"/>
@@ -29,7 +29,7 @@
   <g transform="translate(498 179) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
   <text x="510" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">该用哪个注意力后端</text>
   <text x="510" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">要的是一个类路径字符串</text>
-  <rect x="431" y="101.5" width="158" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="510" y="119" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">get_attn_backend_cls</text>
+  <rect x="426" y="101.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="510" y="119" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">get_attn_backend_cls</text>
   <line x1="680" y1="240" x2="680" y2="268" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="680" cy="240" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="680" cy="240" r="5.5" fill="var(--color-control, #5b6763)"/>
@@ -37,14 +37,14 @@
   <g transform="translate(668 277) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
   <text x="680" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">token 预算默认值给多少</text>
   <text x="680" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">显存够大就换一档</text>
-  <rect x="590.5" y="349.5" width="179" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="680" y="367" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">get_device_total_memory</text>
+  <rect x="584.8" y="349.5" width="190.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="680" y="367" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">get_device_total_memory</text>
   <line x1="820" y1="240" x2="820" y2="212" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="820" cy="240" r="9" fill="var(--color-surface, #fbfaf6)"/>
   <circle cx="820" cy="240" r="5.5" fill="var(--color-control, #5b6763)"/>
   <rect x="800" y="171" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(808 179) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
   <text x="820" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">起 Worker 后设卡</text>
-  <rect x="776" y="120.5" width="88" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="820" y="138" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">set_device</text>
+  <rect x="773.5" y="120.5" width="93" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="820" y="138" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">set_device</text>
   <text x="20" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)">Platform 基类里一共 88 个 def，上游代码里 current_platform. 出现 873 处。插件不是「挂个钩子」，是把这 88 个口子逐个答上。</text>
   <text x="20" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">其中 check_and_update_config 最特别：它只被调用一次，但那一次能改写整份 VllmConfig——昇腾拦掉不支持的配置就在这里。</text>
 </svg>

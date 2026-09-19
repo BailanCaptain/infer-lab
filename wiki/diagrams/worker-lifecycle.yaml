@@ -19,7 +19,7 @@ stops:
   - { x: 380, side: above, title: 装权重, detail: sleep mode 决定进哪个池, fn: load_model, icon: box, tone: ascend }
   - { x: 520, side: below, title: 算出显存预算, detail: 必须真跑一遍假批, fn: determine_available_memory, icon: calc, tone: accent }
   - { x: 664, side: above, title: 真正分配 KV 张量, detail: 这一刻起才有 block, fn: initialize_from_config, icon: grid, tone: ascend }
-  - { x: 800, side: below, title: 捕获图, detail: enforce_eager 会整段跳过, fn: compile_or_warm_up_model, icon: graph, tone: ascend }
+  - { x: 796, side: below, title: 捕获图, detail: enforce_eager 会整段跳过, fn: compile_or_warm_up_model, icon: graph, tone: ascend }
 
 notes:
   - { at: [20, 424], text: "第四步是整条链的枢纽：KV Cache 有多大 = 拿到的显存 − 假批跑完之后非 KV 占用。预算是减出来的，不是配出来的——配了 kv_cache_memory_bytes 也仍然要跑假批，注释说那是为了编译模型。", size: 12.5, width: 860 }

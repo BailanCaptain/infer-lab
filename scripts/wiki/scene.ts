@@ -73,6 +73,10 @@ function textWidth(s: string, size: number): number {
   return em * size;
 }
 
+/** 等宽字体每个字符 0.6em；用正文字体的估宽（0.56em）会让长标识符顶出边框，溢出检查也查不出来 */
+const chipTextWidth = (text: string, size: number) =>
+  Math.max(textWidth(text, size), [...text].length * 0.6 * size);
+
 /** 按像素宽度断行。中日韩字符可在任意位置断，拉丁单词整体不拆。 */
 function wrap(text: string, size: number, maxWidth: number): string[] {
   const atoms: string[] = [];
@@ -119,8 +123,8 @@ export interface InkBox {
 let ink: InkBox[] = [];
 let inkWhere = "";
 
-function inkText(x: number, y: number, t: string, size: number, anchor?: string): void {
-  const w = textWidth(t, size);
+function inkText(x: number, y: number, t: string, size: number, anchor?: string, mono = false): void {
+  const w = mono ? chipTextWidth(t, size) : textWidth(t, size);
   const left = anchor === "end" ? x - w : anchor === "middle" ? x - w / 2 : x;
   // y 是基线；字面大约在基线上方 0.78em 到下方 0.22em 之间
   ink.push({ where: inkWhere, what: t, x: left, y: y - size * 0.78, w, h: size });
@@ -140,7 +144,7 @@ interface TextOpts {
 
 function label(x: number, y: number, s: string, o: TextOpts = {}): string {
   const anchor = o.anchor ? ` text-anchor="${o.anchor}"` : "";
-  inkText(x, y, s, o.size ?? 13.5, o.anchor);
+  inkText(x, y, s, o.size ?? 13.5, o.anchor, o.mono);
   return `<text x="${round(x)}" y="${round(y)}" font-family="${o.mono ? MONO : FONT}" font-size="${o.size ?? 13.5}" font-weight="${o.weight ?? 400}" fill="${o.fill ?? INK}"${anchor}>${esc(s)}</text>`;
 }
 
@@ -153,10 +157,6 @@ function chip(x: number, y: number, text: string, fill: string, size = 13.5): st
 }
 
 /** 白底描边小胶囊，专放函数名 / 文件名。白底是必须的——用地盘色会和底色糊在一起。 */
-/** 胶囊里是等宽字体，每个字符 0.6em；用正文字体的估宽（0.56em）会让长标识符顶出边框 */
-const chipTextWidth = (text: string, size: number) =>
-  Math.max(textWidth(text, size), [...text].length * 0.6 * size);
-
 function codeChip(cx: number, y: number, text: string, tone: string, size = 12.5): string {
   const w = chipTextWidth(text, size) + 18;
   const h = size + 9;
@@ -475,8 +475,8 @@ export function renderScene(spec: SceneSpec): string {
 export function sceneOverflows(spec: SceneSpec): string[] {
   const out: string[] = [];
   const W = spec.size[0];
-  const say = (where: string, text: string, limit: number, size: number) => {
-    const w = textWidth(text, size);
+  const say = (where: string, text: string, limit: number, size: number, mono = false) => {
+    const w = mono ? chipTextWidth(text, size) : textWidth(text, size);
     if (w > limit + 0.5)
       out.push(`${where}：「${text}」约 ${Math.round(w)}px，只放得下 ${Math.round(limit)}px`);
   };
@@ -484,7 +484,7 @@ export function sceneOverflows(spec: SceneSpec): string[] {
   for (const [i, b] of spec.bands.entries()) {
     const textLeft = b.at[0] + (b.icon ? 58 : 22);
     // 右端那块被 fn 胶囊或 right 文字占着，正文最多写到它左边
-    const rightTaken = b.fn ? textWidth(b.fn, 12.5) + 46 : b.right ? textWidth(b.right, 12.5) + 24 : 16;
+    const rightTaken = b.fn ? chipTextWidth(b.fn, 12.5) + 46 : b.right ? textWidth(b.right, 12.5) + 24 : 16;
     const room = b.at[0] + b.size[0] - rightTaken - textLeft;
     say(`bands[${i}].label`, b.label, room, 15);
     if (b.sub) say(`bands[${i}].sub`, b.sub, room, 12.5);
@@ -493,7 +493,7 @@ export function sceneOverflows(spec: SceneSpec): string[] {
   for (const [i, b] of spec.boxes.entries()) {
     const room = b.size[0] - (b.icon ? 68 : 32);
     if (b.sub) say(`boxes[${i}].sub`, b.sub, room, 12.5);
-    if (b.fn) say(`boxes[${i}].fn`, b.fn, room, 12.5);
+    if (b.fn) say(`boxes[${i}].fn`, b.fn, room, 12.5, true);
   }
 
   for (const [i, r] of spec.regions.entries())
@@ -504,7 +504,7 @@ export function sceneOverflows(spec: SceneSpec): string[] {
     const half = Math.min(s.x, W - s.x);
     say(`stops[${i}].title`, s.title, half * 2 - 8, 15);
     if (s.detail) say(`stops[${i}].detail`, s.detail, half * 2 - 8, 12.5);
-    if (s.fn) say(`stops[${i}].fn`, s.fn, half * 2 - 26, 12.5);
+    if (s.fn) say(`stops[${i}].fn`, s.fn, half * 2 - 26, 12.5, true);
   }
 
   for (const [i, n] of spec.notes.entries()) {

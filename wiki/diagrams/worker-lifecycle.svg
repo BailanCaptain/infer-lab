@@ -46,14 +46,14 @@
   <text x="664" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">真正分配 KV 张量</text>
   <text x="664" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">这一刻起才有 block</text>
   <rect x="572.5" y="111.5" width="183" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="664" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">initialize_from_config</text>
-  <line x1="800" y1="250" x2="800" y2="278" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="800" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="800" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="780" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(788 287) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
-  <text x="800" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">捕获图</text>
-  <text x="800" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">enforce_eager 会整段跳过</text>
-  <rect x="701" y="359.5" width="198" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="800" y="377" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">compile_or_warm_up_model</text>
+  <line x1="796" y1="250" x2="796" y2="278" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="796" cy="250" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="796" cy="250" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="776" y="279" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(784 287) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
+  <text x="796" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">捕获图</text>
+  <text x="796" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">enforce_eager 会整段跳过</text>
+  <rect x="697" y="359.5" width="198" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="796" y="377" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">compile_or_warm_up_model</text>
   <text x="20" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第四步是整条链的枢纽：KV Cache 有多大 = 拿到的显存 − 假批跑完之后非 KV 占用。预算是减出来的，不是配出来的——配了 kv_cache_memory_bytes 也</text>
   <text x="20" y="442.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">仍然要跑假批，注释说那是为了编译模型。</text>
   <text x="20" y="466" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">排查启动期报错时倒着用：挂在第一步 → patch 或算子注册；第二步 → 设备可见性；第四步且提示可用显存反而变大 → 那条断言被触发；第六步 → 先开 </text>

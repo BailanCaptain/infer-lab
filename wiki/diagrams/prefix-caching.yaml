@@ -42,14 +42,14 @@ strips:
 
 boxes:
   - at: [36, 358]
-    size: [272, 86]
+    size: [266, 86]
     title: 块大小顶成 128
     sub: 开 APC 就改，只留一条 info 日志
     fn: refresh_block_size
     tone: ascend
     icon: gear
-  - at: [314, 358]
-    size: [272, 86]
+  - at: [308, 358]
+    size: [278, 86]
     title: 哈希粒度单独算一份
     sub: 多 group 且开 DCP 时取 gcd
     fn: resolve_kv_cache_block_sizes

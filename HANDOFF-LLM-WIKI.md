@@ -45,6 +45,13 @@
 - **页面写法**：用户认可的是 `wiki/concepts/vllm-v1-shape.md`、`vllm-ascend-overview.md` 那一类（一句话 + 图 → 那条请求走到这里 → 结论句小标题 → 常见误解）。全库已统一，规则写在 HANDBOOK「页面格式 › 正文分节 › 教学页的推荐写法」。
 - **预算账本是保险丝，不是功能开关。** 用户的本意只是「地基做好之前不大批量导入」，2026-09-20 已同意恢复并调高上限。单次真实问答实测约 $0.45，照这个价 $100 上限约 180 问。大批量导入（全量灌种 / 全量参数页 / GitHub 全库首拉）放在最后一步，必须用户点头后手动执行，**没有任何自动入口会触发**（夜间任务要花钱得配置里有 `paid` 块且配额 > 0，现在没有）。任何一次调用超时拿不到账单，账本会再次自动暂停，状态页签会写明原因。
 
+**用户 2026-09-20 定的「章节与知识库的关系」——这是写作约定，不要为它加机制：**
+
+- 整个项目是教学平台，PLAN.md §1.1 的 22 个主章节**本身也要详细讲解**；动画是配合讲解的，不是「文字很少、只有动画」。
+- 知识库里教学式的长页（`tensor-parallel`、`pipeline-parallel`、`chunked-prefill`、`vllm-v1-shape` 等）和主章节主题重叠。**写某一章时，先查 frontmatter `chapters` 里挂了该章号的页，以它们为底稿扩写**——这些页已对过钉住的源码、带行号。
+- 章节开头记一行「基于哪几页知识库页」；这些页因上游变化被改时，回头看对应章节。写章节时发现知识库缺了或错了，**先补知识库再扩写**，知识库始终是事实的底。
+- 主仓库 `infra-view-new` 的 PLAN.md 里还没写这条，回主线写章节时再补。
+
 ## 4. 接下来做什么（按优先级）
 
 1. **内容是主线，但下一批开写前先问用户。** 这轮新写 8 页（`tensor-parallel`、`pipeline-parallel`、`sequence-parallel`、`mla`、`gqa`、`speculative-decoding`、`pd-disaggregation`、`chunked-prefill`），「特性」部分不再只有 KV Cache 一类；仍缺图模式深入、量化总览（W8A8 等）、EP/EPLB、DP、CP/PCP、HCCL/CANN 这些底层词。写作代理汇报里建议的下一批相邻页：`data-parallel`、`decode`、`fia-operator`、`mtp`、`kv-connector-interface`、`flashcomm2`、`moe-comm-method`、`batch-invariance`、`preemption`。但**用户 09-20 对「一直在写稿子」表示过疑问**——不要再自作主张一批批开，先问要不要继续、要哪些；获准后按 §3 的写法派子代理，每批 3–4 页。

@@ -2,6 +2,109 @@
   "version": 1,
   "pages": [
     {
+      "id": "acl-graph",
+      "title": "ACLGraph：批的 token 数先垫到捕获过的尺寸，垫不上就按 eager 跑",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "启动期把整网的算子下发序列按一批固定尺寸录成图，运行期按「token 数 + 这批是不是整齐的 decode」查缓存回放，省掉每个算子一次的 host 下发开销。",
+      "aliases": [
+        "ACLGraph",
+        "ACL 图",
+        "cudagraph_mode",
+        "cudagraph_capture_sizes",
+        "FULL_DECODE_ONLY",
+        "FULL_AND_PIECEWISE",
+        "npugraph_ex",
+        "图捕获与回放"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 40,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L26-L29",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L40-L45",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L126-L132",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L111-L120",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L14-L20",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L268-L272",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L178-L184",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/graph_mode.html",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L57-L63",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L78-L96",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L207-L241",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L248-L261",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L74-L76",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L109-L126",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L549-L568",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L570-L587",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L593-L633",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L645-L657",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L615",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L640-L659",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L138-L152",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L243-L257",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L666-L671",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2949-L2961",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2809-L2832",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2856-L2870",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L918-L924",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L491-L518",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L263-L271",
+        "vllm@0fc695fc:vllm/config/vllm.py#L1667-L1682",
+        "vllm@0fc695fc:vllm/config/vllm.py#L1702-L1729",
+        "vllm@0fc695fc:vllm/config/vllm.py#L243-L257",
+        "vllm@0fc695fc:vllm/config/vllm.py#L364-L366",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L42-L44",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L86-L95",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L276-L285",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L328",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L209-L235",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L606",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L634-L635",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L37-L47",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L113-L133",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1153-L1167",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1205-L1207",
+        "vllm-ascend@b255ab59:vllm_ascend/compilation/breakable_aclgraph.py#L38-L45",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L527-L531"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "graph-mode-layer",
+          "kind": "builds-on",
+          "note": "ACLGraphWrapper 的四步、两个平台接入点、enforce_eager 只跳捕获不跳 warmup 都在那一页，这里只讲用法和行为"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "第 1 步 37 个 token 被垫到 40、后面 199 步各 1 个 token，这一页所有的数都从这条请求推出来"
+        },
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "选模式、垫 token 数、full 图的注意力参数更新，三件事都发生在 runner 的一次 forward 里"
+        },
+        {
+          "to": "async-scheduling",
+          "kind": "builds-on",
+          "note": "FULL 回放前那次 current_stream().synchronize() 就是为异步调度加的，否则第 i 步的参数更新会被第 i−1 步的回放吃掉"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/acl-graph.md",
+      "backlinks": []
+    },
+    {
       "id": "ascend-config-system",
       "title": "AscendConfig 配置系统",
       "type": "feature",
@@ -283,7 +386,18 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/async-scheduling.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "acl-graph",
+          "kind": "enables",
+          "note": "FULL 回放前那次 current_stream().synchronize() 就是为异步调度加的，否则第 i 步的参数更新会被第 i−1 步的回放吃掉"
+        },
+        {
+          "from": "dyntra-lb",
+          "kind": "enables",
+          "note": "它换了 scheduler_cls，所以得自备一个 Async 版；异步调度改了什么、为什么不能混用同步类在那一页"
+        }
+      ]
     },
     {
       "id": "attention-backend-family",
@@ -542,6 +656,11 @@
           "from": "large-scale-ep",
           "kind": "alternative-to",
           "note": "都在治 DP rank 之间的忙闲不均——外置 LB 在 vLLM 外面按活跃 token 数挑 rank，均衡调度在 vLLM 里面卡住所有 rank 的准入闸"
+        },
+        {
+          "from": "dyntra-lb",
+          "kind": "conflicts-with",
+          "note": "同是 DP 准入控制的两条路，源码里同开直接 ValueError——那边按条数一刀冻结，这边按 KV 块数真调度"
         }
       ]
     },
@@ -1101,6 +1220,11 @@
           "note": "它 all_gather 的就是各 DP rank 在跑的请求数；DP rank 是什么、请求怎么落到某个 rank，在那一页"
         },
         {
+          "from": "dyntra-lb",
+          "kind": "enables",
+          "note": "它 all_gather 的就是同一个 DP 组里各 rank 的负载；DP rank 是什么、请求怎么落到某个 rank，在那一页"
+        },
+        {
           "from": "expert-parallel",
           "kind": "enables",
           "note": "ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上"
@@ -1111,6 +1235,107 @@
           "note": "大规模 EP 的每个「引擎」就是一个 DP rank；DP 复制什么、MoE 下各 rank 为什么必须齐步走，在那一页"
         }
       ]
+    },
+    {
+      "id": "dyntra-lb",
+      "title": "DyntraLB：跨 rank 传的只有块数，没有请求 id",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "PD 分离的 D 节点上，各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。",
+      "aliases": [
+        "DyntraLB",
+        "Dynamic Intra-Decoder Data-Parallel Load Balancing",
+        "解码器内部数据并行动态负载均衡",
+        "D 节点负载均衡",
+        "负载感知调度器",
+        "dyntra_lb_config",
+        "DyntraLBScheduler",
+        "AsyncDyntraLBScheduler",
+        "DyntraLBDPEngineCoreProc",
+        "DyntraLBPolicyMixin",
+        "bubble_threshold",
+        "long_req_block_threshold",
+        "dynamic_max_step"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 70,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L41-L52",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L238-L248",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L250-L289",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L291-L292",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L364-L395",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L171-L176",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L442-L443",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L701-L705",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L421-L424",
+        "vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L1217-L1220",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L132-L138",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L164-L173",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L201-L238",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L378-L391",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L393-L399",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L401-L452",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L454-L470",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L499",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1352-L1388",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L447-L454",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1440-L1453",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L982-L1010",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1256-L1260",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1472-L1489",
+        "vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L1028-L1036",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L725",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L3-L12",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L75-L86",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L106-L110",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L136-L153",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L198-L207",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/dyntra_lb.html",
+        "vllm@568afb3a:vllm/v1/engine/core.py#L2083-L2092"
+      ],
+      "verified": [
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "它只装在 D 节点上，启动时硬查 kv_role 必须是 kv_consumer；P 和 D 各干什么、kv_role 三个取值在那一页"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "它 all_gather 的就是同一个 DP 组里各 rank 的负载；DP rank 是什么、请求怎么落到某个 rank，在那一页"
+        },
+        {
+          "to": "balance-scheduling",
+          "kind": "conflicts-with",
+          "note": "同是 DP 准入控制的两条路，源码里同开直接 ValueError——那边按条数一刀冻结，这边按 KV 块数真调度"
+        },
+        {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "计划在忙循环那次 DP 同步之后生成、不在 schedule() 里，循环体一步做哪几件事在那一页"
+        },
+        {
+          "to": "async-scheduling",
+          "kind": "builds-on",
+          "note": "它换了 scheduler_cls，所以得自备一个 Async 版；异步调度改了什么、为什么不能混用同步类在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/dyntra-lb.md",
+      "backlinks": []
     },
     {
       "id": "enable-async-exponential",
@@ -1889,6 +2114,11 @@
       "updated": "2026-09-20",
       "file": "concepts/graph-mode-layer.md",
       "backlinks": [
+        {
+          "from": "acl-graph",
+          "kind": "enables",
+          "note": "ACLGraphWrapper 的四步、两个平台接入点、enforce_eager 只跳捕获不跳 warmup 都在那一页，这里只讲用法和行为"
+        },
         {
           "from": "paged-attention",
           "kind": "enables",
@@ -3181,6 +3411,11 @@
       "file": "concepts/npu-model-runner.md",
       "backlinks": [
         {
+          "from": "acl-graph",
+          "kind": "enables",
+          "note": "选模式、垫 token 数、full 图的注意力参数更新，三件事都发生在 runner 的一次 forward 里"
+        },
+        {
           "from": "async-scheduling",
           "kind": "enables",
           "note": "use_async_scheduling 是从上游 GPUModelRunner 继承来的字段，昇腾的改动全落在那一页划出的记账区与采样区"
@@ -3403,6 +3638,11 @@
       "updated": "2026-09-21",
       "file": "concepts/one-request.md",
       "backlinks": [
+        {
+          "from": "acl-graph",
+          "kind": "enables",
+          "note": "第 1 步 37 个 token 被垫到 40、后面 199 步各 1 个 token，这一页所有的数都从这条请求推出来"
+        },
         {
           "from": "ascend-config-system",
           "kind": "enables",
@@ -3893,6 +4133,11 @@
           "from": "chunked-prefill",
           "kind": "alternative-to",
           "note": "官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题"
+        },
+        {
+          "from": "dyntra-lb",
+          "kind": "enables",
+          "note": "它只装在 D 节点上，启动时硬查 kv_role 必须是 kv_consumer；P 和 D 各干什么、kv_role 三个取值在那一页"
         },
         {
           "from": "large-scale-ep",
@@ -5530,6 +5775,11 @@
           "from": "balance-scheduling",
           "kind": "enables",
           "note": "每步一次的 all_gather 挂在忙循环上而不在调度器里，那个循环一步做哪四件事写在那一页"
+        },
+        {
+          "from": "dyntra-lb",
+          "kind": "enables",
+          "note": "计划在忙循环那次 DP 同步之后生成、不在 schedule() 里，循环体一步做哪几件事在那一页"
         },
         {
           "from": "pipeline-parallel",

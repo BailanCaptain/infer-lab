@@ -1,0 +1,155 @@
+layout: scene
+id: dyntra-lb
+caption: 每个 DP rank 把自己这一刻的每条请求占几个 KV 块打成一个定长向量 all_gather 出去，planner 算出的计划里也只有块数；这份计划留到下一步开头才被执行
+size: [900, 700]
+
+regions:
+  - label: 步 N 末尾：每个 rank 把自己这一刻的负载打包成一个定长向量
+    note: 这张图按 max_num_seqs = 4 画，向量长 2×4+2 = 10 个 int32，每一格是一条请求占了几个 KV 块。
+    at: [20, 20]
+    size: [860, 256]
+    tone: upstream
+  - label: planner：每个 rank 拿同一张全局表跑同一个函数，只取自己那一份
+    note: 先把各 rank 的 running 补到 max_num_seqs，再反复交换或丢弃，直到 max − avg 小于 bubble_threshold。
+    at: [20, 306]
+    size: [860, 160]
+    tone: ascend
+  - label: 步 N+1 开头：schedule() 里两处落点，这份计划只用一次
+    note: 这一帧真算出来的：DP0 暂停 [700]、接纳 [2]；DP1 暂停 []、接纳 [2]，两边都没有 freeze。
+    at: [20, 502]
+    size: [860, 178]
+    tone: accent
+
+strips:
+  - at: [56, 120]
+    cells: 3
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0, 1, 2]
+    tone: accent
+    label: DP0 · [700, 2, 2] + 待接纳 [2]，合计 706 块
+  - at: [164, 120]
+    cells: 5
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0]
+    tone: upstream
+  - at: [344, 120]
+    cells: 2
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0]
+    tone: ascend
+  - at: [56, 190]
+    cells: 3
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0, 1, 2]
+    tone: accent
+    label: DP1 · [2, 2, 2] + 待接纳 [2]，合计 6 块
+  - at: [164, 190]
+    cells: 5
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0]
+    tone: upstream
+  - at: [344, 190]
+    cells: 2
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0]
+    tone: ascend
+
+brackets:
+  - at: [56, 114]
+    span: 102
+    dir: up
+    label: running
+    tone: accent
+  - at: [164, 114]
+    span: 174
+    dir: up
+    label: 可接纳的 waiting
+    tone: upstream
+  - at: [344, 114]
+    span: 66
+    dir: up
+    label: 条数 ＋ 标志
+    tone: ascend
+
+boxes:
+  - at: [446, 116]
+    size: [414, 100]
+    title: 一次 all_gather，谁手里都是同一张表
+    sub: 活跃的每一步一次，只传这 10 个 int32
+    fn: _do_lb_allgather
+    tone: ascend
+    icon: layers
+  - at: [40, 396]
+    size: [400, 66]
+    title: 失衡够大才动手
+    sub: max − avg ≥ 5 个 KV 块（默认）
+    fn: calc_bubble
+    tone: ascend
+    icon: calc
+  - at: [460, 396]
+    size: [400, 66]
+    title: 换不动就直接丢一条
+    sub: 一步耗时按 20000 + 19.2 × 最大块数 估
+    fn: try_drop_for_throughput
+    tone: accent
+    icon: bolt
+  - at: [40, 592]
+    size: [400, 72]
+    title: out_blk：暂停，但 KV 不还
+    sub: 状态改成 PREEMPTED，块留着，塞回队头
+    fn: _lb_pause_request
+    tone: accent
+    icon: slot
+  - at: [460, 592]
+    size: [400, 72]
+    title: in_blk：只有名单上的能进 running
+    sub: 块数对不上的这一步一律跳过
+    fn: _can_admit_waiting_request
+    tone: accent
+    icon: pick
+
+arrows:
+  - { from: [653, 220], to: [653, 302], tone: ascend }
+  - { from: [450, 468], to: [450, 498], tone: accent }
+
+boundaries:
+  - at: 486
+    from: 20
+    to: 880
+    vertical: false
+    label: 计划跨过这条线才被使用：步 N 末尾算出，步 N+1 开头执行
+
+notes:
+  - at: [20, 692]
+    text: 全组拿到的是同一张表，各自只取 modifications[dp_rank]——计划各算各的，结果必然一致。
+    size: 12.5
+    width: 860
+    strong: true
+
+pins:
+  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L499
+    symbols: [_do_lb_allgather, all_gather, max_slots]
+  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L378-L391
+    symbols: [max_num_seqs, max_slots]
+  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L132-L138
+    symbols: [calc_bubble, threshold]
+  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L201-L238
+    symbols: [try_drop_for_throughput, STEP_LATENCY_PER_BLOCK]
+  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322
+    symbols: [out_blk, in_blk, freeze]
+  - source: vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L382-L395
+    symbols: [_lb_pause_request, PREEMPTED]
+  - source: vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L291-L292
+    symbols: [_can_admit_waiting_request, _lb_admit_req_ids]

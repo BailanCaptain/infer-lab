@@ -1,0 +1,101 @@
+layout: scene
+id: acl-graph
+caption: 捕获尺寸是一把尺：一步 forward 的 token 数先垫到尺上的某一档，再按「这批是不是整齐的 decode」查两套 key
+size: [900, 578]
+
+brackets:
+  - at: [40, 72]
+    span: 794
+    dir: up
+    label: "cudagraph_capture_sizes：默认 19 档，上限 = min(max_num_seqs × 1, 512) = 128"
+    tone: muted
+
+strips:
+  - at: [40, 80]
+    cells: 19
+    cell: 38
+    h: 30
+    gap: 4
+    highlights: [0, 7]
+    tone: neutral
+    label: "1 2 4 8 16 24 32 40 48 56 … 112 120 128；填实的两档是那条请求真正用到的 1 和 40"
+
+boundaries:
+  - at: 450
+    from: 176
+    to: 474
+    vertical: true
+    label: 这一批是不是整齐的 decode
+
+regions:
+  - label: 第 1 步 · 37 个 token 的 prefill
+    note: 批里混着没算完的 prompt，不是整齐的 decode
+    at: [20, 174]
+    size: [412, 300]
+    tone: neutral
+  - label: 第 2 到第 200 步 · 每步 1 个 token
+    note: 199 步的 batch_descriptor 一模一样
+    at: [468, 174]
+    size: [412, 300]
+    tone: ascend
+
+boxes:
+  - at: [36, 248]
+    size: [380, 54]
+    title: 批里 37 个 token
+    sub: uniform_decode 为假
+    tone: neutral
+  - at: [36, 316]
+    size: [380, 54]
+    title: "垫到 40：尺上 ≥ 37 的第一档"
+    sub: 多算 3 个位置的白工
+    tone: neutral
+  - at: [36, 384]
+    size: [380, 66]
+    title: FULL 的 key 查不到，落到 PIECEWISE
+    sub: 这套 key 放宽了 num_reqs 与 uniform
+    fn: dispatch
+    tone: accent
+
+  - at: [484, 248]
+    size: [380, 54]
+    title: 批里 1 个 token
+    sub: uniform_decode 为真
+    tone: ascend
+  - at: [484, 316]
+    size: [380, 54]
+    title: 尺寸 1 本来就在尺上，不用垫
+    sub: 199 步查到同一个 key
+    tone: ascend
+  - at: [484, 384]
+    size: [380, 66]
+    title: 命中 FULL 的 key，回放同一张图
+    sub: 回放前先 synchronize 一次
+    fn: ACLGraphWrapper
+    tone: ascend
+
+notes:
+  - at: [20, 502]
+    text: "垫完仍然大于最大捕获尺寸（这里是 128）就直接返回 NONE，这一步整步按 eager 跑——不报错，也不打 warning。"
+    size: 12.5
+    width: 860
+  - at: [20, 530]
+    text: "FULL 图里录着一个等待点：回放停在注意力算子前，等 host 在 update stream 上把这一步的 seq_lens 换进去并 record 之后才继续。"
+    size: 12.5
+    width: 860
+  - at: [20, 558]
+    text: "启动期要录的是 19 档 × 两套 key = 38 个 batch_descriptor，piecewise 那套每个还要按 splitting_ops 切成多段——开图模式启动慢，钱花在这里。"
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L328
+    symbols: [dispatch, uniform_decode, num_reqs]
+  - source: vllm@0fc695fc:vllm/config/vllm.py#L1702-L1729
+    symbols: [cudagraph_capture_sizes, max_num_seqs]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L138-L152
+    symbols: [ACLGraphWrapper, batch_descriptor]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L593-L633
+    symbols: [splitting_ops]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L491-L518
+    symbols: [seq_lens]

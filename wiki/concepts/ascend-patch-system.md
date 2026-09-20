@@ -18,6 +18,8 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L107-L111
 verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
@@ -26,9 +28,9 @@ relations:
     note: platform 层 patch 的触发点就是 NPUPlatform.pre_register_and_update，时机由平台类决定
   - to: one-request
     kind: builds-on
-    note: 那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch
+    note: 那条请求的每一步都跑在被 patch 改过的环境里，调用链上只有调度那一跳落在 patch/ 下面
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -42,11 +44,11 @@ file: patch-timing
 
 ## 那条请求走到这里
 
-那条请求跑完 200 步，**一次都不会看见 patch 这个词**。它在 `vllm_ascend/patch/` 下面没有任何一行代码。
+那条请求跑完 200 步，调用链里几乎看不见 patch 这个词——**只有调度那一跳是例外**。`patch/platform/__init__.py` 无条件 import `patch_balance_schedule` [C6]，文件末尾把 `vllm.v1.core.sched.scheduler.Scheduler` 指向了 `BalanceScheduler` [C12]，所以每一步栈上都有一帧在 `patch/` 下面；只是默认配置下它第一行就把活交还给上游的 `super().schedule()` [C13]。细节见 [Balance Scheduling](balance-scheduling.md)。
 
-但它能跑起来，是因为这些替换在它到达之前就已经生效了。一个能查证的例子：`patch/platform/patch_torch_accelerator.py` 是无条件 import 的 [C6]，import 的那一刻就把 `torch.accelerator.empty_cache`、`memory_stats`、`memory_reserved`、`reset_peak_memory_stats` 全指到了 `torch.npu.*` [C10]——那条请求所在的进程里，上游代码调的 `torch.accelerator.memory_stats()` 早就不是 torch 原来那个了。
+其余的替换都不在调用链里，它们在请求到达之前就已经生效了。一个能查证的例子：`patch/platform/patch_torch_accelerator.py` 是无条件 import 的 [C6]，import 的那一刻就把 `torch.accelerator.empty_cache`、`memory_stats`、`memory_reserved`、`reset_peak_memory_stats` 全指到了 `torch.npu.*` [C10]——那条请求所在的进程里，上游代码调的 `torch.accelerator.memory_stats()` 早就不是 torch 原来那个了。
 
-这就是 patch 最难查的地方：**它不出现在任何一条调用链里**。排查时只能反过来——怀疑某个上游行为不对劲，就去 `patch/` 下搜那个类名或函数名。搜到了，说明你手上那份上游文档在昇腾上不作数。
+这就是 patch 最难查的地方：**它基本不出现在调用链里**。排查时只能反过来——怀疑某个上游行为不对劲，就去 `patch/` 下搜那个类名或函数名。搜到了，说明你手上那份上游文档在昇腾上不作数。
 
 ## 两个时机由一个布尔值分流
 

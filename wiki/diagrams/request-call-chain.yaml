@@ -20,7 +20,7 @@ brackets:
   - { at: [800, 200], span: 290, label: 昇腾, dir: left, tone: ascend }
 
 notes:
-  - { at: [20, 512], text: "想改哪一跳就去哪儿：一、二两跳默认是上游代码，只能换掉整个调度器类或用 patch 换掉上游对象；三到五、七在 worker/ 下，直接改；第六跳在 attention/ 与 ops/。", size: 12.5, width: 860 }
+  - { at: [20, 512], text: "想改哪一跳就去哪儿：一、二两跳的调度逻辑在上游，但跑的类已被 patch 换成 BalanceScheduler，要改只能换调度器类或写 patch；三到五、七在 worker/ 下，直接改；第六跳在 attention/ 与 ops/。", size: 12.5, width: 860 }
   - { at: [20, 556], text: "第二跳和第三跳之间那条线是进程边界，也是责任边界：过了它，「算哪些 token」已成定局，剩下全是「怎么算」。", size: 12.5, width: 860 }
 
 pins:

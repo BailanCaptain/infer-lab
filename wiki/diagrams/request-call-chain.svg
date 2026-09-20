@@ -31,7 +31,7 @@
   <text x="814" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-control, #5b6763)">上游</text>
   <path d="M808 200 l-8 0 L800 490 l8 0" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
   <text x="814" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)">昇腾</text>
-  <text x="20" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">想改哪一跳就去哪儿：一、二两跳默认是上游代码，只能换掉整个调度器类或用 patch 换掉上游对象；三到五、七在 worker/ 下，直接改；第六跳在 </text>
-  <text x="20" y="530.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">attention/ 与 ops/。</text>
+  <text x="20" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">想改哪一跳就去哪儿：一、二两跳的调度逻辑在上游，但跑的类已被 patch 换成 BalanceScheduler，要改只能换调度器类或写 patch；三到五、七在 </text>
+  <text x="20" y="530.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">worker/ 下，直接改；第六跳在 attention/ 与 ops/。</text>
   <text x="20" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第二跳和第三跳之间那条线是进程边界，也是责任边界：过了它，「算哪些 token」已成定局，剩下全是「怎么算」。</text>
 </svg>

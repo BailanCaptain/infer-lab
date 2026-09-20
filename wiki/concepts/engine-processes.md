@@ -17,6 +17,8 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
   - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
 verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
@@ -27,7 +29,7 @@ relations:
     kind: builds-on
     note: 那条请求在三个进程里各是什么形态，决定了什么东西跨步活着
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -54,7 +56,7 @@ file: engine-processes
 | 进程 | 里面跑什么 | patch 怎么进去 |
 |---|---|---|
 | Main | 解析命令行、选平台、请求在这里分词、拉起 EngineCore | `NPUPlatform.pre_register_and_update()` 里的 `adapt_patch(is_global_patch=True)` [C4] |
-| EngineCore | 调度器、KV Cache 管理（上游 vLLM 的代码） | 四个 general plugin 里有三个各自调 `_ensure_global_patch()` 补一次 [C1][C2] |
+| EngineCore | 调度器、KV Cache 管理（逻辑是上游的，调度器那个类已被 patch 换掉） | 四个 general plugin 里有三个各自调 `_ensure_global_patch()` 补一次 [C1][C2] |
 | Worker | `NPUWorker` + `NPUModelRunner`，真正的算子调用 | `NPUWorker.__init__` 开头的 `adapt_patch()` [C6] |
 
 中间那一行是三条里最不直观的。`_ensure_global_patch()` 的 docstring 直接给了理由：vLLM 在 engine-core 子进程里加载 general plugin，而 E2E 测试的 conftest hook 在那个进程里不会跑，所以影响调度器与引擎代码的全局 patch 必须也经由这些 plugin 入口再打一次 [C1]。
@@ -78,5 +80,5 @@ file: engine-processes
 ## 常见误解
 
 - **「patch 在主进程打一次就全局生效了」**——不会。子进程是新解释器，`import` 副作用要重新发生；这就是 general plugin 里那三个 `_ensure_global_patch()` 存在的原因 [C1][C2]。
-- **「EngineCore 里跑的是昇腾代码」**——那里主要是上游 vLLM 的调度器与 KV Cache 管理，昇腾只通过 patch 改它的行为 [C1]。
+- **「EngineCore 里跑的全是上游代码」**——调度逻辑与 KV Cache 管理确实都是上游的，但调度器那个类不是：platform patch 无条件把 `Scheduler` 换成了 `BalanceScheduler` [C11][C12]，见 [Balance Scheduling](balance-scheduling.md)。
 - **「三类进程是昇腾引入的」**——不是，这是 vLLM V1 引擎自己的进程模型；昇腾只是必须适配它。官方设计文档也是从这个进程模型出发解释 patch 的 [S8]。

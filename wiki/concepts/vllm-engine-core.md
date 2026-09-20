@@ -15,13 +15,17 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/core.py#L484-L492
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1819
+  - vllm@0fc695fc:vllm/config/scheduler.py#L146-L149
+  - vllm@0fc695fc:vllm/config/vllm.py#L933-L1002
+  - vllm@0fc695fc:vllm/config/vllm.py#L497-L507
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220
 evidence: "C"
 relations:
   - to: vllm-v1-shape
     kind: builds-on
     note: 这个循环跑在三个进程里的中间那个，边界上传什么在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -50,10 +54,12 @@ while self._handle_shutdown():
 
 **没有第五件事，也没有任何 if 在区分 prefill 和 decode。** 这是这一页最值得记住的一句。
 
+但**默认配置下被调用的那个函数不叫 `step()`**：`async_scheduling` 默认是 `None`，配置检查走自动分支，四道闸都不撞就置成 `True` [C9][C10]，于是 `step_fn` 指向下面那条 `step_with_batch_queue`。上面四件事仍然是循环的骨架，差别只在第 3 件之后不等结果就回头做下一圈的第 2 件，见 [异步调度](async-scheduling.md)。
+
 ## 那条请求走到这里
 
 - **第 0 圈**：那条请求还没来。`_process_input_queue` 里的 `while not self.has_work()` 为真，循环阻塞在 `input_queue.get(block=True)` 上——**引擎空转时是真的在睡，不是在忙等** [C3]。
-- **第 1 圈**：前端把 `EngineCoreRequest` 塞进队列，阻塞解除。`preprocess_add_request` 把它变成一条 `Request` [C4]，再由 `Scheduler.add_request` 放进 waiting 队列 [C8]，然后 `step()` 第一次跑起来：schedule 给它 37 个 token 的名额，execute 算完，update 记下「已经算了 37 个」。
+- **第 1 圈**：前端把 `EngineCoreRequest` 塞进队列，阻塞解除。`preprocess_add_request` 把它变成一条 `Request` [C4]，再由 `Scheduler.add_request` 放进 waiting 队列 [C8]，然后这一步第一次跑起来：schedule 给它 37 个 token 的名额，execute 算完，update 记下「已经算了 37 个」。
 - **第 2 到第 200 圈**：每圈给它 1 个 token。循环体走的路径和第 1 圈**完全一样**。
 - **第 200 圈之后**：`update_from_output` 发现采出了 EOS，把它标成结束，KV block 还回去，队列空了，循环又回到 `input_queue.get()` 上睡着。
 
@@ -65,7 +71,7 @@ while self._handle_shutdown():
 
 有活干的时候，`_process_input_queue` 里的 `while not self.has_work()` 直接为假，一次都不阻塞地穿过去；只有队列空了它才真的阻塞 [C3]。也就是说这个函数在忙的时候几乎不花时间，闲的时候把 CPU 完全让出来。写成一个函数就得在里面判断要不要 block，读起来会乱得多。
 
-另外还有一条**分支队列**的路径 `step_with_batch_queue` [C6]：它允许上一步的结果还没回来就先排下一步，用来把 NPU 的空档填上。那条请求只有一条，用不上它——这条路径要多条请求才有意义。
+另外还有一条**分支队列**的路径 `step_with_batch_queue` [C6]：它允许上一步的结果还没回来就先排下一步，用来把 NPU 的空档填上。它既不是 PP 专用，也不需要多条请求——只要 `batch_queue_size > 1` 就建，而默认开着的异步调度正好把它顶到 2 [C11][C12]。**所以那条请求走的就是这条路径**，欠条怎么记见 [异步调度](async-scheduling.md)。
 
 ## 一个容易被跳过的细节：结果是 future
 

@@ -19,6 +19,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L700
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
 verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
@@ -29,7 +31,7 @@ relations:
     kind: builds-on
     note: 先知道人们说的 prefill 和 decode 各指什么，才看得懂「调度器里没有这两个阶段」这句话在否定什么
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -66,6 +68,8 @@ file: token-budget
 `schedule()` 的主体是两个 while：先扫 `running`，再扫 `waiting` [C3][C6]，两个都以 `token_budget > 0` 为条件。
 
 **顺序不是随手定的**：先给已经在跑的请求续上，剩下的预算才拿去接新请求。这条规则的直接后果是——**已经开始生成的请求不会因为新请求涌入而卡住**，代价是高负载时新请求要排更久 [D]。
+
+这段逻辑是上游的，但**昇腾进程里跑的已经不是上游那个类**：platform patch 无条件把 `Scheduler` 这个名字换成了 `BalanceScheduler` [C13][C14]。它把上面这段 `schedule()` 抄了一份，只在扫 `waiting` 那条 while 里多一道默认关着的闸门，见 [Balance Scheduling](balance-scheduling.md)。
 
 预算不够时会发生抢占：被抢占的请求 KV block 全部释放、`num_computed_tokens` 归零、退回 waiting 队列，下次从头算 [C12]；它这一步要是已经拿到过 token 名额，名额还得吐回预算——这条退款路径只有优先级策略才走得到 [C5]。函数最后 `assert token_budget >= 0` [C7]——预算是硬约束，不允许透支。
 

@@ -28,7 +28,7 @@ relations:
     kind: builds-on
     note: 这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -86,4 +86,4 @@ file: vllm-v1-shape
 
 - **「EngineCore 里能看到模型」**——看不到。模型只存在于 Worker 进程，EngineCore 手上只有配置和整数 [D]。
 - **「Executor 在做调度」**——不做。它只转发，调度在 EngineCore 进程里、在 Executor 被调用之前就做完了 [D]。
-- **「异步是靠多线程」**——前端是 asyncio，跨进程靠 ZMQ；EngineCore 自己是个同步的 while 循环 [C5]。
+- **「异步是靠多线程」**——前端是 asyncio，跨进程靠 ZMQ；EngineCore 自己是个同步的 while 循环 [C5]。同名的[异步调度](async-scheduling.md)是第三件事：循环照样同步，只是不等上一步的结果就排下一步，它默认开着。

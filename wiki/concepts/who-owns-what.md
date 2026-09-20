@@ -22,6 +22,8 @@ sources:
   - vllm@0fc695fc:vllm/platforms/interface.py#L259-L267
   - vllm@0fc695fc:vllm/platforms/interface.py#L427-L468
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
 verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
@@ -32,7 +34,7 @@ relations:
     kind: builds-on
     note: 那条请求是这条界线两侧分工最具体的例子
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -69,7 +71,7 @@ file: ownership-boundary
 
 但那是接缝，不是主体。主体是那条界线之后的东西——五个注意力后端里有四个各是一千多到近三千行的完整算法实现，`csrc/` 下还有上千个 AscendC 算子源文件。**真正跑在 NPU 上的每一次矩阵乘、每一次 softmax，都来自 vllm-ascend，上游一行都没有。**
 
-反过来也成立：**「算哪些 token」这个决策默认整个在上游**。昇腾仓库里确实有几个调度器子类（`vllm_ascend/core/` 下的 `SchedulerDynamicBatch`、`ProfilingChunkScheduler`），但只有打开对应配置时才用 `scheduler_cls` 顶掉上游那个类 [C15]，默认路径上一行都不走。
+反过来也成立：**「算哪些 token」这个决策的逻辑在上游**。但「跑的是上游那个类」这句话不成立：`patch/platform/__init__.py` 无条件 import `patch_balance_schedule`，文件末尾一句 `vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler` 把这个名字换掉了 [C16][C17]。`BalanceScheduler` 是上游 `schedule()` 的一份抄件，只在扫 waiting 那条循环里多一道默认关着的闸门，闸门关着时行为与上游一致——细节见 [Balance Scheduling](balance-scheduling.md)。除此之外还有几个调度器子类（`vllm_ascend/core/` 下的 `SchedulerDynamicBatch`、`ProfilingChunkScheduler`），打开对应配置时用 `scheduler_cls` 换上去 [C15]。
 
 ## 边界的物理形态
 

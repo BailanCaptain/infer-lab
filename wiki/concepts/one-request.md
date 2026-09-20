@@ -17,6 +17,8 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236
   - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
+  - vllm@0fc695fc:vllm/config/scheduler.py#L146-L149
+  - vllm@0fc695fc:vllm/config/vllm.py#L933-L1002
 verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
@@ -27,7 +29,7 @@ relations:
     kind: builds-on
     note: 这条请求尾巴上空着的 19 个槽位，就是分页方案承诺的「浪费最多一个块」的那个上限
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -98,6 +100,8 @@ file: the-request
 但要注意：**「prefill 阶段」和「decode 阶段」是讲给人听的说法，调度器里没有这两个东西。** 上游在 `schedule()` 的注释里把这句话写在了最前面——调度器只看每个请求的 `num_computed_tokens` 还差多少追上 `num_tokens_with_spec`，然后尽量分配 token 让它追上 [C2]。第 1 步给这条请求分 37 个 token，第 2 步给 1 个，用的是同一段代码、同一条规则。
 
 正因为如此，`EngineCore.step()` 才能一个分支都不写地循环下去：调度、执行、更新，不判断现在是哪个阶段 [C1]。
+
+要补一句的是：这条请求什么都没配，异步调度就已经默认开着了 [C11][C12]，所以循环里实际调的是 `step_with_batch_queue` 而不是 `step()`。调度、执行、更新这三件事的顺序没变，变的是第二件之后不等结果就回头做下一圈的第一件，见 [异步调度](async-scheduling.md)。
 
 ## 它会在下面这些页再次出现
 

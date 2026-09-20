@@ -22,7 +22,7 @@ regions:
 
 boxes:
   - { at: [36, 172], size: [244, 76], title: 里面跑什么, sub: "argparse、选平台、拉起子进程", fn: NPUPlatform, tone: neutral }
-  - { at: [328, 172], size: [244, 76], title: 里面跑什么, sub: 全是上游 vLLM 的代码, fn: Scheduler, tone: upstream }
+  - { at: [328, 172], size: [244, 76], title: 里面跑什么, sub: 调度逻辑是上游的，类被 patch 换掉, fn: BalanceScheduler, tone: upstream }
   - { at: [620, 172], size: [244, 76], title: 里面跑什么, sub: 昇腾代码占主体, fn: NPUModelRunner, tone: ascend }
 
   - { at: [36, 276], size: [244, 96], title: patch 从哪条路进来, sub: 平台层，进程最早, fn: "adapt_patch(True)", tone: accent, icon: patch }

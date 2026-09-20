@@ -2,7 +2,7 @@
 id: request-call-chain
 title: 一次请求的调用链
 type: concept
-summary: 从 HTTP 到 token 一共七跳。前两跳在上游 vLLM，进程边界在第二跳与第三跳之间，之后全在昇腾侧。
+summary: 从 HTTP 到 token 一共七跳。前两跳是上游 vLLM 的调度逻辑，进程边界在第二跳与第三跳之间，之后全在昇腾侧。
 aliases: [调用链, call chain, 请求路径, 一次请求, execute_model 链路]
 chapters: ["09"]
 order: 10
@@ -16,6 +16,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
 verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
@@ -29,7 +31,7 @@ relations:
     kind: builds-on
     note: 上图画的就是那条请求第 92 步的调用栈
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -45,7 +47,7 @@ file: request-call-chain
 
 上图画的就是那条请求的**第 92 步 decode**。这一步很典型：上游只给了 1 个 token 的名额和两个 block id，之后的七跳全是「怎么把这 1 个 token 算出来」。
 
-缩进表示调用深度：**越往下越靠近硬件，昇腾自己的代码也越多**。第二跳和第三跳之间那条线是进程边界，也是责任边界——线以上的两跳默认跑的是上游代码，昇腾只在个别配置下用 `scheduler_cls` 把调度器换成自己的子类 [C8]。
+缩进表示调用深度：**越往下越靠近硬件，昇腾自己的代码也越多**。第二跳和第三跳之间那条线是进程边界，也是责任边界——线以上的两跳**调度逻辑是上游的**，但跑的类已经不是上游那个：昇腾的 platform patch 无条件把 `Scheduler` 这个名字换成了 `BalanceScheduler` [C10][C11]，它是上游 `schedule()` 的抄件加一道默认关着的闸门，见 [Balance Scheduling](balance-scheduling.md)。此外还能用 `scheduler_cls` 换成别的子类 [C8]。
 
 ## 七跳分别交接什么
 
@@ -67,7 +69,7 @@ file: request-call-chain
 
 | 跳 | 代码归属 | 改它要动哪里 |
 |---|---|---|
-| 一、二 | 默认是上游 vLLM | 要么用 `scheduler_cls` 换成 `vllm_ascend/core/` 下的调度器子类 [C8]，要么走 [Patch 机制](ascend-patch-system.md) |
+| 一、二 | 调度逻辑在上游，跑的类被 patch 换成了 `BalanceScheduler` | 要么用 `scheduler_cls` 换成 `vllm_ascend/core/` 下的调度器子类 [C8]，要么走 [Patch 机制](ascend-patch-system.md) |
 | 三 | `vllm_ascend/worker/worker.py` | 直接改 |
 | 四、五、七 | `vllm_ascend/worker/model_runner_v1.py` | 直接改 |
 | 六 | `vllm_ascend/attention/*.py` + `vllm_ascend/ops/` | 直接改 |
@@ -81,6 +83,7 @@ file: request-call-chain
 - 最深处是 `torch_npu` 或 aclnn 调用 → 第六跳，看算子层；
 - 最深处在 `_prepare_inputs` 里 → 第五跳，多半是形状或槽位问题；
 - 栈里根本没有 `vllm_ascend` 帧 → 问题在前两跳，先去上游查，再看有没有对应 patch。
+- 反过来不成立：栈里出现 `patch/platform/patch_balance_schedule.py` 仍然是第二跳，那是被换掉名字的调度器 [C10][C11]。
 
 完整的定位方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
 

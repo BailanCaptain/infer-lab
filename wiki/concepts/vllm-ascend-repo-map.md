@@ -11,7 +11,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
-  - vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L81-L99
+  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
 evidence: "D"
 relations:
   - to: vllm-ascend-overview
@@ -21,7 +21,7 @@ relations:
     kind: builds-on
     note: 跟完那条请求只需要读两个目录，其余 394 个文件它一个都不碰
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -75,9 +75,9 @@ file: vllm-ascend-repo-map
 
 行数全部实测于 `2c59ff10` [D]。注意 `ops/` 与 `patch/` 的文件数多但单文件都很小，`attention/` 与 `worker/` 反过来——文件少而单文件极大。这决定了两种不同的读法：前者靠目录名定位，后者必须靠函数名跳转，见 [NPUModelRunner 怎么读](npu-model-runner.md)。
 
-## 两个分支在目录层面差 7 项
+## 两个分支在目录层面差 8 项
 
-`2c59ff10` 上独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`28bf3a2e` 上独有 `config_utils.py`、`ec_manager/`、`observability/` [D]。其余 19 个子目录两边同名——**同名不等于同内容**，例如 `platform.py` 里 `class NPUPlatform` 在 `2c59ff10` 是第 128 行、在 `28bf3a2e` 是第 81 行 [C2][C5]。对照方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
+`2c59ff10` 上独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 上独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。其余 21 个子目录两边同名——**同名不等于同内容**，例如 `platform.py` 里 `class NPUPlatform` 在 `2c59ff10` 是第 128 行、在 `b255ab59` 是第 80 行 [C2][C5]。对照方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
 
 ## 常见误解
 

@@ -13,7 +13,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-  - vllm-ascend@28bf3a2e:vllm_ascend/platform.py#L81-L99
+  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
 evidence: "C"
 relations:
   - to: vllm-ascend-repo-map
@@ -26,7 +26,7 @@ relations:
     kind: builds-on
     note: 拿那条请求的三个具体问题各走一遍，是这三条路线最快的练法
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -76,9 +76,9 @@ file: locate-routes
 file: ref-diff
 ```
 
-目录层面只差 7 项：`2c59ff10` 独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`28bf3a2e` 独有 `config_utils.py`、`ec_manager/`、`observability/` [D]。
+目录层面只差 8 项：`2c59ff10` 独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。
 
-但**同名不等于同内容**。最直接的例子：`class NPUPlatform` 在 `2c59ff10` 是 `platform.py` 第 128 行 [C6]，在 `28bf3a2e` 是第 81 行 [C7]，相差 47 行。对照的正确做法是按符号名而不是行号：先 `grep -n "^class X"` 各自拿到行号，再比内容。
+但**同名不等于同内容**。最直接的例子：`class NPUPlatform` 在 `2c59ff10` 是 `platform.py` 第 128 行 [C6]，在 `b255ab59` 是第 80 行 [C7]，相差 48 行。对照的正确做法是按符号名而不是行号：先 `grep -n "^class X"` 各自拿到行号，再比内容。
 
 本库所有来源都写成 `repo@commit:path#L起-L止`，就是为了这件事——只记行号的笔记换个分支就会指到别的代码上。
 

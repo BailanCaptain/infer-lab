@@ -1,6 +1,6 @@
 layout: scene
 id: ref-diff
-caption: 两个 ref 在目录层面只差 7 项——但同名不等于同内容
+caption: 两个 ref 在目录层面只差 8 项——但同名不等于同内容
 size: [900, 440]
 
 regions:
@@ -9,7 +9,7 @@ regions:
     size: [252, 300]
     tone: ascend
     chip: top
-  - label: 两边同名的 19 个
+  - label: 两边同名的 21 个
     at: [288, 44]
     size: [324, 300]
     tone: muted
@@ -29,11 +29,12 @@ boxes:
   - { at: [644, 104], size: [220, 38], title: "config_utils.py", tone: upstream }
   - { at: [644, 150], size: [220, 38], title: "ec_manager/", tone: upstream }
   - { at: [644, 196], size: [220, 38], title: "observability/", tone: upstream }
+  - { at: [644, 242], size: [220, 38], title: "weight_switch/", tone: upstream }
 
-  - { at: [304, 132], size: [292, 92], title: "同名 ≠ 同内容", sub: 同一个类，行号差 47 行, fn: platform.py, tone: accent, icon: diff }
+  - { at: [304, 132], size: [292, 92], title: "同名 ≠ 同内容", sub: 同一个类，行号差 48 行, fn: platform.py, tone: accent, icon: diff }
 
 notes:
-  - { at: [304, 250], text: "class NPUPlatform 在一边是 platform.py 第 128 行，在另一边是第 81 行。对照要按符号名，不是按行号：两边各 grep 一次再比内容。", size: 12.5, width: 292 }
+  - { at: [304, 250], text: "class NPUPlatform 在一边是 platform.py 第 128 行，在另一边是第 80 行。对照要按符号名，不是按行号：两边各 grep 一次再比内容。", size: 12.5, width: 292 }
   - { at: [20, 376], text: "本库所有来源都写成 repo@commit:path#L起-L止，就是为了这件事——只记行号的笔记换个分支就会指到别的代码上。", size: 12.5, width: 860 }
   - { at: [20, 412], text: "两个 ref 不是新旧关系，是两个使用场景：在稳定分支上开发就该读稳定分支。", size: 12.5, width: 860 }
 

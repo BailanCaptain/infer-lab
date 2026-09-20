@@ -27,11 +27,11 @@
 
 ## 实际验证
 
-- 首轮 `pnpm exec vitest run scripts/wiki/gap-ledger.test.ts server/chat-route.test.ts scripts/wiki/review.test.ts`：新模块尚不存在的两套测试无法加载，审阅状态隔离回归 **1 failed / 13 passed**；[原始日志](../../tools/wiki-runtime/gap-ledger-red.log)。模块实现后同一命令 **28 passed**，没有将导入失败冒充多个已复现的行为缺陷。
-- 多工具信封红例：`pnpm exec vitest run server/chat-run.test.ts -t 'retains a web'`，遗漏第二个调用而失败；[日志](../../tools/wiki-runtime/gap-tools-red.log)。后续相关八套测试 **58 passed**，包含工具事件、事件去重、并发累计、上下文与版本区分、未判明状态、CLI 只读和整合上下文隔离；[日志](../../tools/wiki-runtime/gap-focused.log)。
-- `pnpm check`：**65 files / 543 tests passed**，类型检查、Lint、依赖方向、19 页内容检查和 wiki lint 通过；[日志](../../tools/wiki-runtime/gap-check.log)。
-- `pnpm build`：exit 0，**built in 3.81s**；[日志](../../tools/wiki-runtime/gap-build.log)。
-- `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium`：**28 passed (45.2s)**；生产预览 4173。新用例通过实际 HTTP 快照 / 会话 / SSE / 文件账本连续提问三次，确认只有一条记录、计数为 3、状态仍未判明、编译调用为 0、正式页仍为 1（fixture）；[日志](../../tools/wiki-runtime/gap-browser.log)、[已目视复核的截图](../../test-results/wiki-review-three-uncovere-98306-ssessment-without-compiling-chromium/gap-awaiting-assessment.png)。模型响应为固定输出，不冒充真实模型覆盖判定；原保存、批准、驳回与阅读测试仍通过。
+- 首轮 `pnpm exec vitest run scripts/wiki/gap-ledger.test.ts server/chat-route.test.ts scripts/wiki/review.test.ts`：新模块尚不存在的两套测试无法加载，审阅状态隔离回归 **1 failed / 13 passed**；[原始日志](../../../tools/wiki-runtime/gap-ledger-red.log)。模块实现后同一命令 **28 passed**，没有将导入失败冒充多个已复现的行为缺陷。
+- 多工具信封红例：`pnpm exec vitest run server/chat-run.test.ts -t 'retains a web'`，遗漏第二个调用而失败；[日志](../../../tools/wiki-runtime/gap-tools-red.log)。后续相关八套测试 **58 passed**，包含工具事件、事件去重、并发累计、上下文与版本区分、未判明状态、CLI 只读和整合上下文隔离；[日志](../../../tools/wiki-runtime/gap-focused.log)。
+- `pnpm check`：**65 files / 543 tests passed**，类型检查、Lint、依赖方向、19 页内容检查和 wiki lint 通过；[日志](../../../tools/wiki-runtime/gap-check.log)。
+- `pnpm build`：exit 0，**built in 3.81s**；[日志](../../../tools/wiki-runtime/gap-build.log)。
+- `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium`：**28 passed (45.2s)**；生产预览 4173。新用例通过实际 HTTP 快照 / 会话 / SSE / 文件账本连续提问三次，确认只有一条记录、计数为 3、状态仍未判明、编译调用为 0、正式页仍为 1（fixture）；[日志](../../../tools/wiki-runtime/gap-browser.log)、[已目视复核的截图](../../../test-results/wiki-review-three-uncovere-98306-ssessment-without-compiling-chromium/gap-awaiting-assessment.png)。模型响应为固定输出，不冒充真实模型覆盖判定；原保存、批准、驳回与阅读测试仍通过。
 - `pnpm wiki:work list`：真实工作区输出 `{"gaps":[],"worker":"not-enabled"}`；没有向正式账本灌入测试提问。所有计数、坏文件和发布交互均在隔离 fixture 中验证。
 
 真实模型能否稳定表达结构化覆盖判定、成功访问官方来源、正确分类已有页漏检、生成有证据的补写、发布后通过复问关闭缺口：**尚未验证 / 尚未实施**。既有真实问答的语义失败仍见 [真实积累验收](knowledge-loop-review.md)，不因本轮工程测试通过而关闭。

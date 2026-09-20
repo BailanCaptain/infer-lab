@@ -1,6 +1,6 @@
 # 本地来源与清洗验收（2026-09-15）
 
-本轮在 `infra-view-new-llm-wiki` 工作树继续 T2，保留前轮修改。没有批量导入、真实 agent 调用、上游同步或主干合入。当前完成状态仍以 [F004](../features/F004-knowledge-loop.md#design-decisions) 为准，本文只保存本轮证据。
+本轮在 `infra-view-new-llm-wiki` 工作树继续 T2，保留前轮修改。没有批量导入、真实 agent 调用、上游同步或主干合入。当前完成状态仍以 [F004](../../features/F004-knowledge-loop.md#design-decisions) 为准，本文只保存本轮证据。
 
 ## 结论
 
@@ -20,7 +20,7 @@
 
 清洗检测借鉴本地 Multi-Agent 的 Unicode、HTML、角色标记、编码指令思路，按本项目需求实现小型纯函数；没有整套搬入其状态机，也没有引用其历史验收作为本项目证据。当前测试覆盖跨行 / 全角 / 隐形字符指令、中文指令、角色伪装、script 与 Base64 指令，以及正常代码和公式保持原样。
 
-**规则真相源**是 [HANDBOOK](../../wiki/HANDBOOK.md#链接与来源)，机器格式只由 schema 定义。F004 AC1 的旧日期序号原文命名改为引用该约定，避免未来 drop 再建一套与当前快照不兼容的命名规则。
+**规则真相源**是 [HANDBOOK](../../../wiki/HANDBOOK.md#链接与来源)，机器格式只由 schema 定义。F004 AC1 的旧日期序号原文命名改为引用该约定，避免未来 drop 再建一套与当前快照不兼容的命名规则。
 
 ## 本轮实际命令
 

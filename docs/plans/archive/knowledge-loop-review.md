@@ -20,10 +20,10 @@ Sonnet 与 Opus 的固定对照均已结束：缺失题、保留改写题和版�
 
 完整请求、原生 CLI 事件、模型 / 工具清单、答案、费用与 session ID 保留在忽略目录：
 
-- [最初失败轮](../../tools/wiki-runtime/eval-20260915/closed.json)：规则冲突及被驳回的补料回答；原始输出不覆盖。
-- [Sonnet 对照与实际发布](../../tools/wiki-runtime/eval-20260915-v2/before-output.log)、[补料后](../../tools/wiki-runtime/eval-20260915-v2/after-output.log)。每个 `before-N` / `after-N` 对应题库顺序，并有 `.request.json`、`.result.json` 和派生 `.answer.md`。
-- [调用汇总](../../tools/wiki-runtime/eval-20260915-v2/calls.json)：费用由回执相加；汇总脚本不负责语义评分。
-- [Opus 对照](../../tools/wiki-runtime/eval-20260915-opus/before-output.log)：同六题、同两份知识快照；保留 Sonnet 失败，不把换模型结果混成一次实验。
+- [最初失败轮](../../../tools/wiki-runtime/eval-20260915/closed.json)：规则冲突及被驳回的补料回答；原始输出不覆盖。
+- [Sonnet 对照与实际发布](../../../tools/wiki-runtime/eval-20260915-v2/before-output.log)、[补料后](../../../tools/wiki-runtime/eval-20260915-v2/after-output.log)。每个 `before-N` / `after-N` 对应题库顺序，并有 `.request.json`、`.result.json` 和派生 `.answer.md`。
+- [调用汇总](../../../tools/wiki-runtime/eval-20260915-v2/calls.json)：费用由回执相加；汇总脚本不负责语义评分。
+- [Opus 对照](../../../tools/wiki-runtime/eval-20260915-opus/before-output.log)：同六题、同两份知识快照；保留 Sonnet 失败，不把换模型结果混成一次实验。
 
 ## Sonnet 的逐题结果
 
@@ -42,7 +42,7 @@ Sonnet 与 Opus 的固定对照均已结束：缺失题、保留改写题和版�
 
 ## Opus 的完整对照
 
-请求使用 `opus`，实际回执为 `claude-opus-5` 标准上下文；前后固定相同配置。编译器实际为 `claude-opus-5[1m]`，两种配置分别记录，不能称为完全相同的上下文配置。[前答](../../tools/wiki-runtime/eval-20260915-opus/before-output.log)、[后答](../../tools/wiki-runtime/eval-20260915-opus/after-output.log) 与各题原始回执可复核。
+请求使用 `opus`，实际回执为 `claude-opus-5` 标准上下文；前后固定相同配置。编译器实际为 `claude-opus-5[1m]`，两种配置分别记录，不能称为完全相同的上下文配置。[前答](../../../tools/wiki-runtime/eval-20260915-opus/before-output.log)、[后答](../../../tools/wiki-runtime/eval-20260915-opus/after-output.log) 与各题原始回执可复核。
 
 | 场景 | 核心事实与检索前后 | 引用 / 版本 / 额外表述 |
 |---|---|---|
@@ -65,7 +65,7 @@ Sonnet 与 Opus 的固定对照均已结束：缺失题、保留改写题和版�
 | 原第五题精确请求重试 | 1 | 0.1890770 |
 | 合计 | 39 | 5.9398455 |
 
-39 次已启动尝试中有 38 份最终回执，另一次不能认定实际费用为零。其 owner 进程及直接子进程已确认不在运行，使用 `WorkflowStore.recover()` 将 running 转为 failed，保留 0.50 美元预留；同一请求只在另行预留的 slot 重试一次，原失败不覆盖。见 [中断记录](../../tools/wiki-runtime/eval-20260915-opus/interruption.json)、[重试回执](../../tools/wiki-runtime/eval-20260915-opus-retry/retry.result.json)。
+39 次已启动尝试中有 38 份最终回执，另一次不能认定实际费用为零。其 owner 进程及直接子进程已确认不在运行，使用 `WorkflowStore.recover()` 将 running 转为 failed，保留 0.50 美元预留；同一请求只在另行预留的 slot 重试一次，原失败不覆盖。见 [中断记录](../../../tools/wiki-runtime/eval-20260915-opus/interruption.json)、[重试回执](../../../tools/wiki-runtime/eval-20260915-opus-retry/retry.result.json)。
 
 最终已知费用 + 未知预留 = **6.4398455 美元**；这不是把未知费用认作已经发生的精确扣款。最后一次新增调用前的总预留上限为 9.5557225 美元，没有扩大用户的 10 美元授权。所有轮次已写关闭记录，未使用额度不再自动消费。统计只包含本机模型 CLI 回执，不冒充账单核销。
 
@@ -73,10 +73,10 @@ Sonnet 与 Opus 的固定对照均已结束：缺失题、保留改写题和版�
 
 1. 最初源码补料回答因错误源码位置、无依据设计动机被要求修订，原回答及修订回执保留。
 2. 首次真实编译依照 HANDBOOK 写出 `[I1]`，被 lint 拒绝。没有发布失败草稿来制造成功。
-3. 统一规则后的候选通过结构校验，但把旧版 `config.get` 的缺省与显式 False 行为错误泛化，被驳回：[语义驳回](../../tools/wiki-runtime/eval-20260915-v2/semantic-rejection.json)。重新补充源码反例后产生新的回答与任务，旧候选仍为 rejected。
-4. 最终候选 revision `3a6f52746e1ecf27051ce5d95c9f53c6a1a36fa79edf121bfb2099462911f30e`。浏览器实际核对 diff、批准、显示新页和精确版本：[批准记录](../../tools/wiki-runtime/eval-20260915-v2/approve.json)、[阅读截图](../../tools/wiki-runtime/eval-20260915-v2/browser-results-final/publication-real-compiler-candidate-approve-chromium/approve.png)。最终 candidate → 浏览器发布约 214 秒，包含校验、测试中断和恢复，不是人工审阅工时。
-5. 同候选的另一个隔离副本实际驳回，版本保持不变，批准返回 409：[驳回记录](../../tools/wiki-runtime/eval-20260915-v2/reject.json)。重复保存和批准不调用模型、不增页，维持 20 页：[重放记录](../../tools/wiki-runtime/eval-20260915-v2/replay.json)，`calls: 0`、`state: published`。
-6. 正常联网权限问答单列：[online-output.log](../../tools/wiki-runtime/eval-20260915-v2/online-output.log)。不能把联网配置与离线对照混算，也不能把工具可用当成实际访问过某 URL。
+3. 统一规则后的候选通过结构校验，但把旧版 `config.get` 的缺省与显式 False 行为错误泛化，被驳回：[语义驳回](../../../tools/wiki-runtime/eval-20260915-v2/semantic-rejection.json)。重新补充源码反例后产生新的回答与任务，旧候选仍为 rejected。
+4. 最终候选 revision `3a6f52746e1ecf27051ce5d95c9f53c6a1a36fa79edf121bfb2099462911f30e`。浏览器实际核对 diff、批准、显示新页和精确版本：[批准记录](../../../tools/wiki-runtime/eval-20260915-v2/approve.json)、[阅读截图](../../../tools/wiki-runtime/eval-20260915-v2/browser-results-final/publication-real-compiler-candidate-approve-chromium/approve.png)。最终 candidate → 浏览器发布约 214 秒，包含校验、测试中断和恢复，不是人工审阅工时。
+5. 同候选的另一个隔离副本实际驳回，版本保持不变，批准返回 409：[驳回记录](../../../tools/wiki-runtime/eval-20260915-v2/reject.json)。重复保存和批准不调用模型、不增页，维持 20 页：[重放记录](../../../tools/wiki-runtime/eval-20260915-v2/replay.json)，`calls: 0`、`state: published`。
+6. 正常联网权限问答单列：[online-output.log](../../../tools/wiki-runtime/eval-20260915-v2/online-output.log)。不能把联网配置与离线对照混算，也不能把工具可用当成实际访问过某 URL。
 
 ## 本轮处理的问题
 
@@ -95,12 +95,12 @@ Sonnet 与 Opus 的固定对照均已结束：缺失题、保留改写题和版�
 
 | 实际命令 | 关键输出 |
 |---|---|
-| `pnpm check` | 61 files / 512 tests passed，typecheck、lint、依赖 / 内容检查、wiki lint 均通过；[最终日志](../../tools/wiki-runtime/eval-20260915-v2/check-final.log)。 |
-| `pnpm build` | exit 0，`built in 2.68s`；[日志](../../tools/wiki-runtime/eval-20260915-v2/build-final.log)。 |
-| `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium` | 生产预览 4173；26 passed (29.0s)，包含新增来源入口；[最终日志](../../tools/wiki-runtime/eval-20260915-v2/e2e-final.log)。其中模型使用固定输出，与真实模型对照分开。 |
+| `pnpm check` | 61 files / 512 tests passed，typecheck、lint、依赖 / 内容检查、wiki lint 均通过；[最终日志](../../../tools/wiki-runtime/eval-20260915-v2/check-final.log)。 |
+| `pnpm build` | exit 0，`built in 2.68s`；[日志](../../../tools/wiki-runtime/eval-20260915-v2/build-final.log)。 |
+| `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium` | 生产预览 4173；26 passed (29.0s)，包含新增来源入口；[最终日志](../../../tools/wiki-runtime/eval-20260915-v2/e2e-final.log)。其中模型使用固定输出，与真实模型对照分开。 |
 | `pnpm exec playwright test --config tools/wiki-runtime/eval-20260915-v2/browser.config.ts --project chromium` | 真实模型候选的驳回通过；完整库批准调整等待并恢复后通过。实际页面与精确版本已截图复核。 |
-| `pnpm exec playwright test --config tools/wiki-runtime/eval-20260915-v2/source.config.ts --project chromium` | 1 passed (2.3s)；只读打开隔离副本的真实已发布问答，展开唯一 raw 来源，点击打开原文并定位全部 11 行；[日志](../../tools/wiki-runtime/eval-20260915-v2/real-source-browser.log)、[来源入口截图](../../tools/wiki-runtime/eval-20260915-v2/browser-source-results/source-read-published-answ-4a7a0-ns-its-immutable-raw-record-chromium/real-source-list.png)、[原文截图](../../tools/wiki-runtime/eval-20260915-v2/browser-source-results/source-read-published-answ-4a7a0-ns-its-immutable-raw-record-chromium/real-raw-record.png)。已目视复核真实页面与手机宽度测试截图。 |
-| `pnpm wiki:audit --seeds wiki/seeds/vllm-ascend.yaml` | 19 页 / 410 来源，403 本地行号有效，7 URL 未联网验证，107 raw 引用待核对；无无效 commit / 缺文件 / 越界 / 未知仓库；[日志](../../tools/wiki-runtime/eval-20260915-v2/audit.log)。这不是全库语义验收。 |
+| `pnpm exec playwright test --config tools/wiki-runtime/eval-20260915-v2/source.config.ts --project chromium` | 1 passed (2.3s)；只读打开隔离副本的真实已发布问答，展开唯一 raw 来源，点击打开原文并定位全部 11 行；[日志](../../../tools/wiki-runtime/eval-20260915-v2/real-source-browser.log)、[来源入口截图](../../../tools/wiki-runtime/eval-20260915-v2/browser-source-results/source-read-published-answ-4a7a0-ns-its-immutable-raw-record-chromium/real-source-list.png)、[原文截图](../../../tools/wiki-runtime/eval-20260915-v2/browser-source-results/source-read-published-answ-4a7a0-ns-its-immutable-raw-record-chromium/real-raw-record.png)。已目视复核真实页面与手机宽度测试截图。 |
+| `pnpm wiki:audit --seeds wiki/seeds/vllm-ascend.yaml` | 19 页 / 410 来源，403 本地行号有效，7 URL 未联网验证，107 raw 引用待核对；无无效 commit / 缺文件 / 越界 / 未知仓库；[日志](../../../tools/wiki-runtime/eval-20260915-v2/audit.log)。这不是全库语义验收。 |
 
 Vite 仍提示未来 native config loader 不支持当前部分无扩展名导入；本轮没有关闭警告。现有 loader 的构建通过，不宣称未来版本兼容已解决。
 
@@ -108,10 +108,10 @@ Vite 仍提示未来 native config loader 不支持当前部分无扩展名导�
 
 正式登记的全部 feature 仍为 **0/4 完整完成**，状态唯一维护在 feature：
 
-- [F001](../features/F001-llm-wiki.md)：阅读 / 检索 / 保存基础推进到真实模型复用验证；严格回答质量与 PR 入口等仍不完整，批量灌种暂停。
-- [F002](../features/F002-param-lineage.md)：部分谱系工具已有，参数扫描、骨架生成区和统一调度仍未完整交付。
-- [F003](../features/F003-github-corpus.md)：plan 已存在，语料采集和 PR 接入尚未交付。
-- [F004](../features/F004-knowledge-loop.md)：真实保存发布复用基础成立；自动缺口补写、drop / quarantine、巡检、全库交叉审视仍待实施。
+- [F001](../../features/F001-llm-wiki.md)：阅读 / 检索 / 保存基础推进到真实模型复用验证；严格回答质量与 PR 入口等仍不完整，批量灌种暂停。
+- [F002](../../features/F002-param-lineage.md)：部分谱系工具已有，参数扫描、骨架生成区和统一调度仍未完整交付。
+- [F003](../../features/F003-github-corpus.md)：plan 已存在，语料采集和 PR 接入尚未交付。
+- [F004](../../features/F004-knowledge-loop.md)：真实保存发布复用基础成立；自动缺口补写、drop / quarantine、巡检、全库交叉审视仍待实施。
 
 收益排序：先让证据编号明确绑定来源页、限制模型越界概括并继续保留独立失败样本；再补自动缺口和来源投喂；再接参数 / PR 增量与统一维护。继续增加问答数量本身不会自动增加知识，当前积累仍依赖显式保存和审阅。
 

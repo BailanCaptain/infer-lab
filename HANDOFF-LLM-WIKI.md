@@ -44,9 +44,10 @@
    - **未解决**：同步用的 Python 仍指向 Codex 的私有缓存目录（`sync.config.json`）。本机另一个 Python 是 Anaconda 3.9，实测扫不了上游（上游用了 3.11+ 语法）。要换得先装独立的 Python 3.11+，等用户决定。
    - 夜间任务不调模型：要花钱必须配置里有 `paid` 块且配额 > 0，现在都没有（`sync.ts:47`，运行结果 `modelCallsAllowed: false`）；GitHub 全库首拉也不会被每日任务启动（`sync.ts:147`）。
 2. **补走审批的旧账**：2026-09-19 手写直入 `concepts/` 的 24 页没走审阅、没有 raw、`log.md` 没记。用户尚未逐页读过。处理方式待用户定（补审 / 读后认可）。
-3. **31 页引用的上游代码已变**（`wiki:stale`）。先看 diff 判断哪些真过期，不要直接付费重跑。
-4. **文档瘦身**：状态只留在 feature 验收表（现在停在 09-16，比实际旧）；F001 AC11 仍写 mermaid，与 HANDBOOK 矛盾；HANDBOOK 内部「七节」实列六节等多处不自洽；`CLAUDE.md` 与 `AGENTS.md` 逐字重复；`docs/plans/` 下约 29 份逐轮报告可归档。逐条证据（文件与行号）见 [2026-09-19 审视](docs/plans/wiki-audit-2026-09-19.md)。
-5. **小修**：三份 seeds 的仓库表互不包含（默认 seeds 跑 `wiki:audit` 会报 57 处「未知仓库」）；`wiki:gaps` 把 `false`、`enabled`、`AI` 当成待补概念，需要停用词；11 页存量 mermaid 迁到 wiki-diagram 后删 `Mermaid.tsx`；`wiki/sources/` 空目录要么启用要么从 HANDBOOK 删掉；`log.md` 的类型只有 ingest/build/review，问答和 lint 记不进去。
+3. **引用的上游代码变了的页**（`pnpm wiki:stale --seeds wiki/seeds/vllm-ascend-code.yaml`，页数现查）。09-19/20 的重写已把绝大多数页重钉到 `b255ab59`；剩下的先看 diff 判断哪些真过期，不要直接付费重跑。
+4. **文档瘦身，2026-09-20 已做**：四份 feature 的验收表更新到 09-20 并统一了分级口径；状态真相源收成一条——**验收状态看 feature 验收表，「现在在哪、接下来做什么」看本页，会变的数字按 §2 现查**，`PLAN.md` / `README.md` / `HANDOFF.md` / `docs/plans/README.md` / 各 plan 只留一句指针；F001 AC11 的 mermaid 文本已按现状修订为 `wiki-diagram`（并注明这是对原 AC 的修订）；27 份逐轮 review 报告 `git mv` 到 [docs/plans/archive/](docs/plans/archive/README.md)；三套互相矛盾的成本数字统一成「实际花费以 `pnpm wiki:budget status` 为准」。
+   - **还没做的**：`wiki/HANDBOOK.md:102` 仍写「参数页里还剩 7 张 mermaid 图」，实际已清零（属于 `wiki/`，那轮改动没动它）；规则仍散在 HANDBOOK、`src/content/wiki/schema.ts`、`scripts/wiki/lint.ts` 三处（F001 AC1 因此判「与 AC 文本不符」）；`CLAUDE.md` 与 `AGENTS.md` 逐字重复是**有意保留**（两个工具各读一份），不要合并。逐条证据见 [2026-09-19 审视](docs/plans/wiki-audit-2026-09-19.md)。
+5. **小修**：已做——`wiki:audit` 改成默认吃每份 seeds 的仓库表（`6c47729`）、`wiki:gaps` 加了停用词（`b9d56b0`）、存量 mermaid 迁完并删掉渲染器与依赖（`b222c58`）。还剩：`wiki/sources/` 空目录要么启用要么从 HANDBOOK 删掉；`log.md` 的类型只有 ingest/build/review，问答和 lint 记不进去。
 
 ### 明确挂起（不是取消）
 

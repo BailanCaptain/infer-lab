@@ -4,7 +4,7 @@
 
 ## 结论与价值
 
-**seed 提取现在可以积累新版本摘录，同时保留旧版本。** 页面通过引擎维护的 `rawSources` 关联不可变快照；整合消耗草稿后仍保留关联，旧页面无需迁移。这符合原始 [LLM Wiki 理念](../../../infra-view-new/llm-wiki.md) 的持久积累、原始来源不可变与可维护 markdown 方向。
+**seed 提取现在可以积累新版本摘录，同时保留旧版本。** 页面通过引擎维护的 `rawSources` 关联不可变快照；整合消耗草稿后仍保留关联，旧页面无需迁移。这符合原始 [LLM Wiki 理念](../../../../infra-view-new/llm-wiki.md) 的持久积累、原始来源不可变与可维护 markdown 方向。
 
 **还不能声称“越用越聪明”已经交付。** 本轮只完成 T2 的摘录存储部分；聊天保存、人审、新会话复用尚未打通。快照由 agent 产出的摘录归档而来，hash 只证明字节未变，不能证明它与上游原文一致或正文结论正确。事实依据仍是 `sources` 的 commit / 行号与 URL。
 
@@ -17,7 +17,7 @@
 | P2，`scripts/wiki/lint.ts:497` | 被篡改快照没有产生 lint 错误；`audit-cli.test.ts:35` 首轮期望 raw-integrity，实际 false | lint / audit 复用 raw 读取校验，缺失和 hash 不符均拒绝；已记录任务的缓存与整合入口也拒绝被改过的产物 |
 | P2，`.gitattributes:3` | 全局 LF 转换会改变 CRLF 快照。`raw.test.ts:23` 用临时仓库实际提交后读取 blob，首轮发现两个 CR 字节丢失 | 快照设为 `-text`。同一测试验证 Git blob 和 checkout 后原文逐字节保留，hash 可再次核对 |
 
-存储实现见 `scripts/wiki/raw.ts:21`、`:38`；页面字段由 `src/content/wiki/schema.ts:19`、`:94` 定义。规则只在 [HANDBOOK](../../wiki/HANDBOOK.md#链接与来源) 维护；提取和整合 agent 继续通过切片读取，不另建一份 prompt 规范。
+存储实现见 `scripts/wiki/raw.ts:21`、`:38`；页面字段由 `src/content/wiki/schema.ts:19`、`:94` 定义。规则只在 [HANDBOOK](../../../wiki/HANDBOOK.md#链接与来源) 维护；提取和整合 agent 继续通过切片读取，不另建一份 prompt 规范。
 
 ## 实际验证
 

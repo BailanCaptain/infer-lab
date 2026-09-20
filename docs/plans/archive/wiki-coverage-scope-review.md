@@ -8,7 +8,7 @@
 
 P2，`server/coverage-work.ts` 原成功回执：schema 与逐字引文检查通过后，分类、理由一起作为成功诊断返回，没有机器记录的材料范围和验证层次。上一轮真实缺知识样本包含“即使补齐也不构成定义页”“需要新增页面”，实际只提供了有限摘录，不能支持这些判断。原始证据保留于 [真实分类报告](wiki-classification-review.md)，并未发现它已经污染正式页面。
 
-复现：给诊断 runner 返回合法 `missing-knowledge`、真实逐字引文和上述越界理由；旧实现成功返回 v1 回执，既不标明理由未验证，也没有隔离这些推断的补料交接入口。新固定用例先失败，见 [红例日志](../../tools/wiki-runtime/coverage-scope-red.log)。费用仍使用 fixture 假 runner，不消耗真实模型预算。
+复现：给诊断 runner 返回合法 `missing-knowledge`、真实逐字引文和上述越界理由；旧实现成功返回 v1 回执，既不标明理由未验证，也没有隔离这些推断的补料交接入口。新固定用例先失败，见 [红例日志](../../../tools/wiki-runtime/coverage-scope-red.log)。费用仍使用 fixture 假 runner，不消耗真实模型预算。
 
 ## What / 契约与行为
 
@@ -18,14 +18,14 @@ P2，`server/coverage-work.ts` 原成功回执：schema 与逐字引文检查通
 - 缺知识先核对来源与现有页；漏检先复核检索；版本问题先核对版本；上下文不明先核对上下文。已有答案也不自动关闭缺口。该入口不调用模型、不创建编译任务、不写草稿，不修改知识或观察记录；一致性检查使用临时工作锁。
 - v1 回执保留历史读取并标注 `legacy-unverified`，拒绝用于该准备入口。新配方身份包含回执版本，不把旧诊断静默升级为新验收；未改写任何历史付费轮次。
 
-契约唯一实现在 [`server/coverage-work.ts`](../../server/coverage-work.ts)，CLI 只调用它；模型指导在 [HANDBOOK 查询章](../../wiki/HANDBOOK.md#查询) 引用这一契约。
+契约唯一实现在 [`server/coverage-work.ts`](../../../server/coverage-work.ts)，CLI 只调用它；模型指导在 [HANDBOOK 查询章](../../../wiki/HANDBOOK.md#查询) 引用这一契约。
 
 ## Evidence / 本轮验证
 
 - 新增固定样例覆盖越界理由隔离、实际提供范围、真实 CLI 准备输出、知识变化、观察变化、输入篡改、旧回执保留及拒绝升级；同时检查没有新增任务或草稿、缺口仍未关闭。
-- 首次相关回归 `pnpm test server/coverage-work.test.ts scripts/wiki/work-cli.test.ts`：**2 files / 24 tests passed**，见 [日志](../../tools/wiki-runtime/coverage-scope-green.log)。随后补充模型伪造验证层次与材料范围必须拒绝的用例，纳入最终全量检查。
-- 最终 `pnpm check`：exit 0，**66 files / 569 tests passed（77.82s）**，类型检查、Lint、依赖方向、19 页内容检查与 wiki lint 均通过，见 [全量日志](../../tools/wiki-runtime/coverage-scope-check.log)。没有调整测试时限或断言来让本轮通过。
-- `pnpm build`：exit 0，**built in 2.46s**，见 [构建日志](../../tools/wiki-runtime/coverage-scope-build.log)。既有 Vite native loader 与 Biome schema 提示保留。
+- 首次相关回归 `pnpm test server/coverage-work.test.ts scripts/wiki/work-cli.test.ts`：**2 files / 24 tests passed**，见 [日志](../../../tools/wiki-runtime/coverage-scope-green.log)。随后补充模型伪造验证层次与材料范围必须拒绝的用例，纳入最终全量检查。
+- 最终 `pnpm check`：exit 0，**66 files / 569 tests passed（77.82s）**，类型检查、Lint、依赖方向、19 页内容检查与 wiki lint 均通过，见 [全量日志](../../../tools/wiki-runtime/coverage-scope-check.log)。没有调整测试时限或断言来让本轮通过。
+- `pnpm build`：exit 0，**built in 2.46s**，见 [构建日志](../../../tools/wiki-runtime/coverage-scope-build.log)。既有 Vite native loader 与 Biome schema 提示保留。
 - 本轮未修改前端或 UX，未新增浏览器复验；真实 CLI 的新入口已在上述集成用例实际执行。此前浏览器结果仍是历史证据，不冒充本轮验收。
 
 ## Tradeoff / 尚未验证
@@ -44,11 +44,11 @@ Open Questions：无。
 
 - 来源复用 `prepareRawInput`，验证不可变 raw hash、选定行号及清洗规则；只提供所选行，保留原行号和清洗回执。任意 URL 不能冒充已归档来源，未选行及移除的隐藏内容不进入材料包。
 - 提供原诊断候选页及显式附加页的完整清洗正文、文件位置和内容 hash，包括原先诊断因长度省略的段落。目录只用于导航，`unprovidedPageIds` 明确哪些正文没有提供，不能作为全库无此知识的证明。
-- 材料包绑定知识 revision 并计算 `contentHash`；使用既有锁与原诊断的新鲜度检查。超量直接拒绝，不截短到刚好缺掉限制条件；离线材料上限的单一真相源为 [`coverage-material.ts`](../../server/coverage-material.ts)。这不是新的模型请求预算，不能直接整包交给付费 runner。
+- 材料包绑定知识 revision 并计算 `contentHash`；使用既有锁与原诊断的新鲜度检查。超量直接拒绝，不截短到刚好缺掉限制条件；离线材料上限的单一真相源为 [`coverage-material.ts`](../../../server/coverage-material.ts)。这不是新的模型请求预算，不能直接整包交给付费 runner。
 - 输出仍为 `needs-evidence-review`、`compilationAllowed=false`，明确未核对上游真实性与语义覆盖。一个 hash 正确的本地文件可能是模型回答或无关摘录，程序不会因此授予源码实证等级，也不会自动选择新建页面。之后的编译入口仍需核对来源、页面处置与最新版本，不能拿导出的 JSON 绕过检查。
 
-**本次验证：** 新增样例先为 **7 failed / 24 passed**（[红例](../../tools/wiki-runtime/coverage-material-red.log)），实现后相关 **3 files / 34 tests passed**（[通过](../../tools/wiki-runtime/coverage-material-green.log)）。样例实际执行 CLI，并检查原省略段落可见、raw 选行与清洗、稳定输出、不新增任务或草稿；篡改 raw、越界、正文深处的注入、不存在的页面和过量正文均拒绝。随后补充来源数量上限、未归档 URL 与未提供正文目录的检验，纳入最终全量检查。
+**本次验证：** 新增样例先为 **7 failed / 24 passed**（[红例](../../../tools/wiki-runtime/coverage-material-red.log)），实现后相关 **3 files / 34 tests passed**（[通过](../../../tools/wiki-runtime/coverage-material-green.log)）。样例实际执行 CLI，并检查原省略段落可见、raw 选行与清洗、稳定输出、不新增任务或草稿；篡改 raw、越界、正文深处的注入、不存在的页面和过量正文均拒绝。随后补充来源数量上限、未归档 URL 与未提供正文目录的检验，纳入最终全量检查。
 
-最终 `pnpm check`：exit 0，**66 files / 578 tests passed（99.00s）**，包含类型、Lint、依赖方向、19 页内容和 wiki lint 检查，见 [全量日志](../../tools/wiki-runtime/coverage-material-check.log)。`pnpm build`：exit 0，**built in 5.05s**，见 [构建日志](../../tools/wiki-runtime/coverage-material-build.log)；原有 native loader 提示和构建插件耗时提示保留。另对三个相关 server 文件执行 Biome 校验通过，62 个文档本地链接存在性检查通过。未修改前端或 UX，未新增浏览器验证。
+最终 `pnpm check`：exit 0，**66 files / 578 tests passed（99.00s）**，包含类型、Lint、依赖方向、19 页内容和 wiki lint 检查，见 [全量日志](../../../tools/wiki-runtime/coverage-material-check.log)。`pnpm build`：exit 0，**built in 5.05s**，见 [构建日志](../../../tools/wiki-runtime/coverage-material-build.log)；原有 native loader 提示和构建插件耗时提示保留。另对三个相关 server 文件执行 Biome 校验通过，62 个文档本地链接存在性检查通过。未修改前端或 UX，未新增浏览器验证。
 
 **进度与费用：** 本次只完成可核对材料的准备，没有完成来源真实性或语义审查，也未接自动采集、付费审查、编译与复问关闭。T4 / AC3 保持部分实施；本次新增模型费 $0，累计记账仍为 $8.7527865 / $10。无需用户确认。

@@ -8,7 +8,7 @@
 
 ## 符合要求的
 
-四个 feature 的验收状态只维护在 [F001](../features/F001-llm-wiki.md#2026-09-16-当前验收核对)、[F002](../features/F002-param-lineage.md#2026-09-16-当前验收核对)、[F003](../features/F003-github-corpus.md#2026-09-16-当前验收核对)、[F004](../features/F004-knowledge-loop.md#2026-09-16-当前验收核对)，共 34 条 AC。本报告集中留证据，不再维护另一个完成百分比。F003 和 F004 的 [plan](github-corpus-plan.md)、[plan](knowledge-loop-plan.md) 已经存在并已用于实施。
+四个 feature 的验收状态只维护在 [F001](../../features/F001-llm-wiki.md#2026-09-16-当前验收核对)、[F002](../../features/F002-param-lineage.md#2026-09-16-当前验收核对)、[F003](../../features/F003-github-corpus.md#2026-09-16-当前验收核对)、[F004](../../features/F004-knowledge-loop.md#2026-09-16-当前验收核对)，共 34 条 AC。本报告集中留证据，不再维护另一个完成百分比。F003 和 F004 的 [plan](../github-corpus-plan.md)、[plan](../knowledge-loop-plan.md) 已经存在并已用于实施。
 
 | 范围 | 本轮工程交付 | 可复核位置 |
 |---|---|---|

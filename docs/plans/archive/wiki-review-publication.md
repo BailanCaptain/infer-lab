@@ -1,6 +1,6 @@
 # 审阅与发布基础验收（2026-09-15）
 
-本轮在 `infra-view-new-llm-wiki` 工作树推进 T3。**整合现在只生成待审包；正式内容经固定 revision 批准后才发布。** 这符合人工策展、原文不可变与增量维护的方向，但不能据此声称“越用越聪明”的用户闭环已完成。当前进度只维护在 [F004](../features/F004-knowledge-loop.md#design-decisions)，本文件保留实际验证证据。
+本轮在 `infra-view-new-llm-wiki` 工作树推进 T3。**整合现在只生成待审包；正式内容经固定 revision 批准后才发布。** 这符合人工策展、原文不可变与增量维护的方向，但不能据此声称“越用越聪明”的用户闭环已完成。当前进度只维护在 [F004](../../features/F004-knowledge-loop.md#design-decisions)，本文件保留实际验证证据。
 
 ## 为什么改
 

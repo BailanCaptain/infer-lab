@@ -4,7 +4,7 @@
 
 ## 版本依据与正式写入
 
-[种子配置](../../wiki/seeds/vllm-ascend.yaml) 已记录 main → 28bf3a2e、releases/v0.23.0 → 2c59ff10。本轮实际用本地 Git 核对提交日期和 origin 分支祖先关系：前者属于 main，后者为 origin/releases/v0.23.0 的当前本地 tip；没有将维护分支当作同名发布 tag。此前因区分分支与 tag 而删掉全部可读名称，属于过度修正。
+[种子配置](../../../wiki/seeds/vllm-ascend.yaml) 已记录 main → 28bf3a2e、releases/v0.23.0 → 2c59ff10。本轮实际用本地 Git 核对提交日期和 origin 分支祖先关系：前者属于 main，后者为 origin/releases/v0.23.0 的当前本地 tip；没有将维护分支当作同名发布 tag。此前因区分分支与 tag 而删掉全部可读名称，属于过度修正。
 
 编辑通过原有 revise / propose / approve 发布器：66ca6029… 发布名称修改，2d179f39… 清理重复词和多余说明。第一次额外添加两个 GitHub URL 导致来源分类 lint 拒绝，b40f17cc… 已 rejected；随后保持原 raw 来源和证据等级，只修改表述，没有降低校验门槛。两次正式编辑均依据本轮用户授权。
 
@@ -18,7 +18,7 @@
 - 实际 Chromium 桌面阅读：中文标题与两个分支名称可见，正文不再出现两个短提交号，展开来源并请求 raw 返回 200，包含固定源码类，无页面异常。见 `readable-versions-browser.json`、`readable-versions-desktop.png`。
 - 交接与 feature 文档检查：34 条 AC 无遗漏，111 个本地链接无断链，正式 20 页、schema 问题 0；回执 `readable-versions-doc-check.json`。
 
-这轮没有前端布局修改；后半段修复了服务端问答输入与手册规则的冲突。阅读规则和问答规则统一维护在 [HANDBOOK](../../wiki/HANDBOOK.md)，没有在某一道测试输入中塞标准答案。
+这轮没有前端布局修改；后半段修复了服务端问答输入与手册规则的冲突。阅读规则和问答规则统一维护在 [HANDBOOK](../../../wiki/HANDBOOK.md)，没有在某一道测试输入中塞标准答案。
 
 ## 真实问答修复验证
 

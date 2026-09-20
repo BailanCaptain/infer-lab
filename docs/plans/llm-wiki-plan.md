@@ -2112,12 +2112,12 @@ cat wiki/index.md
 ```
 Expected: `concepts/` 出现晋升页，`index.md` 列出它们，lint 通过。
 
-**Step 3**：人审报告（写到 `docs/plans/llm-wiki-pilot-review.md`，给用户看）：随机抽 3 页，每页列出 `sources` 每一项，用 `sed -n '<起>,<止>p' tools/repos/vllm-ascend/<path>` 贴出实际行，判定「行号对 / 行号偏 / 编造」；再对照 `raw/<id>.md` 是否与源码逐字一致。附：10 页 summary 一览、每页字数、失败清单、总花费（result 事件的 `total_cost_usd` 之和，打印在 ingest 日志里）。
+**Step 3**：人审报告（写到 `docs/plans/archive/llm-wiki-pilot-review.md`，给用户看）：随机抽 3 页，每页列出 `sources` 每一项，用 `sed -n '<起>,<止>p' tools/repos/vllm-ascend/<path>` 贴出实际行，判定「行号对 / 行号偏 / 编造」；再对照 `raw/<id>.md` 是否与源码逐字一致。附：10 页 summary 一览、每页字数、失败清单、总花费（result 事件的 `total_cost_usd` 之和，打印在 ingest 日志里）。
 
 **Step 4**：用户审阅。合格 → Commit；不合格 → 改 `wiki/HANDBOOK.md` 对应切片，`rm wiki/_drafts/*.md wiki/raw/*.md wiki/concepts/*.md`，重跑 Step 1–3。不进入 Phase 2。
 
 ```bash
-git add wiki/ src/content/wiki/registry.json docs/plans/llm-wiki-pilot-review.md
+git add wiki/ src/content/wiki/registry.json docs/plans/archive/llm-wiki-pilot-review.md
 git commit -m "feat(F001): pilot batch — chapter 11 KV cache pages from vllm-ascend@28bf3a2e"
 ```
 

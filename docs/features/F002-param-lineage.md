@@ -10,7 +10,7 @@ created: 2026-09-10
 
 **Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
 **Created**: 2026-09-10
-**Updated**: 2026-09-16
+**Updated**: 2026-09-20
 
 ## Why
 
@@ -52,20 +52,18 @@ F001 结构上答不了这类问题，三个原因：
 
 ## Acceptance Criteria
 
-### 2026-09-16 当前验收核对
+### 验收状态（更新于 2026-09-20）
 
-独立复查修复、最终测试和人工停点见 [当前交接报告](../plans/wiki-independent-closure-review.md)；下表不把固定输出机制测试等同真实语义效果。
-
-规范文本与当前验收表保留在本 feature，计划不维护第二份状态。工程、真实样本和未验证边界分开列示；最近完整验证见 [独立复查报告](../plans/wiki-independent-closure-review.md)，2026-09-16 上午运行状态变化及新会话接续见 [最新 handoff](../../HANDOFF-LLM-WIKI.md)。
+这张表是 F002 验收状态的唯一真相源。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。
 
 | AC | 当前结论 | 证据与未满足条件 |
 |---|---|---|
-| AC1 | 工程与真实扫描验证通过 | Python AST 四种形态、注释字典键、调用交叉引用、条件约束、同名类作用域测试；前次 main pin 扫出 542 候选，其中 405 suspect；本次补 get 默认表达式及 Ascend 包装器，v0.23.0 的 8 个旧定义已核对，未冒充全部确认参数。 |
-| AC2 | 工程验证通过，真实语义复核未验证 | 三态与逐字引文、保留 undetermined、疑似项显式选择、全 AST 身份校验和共享预算；固定模型输出不能替代真实分类准确率。 |
-| AC3 | 本轮真实静态谱系验证通过 | wiki/lineage/layer_sharding.json 记录全部约定 ref、范围 *.py、完整提交、tags；8/9/14/0/0/1/0/0 与原实测表一致，移除提交 89601215 / PR #11953。文本残留不等于功能回归。 |
-| AC4 | 单参数骨架与幂等通过；全量为排除项 | 真实 CLI fixture 生成骨架、再次生成不改正文；保护定义与版本区。未生成全部参数页。新页 id 含定义身份摘要；旧页显式映射共用 identities.json。真实 8 个旧页已刷新生成区及本轮源码快照，8/8 正文保持，新增页 0。 |
-| AC5 | 工程补文与保护验证通过，真实补文未验证 | ingest --params 只允许模型返回正文，组装确定性生成区，持久草稿和引用校验；重刷保留正文。收费已暂停。 |
-| AC6 | 增量回归通过；维护阻塞修复，生产调度待复验 | 09-16 03:00 返回 1，无历史 stderr；当前隔离副本稳定复现 Python 3.9 语法不兼容及新增 13 页超上限 3。同步已固定本机 3.12；超限保持整批暂缓与检查点，后续巡检继续，阶段/异常持久落盘。真实源码副本巡检 findings=[]，非生产到点验收；未放宽批量与费用限制。详见 [接续报告](../plans/wiki-resume-review.md)。 |
+| AC1 | 部分实现（扫描器在生产跑，全量确认未完成） | 四种定义形态、注释字典键、grep 交叉引用、同名类作用域各有单测。夜间同步每晚在 main 上实跑一次扫描（结果落 `wiki/_jobs/sync/last-run.json`）。**扫描产物 `wiki/lineage/params-<ref>.json` 是本机数据、不在 git 里**，换机器要重跑；`confidence: suspect` 的长尾未经 AC2 复核，因此不能说「参数清单已全部确认」。 |
+| AC2 | 只用固定输出验证 | 三态输出、逐字引文、保留 `undetermined` 各有固定输出测试。**未用真实模型复测**分类准确率；夜间任务不调模型（配置里没有 `paid` 块，见 `scripts/wiki/sync.ts:47`），所以复核不会自己发生。 |
+| AC3 | 真实实现并测试 | `wiki/lineage/layer_sharding.json` 记录八个 ref 的完整 commit、搜索路径、tag 与逐提交核实的边界：8/9/14/0/0/1/0/0，移除提交 `89601215` / PR #11953。可用 `pnpm wiki:lineage layer_sharding --paths '*.py'` 复算。v0.26 的单测文本残留不算功能回归。 |
+| AC4 | 部分实现（生成器已在生产产出，全量未覆盖） | 夜间同步已从 main 真实生成骨架页两批：提交 `9567b6c`（10 页，另 4 个留到下一晚）与 `7283d4c`（03:00 定时任务跑出的那 4 页）。全程不调模型。`pnpm wiki:lint` 2026-09-20 通过。**全量覆盖尚未达成**：每晚上限 10、队列按批推进，当前参数页数现查。幂等（重复生成后 `git diff` 为空）本轮未重跑。 |
+| AC5 | 只用固定输出验证 | `ingest --params` 只收模型正文、生成区由脚本覆盖、重刷保留正文，均有固定输出测试。**真实补文未用真实模型复测**。09-14 那批 8 页是 LLM 整页生成（与本 AC 的设计相反，偏差记在下方 AC5 条目）；这批页 2026-09-20 已由人按新写法重写并把 main 来源重钉到 `b255ab59`（`5672131`、`5e001c4`、`aab558c`），那是人写，不是 AC5 的链路。 |
+| AC6 | 部分实现（调度已实跑成功，两处未解决） | 上限与分批：`maxNewParamPages` 上限 10（schema 见 `scripts/wiki/sync.ts:30`，取值见 `wiki/sync.config.json`）；超限时只做前 N 个、其余留到下一晚，检查点只记已处理条目、commit 不前进（`scripts/wiki/params/publish-sync.ts:61-71`、`scripts/wiki/sync.ts:129-137`）；上限 0 仍表示「不生成新页」。**2026-09-20 的 03:00 定时任务实跑成功**：`wiki/_jobs/sync/last-run.json` 为 `status: "succeeded"`、`deferred: 0`、`findings: 0`，产物即提交 `7283d4c`。未解决：① 同步用的 Python 仍指向 Codex 的私有缓存目录（`wiki/sync.config.json` 的 `python`），换机器会断，换独立 Python 3.11+ 等用户决定；② 「人为改掉一条，跑 sync 报出新增 1 / 删除 1 / 变更 1」这条红绿验收本轮未复跑。 |
 
 
 - **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`（如 `additional_config["eplb_config"]["dynamic_eplb"]`）、`file`、`line`、`comment`（字段上方注释）、`constraints`（从 validator 的报错字符串提取的取值范围与联动）、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别（见 Design Decisions「四种定义形态」）。
@@ -77,7 +75,7 @@ F001 结构上答不了这类问题，三个原因：
 
   **2026-09-14 部分达成，有一处与设计的偏差要记下**：已跑通 8 个参数页（`wiki/seeds/params-removed.yaml`，即 v0.23.0 官方参数表有 60 个、main 有 86 个，差集里被删掉的那 8 个：`layer_sharding`、`weight_prefetch_config`、`prefetch_ratio`、`fuse_allreduce_rms`、`enable_matmul_allreduce`、`multistream_overlap_gate`、`enable_async_exponential`、`enable_sleep_mode_extra_cleanup`），提取 $21.02 + 整合 $4.14，落在 `wiki/params/`。
 
-  偏差：**本该先做 AC4 铺骨架页、LLM 只补重要的那几页正文，实际是让 LLM 整页生成**。8 个尚可，86 个按同一单价约 $240，而绝大多数参数只需要「名字 / 类型 / 默认值 / 官方一句话」（文档表里全有）加版本谱系（脚本算），根本不必花 LLM。**AC4 是 AC5 放量前的前置**，顺序颠倒了要补回来。
+  偏差：**本该先做 AC4 铺骨架页、LLM 只补重要的那几页正文，实际是让 LLM 整页生成**。8 个尚可，86 个按同一单价要贵一个量级（2026-09-14 的估价，不是现在的花费；实际花费以 `pnpm wiki:budget status` 为准），而绝大多数参数只需要「名字 / 类型 / 默认值 / 官方一句话」（文档表里全有）加版本谱系（脚本算），根本不必花 LLM。**AC4 是 AC5 放量前的前置**，顺序颠倒了要补回来。
 
   这批的实际收获：`layer_sharding` 页把用户最早那串问题一次答全（干嘛的 / 哪版移除 / 移除 PR / 哪些分支还有 / 影响面），且谱系那节不可能是编的；agent 还抓到一处**文档与代码不符**并经人工核对属实——官方参数表写 `dict`、默认 `{}`，实际 `ascend_config.py` 是 `get("layer_sharding", None)`、`platform.py` 里 `or []` 当列表用。
 - **AC6 · 每日同步与新参数触发**：`pnpm wiki:sync` 拉全部 ref、重跑扫描与谱系、与上次结果 diff；新增参数进 `wiki/_drafts/_param-queue.json` 并自动生成骨架页；消失的参数在页面上标注移除版本与 PR；默认值变化写进 `wiki/log.md`。失败非零退出并在 log 留原因。注册为 Windows 计划任务每日运行。验收：把上次结果人为改掉一条，跑 sync 能报出「新增 1 / 删除 1 / 变更 1」并落到对应文件。
@@ -88,7 +86,7 @@ F001 结构上答不了这类问题，三个原因：
 
 - **F001 AC9（阻塞）**：多 ref 钉定与完整克隆。参数扫描要跨分支跑，部分克隆会静默漏文件（实测 v0.23.0 漏 2 个）。
 - **Python 3.11+**：当前上游已使用旧 3.9 无法解析的 starred subscription。本机维护配置固定 Python 3.12；独立命令与测试可通过 `WIKI_PYTHON` 指定。扫描器只用 `ast` 解析源码文本，不执行、不 import，因此不需要安装 vllm 或 pydantic；解析失败明确报错，不跳文件或降级正则。具体配置见 HANDBOOK。
-- **共用 agent 执行器**：已抽出 `scripts/wiki/batch.ts`，与受限调用、持久任务和共享预算配合；AC2 / AC5 / F004 复用同一底座。早期 plan 的执行器拆分已不构成阻塞。用户现已扩额至累计 $30 以下；新增 profiling_chunk_config 是独立源码补页，不能代替本 feature 的真实分类、生成区补文和全量骨架验收，见 [最新接续](../plans/wiki-budget-30-review.md)。
+- **共用 agent 执行器**：已抽出 `scripts/wiki/batch.ts`，与受限调用、持久任务和共享预算配合；AC2 / AC5 / F004 复用同一底座。早期 plan 的执行器拆分已不构成阻塞。预算上限与实际花费一律以预算账本为准（`pnpm wiki:budget status`），不在本页抄数字。
 - 不依赖 GitHub token（PR 号从本地 git 提交信息里取，不查 API）。
 - **官方文档站**（<https://docs.vllm.ai/projects/ascend/>）：版本清单查 ReadTheDocs API；参数页里的版本号、安装命令等含占位符的内容取渲染后的值。这是唯一需要联网的部分，失败时降级为「只出代码侧谱系」并在 warnings 里注明，不阻塞。
 
@@ -99,7 +97,7 @@ F001 结构上答不了这类问题，三个原因：
 | 扫描方式 | 正则 / Python AST / AST + grep + 注释三路 | **三路合一，并输出 `confidence`** | 2026-09-10 用正则试跑当场翻车：101 个字段里错判 5 个（`budget_threshold` 等被判「文档有代码无」，实为 `DynamicSpecConfig.method_params` 这个自由字典的合法键，只在注释里写明），嵌套 Config 类也有漏。单一手段覆盖不了下面四种形态 |
 | 四种定义形态 | — | 扫描器必须同时处理 | ① pydantic dataclass 字段 `dynamic_eplb: bool = False`；② 嵌套 config 类（`eplb_config` 里再套一层，AST 要递归）；③ 自由字典的合法键，只在字段注释里列出（`method_params` 的 `initial_verify_budget_per_req` 等三个，AST 扫不到）；④ 别处按字符串取值（`spec_decode/utils.py:277` 的 `min_verify_tokens`，要全仓 grep 才发现）|
 | 疑似项处理 | 人工复核 / LLM 复核 | **LLM 复核**（用户 2026-09-10 拍板） | 疑似项是长尾，量不小；人审会成为放量的瓶颈。三态输出保留「拿不准」，不强行二选一 |
-| 参数页生产 | 全部 LLM 写 / 骨架确定性 + LLM 选择性补 | **骨架确定性生成，LLM 只补正文** | 按试点每页 2.5 美元，100+ 参数全用 LLM 写要 250 美元以上，且版本表这类事实 LLM 写了还会过期。骨架零成本、不会错、每次 sync 自动刷新 |
+| 参数页生产 | 全部 LLM 写 / 骨架确定性 + LLM 选择性补 | **骨架确定性生成，LLM 只补正文** | 2026-09-07 试点的每页单价意味着 100+ 参数全用 LLM 写要贵一个量级（当时的估价，实际花费以 `pnpm wiki:budget status` 为准），且版本表这类事实 LLM 写了还会过期。骨架零成本、不会错、每次 sync 自动刷新 |
 | 谱系存放位置 | 写进页面 frontmatter / 独立 `lineage/` 文件 | **独立文件，页面渲染时合并** | 页面正文由 LLM 维护、谱系由脚本每日重算；混在一个文件里两边会互相覆盖（F001 试点已经吃过 build 与 biome 互相重排的亏）|
 | PR 号来源 | GitHub API / squash 提交信息 | **提交信息尾部 `(#NNNN)`** | 上游用 squash merge，PR 号就在提交标题里；不用 token、不受 API 限额影响。API 只在 F003 用 |
 | 「移除版本」的表述 | 单一版本号 / 按 ref 列表 | **按 ref 列表** | 分支分布非单调（v0.24 没了、v0.26.0rc 又有），单一版本号会说谎 |

@@ -6,7 +6,7 @@
 
 本轮把 T1 的持久任务底座接入了真实 CLI 路径：seed 提取默认停在草稿，任务与尝试记录落盘，同证据复用，中断后明确失败并等待显式重试。每次 agent 在独立尝试副本中工作，写回前核对 attempt、原文件和产物指纹。它解决的是工作可靠性，**不代表问答回存、人审发布或新会话受益已经完成**。
 
-当前规范与完成状态仍只在 [F004](../features/F004-knowledge-loop.md) 与 [T1 计划](knowledge-loop-plan.md) 维护。F001–F004 没有因此新增“全部 AC 完成”的 feature，批量导入仍暂停。
+当前规范与完成状态仍只在 [F004](../../features/F004-knowledge-loop.md) 与 [T1 计划](../knowledge-loop-plan.md) 维护。F001–F004 没有因此新增“全部 AC 完成”的 feature，批量导入仍暂停。
 
 ## 已接入的能力与证据
 

@@ -57,9 +57,9 @@ pnpm wiki:audit --seeds wiki/seeds/vllm-ascend.yaml
 
 | Feature | 本轮推进 | 状态单一来源 |
 |---|---|---|
-| F001 | 聊天保存、审阅 UI、发布后读者刷新；PR ingest 与真实完整验收仍缺 | [F001](../features/F001-llm-wiki.md) |
-| F002 | 本轮未改实现；现有 8 个参数页和部分谱系，扫描 / 骨架 / sync 仍缺 | [F002](../features/F002-param-lineage.md) |
-| F003 | plan 已存在，采集 / 检索 / 溯源尚未实施 | [F003](../features/F003-github-corpus.md) |
-| F004 | 增加聊天保存的可操作路径；真实复问、缺口队列与自动维护仍缺 | [F004](../features/F004-knowledge-loop.md) |
+| F001 | 聊天保存、审阅 UI、发布后读者刷新；PR ingest 与真实完整验收仍缺 | [F001](../../features/F001-llm-wiki.md) |
+| F002 | 本轮未改实现；现有 8 个参数页和部分谱系，扫描 / 骨架 / sync 仍缺 | [F002](../../features/F002-param-lineage.md) |
+| F003 | plan 已存在，采集 / 检索 / 溯源尚未实施 | [F003](../../features/F003-github-corpus.md) |
+| F004 | 增加聊天保存的可操作路径；真实复问、缺口队列与自动维护仍缺 | [F004](../../features/F004-knowledge-loop.md) |
 
 需要用户决定的问题：无。尚未验证的项目如上，不以测试夹具替代真实知识收益验收。

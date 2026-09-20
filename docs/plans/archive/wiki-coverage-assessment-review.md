@@ -21,21 +21,21 @@
 
 | 级别 / 位置 | 影响与复现 | 处理与证据 |
 |---|---|---|
-| P1 · `scripts/wiki/workflow-run.ts` | 有 `_gaps.json` 时执行种子抽取，副本会携带私人提问；抽取期间追加观察会被误认为知识内容变化 | `workflow-run.test.ts` 的 `keeps the gap ledger` 用例先失败，后通过；[红例日志](../../tools/wiki-runtime/coverage-seed-red.log)。这是上一轮未覆盖的抽取路径，本轮补齐。 |
-| P2 · `server/coverage-work.ts` | 观察后更新正式页，再返回 `retrieval-miss`，初版错误接受历史漏检结论 | `historical retrieval` 用例先得到 `ok:true` 而失败，现要求同知识版本；[红例日志](../../tools/wiki-runtime/coverage-revision-red.log)。 |
-| P1 · `server/coverage-work.ts` | 先 JSON 序列化再清洗，问题中的换行被转义，换行后的 `system:` 角色伪装未被过滤，会走到 runner | 逐字段清洗原始字符串再序列化；角色伪装在调用前阻塞，多行 HTML 注释删除仍保留有效引用；[红例日志](../../tools/wiki-runtime/coverage-screening-red.log)。 |
+| P1 · `scripts/wiki/workflow-run.ts` | 有 `_gaps.json` 时执行种子抽取，副本会携带私人提问；抽取期间追加观察会被误认为知识内容变化 | `workflow-run.test.ts` 的 `keeps the gap ledger` 用例先失败，后通过；[红例日志](../../../tools/wiki-runtime/coverage-seed-red.log)。这是上一轮未覆盖的抽取路径，本轮补齐。 |
+| P2 · `server/coverage-work.ts` | 观察后更新正式页，再返回 `retrieval-miss`，初版错误接受历史漏检结论 | `historical retrieval` 用例先得到 `ok:true` 而失败，现要求同知识版本；[红例日志](../../../tools/wiki-runtime/coverage-revision-red.log)。 |
+| P1 · `server/coverage-work.ts` | 先 JSON 序列化再清洗，问题中的换行被转义，换行后的 `system:` 角色伪装未被过滤，会走到 runner | 逐字段清洗原始字符串再序列化；角色伪装在调用前阻塞，多行 HTML 注释删除仍保留有效引用；[红例日志](../../../tools/wiki-runtime/coverage-screening-red.log)。 |
 
 ## 验证
 
-- `pnpm exec vitest run server/coverage-work.test.ts scripts/wiki/workflow-run.test.ts scripts/wiki/work-cli.test.ts scripts/wiki/prepare-input.test.ts server/chat-session.test.ts`：**5 files / 29 tests passed**；[日志](../../tools/wiki-runtime/coverage-focused-final.log)。覆盖结果复用、矛盾和伪造证据、未知与超额费用、并发防重复、版本和观察变化、回执篡改、限额重试、清洗与种子隔离。模型均为固定输出，不冒充真实分类效果。
-- 第一次 `pnpm check`：**3 failed / 553 passed**，失败均为 `prepare-input`、`chat-session` 的 5000ms 超时；保留 [首次日志](../../tools/wiki-runtime/coverage-check-first.log)。新增其余边界用例后的第二次运行 **6 failed / 553 passed**，保留 [第二次日志](../../tools/wiki-runtime/coverage-check-second.log)。未将失败日志覆盖或认作通过。
-- `pnpm test --maxWorkers 1`：**66 files / 559 tests passed (103.85s)**；[日志](../../tools/wiki-runtime/coverage-test-serial.log)。这是一轮实际全量通过，不代表后续运行稳定。
-- 暂将 Windows 默认改为单 worker 后再次运行 `pnpm check`：**2 failed / 556 passed，另有 1 worker error**；[日志](../../tools/wiki-runtime/coverage-check.log)。audit / lineage CLI 出现超时，workflow CLI 所在 worker 未正常初始化或终止，Vitest 报 `The child process was torn down or never initialized`。这反驳了“降低并发即可修复”的判断，因此撤回该配置尝试，保留原并发设置；没有通过放宽超时、删除断言或隐藏错误制造通过。**标准全量检查稳定性尚未解决，根因尚未确认**；不能声称本轮 `pnpm check` 全绿。类型检查与 lint 已在该命令进入测试前通过。
-- 针对这三套 CLI 用例运行 `pnpm exec vitest run scripts/wiki/audit-cli.test.ts scripts/wiki/lineage-cli.test.ts scripts/wiki/workflow-cli.test.ts --maxWorkers 1`：**3 files / 7 tests passed (31.92s)**；[日志](../../tools/wiki-runtime/coverage-cli-recheck.log)。独立重跑通过不抵消上面的全量异常。
-- `pnpm check:deps`、`pnpm check:content`、`pnpm wiki:lint`：全部 exit 0，**registry 19 页**；[日志](../../tools/wiki-runtime/coverage-content.log)。
-- `pnpm build`：exit 0，**built in 19.04s**；[日志](../../tools/wiki-runtime/coverage-build.log)。既有 Vite native loader、构建耗时提示与 Biome schema 版本提示未屏蔽。
-- `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium`：**28 passed (38.6s)**；[日志](../../tools/wiki-runtime/coverage-browser.log)。使用生产预览 4173，保留阅读、引用、保存、人审发布与三次缺口观察行为；[已目视复核截图](../../test-results/wiki-review-three-uncovere-98306-ssessment-without-compiling-chromium/gap-awaiting-assessment.png) 仍明确显示自动判定和补写尚未启动。HTTP / 模型 fixture 不冒充真实模型验证。
-- `pnpm wiki:work list`：真实工作区输出 `{"gaps":[],"assessments":[],"worker":"assessment-only"}`；[日志](../../tools/wiki-runtime/coverage-cli.log)。测试没有灌入正式缺口账本。
+- `pnpm exec vitest run server/coverage-work.test.ts scripts/wiki/workflow-run.test.ts scripts/wiki/work-cli.test.ts scripts/wiki/prepare-input.test.ts server/chat-session.test.ts`：**5 files / 29 tests passed**；[日志](../../../tools/wiki-runtime/coverage-focused-final.log)。覆盖结果复用、矛盾和伪造证据、未知与超额费用、并发防重复、版本和观察变化、回执篡改、限额重试、清洗与种子隔离。模型均为固定输出，不冒充真实分类效果。
+- 第一次 `pnpm check`：**3 failed / 553 passed**，失败均为 `prepare-input`、`chat-session` 的 5000ms 超时；保留 [首次日志](../../../tools/wiki-runtime/coverage-check-first.log)。新增其余边界用例后的第二次运行 **6 failed / 553 passed**，保留 [第二次日志](../../../tools/wiki-runtime/coverage-check-second.log)。未将失败日志覆盖或认作通过。
+- `pnpm test --maxWorkers 1`：**66 files / 559 tests passed (103.85s)**；[日志](../../../tools/wiki-runtime/coverage-test-serial.log)。这是一轮实际全量通过，不代表后续运行稳定。
+- 暂将 Windows 默认改为单 worker 后再次运行 `pnpm check`：**2 failed / 556 passed，另有 1 worker error**；[日志](../../../tools/wiki-runtime/coverage-check.log)。audit / lineage CLI 出现超时，workflow CLI 所在 worker 未正常初始化或终止，Vitest 报 `The child process was torn down or never initialized`。这反驳了“降低并发即可修复”的判断，因此撤回该配置尝试，保留原并发设置；没有通过放宽超时、删除断言或隐藏错误制造通过。**标准全量检查稳定性尚未解决，根因尚未确认**；不能声称本轮 `pnpm check` 全绿。类型检查与 lint 已在该命令进入测试前通过。
+- 针对这三套 CLI 用例运行 `pnpm exec vitest run scripts/wiki/audit-cli.test.ts scripts/wiki/lineage-cli.test.ts scripts/wiki/workflow-cli.test.ts --maxWorkers 1`：**3 files / 7 tests passed (31.92s)**；[日志](../../../tools/wiki-runtime/coverage-cli-recheck.log)。独立重跑通过不抵消上面的全量异常。
+- `pnpm check:deps`、`pnpm check:content`、`pnpm wiki:lint`：全部 exit 0，**registry 19 页**；[日志](../../../tools/wiki-runtime/coverage-content.log)。
+- `pnpm build`：exit 0，**built in 19.04s**；[日志](../../../tools/wiki-runtime/coverage-build.log)。既有 Vite native loader、构建耗时提示与 Biome schema 版本提示未屏蔽。
+- `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium`：**28 passed (38.6s)**；[日志](../../../tools/wiki-runtime/coverage-browser.log)。使用生产预览 4173，保留阅读、引用、保存、人审发布与三次缺口观察行为；[已目视复核截图](../../../test-results/wiki-review-three-uncovere-98306-ssessment-without-compiling-chromium/gap-awaiting-assessment.png) 仍明确显示自动判定和补写尚未启动。HTTP / 模型 fixture 不冒充真实模型验证。
+- `pnpm wiki:work list`：真实工作区输出 `{"gaps":[],"assessments":[],"worker":"assessment-only"}`；[日志](../../../tools/wiki-runtime/coverage-cli.log)。测试没有灌入正式缺口账本。
 
 ## 使用与剩余范围
 

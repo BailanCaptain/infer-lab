@@ -28,11 +28,12 @@ pnpm test:e2e     # Playwright 浏览器验收
 | 文件 | 作用 |
 |---|---|
 | `PLAN.md` | **总体大纲**：22 章蓝图、模型工作台、技术架构、M1 任务分解、里程碑 |
-| `HANDOFF.md` | 当前状态与下一步，新会话先读这一页 |
+| `HANDOFF.md` | 主干（首页 / 教学表现层）的当前状态与下一步 |
+| `HANDOFF-LLM-WIKI.md` | 知识库分支 `feat/llm-wiki` 的当前状态与下一步；页数、预算等会变的数字在那里给了现查命令 |
 | `DESIGN.md` | 设计真相源：配色、字阶、圆角、组件、画面纪律 |
 | `PITFALLS.md` | 踩过的坑 |
 | `CLAUDE.md` / `AGENTS.md` | 协作规则（两份内容相同，改动要同步） |
-| `docs/features/` | 单个 feature 的聚合文件（Why / What / AC / 决策 / Timeline），索引见 `PLAN.md` 七 |
+| `docs/features/` | 单个 feature 的聚合文件（Why / What / AC / 决策 / Timeline），**验收状态的唯一真相源**就是每份里的验收表；索引见 `PLAN.md` 七 |
 | `docs/plans/` | 单个 feature 的分步实施计划 |
 | `wiki/HANDBOOK.md` | 知识库 schema 真相源（F001） |
 

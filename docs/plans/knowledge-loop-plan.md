@@ -5,7 +5,7 @@
 **Acceptance Criteria:** 规范和完成状态只在 feature；本计划下表覆盖 AC1–AC9，并共同交付 [F001 AC8](../features/F001-llm-wiki.md) 的聊天保存与审阅。
 **Architecture:** 各入口统一形成带来源的编译任务，共用执行器、草稿和审阅流程。正式 markdown 是知识真相源，索引及反向链接均由它派生；批准后刷新问答快照。
 **Tech Stack:** 沿用 TypeScript、tsx、Zod、Vitest、React、node:http 与现有本机 agent CLI；本地 JSON 状态、markdown 产物、git 证据。不引入训练、推理服务、性能基准或向量库。
-**Status:** 当前完成状态只看 [feature 当前验收](../features/F004-knowledge-loop.md#2026-09-16-当前验收核对)，最新证据见 [非批量收尾报告](wiki-nonbulk-review.md)。下列任务保留设计依据；2026-09-14 的代码基线是历史快照，不代表当前仍无实现。真实模型未通过项不以工程测试替代。
+**Status:** 本计划不维护状态。验收状态看 feature 的验收表；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；会变的数字现查。下列任务只保留设计依据；2026-09-14 的代码基线是历史快照，不代表当前仍无实现。
 
 ## 终点、范围与顺序
 
@@ -95,7 +95,7 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T0：先修当前证据和整合基础
 
-**本轮落地：** commit blob 审计、clone 更新既有 pin、ingest 前置 pin / 工作树检查、git 失败非零退出、成功草稿选择、relations 一跳扩展、参数页实际路径与同 ID 对照；另补整合副本校验和 build 失败保留派生物。逐项证据及能力边界以 [修复记录](wiki-foundation-review.md) 为准。
+**本轮落地：** commit blob 审计、clone 更新既有 pin、ingest 前置 pin / 工作树检查、git 失败非零退出、成功草稿选择、relations 一跳扩展、参数页实际路径与同 ID 对照；另补整合副本校验和 build 失败保留派生物。逐项证据及能力边界以 [修复记录](archive/wiki-foundation-review.md) 为准。
 
 **修改：** `scripts/wiki/{audit,clone,lineage,ingest}.ts`、`scripts/wiki-{audit,clone,lineage,ingest}.ts`、`src/content/wiki/retrieve.ts`、`server/index.ts`；对应现有 `*.test.ts`，新增 `scripts/wiki/ingest-cli.test.ts`、`scripts/wiki/lineage-cli.test.ts`。
 
@@ -108,7 +108,7 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T1：共用执行器与持久工作状态
 
-**部分落地：** CLI seed 提取已接入 `batch.ts`、`workflow.ts`、`workflow-run.ts` 与 `persistent-extract.ts`。工作持久化、按来源与编译配方去重、attempt 防旧回写、退出进程恢复、显式重试、每任务累计预算与单次 CLI 额度均已验证。每次尝试在独立副本运行，默认只产草稿，既有 raw 不覆盖。执行预算目前仅覆盖 seed 提取；跨阶段预算、锁持有期间硬崩溃及发布恢复仍未完成，T1 不整体勾选。证据和调用方式见 [持久任务验收](wiki-workflow-review.md)。
+**部分落地：** CLI seed 提取已接入 `batch.ts`、`workflow.ts`、`workflow-run.ts` 与 `persistent-extract.ts`。工作持久化、按来源与编译配方去重、attempt 防旧回写、退出进程恢复、显式重试、每任务累计预算与单次 CLI 额度均已验证。每次尝试在独立副本运行，默认只产草稿，既有 raw 不覆盖。执行预算目前仅覆盖 seed 提取；跨阶段预算、锁持有期间硬崩溃及发布恢复仍未完成，T1 不整体勾选。证据和调用方式见 [持久任务验收](archive/wiki-workflow-review.md)。
 
 **新增：** `scripts/wiki/{batch,workflow,workflow-policy,log}.ts` 及各自 `*.test.ts`。**修改：** `scripts/wiki/ingest.ts`、`scripts/wiki-ingest.ts`。
 
@@ -123,7 +123,7 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T2：可引用的原文、文本投喂与隔离
 
-**部分落地（2026-09-15）：** 不可变快照、页面映射、缓存 / lint / audit 校验已接入，见 [快照验收](wiki-raw-review.md)。本地引用链路、清洗及输入准备见 [本地来源与清洗验收](wiki-input-review.md)；单材料 CLI 已接入受限编译、screening 持久记录和共用预算，见 [受限编译验收](wiki-compile-review.md)。旧页保持兼容，没有批量迁移或导入。聊天保存进展见 T5；真实 agent 单页验证、origin 读者标记及 drop / quarantine 仍待实施。
+**部分落地（2026-09-15）：** 不可变快照、页面映射、缓存 / lint / audit 校验已接入，见 [快照验收](archive/wiki-raw-review.md)。本地引用链路、清洗及输入准备见 [本地来源与清洗验收](archive/wiki-input-review.md)；单材料 CLI 已接入受限编译、screening 持久记录和共用预算，见 [受限编译验收](archive/wiki-compile-review.md)。旧页保持兼容，没有批量迁移或导入。聊天保存进展见 T5；真实 agent 单页验证、origin 读者标记及 drop / quarantine 仍待实施。
 
 **分段交付：** M1a 只交付共用 raw、来源解析、sanitize 和 origin；M1b 再开放 drop 命令，同时完成 quarantine。下列全套测试是 T2 完成条件，不能在只做共用部分时勾选 AC1 / AC2。
 
@@ -139,7 +139,7 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T3：跨页整合先形成可审 diff，再发布
 
-当前状态只看 F004；验证见 [审阅发布验收](wiki-review-publication.md) 与 [修订和 API 验收](wiki-revisions-api-review.md)。以下仍列完整目标，不因维护接口可用标 T3 完成。
+当前状态只看 F004；验证见 [审阅发布验收](archive/wiki-review-publication.md) 与 [修订和 API 验收](archive/wiki-revisions-api-review.md)。以下仍列完整目标，不因维护接口可用标 T3 完成。
 
 **实现入口：** `scripts/wiki/{review,revisions,integration-run}.ts`、`server/{review,snapshot}.ts` 和对应测试。生成区协议继续由 F002 承接，不另造标记格式。**修改：** `scripts/wiki/ingest.ts`、`scripts/wiki/build.ts`、`server/index.ts`、`wiki/HANDBOOK.md`。
 
@@ -154,11 +154,11 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T4：记录缺口并产生有证据的补写任务
 
-**诊断交接补充（2026-09-15）：** v2 回执由程序记录材料范围，分类与理由明确保留为模型判断 / 未验证；`wiki:work prepare --job <id>` 校验知识与观察未变化后，输出不含自由文本理由的补料核对输入，禁止直接编译。旧记录只供历史查看，不静默升级；见 [诊断范围与补料核对](wiki-coverage-scope-review.md)。来源采集、现有页核对、共享预算和真正的编译交接仍待实施，不能据此标 T4 完成。
+**诊断交接补充（2026-09-15）：** v2 回执由程序记录材料范围，分类与理由明确保留为模型判断 / 未验证；`wiki:work prepare --job <id>` 校验知识与观察未变化后，输出不含自由文本理由的补料核对输入，禁止直接编译。旧记录只供历史查看，不静默升级；见 [诊断范围与补料核对](archive/wiki-coverage-scope-review.md)。来源采集、现有页核对、共享预算和真正的编译交接仍待实施，不能据此标 T4 完成。
 
 **来源准备补充（同日）：** `prepare` 已支持显式 `--source` 与 `--page`，提供经过完整性检查和清洗的归档选行、完整候选正文、目录及未提供正文列表；复用同一个 raw 清洗入口。来源真实性、语义覆盖和页面处置仍需核对；此材料准备步骤没有发起模型调用或编译，验收证据沿用上述报告的后续章节。
 
-**历史阶段（2026-09-15）：** 信号采集与覆盖诊断证据分别见 [缺口信号验收](wiki-gap-observation-review.md)、[覆盖判定验收](wiki-coverage-assessment-review.md)。当时五个真实对照的分类与引文通过，理由仍有范围外推，见 [真实分类记录](wiki-classification-review.md)。此后已接通共享预算、`wiki:work run` 单次 worker、补写与独立复问关闭，工程证据与剩余真实验收统一见 [非批量收尾报告](wiki-nonbulk-review.md)。未知费用暂停；供应商单次请求的实际金额仍须凭回执核对。
+**历史阶段（2026-09-15）：** 信号采集与覆盖诊断证据分别见 [缺口信号验收](archive/wiki-gap-observation-review.md)、[覆盖判定验收](archive/wiki-coverage-assessment-review.md)。当时五个真实对照的分类与引文通过，理由仍有范围外推，见 [真实分类记录](archive/wiki-classification-review.md)。此后已接通共享预算、`wiki:work run` 单次 worker、补写与独立复问关闭，工程证据与剩余真实验收统一见 [非批量收尾报告](archive/wiki-nonbulk-review.md)。未知费用暂停；供应商单次请求的实际金额仍须凭回执核对。
 
 **新增：** `scripts/wiki/{gap-ledger,gap-compile}.ts`、`server/coverage.ts`、`scripts/wiki-work.ts` 和对应测试。**修改：** `server/{chat,index}.ts`、`package.json`、HANDBOOK 查询切片。
 
@@ -172,9 +172,9 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T5：聊天保存、审阅面板与问答索引刷新
 
-**新增验证（2026-09-15）：** 构建与在线读取共用快照入口，离线显示精确版本；正文与 revision 原子切换，缓存重新进入、失败保留与乱序请求保护已验证，见 [读者快照一致性验收](wiki-reader-snapshot-review.md)。真实 agent 复问及费用汇总仍未交付，T5 不整体勾选。
+**新增验证（2026-09-15）：** 构建与在线读取共用快照入口，离线显示精确版本；正文与 revision 原子切换，缓存重新进入、失败保留与乱序请求保护已验证，见 [读者快照一致性验收](archive/wiki-reader-snapshot-review.md)。真实 agent 复问及费用汇总仍未交付，T5 不整体勾选。
 
-**部分落地（2026-09-15）：** `server/answers.ts`、`server/pages.ts` 与 `tests/wiki-review.spec.ts` 已实现回答记录、受限编译、固定版本审阅、发布后目录/正文/检索刷新，证据见 [聊天保存验收](wiki-chat-save-review.md)。保存前复核引用页未在问答期间改变。问答运行副本隔离与跨版本续聊已实现，见 [版本隔离验收](wiki-chat-version-review.md)；费用汇总界面与真实 agent 复问仍待验证或实施，不标 T5 / M1a 完成。下面保留完整终态验收。
+**部分落地（2026-09-15）：** `server/answers.ts`、`server/pages.ts` 与 `tests/wiki-review.spec.ts` 已实现回答记录、受限编译、固定版本审阅、发布后目录/正文/检索刷新，证据见 [聊天保存验收](archive/wiki-chat-save-review.md)。保存前复核引用页未在问答期间改变。问答运行副本隔离与跨版本续聊已实现，见 [版本隔离验收](archive/wiki-chat-version-review.md)；费用汇总界面与真实 agent 复问仍待验证或实施，不标 T5 / M1a 完成。下面保留完整终态验收。
 
 **新增：** `server/knowledge.ts`、`src/app/wiki/ReviewPanel.tsx`、`tests/wiki-loop.spec.ts`、`server/knowledge.test.ts`。**修改：** `server/{chat,index,review}.ts`、`src/content/wiki/index.ts` 及其测试、`src/app/wiki/ChatDrawer.tsx`、`src/app/pages/WikiPage.tsx`、`src/design/wiki.css`、`tests/evidence.spec.ts`、`.gitignore`。
 
@@ -190,9 +190,9 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ### T6：M1 闭环验收与收益记录
 
-**部分真实验证（2026-09-15）：** 固定样本及评分依据唯一存于 `scripts/wiki/eval-suite.json`；`pnpm wiki:eval` 仍是零调用预检入口。真实模型的补料、编译、隔离发布与独立复问已执行，实际改善、失败、配置和费用见 [真实验收记录](knowledge-loop-review.md)。严格效果尚未全部通过，T6 / M1a / M1b 不整体勾选；下面保留完整终态步骤。
+**部分真实验证（2026-09-15）：** 固定样本及评分依据唯一存于 `scripts/wiki/eval-suite.json`；`pnpm wiki:eval` 仍是零调用预检入口。真实模型的补料、编译、隔离发布与独立复问已执行，实际改善、失败、配置和费用见 [真实验收记录](archive/knowledge-loop-review.md)。严格效果尚未全部通过，T6 / M1a / M1b 不整体勾选；下面保留完整终态步骤。
 
-**后续新增测试：** `scripts/wiki/knowledge-loop.test.ts`；扩充 `tests/wiki-loop.spec.ts`。实际保存路径的测试和真实结果见 [验收报告](knowledge-loop-review.md)，不把这些后续测试名当成已实现入口。
+**后续新增测试：** `scripts/wiki/knowledge-loop.test.ts`；扩充 `tests/wiki-loop.spec.ts`。实际保存路径的测试和真实结果见 [验收报告](archive/knowledge-loop-review.md)，不把这些后续测试名当成已实现入口。
 
 1. 在编译前固定 6 个场景：库内缺少但有来源的问题、该问题未参与编译的等价改写、跨页综合、不同版本的反例、已有知识回归、无证据问题。人工按钉定来源标注预期事实、支持证据与禁止泛化范围；期待答案与保留问题不放入编译 prompt、corpus 或正式 wiki。
 2. 运行 `pnpm test scripts/wiki/knowledge-loop.test.ts`，stub 贯通三次独立事件 → 单任务 → 草稿 → 审阅 → 正式发布 → 新会话；拒绝、重复、材料不足、过时批准作为反例。
@@ -237,7 +237,7 @@ T0–T9 是任务标识，拆分实施不重新命名模块。M1a 直接使用�
 
 ## 设计时需核对的条件（历史）
 
-以下记录描述编写计划时的边界，不代表当前状态。实际实现、真实调用、测试文件与可执行命令以 [非批量收尾报告](wiki-nonbulk-review.md) 为准；正文中的拟定测试文件名是拆分任务的设计依据，并非全部按原名落地。
+以下记录描述编写计划时的边界，不代表当前状态。实际实现、真实调用与可执行命令以代码和 [F004 验收表](../features/F004-knowledge-loop.md) 为准；正文中的拟定测试文件名是拆分任务的设计依据，并非全部按原名落地。
 
 - GitHub token 不阻塞本计划的离线实现；真实 agent 可用性、调用预算和外部资料访问在首次真实编译前核对。本轮未调用 agent。
 - sanitize 文件存在已经核对，其适配效果和链式隔离误报率尚未验证，必须由 T2 用例与真实样例决定。

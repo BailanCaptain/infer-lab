@@ -8,10 +8,10 @@
 
 | Feature | 本轮核对结论 | 当前状态与逐项证据 |
 |---|---|---|
-| F001 课程知识库与问答 | 阅读基础可用，19 页；回答回存尚缺，提取隔离、图符号校验和回答末尾相关页入口仍未完整交付；批量灌种按用户要求暂停 | [F001 当前验收](../features/F001-llm-wiki.md#2026-09-14-当前验收核对)：AC1 / AC2 / AC6 / AC10 本轮自动验证；AC4 / AC7 / AC9 保留历史证据但没有本轮真实 agent / 语义全链路复验；AC3 / AC11 / AC12 部分实现；AC5 暂停，AC8 未完成。 |
-| F002 参数清单与版本谱系 | 8 个参数页和部分谱系工具可用；原“2/6 达成”不成立，应是 2 项部分实现、4 项未实现 | [F002 当前验收](../features/F002-param-lineage.md#2026-09-14-当前验收核对)：AC3 缺 tag 列表和完整生命周期核验；AC5 缺骨架刷新保护链路；AC1 / AC2 / AC4 / AC6 未实现。 |
-| F003 GitHub 语料与报错溯源 | 计划已写，7 项 AC 均未交付 | [F003](../features/F003-github-corpus.md#acceptance-criteria)；`package.json` 没有 sync-github，源码检索未发现采集器、语料检索和 PR 入库入口。未执行全量拉取。 |
-| F004 使用驱动的知识积累闭环 | T0 已完成，T1 共用执行器已接入，持久任务与闭环仍未完成；9 项 AC 均未完整交付 | [F004](../features/F004-knowledge-loop.md#acceptance-criteria)、[T1 实施范围](knowledge-loop-plan.md)；`scripts/wiki/batch.ts:50` 是本轮新增基础，不能充当 chat 保存、审阅或知识积累的完成证明。 |
+| F001 课程知识库与问答 | 阅读基础可用，19 页；回答回存尚缺，提取隔离、图符号校验和回答末尾相关页入口仍未完整交付；批量灌种按用户要求暂停 | [F001 当前验收](../../features/F001-llm-wiki.md#2026-09-14-当前验收核对)：AC1 / AC2 / AC6 / AC10 本轮自动验证；AC4 / AC7 / AC9 保留历史证据但没有本轮真实 agent / 语义全链路复验；AC3 / AC11 / AC12 部分实现；AC5 暂停，AC8 未完成。 |
+| F002 参数清单与版本谱系 | 8 个参数页和部分谱系工具可用；原“2/6 达成”不成立，应是 2 项部分实现、4 项未实现 | [F002 当前验收](../../features/F002-param-lineage.md#2026-09-14-当前验收核对)：AC3 缺 tag 列表和完整生命周期核验；AC5 缺骨架刷新保护链路；AC1 / AC2 / AC4 / AC6 未实现。 |
+| F003 GitHub 语料与报错溯源 | 计划已写，7 项 AC 均未交付 | [F003](../../features/F003-github-corpus.md#acceptance-criteria)；`package.json` 没有 sync-github，源码检索未发现采集器、语料检索和 PR 入库入口。未执行全量拉取。 |
+| F004 使用驱动的知识积累闭环 | T0 已完成，T1 共用执行器已接入，持久任务与闭环仍未完成；9 项 AC 均未完整交付 | [F004](../../features/F004-knowledge-loop.md#acceptance-criteria)、[T1 实施范围](../knowledge-loop-plan.md)；`scripts/wiki/batch.ts:50` 是本轮新增基础，不能充当 chat 保存、审阅或知识积累的完成证明。 |
 
 **整体仍处在“可信知识库底座 + 可读可问”阶段，尚未达到“越用越聪明”。** 最小可证明终点仍是一条有来源的答案，经草稿、人审和发布后，被独立新会话复用。没有训练模型、部署推理服务或运行性能基准。
 

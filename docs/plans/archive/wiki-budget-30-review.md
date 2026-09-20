@@ -6,7 +6,7 @@
 
 ## 已批准发布
 
-用户已明确批准 `38cca26d5d8bbd6d30efcb55bb9fdcabe6a54e3f2f12542fb2c206bf8f8c1619` 并要求继续后测。实际 `pnpm wiki:review approve ...` 成功，新增 [profiling_chunk_config 参数页](../../wiki/params/profiling-chunk-config.md)，正式页数 **19 → 20**（11 概念、9 参数）。原有 19 页逐字保持、raw 原文未改、所有写入与批准 manifest 一致，见 `profiling-approved-publish.log`、`profiling-publication-verification.json`。这不是 F002 全量参数生成。
+用户已明确批准 `38cca26d5d8bbd6d30efcb55bb9fdcabe6a54e3f2f12542fb2c206bf8f8c1619` 并要求继续后测。实际 `pnpm wiki:review approve ...` 成功，新增 [profiling_chunk_config 参数页](../../../wiki/params/profiling-chunk-config.md)，正式页数 **19 → 20**（11 概念、9 参数）。原有 19 页逐字保持、raw 原文未改、所有写入与批准 manifest 一致，见 `profiling-approved-publish.log`、`profiling-publication-verification.json`。这不是 F002 全量参数生成。
 
 素材仍为两个固定提交的三段配置源码，原文及范围见 [前轮材料记录](wiki-real-baseline-review.md)。首次提高额度重试拿到完整 Markdown，但草稿缺章节/关系，lint 拒绝。调查确认 `planRawCompile` 未提供现有页面及章节清单。
 

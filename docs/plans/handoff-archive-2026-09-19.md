@@ -4,7 +4,7 @@
 
 > **2026-09-19 新增 vLLM-Ascend 代码导览板块**：正式库 20 → 35 页（第 10 章 6 页、第 20 章 9 页），新增 17 张图。图的载体从 mermaid 换成「手写 spec → 脚本渲染 SVG」；concept / feature 的固定七节骨架放开，只保留 `## 一句话`。这批页**没有走付费 ingest**（我直接读本地钉住的源码手写），也**没有走 `wiki:review approve` 人审流程**——它们已在 `wiki/concepts/` 里、过了全部生产校验，但用户尚未逐页读过。详见第 9 节。
 >
-> smooth_factor 补充已获用户批准并写入正式参数页，公式、默认值、算例及两个来源已通过浏览器验证。正式库仍20页，其余19页和原raw未变；四题后测尚未运行。累计占用 $17.3115764、48/52 次、paused=true，金额上限仍29美元；保留新增$1未知预留，具体恢复方案待确认。 详见 [真实缺口接续](docs/plans/wiki-real-gap-review.md)。F001–F004仍在进行，三项批量工作继续暂缓。
+> smooth_factor 补充已获用户批准并写入正式参数页，公式、默认值、算例及两个来源已通过浏览器验证。正式库仍20页，其余19页和原raw未变；四题后测尚未运行。累计占用 $17.3115764、48/52 次、paused=true，金额上限仍29美元；保留新增$1未知预留，具体恢复方案待确认。 详见 [真实缺口接续](archive/wiki-real-gap-review.md)。F001–F004仍在进行，三项批量工作继续暂缓。
 
 ## 1. 先进入正确目录，保留现场
 
@@ -13,7 +13,7 @@
 - 原始理念文档：`C:/Users/-/Desktop/infra-view-new/llm-wiki.md`，保持未改。
 - 最新文档交接检查，实施目录 `git status --short` 有 **269 条记录**，包含很多未跟踪的新代码、测试和状态文件；不是全由本轮产生。未提交、未合并。不要 reset、clean、覆盖或只从 HEAD 新建一个空工作树后继续，否则会漏掉实现。
 - `tools/repos/`、`tools/corpus/`、`tools/wiki-runtime/`、`wiki/_jobs/budget/`、`wiki/_jobs/sync/` 被忽略。新会话应继续用此目录；换电脑或全新 clone 不会带上本地仓库、语料、账本、回执和日志。
-- 先读本文件，再读 `AGENTS.md`、四个 feature 的“当前验收核对”、[独立复查报告](docs/plans/wiki-independent-closure-review.md)。根目录旧 `HANDOFF.md` 的首页/城市背景部分保留给其他工作，不能用其历史 Wiki 数字覆盖这里。
+- 先读本文件，再读 `AGENTS.md`、四个 feature 的“当前验收核对”、[独立复查报告](archive/wiki-independent-closure-review.md)。根目录旧 `HANDOFF.md` 的首页/城市背景部分保留给其他工作，不能用其历史 Wiki 数字覆盖这里。
 
 ## 2. 用户目标与持续生效的约束
 
@@ -42,7 +42,7 @@ F004 没有另一项“灌满全库”的目标，但真实投喂、真实缺口
 
 规范和后续状态唯一维护在 feature；下表只是交接当天的摘要，不新建另一套百分比。计划文件都已存在：F001 `docs/plans/llm-wiki-plan.md`，F002 `param-lineage-plan.md`，F003 `github-corpus-plan.md`，F004 `knowledge-loop-plan.md`。旧 plan 中“尚未实施”的阶段性描述可能过时，以当前 AC 表、实际代码和证据为准。
 
-### F001 · [LLM Wiki](docs/features/F001-llm-wiki.md)
+### F001 · [LLM Wiki](../features/F001-llm-wiki.md)
 
 | AC | 已有与仍缺 |
 |---|---|
@@ -59,7 +59,7 @@ F004 没有另一项“灌满全库”的目标，但真实投喂、真实缺口
 | AC11 | 图符号来源检查接 lint / 审阅；本地 pin 检查有证据，不代表图中每个语义断言均经人工确认 |
 | AC12 | 成功且引用通过后派生相关页，实际浏览器点击通过 |
 
-### F002 · [参数谱系](docs/features/F002-param-lineage.md)
+### F002 · [参数谱系](../features/F002-param-lineage.md)
 
 | AC | 已有与仍缺 |
 |---|---|
@@ -70,7 +70,7 @@ F004 没有另一项“灌满全库”的目标，但真实投喂、真实缺口
 | AC5 | 选择性补文与生成区保护有固定输出回归；最近这套链路的真实 LLM 补文未通过验收。历史 8 页内容存在不等于新版机制真实验收 |
 | AC6 | 增量 Git / CLI 用例通过；09-16 03:00 实际执行失败。当前副本复现 Python 3.9 无法解析新语法，换 3.12 后触发 13 页超过上限 3；已固定同步解释器、保留超限暂缓并允许后续巡检、持久记录错误。生产到点运行未重新验收 |
 
-### F003 · [GitHub 语料](docs/features/F003-github-corpus.md)
+### F003 · [GitHub 语料](../features/F003-github-corpus.md)
 
 | AC | 已有与仍缺 |
 |---|---|
@@ -82,7 +82,7 @@ F004 没有另一项“灌满全库”的目标，但真实投喂、真实缺口
 | AC6 | 重要 PR 排队、清洗、diff 材料和待审管线已实现；真实 #11953 编译失败，须先核费用，不能当作已成页 |
 | AC7 | 10 条真实样本的 12 个文档链接已解析，9 个映射成功，3 个因本地缺对应 ref 明示失败；不是所有版本映射已齐全 |
 
-### F004 · [知识积累](docs/features/F004-knowledge-loop.md)
+### F004 · [知识积累](../features/F004-knowledge-loop.md)
 
 | AC | 已有与仍缺 |
 |---|---|
@@ -111,7 +111,7 @@ wiki/_jobs/sync/daily-lease.json: active=false
 
 `wiki/log.md` 末尾的失败记录保留。原始 stderr 未落盘、未找到可还原的任务事件；无法保证还原了历史唯一根因。本轮在临时 Wiki 副本禁联网/禁模型执行实际同步代码，稳定复现 Python 3.9 对 `c267db73:.../patch_speculative_config.py:125` 的语法错误；换用 3.12 后又复现新增骨架 13 超过上限 3。没有为排查重跑生产默认 sync。
 
-已修复：同步配置 `python` 固定本机 3.12；AST 继续严格失败、不跳源码；超限整批暂缓、不推进该 ref 检查点，仍执行巡检并非零退出；`wiki/_jobs/sync/last-run.json` 与 `run-<指纹>.json` 持久保存阶段/错误/结果。真实本地源码隔离复验 main deferred=13、v0.23.0 changed=false、patrol findings=[]、modelCallsAllowed=false。生产任务仍待下次到点证据，日志与测试见 [接续报告](docs/plans/wiki-resume-review.md)。
+已修复：同步配置 `python` 固定本机 3.12；AST 继续严格失败、不跳源码；超限整批暂缓、不推进该 ref 检查点，仍执行巡检并非零退出；`wiki/_jobs/sync/last-run.json` 与 `run-<指纹>.json` 持久保存阶段/错误/结果。真实本地源码隔离复验 main deferred=13、v0.23.0 changed=false、patrol findings=[]、modelCallsAllowed=false。生产任务仍待下次到点证据，日志与测试见 [接续报告](archive/wiki-resume-review.md)。
 
 配置 `wiki/sync.config.json`：fetch=true、parameters=true、github=true、每个 repo/ref 新参数页上限 3；maxTasks=0、reconcileBatches=0、driftSample=0。没有全库检查点时不自动首次全拉；目前收费维护关闭，但不是整项任务暂停，后续仍会按时运行。若要复现，应先准备保留错误输出、限制写入/网络范围的诊断方式；别用默认 sync 当只读检查。
 
@@ -133,13 +133,13 @@ smooth_factor 补充已获用户批准并写入正式参数页，公式、默认
 
 历史未知调用 76128abc-ee51-43ce-aac7-ece041eec60a（PR #11953 worker-compile，60 秒超时）仍 unknown；对应 026efb56… 任务 failed。75de3a19… 为 superseded-source 而 closed，不是成功补页。本轮新增调用都有费用回执，没有新增未知费用。
 
-原 $0.15 轮六题有五份完整、一份失败，之后编译失败且 8/8 耗尽，见 [历史停点](docs/plans/wiki-real-baseline-review.md)。这不是当前限制。扩额后原任务重试拿到正文，但孤立草稿被 lint 拒绝；修复编译输入缺导航后，新 recipe 任务 b2ca1518… 产出有效草稿，旧 cf28e5a3… 失败与费用保留。真实整合及源码审阅后，用户明确批准 38cca26d…；发布器完整校验通过，原 19 页逐字保持，新增 params/profiling-chunk-config.md。完整证据见 [本轮报告](docs/plans/wiki-budget-30-review.md)。
+原 $0.15 轮六题有五份完整、一份失败，之后编译失败且 8/8 耗尽，见 [历史停点](archive/wiki-real-baseline-review.md)。这不是当前限制。扩额后原任务重试拿到正文，但孤立草稿被 lint 拒绝；修复编译输入缺导航后，新 recipe 任务 b2ca1518… 产出有效草稿，旧 cf28e5a3… 失败与费用保留。真实整合及源码审阅后，用户明确批准 38cca26d…；发布器完整校验通过，原 19 页逐字保持，新增 params/profiling-chunk-config.md。完整证据见 [本轮报告](archive/wiki-budget-30-review.md)。
 
 新固定对照：suiteRevision=d8fde337…，模型 claude-sonnet-4-6，前后均每题 $1 / 300 秒、独立会话、只读快照、禁联网；前测知识 fbdf0fa7…，后测知识 84e2d9aa…；判准未进入编译或问答输入。tools/wiki-runtime/eval-budget-30/ 保存前后各 6 份完整原始回执。配置检查及 need_timing 版本答案有改善；两轮引用结构均只有 3/6。改写题后测冒用 C1，槽位题出现先 896 后 898 的矛盾，不能算完整验收通过。
 
 追加引用修复从当前候选页生成可复制的真实编号并复用生产校验器，不放宽结果检查。单独三题复测在 eval-citation-guide-30/：引用结构 2/3；槽位本次一致为 898，但来源标记的语义对应仍未全过；改写题还把 2c59ff10 误称 main。不得把结构通过当作事实和版本通过，也不得将这轮提示修复归因于新文章。
 
-最新可读性编辑 66ca6029… → 2d179f39… 已发布，原 19 页与 raw 未变。正文分支名称依据 seeds 与真实 Git 核对，原来只留短哈希属于过度修正。本轮四题修复验证引用结构 2/4；再简化问答后两题 1/2。最后从实际请求查出 sourceLinks 复制指令与手册冲突，已删除程序层的重复引用/组织指令，只注入页面链接和关系导航；46 项工程回归通过，未进行此最终代码修复后的真实模型复测。记录见 [本轮可读性报告](docs/plans/wiki-readable-versions-review.md)。
+最新可读性编辑 66ca6029… → 2d179f39… 已发布，原 19 页与 raw 未变。正文分支名称依据 seeds 与真实 Git 核对，原来只留短哈希属于过度修正。本轮四题修复验证引用结构 2/4；再简化问答后两题 1/2。最后从实际请求查出 sourceLinks 复制指令与手册冲突，已删除程序层的重复引用/组织指令，只注入页面链接和关系导航；46 项工程回归通过，未进行此最终代码修复后的真实模型复测。记录见 [本轮可读性报告](archive/wiki-readable-versions-review.md)。
 
 本次为直接源码补页，未伪造生产 gap 三次观察/诊断/排队/关闭。生产 wiki/_jobs/retests/ 的四类逐任务冻结方案，与 scripts/wiki/eval-suite.json 的六场景协议不同，接续时不要混为一套。仍需真实自动 gap 闭环、参数复核/补文及维护判断的验收。当前没有待重复批准的内容包。
 
@@ -149,7 +149,7 @@ smooth_factor 补充已获用户批准并写入正式参数页，公式、默认
 - `readCorpus`：issue #15815、#16625；PR #11953、#15981，共 4 条。
 - 8 个旧参数页身份在 `wiki/params/identities.json`，包含 8 个定义、4 个 reference；新页 hash ID 与旧公开 ID 不混用。旧页更新生成区，不把 suspect 自动认定为真实参数。
 - 上一轮、显存修订发布前重新运行来源审计：418 来源，411 本地行号有效，7 URL 不由该命令联网校验，107 raw 结构提示；无无效 commit / 缺文件 / 越界 / 未知仓库。日志 `tools/wiki-runtime/evidence-review-audit.log`。另实际打开 CPU Offload 官方 URL，当前可访问。本次发布新增 1 个固定上游 URL，旧审计总数不能冒充发布后总数。
-- 107 条集中在 Block Table 20、CPU Offload 1、Memory Profiling 21、Quantization 26、fuse_allreduce_rms 16、layer_sharding 23。本轮逐项比较为 99 全范围一致、1 局部原文、6 差异另行阅读、1 URL；结果与哈希见 `tools/wiki-runtime/legacy-excerpt-comparison.json`，详细解释见 [核查报告](docs/plans/wiki-evidence-review.md)。原 raw 未改，不把今天读取的源码伪装成旧 agent 已读记录。
+- 107 条集中在 Block Table 20、CPU Offload 1、Memory Profiling 21、Quantization 26、fuse_allreduce_rms 16、layer_sharding 23。本轮逐项比较为 99 全范围一致、1 局部原文、6 差异另行阅读、1 URL；结果与哈希见 `tools/wiki-runtime/legacy-excerpt-comparison.json`，详细解释见 [核查报告](archive/wiki-evidence-review.md)。原 raw 未改，不把今天读取的源码伪装成旧 agent 已读记录。
 - 所有正式页尚未逐句全面语义复核。显存预算的上游对比有直接源码反证，最小修订已批准发布；Prefix Caching 旧纠错依据不足，已撤回。文件和行号存在不是“结论正确”。
 
 ## 8. 最近实际验证记录与关键实现位置
@@ -158,7 +158,7 @@ smooth_factor 补充已获用户批准并写入正式参数页，公式、默认
 
 本轮最终验证：4 文件 / 46 项通过（5.38s），服务端 3 文件 Biome 检查通过，构建含 TypeScript 通过（3.28s）；标题、分支名、来源已实际浏览器验证。日志见可读性报告。
 
-前轮完整验证：`pnpm check` 93 文件 / 648 项通过（168.85s），类型、项目 Lint、依赖、内容和 Wiki lint 通过；server 本轮 5 文件另用继承原规则的临时 includes 检查通过。`pnpm build` 通过（3.42s）。日志 `tools/wiki-runtime/citation-guide-check.log`、`citation-guide-build.log`。真实桌面审阅与正式阅读页、来源链接已操作验证；`profiling-review-browser.json`、`profiling-reader-browser.json`。批准 manifest 与实际写入匹配，原 19 页未改、正式页 20，`profiling-publication-verification.json`。详情见 [本轮报告](docs/plans/wiki-budget-30-review.md)。
+前轮完整验证：`pnpm check` 93 文件 / 648 项通过（168.85s），类型、项目 Lint、依赖、内容和 Wiki lint 通过；server 本轮 5 文件另用继承原规则的临时 includes 检查通过。`pnpm build` 通过（3.42s）。日志 `tools/wiki-runtime/citation-guide-check.log`、`citation-guide-build.log`。真实桌面审阅与正式阅读页、来源链接已操作验证；`profiling-review-browser.json`、`profiling-reader-browser.json`。批准 manifest 与实际写入匹配，原 19 页未改、正式页 20，`profiling-publication-verification.json`。详情见 [本轮报告](archive/wiki-budget-30-review.md)。
 
 最新文档核对：13 个文件的 34 条 AC 全部保留，104 个本地链接无断链，正式页 20、schema problems=0，见 `tools/wiki-runtime/budget-30-doc-check.json`；`git diff --check` 通过。
 
@@ -166,9 +166,9 @@ smooth_factor 补充已获用户批准并写入正式参数页，公式、默认
 
 前轮文档检查覆盖 12 个入口/feature/报告文件：34 条 AC 全部保留，97 个本地链接无断链，正式页 19、schema problems=0；证据 `tools/wiki-runtime/baseline-followthrough-doc-check.json`。`git diff --check` 通过；大量既有未提交文件保留。
 
-此前预算恢复实现：93 文件 / 644 项通过（166.20s）、构建通过（3.91s），见 [预算恢复记录](docs/plans/wiki-budget-resume-review.md)。该报告只读预览及首题状态属于历史，当前以第 6 节为准。
+此前预算恢复实现：93 文件 / 644 项通过（166.20s）、构建通过（3.91s），见 [预算恢复记录](archive/wiki-budget-resume-review.md)。该报告只读预览及首题状态属于历史，当前以第 6 节为准。
 
-前一轮维护修复的完整验证：`pnpm check` 退出 0，92 文件 / 638 项通过（105.44s），类型/Lint/依赖/内容/Wiki lint 均通过；`pnpm build` 通过（3.03s）。日志 `tools/wiki-runtime/resume-check-final.log`、`resume-build.log`；设置 `WIKI_PYTHON` 为同步配置中的 Python 3.12 路径。真实源码隔离复验和先红后绿见 [接续报告](docs/plans/wiki-resume-review.md)。显存修订已通过正式发布校验，发布后 Wiki lint 通过、构建通过（2.57s，`memory-publication-build.log`），所有正式写入与批准包一致（`memory-publication-verification.json`）。没有重跑这 638 项，不冒充最新结果；无 UI 改动、无新浏览器验收。
+前一轮维护修复的完整验证：`pnpm check` 退出 0，92 文件 / 638 项通过（105.44s），类型/Lint/依赖/内容/Wiki lint 均通过；`pnpm build` 通过（3.03s）。日志 `tools/wiki-runtime/resume-check-final.log`、`resume-build.log`；设置 `WIKI_PYTHON` 为同步配置中的 Python 3.12 路径。真实源码隔离复验和先红后绿见 [接续报告](archive/wiki-resume-review.md)。显存修订已通过正式发布校验，发布后 Wiki lint 通过、构建通过（2.57s，`memory-publication-build.log`），所有正式写入与批准包一致（`memory-publication-verification.json`）。没有重跑这 638 项，不冒充最新结果；无 UI 改动、无新浏览器验收。
 
 以下均为前一轮执行、本轮重新读取的日志，不冒充本次新跑测试：
 

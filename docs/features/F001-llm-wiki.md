@@ -37,25 +37,24 @@ created: 2026-09-07
 
 ## Acceptance Criteria
 
-### 2026-09-16 当前验收核对
+### 验收状态（更新于 2026-09-20）
 
-独立复查修复、最终测试和人工停点见 [当前交接报告](../plans/wiki-independent-closure-review.md)；下表不把固定输出机制测试等同真实语义效果。
-
-规范文本与当前验收表保留在本 feature，计划不维护第二份状态。工程、真实样本和未验证边界分开列示；最近完整验证见 [独立复查报告](../plans/wiki-independent-closure-review.md)，2026-09-16 上午运行状态变化及新会话接续见 [最新 handoff](../../HANDOFF-LLM-WIKI.md)。
+这张表是 F001 验收状态的唯一真相源。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算、待审数这类会变的数字按它 §2 的命令现查，或看阅读页右侧「状态」页签。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。**固定模型输出的测试只证明机制能跑**，不证明内容质量。
 
 | AC | 当前结论 | 证据与未满足条件 |
 |---|---|---|
-| AC1 / AC2 | 工程验证通过 | handbook / build / lint 回归、真实库派生一致性；共享规则见 HANDBOOK 与 schema。最终命令见收尾报告。 |
-| AC3 | 工程验证通过 | batch、persistent-extract、ingest-cli 的并发、失败隔离、pin、dry-run、预算、草稿和整合测试。真实多 ref 提取未在本轮收费重跑。 |
-| AC4 | 历史试点保留，未全面重审语义 | 发布前审计 19 页、418 来源，411 本地行号有效；107 条 raw 提示逐项核查为 99 全范围一致、1 局部原文、6 差异另行阅读、1 URL 可访问。Prefix Caching 过度纠错 dd3bf215… 已撤回；显存预算与上游的错误对比已由用户批准，e6061568… 发布校验通过并写入正式正文。详见 [最新证据核查](../plans/wiki-evidence-review.md)。摘录对应不等于整页语义通过。 |
-| AC5 | 用户暂缓的批量项 | 不运行全量灌种；正式页为 20 页，新增的 profiling_chunk_config 是单页源码补写，不代表章节/术语全量覆盖。 |
-| AC6 | 浏览器功能已实现，最终结果见报告 | tests/wiki.spec.ts、evidence.spec.ts、wiki-reader.spec.ts 与 wiki-review.spec.ts 覆盖目录、证据、快照和跳转。 |
-| AC7 | 真实验收推进中，尚未全部通过 | 最终输入修复后三题引用结构3/3，算数一致898；改写题仍有提交映射疑问，现已将可读分支名直接链接固定源码。smooth_factor补充已批准发布并通过浏览器验证，四题后测未启动；完整真实质量仍未全过。见 [真实缺口接续](../plans/wiki-real-gap-review.md)。 |
-| AC8 | 工程入口接通，真实 PR 草稿未通过 | chat 保存共用审阅；新增 ingest --pr 共用语料、清洗和 worker。真实 PR #11953 编译超时，未生成成功草稿，费用未知已暂停收费。 |
-| AC9 | 本地 pin / clone 回归通过，真实重提取未验证 | 完整 Git 实测全仓 py 中 layer_sharding 为 8/9/14/0/0/1/0/0；该统计不代替真实多 ref agent 提取。 |
-| AC10 | 工程验证通过 | retrieve 单一入口已接稳定报错片段和一跳关系，聊天层复用。 |
-| AC11 | 符号与图证据检查已接通 | 新增 diagram-symbol；生产 lint CLI 虚构类红 / 正确类绿，批准副本使用同一外部钉定仓库；真实页本地审计通过。历史批次 11/11 图统计未作为本轮重跑。 |
-| AC12 | 程序入口和浏览器验证通过 | 只在成功且引用通过后派生实际相关页，浏览器点击跳至目标；不依赖模型主动输出相关链接。 |
+| AC1 | 与 AC 文本不符 | 六个 H2 切片确实能被程序切出（`scripts/wiki/handbook.ts:9-16` ↔ HANDBOOK 的六个 `##`）。但 AC 写的「HANDBOOK 是 schema 唯一真相源」不成立：页型、关系类型、必需小节在 `src/content/wiki/schema.ts` 与 `scripts/wiki/lint.ts` 各定义一遍（审视 §2 P2）。AC 文本里的 `wiki/sources/` 至今是空目录。`wiki:build` 的幂等本轮未重跑。 |
+| AC2 | 真实实现并测试 | `pnpm wiki:lint` 2026-09-20 通过（输出 `ok wiki:lint 通过`）；每条规则的红绿用例在 `scripts/wiki/lint.test.ts`。 |
+| AC3 | 只用固定输出验证 | spawn stub 单测覆盖 argv、cwd、并发上限、越界写、失败记录、`--dry-run`。真实多 ref 提取未用真实模型复测。 |
+| AC4 | 部分实现（行号属实，语义未复核） | `pnpm wiki:audit --seeds wiki/seeds/vllm-ascend-code.yaml` 2026-09-20：61 页 740 条来源，行号有效 718，无效 commit 0、文件不存在 0、越界 0、未知仓库 0；URL 22 条未联网验证、raw 摘录 591 条待核对。09-19/20 这批把 main 来源重钉到 `b255ab59` 并按新写法重写（`d4f64d2`、`4545e77`…`aab558c`）。**行号属实不等于整页结论正确**，正文未逐句对照源码复核。 |
+| AC5 | 未执行（用户暂缓） | 全量灌种未跑。`pnpm wiki:lint --terms` 2026-09-20 仍报 27 处 `missing-term`——30 个课程术语里只有 `kv-cache`、`rope`、`prefill` 三页，写法用户已认可、其余挂起。页数现查。R2 的整合读取策略改动仍是开跑前置。 |
+| AC6 | 真实实现并测试 | 阅读页目录固定四部分（`src/content/wiki/toc.ts:35-39`，提交 `06a6cb2`）；右侧面板把问答/审阅/状态合成一个侧栏（`b36d82c`、`c07da54`）。Playwright：`tests/wiki.spec.ts`、`wiki-reader.spec.ts`、`wiki-review.spec.ts`、`evidence.spec.ts`。最近一次全量跑的结果记在 HANDOFF-LLM-WIKI §6，本轮未重跑。 |
+| AC7 | 部分实现 + 与 AC 文本不符 | 2026-09-20 复查：引用检查的判定逻辑没错，未改——声明未收录判 `cited: true` 是复测验收（`scripts/wiki/retest.ts:244`）依赖的语义。缺的只是呈现，已补：`src/app/wiki/ChatDrawer.tsx:259-262` 的 `data-testid="chat-uncovered"`（提交 `7d145f2`）。文案与 AC 原文「（未收录，以下是模型自身知识）」不同，是中性的「未收录：……」。**未用真实模型复测**。 |
+| AC8 | 部分实现 | 聊天保存 → 草稿 → 审阅 → 批准链路可用，浏览器批准的 403 与 50 秒卡死已修（`4e55b71`）。真实 PR #11953 编译 60 秒超时、未产出草稿，未重试。 |
+| AC9 | 真实实现并测试（静态部分） | `wiki/lineage/layer_sharding.json` 记录八个 ref 的 8/9/14/0/0/1/0/0 与移除提交 `89601215` / PR #11953，可用 `pnpm wiki:lineage layer_sharding` 复算。真实多 ref agent 提取未跑。 |
+| AC10 | 真实实现并测试，但实现与 AC 文本不同 | 单一入口 `src/content/wiki/retrieve.ts:145`，聊天层不自己 grep。实现是内存关键词打分，不是 AC 写的 `index.md` + Grep（审视 §3 备注）；接口可替换这一点成立。 |
+| AC11 | AC 文本已于 2026-09-20 修订；修订后部分达成 | 载体已全部换成 `wiki-diagram`：全库 markdown 无 ```mermaid 围栏，阅读页的 mermaid 渲染器与 npm 依赖已删（提交 `b222c58`，见 `src/app/pages/WikiPage.tsx:260` 的注释）。`pnpm wiki:diagrams --check` 2026-09-20 通过（45 张图与 spec 一致），`diagram-symbol` 拿 spec 的 `pins` 对钉住的 commit 逐个查。含图比例：概念/特性页 35/38 达到八成线，参数页 8/23 未达——夜间生成的骨架页按设计不配图。修订内容与原因见下方 AC11 条目。 |
+| AC12 | 部分实现 | `relations` 的图扩展在 `retrieve.ts`，反向边由 `wiki:build` 派生成 `backlinks`。`related` 只剩 `schema.ts:156` 的兼容字段，`wiki/concepts/`、`wiki/params/` 现有页 0 处使用（`grep -ln '^related:'` 为 0）。回答质量未用真实模型复测。 |
 
 
 - **AC1 · 骨架与派生**：`wiki/HANDBOOK.md` 是 schema 唯一真相源，六个 H2 切片（页面格式 / 提取 / 整合 / 查询 / Lint / 人类须知）可被程序按 H2 切出；`pnpm wiki:build` 从 `concepts/`、`sources/` 的 frontmatter 派生 `wiki/index.md` 与 `src/content/wiki/registry.json`，重复运行结果一致。验收：`pnpm wiki:build` 两次，`git diff` 为空。
@@ -63,14 +62,18 @@ created: 2026-09-07
 - **AC3 · ingest 引擎**：`pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml` 按种子清单扇出提取（每个 feature 一次 `claude -p`，默认并发 3，每个 agent 只能写 `_drafts/<id>.md` 与 `raw/<id>.md`），再串行整合进 `concepts/`；单个失败不阻塞其余，记入 `_drafts/_failures.json`；支持 `--only`、`--skip-existing`、`--retry-failed`、`--dry-run`。验收：单元测试用 spawn stub 验 argv、cwd、stdin、并发上限、越界写判失败、失败记录；`--dry-run` 打印每个 feature 的完整命令而不 spawn。
 - **AC4 · 试点批 10 页合格**：11 章 KV Cache 那组约 10 个 feature 跑通，每页 `sources` 指向 `vllm-ascend@28bf3a2e` 的真实文件与行号，随机抽 3 页人工核对源码确实如此；`git status` 证明 agent 未越界写文件。人审通过才进 AC5。
 - **AC5 · 批量灌种**：种子补全 10 到 21 章全部特性与 `forwardLayer.ts` 的 30 个术语，分章跑，预计 120 到 160 页；`wiki:lint --terms` 确认 30 个 `Step.terms` id 全部有页；`pnpm check` 全绿。**开跑前必须先改整合的读取策略（见风险 R2），否则会在放量中途撞上下文上限。**
-- **AC6 · 站内消费**：`#/wiki` 阅读页（左目录、中页面、related、来源角标）；`<Term id>` 悬停卡显示 `summary`。验收：浏览器打开 `#/wiki`，悬停出摘要，页面间链接跳转正确（Playwright）。
+- **AC6 · 站内消费**：`#/wiki` 阅读页（左目录、中页面、relations / 派生 backlinks、来源角标）；`<Term id>` 悬停卡显示 `summary`。验收：浏览器打开 `#/wiki`，悬停出摘要，页面间链接跳转正确（Playwright）。
 - **AC7 · 聊天问答**：`server/` 薄运行器 spawn `claude -p`（cwd=`wiki/`，只读工具白名单）；`#/wiki` 右侧抽屉流式回答；多轮用 `--resume`。**必须与 AC10 同批落地**（见风险 R1）。**回答里的事实性论断必须带页面引用**：借 Multi-Agent 的 `adaptive-recall/judge-block.ts` 思路，回答若出现断言式表述却没有指向任何 wiki 页的链接，就不作为「知识库答案」呈现，改标「（未收录，以下是模型自身知识）」。验收：问「KV Cache 是什么」，流式回答含 kv-cache 链接并可跳转；问一个知识库没有的词，回答被标为未收录而不是伪装成知识库结论。
 - **AC8 · 存进 wiki 与 PR ingest**：抽屉「存进 wiki」把回答写成 `_drafts/` 草稿；`pnpm wiki:ingest --pr <n>` 把一个真实 PR 变成草稿，社区不可信文本经 sanitize；草稿批准 / 驳回面板。验收：草稿文件出现且 diff 可读，`raw/` 已有快照未被覆盖（允许追加不可变证据快照），`tools/repos/` 未被修改。
 - **AC9 · 多 ref 钉定与完整克隆**：`seeds` 的 repo 不再只钉一个 commit，而是钉一组 ref（`main` + 各 `releases/*` 分支 + 指定 tag）；单个 feature 可声明自己适用的 ref，提取时 `--add-dir` 指向该 ref 的工作树。克隆改为完整克隆（含全部分支与 tag），不再用 `--filter=blob:none`。验收：对 `layer_sharding` 在 `releases/v0.23.0` 上跑 `wiki:ingest`，产出页面的 `sources` 指向该分支的真实行号；`git grep -l layer_sharding origin/releases/v0.23.0 -- '*.py'` 数出 **14** 个文件（部分克隆下是 11 或 13，见 Design Decisions）。
 - **AC10 · 检索接口可替换**：AC7 的聊天层不直接内联 grep，检索抽成 `retrieve(query) → 候选页[]` 单一入口，第一版实现是 `index.md` + Grep；换实现不动聊天层。验收：单元测试用 stub 替换 `retrieve` 即可驱动聊天层，聊天层代码里不出现 grep 调用。
 
-- **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时优先画 mermaid，图里出现的标识符必须是源码里真实存在的；渲染层支持 mermaid；`wiki:lint` 新增 `diagram-identifier` 规则，检查图中标注的文件名与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。**2026-09-14 历史实施记录（完整 AC 尚未达成）**：11 页全部含图（11/11，验收线八成），共 18 张；内联标记 201 处且**带来源编号**（`[C6]` 指向 `sources` 第 6 条，点开跳 GitHub 钉住的行号——恢复 PLAN §1.4 的原设计，此前落地成光秃秃的字母，用户反馈「又不能点」）；`diagram-identifier`、`mark-index`、`mark-unnumbered`、`mark-flood` 四条规则各有一红一绿测试。密度也被治住：初版 400 处标记里 66% 是 `[C]`，现在每页 ≤20 处，由引擎在整合任务里直接算出每页超了多少，定性规则「只留三类」实测不落地。
-- **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `related` 作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 related 扩展来的页并标出来源，抽屉里出现相关页入口。**2026-09-12 历史实施记录，有前后实测对比（完整 AC 尚未达成）**：改前 agent 只 `Read` 了 `block-table.md` 一个文件，把一页压缩成答案，回答里的 PagedAttention / Prefix Caching 链接抄自该页正文里已有的话，那两页根本没打开；改后读了 block-table / paged-attention / kv-cache-spec / prefix-caching **四个文件**，按「它依赖什么 → 它是什么 → 谁用到它 → 边界」组织，依赖处给出列数公式 `cdiv(max_model_len, block_size × dcp_world_size)`。
+- **AC11 · 页面要有图与逐条证据标记**：正文每条结论带内联标记 `[S]` / `[C]` / `[D]` 等（PLAN §1.4 的原设计，页级单值表达不了混合来源——实测 7 页引了官方文档却全是源码主导，标 `S` 或标 `C` 都不准确）；HANDBOOK「页面格式」增加图的规则——讲结构关系（数据流、映射、切分、状态机）时必须给图，图里出现的标识符必须是源码里真实存在的；渲染层支持这种图；`wiki:lint` 检查图中标注的文件与符号能在 `sources` 覆盖的范围里找到。验收：重跑一批页后至少八成含图；故意在图里写一个不存在的类名，lint 报红。
+
+  **2026-09-20 对本条 AC 文本的修订**：原文写的是「优先画 mermaid / 渲染层支持 mermaid / 新增 `diagram-identifier` 规则」，与 HANDBOOK 已经直接矛盾，现按现状改写。载体改为 `wiki-diagram`——手写 `wiki/diagrams/<id>.yaml` 的 spec，由 `pnpm wiki:diagrams` 渲成 SVG，spec 的 `pins` 写明 `source` 与 `symbols`；检查规则由一条扩成 `diagram-missing` / `diagram-identifier` / `diagram-symbol` 三条。原因见 HANDBOOK「页面格式 › 图」：mermaid 的版面由它自己排、调不动，手画的裸 SVG 又让问答 agent 读不出图在讲什么，spec 里的图元是显式的。**AC 的意图不变**（讲结构关系必须有图、图上标识符必须在钉住的源码里真实存在、编造标识符 lint 要报红），只换载体与规则名。
+
+  **2026-09-14 历史实施记录（完整 AC 尚未达成）**：11 页全部含图（11/11，验收线八成），当时共 18 张 mermaid——这批图已于 2026-09-20 全部迁成 `wiki-diagram`，渲染器随之删除；内联标记 201 处且**带来源编号**（`[C6]` 指向 `sources` 第 6 条，点开跳 GitHub 钉住的行号——恢复 PLAN §1.4 的原设计，此前落地成光秃秃的字母，用户反馈「又不能点」）；`diagram-identifier`、`mark-index`、`mark-unnumbered`、`mark-flood` 四条规则各有一红一绿测试。密度也被治住：初版 400 处标记里 66% 是 `[C]`，现在每页 ≤20 处，由引擎在整合任务里直接算出每页超了多少，定性规则「只留三类」实测不落地。
+- **AC12 · 回答要体现页与页的关系**：`retrieve()` 做一层图扩展——命中 A 后把 A 的 `relations`（2026-09-11 前叫 `related`，现只作兼容字段）作为二级候选返回，标明「因为与 A 相关」；chat 把这层关系写进 stdin 而不只给扁平清单；回答末尾自动附「接着可以看」。验收：问「Block Table 是什么」，返回的候选含由 relations 扩展来的页并标出来源，抽屉里出现相关页入口。**2026-09-12 历史实施记录，有前后实测对比（完整 AC 尚未达成）**：改前 agent 只 `Read` 了 `block-table.md` 一个文件，把一页压缩成答案，回答里的 PagedAttention / Prefix Caching 链接抄自该页正文里已有的话，那两页根本没打开；改后读了 block-table / paged-attention / kv-cache-spec / prefix-caching **四个文件**，按「它依赖什么 → 它是什么 → 谁用到它 → 边界」组织，依赖处给出列数公式 `cdiv(max_model_len, block_size × dcp_world_size)`。
 
   根因不在检索而在页面格式：原先每页都要写「为什么需要它」，于是每页都用散文重讲一遍邻居——`block-table.md` 里有整段 PagedAttention、整段 prefix caching。一页本身**已经是**稀释版的「串起来」，图上的边没东西可加，agent 读一页就停是理性的。把页面做成自给自足的，等于把图做成了装饰。三处改动：
   1. `related: [id]` 换成有类型有方向的 `relations: [{to, kind, note}]`，kind 取 `builds-on` / `variant-of` / `conflicts-with` / `alternative-to`；一条边只写在依赖方那一侧，反向边由 `wiki:build` 派生成 `backlinks`（`related-asymmetric` 规则随之删除）。
@@ -123,7 +126,7 @@ created: 2026-09-07
 | 日期 | 事件 |
 |------|------|
 | 2026-09-07 | Kickoff。两轮规划对话拍板全部设计决策；核验事实基线；建 worktree `feat/llm-wiki` |
-| 2026-09-07 | 试点批：11 个 11 章 KV Cache 特性，8 成 3 败（额度到顶），补跑后 11 页全成；整合晋升 11 页，0 合并 0 拒收 0 矛盾。174 条来源行号全部核对属实，三页深度抽检 9 条论断全对，数值与 `analyze.ts` 独立计算一致。花费 28 美元等值 |
+| 2026-09-07 | 试点批：11 个 11 章 KV Cache 特性，8 成 3 败（额度到顶），补跑后 11 页全成；整合晋升 11 页，0 合并 0 拒收 0 矛盾。174 条来源行号全部核对属实，三页深度抽检 9 条论断全对，数值与 `analyze.ts` 独立计算一致。实际花费以预算账本为准（`pnpm wiki:budget status`） |
 | 2026-09-07 | 试点期修掉三个缺陷：`updated` 用 UTC 差一天；`related` 单向（补 `related-asymmetric` lint 规则后抓出并修）；生成物被 biome 反复重排。新增 `pnpm wiki:audit` 核对来源行号 |
 | 2026-09-07 | 用户拍板加入「推广结论降级到 D」规则，已写进 HANDBOOK 的提取与整合两片，并回改既有页面 |
 | 2026-09-11 | AC9 多 ref 钉定与完整克隆；AC6 阅读页；AC7+AC10 问答与检索接口同批落地（风险 R1 消除）。实测一次真实问答：预检索命中→agent 读两页→流式回答带页面引用与 [C] 等级 |
@@ -135,9 +138,9 @@ created: 2026-09-07
 | # | 风险 | 触发时机 | 后果 | 应对 |
 |---|---|---|---|---|
 | ~~R1~~（已消除，2026-09-11）| AC7 图快把 grep 内联进聊天层，跳过 AC10 的 `retrieve()` 接口 | ~~做 AC7 时~~ AC7 与 AC10 已同批落地，检索唯一入口是 `src/content/wiki/retrieve.ts`，server 与前端都不自己 grep | [F004](F004-knowledge-loop.md) AC3「查不到自动补写」的钩子挂在检索这一步，没有接口就要**重写聊天层**；F003 AC4 接语料检索同样受阻 | AC7 与 AC10 同批落地，不拆。聊天层代码里不得出现 grep 调用，由 AC10 的单测把关（stub 替换 `retrieve` 即可驱动聊天层） |
-| **R2** | 整合 agent 读「`concepts/` 里全部现有页」，放量后撞上下文上限 | 做 AC5 时 | 实测 11 页 = 96 KB / 994 行，每页约 8.8 KB；120–160 页约 1.4 MB，粗估 40 万 token 量级。整合会失败，且每批重读一遍成本失控 | **AC5 开跑前**改 HANDBOOK「整合」切片与 `integrateRequest`：只读 `index.md` 摘要 + 按 chapter 与 related 拉相关页，不读全量正文。[F004](F004-knowledge-loop.md) AC6 已按新策略设计，两处保持一致 |
+| **R2** | 整合 agent 读「`concepts/` 里全部现有页」，放量后撞上下文上限 | 做 AC5 时 | 实测 11 页 = 96 KB / 994 行，每页约 8.8 KB；120–160 页约 1.4 MB，粗估 40 万 token 量级。整合会失败，且每批重读一遍成本失控 | **AC5 开跑前**改 HANDBOOK「整合」切片与 `integrateRequest`：只读 `index.md` 摘要 + 按 chapter 与 relations 拉相关页，不读全量正文。[F004](F004-knowledge-loop.md) AC6 已按新策略设计，两处保持一致 |
 | R5 | 知识表达单薄 | 已存在 | 实测 11 页**零张图**，HANDBOOK 关于图的规则**零条**；`related` 有 70 条边、密度 64%，但只用于渲染右栏列表，问答链路完全没用上（`retrieve()` 返回扁平列表，chat 的 stdin 只给候选清单）| AC11 补图、AC12 补关系。AC11 的 agent 侧要重跑页面才生效，与 AC5 同批做 |
-| R3 | 放量成本 | 做 AC5 时 | 试点实测每页约 2.5 美元，120–160 页约 300 美元等值，跨多个额度窗口 | 分章跑、每章人抽查；或第二步改用更便宜的模型（用户 2026-09-07 表示试点先不换） |
+| R3 | 放量成本 | 做 AC5 时 | 2026-09-07 试点的每页单价是「先铺骨架再选择性补正文」（AC4→AC5 顺序）这个决策的依据，据此估 120–160 页要跨多个额度窗口；**这只是当时的估价，不是现在的花费**，实际花费一律以 `pnpm wiki:budget status` 为准 | 分章跑、每章人抽查；或第二步改用更便宜的模型（用户 2026-09-07 表示试点先不换） |
 | R4 | 阅读页目录全量渲染 | F001 AC5 与 F002 AC4 都落地后 | AC6 的 `WikiPage` 目录一次渲染全部页（`listPages()` 无分页）。F001 AC5 的 120–160 页 + F002 AC4 的 100+ 参数页 ≈ 250–300 页，左栏会变成一条极长列表，参数页尤其会淹没教学页 | 页数超过约 80 页时给目录加按 type 折叠与搜索框；参数页在目录里默认折叠，主要靠搜索与页内链接抵达。不需要虚拟滚动 |
 
 ## Links

@@ -1,6 +1,6 @@
 # 受限材料编译验收（2026-09-15）
 
-本轮在 `infra-view-new-llm-wiki` 工作树继续 T2。没有批量导入、真实付费编译或合入主干；保留前轮修改。当前状态仍以 [F004](../features/F004-knowledge-loop.md#design-decisions) 为准。
+本轮在 `infra-view-new-llm-wiki` 工作树继续 T2。没有批量导入、真实付费编译或合入主干；保留前轮修改。当前状态仍以 [F004](../../features/F004-knowledge-loop.md#design-decisions) 为准。
 
 ## 本轮交付
 
@@ -18,7 +18,7 @@
 | 草稿校验与保护 | `scripts/wiki/compile-raw.ts:90` 起。只允许引用给定来源，rawSources 由引擎绑定；原文 hash 或草稿在运行中变化时拒绝写回。正式页面不变，成功草稿可通过 verifyDrafts 核对 |
 | 费用与显式重试 | 共用 `WorkflowStore.claim/finish`；重开 store 后未知费用仍各占一次预留。未指定 retry 不运行，达到次数上限不再调用；测试实际调用总数为 2 |
 
-规则只维护在 [HANDBOOK](../../wiki/HANDBOOK.md) 的页面格式及人类须知；CLI 与其他未来调用方读取同一份。运行配置只有 restrictedArgs 一份，runner 对完整参数核对，防止调用方悄悄加权限。工作 ID 包含来源、清洗及编译配置，入口标签不参与知识去重。
+规则只维护在 [HANDBOOK](../../../wiki/HANDBOOK.md) 的页面格式及人类须知；CLI 与其他未来调用方读取同一份。运行配置只有 restrictedArgs 一份，runner 对完整参数核对，防止调用方悄悄加权限。工作 ID 包含来源、清洗及编译配置，入口标签不参与知识去重。
 
 ## 验证结果
 

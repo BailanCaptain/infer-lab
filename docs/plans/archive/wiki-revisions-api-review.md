@@ -1,6 +1,6 @@
 # 修订留痕与审阅 API 验收（2026-09-15）
 
-**本轮补上显式修订分类、引擎生成的废弃记录、共用 HTTP 审阅接口，以及后端新请求读取新发布内容。** 工作位于 `infra-view-new-llm-wiki`，没有批量导入、真实 agent 调用或合入主干。完成状态只看 [F004](../features/F004-knowledge-loop.md#design-decisions) 与 [F001 AC8](../features/F001-llm-wiki.md#2026-09-14-当前验收核对)。
+**本轮补上显式修订分类、引擎生成的废弃记录、共用 HTTP 审阅接口，以及后端新请求读取新发布内容。** 工作位于 `infra-view-new-llm-wiki`，没有批量导入、真实 agent 调用或合入主干。完成状态只看 [F004](../../features/F004-knowledge-loop.md#design-decisions) 与 [F001 AC8](../../features/F001-llm-wiki.md#2026-09-14-当前验收核对)。
 
 ## 问题、影响与处理
 

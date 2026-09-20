@@ -310,6 +310,6 @@ M1 = 地基 + 样板章 `03` + 工作台 v1。
 | F003 | GitHub 语料与报错溯源 | [F003](docs/features/F003-github-corpus.md) | [计划](docs/plans/github-corpus-plan.md) |
 | F004 | 使用驱动的知识积累闭环 | [F004](docs/features/F004-knowledge-loop.md) | [计划](docs/plans/knowledge-loop-plan.md) |
 
-验收状态只在 feature 更新；[全 feature 核对记录](docs/plans/feature-progress-review.md) 保存本轮证据，索引不再复制状态和页数。
+**验收状态只看上表四份 feature 里的验收表**；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。本索引不复制状态和数字。
 
 F001 同时给 §2.6 内容管线提供 Term 注册表：`<Term id>` 的 id 与摘要来自 `src/content/wiki/registry.json`（由 `wiki/concepts/` 派生），不再另建 terms 表。

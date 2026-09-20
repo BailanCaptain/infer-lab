@@ -20,11 +20,11 @@
 
 ## 实际验证
 
-- 红例：`pnpm exec vitest run server/chat-route.test.ts server/answers.test.ts` → **6 failed / 8 passed**；[日志](../../tools/wiki-runtime/citations-red.log)。旧记录回归另行先红，旧代码实际进入 stub compiler；[日志](../../tools/wiki-runtime/citations-legacy-red.log)。
-- `pnpm check` → **62 files / 528 tests passed**，包含上述红例及两页同号、合法页面路由、越界编号、代码示例、推断与未收录兼容；类型、Lint、依赖方向、19 页内容检查和 wiki lint 通过；[日志](../../tools/wiki-runtime/citations-check.log)。
-- `pnpm build` → exit 0；[日志](../../tools/wiki-runtime/citations-build.log)。
-- `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium` → **27 passed (44.4s)**；生产预览 4173，实际 HTTP 快照 / capture / SSE 编排，模型输出为 fixture，无真实调用。[日志](../../tools/wiki-runtime/citations-browser.log)、[已目视复核的截图](../../test-results/wiki-review-real-citation--81485--marker-and-prevents-saving-chromium/citation-rejected.png)。新增用例确认具体原因可见、原链接可跳转、保存按钮不存在、编译调用数为 0；有效回答的原保存发布回归仍通过。
-- `pnpm exec tsx tools/wiki-runtime/check-retained-citations.ts` → 使用历史请求绑定的冻结目录检查 **24 份**原回答；未改问题、请求、快照、回执或原语义评分。[结果](../../tools/wiki-runtime/retained-citations.json)：Sonnet 前 / 后分别拦 3 / 2 份，Opus 前 / 后拦 2 / 1 份，共 8 份；其中 7 份未直接绑定编号，1 份无可识别页面引用。Opus 后答第 3 题的人类可理解引用也因不符新的直接链接格式被拦，这说明新契约更严格，不是新增的事实错误。其余通过不等于事实正确，上一轮的错误概括仍成立。
+- 红例：`pnpm exec vitest run server/chat-route.test.ts server/answers.test.ts` → **6 failed / 8 passed**；[日志](../../../tools/wiki-runtime/citations-red.log)。旧记录回归另行先红，旧代码实际进入 stub compiler；[日志](../../../tools/wiki-runtime/citations-legacy-red.log)。
+- `pnpm check` → **62 files / 528 tests passed**，包含上述红例及两页同号、合法页面路由、越界编号、代码示例、推断与未收录兼容；类型、Lint、依赖方向、19 页内容检查和 wiki lint 通过；[日志](../../../tools/wiki-runtime/citations-check.log)。
+- `pnpm build` → exit 0；[日志](../../../tools/wiki-runtime/citations-build.log)。
+- `pnpm test:e2e tests/wiki.spec.ts tests/evidence.spec.ts tests/raw-source.spec.ts tests/wiki-review.spec.ts tests/wiki-reader.spec.ts --project chromium` → **27 passed (44.4s)**；生产预览 4173，实际 HTTP 快照 / capture / SSE 编排，模型输出为 fixture，无真实调用。[日志](../../../tools/wiki-runtime/citations-browser.log)、[已目视复核的截图](../../../test-results/wiki-review-real-citation--81485--marker-and-prevents-saving-chromium/citation-rejected.png)。新增用例确认具体原因可见、原链接可跳转、保存按钮不存在、编译调用数为 0；有效回答的原保存发布回归仍通过。
+- `pnpm exec tsx tools/wiki-runtime/check-retained-citations.ts` → 使用历史请求绑定的冻结目录检查 **24 份**原回答；未改问题、请求、快照、回执或原语义评分。[结果](../../../tools/wiki-runtime/retained-citations.json)：Sonnet 前 / 后分别拦 3 / 2 份，Opus 前 / 后拦 2 / 1 份，共 8 份；其中 7 份未直接绑定编号，1 份无可识别页面引用。Opus 后答第 3 题的人类可理解引用也因不符新的直接链接格式被拦，这说明新契约更严格，不是新增的事实错误。其余通过不等于事实正确，上一轮的错误概括仍成立。
 - 本轮新增模型费用 **0 美元**；之前的四个付费轮次保持关闭，总费用仍按已知 5.9398455 + 中断预留 0.50 = **6.4398455 美元**记账。
 
 现有 Vite 关于未来 native config loader 的警告仍存在，未关闭或把它说成已解决。运行日志、冻结材料和截图在忽略目录，本地可复核；随代码交付的是此报告与稳定测试，原始材料需另行保留。

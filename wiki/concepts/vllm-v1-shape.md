@@ -18,13 +18,14 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L115
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
+  - vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227
 evidence: "C"
 relations:
   - to: one-request
     kind: builds-on
     note: 这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -62,7 +63,7 @@ file: vllm-v1-shape
 
 **边界 ①（前端 ↔ EngineCore，走 ZMQ）**
 
-下去的是 `EngineCoreRequest`：token id 列表、采样参数、请求 id。上来的是 `EngineCoreOutputs`：新产出的 token id 和结束原因 [C3]。**两边都不传文本**——反分词在前端做，所以前端进程里才有 tokenizer [C1][C6]。
+下去的是 `EngineCoreRequest`：token id 列表、采样参数、请求 id。上来的是 `EngineCoreOutputs`：新产出的 token id 和结束原因 [C12]。**两边都不传文本**——反分词在前端做，所以前端进程里才有 tokenizer [C1][C6]。
 
 **边界 ②（EngineCore ↔ Worker）**
 

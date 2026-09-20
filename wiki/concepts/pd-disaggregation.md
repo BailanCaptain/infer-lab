@@ -13,7 +13,7 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L107
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L103
   - vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13
-  - vllm@0fc695fc:vllm/config/kv_transfer.py#L109-L119
+  - vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L119
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L59
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L72-L79
@@ -52,7 +52,7 @@ relations:
     kind: alternative-to
     note: 同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 

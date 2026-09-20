@@ -31,7 +31,7 @@ relations:
     kind: builds-on
     note: GQA 那一条的完整推导在那一页，这里只取结果拿来跟另外三条并排比
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -59,7 +59,7 @@ Qwen3-0.6B 是普通 GQA 模型，三个布尔量全是 `False`，查表查到 `
 |---|---|---|---|
 | `AscendAttentionBackend` | **4096 B** | `2 × 8 × 128 × 2` | 五维，最前面那个 `2` 是 K 和 V [C1] |
 | `AscendMLABackend` | **1152 B** | `1 × (512 + 64) × 2` | 四维，只有一份潜向量 [C2] |
-| `AscendSFABackend` / `AscendDSABackend` | **1408 B** | `1 × (512 + 64 + 128) × 2` | 四维，另加一份 indexer 的 key [C3] |
+| `AscendSFABackend` / `AscendDSABackend` | **1408 B** | `1 × (512 + 64 + 128) × 2` | 四维，另加一份 indexer 的 key [C3][C4] |
 | 同上，开 LI C8 | **1282 B** | `576×2 + 128×1 + 1×2` | indexer 的 key 换成 int8，再配一个 scale [C6] |
 
 里面那几个维度不是我编的，是仓库自己的测试夹具在用的那一组：`kv_lora_rank = 512`、`qk_rope_head_dim = 64` [C9]，`index_head_dim = 128` [C10]。第一行的 `n_kv = 8`、`d_h = 128` 来自 Qwen3-0.6B。

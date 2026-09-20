@@ -14,6 +14,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
   - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L116-L118
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180
+  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236
 evidence: "C"
 relations:
   - to: kv-cache-spec
@@ -23,7 +24,7 @@ relations:
     kind: builds-on
     note: 这条请求尾巴上空着的 19 个槽位，就是分页方案承诺的「浪费最多一个块」的那个上限
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -118,7 +119,7 @@ file: the-request
 它是最简单的一条，所以有几件事它看不见 [A]：
 
 - **批不起来。** 它是队列里唯一的请求，看不到多条请求抢 token 预算，也看不到抢占。
-- **没有前缀命中。** 第一次问，`get_computed_blocks` 返回 0 [C3]。前缀复用是另一条线。
+- **没有前缀命中。** 第一次问，`get_computed_blocks` 返回 0 [C8]。前缀复用是另一条线。
 - **不跨卡。** TP=1，没有 all-reduce，也没有 PP 的跨 rank 收发。
 - **不触发 chunked prefill。** 37 比一步的 token 预算小得多，一步就算完了。
 

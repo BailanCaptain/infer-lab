@@ -43,7 +43,7 @@ relations:
     kind: builds-on
     note: 格子里填的物理块号是上游分出来的；谁分、什么时候分、什么时候还，在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
@@ -87,7 +87,7 @@ CPU 侧还有一个不起眼但关键的东西：`num_blocks_per_row`，一个�
 
 **慢的那一半**常驻 CPU、按行增量更新，每步只把前 `num_reqs` 行异步拷到 NPU。这一句被放在 `_prepare_inputs` 的最前面，源码注释写明了理由——先把拷贝发出去，好和后面那一大段 CPU 准备工作重叠 [C9]。
 
-**快的那一半**根本不回 CPU。`compute_slot_mapping` 起一个 grid 为 `num_reqs + 1` 的 Triton kernel，一个 program 管一个请求，最后那个 program 专门把 `num_tokens` 到 `max_num_tokens` 之间的尾巴填成 `PAD_SLOT_ID` [C6]。kernel 的核心就三行，和官方文档那四步一一对应 [S20]：
+**快的那一半**根本不回 CPU。`compute_slot_mapping` 起一个 grid 为 `num_reqs + 1` 的 Triton kernel，一个 program 管一个请求，最后那个 program 专门把 `num_tokens` 到 `max_num_tokens` 之间的尾巴填成 `PAD_ID` [C6]。kernel 的核心就三行，和官方文档那四步一一对应 [S20]：
 
 ```
 block_indices = pos // block_size                # 第几个逻辑块

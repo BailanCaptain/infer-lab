@@ -14,6 +14,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
 evidence: "C"
 relations:
   - to: vllm-ascend-repo-map
@@ -26,7 +27,7 @@ relations:
     kind: builds-on
     note: 拿那条请求的三个具体问题各走一遍，是这三条路线最快的练法
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -84,7 +85,7 @@ file: ref-diff
 
 ## 三个会得出错结论的查法
 
-- **只看文件存在就认为 patch 生效。** 两个 `patch/*/__init__.py` 按 `is_310p()`、`vllm_version_is()`、`HAS_TRITON` 分支导入，没被 `import` 的文件等于没打 [C5]。要看当前环境走了哪条分支。
+- **只看文件存在就认为 patch 生效。** 两个 `patch/*/__init__.py` 按 `is_310p()`、`vllm_version_is()`、`HAS_TRITON` 分支导入，没被 `import` 的文件等于没打 [C5][C8]。要看当前环境走了哪条分支。
 - **在 `_310p/` 里读到实现就当成通用实现。** 那是 310P 这一代硬件的专用副本，49 个文件 [D]；同名类有两套实现，先确认自己在看哪一套。
 - **拿 DeepWiki 之类的 AI 生成站当依据。** 这类站点对找方向有用，但本库的来源白名单不收它们——结论要落到 `repo@commit:path#L行` 才算。
 

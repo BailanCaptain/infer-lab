@@ -15,6 +15,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L692
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41
 evidence: "C"
 relations:
   - to: kv-cache-memory-profiling
@@ -27,7 +28,7 @@ relations:
     kind: builds-on
     note: 那条请求能不能在第 92 步要到第二块，取决于启动第四步算出的那个预算
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -71,7 +72,7 @@ file: worker-lifecycle
 |---|---|
 | 先分配 KV Cache 再 profile | 预算是 profile 的产物，第五步的 `kv_cache_config` 依赖第四步的字节数 [C5] |
 | 先建 model runner 再选卡 | runner 的构造函数要 `self.device`，注释明说 [C3] |
-| 先装权重再打 patch | 权重加载路径本身被 `patch_process_weights_after_loading`、`patch_weight_utils` 改过，patch 必须更早 [C2] |
+| 先装权重再打 patch | 权重加载路径本身被 `patch_process_weights_after_loading`、`patch_weight_utils` 改过，patch 必须更早 [C9] |
 | 先捕获图再装权重 | 捕获要跑真实 forward，没有权重跑不了 [C7] |
 
 ## 排查时怎么用

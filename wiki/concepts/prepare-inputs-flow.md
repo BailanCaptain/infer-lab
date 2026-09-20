@@ -14,7 +14,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L108-L130
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L305-L318
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L323-L330
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L323-L432
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html
 evidence: "C"
@@ -26,7 +26,7 @@ relations:
     kind: builds-on
     note: 那条请求第 92 步的 slot 下标就是在这里算出来的
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 

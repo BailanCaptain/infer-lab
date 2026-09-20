@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 684" width="900" height="684" role="img" aria-label="门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）">
+  <title>门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）</title>
+  <rect width="900" height="684" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="494" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="40" width="267.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开着门控时，这一层 MoE 的 prepare 期</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条副流各自起飞、各自 join；跨流传结果靠一个模块级全局单例，不是参数传递。</text>
+  <rect x="20" y="536" width="860" height="96" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
+  <rect x="36" y="550" width="116.5" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="47" y="568.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">关掉（默认）时</text>
+  <text x="38" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">共享专家和路由都留在默认流上按顺序跑，prepare() 里照样 all-gather 两份：hidden_states 和 router_logits。</text>
+  <line x1="240" y1="112" x2="240" y2="470" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="240" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">gate_stream 从这里起飞</text>
+  <line x1="648" y1="112" x2="648" y2="470" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="648" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">两条副流 join 回默认流</text>
+  <rect x="36" y="128" width="196" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="52" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">先把共享专家挂上</text>
+  <text x="52" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">带共享专家的 MoE 才走这条</text>
+  <text x="52" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">shared_forward_impl</text>
+  <rect x="248" y="128" width="190" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="264" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">动态量化隐藏态</text>
+  <text x="264" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">W8A8 这一路</text>
+  <text x="264" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">npu_dynamic_quant</text>
+  <rect x="660" y="128" width="198" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="676" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">join 回来，才开始算</text>
+  <text x="676" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">读 context 里的 topk_ids</text>
+  <text x="676" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_quant_method.apply</text>
+  <rect x="248" y="252" width="150" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="264" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">共享专家 FFN</text>
+  <text x="264" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">本地隐藏态直接算</text>
+  <text x="264" y="317" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">shared_experts</text>
+  <rect x="410" y="252" width="230" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="426" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">路由 + 写回 context</text>
+  <text x="426" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">select_experts 出 topk_ids</text>
+  <text x="426" y="317" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">set_flash_common3_context</text>
+  <rect x="340" y="376" width="300" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="356" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">副流上做 EP All-Gather</text>
+  <text x="356" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">走单独的 fc3_quant_x 通信组</text>
+  <text x="356" y="441" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">fc3_all_gather_and_maybe_unpad_impl</text>
+  <path d="M234 170 L246 170" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M246 170 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M440 170 L656 170" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M656 170 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <rect x="510.8" y="160" width="74.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="548" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">等两条副流</text>
+  <path d="M180 214 L180 294 L242 294" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M242 294 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M400 294 L408 294" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M408 294 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M646 294 L712 294 L712 216" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M712 216 l-5.5 11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M646 418 L740 418 L740 216" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M740 216 l-5.5 11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M248 470 l0 9 L640 479 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
+  <text x="444" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">真正的重叠窗口只有这一段</text>
+  <text x="36" y="120" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认流</text>
+  <text x="36" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">gate_stream（类级单例）</text>
+  <text x="36" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">quant_stream（类级单例）</text>
+  <text x="20" y="656" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（b255ab59）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。</text>
+</svg>

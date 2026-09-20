@@ -4,7 +4,7 @@ title: multistream_overlap_gate
 type: param
 summary: >-
   v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare
-  里的动态量化 + all-gather 并行；main 上已整体删除。
+  里的动态量化 + all-gather 并行；main 上整套实现已删除，键留在启动命令里会让进程起不来。
 aliases:
   - FlashComm3 多流重叠门控
   - 多流门控重叠
@@ -29,16 +29,21 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L82-L87'
   - 'vllm-ascend@2c59ff10:vllm_ascend/_310p/fused_moe/fused_moe.py#L182-L184'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207'
-  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L120'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L235-L241'
   - >-
-    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L58-L60
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369'
+    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L59-L61
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669'
 evidence: C
-relations: []
+relations:
+  - to: ascend-config-system
+    kind: builds-on
+    note: 它是 additional_config 里的一个键，main 上让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra="forbid" 的模式校验
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md
@@ -48,13 +53,18 @@ rawSources:
 
 ## 一句话
 
-`multistream_overlap_gate` 是 v0.23.0 上的一个 bool 开关（默认 `False`），把 MoE 层里的**共享专家前向**和 **`select_experts` 路由**整体搬到一条副流（`gate_stream`）上执行，让它们与主线里的「动态量化 + all-gather 隐藏态」并行跑；上游给它的正式名字是 **FlashComm3 multistream-overlap gate** [S17]。**main（`28bf3a2e`）上这个开关连同整套 FlashComm3 实现已经被删除**，而且 `AscendConfig` 的 `extra="forbid"` 会把残留的这个键当未知选项拒绝，所以升级前必须从启动命令里删掉 [C19] [!]。
+`multistream_overlap_gate` 是 v0.23.0 上的 bool 开关（默认 `False`），把 MoE 层里的**共享专家前向**和 **`select_experts` 路由**整体搬到一条副流 `gate_stream` 上，让它们与主线里的「动态量化 + all-gather 隐藏态」并行跑。上游管它叫 **FlashComm3 multistream-overlap gate** [S17]。
+
+它挑食得厉害：模型得有共享专家、MoE 得是 W8A8-dynamic 或 MXFP8 量化的、FlashComm1 / 序列并行得开着——三条少一条，要么白开，要么第一次前向直接断言失败。[那条请求](../concepts/one-request.md)跑的是稠密的 Qwen3-0.6B、单卡、没有 EP，**三条一条都不沾，这一页对它完全用不上**。
+
+**main（`b255ab59`）上这个开关连同整套 FlashComm3 实现已经删干净了**，而且 `AscendConfig` 的 `extra="forbid"` 会把残留的这个键当错别字拒绝——升级前必须从启动命令里删掉，否则进程起不来（唯一的例外见「开了的代价」第 8 条）[C19] [!]。
 
 ## 事实表
 
-| 项 | v0.23.0 (`2c59ff10`) | main (`28bf3a2e`) | 意味着什么 |
+| 项 | v0.23.0 (`2c59ff10`) | main (`b255ab59`) | 意味着什么 |
 |---|---|---|---|
-| 配置键与默认值 | `additional_config.multistream_overlap_gate`，bool，`False` | 不存在，未知键报错 | 升级 main 前必须从启动命令删掉，否则起不来 [!] |
+| 配置键与默认值 | `additional_config.multistream_overlap_gate`，bool，`False` | 不存在，被当未知键拒掉 | 升级 main 前必须从启动命令删掉；只有装了 `vllm_omni` 才降级成一条 warning [C22] |
+| [那条请求](../concepts/one-request.md)上 | 用不上：稠密模型、单卡、无 EP、未量化 | 用不上 | 这一页讲的是 MoE 专属的重叠，和那条请求的 28 层稠密前向不沾边 |
 | 上游状态 | 发版时即列入 Ready to Deprecate | 已移除 | 不要往新部署里投入，v0.23.0 上也只当短期手段 |
 | 搬到副流的计算 | 共享专家前向（含 TP all-reduce）+ `select_experts` | 不存在 | 省的是这两段，**不是**路由专家的 GEMM |
 | 与之并行的主线 | `_prepare_with_ep_group` 的动态量化 + all-gather | 不存在 | 重叠窗口只有 `prepare()` 这一段，见「开了的代价」 |
@@ -72,27 +82,13 @@ MoE 层在做专家计算之前有一段串行的「准备期」：先把隐藏�
 
 跨流传结果靠一个模块级全局单例 `FlashCommon3Context`，字段是 `topk_weights` / `topk_ids` / `shared_experts` / `shared_out`。
 
-```mermaid
-sequenceDiagram
-    participant D as 默认流
-    participant G as gate_stream
-    participant Q as quant_stream
-    D->>D: shared_forward_impl:<br/>set_flash_common3_context(shared_experts=...)
-    D->>G: gate_stream.wait_stream(current_stream)
-    G->>G: fc3_context.shared_experts(hidden_states)
-    G->>G: tensor_model_parallel_all_reduce(shared_out)
-    G->>G: select_experts(...) → topk_weights / topk_ids
-    G->>G: set_flash_common3_context(shared_out, topk_weights, topk_ids)
-    D->>D: _prepare_with_ep_group:<br/>npu_dynamic_quant(hidden_states)
-    D->>Q: quant_stream.wait_stream(current_stream)
-    Q->>Q: fc3_all_gather_and_maybe_unpad_impl(hidden_states)
-    Q-->>D: current_stream().wait_stream(quant_stream)
-    G-->>D: current_stream().wait_stream(gate_stream)
-    D->>D: quant_method.apply(...)<br/>读 get_flash_common3_context().topk_ids
-    D->>D: shared_forward_impl 末尾<br/>直接取 fc3_context.shared_out
+```wiki-diagram
+file: multistream-overlap-gate
 ```
 
-图里的 join 点是硬约束：`quant_stream` 在 `_prepare_with_ep_group` 内部就 join 回来，`gate_stream` 在调用 `quant_method.apply` 之前 join。所以真正的重叠窗口只有 `prepare()` 这一段，收益上限是 `min(共享专家前向 + 路由, 动态量化 + all-gather)`，而不是两段时间之和 [D]。
+图里的 join 点是硬约束：`quant_stream` 在 `_prepare_with_ep_group` 内部就 join 回来 [C10]，`gate_stream` 在调用 `quant_method.apply` 之前 join [C4]。所以真正的重叠窗口只有 `prepare()` 这一段，收益上限是 `min(共享专家前向 + 路由, 动态量化 + all-gather)`，而不是两段时间之和 [D]。
+
+两条副流都是**类级单例**：`gate_stream` 挂在 `AscendMoERunner` 上、`quant_stream` 挂在 `PrepareAndFinalize` 上，第一次构造时才建，不随层数增长。
 
 副流上的 all-gather 走的是专门新建的 `fc3_quant_x` 通信组（rank 划分与 `mc2` 组共用同一份 `group_ranks`），调用 `fc3_all_gather_and_maybe_unpad_impl` 而不是主线用的 `torch.ops.vllm.maybe_all_gather_and_maybe_unpad`。另起一个组和一个纯 Python 实现，看起来是为了避开自定义算子在非默认流上的行为问题 [I]。
 
@@ -116,9 +112,11 @@ v0.23.0 里 `AscendMoERunner`（新）和 `AscendFusedMoE`（legacy）两套实�
 
 **6. 额外资源：2 条 NPU stream + 1 个 HCCL 通信组。** 流是类级单例，不随层数增长，通信组在 `init_ascend_config` 之后建组时创建。多流各自持有内存池，显存开销会有可观察的增加 [I]。
 
-**7. 它和 `multistream_overlap_shared_expert` 是两个开关，共享专家只会被其中一个接管。** 后者把共享专家挪到 `shared_experts_calculation_stream()`；前者把共享专家挪到 `gate_stream` 并顺带把路由也带走，取结果时直接读 `fc3_context.shared_out`，完全不走 `_forward_shared_experts`。两个开关都开时共享专家由 gate 路径接管，`multistream_overlap_shared_expert` 那条分支变成死代码 [D]。注意 `multistream_overlap_shared_expert` 在 main 上仍然保留——被删的只是 gate 这一个。
+**7. 它和 `multistream_overlap_shared_expert` 是两个开关，共享专家只会被其中一个接管。** 后者把共享专家挪到 `shared_experts_calculation_stream()`；前者把共享专家挪到 `gate_stream` 并顺带把路由也带走，取结果时直接读 `fc3_context.shared_out`，完全不走 `_forward_shared_experts`。两个开关都开时共享专家由 gate 路径接管，`multistream_overlap_shared_expert` 那条分支变成死代码 [D]。注意 `multistream_overlap_shared_expert` 在 `b255ab59` 上仍然活着，参数表里还有它那一行 [S18]——被删的只是 gate 这一个，别把两个一起当成废弃项删掉。
 
-**8. 去向：main 上已整体删除。** v0.23.0 的 release notes 就把 "The FlashComm3 multistream-overlap gate" 列进了 Ready to Deprecate（线上：<https://docs.vllm.ai/projects/ascend/en/latest/user_guide/release_notes.html>）；到 `28bf3a2e`，参数表里这一行没有了（线上：<https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html>），`flash_common3_context.py`、`fc3_quant_x` 通信组、`fc3_all_gather_and_maybe_unpad_impl` 也一并不在。因为 `AscendConfig` 是 pydantic 模型且 `model_config = ConfigDict(extra="forbid")`，留在 `--additional-config` 里的这个键不会被静默忽略，而是直接让进程启动失败——迁移时这是第一个要删的东西 [!]。
+**8. 去向：main 上整套删干净了，而且键留着会挡住启动。** v0.23.0 的 release notes 发版时就把 "The FlashComm3 multistream-overlap gate" 写进了 Ready to Deprecate [S17]；v0.26.0rc1 的「Deprecation and Breaking Changes」里兑现成一条 "Removed multistream overlap gate."，PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) [S21]。到 `b255ab59`，参数表里这一行没有了 [S18]，`flash_common3_context.py`、`fc3_quant_x` 通信组、`fc3_all_gather_and_maybe_unpad_impl` 也一并不在。
+
+**迁移时这是第一个要删的东西。** `AscendConfig` 是 pydantic 模型且 `model_config = ConfigDict(extra="forbid")` [C19]，留在 `--additional-config` 里的这个键不会被静默忽略，而是在构造配置时就报未知选项、让进程起不来 [!]。**只有一个例外**：进程里装了 `vllm_omni` 时，工厂会把所有未知键先打一条 warning 再从 kwargs 里剔掉，这时它才是「被忽略」而不是「起不来」[C22]。别指望这个例外——它是给 vLLM-Omni 共用这份配置留的口子，不是给废弃键兜底的。
 
 ## 版本谱系
 

@@ -4,7 +4,7 @@ title: enable_async_exponential
 type: param
 summary: >-
   把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main
-  上已整体删除。
+  上已整体删除，残留的这个键还会让启动直接失败。
 aliases:
   - 异步指数分布重叠
   - Asynchronous exponential overlap
@@ -21,16 +21,25 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L76
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L122'
   - 'vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_sampler.py#L72-L96'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L20-L44'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/sample/sampler.py#L74-L85'
-  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L1328'
+  - 'vllm-ascend@b255ab59:vllm_ascend/sample/sampler.py#L21-L45'
+  - 'vllm-ascend@b255ab59:vllm_ascend/sample/sampler.py#L75-L86'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L1449'
   - 'https://huggingface.co/Qwen/Qwen3-0.6B'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L262
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
 evidence: C
-relations: []
+relations:
+  - to: ascend-config-system
+    kind: builds-on
+    note: 它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 上把它挡在启动期的正是这一环
+  - to: npu-model-runner
+    kind: builds-on
+    note: 预填 q 的调用点就在 execute_model 里、跑 28 层之前那几行，副流能藏进 forward 全靠这个位置
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md
@@ -40,17 +49,22 @@ rawSources:
 
 ## 一句话
 
-`enable_async_exponential` 把随机采样要用的那批指数分布随机数 `q ~ Exp(1)` 提前到 model forward **之前**、在副 stream `global_stream()` 上生成，让它与整层网络的前向计算重叠，采样时直接取用 [C2]。它与 softmax 无关——指数分布随机数是 softmax **之后**那一步用的。v0.23.0 上默认 `False` [C1]，并已被官方列入待废弃清单 [S8]；main（28bf3a2e）上参数、`do_async_exponential`、`set_q_event` 与事件对象已全部删除 [C11]，行为回到始终走同步路径 [!]。
+`enable_async_exponential` 改的只是一个**时机**：随机采样要用的那批 `q ~ Exp(1)` 随机数，默认是在 softmax 算完之后才现填，开了就提前到 model forward 之前、在副流 `global_stream()` 上填，藏进 28 层前向里，采样时直接取 [C2]。v0.23.0 上默认 `False` [C1]，而且发版当天就被官方写进了待废弃清单 [S8]——**新部署别碰它**。
+
+到 main（`b255ab59`）这条路径整段没了：参数、`do_async_exponential`、`set_q_event` 和事件对象一并删除 [C11]，采样只剩同步的 `random_sample` [C10]。要紧的是残留的键不会被无视——`AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，启动命令里还留着 `enable_async_exponential`，**进程直接起不来**（唯一的例外见「开了的代价」第 6 条）[C15] [!]。
+
+名字是这个参数最大的坑：这里的 exponential 跟 softmax 里的 `exp` 无关，指数分布随机数是 softmax **之后**那一步才用的。
 
 ## 事实表
 
 | 项 | v0.23.0 | main | 意味着什么 |
 |---|---|---|---|
-| 默认值 | `False` | 参数不存在 | 在 main 上把它写进 `additional_config` 不会报错，只是完全没人读 |
+| 默认值 | `False` | 参数不存在 | main 上写进 `additional_config` 会被 `extra="forbid"` 当错别字拒掉，启动即失败 [!] |
 | 类型与入口 | bool，`additional_config` | — | 只能在启动时定，不能按请求开关 |
 | `VLLM_BATCH_INVARIANT=1` 时 | 静默置回 `False` [C1] | — | 两者互斥，且没有任何告警；以为开了其实没开 |
 | 预生成的 `q` | `(logits_indices.shape[0], vocab_size)`，fp32 [C5] | — | 显存开销随 batch × 词表走，和模型多大无关 |
 | Qwen3-0.6B、batch 32 时 `q` | 18.55 MiB / 步 [D] | — | 小模型大词表时这块比 hidden state 还大 |
+| [那条请求](../concepts/one-request.md)上 | batch 1，`q` 593.5 KiB / 步；greedy 时压根不取用 [D] | — | 单请求要藏的只有一次 593.5 KiB 的填充，profile 上看不出区别 |
 | 取用前的同步方式 | `Event.synchronize()` | — | 阻塞的是 host 线程，比同步路径的 `wait_stream`（device 侧）代价更重 |
 | 与 `enable_reduce_sample` 同开 | `q` 照生成，但分支不取用 | — | 白付一次分配和一次副流计算，零收益 |
 | 采样公式 | `probs.div_(q).argmax(dim=-1)` | 同式 | 两条路径数学上同分布，开关本身不改采样语义 |
@@ -64,22 +78,11 @@ rawSources:
 
 问题在于 `q.exponential_()` 这个填充算子本身在 NPU 上不便宜——源码注释点明它可能落到 AI CPU 上执行 [C2]。同步路径里它夹在 softmax 和 argmax 之间，主流必须等它。本参数做的事就是把这段挪到前面去：
 
-```mermaid
-sequenceDiagram
-    participant MR as model_runner_v1.execute_model
-    participant CS as current_stream
-    participant GS as global_stream
-    participant S as AscendTopKTopPSampler.forward_native
-    MR->>GS: do_async_exponential(b_s, head_dim, generators)
-    Note over GS: q.exponential_() 填 (b_s, vocab_size)<br/>async_exponential_event.record()
-    MR->>CS: model forward（28 层）
-    CS->>S: apply_top_k_top_p → softmax
-    S->>S: async_event.synchronize()
-    GS-->>S: set_q_event 传进来的 q
-    S->>S: probs.div_(q).argmax(dim=-1)
+```wiki-diagram
+file: enable-async-exponential
 ```
 
-副流上那条 `q.exponential_()` 与主 stream 上整个 forward 并行跑；等采样真正要用 `q` 时它早已就绪。`global_stream()` 是进程级单例流，不是本特性独占的。
+两条路径其实都在 `global_stream()` 上填 `q`——同步路径的 `random_sample` 也先 `npu_stream_switch(global_stream())` 再 `wait_stream` 收回来 [C4]。所以开关买到的不是「换条流」，而是**填的时刻**：从「主流已经算到采样了才开始填」挪到「forward 刚要开始就填」。`global_stream()` 是进程级单例流，不是本特性独占的。
 
 引入它的是 PR [#4501](https://github.com/vllm-project/vllm-ascend/pull/4501)。该 PR 描述里给的数据是 A3 上 Qwen2.5-32B 约 +7%、Qwen3-32B 约 +13.3% 吞吐，而 Qwen3-30B（MoE）反而变慢，所以默认值定成了 `False` [I]——这解释了为什么一个「纯赚」的重叠优化不默认开：MoE 模型的副流本来就忙。
 
@@ -111,7 +114,9 @@ llm = LLM(
 
 **5. 跨 stream 分配的张量没有 `record_stream`。** `q` 在 `global_stream()` 上分配、在默认流上被 `div_` 消费，v0.23.0 的 `do_async_exponential` 没有对它调 `record_stream`；而 main 在同步路径的 `random_sample` 里**补上**了 `q.record_stream(torch.npu.current_stream())` [C10]。缓存分配器只按分配流的完成情况回收显存，跨流消费不登记就可能提前复用——源码里没有针对异步路径的直接断言，这是按 main 那条补丁的意图反推出来的 [D]。
 
-**6. main 上已经没有它了。** v0.23.0 的 release notes 就把 “Asynchronous exponential overlap” 写进了 Ready to Deprecate [S8]（[线上页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)），main 上兑现了：`AscendSampler.__init__` 不再建 `async_exponential_event`，`set_q_event` / `do_async_exponential` 两个方法连同 `AscendTopKTopPSampler` 里的取用分支一并删除，`model_runner_v1` 的调用点删除，`additional_config` 文档表里也没有这一行 [!]。main 保留的是同步的 `random_sample`，并给它加了 `record_stream`。**升级到 main 时直接删掉这个配置项即可，没有替代参数需要迁移。** 同批待废弃的还有 layer sharding、FlashComm2 的 multistream-overlap gate、matmul all-reduce 与 weight prefetch 等。
+**6. main 上已经没有它了，而且留着会让服务起不来。** v0.23.0 的 release notes 发版时就把 “Asynchronous exponential overlap” 写进了 Ready to Deprecate [S8]（[线上页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)），到 `b255ab59` 兑现得很彻底：`AscendSampler.__init__` 不再建 `async_exponential_event` [C11]，`set_q_event` / `do_async_exponential` 连同 `AscendTopKTopPSampler` 里的取用分支、`model_runner_v1` 的调用点一并删除，`additional_config` 文档表里也没有这一行 [!]。main 留下的是同步的 `random_sample`，并给它补了 `record_stream` [C10]。
+
+**升级时必须把这个键从启动命令里删掉，没有替代参数要迁移。** 它不在 `_NON_USER_INPUT_KEYS` 的豁免名单里，会原样进到 `AscendConfig(**kwargs)`，被 `extra="forbid"` 当成错别字报出来 [C16]——唯一的例外是装了 `vllm_omni`，那种情况下它只打一条 warning 然后被丢掉。同批列进那张待废弃清单的还有 layer sharding、FlashComm2、**FlashComm3 的 multistream-overlap gate**（是 FlashComm3，不是 FlashComm2）、Hamming sparse、matmul all-reduce 系列融合、weight prefetch 与 dynamic-batch SLO。这张清单不是说说而已：v0.26.0rc1 的 release notes 里，除本项之外的大半已经逐条兑现了删除 [S17]。
 
 ## 版本谱系
 

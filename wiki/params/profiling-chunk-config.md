@@ -3,13 +3,15 @@ id: profiling-chunk-config
 title: 动态切块配置（profiling_chunk_config）
 type: param
 summary: >-
-  通过启动时的 profiling 调整 chunk 大小，默认关闭。main 开发主线要求 PP>1，且不能与负载均衡调度同时开启；与 v0.23
-  维护分支对 need_timing 的处理不同。
+  上游叫 CPP 的动态切块：启动时量出 prefill 延迟曲线，运行时反解每步该切多少 token，把 PP 流水线的气泡抹平。默认关闭，要求 PP>1
+  且与负载均衡调度互斥；官方定位是 PD 分离里 P 节点的长序列优化。
 aliases:
   - profiling chunk
   - 动态 chunk 大小
   - ProfilingChunkConfig
   - smooth_factor
+  - CPP
+  - Dynamic Chunked Pipeline Parallel
 chapters:
   - '12'
   - '13'
@@ -18,10 +20,55 @@ sources:
     raw:sha256-9e727546228dccd4202221fadbabf5e7327a90a2133453ec62eaae1cc2bb2e88.md#L1-L130
   - >-
     raw:sha256-2a352fc9453bfcd0bd297b7e521f82bf11365fda371d6e0ed69185712bcf375f.md#L1-L339
-evidence: I
-relations: []
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1251-L1288'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L570-L595'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1430-L1451'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L389-L404'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L723-L760'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L55-L93'
+  - >-
+    vllm-ascend@b255ab59:vllm_ascend/core/profiling_chunk_predictor.py#L288-L315
+  - >-
+    vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L104-L120
+  - >-
+    vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L339-L351
+  - 'vllm-ascend@b255ab59:vllm_ascend/platform.py#L1262-L1270'
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L7-L22
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L219
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L229-L267
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L269-L297
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L299-L304
+  - >-
+    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L7-L38
+  - >-
+    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L54-L63
+  - >-
+    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L65-L83
+  - >-
+    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L85-L95
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L139-L160
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L24-L46
+  - >-
+    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153
+  - >-
+    vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130
+evidence: S
+relations:
+  - to: ascend-config-system
+    kind: builds-on
+    note: 它是 additional_config 下的一个嵌套 dict，顶层写法在 main 上被降级成弃用告警的那套解析规则就在那一页
+  - to: vllm-scheduler
+    kind: builds-on
+    note: 开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层
 contradicts: []
-updated: '2026-09-17'
+updated: '2026-09-20'
 origin: seed
 rawSources:
   - >-
@@ -32,97 +79,105 @@ rawSources:
 
 ## 一句话
 
-`profiling_chunk_config` 控制基于 profiling 的动态 chunk 大小，默认 `enabled: False`。v0.23 维护分支的代码说明：开启后，调度器在初始化时测量 prefill 延迟，再用二次模型在运行时预测合适的 chunk 大小。两版行为有分叉 [!]：
-- main 开发主线开启时要求 `pipeline_parallel_size > 1`，且与 `enable_balance_scheduling` 互斥。
-- 两版对 `need_timing` 的联动处理不同。
+`profiling_chunk_config` 打开的是上游叫 **CPP（Dynamic Chunked Pipeline Parallel）** 的东西：启动时真跑几十次 forward，量出「这台机器上一段长 `l` 的 prefill 要多久」，运行时按这条曲线反解出每一步该切多少 token，好让流水线各级的每块耗时尽量相等。默认 `enabled: False` [C3]。
 
-本页对比 **[main 开发主线（2026-08-29 源码快照）](https://github.com/vllm-project/vllm-ascend/blob/28bf3a2e8e8db396ee5dcfa6812626eee2d394ab/vllm_ascend/ascend_config.py#L1021-L1057)**与 **[v0.23 维护分支（2026-09-10 源码快照）](https://github.com/vllm-project/vllm-ascend/blob/2c59ff1047573f40a471cf7535f01a8877344415/vllm_ascend/ascend_config.py#L723-L760)**。下文均指这两个固定快照，对应提交可在来源中核对。
+**它不是通用调优项。** 官方把它定位成 PD 分离部署里 **P（Prefiller）节点**上的长序列优化，D 节点不用配 [S13]；硬条件是 `pipeline_parallel_size > 1`、开着 chunked prefill、且不能与 balance scheduling 同开。[那条请求](../concepts/one-request.md)是单卡 Qwen3-0.6B、37 个 token 的问题——**连 PP > 1 这条门槛都够不到，也根本切不出第二块**，这一页对它完全用不上。
 
-本页只依据配置源码摘录，没有性能实验。
+两版的差别不在能力，在**配置写在哪**：main 开发主线（`b255ab59`）要你写进 `additional_config.scheduler_config`，顶层写法还认但会打弃用告警，两边都写以嵌套的为准 [C5]；v0.23 维护分支（`2c59ff10`）只有顶层写法。校验上只剩一处真分叉——`enabled=False` 却显式写 `need_timing=True` 时，main 告警并强制改回 `False`，v0.23 原样留着 `True` [!]。
+
+```wiki-diagram
+file: profiling-chunk-config
+```
 
 ## 事实表
 
-| 项 | main 开发主线 | v0.23 维护分支 | 意味着什么 |
+下表左列依据 `2c59ff10` 的配置源码 [C7][C8]，中列依据 `b255ab59` [C3][C4]。
+
+| 项 | v0.23 维护分支 (`2c59ff10`) | main 开发主线 (`b255ab59`) | 意味着什么 |
 |---|---|---|---|
-| `enabled` 默认 | `False` | 同左 | 不显式打开就不生效。摘录中的三项跨配置检查以 `enabled` 为前提 |
-| 不设 `need_timing` 时 | 以 `None` 作哨兵，由 after-validator 补成 `enabled` 的值 | `config.get("need_timing", self.enabled)` | 未显式设置时，两版配置对象的 `need_timing` 都跟随 `enabled`；v0.23 维护分支的注释另外描述了在线计时校准，配置值本身不证明实际执行情况 |
-| `enabled=False` 但显式设 `need_timing=True` | 打 warning，并强制改为 `False` | 摘录的 `_validate` 里没有这条修正，值保持 `True` [!] | v0.23 维护分支中配置对象可保留 enabled=False、need_timing=True 的组合。这种组合的实际后果，材料没有说明 [I] |
-| `smooth_factor` | 必须在 `(0, 1]` 内，否则 `ValueError` | 同左 | 填 0 或大于 1 会在启动时直接失败。main 配置默认 1.0，参与下文的线性插值；维护分支的运行公式尚未核对 |
-| `min_chunk` 下限 | 必须 `> 0`，默认 4096 | 同左 | 填 0 或负数会在启动时失败 |
-| `min_chunk` 与 `max_num_batched_tokens` | 开启时若 `max_num_batched_tokens < min_chunk`，打 warning，再把 `min_chunk` 钳到 `max_num_batched_tokens` | 材料未覆盖 | `max_num_batched_tokens` 设在 4096 以下时，默认的 `min_chunk` 会被改小。这一分支仅告警并调整数值；后续 PP 或互斥检查仍可能报错 |
-| `max_fit_chunk` 校验 | `<= 5` 报错，默认 30 | 同左 | 报错文案建议「至少 30 个数据点」，硬阈值却是 6。填 6–29 能通过，摘录里也没看到对应的警告 [D] |
-| PP 要求 | 开启且 `pipeline_parallel_size <= 1` 时 `ValueError` | 材料未覆盖 | 在 main 开发主线上，单卡或只开 TP 的部署无法打开此项 |
-| 与 `enable_balance_scheduling` | 两者同开时 `ValueError` | 材料未覆盖 | 在 main 开发主线上只能二选一 |
+| 配置路径 | 只有顶层 `additional_config.profiling_chunk_config` | 推荐写进 `additional_config.scheduler_config`，顶层仍认但打弃用告警 | 照老文档抄的命令在 main 上还能跑，日志里会多一行 deprecated |
+| `enabled` 默认 | `False` | 同左 | 不显式打开，下面这一整套都不跑 |
+| `enabled=False` 却写 `need_timing=True` | `_validate` 没有这条修正，值保持 `True` | 告警后强制改回 `False` | 两版唯一的行为分叉 [!] |
+| `smooth_factor` | `(0, 1]`，默认 1.0 | 同左 | 1.0 = 完全信预测；官方建议开着在线校准时别动它，关了校准再调到 0.5–0.8 [S14] |
+| `min_chunk` | `> 0`，默认 4096 | 同左 | 比 `max_num_batched_tokens` 大时被钳到后者，只有一条 warning |
+| `max_fit_chunk` | `<= 5` 报错，默认 30 | 同左 | 报错文案说「建议至少 30 个点」，硬阈值却是 6；设计文档说拟合用 5–30 个点，所以 6–29 能过并不是 bug |
+| PP > 1 要求 | 开启且 `pp <= 1` 直接 `ValueError` | 同左 | **两版都有**——旧版本页写「v0.23 材料未覆盖」是错的 [!] |
+| 与 balance scheduling | 同开 `ValueError`；还能用 `VLLM_ASCEND_BALANCE_SCHEDULING` 环境变量打开对方 | 同开 `ValueError`；环境变量兜底已删 | 二选一，没有自动降级 |
+| 实现形式 | 普通类，`__init__` 里 `get` 完再 `float()` / `int()`，最后 `_validate()` | pydantic `@config` dataclass，检查挪进 `mode="after"` 的 validator | main 上类型写错会在构造配置时就被拦下 |
+| 启动代价 | 约 64 次 forward，几十秒 | 同左 | 不是「顺手开开看」的参数 |
 
 ## 为什么存在
 
-材料对动机的直接描述只有 v0.23 维护分支的 docstring：这是「profiling-based dynamic chunk sizing」。调度器在初始化阶段测量 prefill 延迟，用二次模型拟合，运行时再用这个模型预测 chunk 大小。材料没有说明以下几点，本页不补结论：
-- 为什么要替代固定 chunk 大小；
-- 预测出的 chunk 在调度中具体怎么用；
-- main 开发主线 为什么要求 PP > 1。
+**问题出在 PP + chunked prefill 上。** 长序列被切成固定大小的块依次穿过流水线，可注意力是 O(n²) 的——同样大的块，前缀越长算得越慢。设计文档把这件事画得很直白：块 1 花 T1、块 2 花 T2 > T1、块 3 更久，这个时间差在各级之间层层放大，就成了流水线气泡 [S18]。
 
-v0.23 维护分支 在 `need_timing` 的注释里描述了第二层机制，即在线的 history-aware calibration：
-- `need_timing` 为 `True` 时，model runner 每步同步设备、测量执行时间，并把测量值反馈回去做增量重拟合。
-- 校准完成后，`need_timing` 会被自动置为 `False`。
-- 用户可以一开始就设为 `False`，跳过在线校准，只用启动时的 profiling 模型，这样也避免了每步同步的开销。
+CPP 的办法是**反过来**：块可以不一样大，只要每块耗时一样，气泡就没了。
 
-main 开发主线的 docstring 没有重述这段机制，只说明用 `None` 哨兵保留了「未设置时跟随 `enabled`」的原语义。所以「在线校准」这一描述在 main 开发主线上是否仍然准确，材料无法确认 [I]。
+怎么知道多大的块花多久？**先量，再算。**
 
-`max_fit_chunk` 的含义只能从报错文案推断：它是拟合所用的数据点数 [I]。
+- **启动期**：从 `base_chunk_size` 往下均匀采 64 个 chunk size，每个都真跑一次 forward 量延迟，再用最小二乘拟合 `f(l) = a·l² + b·l + c` [S19]。PP 模式下所有 worker 都跑，但只有第一级 PP rank 的计时结果拿去做调度决策。
+- **运行期**：设已算过的前缀长 `L`、目标耗时 `T = f(base_chunk_size) − f(0)`，解 `a·x² + (2aL + b)·x − T = 0` 的正根，就是这一步该切的 token 数 [C9]。
 
-两版的配置实现也不同：
-- main 开发主线把 `ProfilingChunkConfig` 迁移为 `@config`（pydantic dataclass），范围检查移到了 `mode="after"` 的 `model_validator` 中。
-- v0.23 维护分支 是普通类，在 `__init__` 里从 dict 读值，数值字段用 `float()` / `int()` 显式转换，再调用 `_validate()`。
+这也是为什么它**必须 PP > 1**：单级流水线没有气泡可消，量一遍曲线纯属白花几十秒。
 
-v0.23 维护分支 docstring 给出的启用方式如下：
+`base_chunk_size` 来自调度器的 `max_num_scheduled_tokens`，`page_size` 来自 KV cache 的 `block_size` [C10]。所以**官方反复强调 `--max-num-batched-tokens` 敏感**——它就是这条曲线的原点和目标耗时的定义处。上游给的经验是先用固定块调出最优值，再把它放大到 2–4 倍来开动态块。
 
-```bash
-vllm serve <model> --additional-config '{"profiling_chunk_config": {"enabled": true}}'
-```
+### 算出来之后还要过三道手
 
-下面将原注释中的小写 `true` 改为 Python 布尔字面量 `True`；原始摘录保持不变。
-
-```python
-llm = LLM(model, additional_config={"profiling_chunk_config": {"enabled": True}})
-```
-
-main 开发主线的校验代码经由 `self.scheduler_config.profiling_chunk_config` 访问这组配置。摘录没有给出这个版本在 `additional_config` 里的写法，所以上面的 JSON 路径在 main 开发主线上是否仍是顶层 key，材料无法确认 [I]。
-
-### smooth_factor 怎样影响块大小（main 开发主线）
-
-以下补充对应本页已固定的 main 源码快照。调度器将配置值传给 `ProfilingChunkManager`，再传给 `ChunkSizePredictor`；两条预测路径 `predict`、`predict_with_history` 使用相同的平滑和对齐步骤。
-
-`smooth_factor` 的配置默认值是 **1.0**。虽然 `ProfilingChunkManager` 构造参数的默认值是 0.8，调度器显式传入 `profiling_cfg.smooth_factor`，所以这条实际调用路径默认使用 1.0。
-
-设原始预测为 `x`、基准块大小为 `base`，则：
+`predict` 拿到正根 `x` 之后不直接用：
 
 ```text
-smoothed = base + smooth_factor * (x - base)
+smoothed   = base_chunk_size + smooth_factor * (x - base_chunk_size)
 chunk_size = max(int(smoothed), min_chunk)
-align = max(page_size, 64)
+align      = max(page_size, 64)
 chunk_size = ceil(chunk_size / align) * align
 ```
 
-这里的 `base` 来自调度器的 `max_num_scheduled_tokens`，`page_size` 来自 KV cache 的 `block_size`。系数越小，结果越靠近基准；系数为 1 时，平滑值等于原始预测。它在基准与本次预测之间插值，不使用上一次 chunk 作为平滑输入。[D]
+`smooth_factor` 是在「基准块」和「本次预测」之间做线性插值，**不是**拿上一次的 chunk 做平滑。系数越小越靠近基准，等于 1 时平滑值就是原始预测 [D]。
 
-例如基准为 8192、原始预测为 3000、系数为 0.5、`min_chunk=4096`、`page_size=128`：平滑值为 `8192 + 0.5 × (3000 - 8192) = 5596`，下限处理后仍为 5596，向上对齐得到 **5632**。[D] 这是公式示例，不是性能实测。
+举个能拿计算器复核的例子：基准 8192、原始预测 3000、系数 0.5、`min_chunk=4096`、`page_size=128`。平滑值 `8192 + 0.5 × (3000 − 8192) = 5596`，下限处理后仍是 5596，向上对齐到 128 的倍数得 **5632** [D]。这是公式示例，不是性能实测。
 
-调用链是 `scheduler_profiling_chunk.py` → `ProfilingChunkManager.predict_chunk_size` → `predict` 或 `predict_with_history`。在补料覆盖的第二处调度调用点，预测结果通过 `min(num_new_tokens, predicted_chunk)` 限制本步 token 数；预测返回 `None` 时不作这一步截断。系数变小不代表 chunk 必然变小，也不能据此保证吞吐或延迟改善。
+**这里有个文档与代码对不上的地方**：设计文档写的是 "Round down to multiple of `page_size`" [S20]，代码里却是 `((chunk_size + align - 1) // align) * align`，向**上**取整 [!]。按代码算才对得上。
 
-这些运行代码只核对了 main；不能把它们直接套用到 v0.23 维护分支。来源中保留了配置、预测器与调度器的固定源码摘录。
+最后一刀在调度器里：`num_new_tokens = min(predicted_chunk, num_new_tokens)` [C11]。**它只会把这一步切小，不会切大**；预测返回 `None`（判别式为负、根非正、或模型还没拟合出来）时这一步就不截，退回上游原本的 budget。
+
+### 在线校准是默认开的，而且不做会更慢
+
+`need_timing` 不显式设时跟随 `enabled`，也就是**默认开**。开着的时候 model runner 每步同步设备量执行时间，喂回去做增量重拟合；用的是把前缀长度也算进去的两变量模型 `f(C, H) = a·C(C+H) + b·(C+H) + c`，攒够 5–30 个点就用最小二乘更新一次参数 [S21]。
+
+要这一层的原因很实在：启动期只覆盖到 `max_num_batched_tokens` 那么长的序列，而真实请求往往长得多，曲线外推会偏。
+
+官方在这件事上的措辞很硬：在线校准默认开着，**必须按标准流程走完，否则会出现严重的性能劣化**；不想要的话可以直接把 `need_timing` 设成 `False`，但结果会是次优的 [S15]。校准做法也写了——用 ais_bench 造定长随机数据集、`batch_size=1`、数据各不相同以免被前缀缓存命中。
+
+### 收益有多少
+
+官方给了 P 节点上的实测（Atlas A3 64 GB，定长请求、并发 1）[S16]：
+
+| 模型 | 输入长度 | CPP 动态块 | PP 固定块 |
+|---|---|---|---|
+| DeepSeek-V3.1-W8A8 | 128k | TTFT 22.5s | TTFT 27.0s |
+| Qwen3-235B | 256k | TTFT 53.5s | TTFT 61.4s |
+
+变长请求、并发 4、前缀命中率 99% 的那组里，CPP2TP8 的输入吞吐是 22424 tps/卡，DP2TP8 是 16150、TP16 是 18875。两个分支的文档给的是同一组数 [S25]，所以这组数不区分版本。
+
+开关本身不改模型输出：它只决定每一步喂进去多少 token，采样与数值路径都不动 [D]。
 
 ## 开了的代价
 
-- **部署形态受限（main 开发主线）**：必须同时满足 `pipeline_parallel_size > 1`，否则启动报错。v0.23 维护分支 是否有同样的限制，摘录没有覆盖 [!]。
-- **与 balance scheduling 互斥（main 开发主线）**：同时打开 `enable_balance_scheduling` 会直接报错，需要关掉其中一个。
-- **每步同步开销**：`need_timing` 默认跟随 `enabled`。按 v0.23 维护分支的注释，校准完成前每步都要同步设备来计时。不想承担这部分开销，可以显式写 `"need_timing": false`，只用启动时的 profiling 模型。开销有多大，材料没有数据。
-- **启动阶段的额外工作**：docstring 说 profiling 发生在初始化期间，所以启动耗时很可能增加 [I]。材料没有具体数字。
-- **`min_chunk` 可能在告警后被调小（main 开发主线）**：`max_num_batched_tokens` 小于 `min_chunk`（默认 4096）时，这一分支只打 warning 并钳位；后续检查仍可能报错。排查 chunk 行为时要看启动日志。
-- **`max_fit_chunk` 的文案和阈值不一致**：填 6 能通过校验，但报错文案建议至少 30。调小这个值时不要以为「不报错就等于达到了建议值」[D]。
-- **材料缺口**：本页没有依据回答以下问题：
-  - 开启后吞吐或延迟有什么收益；
-  - 二次模型的具体形式；
-  - v0.23 维护分支上是否存在 PP、互斥、钳位这三项全局校验。
+**1. 部署形态被锁死。** `pipeline_parallel_size > 1` 是硬门槛，`pp <= 1` 时直接 `ValueError`，两个分支都一样 [C4]。加上官方明确说它是给 PD 分离的 P 节点用的，实际能用上的是「PD 分离 + P 节点开 PP」这一种形态。
+
+**2. 与 balance scheduling 硬互斥。** 同开报 `ValueError`，只能关掉一个。注意 v0.23 上 balance scheduling 还有 `VLLM_ASCEND_BALANCE_SCHEDULING` 这个环境变量入口——环境里残留一个 `=1`，就够让开了 CPP 的服务起不来；main 把这个环境兜底删了。
+
+**3. 启动多付约 64 次 forward，几十秒。** 官方自己列在 Constraints 里 [S17]。profiling 复用现成的 dummy_run 机制，所以**运行期不额外占显存** [S24]——多付的是启动时间，不是内存。
+
+**4. 校准期每步同步设备。** `need_timing` 默认跟随 `enabled`，为了量时间每步都要同步一次。可以显式写 `"need_timing": false` 躲掉，但官方说那样结果次优。**更要紧的是反过来那一面**：开着校准却没按标准流程走完，官方警告会出现严重性能劣化——这个参数没有「开了不管」的用法。
+
+**5. `min_chunk` 可能被悄悄改小。** `max_num_batched_tokens` 小于 `min_chunk`（默认 4096）时，这一分支只打 warning 就把 `min_chunk` 钳到 `max_num_batched_tokens`。排查切块行为不对时先翻启动日志。
+
+**6. `max_fit_chunk` 的文案和阈值对不上。** 填 6 能过校验，报错文案却说建议至少 30。设计文档说在线校准攒 5–30 个点，所以 6 并不是非法值，只是拟合点少、曲线更容易偏——别把「不报错」读成「达到了建议值」[D]。
+
+**7. 调参顺序不能反。** 官方要求先调 `--max-num-batched-tokens` 再调 `smooth_factor`；开着在线校准时建议根本别动 `smooth_factor`，只有关了校准才把它调到 0.5–0.8 当替代。
+
+**8. 还没有依据的部分。** 这一页没有回答：不同 `smooth_factor` 对 TTFT 的量化影响、在线校准「按标准流程走完」的判定标准是什么、以及短序列为主的负载上开了会不会反而变慢——官方文档只给了长序列的数 [I]。
 
 ## 已废弃的说法
 

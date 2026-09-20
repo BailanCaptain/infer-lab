@@ -1,0 +1,319 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 784" width="900" height="784" role="img" aria-label="D 节点抢占一条请求时的两条出路：连接器接得住就照上游走，接不住就整条退回 P 节点重新 prefill">
+  <title>D 节点抢占一条请求时的两条出路：连接器接得住就照上游走，接不住就整条退回 P 节点重新 prefill</title>
+  <rect width="900" height="784" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="184" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="40" width="276.1" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">D 节点 EngineCore · 抢占发生的那一刻</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">那条请求的 KV 一半是 P 节点传过来的、一半是 D 自己 decode 出来的；这一步 allocate_slots 再要一个块要不到了。</text>
+  <rect x="20" y="246" width="860" height="304" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="260" width="326.6" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="278.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">RecomputeScheduler 改写的就是这一个岔路口</text>
+  <text x="38" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先问连接器接不接。接了，抢占照上游那条路走；不接，这条请求当场终止，KV 全部作废。</text>
+  <rect x="20" y="588" width="860" height="172" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
+  <rect x="36" y="602" width="315.8" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="47" y="620.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">出了 EngineCore 进程 · PD proxy 与 P 节点</text>
+  <text x="38" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">proxy 认得 stop_reason 这个字符串，把已经吐出来的 100 个 token 接到 prompt 后面，整条重投一次。</text>
+  <rect x="40" y="326" width="820" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="40" y="326" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(63.8 343.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="98" y="351" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">块要不到了，先问连接器接不接</text>
+  <text x="98" y="371" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">问法是调 connector 的 update_state_before_preempt，看它返回什么</text>
+  <text x="844" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">True 往左，False 往右</text>
+  <line x1="20" y1="228" x2="880" y2="228" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">上游到这里会说「退回 waiting，下一步自己重新 prefill」——D 节点没有 prefill 这一步</text>
+  <line x1="20" y1="570" x2="880" y2="570" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="561" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">只有右边那条路会跨出进程</text>
+  <rect x="40" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="45" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="50" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="55" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="60" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="65" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="70" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="75" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="80" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="85" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="90" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="95" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="100" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="105" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="110" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="115" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="120" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="125" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="130" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="135" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="140" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="145" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="150" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="155" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="160" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="165" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="170" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="175" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="180" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="185" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="190" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="195" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="200" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="205" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="210" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="215" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="220" y="128" width="5" height="30" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <text x="40" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">prompt 37 个</text>
+  <rect x="230" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="235" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="240" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="245" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="250" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="255" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="260" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="265" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="270" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="275" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="280" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="285" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="290" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="295" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="300" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="305" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="310" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="315" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="320" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="325" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="330" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="335" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="340" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="345" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="350" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="355" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="360" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="365" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="370" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="375" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="380" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="385" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="390" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="395" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="400" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="405" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="410" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="415" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="420" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="425" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="430" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="435" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="440" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="445" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="450" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="455" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="460" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="465" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="470" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="475" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="480" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="485" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="490" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="495" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="500" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="505" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="510" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="515" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="520" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="525" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="530" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="535" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="540" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="545" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="550" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="555" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="560" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="565" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="570" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="575" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="580" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="585" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="590" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="595" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="600" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="605" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="610" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="615" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="620" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="625" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="630" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="635" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="640" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="645" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="650" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="655" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="660" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="665" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="670" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="675" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="680" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="685" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="690" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="695" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="700" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="705" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="710" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="715" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="720" y="128" width="5" height="30" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <text x="230" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">D 上 decode 出来的 99 个</text>
+  <rect x="40" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="45" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="50" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="55" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="60" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="65" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="70" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="75" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="80" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="85" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="90" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="95" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="100" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="105" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="110" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="115" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="120" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="125" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="130" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="135" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="140" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="145" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="150" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="155" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="160" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="165" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="170" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="175" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="180" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="185" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="190" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="195" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="200" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="205" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="210" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="215" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="220" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="225" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="230" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="235" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="240" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="245" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="250" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="255" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="260" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="265" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="270" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="275" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="280" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="285" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="290" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="295" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="300" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="305" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="310" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="315" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="320" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="325" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="330" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="335" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="340" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="345" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="350" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="355" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="360" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="365" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="370" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="375" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="380" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="385" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="390" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="395" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="400" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="405" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="410" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="415" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="420" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="425" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="430" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="435" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="440" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="445" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="450" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="455" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="460" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="465" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="470" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="475" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="480" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="485" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="490" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="495" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="500" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="505" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="510" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="515" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="520" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="525" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="530" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="535" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="540" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="545" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="550" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="555" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="560" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="565" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="570" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="575" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="580" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="585" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="590" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="595" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="600" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="605" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="610" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="615" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="620" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="625" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="630" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="635" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="640" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="645" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="650" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="655" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="660" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="665" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="670" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="675" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="680" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="685" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="690" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="695" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="700" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="705" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="710" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="715" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <rect x="720" y="666" width="5" height="24" fill="var(--color-accent, #e85b32)" opacity="0.5"/>
+  <text x="40" y="708" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">P 节点要重新 prefill 的 137 个 token，KV 再跨节点传一次</text>
+  <rect x="40" y="414" width="396" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="52" y="446" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(58.4 452.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="92" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">接了：照上游那条抢占走</text>
+  <text x="92" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">状态转 PREEMPTED，回 waiting 队头等块</text>
+  <text x="92" y="485" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">_preempt_request</text>
+  <rect x="464" y="414" width="396" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="476" y="446" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(482.4 452.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="516" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">不接：当场终止这条请求</text>
+  <text x="516" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">没配连接器、CPU 块不够、钩子抛异常</text>
+  <text x="516" y="485" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">RecomputeReqInfo</text>
+  <path d="M238 386 L238 410" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M238 410 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M662 386 L662 410" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M662 410 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M662 510 L662 578" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M662 578 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M40 120 l0 -9 L725 111 l0 9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
+  <text x="382.5" y="103" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">num_computed_tokens = 136，占满 2 个块</text>
+  <text x="40" y="530" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条路都立刻把 D 上那 2 个块还给块池——抢占的目的达到了，区别只在这条请求接下来去哪儿。</text>
+  <text x="40" y="728" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">重算的不是原来那 37 个 token，而是 prompt 加上已经生成的全部 token：P 上的算量翻了近四倍，跨节点 KV 传输也要再来一次 15 MiB。</text>
+</svg>

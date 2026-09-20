@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 82 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 84 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -35,6 +35,7 @@
 - [Chunked Prefill：切开的是一条请求，填满的是一步的预算](concepts/chunked-prefill.md) — 长 prompt 不一次算完，按这一步的 token 预算切成几块依次做；它在调度器里不是一个模式，是「还差多少」减不完时留下的余数。 `12`
 - [Context Parallel：把序列维切到多张卡上，PCP 切算、DCP 切存](concepts/context-parallel.md) — 长序列放不进一张卡时沿序列维下刀；PCP 切 prefill 要算的 token 并为此加卡，DCP 把 KV Cache 交错分到 TP 组各卡、卡数不变。 `15`
 - [Data Parallel：复制整个引擎，一根权重都不切](concepts/data-parallel.md) — 同一份模型起多个副本，每个副本一套 EngineCore、调度器和 KV 块池；请求由前端挑一个 rank 送进去。它加吞吐，不减单请求延迟，也不省单卡显存。 `13`
+- [动态分块流水线并行：让每块耗时相等，而不是 token 数相等](concepts/dynamic-chunked-pp.md) — PP 下固定大小的 chunk 越往后越慢，流水线就留气泡；它启动时真跑几十次 forward 量出延迟曲线，运行时反解出每一步该切多少 token，把各块耗时拉平。 `13 12`
 - [DyntraLB：跨 rank 传的只有块数，没有请求 id](concepts/dyntra-lb.md) — PD 分离的 D 节点上，各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。 `12`
 - [EPLB：把热门专家搬到闲着的卡上，但不改路由](concepts/eplb.md) — 开了 EP 之后哪张卡忙由数据决定，EPLB 数每个专家吃了多少 token，交给一个独立子进程算新摆法，再一层一层把专家权重 P2P 搬过去。 `14`
 - [Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑](concepts/expert-parallel.md) — MoE 层按专家切开，每张卡完整持有一批专家的权重；代价是每层多一次把 token 发出去、一次把结果收回来。 `14`
@@ -59,6 +60,7 @@
 - [prepare_inputs 数据流](concepts/prepare-inputs-flow.md) — 调度器给的请求集合，经 NPUInputBatch 与 BlockTable 变成算子要的四个张量；槽位由一个 Triton kernel 算出来。 `09`
 - [Quantization：省的是权重显存，开关在模型目录里那份 json](concepts/quantization.md) — vllm-ascend 自己不量化，只负责加载和执行 ModelSlim / LLM-Compressor 产出的低精度权重；哪一层用哪种量化写在 quant_model_description.json 里，引擎按 (量化类型, 层类型) 这一对去注册表找实现。 `17`
 - [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md) — PD 分离的 Decode 节点抢占一条请求时，先把它已算好的 KV 块同步拷进锁页主机内存，重新排上再拷回来，省掉一整轮 prefill。main 开发主线已把它改名成 PreemptOffloadConnector。 `11 12`
+- [RecomputeScheduler：D 节点抢不到块，就把请求退回 P 节点](concepts/recompute-scheduler.md) — PD 分离的 Decode 节点上 KV 块不够要抢占时，这个调度器不让请求退回 waiting 重算，而是当场终止它，用 stop_reason="recomputed" 让 PD proxy 把它重投给 Prefill 节点。 `12 18`
 - [Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather](concepts/sequence-parallel.md) — 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。 `15`
 - [ShortRequestFirst：把等待队列切成三条车道](concepts/short-request-first.md) — 把上游那条单一的 waiting 队列换成 immediate / short / long 三条，短 prompt 先被挑走，长 prompt 不再堵住别人的首 token。 `12`
 - [Speculative Decoding：一步算 K+1 个位置，第一个对不上的地方截断](concepts/speculative-decoding.md) — 先让一个便宜的草稿器猜 K 个 token，目标模型在同一次 forward 里给这 K+1 个位置各出一个分布，逐位比对，接受多少算多少。 `17`
@@ -125,14 +127,17 @@
 - [Balance Scheduling：一个 rank 顶满，所有 rank 一起停收](concepts/balance-scheduling.md)
 - [Batch-Job-Aware Scheduler：给离线批处理换掉的那条等待队列](concepts/batch-job-aware-scheduler.md)
 - [Chunked Prefill：切开的是一条请求，填满的是一步的预算](concepts/chunked-prefill.md)
+- [动态分块流水线并行：让每块耗时相等，而不是 token 数相等](concepts/dynamic-chunked-pp.md)
 - [DyntraLB：跨 rank 传的只有块数，没有请求 id](concepts/dyntra-lb.md)
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md)
 - [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md)
+- [RecomputeScheduler：D 节点抢不到块，就把请求退回 P 节点](concepts/recompute-scheduler.md)
 - [ShortRequestFirst：把等待队列切成三条车道](concepts/short-request-first.md)
 - [调度器：没有 prefill 和 decode 之分](concepts/vllm-scheduler.md)
 
 ### 13 并行 I：TP / PP / DP
 - [Data Parallel：复制整个引擎，一根权重都不切](concepts/data-parallel.md)
+- [动态分块流水线并行：让每块耗时相等，而不是 token 数相等](concepts/dynamic-chunked-pp.md)
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md)
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md)
 - [layer_sharding](params/layer-sharding.md)
@@ -163,6 +168,7 @@
 
 ### 18 PD / EPD 分离与 KV 传输
 - [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md)
+- [RecomputeScheduler：D 节点抢不到块，就把请求退回 P 节点](concepts/recompute-scheduler.md)
 
 ### 19 性能工程
 - [enable_async_exponential](params/enable-async-exponential.md)

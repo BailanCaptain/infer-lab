@@ -393,9 +393,19 @@
           "note": "FULL 回放前那次 current_stream().synchronize() 就是为异步调度加的，否则第 i 步的参数更新会被第 i−1 步的回放吃掉"
         },
         {
+          "from": "dynamic-chunked-pp",
+          "kind": "enables",
+          "note": "它直接继承 Scheduler、没有 Async 版，官方启动命令里那句 --no-async-scheduling 的真实代价在那页"
+        },
+        {
           "from": "dyntra-lb",
           "kind": "enables",
           "note": "它换了 scheduler_cls，所以得自备一个 Async 版；异步调度改了什么、为什么不能混用同步类在那一页"
+        },
+        {
+          "from": "recompute-scheduler",
+          "kind": "enables",
+          "note": "换掉 scheduler_cls 的特性必须自备一个 Async 子类，它是 v0.23 上唯一备了的那个"
         }
       ]
     },
@@ -656,6 +666,11 @@
           "from": "large-scale-ep",
           "kind": "alternative-to",
           "note": "都在治 DP rank 之间的忙闲不均——外置 LB 在 vLLM 外面按活跃 token 数挑 rank，均衡调度在 vLLM 里面卡住所有 rank 的准入闸"
+        },
+        {
+          "from": "dynamic-chunked-pp",
+          "kind": "conflicts-with",
+          "note": "三个版本上同开都是启动直接 ValueError，没有自动降级"
         },
         {
           "from": "dyntra-lb",
@@ -972,6 +987,11 @@
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "预留块数的推算直接拿 max_num_scheduled_tokens 当这一轮 prefill 切片的大小，切不切、切多大在那一页"
+        },
+        {
+          "from": "dynamic-chunked-pp",
+          "kind": "enables",
+          "note": "它改的就是那页讲的「每步切多少」，把固定的 token 预算换成按耗时反解出来的数"
         }
       ]
     },
@@ -1237,6 +1257,116 @@
       ]
     },
     {
+      "id": "dynamic-chunked-pp",
+      "title": "动态分块流水线并行：让每块耗时相等，而不是 token 数相等",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "PP 下固定大小的 chunk 越往后越慢，流水线就留气泡；它启动时真跑几十次 forward 量出延迟曲线，运行时反解出每一步该切多少 token，把各块耗时拉平。",
+      "aliases": [
+        "动态分块流水线并行",
+        "ProfilingChunkScheduler",
+        "ChunkSizePredictor",
+        "ProfilingChunkManager",
+        "profile_prefill_latency",
+        "动态分块 PP",
+        "等耗时切块"
+      ],
+      "chapters": [
+        "13",
+        "12"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L69-L74",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L90-L94",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L720-L725",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L17-L21",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L85-L93",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L127-L168",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L178-L198",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L202-L220",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L248-L251",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L313-L342",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L405-L412",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L545-L567",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L69-L107",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L121-L142",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L237-L271",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L259-L271",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L374-L388",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L808-L856",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1959-L1968",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_profiling_chunk.py#L55-L74",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_profiling_chunk.py#L112-L127",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_profiling_chunk.py#L200-L212",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L741-L751",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L9-L18",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L54-L63",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L65-L83",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L152",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L16-L22",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L86-L104",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L667-L671",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L993-L997",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L9-L16",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L38-L41",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L967-L971",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1009-L1010",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1272-L1281",
+        "vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "pipeline-parallel",
+          "kind": "builds-on",
+          "note": "它治的是 PP 那页讲的气泡里的一种——同样大的块越往后越慢造成的那一种"
+        },
+        {
+          "to": "chunked-prefill",
+          "kind": "builds-on",
+          "note": "它改的就是那页讲的「每步切多少」，把固定的 token 预算换成按耗时反解出来的数"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "ProfilingChunkScheduler 把上游 schedule() 整段抄过来改，被改的 num_new_tokens 预算逻辑在那页"
+        },
+        {
+          "to": "async-scheduling",
+          "kind": "builds-on",
+          "note": "它直接继承 Scheduler、没有 Async 版，官方启动命令里那句 --no-async-scheduling 的真实代价在那页"
+        },
+        {
+          "to": "profiling-chunk-config",
+          "kind": "builds-on",
+          "note": "每个配置键的默认值、取值范围和开了之后的代价在参数页，这页只讲机制不重抄"
+        },
+        {
+          "to": "balance-scheduling",
+          "kind": "conflicts-with",
+          "note": "三个版本上同开都是启动直接 ValueError，没有自动降级"
+        },
+        {
+          "to": "dyntra-lb",
+          "kind": "conflicts-with",
+          "note": "main 开发主线上 DyntraLB 的校验里单列一条，同开 ValueError"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/dynamic-chunked-pp.md",
+      "backlinks": []
+    },
+    {
       "id": "dyntra-lb",
       "title": "DyntraLB：跨 rank 传的只有块数，没有请求 id",
       "type": "feature",
@@ -1335,7 +1465,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/dyntra-lb.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "dynamic-chunked-pp",
+          "kind": "conflicts-with",
+          "note": "main 开发主线上 DyntraLB 的校验里单列一条，同开 ValueError"
+        }
+      ]
     },
     {
       "id": "enable-async-exponential",
@@ -4143,6 +4279,11 @@
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "kv_role、Mooncake 怎么把块从 P 拉到 D、为什么 P 要撞长度上限，都在那一页；这一页只说大规模 EP 为什么几乎总把它一起开上"
+        },
+        {
+          "from": "recompute-scheduler",
+          "kind": "enables",
+          "note": "只装在 kv_role='kv_consumer' 的 D 节点上；P 节点上配了会被警告后就地关掉，PD 混布直接 ValueError"
         }
       ]
     },
@@ -4241,7 +4382,13 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "concepts/pipeline-parallel.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "dynamic-chunked-pp",
+          "kind": "enables",
+          "note": "它治的是 PP 那页讲的气泡里的一种——同样大的块越往后越慢造成的那一种"
+        }
+      ]
     },
     {
       "id": "platform-plugin-registration",
@@ -4668,7 +4815,13 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "params/profiling-chunk-config.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "dynamic-chunked-pp",
+          "kind": "enables",
+          "note": "每个配置键的默认值、取值范围和开了之后的代价在参数页，这页只讲机制不重抄"
+        }
+      ]
     },
     {
       "id": "quantization",
@@ -4952,8 +5105,105 @@
           "from": "kv-cache-cpu-offload",
           "kind": "alternative-to",
           "note": "那一页的触发条件是调度器抢占某条请求、按请求点名搬走；这一页的触发条件是块池 LRU 淘汰，搬的是碰巧要被丢掉的块"
+        },
+        {
+          "from": "recompute-scheduler",
+          "kind": "enables",
+          "note": "这一页决定被抢占的请求怎么办，那一页决定它的 KV 去哪；只有连接器的 update_state_before_preempt 返回 True，才轮得到「不丢 KV」那条路"
         }
       ]
+    },
+    {
+      "id": "recompute-scheduler",
+      "title": "RecomputeScheduler：D 节点抢不到块，就把请求退回 P 节点",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "PD 分离的 Decode 节点上 KV 块不够要抢占时，这个调度器不让请求退回 waiting 重算，而是当场终止它，用 stop_reason=\"recomputed\" 让 PD proxy 把它重投给 Prefill 节点。",
+      "aliases": [
+        "RecomputeScheduler",
+        "重算调度器",
+        "recompute_scheduler_enable",
+        "AsyncRecomputeScheduler",
+        "DyntraLBRecomputeScheduler",
+        "RecomputeSchedulerConfig",
+        "RecomputeReqInfo",
+        "stop_reason=recomputed",
+        "退回 P 重算",
+        "D 节点抢占"
+      ],
+      "chapters": [
+        "12",
+        "18"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L280-L316",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L317-L347",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L869-L881",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L54-L72",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L75-L92",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L110-L136",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L138-L169",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L436-L441",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L1124-L1126",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L725",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L141-L161",
+        "vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1040-L1058",
+        "vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L973-L1001",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L128-L145",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L293-L345",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L598-L611",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1026",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L710",
+        "vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L85-L92",
+        "vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L103-L166",
+        "vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L344-L370",
+        "vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L1024-L1036",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1472-L1483",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1012-L1042",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L488-L505",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1255-L1281",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1421-L1444",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L80",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.1.md#L997",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/tutorials/models/DeepSeek-V3.1.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "只装在 kv_role='kv_consumer' 的 D 节点上；P 节点上配了会被警告后就地关掉，PD 混布直接 ValueError"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "继承上游 Scheduler 并整段复制 schedule()，只改「块要不到时被抢占的那条请求怎么处置」这一个分支"
+        },
+        {
+          "to": "recompute-cpu-offload",
+          "kind": "builds-on",
+          "note": "这一页决定被抢占的请求怎么办，那一页决定它的 KV 去哪；只有连接器的 update_state_before_preempt 返回 True，才轮得到「不丢 KV」那条路"
+        },
+        {
+          "to": "async-scheduling",
+          "kind": "builds-on",
+          "note": "换掉 scheduler_cls 的特性必须自备一个 Async 子类，它是 v0.23 上唯一备了的那个"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/recompute-scheduler.md",
+      "backlinks": []
     },
     {
       "id": "request-call-chain",
@@ -5987,6 +6237,11 @@
           "note": "「还差多少 token」减 token 预算那道减法在那一页，这一页只接着讲减不完的那一步会怎样"
         },
         {
+          "from": "dynamic-chunked-pp",
+          "kind": "enables",
+          "note": "ProfilingChunkScheduler 把上游 schedule() 整段抄过来改，被改的 num_new_tokens 预算逻辑在那页"
+        },
+        {
           "from": "pd-disaggregation",
           "kind": "enables",
           "note": "D 上那条请求能「一个 token 都不分也占一步」，前提是调度器每步只发 token 名额、不分阶段"
@@ -5995,6 +6250,11 @@
           "from": "profiling-chunk-config",
           "kind": "enables",
           "note": "开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层"
+        },
+        {
+          "from": "recompute-scheduler",
+          "kind": "enables",
+          "note": "继承上游 Scheduler 并整段复制 schedule()，只改「块要不到时被抢占的那条请求怎么处置」这一个分支"
         },
         {
           "from": "short-request-first",

@@ -1,0 +1,108 @@
+layout: scene
+id: recompute-scheduler
+caption: D 节点抢占一条请求时的两条出路：连接器接得住就照上游走，接不住就整条退回 P 节点重新 prefill
+size: [900, 784]
+
+regions:
+  - label: D 节点 EngineCore · 抢占发生的那一刻
+    note: 那条请求的 KV 一半是 P 节点传过来的、一半是 D 自己 decode 出来的；这一步 allocate_slots 再要一个块要不到了。
+    at: [20, 26]
+    size: [860, 184]
+    tone: neutral
+  - label: RecomputeScheduler 改写的就是这一个岔路口
+    note: 先问连接器接不接。接了，抢占照上游那条路走；不接，这条请求当场终止，KV 全部作废。
+    at: [20, 246]
+    size: [860, 304]
+    tone: ascend
+  - label: 出了 EngineCore 进程 · PD proxy 与 P 节点
+    note: proxy 认得 stop_reason 这个字符串，把已经吐出来的 100 个 token 接到 prompt 后面，整条重投一次。
+    at: [20, 588]
+    size: [860, 172]
+    tone: muted
+
+boundaries:
+  - at: 228
+    from: 20
+    to: 880
+    vertical: false
+    label: 上游到这里会说「退回 waiting，下一步自己重新 prefill」——D 节点没有 prefill 这一步
+  - at: 570
+    from: 20
+    to: 880
+    vertical: false
+    label: 只有右边那条路会跨出进程
+
+brackets:
+  - { at: [40, 120], span: 685, dir: up, label: "num_computed_tokens = 136，占满 2 个块", tone: muted }
+
+strips:
+  - at: [40, 128]
+    cells: 37
+    cell: 5
+    gap: 0
+    h: 30
+    tone: upstream
+    label: prompt 37 个
+  - at: [230, 128]
+    cells: 99
+    cell: 5
+    gap: 0
+    h: 30
+    tone: ascend
+    label: D 上 decode 出来的 99 个
+  - at: [40, 666]
+    cells: 137
+    cell: 5
+    gap: 0
+    h: 24
+    tone: accent
+    label: P 节点要重新 prefill 的 137 个 token，KV 再跨节点传一次
+
+bands:
+  - label: 块要不到了，先问连接器接不接
+    sub: 问法是调 connector 的 update_state_before_preempt，看它返回什么
+    right: True 往左，False 往右
+    at: [40, 326]
+    size: [820, 56]
+    tone: ascend
+    icon: split
+
+boxes:
+  - at: [40, 414]
+    size: [396, 96]
+    title: 接了：照上游那条抢占走
+    sub: 状态转 PREEMPTED，回 waiting 队头等块
+    fn: _preempt_request
+    tone: upstream
+    icon: queue
+  - at: [464, 414]
+    size: [396, 96]
+    title: 不接：当场终止这条请求
+    sub: 没配连接器、CPU 块不够、钩子抛异常
+    fn: RecomputeReqInfo
+    tone: accent
+    icon: split
+
+arrows:
+  - { from: [238, 386], to: [238, 410], tone: upstream }
+  - { from: [662, 386], to: [662, 410], tone: accent }
+  - { from: [662, 510], to: [662, 578], tone: accent }
+
+notes:
+  - at: [40, 530]
+    text: 两条路都立刻把 D 上那 2 个块还给块池——抢占的目的达到了，区别只在这条请求接下来去哪儿。
+    size: 12.5
+    width: 820
+  - at: [40, 728]
+    text: "重算的不是原来那 37 个 token，而是 prompt 加上已经生成的全部 token：P 上的算量翻了近四倍，跨节点 KV 传输也要再来一次 15 MiB。"
+    size: 12.5
+    width: 820
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L280-L316
+    symbols: [allocate_slots, update_state_before_preempt, num_computed_tokens]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L330-L345
+    symbols: [_preempt_request, RecomputeReqInfo]
+  - source: vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1040-L1058
+    symbols: [stop_reason]

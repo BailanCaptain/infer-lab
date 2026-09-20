@@ -27,6 +27,7 @@
     "wiki:diagrams": "tsx scripts/wiki-diagrams.ts",
     "wiki:lint": "tsx scripts/wiki-lint.ts",
     "wiki:audit": "tsx scripts/wiki-audit.ts",
+    "wiki:cite-screen": "tsx scripts/wiki-cite-screen.ts",
     "wiki:gaps": "tsx scripts/wiki-gaps.ts",
     "wiki:stale": "tsx scripts/wiki-stale.ts",
     "wiki:lineage": "tsx scripts/wiki-lineage.ts",

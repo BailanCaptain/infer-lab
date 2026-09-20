@@ -1,0 +1,134 @@
+layout: scene
+id: eplb
+caption: 一个周期 168 步都摊在 forward 里；中间那段算法跑在另一个进程；算出来的结果落成每层的两张表
+size: [900, 776]
+
+regions:
+  - label: Worker 进程 · 一个周期 168 步，全摊在 forward 里
+    note: 数、发统计、搬权重都挂在 model runner 每一步的 forward_before / forward_end 上，没有单独的停机窗口。
+    at: [20, 26]
+    size: [860, 316]
+    tone: ascend
+  - label: EPLB 子进程 · 被唤醒一次，算一次新摆法
+    note: spawn 出来的第二个进程，算法在 CPU 上跑，不占 forward 的时间。
+    at: [20, 380]
+    size: [860, 160]
+    tone: upstream
+  - label: 算出来的东西 · 每层两张表，加一份 send/recv 清单
+    note: 这是仓库里那份 8 逻辑专家 / 2 卡 / 每卡 5 槽的测试 map，物理槽比逻辑专家多出 2 个。
+    at: [20, 566]
+    size: [860, 190]
+    tone: neutral
+
+boundaries:
+  - at: 362
+    from: 20
+    to: 880
+    vertical: false
+    label: 过了这条线换进程：统计经共享字典过去，新摆法经队列回来
+
+brackets:
+  - { at: [60, 158], span: 768, dir: up, label: "周期 = expert_heat_collection_interval + algorithm_execution_interval + MoE 层数", tone: muted }
+
+strips:
+  - at: [60, 170]
+    cells: 100
+    cell: 4
+    gap: 0.5
+    h: 28
+    tone: ascend
+    label: 数 100 步
+  - at: [516, 170]
+    cells: 20
+    cell: 4
+    gap: 0.5
+    h: 28
+    tone: accent
+    label: 算 20 步
+  - at: [612, 170]
+    cells: 48
+    cell: 4
+    gap: 0.5
+    h: 28
+    tone: neutral
+    label: 搬 48 步
+  - at: [60, 646]
+    cells: 5
+    cell: 34
+    gap: 6
+    highlights: [0, 1]
+    tone: neutral
+    label: "卡 0 的 5 个槽：逻辑专家 7 2 0 3 5"
+  - at: [400, 646]
+    cells: 5
+    cell: 34
+    gap: 6
+    highlights: [3, 4]
+    tone: neutral
+    label: "卡 1 的 5 个槽：逻辑专家 6 1 4 7 2"
+
+boxes:
+  - at: [40, 248]
+    size: [258, 82]
+    title: "数：谁吃了多少 token"
+    sub: 每层一份 int64，累在 NPU 上
+    fn: moe_load.add_
+    tone: ascend
+    icon: calc
+  - at: [312, 248]
+    size: [254, 82]
+    title: "发：统计写进共享字典"
+    sub: 第 99 步末尾唤醒子进程
+    fn: planner_q.put
+    tone: accent
+    icon: bolt
+  - at: [580, 248]
+    size: [280, 82]
+    title: "搬：一步搬一层"
+    sub: 发在前、等在后，一层一步
+    fn: batch_isend_irecv
+    tone: neutral
+    icon: gear
+  - at: [40, 448]
+    size: [392, 80]
+    title: "四种策略：Random / DefaultEplb / SwiftBalanceEplb / FlashLB"
+    sub: 默认 2，也就是 SwiftBalanceEplb
+    fn: generate_policy
+    tone: upstream
+    icon: search
+  - at: [456, 448]
+    size: [404, 80]
+    title: 回传每层的 send/recv 清单和新的两张表
+    sub: 主进程一次取走全部层，之后逐层用
+    fn: block_update_q
+    tone: upstream
+    icon: layers
+
+arrows:
+  - { from: [439, 334], to: [439, 444], tone: accent }
+
+notes:
+  - at: [648, 656]
+    text: 两张卡的实心格装的是同一对逻辑专家 7 和 2——多出来的那 2 个物理槽就是给它们的副本。
+    size: 12.5
+    width: 208
+  - at: [60, 722]
+    text: "expert_map 只回答「这个逻辑专家在不在我这儿、在第几槽」，卡 1 上是 [-1,1,4,-1,2,-1,0,3]；log2phy 回答「本卡该用哪一份副本」，卡 1 上是 [2,6,9,3,7,4,5,8]——逻辑 7 有两份，卡 1 取自己那份 8。"
+    size: 12.5
+    width: 800
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L79-L101
+    symbols: [expert_heat_collection_interval, algorithm_execution_interval, num_moe_layers, update_expert_weight_flag]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L521-L539
+    symbols: [moe_load.add_, dynamic_eplb]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L102-L155
+    symbols: [planner_q.put, forward_before, forward_end]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_worker.py#L337-L410
+    symbols: [EplbProcess, planner_q, block_update_q]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_device_transfer_loader.py#L46-L95
+    symbols: [batch_isend_irecv, asyn_expert_weight_transfer]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/core/policy/policy_factory.py#L12-L27
+    symbols: [generate_policy, RandomLoadBalance, DefaultEplb, SwiftBalanceEplb, FlashLB]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_utils.py#L46-L107
+    symbols: [expert_map, log2phy]

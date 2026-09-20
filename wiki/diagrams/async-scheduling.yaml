@@ -1,0 +1,96 @@
+layout: scene
+id: async-scheduling
+caption: 第 N 步还在 NPU 上算，第 N+1 步已经在 CPU 上排好了；能这样排，靠的是调度器先给「会产出但还没产出」的 token 记一个占位
+size: [900, 622]
+
+regions:
+  - label: EngineCore 进程（上游 vLLM）
+    note: step_with_batch_queue 排完一批就直接返回，不去取结果；队列没满、还有请求可排，就接着排下一批。
+    at: [20, 26]
+    size: [860, 252]
+    tone: upstream
+  - label: Worker 进程（昇腾）
+    note: 采样出的 token id 不回 CPU：占位符让调度器接着排，真值留在设备上等下一步自己取。
+    at: [20, 318]
+    size: [860, 250]
+    tone: ascend
+
+spines:
+  - { y: 140, from: 60, to: 860, tone: upstream }
+
+stops:
+  - { x: 130, side: below, title: 调度第 N 步, detail: 谁跑、各跑几个, fn: schedule, icon: split, tone: upstream }
+  - { x: 350, side: below, title: 送下去就走, detail: 拿到的是 future, fn: execute_model, icon: chip, tone: ascend }
+  - { x: 575, side: below, title: 先记一笔占位, detail: 这一步会产出、但还没产出的 token, fn: num_output_placeholders, icon: slot, tone: upstream }
+  - { x: 795, side: below, title: 第 N+1 步照排, detail: 第 N 步还在 NPU 上, fn: step_with_batch_queue, icon: clock, tone: upstream }
+
+boundaries:
+  - at: 298
+    from: 20
+    to: 880
+    vertical: false
+    label: "跨进程：token id 不从这里回来"
+
+arrows:
+  - { from: [330, 280], to: [330, 314], tone: upstream, label: SchedulerOutput }
+  - { from: [560, 314], to: [560, 280], tone: ascend, label: ModelRunnerOutput }
+
+strips:
+  - at: [56, 424]
+    cells: 37
+    cell: 14
+    gap: 3
+    h: 26
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+    tone: upstream
+    label: prompt 的 37 个 token id，早就在 CPU 上
+  - at: [694, 424]
+    cells: 1
+    cell: 26
+    h: 26
+    highlight: 0
+    tone: accent
+    label: 第 38 格写的是 -1
+
+brackets:
+  - { at: [350, 100], span: 445, dir: down, label: 这一段里第 N 步一直在 NPU 上跑, tone: accent }
+  - { at: [694, 416], span: 26, dir: up, label: num_output_placeholders 从 0 变成 1, tone: accent }
+
+boxes:
+  - at: [36, 502]
+    size: [268, 58]
+    title: 真 id 留在 NPU 上
+    fn: prev_sampled_token_ids
+    tone: ascend
+    icon: chip
+  - at: [318, 502]
+    size: [268, 58]
+    title: 下一步在设备上换回来
+    sub: -1 那格被覆盖成真 id
+    fn: _prepare_input_ids
+    tone: ascend
+    icon: grid
+  - at: [600, 502]
+    size: [264, 58]
+    title: 结果晚一圈才回 CPU
+    sub: 在异步拷贝流上做 D2H
+    fn: AsyncGPUModelRunnerOutput
+    tone: ascend
+    icon: bolt
+
+notes:
+  - at: [24, 588]
+    text: 同步调度下 NPU 每算完一步都要停下来等：等 CPU 把结果收回去、更新状态、算出下一步的名额、再把 SchedulerOutput 送过进程边界。异步把这一段压到上一步的 forward 底下——那条请求的 200 圈，每圈省下的都是它。
+    size: 12.5
+    width: 852
+    strong: true
+
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L484-L546
+    symbols: [step_with_batch_queue, batch_queue, execute_model, schedule]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L41
+    symbols: [num_output_placeholders, _update_after_schedule]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1700-L1727
+    symbols: [_prepare_input_ids, prev_sampled_token_ids]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2600-L2613
+    symbols: [AsyncGPUModelRunnerOutput]

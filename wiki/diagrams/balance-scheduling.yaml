@@ -1,0 +1,119 @@
+layout: scene
+id: balance-scheduling
+caption: 每步一次 all_gather 收齐各 rank 在跑的条数；只要有一个 rank 顶到上限，所有 rank 这一步都不再从 waiting 放人进来
+size: [900, 620]
+
+regions:
+  - label: 4 个 DP rank，各有一份自己的 running 集合
+    note: 这张图按 max_num_seqs = 8 画：一排 8 个格子就是这个 rank 的名额，涂实的格子是此刻真在跑的请求。
+    at: [20, 20]
+    size: [860, 300]
+    tone: upstream
+  - label: 每个 rank 各自在 waiting 循环里算同一个判断
+    note: 两行插在上游那段 while 里，位置在「本 rank 满没满」那道检查之后、取队列之前。
+    at: [20, 372]
+    size: [860, 196]
+    tone: ascend
+
+strips:
+  - at: [60, 104]
+    cells: 8
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    tone: accent
+    label: rank 0 · 8 / 8 顶满 —— 闸门是它拉下来的
+  - at: [60, 158]
+    cells: 8
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0, 1, 2]
+    tone: upstream
+    label: rank 1 · 3 / 8，还有 5 个空位
+  - at: [60, 212]
+    cells: 8
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0, 1, 2, 3, 4]
+    tone: upstream
+    label: rank 2 · 5 / 8
+  - at: [60, 266]
+    cells: 8
+    cell: 30
+    h: 26
+    gap: 6
+    highlights: [0, 1]
+    tone: upstream
+    label: rank 3 · 2 / 8
+
+boxes:
+  - at: [452, 96]
+    size: [404, 90]
+    title: 每步一次跨 rank 的 all_gather
+    sub: 收齐 4 个数，谁手里都是同一份
+    fn: balance_gather
+    tone: ascend
+    icon: layers
+  - at: [452, 206]
+    size: [404, 90]
+    title: 触发点在引擎核心，不在调度器
+    sub: 空转的 rank 也走这一步
+    fn: _has_global_unfinished_reqs
+    tone: ascend
+    icon: proc
+  - at: [44, 448]
+    size: [392, 96]
+    title: 最大的那个数够到上限了吗
+    sub: 取的是上一步结束时的快照
+    fn: balance_queue
+    tone: accent
+    icon: calc
+  - at: [468, 448]
+    size: [388, 96]
+    title: 够到了就谁都不放人
+    sub: 直接 break，这一步不接新请求
+    fn: max_num_running_reqs
+    tone: accent
+    icon: slot
+
+arrows:
+  - { from: [390, 132], to: [448, 132], tone: ascend }
+  - { from: [654, 190], to: [654, 202], tone: ascend }
+  - { from: [654, 300], to: [654, 366], tone: accent }
+  - { from: [440, 496], to: [464, 496], tone: accent }
+
+brackets:
+  - at: [356, 104]
+    span: 188
+    dir: left
+    label: 各报一个数
+    tone: ascend
+
+boundaries:
+  - at: 348
+    from: 20
+    to: 880
+    vertical: false
+    label: all_gather 之后，每个 rank 手里是同一个向量
+
+notes:
+  - at: [20, 588]
+    text: 开关关掉时 schedule() 第一行就把活交还给上游，balance_queue 不分配、一次通信都不做——但类已经被换成了 BalanceScheduler。
+    size: 12.5
+    width: 860
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L88-L92
+    symbols: [balance_gather, balance_queue]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L319-L330
+    symbols: [balance_queue, max_num_running_reqs, waiting]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L642-L667
+    symbols: [_has_global_unfinished_reqs]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
+    symbols: [BalanceScheduler]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L107-L111
+    symbols: [schedule]

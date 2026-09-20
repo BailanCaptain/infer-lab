@@ -55,6 +55,11 @@
       "file": "concepts/ascend-config-system.md",
       "backlinks": [
         {
+          "from": "balance-scheduling",
+          "kind": "enables",
+          "note": "enable_balance_scheduling 从 additional_config 走到 AscendConfig 的解析路径、以及环境变量那条旁路，在那一页"
+        },
+        {
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "batch_job_sched_config 是 additional_config.scheduler_config 下的子配置，嵌套键与顶层旧键的优先级在那一页"
@@ -68,6 +73,11 @@
           "from": "enable-sleep-mode-extra-cleanup",
           "kind": "enables",
           "note": "这个键从顶层搬进 rl_config 子配置，旧写法在 main 上会撞上 extra=\"forbid\"——搬家的机制在那一页"
+        },
+        {
+          "from": "eplb",
+          "kind": "enables",
+          "note": "eplb_config 是 additional_config 拆出来的八个子配置之一，键名与默认值怎么进来的在那一页"
         },
         {
           "from": "multistream-overlap-gate",
@@ -155,6 +165,11 @@
       "file": "concepts/ascend-patch-system.md",
       "backlinks": [
         {
+          "from": "balance-scheduling",
+          "kind": "enables",
+          "note": "它不设 scheduler_cls，靠 import 时改写模块里 Scheduler 这个名字生效，「import 即生效」的规矩在那一页"
+        },
+        {
           "from": "engine-processes",
           "kind": "enables",
           "note": "三类进程的差别落到代码上就是 patch 打在哪，机制本身在那一页"
@@ -170,6 +185,103 @@
           "note": "上游没留口子的那部分怎么办，是这条边界唯一说不清的地方，机制在那一页"
         }
       ]
+    },
+    {
+      "id": "async-scheduling",
+      "title": "异步调度：下一步的调度压在上一步的执行底下",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "EngineCore 把这一步送下去之后不等结果，直接调度下一步；调度器靠给「还没产出」的 token 记一个占位，让那道减法照样算得出来。",
+      "aliases": [
+        "异步调度",
+        "Async Scheduling",
+        "async_scheduling",
+        "AsyncScheduler",
+        "Async output",
+        "step_with_batch_queue",
+        "num_output_placeholders",
+        "占位 token"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 40,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/config/scheduler.py#L146-L149",
+        "vllm@0fc695fc:vllm/config/vllm.py#L933-L1002",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L168-L176",
+        "vllm@0fc695fc:vllm/config/vllm.py#L497-L507",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L546",
+        "vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L41",
+        "vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L51-L67",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L407",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1013",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L381-L395",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1105-L1120",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1955-L1971",
+        "vllm@0fc695fc:vllm/v1/request.py#L140-L146",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1700-L1727",
+        "vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L142-L145",
+        "vllm@0fc695fc:vllm/config/vllm.py#L1017-L1027",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2730-L2758",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2600-L2613",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1919-L1929",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2559-L2566",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L243-L257",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L58-L72",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L677-L680",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L716-L725",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L964-L971",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1472-L1489",
+        "vllm@568afb3a:vllm/config/scheduler.py#L180-L198",
+        "vllm@568afb3a:vllm/config/vllm.py#L1028-L1058",
+        "vllm@568afb3a:vllm/v1/core/sched/async_scheduler.py#L19-L49",
+        "vllm@568afb3a:vllm/config/vllm.py#L524-L533",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L20-L20",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/feature_matrix.md#L12-L38",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V4-Flash.md#L330-L330",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L100-L100",
+        "vllm-ascend@b255ab59:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L129-L138",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/support_matrix/supported_features.html",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/support_matrix/feature_matrix.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/tutorials/features/dynamic_chunked_pipeline_parallel.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "同步那条 step() 的四件事写在那一页；异步换掉的只是 EngineCore 的 step_fn，循环体本身一行没改"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "占位符加在那一页「还差多少 token」那道减法的被减数上，两条 while 和 token 预算的规则都没动"
+        },
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "use_async_scheduling 是从上游 GPUModelRunner 继承来的字段，昇腾的改动全落在那一页划出的记账区与采样区"
+        },
+        {
+          "to": "speculative-decoding",
+          "kind": "conflicts-with",
+          "note": "只有 EAGLE / MTP / 草稿模型 / NGram GPU 这几种方法能和它同开，别的方法显式开异步直接 ValueError，而且同开会顺手关掉 cascade attention"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/async-scheduling.md",
+      "backlinks": []
     },
     {
       "id": "attention-backend-family",
@@ -321,6 +433,99 @@
           "note": "那一页算过 MLA 每 token 每层 1152 字节，这一页讲这 1152 字节里装的是什么、谁把它装进去"
         }
       ]
+    },
+    {
+      "id": "balance-scheduling",
+      "title": "Balance Scheduling：一个 rank 顶满，所有 rank 一起停收",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再从 waiting 队列放新请求进来。",
+      "aliases": [
+        "Balance Scheduling",
+        "均衡调度",
+        "均衡调度器",
+        "BalanceScheduler",
+        "enable_balance_scheduling",
+        "VLLM_ASCEND_BALANCE_SCHEDULING",
+        "balance_gather",
+        "balance_queue",
+        "BalanceDPEngineCoreProc",
+        "patch_balance_schedule",
+        "DP 准入闸"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 60,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L319-L330",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L78-L86",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L88-L92",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L107-L111",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L642-L667",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L714-L721",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L34-L46",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L78-L83",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L90-L94",
+        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L103-L105",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L677-L685",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L566-L571",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L104-L104",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L63-L63",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1928-L1932",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L28-L43",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L79-L83",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L227-L239",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/balance_schedule_refactor.md#L378-L382",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L78-L101",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L946-L959",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L979-L985",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L115-L119",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1440-L1446",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_balance_schedule.py#L104-L104",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_balance_schedule.py#L894-L903",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L990-L992",
+        "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L145-L145",
+        "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L19-L19",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "它多插的那两行就落在那一页讲的「扫 waiting 那条 while」里，紧跟在「本 rank 满没满」那道检查后面"
+        },
+        {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "每步一次的 all_gather 挂在忙循环上而不在调度器里，那个循环一步做哪四件事写在那一页"
+        },
+        {
+          "to": "ascend-patch-system",
+          "kind": "builds-on",
+          "note": "它不设 scheduler_cls，靠 import 时改写模块里 Scheduler 这个名字生效，「import 即生效」的规矩在那一页"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "enable_balance_scheduling 从 additional_config 走到 AscendConfig 的解析路径、以及环境变量那条旁路，在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/balance-scheduling.md",
+      "backlinks": []
     },
     {
       "id": "batch-job-aware-scheduler",
@@ -745,7 +950,13 @@
       "contradicts": [],
       "updated": "2026-09-19",
       "file": "params/enable-force-eplb-b7ec3661121f.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "eplb",
+          "kind": "conflicts-with",
+          "note": "main 上 enable_force_eplb 与 dynamic_eplb 同时开且模型是 MoE 会直接报错——前者改的是路由结果，不是摆放"
+        }
+      ]
     },
     {
       "id": "enable-matmul-allreduce",
@@ -990,11 +1201,117 @@
       "file": "concepts/engine-processes.md",
       "backlinks": [
         {
+          "from": "eplb",
+          "kind": "enables",
+          "note": "EPLB 要在 Worker 里再起一个子进程，而上游的 Worker 是 daemon=True 起的，那条 daemon=False 的 patch 就是为这件事打的"
+        },
+        {
           "from": "platform-plugin-registration",
           "kind": "enables",
           "note": "四个 general plugin 为什么每个都要先补一次 patch，理由只在进程边界那一页说得清"
         }
       ]
+    },
+    {
+      "id": "eplb",
+      "title": "EPLB：把热门专家搬到闲着的卡上，但不改路由",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "开了 EP 之后哪张卡忙由数据决定，EPLB 数每个专家吃了多少 token，交给一个独立子进程算新摆法，再一层一层把专家权重 P2P 搬过去。",
+      "aliases": [
+        "EPLB",
+        "Expert Parallelism Load Balancer",
+        "专家并行负载均衡",
+        "专家负载均衡",
+        "冗余专家",
+        "dynamic_eplb",
+        "DYNAMIC_EPLB",
+        "EXPERT_MAP_RECORD",
+        "expert_map",
+        "log2phy",
+        "EplbUpdator",
+        "SwiftBalanceEplb",
+        "FlashLB"
+      ],
+      "chapters": [
+        "14"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L831-L845",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L865-L894",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_utils.py#L46-L107",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_utils.py#L110-L136",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L79-L101",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L102-L155",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_worker.py#L337-L410",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_device_transfer_loader.py#L46-L95",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/core/policy/policy_factory.py#L12-L27",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/adaptor/vllm_adaptor.py#L106-L124",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/adaptor/vllm_adaptor.py#L148-L179",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L521-L539",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L249-L256",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L510-L534",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L95-L102",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L57-L68",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L47-L48",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/v2/model_runner.py#L72-L73",
+        "vllm-ascend@2c59ff10:tests/ut/eplb/core/a2/expert_map.json#L1-L17",
+        "vllm-ascend@2c59ff10:tests/ut/eplb/core/a2/test_eplb_utils.py#L79-L88",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/two_card/test_qwen3_moe_eplb.py#L35-L77",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L31-L40",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L171-L203",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L205-L220",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/expert_parallelism_load_balancer.html",
+        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1193-L1212",
+        "vllm-ascend@2ed6cbba:vllm_ascend/eplb/core/eplb_utils.py#L46-L56",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L871-L920",
+        "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/model_runner_v2_eplb.md#L1-L30",
+        "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/model_runner_v1_eplb.md#L19-L40",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L37-L41",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L89-L105",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L561-L567",
+        "https://huggingface.co/Qwen/Qwen3-30B-A3B/blob/main/config.json"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "alternative-to",
+          "note": "MoE 那几个矩阵上 EP 顶掉了 TP——EP 一开，MoE 的 tp_size 被置 1，每张卡整份拿走一批专家"
+        },
+        {
+          "to": "engine-processes",
+          "kind": "builds-on",
+          "note": "EPLB 要在 Worker 里再起一个子进程，而上游的 Worker 是 daemon=True 起的，那条 daemon=False 的 patch 就是为这件事打的"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "eplb_config 是 additional_config 拆出来的八个子配置之一，键名与默认值怎么进来的在那一页"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "能不能搬取决于该量化方法有没有把每个专家的权重和 scale 拆成可按专家寻址的张量，不能拆的格式直接抛错"
+        },
+        {
+          "to": "enable-force-eplb-b7ec3661121f",
+          "kind": "conflicts-with",
+          "note": "main 上 enable_force_eplb 与 dynamic_eplb 同时开且模型是 MoE 会直接报错——前者改的是路由结果，不是摆放"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/eplb.md",
+      "backlinks": []
     },
     {
       "id": "fuse-allreduce-rms",
@@ -2384,6 +2701,11 @@
       "file": "concepts/npu-model-runner.md",
       "backlinks": [
         {
+          "from": "async-scheduling",
+          "kind": "enables",
+          "note": "use_async_scheduling 是从上游 GPUModelRunner 继承来的字段，昇腾的改动全落在那一页划出的记账区与采样区"
+        },
+        {
           "from": "enable-async-exponential",
           "kind": "enables",
           "note": "预填 q 的调用点就在 execute_model 里、跑 28 层之前那几行，副流能藏进 forward 全靠这个位置"
@@ -3695,7 +4017,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/quantization.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "eplb",
+          "kind": "enables",
+          "note": "能不能搬取决于该量化方法有没有把每个专家的权重和 scale 拆成可按专家寻址的张量，不能拆的格式直接抛错"
+        }
+      ]
     },
     {
       "id": "rank-d6a905e66735",
@@ -4328,7 +4656,13 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "concepts/speculative-decoding.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "async-scheduling",
+          "kind": "conflicts-with",
+          "note": "只有 EAGLE / MTP / 草稿模型 / NGram GPU 这几种方法能和它同开，别的方法显式开异步直接 ValueError，而且同开会顺手关掉 cascade attention"
+        }
+      ]
     },
     {
       "id": "tensor-parallel",
@@ -4417,6 +4751,11 @@
       "updated": "2026-09-20",
       "file": "concepts/tensor-parallel.md",
       "backlinks": [
+        {
+          "from": "eplb",
+          "kind": "alternative-to",
+          "note": "MoE 那几个矩阵上 EP 顶掉了 TP——EP 一开，MoE 的 tp_size 被置 1，每张卡整份拿走一批专家"
+        },
         {
           "from": "pipeline-parallel",
           "kind": "alternative-to",
@@ -4649,6 +4988,16 @@
       "file": "concepts/vllm-engine-core.md",
       "backlinks": [
         {
+          "from": "async-scheduling",
+          "kind": "enables",
+          "note": "同步那条 step() 的四件事写在那一页；异步换掉的只是 EngineCore 的 step_fn，循环体本身一行没改"
+        },
+        {
+          "from": "balance-scheduling",
+          "kind": "enables",
+          "note": "每步一次的 all_gather 挂在忙循环上而不在调度器里，那个循环一步做哪四件事写在那一页"
+        },
+        {
           "from": "pipeline-parallel",
           "kind": "enables",
           "note": "流水线靠 EngineCore 的批队列同时压住 pp_size 步才填得满，那个 step_with_batch_queue 就在那一页"
@@ -4831,6 +5180,16 @@
       "updated": "2026-09-20",
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
+        {
+          "from": "async-scheduling",
+          "kind": "enables",
+          "note": "占位符加在那一页「还差多少 token」那道减法的被减数上，两条 while 和 token 预算的规则都没动"
+        },
+        {
+          "from": "balance-scheduling",
+          "kind": "enables",
+          "note": "它多插的那两行就落在那一页讲的「扫 waiting 那条 while」里，紧跟在「本 rank 满没满」那道检查后面"
+        },
         {
           "from": "batch-job-aware-scheduler",
           "kind": "enables",

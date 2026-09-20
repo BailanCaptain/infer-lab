@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { worktreeDir } from "./wiki/clone";
-import { gitText } from "./wiki/git";
+import { GitError, gitText } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
 import { loadPages } from "./wiki/pages";
 import { findStale, refOfCommit, staleIds } from "./wiki/stale";
@@ -52,8 +52,11 @@ const refOf = (repo: string, commit: string): string | undefined => {
     try {
       git(repo, ["merge-base", "--is-ancestor", c, `origin/${ref}`]);
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      // 退出码 1 才是「不是祖先」。别的（分支读不到、commit 不存在）必须报出来，
+      // 否则这页会被当成「不归这条分支管」悄悄跳过，最后打印一句「都没变」。
+      if (error instanceof GitError && error.status === 1) return false;
+      throw error;
     }
   });
 };

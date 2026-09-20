@@ -104,6 +104,16 @@
       "file": "concepts/acl-graph.md",
       "backlinks": [
         {
+          "from": "cpu-binding",
+          "kind": "alternative-to",
+          "note": "两者从两头削同一笔 host 下发开销——图模式减少下发次数，绑核稳住做下发的那条线程，开了图也仍然要绑"
+        },
+        {
+          "from": "batch-invariance",
+          "kind": "conflicts-with",
+          "note": "v0.23 与 v0.26 的文档写明批不变的注意力算子不支持 FULL 和 FULL_DECODE_ONLY 两种捕获模式"
+        },
+        {
           "from": "flash-attention-3",
           "kind": "conflicts-with",
           "note": "这个算子的 tiling 在 host 侧做，和 FULL_DECODE_ONLY 图模式不能同时开，官方要求退到 PIECEWISE"
@@ -182,6 +192,11 @@
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "batch_job_sched_config 是 additional_config.scheduler_config 下的子配置，嵌套键与顶层旧键的优先级在那一页"
+        },
+        {
+          "from": "cpu-binding",
+          "kind": "enables",
+          "note": "enable_cpu_binding 是 additional_config 顶层的布尔键，不属于任何子配置类，默认 True"
         },
         {
           "from": "enable-async-exponential",
@@ -706,6 +721,117 @@
       ]
     },
     {
+      "id": "batch-invariance",
+      "title": "Batch Invariance：同一条请求，跟谁拼一批都算出同一个末位",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "开了它，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。",
+      "aliases": [
+        "Batch Invariance",
+        "批不变",
+        "批不变性",
+        "批次不变性",
+        "batch_invariant_ops",
+        "init_batch_invariance",
+        "enable_batch_invariant_mode",
+        "npu_mm_batch_invariant",
+        "npu_fused_infer_attention_score_batch_invariant",
+        "matmul_persistent",
+        "逐位可复现",
+        "HCCL_DETERMINISTIC"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 60,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L99-L138",
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L140-L163",
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L76-L93",
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L31-L47",
+        "vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L50-L73",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/triton/batch_invariant/matmul.py#L63-L82",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/triton/batch_invariant/matmul.py#L132-L140",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/triton/batch_invariant/matmul.py#L353-L382",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/triton/batch_invariant/softmax.py#L22-L29",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L989-L992",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L421-L428",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L70-L80",
+        "vllm-ascend@2c59ff10:vllm_ascend/sample/sampler.py#L146-L155",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L256-L263",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L843-L850",
+        "vllm@0fc695fc:vllm/envs.py#L596-L598",
+        "vllm@0fc695fc:vllm/v1/attention/selector.py#L100-L104",
+        "vllm@0fc695fc:vllm/model_executor/layers/batch_invariant.py#L914-L919",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L98-L112",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L93-L104",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/batch_invariance.md#L13-L13",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/batch_invariance.md#L17-L22",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/batch_invariance.md#L24-L31",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/batch_invariance.md#L45-L48",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/batch_invariance.md#L111-L118",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/batch_invariance.md#L120-L135",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/batch_invariance.html",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1121-L1121",
+        "vllm-ascend@2ed6cbba:vllm_ascend/batch_invariant.py#L76-L92",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1450-L1470",
+        "vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L149-L200",
+        "vllm-ascend@b255ab59:vllm_ascend/batch_invariant.py#L68-L83",
+        "vllm-ascend@b255ab59:vllm_ascend/batch_invariant.py#L124-L137",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L262-L292",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L1296-L1300",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L24-L26",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L110-L119",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L196",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L207-L226",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求默认不开它；开了之后 200 步 × 28 层里哪几个算子换了实现，用的是它的数"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "换的正是那一页的第二层和第三层——torch_npu 的函数被直接赋值替换，csrc 编出来的自定义算子整层下线"
+        },
+        {
+          "to": "chunked-prefill",
+          "kind": "conflicts-with",
+          "note": "main 的文档写明两者不能同时开，而且不会自动关，要自己加 --no-enable-chunked-prefill"
+        },
+        {
+          "to": "prefix-caching",
+          "kind": "conflicts-with",
+          "note": "同样要自己关；关掉之后 block_size 不再被顶成 128，得补一个 --block-size 128"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "conflicts-with",
+          "note": "v0.23 与 v0.26 的文档写明批不变的注意力算子不支持 FULL 和 FULL_DECODE_ONLY 两种捕获模式"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "多卡时 all-reduce 的加法顺序也得钉死，靠 HCCL_DETERMINISTIC=strict 和 LCCL_DETERMINISTIC=1"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/batch-invariance.md",
+      "backlinks": []
+    },
+    {
       "id": "batch-job-aware-scheduler",
       "title": "Batch-Job-Aware Scheduler：给离线批处理换掉的那条等待队列",
       "type": "feature",
@@ -1010,6 +1136,11 @@
           "note": "两者治同一个病的两段——它改排队顺序，chunked prefill 压单步 token 数，可以也应该同时开"
         },
         {
+          "from": "batch-invariance",
+          "kind": "conflicts-with",
+          "note": "main 的文档写明两者不能同时开，而且不会自动关，要自己加 --no-enable-chunked-prefill"
+        },
+        {
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "预留块数的推算直接拿 max_num_scheduled_tokens 当这一轮 prefill 切片的大小，切不切、切多大在那一页"
@@ -1166,6 +1297,108 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/context-parallel.md",
+      "backlinks": []
+    },
+    {
+      "id": "cpu-binding",
+      "title": "CPU 绑核：每个 Worker 钉死一段核，而且是 warmup 之后才钉",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "把每张卡对应的 Worker 进程和它的 acl / release 线程钉到一段固定的 CPU 核上，ARM 昇腾服务器上默认就开着；核段按 NPU 拓扑亲和或全局逻辑 NPU id 切，切完进程之间互不重叠。",
+      "aliases": [
+        "CPU 绑核",
+        "CPU Binding",
+        "cpu_binding",
+        "enable_cpu_binding",
+        "bind_cpus",
+        "CpuAlloc",
+        "global_slice",
+        "topo_affinity",
+        "核绑定",
+        "NPU 亲和性绑核"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 120,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L775-L783",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L160-L164",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L801-L806",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L34-L44",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L22-L31",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L15-L17",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L183-L190",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L104-L132",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L149-L181",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L192-L204",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L466-L503",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L505-L517",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L556-L593",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L606-L623",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L683-L694",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L643-L653",
+        "vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L702-L709",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L824-L828",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L850-L860",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1221-L1232",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1234-L1248",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/cpu_binding.md#L15-L27",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/cpu_binding.md#L45-L81",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/cpu_binding.md#L167-L207",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/cpu_binding.md#L212-L233",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/cpu_binding.md#L256-L274",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/cpu_binding.md#L3-L7",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/cpu_binding.md#L11-L26",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/cpu_binding.md#L85-L91",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L79-L83",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/cpu_binding.html",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/cpu_binding.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/cpu_binding.py#L798-L803",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L827-L834",
+        "vllm-ascend@b255ab59:vllm_ascend/cpu_binding.py#L517-L527",
+        "vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L166-L194",
+        "vllm-ascend@b255ab59:vllm_ascend/cpu_binding.py#L697-L705",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454-L458"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "绑核是第六步 compile_or_warm_up_model 里最后一个动作，不在第一步那串构造函数动作里"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "enable_cpu_binding 是 additional_config 顶层的布尔键，不属于任何子配置类，默认 True"
+        },
+        {
+          "to": "engine-processes",
+          "kind": "builds-on",
+          "note": "被钉住的就是一张卡一个的那个 Worker 进程，进程怎么起来的在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求什么都没配，绑核默认开着，走 A2 的 topo_affinity 这条路"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "alternative-to",
+          "note": "两者从两头削同一笔 host 下发开销——图模式减少下发次数，绑核稳住做下发的那条线程，开了图也仍然要绑"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/cpu-binding.md",
       "backlinks": []
     },
     {
@@ -1844,6 +2077,11 @@
       "updated": "2026-09-21",
       "file": "concepts/engine-processes.md",
       "backlinks": [
+        {
+          "from": "cpu-binding",
+          "kind": "enables",
+          "note": "被钉住的就是一张卡一个的那个 Worker 进程，进程怎么起来的在那一页"
+        },
         {
           "from": "eplb",
           "kind": "enables",
@@ -4170,6 +4408,11 @@
           "note": "init_ascend_config 是 NPUWorker.__init__ 的一步，单例什么时候有值由启动时序决定"
         },
         {
+          "from": "cpu-binding",
+          "kind": "enables",
+          "note": "绑核是第六步 compile_or_warm_up_model 里最后一个动作，不在第一步那串构造函数动作里"
+        },
+        {
           "from": "enable-sleep-mode-extra-cleanup",
           "kind": "enables",
           "note": "清理插在 NPUWorker.sleep() / wake_up() 这一层，管的是 worker 启动时建起来的那些通信域和已捕获的图"
@@ -4260,6 +4503,11 @@
           "note": "那条请求走的是这四条里最贵的一条，它那 112 KiB 就是从这儿来的"
         },
         {
+          "from": "batch-invariance",
+          "kind": "enables",
+          "note": "那条请求默认不开它；开了之后 200 步 × 28 层里哪几个算子换了实现，用的是它的数"
+        },
+        {
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "「预留 2 块 = 28 MiB」用的是那一页算出的每块 14 MiB"
@@ -4273,6 +4521,11 @@
           "from": "context-parallel",
           "kind": "enables",
           "note": "把那条请求的问题换成 128K，每 token 112 KiB 这个数才派得上用场"
+        },
+        {
+          "from": "cpu-binding",
+          "kind": "enables",
+          "note": "那条请求什么都没配，绑核默认开着，走 A2 的 topo_affinity 这条路"
         },
         {
           "from": "data-parallel",
@@ -4502,6 +4755,11 @@
       "updated": "2026-09-20",
       "file": "concepts/ops-and-kernels.md",
       "backlinks": [
+        {
+          "from": "batch-invariance",
+          "kind": "enables",
+          "note": "换的正是那一页的第二层和第三层——torch_npu 的函数被直接赋值替换，csrc 编出来的自定义算子整层下线"
+        },
         {
           "from": "expert-parallel",
           "kind": "enables",
@@ -5161,6 +5419,11 @@
       "updated": "2026-09-20",
       "file": "concepts/prefix-caching.md",
       "backlinks": [
+        {
+          "from": "batch-invariance",
+          "kind": "conflicts-with",
+          "note": "同样要自己关；关掉之后 block_size 不再被顶成 128，得补一个 --block-size 128"
+        },
         {
           "from": "kv-cache-cpu-offload",
           "kind": "enables",
@@ -6390,6 +6653,11 @@
           "from": "pipeline-parallel",
           "kind": "alternative-to",
           "note": "同样两张卡拆同一个模型：TP 在每层里切矩阵、一层归约两次，PP 按层切段、一步只过一次 hidden"
+        },
+        {
+          "from": "batch-invariance",
+          "kind": "enables",
+          "note": "多卡时 all-reduce 的加法顺序也得钉死，靠 HCCL_DETERMINISTIC=strict 和 LCCL_DETERMINISTIC=1"
         },
         {
           "from": "context-parallel",

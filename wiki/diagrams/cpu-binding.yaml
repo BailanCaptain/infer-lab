@@ -1,0 +1,109 @@
+layout: scene
+id: cpu-binding
+caption: 同一个 cpuset 被按全局逻辑 NPU id 切成互不重叠的 16 段，每段再按角色分给 IRQ、进程本身、acl 线程、release 线程
+size: [900, 672]
+
+regions:
+  - label: 一台 A3 推理服务器：640 个逻辑核、16 张逻辑 NPU、16 个 Worker 进程
+    note: 一共几张卡、哪张卡挨着哪个 NUMA、这个进程在用哪张卡，全靠解析 npu-smi info -m、npu-smi info、npu-smi info -t topo 三条命令的文本；ASCEND_RT_VISIBLE_DEVICES 再筛一道。
+    at: [20, 26]
+    size: [860, 192]
+    tone: neutral
+
+  - label: Worker 0 拿到的那 40 个核
+    at: [20, 254]
+    size: [860, 158]
+    tone: ascend
+
+  - label: 拿到核段之后真正执行的三件事
+    at: [20, 432]
+    size: [860, 190]
+    tone: accent
+
+boundaries:
+  - at: 236
+    from: 20
+    to: 880
+    vertical: false
+    label: 切法只看全局 NPU id，所以 16 个进程各算各的也不会重叠
+
+brackets:
+  - at: [40, 140]
+    span: 812
+    dir: up
+    label: allowed_cpus = /proc/self/status 里的 Cpus_allowed_list = 0..639
+    tone: neutral
+  - at: [36, 368]
+    span: 38
+    dir: down
+    label: IRQ 2 个
+    tone: accent
+  - at: [76, 368]
+    span: 718
+    dir: down
+    label: main = pool[2:-2]，CPU 2-37 共 36 个核，给 Worker 进程和它的全部子线程
+    tone: ascend
+  - at: [796, 368]
+    span: 38
+    dir: down
+    label: acl / release
+    tone: muted
+
+strips:
+  - at: [40, 148]
+    cells: 16
+    cell: 49
+    h: 32
+    gap: 2
+    highlight: 0
+    tone: neutral
+    label: "base = 640 // 16 = 40，extra = 0：逻辑 NPU i 拿 allowed_cpus[40i : 40i+40]"
+  - at: [36, 308]
+    cells: 40
+    cell: 18
+    h: 30
+    gap: 2
+    highlights: [0, 1, 38, 39]
+    tone: ascend
+    label: "pool = allowed_cpus[0:40] = CPU 0-39；两端这 4 个是预留的，中间 36 个才归进程本身"
+
+bands:
+  - label: 进程连同全部子线程钉到 main 那 36 个核
+    sub: taskset -acp，一次覆盖进程里所有线程
+    fn: _bind_default_threads
+    icon: proc
+    at: [56, 486]
+    size: [808, 40]
+    tone: ascend
+  - label: acl 线程和 release 线程各单独钉一个核
+    sub: 从 ps -Te 的输出里按线程名找出 tid，再 taskset -cp
+    fn: get_threads_map
+    icon: split
+    at: [56, 530]
+    size: [808, 40]
+    tone: ascend
+  - label: 把已经分配的内存页搬到这段核所在的 NUMA
+    sub: migratepages 不在就只跳这一步，前面两步照做
+    fn: bind_memory
+    icon: bolt
+    at: [56, 574]
+    size: [808, 40]
+    tone: muted
+
+notes:
+  - at: [20, 646]
+    text: "整条流程跑在每个 Worker 进程自己身上，发生在启动的最后一步、warmup 之后；任何一步抛异常都被 NPUWorker 接住写成一条 warning，服务照常起来，只是少了这层优化。"
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L183-L204
+    symbols: [parse_allowed_cpus, parse_topo_affinity, ALLOWED_CPUS_PATH]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L149-L181
+    symbols: [get_running_npus, ASCEND_RT_VISIBLE_DEVICES]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L466-L517
+    symbols: [base_cpu_count, extra_cpu_count, _slice_for_npu, allowed_cpus]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L606-L623
+    symbols: [_allocate_default_roles, assign_main, assign_acl, assign_rel]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L683-L694
+    symbols: [_bind_default_threads, get_threads_map, bind_memory, acl_thread, release_thread]

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 782" width="900" height="782" role="img" aria-label="批不变换掉的是「一个和分几份来加」：K 方向不再切给别人，外加一张 aten 派发表和三处直接赋值（vllm-ascend v0.23 维护分支）">
+  <title>批不变换掉的是「一个和分几份来加」：K 方向不再切给别人，外加一张 aten 派发表和三处直接赋值（vllm-ascend v0.23 维护分支）</title>
+  <rect width="900" height="782" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="292" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="40" width="344.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">默认：一个和分几份加，由这一批多少 token 说了算</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">K = 1024 是 Qwen3-0.6B 的 hidden size。分组一变，浮点加法的顺序就变，末位跟着变。</text>
+  <rect x="20" y="338" width="860" height="292" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="352" width="295.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="370.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开了之后：两条供应链抢同一张 aten 派发表</text>
+  <text x="38" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">AscendC 的 batch_invariant_ops 包在场就用它，只有 Triton 时用 Triton 的核，两条都缺只打一条 warning。</text>
+  <rect x="44" y="420" width="812" height="60" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="44" y="420" width="5" height="60" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(67.8 439.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="102" y="447" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">aten 派发表</text>
+  <text x="102" y="467" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">mm / matmul / addmm / bmm / softmax / sum 挂到 NPU 派发键</text>
+  <rect x="616.5" y="437.5" width="220.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="726.8" y="455" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">enable_batch_invariant_mode</text>
+  <rect x="44" y="490" width="812" height="60" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="44" y="490" width="5" height="60" rx="2.5" fill="var(--color-accent, #e85b32)"/>
+  <g transform="translate(67.8 509.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
+  <text x="102" y="517" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">派发拦不到的三处，直接赋值覆盖</text>
+  <text x="102" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">npu_fused_infer_attention_score · npu_add_rms_norm · torch.sum</text>
+  <rect x="729" y="507.5" width="108" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="783" y="525" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">add_rms_norm</text>
+  <rect x="44" y="560" width="812" height="60" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
+  <rect x="44" y="560" width="5" height="60" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
+  <g transform="translate(67.8 579.8) scale(0.85)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="102" y="587" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">连带关掉的一整层</text>
+  <text x="102" y="607" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">enable_custom_op 返回 False，_C_ascend 那层全部不参与</text>
+  <rect x="699" y="577.5" width="138" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1"/><text x="768" y="595" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">enable_custom_op</text>
+  <line x1="20" y1="648" x2="880" y2="648" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="639" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">过了这条线，本进程后续每一次 forward 用的都是换过的实现</text>
+  <rect x="44" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="96" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="148" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="200" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="252" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="304" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="356" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="408" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="460" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="512" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="564" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="616" y="138" width="46" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="668" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="720" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="772" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="824" y="138" width="46" height="26" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <text x="44" y="182" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">K = 1024 切成 16 段，每段 BLOCK_K = 64；分成几组各自求和，默认内核按 M 自己挑</text>
+  <rect x="44" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="96" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="148" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="200" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="252" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="304" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="356" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="408" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="460" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="512" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="564" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="616" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="668" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="720" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="772" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="824" y="236" width="46" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <text x="44" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">matmul_bias_persistent_kernel：一个 fp32 累加器从头加到尾，grid 只按 M、N 铺</text>
+  <rect x="24" y="686" width="250" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="36" y="706" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(42.4 712.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
+  <text x="76" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">读环境变量</text>
+  <text x="76" y="728" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认 0，不设就整段不进</text>
+  <text x="76" y="745" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">VLLM_BATCH_INVARIANT</text>
+  <rect x="300" y="686" width="300" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="312" y="706" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(318.4 712.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
+  <text x="352" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">钉死跨卡与权重格式</text>
+  <text x="352" y="728" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">确定性集合通信，weight_nz_mode = 0</text>
+  <text x="352" y="745" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">override_envs_for_invariance</text>
+  <rect x="626" y="686" width="250" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="638" y="706" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(644.4 712.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z M4 9h16M8 5v4"/></g>
+  <text x="678" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">排在分布式初始化之前</text>
+  <text x="678" y="728" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个 rank 各跑一次</text>
+  <text x="678" y="745" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">init_batch_invariance</text>
+  <path d="M276 722 L298 722" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M298 722 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M602 722 L624 722" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M624 722 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M44 130 l0 -9 L240 121 l0 9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
+  <text x="142" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">部分和 1</text>
+  <path d="M252 130 l0 -9 L448 121 l0 9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
+  <text x="350" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">部分和 2</text>
+  <path d="M460 130 l0 -9 L656 121 l0 9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
+  <text x="558" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">部分和 3</text>
+  <path d="M668 130 l0 -9 L864 121 l0 9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
+  <text x="766" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">部分和 4</text>
+  <path d="M44 228 l0 -9 L864 219 l0 9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
+  <text x="454" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">同一条累加链，从第 0 段到第 15 段</text>
+</svg>

@@ -27,15 +27,17 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L135-L142
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1223-L1223'
   - >-
-    vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L44-L58'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L403-L406'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/config_utils.py#L43-L50'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L620-L624'
+    vllm-ascend@b255ab59:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L103-L118'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L501-L504'
+  - 'vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L50'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L789-L793'
   - >-
-    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L103-L109
+    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L104-L111
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
 evidence: C
 relations:
   - to: enable-matmul-allreduce
@@ -45,7 +47,7 @@ relations:
       npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm
       一起吃掉；main 上两条一起被删
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-59a95308536d065059c9cc558e2d55136e4689c7d61259182be752ea3ba3e582.md
@@ -55,15 +57,19 @@ rawSources:
 
 ## 一句话
 
-`fuse_allreduce_rms` 是 `ascend_compilation_config` 下的一个布尔开关，开启后注册一个 torch.compile 图改写 pass，把 `matmul → AllReduce → 残差加 → RMSNorm` 这一段连续子图替换成单个 `matmul_allreduce_add_rmsnorm` 融合算子 [C1]。它在 v0.23.0 上默认关闭，官方给的理由是「与 SP 冲突」[S9]；main（28bf3a2e）上这个开关、对应的 pass 文件、以及文档里的那一行都已删除 [!]。
+`fuse_allreduce_rms` 是 `ascend_compilation_config` 下的一个布尔开关。开了它，torch.compile 会多注册一个图改写 pass，把 `matmul → AllReduce → 加残差 → RMSNorm` 这一段连续子图整个换成 `matmul_allreduce_add_rmsnorm` 一个融合算子 [C1]。
+
+官方默认 `False`，理由写在参数表里：与序列并行冲突 [S9]。但 v0.23.0 上真正决定这个 pass 要不要注册的那段代码读的是另一个值、缺省写成 `True`——这个坑单独说，见下文 [!]。
+
+**[那条请求](../concepts/one-request.md)用不到它。** 单卡 TP=1，子图里压根没有那次 TP AllReduce，pattern 无从匹配；就算有，37 个 token 也够不着 512 的门槛 [D]。要碰它得同时满足三件事：TP>1、走图模式、每步 token 数超过 512。而 main 开发主线（`b255ab59`）上这个开关、对应的 pass 文件、官方表里的那一行全都没了 [!]。
 
 ## 事实表
 
-| 项 | v0.23.0 | main | 意味着什么 |
+| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
 | 是否存在 | 有 | 已整体删除 | 升级到 main 时必须把这个键从配置里摘掉，见下节 |
 | 类型 / 官方默认值 | `bool` / `False` | —— | 官方表里写明「默认关是因为与 SP 冲突」 |
-| 实际注册用的默认值 | `True`（读原始 dict）[C3] | —— | 不写这个键时 pass 照样被注册，与文档的 `False` 对不上 [!] |
+| 实际注册用的默认值 | `True`（读原始 dict） | —— | 不写这个键时 pass 照样被注册，与文档的 `False` 对不上 [!] |
 | 配置路径 | `additional_config.ascend_compilation_config.fuse_allreduce_rms` | —— | 是嵌套键，写在 `additional_config` 顶层不生效 |
 | 替换成的算子 | `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm` | —— | 一次调用吃掉四步，AllReduce 在算子内部拆成 ReduceScatter+AllGather |
 | 生效门槛 | `compile_range.start > 512` | —— | decode 的小 batch 完全不走这条路径，只有长 prefill 有意义 |
@@ -76,23 +82,15 @@ rawSources:
 
 张量并行下每个 Linear 的列切分结果都要做一次 AllReduce 才能拼回完整的 hidden，而 AllReduce 的下一步几乎总是「加残差 + RMSNorm」。朴素实现里这是四个背靠背的算子：通信整段阻塞，RMSNorm 只能等全部数据到齐才开始算。融合算子把 AllReduce 改写成 ReduceScatter + AllGather 两段，于是 RMSNorm 可以在 ReduceScatter 落下的那 1/tp 分片上先算起来，与还在飞的通信按 512 token 一块交叠。注意省下的不是字节数——ring AllReduce 与 RS+AG 的线上流量是同一量级——省的是串行等待。
 
-```mermaid
-flowchart TD
-    subgraph P["原始子图（pattern）"]
-        A["unquantized_gemm"] --> B["tensor_model_parallel_all_reduce"]
-        B --> C["maybe_chunk_residual"]
-        C --> D["npu_add_rms_norm_bias"]
-    end
-    P -->|MatmulAllReduceAddRMSNormPass| E["matmul_allreduce_add_rmsnorm<br/>（内部 ReduceScatter → norm → AllGather）"]
-    P -->|SequenceParallelismPass| F["reduce_scatter → maybe_chunk_residual<br/>→ npu_add_rms_norm_bias → all_gather"]
-    E -.->|先到先得，同一子图只能被改写一次| F
+```wiki-diagram
+file: fuse-allreduce-rms
 ```
 
 **为什么与 SP 冲突。** 两个 pass 盯的是同一段子图：SP 的 `MiddleAllReduceRMSNormPattern` 匹配 `all_reduce → npu_add_rms_norm_bias`，正是融合 pass 所匹配 pattern 的后半截 [C4]。它们注册在同一个 `GraphFusionPassManager` 里，`__call__` 按 `self.passes` 的列表顺序逐个改图，而融合 pass 的 append 排在两个 SP pass 之前。所以两个都开时，融合 pass 先把子图换成单算子，SP 再来匹配已经找不到 `all_reduce` 节点，序列并行静默失效——没有报错、没有告警，只是没生效 [D]。
 
 更根本的是两者对这次通信的归宿要求相反：融合算子在内部 AllGather 回全长，后续算子仍看到完整序列；SP 要的恰恰是让 norm 及其下游停在 1/tp 长度上以省显存和算力，直到必要时才 AllGather。同一次 AllReduce 只能按其中一种方式拆，二者不可叠加 [!]。官方选择让默认值站在 SP 这边。
 
-**v0.23.0 的默认值其实是分裂的** [!]。类型化字段 `AscendCompilationConfig.fuse_allreduce_rms` 默认 `False`，但真正决定 pass 是否注册的 `GraphFusionPassManager.configure` 读的是**原始 dict**、缺省值写成 `True` [C3]，而这个 manager 正是昇腾平台实际生效的 pass manager。结果是：用户完全不写这个键时，pass 仍会被 append 进 manager。同一份配置下 `update_compile_ranges_split_points` 的 `enable_npugraph_ex` 分支读的又是类型化字段（`False`），因而 512 这个切分点不会被插入；此时 pass 是否真的改到图，取决于现有编译区间里有没有 `start > 512` 的区间 [D]。main 明确修掉了这个坑，注释写着「消费递归校验过的配置，而不是重读原始 additional_config dict」。
+**v0.23.0 的默认值其实是分裂的** [!]。类型化字段 `AscendCompilationConfig.fuse_allreduce_rms` 默认 `False`，但真正决定 pass 是否注册的 `GraphFusionPassManager.configure` 读的是**原始 dict**、缺省值写成 `True` [C3]，而这个 manager 正是昇腾平台实际生效的 pass manager。结果是：用户完全不写这个键时，pass 仍会被 append 进 manager。同一份配置下 `update_compile_ranges_split_points` 的 `enable_npugraph_ex` 分支读的又是类型化字段（`False`），因而 512 这个切分点不会被插入；此时 pass 是否真的改到图，取决于现有编译区间里有没有 `start > 512` 的区间 [D]。main 把这个坑修掉了，`configure` 改读类型化的 `get_ascend_config().ascend_compilation_config`，注释就写在那儿：消费递归校验过的配置，而不是重读原始 `additional_config` dict [C11]。
 
 ## 开了的代价
 
@@ -112,9 +110,13 @@ vllm serve Qwen/Qwen3-0.6B \
 
 **代价二：多一次图编译切分。** 开启后 `compile_ranges_endpoints` 会被插入 512，编译区间在此断开，意味着同一段图在 512 上下各编译一份，编译耗时与缓存条目相应增加 [D]。
 
-**代价三（main）：配置会直接报错，不再是静默忽略。** main 上 `AscendCompilationConfig` 里已没有这个字段，它是 `AscendConfig` 的类型化嵌套字段、由 pydantic 做 dict→dataclass 转换，而 `@config` 装饰器统一设了 `extra="forbid"` [C14]。所以沿用旧配置继续传 `fuse_allreduce_rms` 会在启动时被当成拼写错误拒掉，而不是像 v0.23.0 那样默默无视 [D]。升级时请直接删掉这个键。
+**代价三（main）：配置通常会直接报错，不再是静默忽略。** main 上 `AscendCompilationConfig` 只剩 `enable_npugraph_ex` / `enable_static_kernel` / `enable_super_kernel` / `fuse_norm_quant` / `fuse_qknorm_rope` / `fuse_muls_add` 六个字段，没有 `fuse_allreduce_rms` [C12]；它作为 `AscendConfig` 的类型化嵌套字段由 pydantic 做 dict→dataclass 转换 [C13]，而 `@config` 装饰器统一设了 `extra="forbid"` [C14]。所以沿用旧配置继续传这个键，启动时会被当成拼写错误拒掉，而不是像 v0.23.0 那样默默无视 [D]。升级时直接删掉。
 
-**它去哪了。** main 上删除的是冲突的**融合方**，不是 SP：`graph_fusion_pass_manager.configure` 里 `fuse_allreduce_rms` 分支与 `MatmulAllReduceAddRMSNormPass` 的 import 一并消失，`vllm_ascend/compilation/passes/` 下也已不存在 `allreduce_rmsnorm_fusion_pass.py` 与 `sequence_parallelism.py` 这两个文件 [D]；同一个 manager 里连 SP 那两个 pass 的注册也撤了，而 `pass_config.enable_sp` 仍被 `enable_sp_by_pass` 读取，说明序列并行改由上游 vLLM 的 pass 承担、不再是 vllm-ascend 自带的一对 pass [I]。官方文档参数表里这一行同步删除。
+唯一的例外在顶层那道检查：构造 `AscendConfig` 前算出的 `unknown_keys` 非空、且 `importlib.util.find_spec("vllm_omni")` 找得到时，只打一条 warning 再把它们剔掉 [C18]。不过这条豁免走的是顶层 `additional_config` 的名单，嵌套进 `ascend_compilation_config` 的键仍由子配置自己的 `extra="forbid"` 处理 [D]——别指望它替你兜底。
+
+**它去哪了：删掉的是冲突的融合方，不是 SP。** 上游发布说明把它和 eager 侧的 [enable_matmul_allreduce](enable-matmul-allreduce.md) 记成同一条移除项：「Removed matmul all-reduce and matmul all-reduce RMSNorm fusions. #12119」[S19]。`graph_fusion_pass_manager.configure` 在 main 上只剩 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条注册，`fuse_allreduce_rms` 分支与 `MatmulAllReduceAddRMSNormPass` 的 import 一并消失 [C11]；`vllm_ascend/compilation/passes/` 下也已不存在 `allreduce_rmsnorm_fusion_pass.py` 和 `sequence_parallelism.py` [D]。
+
+同一个 manager 里连 SP 那两个 pass 的注册也撤了，但 `pass_config.enable_sp` 仍被 `enable_sp_by_pass` 读取 [C15]，而 `platform.py` 转去调上游的 `update_sizes_for_sequence_parallelism`。合起来看，序列并行改由上游 vLLM 的 pass 承担，不再是 vllm-ascend 自带的一对 [I]。官方参数表里这一行同步删除 [S16]。
 
 官方参数表见 <https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html>（v0.23.0），对应本地文件 `docs/source/user_guide/configuration/additional_config.md` 第 141 行。
 

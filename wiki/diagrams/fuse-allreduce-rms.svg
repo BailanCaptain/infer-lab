@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）">
+  <title>两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）</title>
+  <rect width="900" height="610" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="254" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="218" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">torch.compile 拿到的原始子图</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每层两处：attention 的 o_proj 接 post-attention norm、MLP 的 down_proj 接下一层 input norm。</text>
+  <rect x="150" y="96" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="150" y="96" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(173.8 106.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="208" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">本 rank 的矩阵乘</text>
+  <rect x="707" y="104.5" width="138" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="776" y="122" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">unquantized_gemm</text>
+  <rect x="150" y="142" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="150" y="142" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(173.8 152.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="208" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">TP 规约成完整 hidden</text>
+  <rect x="587" y="150.5" width="258" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="716" y="168" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">tensor_model_parallel_all_reduce</text>
+  <rect x="150" y="188" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="150" y="188" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(173.8 198.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
+  <text x="208" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">对齐残差</text>
+  <rect x="677" y="196.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="761" y="214" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">maybe_chunk_residual</text>
+  <rect x="150" y="234" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="150" y="234" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(173.8 244.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="208" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">加残差 + RMSNorm</text>
+  <rect x="669.5" y="242.5" width="175.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="757.3" y="260" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">npu_add_rms_norm_bias</text>
+  <line x1="20" y1="302" x2="880" y2="302" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">一个 GraphFusionPassManager 按 self.passes 的列表顺序逐个改图</text>
+  <rect x="36" y="336" width="408" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="48" y="368" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 374.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="88" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">融合 pass 先到，四步换一个算子</text>
+  <text x="88" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">内部 RS → norm → AG，按 512 一块流水</text>
+  <text x="88" y="407" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">matmul_allreduce_add_rmsnorm</text>
+  <rect x="456" y="336" width="408" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
+  <rect x="468" y="368" width="32" height="32" rx="9" fill="var(--color-canvas, #f5f2ea)"/><g transform="translate(474.4 374.4) scale(0.8)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V9M12 19V5M19 19v-7M3 21h18"/></g>
+  <text x="508" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SP pass 再来，已匹配不到</text>
+  <text x="508" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">all_reduce 节点没了，改图数为 0</text>
+  <text x="508" y="407" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)">MiddleAllReduceRMSNormPattern</text>
+  <path d="M240 332 L240 306" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M240 306 l-5.5 11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M660 306 L660 332" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path d="M660 332 l-5.5 -11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
+  <path d="M38 96 l-8 0 L30 276 l8 0" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
+  <text x="44" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)">融合 pass</text>
+  <path d="M108 188 l-8 0 L100 276 l8 0" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
+  <text x="114" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)">SP</text>
+  <rect x="297.6" y="452.5" width="304.8" height="27" rx="13.5" fill="var(--color-accent, #e85b32)"/><text x="308.6" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">两个都开 = 序列并行静默失效，无报错无告警</text>
+  <text x="40" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">SP 的 pattern 只认「all_reduce → npu_add_rms_norm_bias」这后半截，正是融合 pattern 的一部分。同一次 AllReduce 只能按一种方式拆</text>
+  <text x="40" y="534.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">：融合算子要在内部 AllGather 回全长，SP 要的恰恰是让 norm 及其下游停在 1/tp 长度上。二者不可叠加，上游让默认值站在 SP 这边。</text>
+  <text x="40" y="586" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">还有一道门槛：融合 pass 的 is_applicable_for_range 要求 compile_range.start &gt; 512，decode 的小 batch 一处都改不到。</text>
+</svg>

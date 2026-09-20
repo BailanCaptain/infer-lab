@@ -30,21 +30,23 @@ sources:
   - >-
     vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L154-L159
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1764-L1779'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ops/linear_op.py#L311-L318'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L367-L373'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1316-L1322'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L1351-L1360'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L311-L318'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L452-L458'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1547-L1553'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1601-L1621'
   - >-
-    vllm-ascend@28bf3a2e:docs/source/user_guide/configuration/additional_config.md#L7-L24
+    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L7-L25
   - >-
-    vllm-ascend@28bf3a2e:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L69
+    vllm-ascend@b255ab59:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
   - 'https://www.hiascend.com/developer/techArticles/20240729-1'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L167
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
 evidence: C
 relations: []
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -54,13 +56,15 @@ rawSources:
 
 ## 一句话
 
-TP>1 时，RowParallelLinear 的默认做法是先把本 rank 的矩阵乘算完、再发起一次 AllReduce，两件事严格串行；打开 `enable_matmul_allreduce` 会把这一对换成昇腾 MC2 通算融合算子 `torch_npu.npu_mm_all_reduce_base`，在算子内部按块流水，让通信藏在计算背后 [C6]。
+TP>1 时，RowParallelLinear 默认是先把本 rank 的矩阵乘算完、再发一次 AllReduce，两件事严格串行。打开 `enable_matmul_allreduce`，这一对被换成昇腾 MC2 通算融合算子 `torch_npu.npu_mm_all_reduce_base`，在算子内部按块流水，让通信藏进计算背后 [C6]。`bool`，默认 `False`，纯加速开关，不改变计算语义。
 
-两个版本行为完全分叉：v0.23.0 上它是官方参数表里的一个 `bool` 开关，默认 `False`，迁移期还能用环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 配 [S9]；**main 上这个开关、它的环境变量、以及背后的 `MatmulAllreduceRowParallelOp` 已被整体删除** [!][C14]，而且因为 main 的 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，照抄旧启动命令会直接启动失败。
+该碰它的是在 A2 上跑长 prefill、大 chunk、高并发的人，而且要用 `--enforce-eager`。**[那条请求](../concepts/one-request.md)用不到它**：单卡 TP=1，融合分支的前提 `reduce_results and tp_size > 1` 不成立，开了等于没开 [C5]。
+
+**两个版本完全分叉。** v0.23.0 上它是官方参数表里的一个开关，迁移期还能用环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 配 [S9]；main 开发主线（`b255ab59`）上这个开关、它的环境变量、背后的 `MatmulAllreduceRowParallelOp` 一起被删干净了 [!][C14]，上游发布说明把它和图模式那条同族路径记成了同一条移除项（PR #12119）[S22]。而 main 的 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，所以照抄旧启动命令多半不是被忽略、是直接起不来 [C15]。
 
 ## 事实表
 
-| 项 | v0.23.0 | main | 意味着什么 |
+| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
 | 是否存在 | 有，官方参数表在列 | 无，字段、环境变量、算子实现全删 | 升级到 main 必须把这个 key 从启动命令里摘掉 |
 | 类型 / 默认值 | `bool` / `False` | — | 默认不启用，是纯粹的加速开关，不影响正确性语义 |
@@ -69,7 +73,7 @@ TP>1 时，RowParallelLinear 的默认做法是先把本 rank 的矩阵乘算完
 | 落地算子 | `torch_npu.npu_mm_all_reduce_base` | — | 属昇腾 MC2 通算融合族 |
 | 生效前提 | `reduce_results and tp_size > 1` | — | TP=1 时开了也等于没开，走回 `quant_method.apply` |
 | 作用范围 | 所有未被前面分支认领的 RowParallelLinear，无 prefix 过滤 | — | 不只是 o_proj，`mlp.down_proj` 一样被换掉 |
-| 派发次序 | 排在 `flashcomm2_enable()` / `enable_sp()` **之前** [C5] | — | 开了它就静默关掉 FlashComm2 与 SP 的行并行路径 |
+| 派发次序 | 排在 `flashcomm2_enable()` / `enable_sp()` **之前** | — | 开了它就静默关掉 FlashComm2 与 SP 的行并行路径 |
 | 硬件范围 | 注释与 release note 写 A2；门禁只在 `Ascend910B` 上跑 | — | A3/950 上没有任何 CI 覆盖 |
 | 强制关闭点 | batch-invariant 模式下被改回 `False` | — | 要复现逐 batch 一致的输出就用不上它 |
 
@@ -90,23 +94,8 @@ TP 把一个 RowParallelLinear 的权重按输入维切开，每个 rank 只算�
 
 派发次序是这个开关最容易踩的地方：
 
-```mermaid
-flowchart TD
-    A["_get_row_parallel_op(prefix, layer)"] --> B{"'wo_b' and oproj_tp_enable()"}
-    B -->|是| B1[DSV4OProjRowParallelOp]
-    B -->|否| C{"enable_dsa_cp_with_layer_shard() and 'o_proj'"}
-    C -->|是| C1[ShardedCPRowParallelOp]
-    C -->|否| D{"'down_proj' and mlp_tp_enable()"}
-    D -->|是| D1[MLPRowParallelOp]
-    D -->|否| E{"'o_proj' and oproj_tp_enable()"}
-    E -->|是| E1[OProjRowParallelOp]
-    E -->|否| F{"matmul_allreduce_enable()"}
-    F -->|是，无 prefix 过滤| F1[MatmulAllreduceRowParallelOp]
-    F -->|否| G{"flashcomm2_enable()"}
-    G -->|是| G1[Flashcomm2OProjRowParallelOp]
-    G -->|否| H{"enable_sp()"}
-    H -->|是| H1[SequenceRowParallelOp]
-    H -->|否| I["None（走 vLLM 默认路径）"]
+```wiki-diagram
+file: enable-matmul-allreduce
 ```
 
 `matmul_allreduce_enable()` 这一支一旦为真就无条件返回，后面的 `flashcomm2_enable()` 与 `enable_sp()` 永远到不了。反过来，细粒度 TP（`oproj_tensor_parallel_size` / `mlp_tensor_parallel_size`）与 [layer_sharding](layer-sharding.md) 的 `o_proj` 路径都排在它前面，那些层轮不到它。
@@ -135,9 +124,15 @@ vllm serve Qwen/Qwen3-0.6B \
 
 **要 batch-invariant 就别指望它。** `override_envs_for_invariance()` 会在配置生效后把 `enable_matmul_allreduce` 强行改回 `False`——融合算子的分块规约次序随 batch 形状变化，与逐 batch 一致的输出不相容。
 
-**升到 main 会启动失败，不是被忽略。** main 上 `_get_row_parallel_op` 已经没有这个分支，`AscendConfig` 也没有这个字段；而 `model_config = ConfigDict(extra="forbid")` 意味着未知 key 在构造时报错 [C15]，`_NON_USER_INPUT_KEYS` 的豁免名单里只放了同批下线的 `enable_flashcomm1`、没有放它。所以 `--additional-config '{"enable_matmul_allreduce": true}'` 在 main 上会被当成拼写错误直接拒绝 [D]。对比之下 `enable_flashcomm1` 至少还有一条显式的废弃告警，`enable_matmul_allreduce` 连告警都没有——环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 在 main 上无人读取，设了也只会被静默忽略 [D]。迁移表同步从 9 行缩到 6 行，线上对应 <https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html>。
+**升到 main，这个键通常会让服务起不来，而不是被忽略。** main 上 `_get_row_parallel_op` 只剩 `wo_b` / `down_proj` / `o_proj` 三条细粒度 TP 分支，融合那一支连同 `flashcomm2_enable()`、`enable_sp()` 一起没了 [C14]；`AscendConfig` 也没有这个字段，而 `model_config = ConfigDict(extra="forbid")` 意味着未知 key 在构造时就报错 [C15]。`_NON_USER_INPUT_KEYS` 的豁免名单里只放了同批下线的 `enable_flashcomm1`，没有放它 [C17]。所以 `--additional-config '{"enable_matmul_allreduce": true}'` 在 main 上会被当成拼写错误直接拒绝 [D]。
 
-**去向：不是搬家，是两条入口一起下线。** 图模式那条同族路径在 main 上同样消失了——`GraphFusionPassManager.configure` 只剩 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条，`fuse_allreduce_rms` 与 `MatmulAllReduceAddRMSNormPass` 的注册整块删掉，`vllm_ascend/compilation/passes/` 下也没有 `allreduce_rmsnorm_fusion_pass.py` 了。也就是说 main 上 vllm-ascend 内已经没有任何 matmul+allreduce 融合入口，`enable_matmul_allreduce` 不是被某个新 key 取代的 [D]。同期 `enable_flashcomm1` 被明确标注为「Use upstream configuration instead」，这两处一起看，方向是把 TP 通信优化交回上游而不是继续维护昇腾侧的自定义行并行算子 [I]——仓库里没有写明这条理由，是从两次同批下线推断的。
+**一个例外要记住：装了 vLLM-Omni 就不报错了。** 构造 `AscendConfig` 之前会先算出 `unknown_keys`，如果非空且 `importlib.util.find_spec("vllm_omni")` 找得到，就只打一条「这些键对 vLLM-Ascend 无效，可能是 vLLM-Omni 在用」的 warning，然后把它们从 kwargs 里剔掉 [C23]。同一份旧配置，在纯 vllm-ascend 环境里起不来，在装了 Omni 的环境里只留一行 warning 就跑起来了——后者更危险，因为你会以为开关生效了。
+
+对比之下 `enable_flashcomm1` 至少还有一条显式的废弃告警 [C16]，`enable_matmul_allreduce` 连告警都没有——环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 在 main 上无人读取，设了也只会被静默忽略 [D]。官方迁移表也从 v0.23.0 的 9 行变成了 7 行，`VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 那一行不在其中 [S18]；有意思的是 `VLLM_ASCEND_ENABLE_FLASHCOMM1` 反而还留在表里，尽管代码路径上它已被废弃告警加剥离处理 [!]。线上对应 <https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html>。
+
+**去向：不是搬家，是两条入口一起下线。** 图模式那条同族路径在 main 上同样消失了——`GraphFusionPassManager.configure` 只剩 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条，[fuse_allreduce_rms](fuse-allreduce-rms.md) 与 `MatmulAllReduceAddRMSNormPass` 的注册整块删掉 [C19]，`vllm_ascend/compilation/passes/` 下也没有 `allreduce_rmsnorm_fusion_pass.py` 了。上游发布说明把这两件事写成一条：「Removed matmul all-reduce and matmul all-reduce RMSNorm fusions. #12119」[S22]。也就是说 main 上 vllm-ascend 内已经没有任何 matmul+allreduce 融合入口，这个开关不是被某个新 key 取代的 [D]。
+
+同一份清单里 FlashComm2、multistream overlap gate、weight prefetch config 也都在被移除之列，而 `enable_flashcomm1` 被明确标注为「Use upstream configuration instead」。这些放在一起看，方向是把 TP 通信优化交回上游，而不是继续维护昇腾侧的自定义行并行算子 [I]——仓库里没有写明这条理由，是从这一批同批下线推断的。
 
 ## 版本谱系
 

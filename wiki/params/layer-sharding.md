@@ -36,11 +36,17 @@ sources:
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128'
   - 'vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359'
   - 'vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/utils.py#L1324-L1337'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/quantization/tp_weight_switch.py#L70-L106'
-  - 'vllm-ascend@28bf3a2e:docs/source/tutorials/models/GLM5.2.md#L184'
+  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L1458-L1473'
+  - 'vllm-ascend@b255ab59:vllm_ascend/weight_switch/linear.py#L146-L182'
+  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/GLM5.2.md#L1030'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L105
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L438-L454'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1603-L1651'
+  - >-
+    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L76
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
 evidence: C
 relations:
   - to: enable-matmul-allreduce
@@ -49,7 +55,7 @@ relations:
       同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
       的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -59,15 +65,19 @@ rawSources:
 
 ## 一句话
 
-`layer_sharding` 接一个层名列表（**不是官方表写的 dict**），把这些名字对应的 Linear 权重按层号轮流分配到一个通信组的 K 张卡上——第 `i` 层只存在 rank `i % K` 上，其余卡上这块权重被置空，前向时靠异步 broadcast 提前一层取回 [C3]。用一次全层广播换掉 (K-1)/K 的权重显存。它只能在 PD 分离的 P 节点启用，否则启动直接报错 [C2]；在 v0.23.0 上它已被官方列入待废弃清单 [S18]，在 main（`28bf3a2e`）上参数、实现文件、feature guide 已被整体删除 [!]。
+`layer_sharding` 接一个**层名列表**——不是官方表写的 dict——把这些名字对应的 Linear 权重按层号轮流分到一个通信组的 K 张卡上：第 `i` 层只存在 rank `i % K` 上，其余卡上这块权重被置空，前向时靠异步 broadcast 提前一层取回 [C3]。默认 `None`，也就是不开。
+
+该碰它的只有一种人：跑 DeepSeek-V3 这类深层模型、做了 PD 分离、而且 P 节点显存已经放不下的运维。别的场景要么根本起不来——`kv_role` 不是 `kv_producer` 就抛 `ValueError` [C2]——要么是净亏。
+
+**[那条请求](../concepts/one-request.md)用不到它。** Qwen3-0.6B 单卡、没有 `kv_transfer_config`，把这个键配上连启动都过不去。而且这一页讲的整套机制只活在 v0.23 维护分支上：它在那里就已被官方列入待废弃清单 [S18]，main 开发主线（`b255ab59`）上参数、实现文件、feature guide 全部删干净，发布说明里明写着「Removed layer sharding. #11953」[S29]。
 
 官方文档对应页：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)（latest 版下前两者已不存在）。
 
 ## 事实表
 
-| 项 | v0.23.0 (`2c59ff10`) | main (`28bf3a2e`) | 意味着什么 |
+| 项 | v0.23 维护分支（`2c59ff10`） | main 开发主线（`b255ab59`） | 意味着什么 |
 |---|---|---|---|
-| 是否存在 | 有 | **已删除**：`vllm_ascend/` 下 `layer_sharding` 零命中，`ops/layer_shard_linear.py` 与 feature guide 均不存在 | 照 v0.23.0 的教程往新版上搬，这个键会被 vLLM 当未知配置忽略，显存一点都省不下来 |
+| 是否存在 | 有 | **已删除**：`vllm_ascend/` 下 `layer_sharding` 零命中，`ops/layer_shard_linear.py` 与 feature guide 均不存在 | 照 v0.23.0 的教程往新版上搬，通常是**启动直接报错**而不是被忽略；装了 vLLM-Omni 才降级成一条 warning [C25][C28] |
 | 实际类型 / 默认值 | `list[str]`，默认 `None` | — | 官方表写的 `dict` / `{}` 两项都是错的 [!]；写成 `{"o_proj": ...}` 不会报错，但 `"o_proj" in {...}` 的语义变成查键，行为不是你想要的 |
 | 取值 | 层名，取 `prefix` 最后一段，如 `["o_proj", "q_b_proj"]` | — | 名字拼错只有一条 `warning_once`，不报错、静默不切，得去日志里找 |
 | 子键 | **没有**，它是扁平列表 | — | 不存在「dict 里有哪些键」这回事；`prefetch_step` 在两个注册点都写死 1，用户无法调 |
@@ -84,17 +94,8 @@ rawSources:
 
 `layer_sharding` 的做法是换一个维度切：**TP 切的是层内（一个矩阵切给多张卡），它切的是层间（多个矩阵轮流放）**。注册时，不归本卡的层直接 `dispose_tensor` 把张量置空，并把 `weight_loader` 换成 no-op——连从磁盘读都省了 [C4]。前向时靠 `reach_layer` 发一个异步 `dist.broadcast`，到该层 `forward` 入口再 `wait_weight` 收。因为 `prefetch_step` 恒为 1 [C6]，能用来遮掩这次通信的，正好是一层 attention 的计算时间。
 
-```mermaid
-flowchart TD
-    A["additional_config<br/>layer_sharding: ['o_proj']"] --> B["_validate_layer_sharding_config<br/>kv_role 必须是 kv_producer"]
-    B --> C["get_shard_weight_group()<br/>在 TP 之外的正交维度建 K 卡组"]
-    C --> D["register_layer_to_shard_weight_series<br/>按 prefix 末段分 series"]
-    D --> E{"is_source(i)<br/>i % K == rank ?"}
-    E -->|是| F["保留本卡权重"]
-    E -->|否| G["dispose_tensor(weight)<br/>weight_loader 置为 no-op"]
-    F --> H["reach_layer(i)<br/>异步 broadcast 第 i+1 层"]
-    G --> H
-    H --> I["wait_weight(i)<br/>在 forward 入口阻塞等待"]
+```wiki-diagram
+file: layer-sharding
 ```
 
 「只能在 P 节点」不是实现凑合，是设计前提。上游把理由直接写在代码注释里：广播只有被更重的 prefill 计算盖住才划算，所以只在 P 侧实例启用 [C12]。Decode 阶段每层计算量小得多，同样一次广播遮不住，就成了净亏。这条在 `platform.py` 里是启动期硬校验，不是建议。
@@ -111,9 +112,17 @@ flowchart TD
 
 **文档自相矛盾的一处，配之前务必确认。** feature guide 的 DSA-CP 示例是 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1` 配 `["q_b_proj", "o_proj"]` [S16]，DeepSeek-V3.2 教程也给了同样的可复制启动行；但 GLM5 / GLM5.2 / InternVL3.5 三篇教程都写着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S19]。源码层面 DSA-CP + `o_proj` 的路径是存在且被专门分派的，所以这条限制更像是模型相关而非全局，但上游没有任何一处把话说圆 [!]。按模型选对应教程的说法，不要跨模型套用。
 
-**迁移到 main 该改用什么。** 不需要改配置——因为已经没有配置可改了。main 上 `enable_dsa_cp_with_layer_shard` 被 `enable_dsa_cp_with_o_proj_tp` 取代，注释说明了新做法：`o_proj` 权重常驻 TP 分片态，DSA-CP prefill 需要全量时由运行时**异步 all-gather 出一份临时全量权重**，用完即弃 [C21]。承接这件事的是量化侧的 `TPWeightSwitchMixin`，由量化方法声明哪些张量要 gather、哪些要 repeat，`supports_tp_weight_switch` 是统一的开关位 [C22]。整套机制没有用户开关，也就不需要「只能在 P 节点」这类约束——它按 `kv_role` 自动判断。换句话说，v0.23.0 让用户手工点名要切哪几层，main 把同一件事收进了 DSA-CP 的内部实现。
+**升到 main，旧启动命令通常起不来。** `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，未知 key 当拼写错误 fail fast [C25]；`_NON_USER_INPUT_KEYS` 的豁免名单里只放了同批下线的 `enable_flashcomm1`，没有放 `layer_sharding` [C26]。报错比静默忽略好，至少不会让人以为显存省下来了。
 
-需要留意的是，main 上 `layer_sharding` 并没有清理干净：GLM5.2 教程里还留着「开了 DSA-CP 就不能把 `o_proj` 放进 `layer_sharding`」这句话 [S23]。那是过时文字，main 上这个参数已经完全不存在，读到时不要当成还能配。
+**但有一个例外：装了 vLLM-Omni 就不报错。** 构造 `AscendConfig` 前先算出 `unknown_keys`，非空且 `importlib.util.find_spec("vllm_omni")` 找得到时，只打一条「这些键对 vLLM-Ascend 无效」的 warning 再把它们剔掉 [C28]。同一份旧配置，在纯 vllm-ascend 环境里启动失败，在装了 Omni 的环境里只留一行 warning 就跑起来——后者更坑，因为你会以为 `layer_sharding` 还在生效。
+
+**那件事 main 上由谁做。** 判定函数从 `enable_dsa_cp_with_layer_shard` 改名成 `enable_dsa_cp_full_o_proj`，判定条件一字未改（没配 KV 池化、或本实例是 kv_producer 含 `kv_both`），注释把新做法写明了：`o_proj` 权重常驻分片态，DSA-CP prefill 需要全量时由运行时**异步 gather 出一份临时全量权重**，用完即弃 [C21]。
+
+承接这件事的代码也搬了家。`vllm_ascend/quantization/tp_weight_switch.py` 在 `78cd10de`（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814)）里被拆成 `vllm_ascend/weight_switch/linear.py` 和 `o_proj.py`：`TPWeightSwitchMixin` 改名 `WeightSwitchMixin`，统一开关位 `supports_tp_weight_switch` 改名 `supports_weight_switch`，适用范围从 TP 一个并行域扩到了多个 [C22]。要在 main 上找这套机制，别再照 `tp_weight_switch` 这个名字搜。
+
+**真要用户点名的那个开关，main 上叫 `enable_pcp_o_proj_weight_sharding`。** `bool`、默认 `False`，让 SFA-PCP 在加载期把 `o_proj` 权重按 PCP 组切开、运行时在本地视图与 gather 视图之间切换；官方表明确写着它不影响 DSA-CP [S27]。和 `layer_sharding` 的差别在于用户说了算的范围小了一圈：切哪个权重、按哪个并行域切都定死了，你只能决定开不开。
+
+**main 上的过时文字还在，别当真。** GLM5.2、GLM5 两篇教程以及两份部署模板里都还留着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S23]。`vllm_ascend/` 里既没有 `layer_sharding` 也没有 FlashComm2，这句话现在两头都落空。
 
 ## 版本谱系
 

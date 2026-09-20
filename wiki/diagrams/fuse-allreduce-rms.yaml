@@ -1,0 +1,97 @@
+layout: scene
+id: fuse-allreduce-rms
+caption: 两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）
+size: [900, 610]
+
+regions:
+  - label: torch.compile 拿到的原始子图
+    note: 每层两处：attention 的 o_proj 接 post-attention norm、MLP 的 down_proj 接下一层 input norm。
+    at: [20, 26]
+    size: [860, 254]
+    tone: upstream
+
+bands:
+  - label: 本 rank 的矩阵乘
+    at: [150, 96]
+    size: [714, 42]
+    fn: unquantized_gemm
+    tone: upstream
+    icon: calc
+  - label: TP 规约成完整 hidden
+    at: [150, 142]
+    size: [714, 42]
+    fn: tensor_model_parallel_all_reduce
+    tone: upstream
+    icon: split
+  - label: 对齐残差
+    at: [150, 188]
+    size: [714, 42]
+    fn: maybe_chunk_residual
+    tone: upstream
+    icon: layers
+  - label: 加残差 + RMSNorm
+    at: [150, 234]
+    size: [714, 42]
+    fn: npu_add_rms_norm_bias
+    tone: upstream
+    icon: bolt
+
+brackets:
+  - { at: [30, 96], span: 180, dir: left, label: 融合 pass, tone: ascend }
+  - { at: [100, 188], span: 88, dir: left, label: SP, tone: neutral }
+
+boundaries:
+  - at: 302
+    from: 20
+    to: 880
+    vertical: false
+    label: 一个 GraphFusionPassManager 按 self.passes 的列表顺序逐个改图
+
+boxes:
+  - at: [36, 336]
+    size: [408, 96]
+    title: 融合 pass 先到，四步换一个算子
+    sub: 内部 RS → norm → AG，按 512 一块流水
+    fn: matmul_allreduce_add_rmsnorm
+    tone: ascend
+    icon: chip
+  - at: [456, 336]
+    size: [408, 96]
+    title: SP pass 再来，已匹配不到
+    sub: all_reduce 节点没了，改图数为 0
+    fn: MiddleAllReduceRMSNormPattern
+    tone: muted
+    icon: graph
+
+arrows:
+  - { from: [240, 332], to: [240, 306], tone: ascend }
+  - { from: [660, 306], to: [660, 332], tone: muted, style: dashed }
+
+pills:
+  - { at: [450, 466], text: 两个都开 = 序列并行静默失效，无报错无告警, tone: accent }
+
+notes:
+  - at: [40, 516]
+    text: "SP 的 pattern 只认「all_reduce → npu_add_rms_norm_bias」这后半截，正是融合 pattern 的一部分。同一次 AllReduce 只能按一种方式拆：融合算子要在内部 AllGather 回全长，SP 要的恰恰是让 norm 及其下游停在 1/tp 长度上。二者不可叠加，上游让默认值站在 SP 这边。"
+    size: 12.5
+    width: 820
+  - at: [40, 586]
+    text: "还有一道门槛：融合 pass 的 is_applicable_for_range 要求 compile_range.start > 512，decode 的小 batch 一处都改不到。"
+    size: 12.5
+    width: 820
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L56-L84
+    symbols:
+      - unquantized_gemm
+      - tensor_model_parallel_all_reduce
+      - maybe_chunk_residual
+      - npu_add_rms_norm_bias
+      - matmul_allreduce_add_rmsnorm
+  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L134-L159
+    symbols: [MatmulAllReduceAddRMSNormPass, is_applicable_for_range]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L56-L99
+    symbols: [MiddleAllReduceRMSNormPattern]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79
+    symbols: [GraphFusionPassManager, fuse_allreduce_rms, SequenceParallelismPass]

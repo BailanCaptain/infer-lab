@@ -1,0 +1,97 @@
+layout: scene
+id: layer-sharding
+caption: 第 i 层的权重只存在组内 rank i % K 上，前向时提前一层异步广播取回（v0.23.0 维护分支；main 上整条路径已删）
+size: [900, 660]
+
+regions:
+  - label: 加载期 · 注册时就把不归本卡的层丢掉
+    note: 不归本卡的层直接置空张量、把 weight_loader 换成 no-op，连从磁盘读都省了；省下的显存是真的，代价写在下半张图里。
+    at: [20, 26]
+    size: [860, 250]
+    tone: ascend
+  - label: 前向期 · 借一层 attention 的时间把下一层的权重搬回来
+    note: 广播只有被更重的 prefill 计算盖住才划算，所以启动期硬校验 kv_role 必须是 kv_producer。
+    at: [20, 320]
+    size: [860, 242]
+    tone: neutral
+
+strips:
+  - at: [40, 150]
+    cells: 61
+    cell: 12
+    h: 30
+    gap: 2
+    highlights: [0, 16, 32, 48]
+    tone: ascend
+    label: "DeepSeek-V3 的 61 层 o_proj，每层 112 MiB"
+  - at: [40, 232]
+    cells: 4
+    cell: 12
+    h: 16
+    gap: 2
+    highlights: [0, 1, 2, 3]
+    tone: ascend
+    label: "K=16 时 rank 0 只留 4 层 = 427 MiB；另外 57 层被 dispose_tensor 置空"
+
+boxes:
+  - at: [576, 206]
+    size: [284, 58]
+    title: 常驻窗口只有 2 份整权重
+    sub: prefetch_step 写死 1，调不了
+    fn: ShardWindowMetadata
+    tone: muted
+    icon: box
+
+boundaries:
+  - at: 296
+    from: 20
+    to: 880
+    vertical: false
+    label: 过了这条线，57/61 的权重已经不在本卡上——缺的那层只能等广播
+
+bands:
+  - label: ① 进第 i 层 forward 前先等
+    sub: 窗口里的数据必须正是第 i 层的，否则断言炸
+    fn: wait_weight
+    at: [80, 378]
+    size: [776, 52]
+    tone: neutral
+    icon: clock
+  - label: ② 第 i 层 attention 照常算
+    sub: 这段计算就是唯一能用来遮掩通信的时间
+    right: 遮不住就是净亏
+    at: [80, 436]
+    size: [776, 52]
+    tone: neutral
+    icon: calc
+  - label: ③ 同时给第 i+1 层发异步 broadcast
+    sub: src = 组内 ranks[(i+1) % K]，async_op=True
+    fn: reach_layer
+    at: [80, 494]
+    size: [776, 52]
+    tone: ascend
+    icon: bolt
+
+brackets:
+  - { at: [20, 378], span: 168, label: 每层, dir: left, tone: neutral }
+
+notes:
+  - at: [40, 574]
+    text: "每张卡对它不负责的那 15/16 的层都要收一份全量权重：61 × 15/16 × 112 MiB ≈ 6.3 GiB，每次前向、每张卡。摊到每层约 105 MiB，必须在一层 attention 的时间里传完。"
+    size: 12.5
+    width: 840
+  - at: [40, 622]
+    text: "所以它省的是容量、花的是带宽：batch 小、序列短的时候遮不住这 105 MiB，开了就是纯负收益。"
+    size: 12.5
+    width: 840
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L58
+    symbols: [SeriesMetadata, ShardWindowMetadata, prefetch_step, is_source]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253
+    symbols: [register_layer_to_shard_weight_series, dispose_tensor, weight_loader]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152
+    symbols: [reach_layer, wait_weight, async_op]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346
+    symbols: [_validate_layer_sharding_config, kv_producer]

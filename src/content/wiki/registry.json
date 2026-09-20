@@ -209,6 +209,11 @@
           "note": "那一页讲三元组怎么查出一个后端，这一页讲查中之后各自要付多少字节"
         },
         {
+          "from": "mla",
+          "kind": "enables",
+          "note": "走不走 MLA 不是模型自己决定的，是启动时拿 use_mla 三元组查表查到 AscendMLABackend"
+        },
+        {
           "from": "ops-and-kernels",
           "kind": "enables",
           "note": "注意力是算子层最大的一个消费方，后端选完之后调到的就是这一层"
@@ -272,9 +277,19 @@
       "file": "concepts/attention-cost.md",
       "backlinks": [
         {
+          "from": "gqa",
+          "kind": "enables",
+          "note": "那一页把四种注意力的每 token 字节数并排算过，GQA 那条 4096 B 是这一页的起点，不重算"
+        },
+        {
           "from": "kv-cache-quantization",
           "kind": "enables",
           "note": "每 token 每层 4096 字节这个基准数在那一页，这一页只是把它对半砍"
+        },
+        {
+          "from": "mla",
+          "kind": "enables",
+          "note": "那一页算过 MLA 每 token 每层 1152 字节，这一页讲这 1152 字节里装的是什么、谁把它装进去"
         }
       ]
     },
@@ -368,6 +383,84 @@
           "note": "卸载与回填都按块进行，CPU 侧维持一份与 HBM 块表逐位对齐的块 id 表，滑窗留下的空洞位用 0 占位而不压缩"
         }
       ]
+    },
+    {
+      "id": "chunked-prefill",
+      "title": "Chunked Prefill：切开的是一条请求，填满的是一步的预算",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "长 prompt 不一次算完，按这一步的 token 预算切成几块依次做；它在调度器里不是一个模式，是「还差多少」减不完时留下的余数。",
+      "aliases": [
+        "Chunked Prefill",
+        "分块预填充",
+        "分块 prefill",
+        "切块 prefill",
+        "ChunkedPrefill",
+        "enable_chunked_prefill",
+        "long_prefill_token_threshold",
+        "splitfuse"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L410",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L684-L700",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1013",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L80-L90",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L244-L246",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L259-L271",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2259-L2267",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2376-L2392",
+        "vllm@0fc695fc:vllm/config/model.py#L1804-L1811",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1497",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1296-L1305",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1123-L1144",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1174-L1232",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1357",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L718",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1255-L1260",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L209-L218",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L188",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L10-L11",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "「还差多少 token」减 token 预算那道减法在那一页，这一页只接着讲减不完的那一步会怎样"
+        },
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "AscendAttentionState 那张五取值的表在那一页，ChunkedPrefill 是其中一格"
+        },
+        {
+          "to": "paged-attention",
+          "kind": "builds-on",
+          "note": "第二块起要对散在别处的前文块做注意力，只有按块表寻址的分页路径做得到"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "alternative-to",
+          "note": "官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/chunked-prefill.md",
+      "backlinks": []
     },
     {
       "id": "combine-quant-mode-2a3f7cd47997",
@@ -754,6 +847,91 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "params/fuse-allreduce-rms.md",
+      "backlinks": [
+        {
+          "from": "sequence-parallel",
+          "kind": "conflicts-with",
+          "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到"
+        }
+      ]
+    },
+    {
+      "id": "gqa",
+      "title": "GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 因此正好减半，而注意力本身一次乘加都没少。",
+      "aliases": [
+        "GQA",
+        "Grouped-Query Attention",
+        "分组查询注意力",
+        "分组查询",
+        "MQA",
+        "Multi-Query Attention",
+        "多查询注意力",
+        "MHA",
+        "Multi-Head Attention",
+        "多头注意力",
+        "num_key_value_heads",
+        "num_kv_heads",
+        "num_queries_per_kv",
+        "KV 头数"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 15,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L79-L94",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L126-L134",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L150-L151",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L189-L196",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1033-L1042",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L281-L292",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L483-L488",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L603-L608",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1211-L1220",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1371-L1381",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1491-L1501",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/mm_encoder_attention.py#L89-L96",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3-Next.md#L249-L249",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L496-L497",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1304-L1311",
+        "https://arxiv.org/abs/2305.13245",
+        "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
+        "https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求的模型本身就是 GQA，它那 112 KiB 正是拿 8 个 KV 头而不是 16 个算出来的"
+        },
+        {
+          "to": "kv-cache",
+          "kind": "builds-on",
+          "note": "先看清缓存里躺的是每层每 token 的 K 和 V 两份向量，才看得出 GQA 减的是这两份里的头数"
+        },
+        {
+          "to": "attention-cost",
+          "kind": "builds-on",
+          "note": "那一页把四种注意力的每 token 字节数并排算过，GQA 那条 4096 B 是这一页的起点，不重算"
+        },
+        {
+          "to": "mla",
+          "kind": "alternative-to",
+          "note": "同一个问题（KV 太占显存）的另一条路——GQA 减 K/V 的头数，MLA 换掉存进去的东西"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/gqa.md",
       "backlinks": []
     },
     {
@@ -809,6 +987,16 @@
           "from": "paged-attention",
           "kind": "enables",
           "note": "PA 的硬门槛是 cudagraph_mode 必须为 FULL_DECODE_ONLY，两个算子唯一的实质分叉也只在图捕获里"
+        },
+        {
+          "from": "sequence-parallel",
+          "kind": "enables",
+          "note": "编译 pass 那条路要求 enforce_eager 为假，改图发生在编译期，eager 下 enable_sp_by_pass 恒为 False"
+        },
+        {
+          "from": "speculative-decoding",
+          "kind": "enables",
+          "note": "开了它 uniform_decode_query_len 从 1 变成 K+1，FULL decode 图的捕获尺寸要跟着取整"
         }
       ]
     },
@@ -879,9 +1067,19 @@
       "file": "concepts/kv-cache.md",
       "backlinks": [
         {
+          "from": "gqa",
+          "kind": "enables",
+          "note": "先看清缓存里躺的是每层每 token 的 K 和 V 两份向量，才看得出 GQA 减的是这两份里的头数"
+        },
+        {
           "from": "kv-cache-spec",
           "kind": "enables",
           "note": "spec 描述的是「缓存的一块长什么样、多大」；缓存本身为什么存在、存的是什么，在那一页"
+        },
+        {
+          "from": "mla",
+          "kind": "enables",
+          "note": "先看清普通模型缓存里躺的是 K 和 V 两份真向量，才看得出 MLA 换掉的到底是什么"
         },
         {
           "from": "paged-attention",
@@ -1481,6 +1679,16 @@
           "note": "每 token 112 KiB、每块 14 MiB 这两个数是那一页从块张量形状算出来的，这里只取结果拿来用"
         },
         {
+          "from": "pd-disaggregation",
+          "kind": "enables",
+          "note": "昇腾把 K、V 拆成两条独立张量的理由，就是 PD 的传输侧只接受首维为 num_blocks 的张量"
+        },
+        {
+          "from": "pipeline-parallel",
+          "kind": "enables",
+          "note": "每段只为自己那几层报 spec，所以每卡每 token 的 KV 按本段层数打折，报价规则在那一页"
+        },
+        {
           "from": "prefix-caching",
           "kind": "enables",
           "note": "哈希粒度 hash_block_size 由各 KV cache group 的 spec.block_size 取 gcd 得出"
@@ -1489,6 +1697,11 @@
           "from": "recompute-cpu-offload",
           "kind": "enables",
           "note": "CPU 块池直接复用 GPU 侧 KVCacheConfig 的 kv_cache_groups，每组的 block_size 决定 token 到块的换算"
+        },
+        {
+          "from": "tensor-parallel",
+          "kind": "enables",
+          "note": "每卡的 num_kv_heads 就是 TP 切完剩下的那个数，spec 的每块字节数直接拿它乘出来"
         }
       ]
     },
@@ -1569,6 +1782,11 @@
       "updated": "2026-09-20",
       "file": "concepts/kv-pool.md",
       "backlinks": [
+        {
+          "from": "pd-disaggregation",
+          "kind": "alternative-to",
+          "note": "同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D"
+        },
         {
           "from": "kv-cache-quantization",
           "kind": "conflicts-with",
@@ -1695,6 +1913,91 @@
       "backlinks": []
     },
     {
+      "id": "mla",
+      "title": "MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "每层每个 token 只存一条 512 维潜向量加 64 维 RoPE 段；prefill 把它展开回每个头的 K 和 V，decode 干脆不展开，改把展开矩阵乘到 Q 上。",
+      "aliases": [
+        "MLA",
+        "Multi-head Latent Attention",
+        "多头潜在注意力",
+        "潜向量注意力",
+        "AscendMLAImpl",
+        "AscendMLAMetadata",
+        "kv_a_proj_with_mqa",
+        "kv_b_proj",
+        "kv_lora_rank"
+      ],
+      "chapters": [
+        "04"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L98-L118",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L83-L114",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L898-L920",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L926-L955",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1187-L1216",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1274-L1301",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1315-L1378",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1506-L1519",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1586-L1596",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1601-L1641",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1655-L1670",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1766-L1794",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3979-L3995",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4605-L4629",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4679-L4682",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L117-L121",
+        "vllm@0fc695fc:vllm/model_executor/models/deepseek_v2.py#L927-L967",
+        "vllm@0fc695fc:vllm/model_executor/models/deepseek_v2.py#L1353-L1356",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L357-L368",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L379-L384",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L1396-L1425",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/mla.py#L207-L217",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L82-L114",
+        "https://arxiv.org/abs/2405.04434",
+        "https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "attention-cost",
+          "kind": "builds-on",
+          "note": "那一页算过 MLA 每 token 每层 1152 字节，这一页讲这 1152 字节里装的是什么、谁把它装进去"
+        },
+        {
+          "to": "attention-backend-family",
+          "kind": "builds-on",
+          "note": "走不走 MLA 不是模型自己决定的，是启动时拿 use_mla 三元组查表查到 AscendMLABackend"
+        },
+        {
+          "to": "rope",
+          "kind": "builds-on",
+          "note": "MLA 唯一不压的那 64 维就是 RoPE 段；转角怎么算、为什么只转 Q 和 K 在那一页"
+        },
+        {
+          "to": "kv-cache",
+          "kind": "builds-on",
+          "note": "先看清普通模型缓存里躺的是 K 和 V 两份真向量，才看得出 MLA 换掉的到底是什么"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/mla.md",
+      "backlinks": [
+        {
+          "from": "gqa",
+          "kind": "alternative-to",
+          "note": "同一个问题（KV 太占显存）的另一条路——GQA 减 K/V 的头数，MLA 换掉存进去的东西"
+        }
+      ]
+    },
+    {
       "id": "multistream-overlap-gate",
       "title": "multistream_overlap_gate",
       "type": "param",
@@ -1812,6 +2115,11 @@
           "from": "request-call-chain",
           "kind": "enables",
           "note": "第四到第七跳都在同一个文件里，那一页讲这个文件怎么分区"
+        },
+        {
+          "from": "speculative-decoding",
+          "kind": "enables",
+          "note": "验证这一步的草稿、提议下一步的草稿，都长在 execute_model 的同一次调用里，那一页讲这个文件怎么读"
         }
       ]
     },
@@ -2021,6 +2329,11 @@
           "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
         },
         {
+          "from": "gqa",
+          "kind": "enables",
+          "note": "那条请求的模型本身就是 GQA，它那 112 KiB 正是拿 8 个 KV 头而不是 16 个算出来的"
+        },
+        {
           "from": "graph-mode-layer",
           "kind": "enables",
           "note": "那条请求的 199 步 decode 形状一样，回放的是同一张图——图模式的收益几乎全在这里"
@@ -2059,6 +2372,11 @@
           "from": "ops-and-kernels",
           "kind": "enables",
           "note": "那条请求每层碰到的三个算子都停在 torch_npu 那一层，没下到 csrc/"
+        },
+        {
+          "from": "pd-disaggregation",
+          "kind": "enables",
+          "note": "这一页的 1 块、14 MiB、200 步都是那条请求的数，只是把它摆到 1P1D 上重走一遍"
         },
         {
           "from": "platform-plugin-registration",
@@ -2213,6 +2531,16 @@
           "from": "op-to-ai-core",
           "kind": "enables",
           "note": "那一页画的是四层地图和各层的职责，这一页拿一个真算子从最上面走到最下面"
+        },
+        {
+          "from": "sequence-parallel",
+          "kind": "enables",
+          "note": "三个 maybe_* 通信算子靠那一页讲的自定义算子注册挂上去，模型代码里只看得到 torch.ops.vllm.xxx"
+        },
+        {
+          "from": "tensor-parallel",
+          "kind": "enables",
+          "note": "昇腾能给某一层换一个通信组，靠的是那一页讲的自定义算子注册表，五个 Linear 类是被它整体换掉的"
         }
       ]
     },
@@ -2279,6 +2607,11 @@
       "file": "concepts/paged-attention.md",
       "backlinks": [
         {
+          "from": "speculative-decoding",
+          "kind": "conflicts-with",
+          "note": "using_paged_attention 的第一道门就是「开了投机解码直接返回 False」，PA 算子在投机解码下永远不执行"
+        },
+        {
           "from": "attention-backend-family",
           "kind": "enables",
           "note": "五个后端都在实现同一套分页读 KV 的方案，原理与算子行为在那一页"
@@ -2287,6 +2620,11 @@
           "from": "block-table",
           "kind": "enables",
           "note": "块表就是分页方案里的那张页表，attention 算子按它逐块取 KV"
+        },
+        {
+          "from": "chunked-prefill",
+          "kind": "enables",
+          "note": "第二块起要对散在别处的前文块做注意力，只有按块表寻址的分页路径做得到"
         },
         {
           "from": "kv-cache-cpu-offload",
@@ -2319,6 +2657,190 @@
           "note": "命中后新 token 要读散在别处的历史块，只有按块表寻址的分页算子做得到"
         }
       ]
+    },
+    {
+      "id": "pd-disaggregation",
+      "title": "PD 分离：P 算完就下班，D 的第一件事是重算",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "把 prefill 和 decode 拆到两批实例上跑，P 节点算完整段 prompt 的 KV 就结束请求，D 节点把这些块整块拉过去再逐 token 生成。",
+      "aliases": [
+        "PD 分离",
+        "PD Disaggregation",
+        "Prefill/Decode 分离",
+        "disaggregated prefill",
+        "分离部署",
+        "P 节点",
+        "D 节点",
+        "kv_role",
+        "MooncakeConnectorV1"
+      ],
+      "chapters": [
+        "18"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L5-L11",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L23",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L107",
+        "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L103",
+        "vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13",
+        "vllm@0fc695fc:vllm/config/kv_transfer.py#L109-L119",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L59",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L72-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1882-L1928",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1712-L1735",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2066-L2085",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1979-L1986",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L951-L969",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L322-L386",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2429-L2465",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2474-L2494",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L804-L824",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2176-L2186",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2236-L2248",
+        "vllm@0fc695fc:vllm/v1/core/sched/utils.py#L100-L117",
+        "vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L790-L806",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L161-L186",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1111-L1119",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L695-L703",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "「算」和「搬」是两种负载这件事在那一页讲清了，PD 分离就是把这两种负载拆到两批机器上"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "这一页的 1 块、14 MiB、200 步都是那条请求的数，只是把它摆到 1P1D 上重走一遍"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "D 上那条请求能「一个 token 都不分也占一步」，前提是调度器每步只发 token 名额、不分阶段"
+        },
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "昇腾把 K、V 拆成两条独立张量的理由，就是 PD 的传输侧只接受首维为 num_blocks 的张量"
+        },
+        {
+          "to": "kv-pool",
+          "kind": "alternative-to",
+          "note": "同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/pd-disaggregation.md",
+      "backlinks": [
+        {
+          "from": "chunked-prefill",
+          "kind": "alternative-to",
+          "note": "官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题"
+        }
+      ]
+    },
+    {
+      "id": "pipeline-parallel",
+      "title": "Pipeline Parallel：按层切开，界线上一步只过一份 hidden",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "按层把模型切成几段、一段一组卡；段与段之间只传 hidden_states 和 residual 两条张量，一步一次。代价是一步之内各段串行，要靠同时在途的多步才填得满。",
+      "aliases": [
+        "Pipeline Parallel",
+        "流水线并行",
+        "管线并行",
+        "PP",
+        "pipeline_parallel_size",
+        "PPMissingLayer",
+        "IntermediateTensors",
+        "get_pp_indices",
+        "make_layers",
+        "VLLM_PP_LAYER_PARTITION",
+        "PP stage",
+        "流水线气泡"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1740-L1755",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1815-L1831",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L539-L561",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L964-L1019",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1059-L1143",
+        "vllm@0fc695fc:vllm/distributed/utils.py#L109-L154",
+        "vllm@0fc695fc:vllm/model_executor/models/utils.py#L619-L664",
+        "vllm@0fc695fc:vllm/model_executor/models/utils.py#L689-L713",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L355-L384",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L389-L426",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L294-L311",
+        "vllm@0fc695fc:vllm/sequence.py#L11-L18",
+        "vllm@0fc695fc:vllm/config/model.py#L1188-L1207",
+        "vllm@0fc695fc:vllm/config/vllm.py#L495-L506",
+        "vllm@0fc695fc:vllm/config/vllm.py#L2242-L2258",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L188-L198",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L499",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L395-L398",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_worker.py#L85-L114",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L620-L642",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L647-L663",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2337-L2358",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3584-L3603",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4927",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L634-L646",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L38-L52",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L430-L447",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L467-L470",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L69-L74",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L389-L433",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L470-L478",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L755-L794",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L159-L181",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L186-L217",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "alternative-to",
+          "note": "同样两张卡拆同一个模型：TP 在每层里切矩阵、一层归约两次，PP 按层切段、一步只过一次 hidden"
+        },
+        {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "流水线靠 EngineCore 的批队列同时压住 pp_size 步才填得满，那个 step_with_batch_queue 就在那一页"
+        },
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "每段只为自己那几层报 spec，所以每卡每 token 的 KV 按本段层数打折，报价规则在那一页"
+        },
+        {
+          "to": "request-call-chain",
+          "kind": "builds-on",
+          "note": "跨段的 irecv / isend 就发生在 NPUWorker.execute_model 这一跳，整条链在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/pipeline-parallel.md",
+      "backlinks": []
     },
     {
       "id": "platform-plugin-registration",
@@ -2472,9 +2994,19 @@
       "file": "concepts/prefill.md",
       "backlinks": [
         {
+          "from": "chunked-prefill",
+          "kind": "enables",
+          "note": "AscendAttentionState 那张五取值的表在那一页，ChunkedPrefill 是其中一格"
+        },
+        {
           "from": "kv-cache",
           "kind": "enables",
           "note": "缓存是 prefill 那一步一次写满前 37 格、之后 decode 每步追加一格；先分清这两种步，才看得懂缓存什么时候写、什么时候读"
+        },
+        {
+          "from": "pd-disaggregation",
+          "kind": "enables",
+          "note": "「算」和「搬」是两种负载这件事在那一页讲清了，PD 分离就是把这两种负载拆到两批机器上"
         },
         {
           "from": "prefix-caching",
@@ -2922,7 +3454,13 @@
       "contradicts": [],
       "updated": "2026-09-19",
       "file": "concepts/request-call-chain.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "pipeline-parallel",
+          "kind": "enables",
+          "note": "跨段的 irecv / isend 就发生在 NPUWorker.execute_model 这一跳，整条链在那一页"
+        }
+      ]
     },
     {
       "id": "rope",
@@ -2960,8 +3498,91 @@
           "from": "kv-cache",
           "kind": "enables",
           "note": "存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转"
+        },
+        {
+          "from": "mla",
+          "kind": "enables",
+          "note": "MLA 唯一不压的那 64 维就是 RoPE 段；转角怎么算、为什么只转 Q 和 K 在那一页"
         }
       ]
+    },
+    {
+      "id": "sequence-parallel",
+      "title": "Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。",
+      "aliases": [
+        "Sequence Parallel",
+        "序列并行",
+        "SP",
+        "FlashComm1",
+        "FlashComm V1",
+        "enable_flashcomm1",
+        "enable_sp",
+        "sp_min_token_num",
+        "maybe_pad_and_reduce",
+        "SequenceRowParallelOp",
+        "use_sequence_parallel_moe"
+      ],
+      "chapters": [
+        "15"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/compilation/passes/fusion/sequence_parallelism.py#L130-L180",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L8",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L31-L38",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L40-L47",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L903-L929",
+        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L72-L75",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L124-L144",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L23-L91",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L80",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L458-L480",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L548-L613",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L664-L739",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L291-L295",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L13-L20",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L124-L138",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L888-L900",
+        "vllm@0fc695fc:vllm/config/parallel.py#L618-L640",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1547-L1553",
+        "vllm-ascend@b255ab59:vllm_ascend/models/common/ops/sequence_parallel.py#L29-L49",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/register_custom_ops.py#L89-L98",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "variant-of",
+          "note": "列切行切一刀没动，改的只是行切末尾那次 all-reduce 的形状——一层两次，位置还是那两处"
+        },
+        {
+          "to": "graph-mode-layer",
+          "kind": "builds-on",
+          "note": "编译 pass 那条路要求 enforce_eager 为假，改图发生在编译期，eager 下 enable_sp_by_pass 恒为 False"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "三个 maybe_* 通信算子靠那一页讲的自定义算子注册挂上去，模型代码里只看得到 torch.ops.vllm.xxx"
+        },
+        {
+          "to": "fuse-allreduce-rms",
+          "kind": "conflicts-with",
+          "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/sequence-parallel.md",
+      "backlinks": []
     },
     {
       "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
@@ -3034,6 +3655,187 @@
       "updated": "2026-09-19",
       "file": "params/size-40a1c2ca47b8.md",
       "backlinks": []
+    },
+    {
+      "id": "speculative-decoding",
+      "title": "Speculative Decoding：一步算 K+1 个位置，第一个对不上的地方截断",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "先让一个便宜的草稿器猜 K 个 token，目标模型在同一次 forward 里给这 K+1 个位置各出一个分布，逐位比对，接受多少算多少。",
+      "aliases": [
+        "Speculative Decoding",
+        "投机解码",
+        "推测解码",
+        "投机采样",
+        "spec decode",
+        "MTP",
+        "Multi-Token Prediction",
+        "草稿模型",
+        "num_speculative_tokens",
+        "拒绝采样"
+      ],
+      "chapters": [
+        "17"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/__init__.py#L34-L55",
+        "vllm-ascend@b255ab59:vllm_ascend/spec_decode/__init__.py#L37-L64",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1525-L1543",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1664-L1683",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2457-L2500",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L179",
+        "vllm-ascend@2c59ff10:vllm_ascend/sample/rejection_sampler.py#L928-L979",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L794-L801",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L246-L257",
+        "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L284-L294",
+        "vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L1201-L1219",
+        "vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L735-L764",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L212-L226",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L519-L535",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1431",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L311-L317",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L810-L814",
+        "vllm@0fc695fc:vllm/config/compilation.py#L1473-L1518",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L3-L24",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L62-L63",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L147-L150",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/speculative_decoding.md#L63-L64",
+        "vllm-ascend@b255ab59:vllm_ascend/spec_decode/llm_base_proposer.py#L414-L436",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1107-L1132",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/speculative_decoding.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "验证这一步的草稿、提议下一步的草稿，都长在 execute_model 的同一次调用里，那一页讲这个文件怎么读"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "草稿 token 靠 num_tokens_with_spec 混进那道减法，token 预算不够时最先被砍掉的也是它们"
+        },
+        {
+          "to": "graph-mode-layer",
+          "kind": "builds-on",
+          "note": "开了它 uniform_decode_query_len 从 1 变成 K+1，FULL decode 图的捕获尺寸要跟着取整"
+        },
+        {
+          "to": "vllm-kv-block-allocation",
+          "kind": "builds-on",
+          "note": "草稿位要的额外槽位由 allocate_slots 的 num_lookahead_tokens 预留，被拒之后块不释放"
+        },
+        {
+          "to": "paged-attention",
+          "kind": "conflicts-with",
+          "note": "using_paged_attention 的第一道门就是「开了投机解码直接返回 False」，PA 算子在投机解码下永远不执行"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/speculative-decoding.md",
+      "backlinks": []
+    },
+    {
+      "id": "tensor-parallel",
+      "title": "Tensor Parallel：一层切两刀，通信就落在两刀之后",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "把一层里的四个大矩阵按列或按行切给多张卡；列切完各算各的，行切完每张卡只有一份部分和，必须 all-reduce 一次——一层两次，位置写死。",
+      "aliases": [
+        "Tensor Parallel",
+        "张量并行",
+        "TP",
+        "tensor_parallel_size",
+        "ColumnParallelLinear",
+        "RowParallelLinear",
+        "Fine-grained TP",
+        "细粒度张量并行",
+        "finegrained_tp_config"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1740-L1772",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L607-L624",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L407-L452",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L575-L589",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1389-L1444",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1023-L1042",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L78-L113",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L126-L131",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L93-L106",
+        "vllm@0fc695fc:vllm/model_executor/layers/vocab_parallel_embedding.py#L477-L497",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L734-L746",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear.py#L307-L313",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear.py#L363-L371",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L96-L107",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L183-L222",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L266-L299",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L117-L133",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L135-L149",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L529-L534",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L537-L560",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L584-L593",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L143-L161",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_distributed.py#L58-L76",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_distributed.py#L152-L178",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L302-L321",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L73-L91",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L27-L29",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L45-L52",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L91-L101",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L124-L131",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1136-L1164",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318",
+        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "每卡的 num_kv_heads 就是 TP 切完剩下的那个数，spec 的每块字节数直接拿它乘出来"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "昇腾能给某一层换一个通信组，靠的是那一页讲的自定义算子注册表，五个 Linear 类是被它整体换掉的"
+        },
+        {
+          "to": "who-owns-what",
+          "kind": "builds-on",
+          "note": "TP 组由上游 initialize_model_parallel 建、昇腾只在其上另开几个细粒度组，这条归属线在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "concepts/tensor-parallel.md",
+      "backlinks": [
+        {
+          "from": "pipeline-parallel",
+          "kind": "alternative-to",
+          "note": "同样两张卡拆同一个模型：TP 在每层里切矩阵、一层归约两次，PP 按层切段、一步只过一次 hidden"
+        },
+        {
+          "from": "sequence-parallel",
+          "kind": "has-variant",
+          "note": "列切行切一刀没动，改的只是行切末尾那次 all-reduce 的形状——一层两次，位置还是那两处"
+        }
+      ]
     },
     {
       "id": "use-fused-overlap-75a180fff6ab",
@@ -3237,6 +4039,11 @@
       "file": "concepts/vllm-engine-core.md",
       "backlinks": [
         {
+          "from": "pipeline-parallel",
+          "kind": "enables",
+          "note": "流水线靠 EngineCore 的批队列同时压住 pp_size 步才填得满，那个 step_with_batch_queue 就在那一页"
+        },
+        {
           "from": "vllm-scheduler",
           "kind": "enables",
           "note": "这段代码是循环体的第一句，谁在什么时候调它写在那一页"
@@ -3300,6 +4107,11 @@
           "from": "recompute-cpu-offload",
           "kind": "enables",
           "note": "这一页的入口就是那一页里 allocate_slots 要不到块的那一刻——抢占谁、接下来怎么办，才轮到本页"
+        },
+        {
+          "from": "speculative-decoding",
+          "kind": "enables",
+          "note": "草稿位要的额外槽位由 allocate_slots 的 num_lookahead_tokens 预留，被拒之后块不释放"
         }
       ]
     },
@@ -3359,7 +4171,6 @@
         "schedule",
         "token 预算",
         "max_num_batched_tokens",
-        "chunked prefill",
         "调度一步"
       ],
       "chapters": [
@@ -3398,9 +4209,24 @@
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
         {
+          "from": "chunked-prefill",
+          "kind": "enables",
+          "note": "「还差多少 token」减 token 预算那道减法在那一页，这一页只接着讲减不完的那一步会怎样"
+        },
+        {
+          "from": "pd-disaggregation",
+          "kind": "enables",
+          "note": "D 上那条请求能「一个 token 都不分也占一步」，前提是调度器每步只发 token 名额、不分阶段"
+        },
+        {
           "from": "profiling-chunk-config",
           "kind": "enables",
           "note": "开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层"
+        },
+        {
+          "from": "speculative-decoding",
+          "kind": "enables",
+          "note": "草稿 token 靠 num_tokens_with_spec 混进那道减法，token 预算不够时最先被砍掉的也是它们"
         },
         {
           "from": "vllm-kv-block-allocation",
@@ -3593,6 +4419,11 @@
       "updated": "2026-09-19",
       "file": "concepts/who-owns-what.md",
       "backlinks": [
+        {
+          "from": "tensor-parallel",
+          "kind": "enables",
+          "note": "TP 组由上游 initialize_model_parallel 建、昇腾只在其上另开几个细粒度组，这条归属线在那一页"
+        },
         {
           "from": "vllm-ascend-overview",
           "kind": "enables",

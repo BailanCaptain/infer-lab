@@ -1,12 +1,14 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 61 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 69 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
 - [Block Table：逻辑块号到物理块号的唯一翻译层](concepts/block-table.md) — 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请求在这一批里的座位号，列是它自己数出来的第几个块，格子里填的是显存里的物理块号。 `11`
 - [三个进程与 patch 注入点](concepts/engine-processes.md) — V1 引擎跑起来是 Main、EngineCore、Worker 三类进程；昇腾的 patch 要分别进这三处，用的是三条不同的路。 `10`
+- [GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加](concepts/gqa.md) — Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 因此正好减半，而注意力本身一次乘加都没少。 `04`
 - [KV Cache](concepts/kv-cache.md) — 把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。 `05 11`
+- [MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE](concepts/mla.md) — 每层每个 token 只存一条 512 维潜向量加 64 维 RoPE 段；prefill 把它展开回每个头的 K 和 V，decode 干脆不展开，改把展开矩阵乘到 Q 上。 `04`
 - [贯穿全书的那条请求](concepts/one-request.md) — 全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。 `00`
 - [一个算子从 Python 走到 AI Core](concepts/op-to-ai-core.md) — 拿 RMSNorm 走一遍四层。最关键的一段是 ops/layernorm.py 里的一个 if——它两边一边是自己编的融合算子，一边是 CANN 现成的算子加一次额外的逐元素加法。 `16`
 - [Prefill](concepts/prefill.md) — 生成第一个字之前，把整段问题一次过完模型、把每个 token 的 K 和 V 写进缓存的那一步。它算得多、只做一次，决定了「多久出第一个字」。 `05`
@@ -26,6 +28,7 @@
 - [AscendConfig 配置系统](concepts/ascend-config-system.md) — --additional-config 的那段 JSON 由 AscendConfig 按键拆成十来个子配置对象，存成进程内单例；环境变量走另一条路。 `10`
 - [Patch 机制](concepts/ascend-patch-system.md) — 上游没留口子的地方，昇腾在运行时把上游的类和函数换掉。两个目录对应两个时机，靠 import 副作用生效。 `10`
 - [注意力后端家族](concepts/attention-backend-family.md) — attention/ 下五个后端类，按 (use_mla, use_sparse, use_compress) 三元组查表选出；普通后端的 KV 形状是五维，MLA 系是四维。 `04`
+- [Chunked Prefill：切开的是一条请求，填满的是一步的预算](concepts/chunked-prefill.md) — 长 prompt 不一次算完，按这一步的 token 预算切成几块依次做；它在调度器里不是一个模式，是「还差多少」减不完时留下的余数。 `12`
 - [图模式层](concepts/graph-mode-layer.md) — 昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。 `16`
 - [KV Cache CPU Offload：把要被淘汰的块存进主机内存](concepts/kv-cache-cpu-offload.md) — NPU 上的 KV 块被淘汰之前先异步拷一份进主机内存；下一条请求共享同一段前缀、而 NPU 上那几块已经没了，就再拷回来，省掉重新 prefill。昇腾只换掉 worker 侧的搬运。 `11`
 - [Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer](concepts/kv-cache-layerwise-offload.md) — 把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；main 上还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。 `11`
@@ -39,10 +42,15 @@
 - [NPUWorker 启动时序](concepts/npu-worker-lifecycle.md) — 从建对象到能接请求，六步固定顺序：打 patch、选卡建 runner、装权重、profile 出显存预算、分配 KV 张量、编译与捕获图。 `10`
 - [算子层与自定义算子](concepts/ops-and-kernels.md) — ops/ 用 CustomOp 注册把上游算子换成昇腾实现；再往下是 torch_npu，最底下是 csrc/ 编出来的自定义 aclnn 算子，绑在 torch.ops._C_ascend 上。 `16`
 - [PagedAttention：分块是布局，那个算子默认不跑](concepts/paged-attention.md) — 昇腾把每层 KV 切成 128 token 的定长块，算子拿块表跳着读。但叫 _npu_paged_attention 的那个算子默认永远不执行——默认按块读 KV 的是 FIA。 `11`
+- [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md) — 把 prefill 和 decode 拆到两批实例上跑，P 节点算完整段 prompt 的 KV 就结束请求，D 节点把这些块整块拉过去再逐 token 生成。 `18`
+- [Pipeline Parallel：按层切开，界线上一步只过一份 hidden](concepts/pipeline-parallel.md) — 按层把模型切成几段、一段一组卡；段与段之间只传 hidden_states 和 residual 两条张量，一步一次。代价是一步之内各段串行，要靠同时在途的多步才填得满。 `13`
 - [插件注册机制](concepts/platform-plugin-registration.md) — 装包时声明两组 entry point，vLLM 启动时扫出来：一个给平台类，四个给连接器、加载器、profiling 与模型注册。 `10`
 - [Prefix Caching：命中的是块，不是 token](concepts/prefix-caching.md) — 两条请求开头一样，那段 KV 就不用重算——把算过的块按内容哈希留着，下一条直接把块号填进块表，只对不同的尾巴做前向。 `11`
 - [prepare_inputs 数据流](concepts/prepare-inputs-flow.md) — 调度器给的请求集合，经 NPUInputBatch 与 BlockTable 变成算子要的四个张量；槽位由一个 Triton kernel 算出来。 `09`
 - [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md) — PD 分离的 Decode 节点抢占一条请求时，先把它已算好的 KV 块同步拷进锁页主机内存，重新排上再拷回来，省掉一整轮 prefill。main 开发主线已把它改名成 PreemptOffloadConnector。 `11 12`
+- [Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather](concepts/sequence-parallel.md) — 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。 `15`
+- [Speculative Decoding：一步算 K+1 个位置，第一个对不上的地方截断](concepts/speculative-decoding.md) — 先让一个便宜的草稿器猜 K 个 token，目标模型在同一次 forward 里给这 K+1 个位置各出一个分布，逐位比对，接受多少算多少。 `17`
+- [Tensor Parallel：一层切两刀，通信就落在两刀之后](concepts/tensor-parallel.md) — 把一层里的四个大矩阵按列或按行切给多张卡；列切完各算各的，行切完每张卡只有一份部分和，必须 all-reduce 一次——一层两次，位置写死。 `13`
 
 ## 参数（param）
 - [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — combine_quant_mode 的静态定义，正文待补。
@@ -100,6 +108,7 @@
 - [block 是怎么分出来的](concepts/vllm-kv-block-allocation.md)
 
 ### 12 调度
+- [Chunked Prefill：切开的是一条请求，填满的是一步的预算](concepts/chunked-prefill.md)
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md)
 - [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md)
 - [调度器：没有 prefill 和 decode 之分](concepts/vllm-scheduler.md)
@@ -108,10 +117,15 @@
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md)
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md)
 - [layer_sharding](params/layer-sharding.md)
+- [Pipeline Parallel：按层切开，界线上一步只过一份 hidden](concepts/pipeline-parallel.md)
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md)
+- [Tensor Parallel：一层切两刀，通信就落在两刀之后](concepts/tensor-parallel.md)
 
 ### 14 并行 II：EP / DPA / EPLB / large-scale EP
 - [multistream_overlap_gate](params/multistream-overlap-gate.md)
+
+### 15 并行 III：SP / CP / PCP / DCP
+- [Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather](concepts/sequence-parallel.md)
 
 ### 16 图模式与算子
 - [图模式层](concepts/graph-mode-layer.md)
@@ -120,6 +134,10 @@
 
 ### 17 量化与投机解码
 - [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md)
+- [Speculative Decoding：一步算 K+1 个位置，第一个对不上的地方截断](concepts/speculative-decoding.md)
+
+### 18 PD / EPD 分离与 KV 传输
+- [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md)
 
 ### 19 性能工程
 - [enable_async_exponential](params/enable-async-exponential.md)
@@ -137,6 +155,8 @@
 ### 04 Attention 深入
 - [注意力后端家族](concepts/attention-backend-family.md)
 - [四种注意力的代价](concepts/attention-cost.md)
+- [GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加](concepts/gqa.md)
+- [MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE](concepts/mla.md)
 - [RoPE (Rotary Position Embedding)](concepts/rope.md)
 
 ### 05 Prefill 与 Decode

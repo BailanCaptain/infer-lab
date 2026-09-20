@@ -1,0 +1,96 @@
+layout: scene
+id: sequence-parallel
+caption: TP=2 开 SP 的一层：两次 all-reduce 换成 reduce-scatter 加 all-gather，中间那两段 token 只剩一半
+size: [900, 700]
+
+regions:
+  - label: token 维度（TP=2，2049 个 token 的 prefill）
+    note: 先补 1 个零凑成 2050，再沿 token 维度对半切；切开的那一半才是本卡真正要算 norm 的部分。
+    at: [20, 26]
+    size: [860, 196]
+    tone: upstream
+  - label: 一层跑一遍：橙色两段是被切开的区间
+    note: 上下顺序就是数据流向。逐 token 的算子落在橙色段里就只算 1025 个 token，落在别处仍是 2050 个。
+    at: [20, 244]
+    size: [860, 386]
+    tone: ascend
+
+strips:
+  - at: [40, 108]
+    cells: 1
+    cell: 700
+    h: 30
+    highlight: 0
+    tone: neutral
+    label: "all_gather 之后：全长 2050 个 token"
+  - at: [40, 166]
+    cells: 2
+    cell: 348
+    gap: 4
+    h: 30
+    highlight: 0
+    tone: accent
+    label: "reduce_scatter 之后：卡 0 只留左边 1025 个"
+
+boundaries:
+  - at: 390
+    from: 166
+    to: 202
+    label: 切在这里
+    vertical: true
+
+bands:
+  - label: "① 进层的 RMSNorm：只在本卡那 1025 个 token 上算"
+    sub: 残差要跟着切一刀，否则和 hidden 对不上形状
+    fn: maybe_chunk_residual
+    at: [40, 318]
+    size: [820, 48]
+    tone: accent
+    icon: calc
+  - label: "② all_gather：收齐 2050 个 token 再进 qkv_proj"
+    sub: 切开的那一段到此为止，下面和不开 SP 时一样
+    fn: SequenceColumnParallelOp
+    at: [40, 374]
+    size: [820, 48]
+    tone: upstream
+    icon: split
+  - label: "③ attention 全长算，o_proj 吐出两份部分和"
+    sub: 这一段每卡都在 2050 个 token 上做，省不掉
+    right: 不受 SP 影响
+    at: [40, 430]
+    size: [820, 48]
+    tone: neutral
+    icon: chip
+  - label: "④ reduce_scatter：边加边切，落地就是 1025 个"
+    sub: 原来这里是一次 all_reduce，落地是 2050 个
+    fn: maybe_pad_and_reduce
+    at: [40, 486]
+    size: [820, 48]
+    tone: accent
+    icon: bolt
+  - label: "⑤ MLP 再重复一遍 ②③④：一层于是换掉两处"
+    sub: gate_up_proj 前 all_gather，down_proj 后 reduce_scatter
+    fn: SequenceRowParallelOp
+    at: [40, 542]
+    size: [820, 48]
+    tone: ascend
+    icon: layers
+
+notes:
+  - at: [20, 646]
+    text: "字节没省：ring all-reduce 本来就是 reduce-scatter 加 all-gather 两段。省的是橙色段里 norm 的算力与激活长度，以及④能和前面的 matmul 融成 npu_mm_reduce_scatter_base 一个算子。"
+    size: 12.5
+    width: 860
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L80
+    symbols: [maybe_chunk_residual]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L458-L480
+    symbols: [SequenceColumnParallelOp]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L725-L739
+    symbols: [SequenceRowParallelOp]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L73-L91
+    symbols: [tensor_model_parallel_reduce_scatter]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L566-L613
+    symbols: [npu_mm_reduce_scatter_base]

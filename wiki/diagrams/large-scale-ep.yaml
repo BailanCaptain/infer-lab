@@ -1,0 +1,102 @@
+layout: scene
+id: large-scale-ep
+caption: 同样是 16 张卡的一台机器，P 侧切成 2 个 DP rank、D 侧切成 16 个——每个 rank 就是一个独立的 server 进程，挑哪个由 vLLM 外面那层 proxy 决定（v0.23 维护分支）
+size: [900, 700]
+
+notes:
+  - { at: [20, 30], text: "大规模 EP 的部署形态：一个 MoE 模型摊成 72 个互不相干的 server 进程", size: 15, strong: true }
+  - at: [20, 604]
+    text: "为什么非得摊这么大：A2 上要走 MC2，得同时满足每卡专家数不超过 24、EP 卡数不少于 16。DeepSeek-R1 有 256 个路由专家，单台 8 卡的 A2 算出来 num_experts_per_device 是 32，两条都不过，只能退回 all-gather。"
+    size: 12.5
+    width: 860
+  - at: [20, 650]
+    text: "四台 prefiller 各自当自己的 DP 主节点，四台 decoder 共用一个；64 个 decode 引擎写同一个 kv_port 也不会撞，因为 side_channel_port 先按全局 DP rank 偏移一次。"
+    size: 12.5
+    width: 860
+
+boxes:
+  - at: [250, 52]
+    size: [400, 72]
+    title: 外置 proxy：vLLM 外面的一层
+    sub: 每个后端记 active_tokens，每次挑最小的那个
+    fn: _priority
+    tone: accent
+    icon: pick
+
+regions:
+  - label: P 侧 · 4 台 Atlas 800T A3
+    note: 每台 2 个 DP rank，每个 rank 吃 8 张卡
+    at: [20, 176]
+    size: [420, 250]
+    tone: ascend
+  - label: D 侧 · 4 台 Atlas 800T A3
+    note: 每台 16 个 DP rank，每个 rank 1 张卡
+    at: [460, 176]
+    size: [420, 250]
+    tone: neutral
+
+arrows:
+  - from: [380, 128]
+    to: [240, 170]
+    label: 8 个端点
+    tone: accent
+  - from: [520, 128]
+    to: [660, 170]
+    label: 64 个端点
+    tone: accent
+
+strips:
+  - { at: [44, 256], cells: 16, cell: 18, gap: 3, h: 26, tone: ascend, highlights: [0, 1, 2, 3, 4, 5, 6, 7] }
+  - { at: [44, 292], cells: 16, cell: 18, gap: 3, h: 26, tone: ascend, highlights: [0, 1, 2, 3, 4, 5, 6, 7] }
+  - { at: [44, 328], cells: 16, cell: 18, gap: 3, h: 26, tone: ascend, highlights: [0, 1, 2, 3, 4, 5, 6, 7] }
+  - at: [44, 364]
+    cells: 16
+    cell: 18
+    gap: 3
+    h: 26
+    tone: ascend
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    label: "一台 16 卡 = 2 个 rank，实心那 8 张是一个"
+  - { at: [484, 256], cells: 16, cell: 18, gap: 3, h: 26, tone: neutral, highlights: [0, 2, 4, 6, 8, 10, 12, 14] }
+  - { at: [484, 292], cells: 16, cell: 18, gap: 3, h: 26, tone: neutral, highlights: [0, 2, 4, 6, 8, 10, 12, 14] }
+  - { at: [484, 328], cells: 16, cell: 18, gap: 3, h: 26, tone: neutral, highlights: [0, 2, 4, 6, 8, 10, 12, 14] }
+  - at: [484, 364]
+    cells: 16
+    cell: 18
+    gap: 3
+    h: 26
+    tone: neutral
+    highlights: [0, 2, 4, 6, 8, 10, 12, 14]
+    label: "一台 16 卡 = 16 个 rank，一格就是一个"
+
+bands:
+  - at: [20, 448]
+    size: [860, 62]
+    label: 一个 DP rank 里面是整套引擎
+    sub: 给出 data_parallel_rank 之后，api_server_count 与 data_parallel_size_local 都成 1
+    fn: data_parallel_external_lb
+    tone: upstream
+    icon: proc
+  - at: [20, 522]
+    size: [860, 62]
+    label: 所以分发这件事只能在外面做
+    sub: vLLM 只替你管本地这一个引擎，rank 之间谁忙谁闲它不看
+    right: local_engines_only 为真
+    tone: accent
+    icon: split
+
+pins:
+  - source: vllm@0fc695fc:vllm/config/parallel.py#L138-L144
+    symbols: [data_parallel_external_lb]
+  - source: vllm@0fc695fc:vllm/config/parallel.py#L514-L520
+    symbols: [local_engines_only]
+  - source: vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L107
+    symbols: [api_server_count, data_parallel_rank]
+  - source: vllm@0fc695fc:vllm/engine/arg_utils.py#L1859-L1884
+    symbols: [data_parallel_size_local]
+  - source: vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L276-L281
+    symbols: [_priority, active_tokens]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1650-L1657
+    symbols: [side_channel_port, kv_port]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L240-L252
+    symbols: [num_experts_per_device]

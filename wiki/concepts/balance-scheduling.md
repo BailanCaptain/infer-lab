@@ -55,6 +55,9 @@ relations:
   - to: ascend-config-system
     kind: builds-on
     note: enable_balance_scheduling 从 additional_config 走到 AscendConfig 的解析路径、以及环境变量那条旁路，在那一页
+  - to: data-parallel
+    kind: builds-on
+    note: 它 all_gather 的就是各 DP rank 在跑的请求数；DP rank 是什么、请求怎么落到某个 rank，在那一页
 contradicts: []
 updated: "2026-09-21"
 origin: seed

@@ -346,6 +346,11 @@
           "note": "那一页讲三元组怎么查出一个后端，这一页讲查中之后各自要付多少字节"
         },
         {
+          "from": "context-parallel",
+          "kind": "enables",
+          "note": "enable_cp() 为真时 get_impl_cls 换成 CP 版 impl 类，挑后端那一层在那一页"
+        },
+        {
           "from": "mla",
           "kind": "enables",
           "note": "走不走 MLA 不是模型自己决定的，是启动时拿 use_mla 三元组查表查到 AscendMLABackend"
@@ -521,13 +526,24 @@
           "to": "ascend-config-system",
           "kind": "builds-on",
           "note": "enable_balance_scheduling 从 additional_config 走到 AscendConfig 的解析路径、以及环境变量那条旁路，在那一页"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "它 all_gather 的就是各 DP rank 在跑的请求数；DP rank 是什么、请求怎么落到某个 rank，在那一页"
         }
       ],
       "related": [],
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/balance-scheduling.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "large-scale-ep",
+          "kind": "alternative-to",
+          "note": "都在治 DP rank 之间的忙闲不均——外置 LB 在 vLLM 外面按活跃 token 数挑 rank，均衡调度在 vLLM 里面卡住所有 rank 的准入闸"
+        }
+      ]
     },
     {
       "id": "batch-job-aware-scheduler",
@@ -696,6 +712,11 @@
       "file": "concepts/block-table.md",
       "backlinks": [
         {
+          "from": "context-parallel",
+          "kind": "enables",
+          "note": "CP 下槽位走块表里 _compute_pcp_dcp_slot_mapping 那条分支，虚拟块与行扩展都在那一页"
+        },
+        {
           "from": "kv-cache-sparse-offload",
           "kind": "enables",
           "note": "indexer 给的是逻辑 token 位置，要先过 block_table 才能换算成主机池里的字节地址"
@@ -863,6 +884,233 @@
       "updated": "2026-09-19",
       "file": "params/combine-quant-mode-2a3f7cd47997.md",
       "backlinks": []
+    },
+    {
+      "id": "context-parallel",
+      "title": "Context Parallel：把序列维切到多张卡上，PCP 切算、DCP 切存",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "长序列放不进一张卡时沿序列维下刀；PCP 切 prefill 要算的 token 并为此加卡，DCP 把 KV Cache 交错分到 TP 组各卡、卡数不变。",
+      "aliases": [
+        "Context Parallel",
+        "上下文并行",
+        "CP",
+        "PCP",
+        "DCP",
+        "Prefill Context Parallel",
+        "Decode Context Parallel",
+        "前缀上下文并行",
+        "解码上下文并行",
+        "prefill_context_parallel_size",
+        "decode_context_parallel_size",
+        "cp_kv_cache_interleave_size",
+        "enable_cp",
+        "enable_dcp",
+        "enable_pcp",
+        "AscendAttentionCPImpl",
+        "AscendMlaCPImpl",
+        "AscendAttentionDCPImpl"
+      ],
+      "chapters": [
+        "15"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/context_parallel.md#L5-L12",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/context_parallel.md#L11-L20",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/context_parallel.md#L64-L74",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/context_parallel.md#L76-L85",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/context_parallel.md#L35-L49",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/context_parallel.md#L126-L144",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/context_parallel.md#L91-L96",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/utils.py#L123-L126",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L231-L263",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L269-L276",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/pcp_utils.py#L663-L688",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/pcp_utils.py#L704-L722",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/common_cp.py#L111-L130",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/common_cp.py#L186-L197",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/attention_cp.py#L830-L839",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/attention_cp.py#L573-L581",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/attention_cp.py#L284-L285",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/mla_cp.py#L263-L267",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/mla_cp.py#L757-L760",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L349-L358",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L743-L761",
+        "vllm@0fc695fc:vllm/config/parallel.py#L343-L356",
+        "vllm@0fc695fc:vllm/config/parallel.py#L774-L780",
+        "vllm@0fc695fc:vllm/config/parallel.py#L482-L491",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L226-L234",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L66-L70",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L613-L617",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L983-L987",
+        "vllm@0fc695fc:vllm/config/model.py#L1290-L1295",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/context_parallel.md#L5-L7",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/utils.py#L189-L192",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/context_parallel/attention_cp.py#L173-L174",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L52-L65",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L109-L123",
+        "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/context_parallel.md#L5-L7",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/utils.py#L244-L252",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1492-L1499",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1516-L1527",
+        "vllm@568afb3a:vllm/config/parallel.py#L505-L520",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L20-L25"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "每卡 KV 预算就是那一页的 spec 按 dcp × pcp 除出来的，每 token 112 KiB 也取自那里"
+        },
+        {
+          "to": "block-table",
+          "kind": "builds-on",
+          "note": "CP 下槽位走块表里 _compute_pcp_dcp_slot_mapping 那条分支，虚拟块与行扩展都在那一页"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "DCP 不新建通信域、直接骑在 TP 组上，所以 tp % dcp == 0 是硬约束"
+        },
+        {
+          "to": "attention-backend-family",
+          "kind": "builds-on",
+          "note": "enable_cp() 为真时 get_impl_cls 换成 CP 版 impl 类，挑后端那一层在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "把那条请求的问题换成 128K，每 token 112 KiB 这个数才派得上用场"
+        },
+        {
+          "to": "sequence-parallel",
+          "kind": "conflicts-with",
+          "note": "main 的 PCP 兼容表把四个后端的 SP + PCP 全标成不兼容；v0.23 上同开则会悄悄改大 max_num_batched_tokens"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/context-parallel.md",
+      "backlinks": []
+    },
+    {
+      "id": "data-parallel",
+      "title": "Data Parallel：复制整个引擎，一根权重都不切",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "同一份模型起多个副本，每个副本一套 EngineCore、调度器和 KV 块池；请求由前端挑一个 rank 送进去。它加吞吐，不减单请求延迟，也不省单卡显存。",
+      "aliases": [
+        "Data Parallel",
+        "数据并行",
+        "DP",
+        "DP rank",
+        "data_parallel_size",
+        "dp_size",
+        "DPEngineCoreProc",
+        "DPCoordinator",
+        "DPLBAsyncMPClient",
+        "data-parallel-size",
+        "前端负载均衡"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1164",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1715-L1717",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1750-L1764",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1890-L1904",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1928-L1932",
+        "vllm@0fc695fc:vllm/config/parallel.py#L118-L124",
+        "vllm@0fc695fc:vllm/config/parallel.py#L138-L151",
+        "vllm@0fc695fc:vllm/config/parallel.py#L500-L504",
+        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L125-L131",
+        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426",
+        "vllm@0fc695fc:vllm/v1/engine/core_client.py#L1361-L1362",
+        "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L23-L57",
+        "vllm@0fc695fc:vllm/v1/engine/coordinator.py#L145-L151",
+        "vllm@0fc695fc:vllm/config/vllm.py#L560-L580",
+        "vllm@0fc695fc:vllm/v1/engine/utils.py#L1091-L1095",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1002-L1028",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L686-L691",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L693-L721",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L330-L331",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L321-L340",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L445-L457",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L541-L543",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L344-L374",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L348-L358",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L985-L987",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L632-L637",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L315-L317",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L26-L26",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/feature_matrix.md#L40-L40",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-R1.md#L344-L352",
+        "vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-R1.md#L269-L288",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L139-L141",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/support_matrix/supported_features.html",
+        "vllm@568afb3a:vllm/v1/engine/core.py#L1288-L1295",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L337-L344",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L729-L732",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/release_notes.md#L65-L66",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1492-L1499"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求的 data_parallel_size 就是 1，本页 DP=2 的账全是在它身上改一行参数算出来的"
+        },
+        {
+          "to": "vllm-v1-shape",
+          "kind": "builds-on",
+          "note": "DP 复制的正是那一页讲的「一个 EngineCore 进程 + 它下面的 Worker」，一个 rank 一整套"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "alternative-to",
+          "note": "同样是加一倍的卡，TP 切矩阵、单请求变快且单卡显存减半，DP 复制引擎、只加吞吐且单卡显存一点不省"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/data-parallel.md",
+      "backlinks": [
+        {
+          "from": "balance-scheduling",
+          "kind": "enables",
+          "note": "它 all_gather 的就是各 DP rank 在跑的请求数；DP rank 是什么、请求怎么落到某个 rank，在那一页"
+        },
+        {
+          "from": "expert-parallel",
+          "kind": "enables",
+          "note": "ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上"
+        },
+        {
+          "from": "large-scale-ep",
+          "kind": "enables",
+          "note": "大规模 EP 的每个「引擎」就是一个 DP rank；DP 复制什么、MoE 下各 rank 为什么必须齐步走，在那一页"
+        }
+      ]
     },
     {
       "id": "enable-async-exponential",
@@ -1210,6 +1458,11 @@
           "note": "EPLB 要在 Worker 里再起一个子进程，而上游的 Worker 是 daemon=True 起的，那条 daemon=False 的 patch 就是为这件事打的"
         },
         {
+          "from": "large-scale-ep",
+          "kind": "enables",
+          "note": "「一个 DP rank 一个 server」多出来的，正是那一页画的 Main / EngineCore / Worker 三类进程整套再来一份"
+        },
+        {
           "from": "platform-plugin-registration",
           "kind": "enables",
           "note": "四个 general plugin 为什么每个都要先补一次 patch，理由只在进程边界那一页说得清"
@@ -1411,6 +1664,11 @@
           "to": "quantization",
           "kind": "builds-on",
           "note": "dispatch 要不要顺手把 token 量化成 int8、A3 上能不能走融合的 FUSED_MC2，都由这一层选出的量化类型决定"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上"
         }
       ],
       "related": [],
@@ -1422,6 +1680,11 @@
           "from": "eplb",
           "kind": "enables",
           "note": "EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页"
+        },
+        {
+          "from": "large-scale-ep",
+          "kind": "enables",
+          "note": "ep_size 怎么由 dp × pcp × tp 压扁出来、四种 MoE 通信按什么判据选，全在那一页；这一页只负责把 ep_size 顶到 16 以上的那套拓扑"
         }
       ]
     },
@@ -2328,6 +2591,11 @@
           "note": "表的列数与逻辑块大小由 spec 的 block_size 和 max_num_blocks_per_req 算出，BlockTable 自己不决定"
         },
         {
+          "from": "context-parallel",
+          "kind": "enables",
+          "note": "每卡 KV 预算就是那一页的 spec 按 dcp × pcp 除出来的，每 token 112 KiB 也取自那里"
+        },
+        {
           "from": "kv-cache-cpu-offload",
           "kind": "enables",
           "note": "一个 CPU 格子的字节数直接由每块每层的 page_size_bytes 乘 blocks_per_chunk 得出"
@@ -2514,6 +2782,106 @@
       "contradicts": [],
       "updated": "2026-09-19",
       "file": "params/kvpp-config-0445bd352140.md",
+      "backlinks": []
+    },
+    {
+      "id": "large-scale-ep",
+      "title": "Large-Scale EP：一个 DP rank 一个 server，负载均衡搬到 vLLM 外面",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "几十上百张卡跑一个 MoE 模型时的部署形态——每个 DP rank 自己起一个完整的 API server 进程，rank 之间怎么分请求由 vLLM 外面的 proxy 决定，P 和 D 各用一套并行配置。",
+      "aliases": [
+        "Large-Scale EP",
+        "大规模专家并行",
+        "大规模 EP",
+        "Distributed DP Server",
+        "分布式 DP server",
+        "外置 DP 负载均衡",
+        "external DP LB",
+        "data_parallel_external_lb",
+        "data-parallel-rank",
+        "large_scale_ep",
+        "VLLM_ASCEND_EXTERNAL_DP_LB_ENABLED",
+        "load_balance_proxy_server_example",
+        "external_online_dp"
+      ],
+      "chapters": [
+        "14"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L5-L6",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/large_scale_ep.html",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L479-L490",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L251-L257",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L285-L291",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L126-L141",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L145-L167",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L211-L232",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L321-L360",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L10-L13",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L241-L241",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L492-L496",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/large_scale_ep.md#L151-L157",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/large_scale_ep.md#L17-L17",
+        "vllm@0fc695fc:vllm/config/parallel.py#L138-L144",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1003-L1010",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1023-L1034",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1859-L1884",
+        "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L107",
+        "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L139-L148",
+        "vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L223-L244",
+        "vllm@0fc695fc:vllm/config/parallel.py#L514-L520",
+        "vllm@0fc695fc:vllm/config/parallel.py#L825-L831",
+        "vllm@0fc695fc:vllm/envs.py#L1297-L1309",
+        "vllm-ascend@2c59ff10:examples/external_online_dp/run_dp_template.sh#L15-L32",
+        "vllm-ascend@2c59ff10:examples/external_online_dp/launch_online_dp.py#L53-L61",
+        "vllm-ascend@2c59ff10:examples/external_online_dp/README.md#L43-L57",
+        "vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L642-L683",
+        "vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L276-L281",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L240-L252",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1650-L1657",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L56",
+        "https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/config.json"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "ep_size 怎么由 dp × pcp × tp 压扁出来、四种 MoE 通信按什么判据选，全在那一页；这一页只负责把 ep_size 顶到 16 以上的那套拓扑"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "kv_role、Mooncake 怎么把块从 P 拉到 D、为什么 P 要撞长度上限，都在那一页；这一页只说大规模 EP 为什么几乎总把它一起开上"
+        },
+        {
+          "to": "engine-processes",
+          "kind": "builds-on",
+          "note": "「一个 DP rank 一个 server」多出来的，正是那一页画的 Main / EngineCore / Worker 三类进程整套再来一份"
+        },
+        {
+          "to": "balance-scheduling",
+          "kind": "alternative-to",
+          "note": "都在治 DP rank 之间的忙闲不均——外置 LB 在 vLLM 外面按活跃 token 数挑 rank，均衡调度在 vLLM 里面卡住所有 rank 的准入闸"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "大规模 EP 的每个「引擎」就是一个 DP rank；DP 复制什么、MoE 下各 rank 为什么必须齐步走，在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/large-scale-ep.md",
       "backlinks": []
     },
     {
@@ -3066,6 +3434,16 @@
           "note": "表里那两个块号、第 92 步换块换的那一列，全是那条请求的数"
         },
         {
+          "from": "context-parallel",
+          "kind": "enables",
+          "note": "把那条请求的问题换成 128K，每 token 112 KiB 这个数才派得上用场"
+        },
+        {
+          "from": "data-parallel",
+          "kind": "enables",
+          "note": "那条请求的 data_parallel_size 就是 1，本页 DP=2 的账全是在它身上改一行参数算出来的"
+        },
+        {
           "from": "engine-processes",
           "kind": "enables",
           "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
@@ -3515,6 +3893,11 @@
           "from": "chunked-prefill",
           "kind": "alternative-to",
           "note": "官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题"
+        },
+        {
+          "from": "large-scale-ep",
+          "kind": "enables",
+          "note": "kv_role、Mooncake 怎么把块从 P 拉到 D、为什么 P 要撞长度上限，都在那一页；这一页只说大规模 EP 为什么几乎总把它一起开上"
         }
       ]
     },
@@ -4518,7 +4901,13 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "concepts/sequence-parallel.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "context-parallel",
+          "kind": "conflicts-with",
+          "note": "main 的 PCP 兼容表把四个后端的 SP + PCP 全标成不兼容；v0.23 上同开则会悄悄改大 max_num_batched_tokens"
+        }
+      ]
     },
     {
       "id": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
@@ -4878,6 +5267,11 @@
       "file": "concepts/tensor-parallel.md",
       "backlinks": [
         {
+          "from": "data-parallel",
+          "kind": "alternative-to",
+          "note": "同样是加一倍的卡，TP 切矩阵、单请求变快且单卡显存减半，DP 复制引擎、只加吞吐且单卡显存一点不省"
+        },
+        {
           "from": "eplb",
           "kind": "alternative-to",
           "note": "MoE 那几个矩阵上 EP 顶掉了 TP——EP 一开，MoE 的 tp_size 被置 1，每张卡整份拿走一批专家"
@@ -4891,6 +5285,11 @@
           "from": "pipeline-parallel",
           "kind": "alternative-to",
           "note": "同样两张卡拆同一个模型：TP 在每层里切矩阵、一层归约两次，PP 按层切段、一步只过一次 hidden"
+        },
+        {
+          "from": "context-parallel",
+          "kind": "enables",
+          "note": "DCP 不新建通信域、直接骑在 TP 组上，所以 tp % dcp == 0 是硬约束"
         },
         {
           "from": "sequence-parallel",
@@ -5415,6 +5814,11 @@
       "updated": "2026-09-21",
       "file": "concepts/vllm-v1-shape.md",
       "backlinks": [
+        {
+          "from": "data-parallel",
+          "kind": "enables",
+          "note": "DP 复制的正是那一页讲的「一个 EngineCore 进程 + 它下面的 Worker」，一个 rank 一整套"
+        },
         {
           "from": "kv-pool",
           "kind": "enables",

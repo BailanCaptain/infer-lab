@@ -59,6 +59,9 @@ relations:
   - to: quantization
     kind: builds-on
     note: dispatch 要不要顺手把 token 量化成 int8、A3 上能不能走融合的 FUSED_MC2，都由这一层选出的量化类型决定
+  - to: data-parallel
+    kind: builds-on
+    note: ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上
 contradicts: []
 updated: "2026-09-21"
 origin: seed

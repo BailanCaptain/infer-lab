@@ -55,6 +55,11 @@
       "file": "concepts/ascend-config-system.md",
       "backlinks": [
         {
+          "from": "batch-job-aware-scheduler",
+          "kind": "enables",
+          "note": "batch_job_sched_config 是 additional_config.scheduler_config 下的子配置，嵌套键与顶层旧键的优先级在那一页"
+        },
+        {
           "from": "enable-async-exponential",
           "kind": "enables",
           "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 上把它挡在启动期的正是这一环"
@@ -83,6 +88,11 @@
           "from": "profiling-chunk-config",
           "kind": "enables",
           "note": "它是 additional_config 下的一个嵌套 dict，顶层写法在 main 上被降级成弃用告警的那套解析规则就在那一页"
+        },
+        {
+          "from": "short-request-first",
+          "kind": "enables",
+          "note": "short_request_first_config 挂在 additional_config.scheduler_config 下面，键怎么解析成子配置对象在那一页"
         },
         {
           "from": "weight-prefetch-config",
@@ -313,6 +323,99 @@
       ]
     },
     {
+      "id": "batch-job-aware-scheduler",
+      "title": "Batch-Job-Aware Scheduler：给离线批处理换掉的那条等待队列",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "把上游调度器的 waiting 队列换成按「作业」分桶的队列，先给在跑的请求预留下一轮要的块，再从桶里挑一条塞得下的；为离线批处理而生，不做饥饿防护。",
+      "aliases": [
+        "Batch-Job-Aware Scheduler",
+        "批作业感知调度器",
+        "批作业调度器",
+        "BatchJobAwareScheduler",
+        "BatchJobAwareRequestQueue",
+        "batch_job_sched_config",
+        "job_name 标签"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 40,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L622-L641",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L57-L74",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L126-L141",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L153-L173",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L244-L287",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L242",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L541",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L554-L571",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L595-L609",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L496-L507",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L643-L661",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L386-L393",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L17-L28",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L664-L682",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L757-L802",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L716-L725",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L662-L666",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L714",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L3-L5",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L54-L62",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L64-L75",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/batch_job_aware_scheduler.md#L81-L88",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_job_aware_scheduler.html",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L183-L185",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L680",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1224-L1234",
+        "vllm@568afb3a:vllm/v1/request.py#L353-L359",
+        "vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_job_aware_scheduler_e2e.py#L47-L82",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1290-L1303",
+        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L48",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1272-L1281"
+      ],
+      "verified": [
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "它只换掉 self.waiting 这条队列，两个 while 的顺序、token 预算、抢占仍是那一页讲的那套"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "batch_job_sched_config 是 additional_config.scheduler_config 下的子配置，嵌套键与顶层旧键的优先级在那一页"
+        },
+        {
+          "to": "chunked-prefill",
+          "kind": "builds-on",
+          "note": "预留块数的推算直接拿 max_num_scheduled_tokens 当这一轮 prefill 切片的大小，切不切、切多大在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "「预留 2 块 = 28 MiB」用的是那一页算出的每块 14 MiB"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/batch-job-aware-scheduler.md",
+      "backlinks": [
+        {
+          "from": "short-request-first",
+          "kind": "conflicts-with",
+          "note": "两个都是换掉 waiting 队列的调度特性，源码里显式互斥——同时开直接 ValueError，只能二选一"
+        }
+      ]
+    },
+    {
       "id": "block-table",
       "title": "Block Table：逻辑块号到物理块号的唯一翻译层",
       "type": "concept",
@@ -408,6 +511,31 @@
       ]
     },
     {
+      "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "title": "c8_enable_reshape_optim",
+      "type": "param",
+      "origin": "seed",
+      "summary": "c8_enable_reshape_optim 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L526"
+      ],
+      "verified": [],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-20",
+      "file": "params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
+      "backlinks": []
+    },
+    {
       "id": "chunked-prefill",
       "title": "Chunked Prefill：切开的是一条请求，填满的是一步的预算",
       "type": "feature",
@@ -487,7 +615,18 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "concepts/chunked-prefill.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "short-request-first",
+          "kind": "alternative-to",
+          "note": "两者治同一个病的两段——它改排队顺序，chunked prefill 压单步 token 数，可以也应该同时开"
+        },
+        {
+          "from": "batch-job-aware-scheduler",
+          "kind": "enables",
+          "note": "预留块数的推算直接拿 max_num_scheduled_tokens 当这一轮 prefill 切片的大小，切不切、切多大在那一页"
+        }
+      ]
     },
     {
       "id": "combine-quant-mode-2a3f7cd47997",
@@ -500,13 +639,15 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L473"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L473",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L474"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [],
@@ -588,13 +729,15 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L467"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [],
@@ -683,13 +826,15 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L467"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L467",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L468"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [],
@@ -1463,6 +1608,11 @@
           "from": "npu-worker-lifecycle",
           "kind": "enables",
           "note": "第四步那次 profile 到底怎么算出可用字节数，公式和扣减项在那一页"
+        },
+        {
+          "from": "quantization",
+          "kind": "enables",
+          "note": "596M 参数、bf16 权重 1.11 GiB 这两个数在那一页按层算出来，这一页只把线性层那部分对半砍"
         }
       ]
     },
@@ -1558,6 +1708,11 @@
       "updated": "2026-09-20",
       "file": "concepts/kv-cache-quantization.md",
       "backlinks": [
+        {
+          "from": "quantization",
+          "kind": "alternative-to",
+          "note": "同一份描述文件、同一次 get_quant_method 分发，但它压的是缓存、这一页压的是权重，两者可以一起开"
+        },
         {
           "from": "kv-cache-sparse-offload",
           "kind": "conflicts-with",
@@ -1914,13 +2069,15 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L517"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L517",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L518"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [],
@@ -2311,6 +2468,11 @@
           "from": "attention-backend-family",
           "kind": "enables",
           "note": "选哪个后端不是后端自己决定的，是平台类的 get_attn_backend_cls 查表定的"
+        },
+        {
+          "from": "quantization",
+          "kind": "enables",
+          "note": "ascend 这个量化方法名写在平台类的 supported_quantization 里，自动探测也挂在 check_and_update_config 上"
         }
       ]
     },
@@ -2456,6 +2618,11 @@
           "from": "attention-cost",
           "kind": "enables",
           "note": "那条请求走的是这四条里最贵的一条，它那 112 KiB 就是从这儿来的"
+        },
+        {
+          "from": "batch-job-aware-scheduler",
+          "kind": "enables",
+          "note": "「预留 2 块 = 28 MiB」用的是那一页算出的每块 14 MiB"
         },
         {
           "from": "block-table",
@@ -2679,6 +2846,11 @@
           "from": "op-to-ai-core",
           "kind": "enables",
           "note": "那一页画的是四层地图和各层的职责，这一页拿一个真算子从最上面走到最下面"
+        },
+        {
+          "from": "quantization",
+          "kind": "enables",
+          "note": "量化线性层最后落到 npu_quant_matmul 这个 torch_npu 融合算子上，算子怎么下到 AI Core 在那一页"
         },
         {
           "from": "sequence-parallel",
@@ -3185,6 +3357,11 @@
           "note": "PrefillCacheHit 只是 AscendAttentionState 五个取值里的一个，整张枚举表在那一页"
         },
         {
+          "from": "short-request-first",
+          "kind": "enables",
+          "note": "它优化的那个指标（首 token 延迟 TTFT）和 prefill 一步算多少 token 的定义在那一页"
+        },
+        {
           "from": "vllm-scheduler",
           "kind": "enables",
           "note": "先知道人们说的 prefill 和 decode 各指什么，才看得懂「调度器里没有这两个阶段」这句话在否定什么"
@@ -3422,6 +3599,102 @@
       "contradicts": [],
       "updated": "2026-09-20",
       "file": "params/profiling-chunk-config.md",
+      "backlinks": []
+    },
+    {
+      "id": "quantization",
+      "title": "Quantization：省的是权重显存，开关在模型目录里那份 json",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "vllm-ascend 自己不量化，只负责加载和执行 ModelSlim / LLM-Compressor 产出的低精度权重；哪一层用哪种量化写在 quant_model_description.json 里，引擎按 (量化类型, 层类型) 这一对去注册表找实现。",
+      "aliases": [
+        "Quantization",
+        "量化",
+        "权重量化",
+        "激活量化",
+        "W8A8",
+        "W4A8",
+        "W8A16",
+        "ModelSlim",
+        "msmodelslim",
+        "AscendModelSlimConfig",
+        "quant_model_description.json"
+      ],
+      "chapters": [
+        "17"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L3-L5",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L105-L107",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/quantization.md#L102-L112",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/quantization.md#L13-L15",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/quantization.md#L29-L46",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/utils.py#L95-L117",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/utils.py#L171-L214",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L449-L465",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L140-L145",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L190-L197",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L60-L67",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L786-L801",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L808-L830",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L361-L382",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L434-L453",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/registry.py#L19-L49",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L634-L679",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L701-L708",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L44-L72",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L108-L140",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L142-L157",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L82",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/method_adapters.py#L51-L98",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L268-L274",
+        "vllm@0fc695fc:vllm/config/model.py#L1075-L1081",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L33-L40",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L26-L28",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L40-L57",
+        "vllm-ascend@b255ab59:vllm_ascend/quantization/methods/w4a8/w4a8.py#L40-L46",
+        "vllm-ascend@b255ab59:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L133-L142",
+        "vllm-ascend@b255ab59:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L32-L40",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L92-L99",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/quantization.md#L105-L121",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/quant_type.py#L26-L37",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/quant_type.py#L26-L37",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/quantization.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "596M 参数、bf16 权重 1.11 GiB 这两个数在那一页按层算出来，这一页只把线性层那部分对半砍"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "量化线性层最后落到 npu_quant_matmul 这个 torch_npu 融合算子上，算子怎么下到 AI Core 在那一页"
+        },
+        {
+          "to": "npu-platform",
+          "kind": "builds-on",
+          "note": "ascend 这个量化方法名写在平台类的 supported_quantization 里，自动探测也挂在 check_and_update_config 上"
+        },
+        {
+          "to": "kv-cache-quantization",
+          "kind": "alternative-to",
+          "note": "同一份描述文件、同一次 get_quant_method 分发，但它压的是缓存、这一页压的是权重，两者可以一起开"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/quantization.md",
       "backlinks": []
     },
     {
@@ -3804,13 +4077,15 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L465"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L465",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L466"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [],
@@ -3845,6 +4120,97 @@
       "contradicts": [],
       "updated": "2026-09-19",
       "file": "params/shard-axis-036e26ba7f4b.md",
+      "backlinks": []
+    },
+    {
+      "id": "short-request-first",
+      "title": "ShortRequestFirst：把等待队列切成三条车道",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "把上游那条单一的 waiting 队列换成 immediate / short / long 三条，短 prompt 先被挑走，长 prompt 不再堵住别人的首 token。",
+      "aliases": [
+        "ShortRequestFirst",
+        "短请求优先",
+        "短请求优先调度",
+        "short_request_first_config",
+        "ShortRequestFirstRequestQueue",
+        "ShortRequestFirstAsyncScheduler",
+        "long_max_wait_ms",
+        "三车道等待队列"
+      ],
+      "chapters": [
+        "12"
+      ],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L37-L47",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L148-L153",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L155-L182",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L204-L235",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L237-L244",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L329-L335",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L338-L367",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L370-L384",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L939-L965",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L979-L994",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L652-L680",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L127-L135",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L931-L936",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L176-L185",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L693",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1232-L1234",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1976-L1986",
+        "vllm@568afb3a:vllm/v1/core/sched/request_queue.py#L20-L46",
+        "vllm@568afb3a:vllm/v1/core/sched/request_queue.py#L201-L207",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L82-L91",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L31-L49",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L952-L980",
+        "vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1330-L1349",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1440-L1446",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/short_request_first.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "它换掉的正是「扫 waiting 队列」那一段取请求的对象，那道减法和两条 while 在那一页"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "short_request_first_config 挂在 additional_config.scheduler_config 下面，键怎么解析成子配置对象在那一页"
+        },
+        {
+          "to": "chunked-prefill",
+          "kind": "alternative-to",
+          "note": "两者治同一个病的两段——它改排队顺序，chunked prefill 压单步 token 数，可以也应该同时开"
+        },
+        {
+          "to": "prefill",
+          "kind": "builds-on",
+          "note": "它优化的那个指标（首 token 延迟 TTFT）和 prefill 一步算多少 token 的定义在那一页"
+        },
+        {
+          "to": "batch-job-aware-scheduler",
+          "kind": "conflicts-with",
+          "note": "两个都是换掉 waiting 队列的调度特性，源码里显式互斥——同时开直接 ValueError，只能二选一"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/short-request-first.md",
       "backlinks": []
     },
     {
@@ -4074,13 +4440,15 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L1468"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L1468",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L1478"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [],
@@ -4464,6 +4832,11 @@
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
         {
+          "from": "batch-job-aware-scheduler",
+          "kind": "enables",
+          "note": "它只换掉 self.waiting 这条队列，两个 while 的顺序、token 预算、抢占仍是那一页讲的那套"
+        },
+        {
           "from": "chunked-prefill",
           "kind": "enables",
           "note": "「还差多少 token」减 token 预算那道减法在那一页，这一页只接着讲减不完的那一步会怎样"
@@ -4477,6 +4850,11 @@
           "from": "profiling-chunk-config",
           "kind": "enables",
           "note": "开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层"
+        },
+        {
+          "from": "short-request-first",
+          "kind": "enables",
+          "note": "它换掉的正是「扫 waiting 队列」那一段取请求的对象，那道减法和两条 while 在那一页"
         },
         {
           "from": "speculative-decoding",

@@ -4,13 +4,18 @@ title: enable_force_eplb
 type: param
 summary: enable_force_eplb 的静态定义，正文待补。
 origin: seed
-verified: ["main"]
+verified:
+  - main
 evidence: C
 updated: '2026-09-19'
 sources:
   - >-
     vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466
+  - >-
+    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L467
 rawSources:
+  - >-
+    raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
     raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md
 ---
@@ -27,8 +32,8 @@ rawSources:
 | 标识 | `additional_config["enable_force_eplb"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:466` [C1] |
-| 版本 | main · b255ab59662d8c665e5534e926f913b1c1179b1c |
+| 定义 | `vllm_ascend/ascend_config.py:467` [C2] |
+| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
 
 字段注释：
 
@@ -59,8 +64,8 @@ if self.enable_force_eplb and self.eplb_config.dynamic_eplb and (vc.model_config
 
 | 版本 | 是否存在 |
 | --- | --- |
-| 28bf3a2e8e8db396ee5dcfa6812626eee2d394ab | 无 |
 | b255ab59662d8c665e5534e926f913b1c1179b1c | 有（3 个文件） |
+| c173a64a44dec4ba97aaba6277b1dfc1562eda19 | 有（3 个文件） |
 
 - **引入**：2026-09-02 · 2825e368b0ee0cd5ecfddc075cee92be658508f9 · PR [#15499](https://github.com/vllm-project/vllm-ascend/pull/15499) —— [Feature] add force EPLB Feature through additional config (#15499)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor、origin/rfc/megakernel

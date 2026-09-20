@@ -70,7 +70,7 @@ file: kv-cache-quantization
 
 ## 那条请求走到这里
 
-[那条请求](one-request.md)跑的是原版 Qwen3-0.6B，模型目录里没有 `quant_model_description.json`，**所以它压根走不到这一页**。要走到这里得换两样东西：模型换成 ModelSlim 产出的 `Qwen3-0.6B-W8A8-C8`，启动参数加 `--quantization ascend`——ModelSlim 的 checkpoint 不加这个参数，整套 `AscendModelSlimConfig` 不会被装上，权重量化和 KV 量化一起失效 [S24]。在 main 上还要再加一个 `--kv-cache-dtype int8`，理由见下一节。
+[那条请求](one-request.md)跑的是原版 Qwen3-0.6B，模型目录里没有 `quant_model_description.json`，**所以它压根走不到这一页**。要走到这里得换两样东西：模型换成 ModelSlim 产出的 `Qwen3-0.6B-W8A8-C8`，启动参数按官方写法加 `--quantization ascend`——其实不加也行：`check_and_update_config` 会先探测模型目录，看到那个 json 就自己把量化配置装上，细节在[权重量化](quantization.md)那一页 [!]。在 main 上还要再加一个 `--kv-cache-dtype int8`，理由见下一节。
 
 换完之后它的账本是这样（28 层、`n_kv = 8`、`d_h = 128`、`block_size` 128）：
 

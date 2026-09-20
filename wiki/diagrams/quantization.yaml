@@ -1,0 +1,134 @@
+layout: scene
+id: quantization
+caption: ModelSlim 量化权重从模型目录走到一个线性层的 apply：先被自动认出来，再逐层查 (量化类型, 层类型) 这一对，最后走 int8 矩阵乘（v0.23 维护分支）
+size: [900, 760]
+
+regions:
+  - label: 启动期 · 这套东西是怎么被装上的
+    note: 模型目录里有那个 json，平台层在配置检查里就自己把 quantization 置成 ascend——命令行那个参数不是必需品，只是显式写法。
+    at: [20, 40]
+    size: [860, 190]
+    tone: ascend
+  - label: 建层期 · 查的是（量化类型, 层类型）这一对
+    note: 右边三排格子是 v0.23 上真实注册过的实现条数。同一个类型名在 linear 上有、在 moe 上不一定有，缺的那格会在建层时抛 NotImplementedError。
+    at: [20, 262]
+    size: [860, 244]
+    tone: neutral
+
+boxes:
+  - at: [40, 130]
+    size: [258, 78]
+    title: 模型目录里有那个 json
+    sub: quant_model_description.json
+    fn: detect_quantization_method
+    tone: ascend
+  - at: [316, 130]
+    size: [268, 78]
+    title: 把 quantization 置成 ascend
+    sub: 命令行没写也会被置上
+    fn: maybe_auto_detect_quantization
+    tone: ascend
+  - at: [604, 130]
+    size: [256, 78]
+    title: 整份描述进配置对象
+    sub: 每个权重名 → 一个量化类型
+    fn: AscendModelSlimConfig
+    tone: ascend
+  - at: [40, 356]
+    size: [244, 74]
+    title: 先定这一层是什么类型
+    sub: 融合层的几段必须一致
+    fn: get_linear_quant_type
+    tone: neutral
+  - at: [304, 356]
+    size: [244, 74]
+    title: 拿这一对去查注册表
+    sub: 查不到就 NotImplementedError
+    fn: get_scheme_class
+    tone: neutral
+
+arrows:
+  - { from: [300, 169], to: [312, 169], tone: ascend }
+  - { from: [588, 169], to: [600, 169], tone: ascend }
+  - { from: [286, 393], to: [300, 393], tone: neutral }
+
+boundaries:
+  - at: 252
+    from: 20
+    to: 880
+    vertical: false
+    label: 过了这条线，每一层自己去问：我是什么类型、有没有人实现过
+
+strips:
+  - at: [576, 352]
+    cells: 12
+    cell: 15
+    h: 14
+    gap: 3
+    tone: neutral
+    label: "linear：12 条实现"
+  - at: [576, 394]
+    cells: 9
+    cell: 15
+    h: 14
+    gap: 3
+    tone: neutral
+    label: "moe：9 条"
+  - at: [576, 436]
+    cells: 2
+    cell: 15
+    h: 14
+    gap: 3
+    tone: muted
+    label: "attention：2 条，那是 KV 量化"
+
+bands:
+  - label: ① 建权重：权重存 int8，scale 另开参数
+    sub: 每列 quant_bias + deq_scale + weight_scale + weight_offset
+    fn: create_weights
+    at: [80, 524]
+    size: [776, 56]
+    tone: ascend
+    icon: box
+  - label: ② 装完权重再改一次布局
+    sub: 转置成 (in, out) 再转 NZ 格式，为的是 cube 直接吃
+    fn: process_weights_after_loading
+    at: [80, 588]
+    size: [776, 56]
+    tone: ascend
+    icon: gear
+  - label: ③ 前向：先把激活量化，再走 int8 矩阵乘
+    sub: 静态方案用离线标定的 input_scale；动态方案每个 token 现算一个
+    fn: npu_quant_matmul
+    at: [80, 652]
+    size: [776, 56]
+    tone: neutral
+    icon: bolt
+
+brackets:
+  - { at: [20, 524], span: 184, label: 每个线性层, dir: left, tone: ascend }
+
+notes:
+  - at: [40, 726]
+    text: Qwen3-0.6B 的 596M 参数里有 440M 在线性层：bf16 要 1.11 GiB，W8A8 之后线性层折半、词表仍是 bf16，合计约 0.70 GiB——省下的 0.41 GiB 每个 decode 步都少读一遍。
+    size: 12.5
+    width: 820
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/utils.py#L95-L117
+    symbols: [detect_quantization_method, maybe_auto_detect_quantization, MODELSLIM_CONFIG_FILENAME]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L786-L801
+    symbols: [AscendModelSlimConfig, maybe_update_config, quant_description]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L434-L453
+    symbols: [get_linear_quant_type, get_scheme_class, NotImplementedError]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/registry.py#L19-L30
+    symbols: [register_scheme, _SCHEME_REGISTRY]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/method_adapters.py#L51-L98
+    symbols: [AscendLinearMethod, create_weights]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L59-L72
+    symbols: [quant_bias, deq_scale, weight_scale, weight_offset]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L142-L157
+    symbols: [process_weights_after_loading, maybe_trans_nz]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_static.py#L108-L140
+    symbols: [npu_quant_matmul, input_scale]

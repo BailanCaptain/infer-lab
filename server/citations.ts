@@ -1,5 +1,5 @@
 import { parsePage } from "../scripts/wiki/pages";
-import { EVIDENCE_MARK_RE } from "../src/content/wiki/evidenceMarks";
+import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../src/content/wiki/evidenceMarks";
 import {
   type CitationVerdict,
   citationCheck,
@@ -17,7 +17,7 @@ export function answerCitationGuide(pages: { file: string; text: string }[]) {
     const sourceLinks = [
       ...new Set(
         [...citationProse(page.body).matchAll(new RegExp(EVIDENCE_MARK_RE.source, "g"))]
-          .filter((match) => "SCM".includes(match[1]!))
+          .filter((match) => NUMBERED_EVIDENCE_LEVELS.has(match[1]!))
           .map((match) => `${match[0]}(${source.file})`),
       ),
     ].filter((link) => checkAnswerCitations(link, [source]).cited);
@@ -39,7 +39,7 @@ export function checkAnswerCitations(
   const prose = citationProse(answer);
   for (const mark of prose.matchAll(new RegExp(EVIDENCE_MARK_RE.source, "g"))) {
     const [label, level, index] = mark;
-    if (!"SCM".includes(level!)) {
+    if (!NUMBERED_EVIDENCE_LEVELS.has(level!)) {
       if (index) return fail(`${label} 不能带来源编号；推导与推断不能冒充一手证据。`);
       continue;
     }

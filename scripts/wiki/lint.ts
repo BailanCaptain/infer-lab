@@ -4,6 +4,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
+import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../../src/content/wiki/evidenceMarks";
 import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
@@ -194,9 +195,8 @@ function sectionsOf(body: string): string[] {
  * 内联证据标记：`[C3]` 的 3 指向 sources 的第 3 条（从 1 数起）。
  * PLAN §1.4 的原设计就是带编号的 `[C##]`，这样读者能点进去核对具体哪一行。
  */
-const MARK_RE = /\[([SCDAIM!])(\d*)\](?![\w-])/g;
-/** 这三档声称「有一手来源可核对」，不给编号读者就核对不了 */
-const NUMBERED_LEVELS = new Set(["S", "C", "M"]);
+const MARK_RE = EVIDENCE_MARK_RE;
+const NUMBERED_LEVELS = NUMBERED_EVIDENCE_LEVELS;
 const MARK_DOMINANCE = 0.8;
 
 function markProblems(p: WikiPage): PageProblem[] {

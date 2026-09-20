@@ -21,6 +21,12 @@
  */
 export const EVIDENCE_MARK_RE = /\[([SCDAIM!])(\d*)\](?![\w-])/g;
 
+/**
+ * 这三档声称「有一手来源可核对」，必须带编号指向 `sources` 的某一条；其余四档带了编号反而算错。
+ * lint（写页时）和问答的引用检查（回答时）判的是同一条规则，只在这里定义。
+ */
+export const NUMBERED_EVIDENCE_LEVELS: ReadonlySet<string> = new Set(["S", "C", "M"]);
+
 type TextNode = { type: "text"; value: string };
 type MarkNode = {
   type: "inlineCode";

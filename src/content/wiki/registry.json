@@ -104,6 +104,11 @@
       "file": "concepts/acl-graph.md",
       "backlinks": [
         {
+          "from": "flash-attention-3",
+          "kind": "conflicts-with",
+          "note": "这个算子的 tiling 在 host 侧做，和 FULL_DECODE_ONLY 图模式不能同时开，官方要求退到 PIECEWISE"
+        },
+        {
           "from": "fine-grained-tp",
           "kind": "enables",
           "note": "oproj 那项禁止 enforce_eager，静态交换缓冲区的设备地址要在图捕获与回放之间保持不变"
@@ -489,6 +494,11 @@
           "from": "context-parallel",
           "kind": "enables",
           "note": "enable_cp() 为真时 get_impl_cls 换成 CP 版 impl 类，挑后端那一层在那一页"
+        },
+        {
+          "from": "flash-attention-3",
+          "kind": "enables",
+          "note": "它是五个后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页"
         },
         {
           "from": "mla",
@@ -2182,9 +2192,12 @@
       "summary": "全局 TP 之外，单独给 embedding、lm_head、o_proj、dense MLP 各设一个切分数；切的是 DP 轴——从同一份 DP 里借几个 rank 把这张表分掉，省的是重复的权重副本。",
       "aliases": [
         "Fine-Grained Tensor Parallelism",
+        "Fine-grained TP",
         "细粒度 TP",
+        "细粒度张量并行",
         "模块级张量并行",
         "FinegrainedTPConfig",
+        "finegrained_tp_config",
         "oproj_tensor_parallel_size",
         "lmhead_tensor_parallel_size",
         "embedding_tensor_parallel_size",
@@ -2278,6 +2291,108 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/fine-grained-tp.md",
+      "backlinks": []
+    },
+    {
+      "id": "flash-attention-3",
+      "title": "Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "昇腾上第五个注意力后端，把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。",
+      "aliases": [
+        "Flash Attention 3",
+        "FA3",
+        "AscendFAImpl",
+        "flash_attn_npu_v3",
+        "flash_attn_npu",
+        "flash_attn_with_kvcache",
+        "_validate_fa3_backend",
+        "训推一致",
+        "训练推理一致",
+        "VLLM_BATCH_INVARIANT",
+        "use_batch_invariant",
+        "enable_training_consistency"
+      ],
+      "chapters": [
+        "16",
+        "04"
+      ],
+      "order": 50,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L1-L40",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L43-L60",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L62-L97",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L99-L145",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L821",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L843-L868",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1182-L1194",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L81-L86",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1456-L1476",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1430-L1454",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L286-L287",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1864-L1865",
+        "vllm@0fc695fc:vllm/v1/attention/selector.py#L95-L104",
+        "vllm@0fc695fc:vllm/config/compilation.py#L59-L63",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/flash_attention.md#L10-L18",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/flash_attention.md#L38-L43",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/flash_attention.md#L45-L56",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/flash_attention.md#L58-L73",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/flash_attention.md#L134-L147",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/flash_attention.md#L149-L156",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/flash_attention.html",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L437-L437",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_attention_fa3.py#L66-L90",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_attention_fa3.py#L112-L119",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L820-L821",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1184-L1187",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L237-L246",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1358-L1383",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L773-L782",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L262-L292",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/fa3_v1.py#L15-L18",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/flash_attention.md#L58-L76",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/flash_attention.md#L139-L147",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/flash_attention.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "attention-backend-family",
+          "kind": "builds-on",
+          "note": "它是五个后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页"
+        },
+        {
+          "to": "paged-attention",
+          "kind": "builds-on",
+          "note": "块表、128 的块大小、五维块张量全是分页那套，FA3 只换了读块的算子"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条请求默认用不到它；开了之后 200 步怎么切成 prefill 段和 decode 段用的是它的数"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "默认后端的算子来自 torch_npu，FA3 的算子来自仓库外的 flash_attn_npu wheel，不在那一页的四层里"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "conflicts-with",
+          "note": "这个算子的 tiling 在 host 侧做，和 FULL_DECODE_ONLY 图模式不能同时开，官方要求退到 PIECEWISE"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/flash-attention-3.md",
       "backlinks": []
     },
     {
@@ -4175,6 +4290,11 @@
           "note": "那条纯文本请求连代理的第一道判断都过不去，这一页说明把模型和输入换成什么才触发得了"
         },
         {
+          "from": "flash-attention-3",
+          "kind": "enables",
+          "note": "那条请求默认用不到它；开了之后 200 步怎么切成 prefill 段和 decode 段用的是它的数"
+        },
+        {
           "from": "gqa",
           "kind": "enables",
           "note": "那条请求的模型本身就是 GQA，它那 112 KiB 正是拿 8 个 KV 头而不是 16 个算出来的"
@@ -4388,6 +4508,11 @@
           "note": "四种通信方式最后都落到 torch_npu 算子上，FusedMoE 整个类被换成 AscendFusedMoE 走的是那一页的注册表"
         },
         {
+          "from": "flash-attention-3",
+          "kind": "enables",
+          "note": "默认后端的算子来自 torch_npu，FA3 的算子来自仓库外的 flash_attn_npu wheel，不在那一页的四层里"
+        },
+        {
           "from": "lora",
           "kind": "enables",
           "note": "bgmv / sgmv 这四个就是那页说的 csrc 自编 AscendC 算子，注册成 torch.ops._C_ascend 再从 Python 调的规矩也在那页"
@@ -4499,6 +4624,11 @@
           "from": "chunked-prefill",
           "kind": "enables",
           "note": "第二块起要对散在别处的前文块做注意力，只有按块表寻址的分页路径做得到"
+        },
+        {
+          "from": "flash-attention-3",
+          "kind": "enables",
+          "note": "块表、128 的块大小、五维块张量全是分页那套，FA3 只换了读块的算子"
         },
         {
           "from": "kv-cache-cpu-offload",
@@ -6169,10 +6299,7 @@
         "TP",
         "tensor_parallel_size",
         "ColumnParallelLinear",
-        "RowParallelLinear",
-        "Fine-grained TP",
-        "细粒度张量并行",
-        "finegrained_tp_config"
+        "RowParallelLinear"
       ],
       "chapters": [
         "13"
@@ -6241,7 +6368,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/tensor-parallel.md",
       "backlinks": [
         {

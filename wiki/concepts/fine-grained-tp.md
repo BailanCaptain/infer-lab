@@ -6,9 +6,12 @@ summary: 全局 TP 之外，单独给 embedding、lm_head、o_proj、dense MLP �
 aliases:
   [
     Fine-Grained Tensor Parallelism,
+    Fine-grained TP,
     细粒度 TP,
+    细粒度张量并行,
     模块级张量并行,
     FinegrainedTPConfig,
+    finegrained_tp_config,
     oproj_tensor_parallel_size,
     lmhead_tensor_parallel_size,
     embedding_tensor_parallel_size,

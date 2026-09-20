@@ -1,0 +1,133 @@
+layout: scene
+id: flash-attention-3
+caption: FA3 启动期过四道闸才被选中；运行期它只换掉 forward_impl，把一批按条数切成 decode 段和 prefill 段各调一次算子（vllm-ascend v0.23 维护分支）
+size: [900, 760]
+
+regions:
+  - label: 启动期 · 四道闸，任何一道不过就不是 FA3
+    at: [20, 40]
+    size: [864, 186]
+    tone: muted
+  - label: 默认 AscendAttentionBackend
+    at: [20, 372]
+    size: [420, 224]
+    tone: neutral
+  - label: AscendFABackend（FA3）
+    at: [460, 372]
+    size: [420, 224]
+    tone: ascend
+
+boxes:
+  - at: [40, 116]
+    size: [195, 92]
+    title: ① 显式选了 FLASH_ATTN
+    sub: 没选就走三元组主表
+    fn: selected_backend
+    tone: accent
+  - at: [255, 116]
+    size: [195, 92]
+    title: ② 批不变模式开着
+    sub: 关着只记一条 info 就回落
+    fn: use_batch_invariant
+    tone: accent
+  - at: [470, 116]
+    size: [195, 92]
+    title: ③ 不是 MLA / SFA
+    sub: 是就直接 ValueError
+    fn: _validate_fa3_backend
+    tone: accent
+  - at: [685, 116]
+    size: [195, 92]
+    title: ④ 包里有那个算子
+    sub: 缺了也直接 ValueError
+    fn: flash_attn_npu_v3
+    tone: accent
+  - at: [40, 424]
+    size: [380, 74]
+    title: 按 attn_state 的五个取值挑分支
+    sub: 五种状态各拼一套算子参数
+    fn: AscendAttentionState
+    tone: neutral
+  - at: [40, 516]
+    size: [380, 64]
+    title: 一次调用算完整批
+    fn: forward_fused_infer_attention
+    tone: neutral
+  - at: [480, 424]
+    size: [380, 74]
+    title: 不看 attn_state，按条数切两段
+    sub: num_decodes 条 + num_prefills 条
+    fn: split_decodes_and_prefills
+    tone: ascend
+  - at: [480, 516]
+    size: [380, 64]
+    title: 调两次，causal 一真一假
+    fn: flash_attn_with_kvcache
+    tone: ascend
+
+bands:
+  - label: 两个后端共用同一段 forward：先按 slot_mapping 把这一步的 K/V 写进块
+    sub: FA3 只覆盖 __init__ 和 forward_impl，写缓存这一段是继承来的
+    fn: reshape_and_cache
+    icon: slot
+    at: [40, 270]
+    size: [820, 64]
+    tone: muted
+
+boundaries:
+  - at: 250
+    from: 20
+    to: 884
+    vertical: false
+    label: 以上启动时判一次；以下每一步、每一层都走一遍
+
+arrows:
+  - { from: [237, 162], to: [253, 162], tone: accent }
+  - { from: [452, 162], to: [468, 162], tone: accent }
+  - { from: [667, 162], to: [683, 162], tone: accent }
+  - { from: [230, 336], to: [230, 420], tone: neutral }
+  - { from: [670, 336], to: [670, 420], tone: ascend }
+  - { from: [230, 500], to: [230, 512], tone: neutral }
+  - { from: [670, 500], to: [670, 512], tone: ascend }
+
+strips:
+  - at: [40, 636]
+    cells: 37
+    cell: 14
+    h: 20
+    gap: 2
+    tone: ascend
+    label: 第 1 步 prefill：37 个 token 一次进 prefill 段，causal=True
+  - at: [40, 702]
+    cells: 1
+    cell: 14
+    h: 20
+    gap: 2
+    tone: accent
+    label: 第 2–200 步 decode：每步 1 个 token 进 decode 段，causal=False
+
+notes:
+  - at: [40, 616]
+    text: 把 FA3 打开之后，那条请求（Qwen3-0.6B，37 个问题 token + 200 个回答 token）每一步走哪一路
+    size: 12.5
+    strong: true
+  - at: [660, 660]
+    text: 200 次 forward × 28 层 = 5600 次算子调用。第 92 步起块表多一列，page_table 随之变宽。
+    size: 12.5
+    width: 224
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L821
+    symbols: [selected_backend, AscendFABackend]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L843-L868
+    symbols: [_validate_fa3_backend, use_batch_invariant, flash_attn_npu_v3]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1430-L1454
+    symbols: [reshape_and_cache, slot_mapping]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1456-L1476
+    symbols: [forward_impl, attn_state, AscendAttentionState, forward_fused_infer_attention]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L286-L287
+    symbols: [split_decodes_and_prefills]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L62-L97
+    symbols: [flash_attn_with_kvcache, causal, page_table]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L99-L145
+    symbols: [num_decodes, num_prefills]

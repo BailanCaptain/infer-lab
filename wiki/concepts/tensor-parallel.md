@@ -3,7 +3,7 @@ id: tensor-parallel
 title: "Tensor Parallel：一层切两刀，通信就落在两刀之后"
 type: feature
 summary: 把一层里的四个大矩阵按列或按行切给多张卡；列切完各算各的，行切完每张卡只有一份部分和，必须 all-reduce 一次——一层两次，位置写死。
-aliases: [Tensor Parallel, 张量并行, TP, tensor_parallel_size, ColumnParallelLinear, RowParallelLinear, Fine-grained TP, 细粒度张量并行, finegrained_tp_config]
+aliases: [Tensor Parallel, 张量并行, TP, tensor_parallel_size, ColumnParallelLinear, RowParallelLinear]
 chapters: ["13"]
 order: 10
 sources:
@@ -56,7 +56,7 @@ relations:
     kind: builds-on
     note: TP 组由上游 initialize_model_parallel 建、昇腾只在其上另开几个细粒度组，这条归属线在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -127,37 +127,7 @@ file: tensor-parallel
 
 ## Fine-grained TP 切的是 DP 轴，不是 TP 轴
 
-这是这个特性最容易读反的地方。`finegrained_tp_config` 底下四个 int，默认全 0 [C21]：`oproj_`、`lmhead_`、`embedding_`、`mlp_tensor_parallel_size`。名字看着像「给某一层单独设一个 TP 大小」，可建组那段代码沿的是 DP 轴：`rank_grid` reshape 成 `(pp, dp, tp)` 之后，每个组取的是**固定 `tp_idx`、连续 `group_size` 个 dp 下标**的那一列 [C19]。官方约束写成「必须 ≤ DP size 且整除 DP size」[S30] 正是因为这个——那个数从头到尾说的是「借几个 DP rank」。main 的文档后来补了一整节把这件事讲明了 [S33]（<https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/Fine_grained_TP.html>）。
-
-它治的是全 DP 部署的一种浪费：`tensor_parallel_size=1`、DP=32 的 decode 实例里，lm_head、embedding、`o_proj` 这些大矩阵在 32 张卡上各存了一份完整副本。官方实测 DeepSeek-R1-W8A8 上四项全开省 9.72 GB，其中只有 `o_proj` 那项 TPOT 反而变差 1.5 ms [S31]。本节引的 v0.23 文档在官网是 [Fine-Grained Tensor Parallelism](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/Fine_grained_TP.html)。
-
-通信形状也跟着换了，不再是「行切完 all-reduce」：MLP 进门 `all_gather` 收齐别的 DP rank 的 token、出门 `reduce_scatter` 还回去；`o_proj` 先 `dist.all_to_all_single` 重排再 `reduce_scatter` [C18]；lm_head 是 `all_gather` hidden、算完 `all_to_all` 分 logits。
-
-门槛比官方文档写的多，全在配置加载期抛 `AssertionError`：
-
-- **只有 MoE 模型能开**——`not vllm_config.model_config.is_moe` 直接抛 [C23]。而文档第一句写的是「model-agnostic，支持 Llama、Qwen、DeepSeek 的 dense 变体」[S29]，**两者直接冲突，以代码为准** `[!]`。
-- `data_parallel_size % 该值 != 0` 也抛，和上一条在同一个循环里，四个值逐个过。
-- `oproj_tensor_parallel_size` 另有三道：标准 `tensor_parallel_size` 必须等于 1、不能 `enforce_eager`、必须是 PD 分离的 D 节点（`is_kv_consumer`）[C22]。
-- `oproj` 和 `embedding` 还要求 `recompute_scheduler_enable=true`。注释给了理由：这两项的跨 DP 集合通信要求各 DP rank 的 `num_tokens` 一致，只有 recompute 调度器保证这点，否则形状不匹配会直接死锁 [C24]。
-
-照官方示例补齐之后，能直接抄的一段是这样：
-
-```bash
-vllm serve deepseek-ai/DeepSeek-R1 \
-    --data-parallel-size 16 \
-    --tensor-parallel-size 1 \
-    --enable-expert-parallel \
-    --additional-config '{
-        "recompute_scheduler_enable": true,
-        "finegrained_tp_config": {
-            "lmhead_tensor_parallel_size": 8,
-            "embedding_tensor_parallel_size": 8,
-            "mlp_tensor_parallel_size": 8
-        }
-    }'
-```
-
-每个值的来由：模型必须是 MoE，所以是 DeepSeek-R1 不是 Qwen3-0.6B；`--tensor-parallel-size 1` 既是全 DP 部署的前提，也是 `oproj` 那项的硬性要求；`8` 要整除 `--data-parallel-size 16`；`recompute_scheduler_enable` 是 `embedding` 那项的硬前提，**官方 feature guide 的示例里没有这一行，照抄启动不了** `[!]`；`oproj_tensor_parallel_size` 没写进去，因为它还要求这是 PD 分离的 D 节点，混部环境配了也是起不来。
+`finegrained_tp_config` 底下那几个 `*_tensor_parallel_size` 看着像「给某一层单独设一个更大的 TP」，可建组那段代码沿的是 DP 轴：`rank_grid` reshape 成 `(pp, dp, tp)` 之后，每个组取的是**固定 `tp_idx`、连续几个 dp 下标**的那一列 [C19]。所以它的硬约束写成「整除 `data_parallel_size`」，标准 `tensor_parallel_size > 1` 时这几项根本不生效——这是整个特性最容易读反的地方。四个键各自的门槛、省下多少显存、通信形状换成了什么，以及为什么 `o_proj` 那一项反而更慢，都在 [Fine-Grained Tensor Parallelism](fine-grained-tp.md)。
 
 ## 两个分支在哪儿分的叉
 
@@ -165,12 +135,11 @@ vllm serve deepseek-ai/DeepSeek-R1 \
 
 | 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| `FinegrainedTPConfig` 怎么建 | 普通类，`dict.get` 取值，多一个 `olora_tensor_parallel_size` | pydantic dataclass，只剩四个字段，多一条「不能为负」校验 [C34] | `@config` 给每个配置类都带上 `extra="forbid"` [C36]，旧命令里的 `olora_tensor_parallel_size` 在 main 上会被当错别字顶回来 `[!]` |
 | row-parallel 分派链 | 七档：DSV4 / DSA-CP / MLP / OTP / matmul-allreduce / FlashComm2 / SP | 三档，只剩 DSV4 / MLP / OTP [C35] | matmul-allreduce 与 FlashComm2 整套删干净；序列并行还在，但不再从 Linear 这一层接管 |
-| 细粒度 TP 沿哪根轴切 | 代码沿 DP 轴，文档没提 | 代码一字未改，文档补了「Standard Tensor Parallelism Requirement」整节 | 行为一样，但只有 main 的文档说清了 `tensor_parallel_size > 1` 时这几项其实不生效 `[!]` |
+
+细粒度 TP 那几个键在两个分支之间怎么变（配置类怎么建、main 上删掉的第五个键、文档补的那一节），见 [Fine-Grained Tensor Parallelism](fine-grained-tp.md)。
 
 ## 常见误解
 
 - **「TP 越大，KV Cache 每卡占用就越小」**——只在 TP ≤ kv 头数时成立。越过之后 `num_kv_heads` 被钉在 1、改由 `num_kv_head_replicas` 记复制了几份，每卡 KV 不再下降，全场总量反倒翻倍。
-- **「`finegrained_tp_config` 是给某一层单独设一个更大的 TP」**——它切的是 DP 轴。组是按固定 `tp_idx` 沿 dp 下标建出来的，所以约束是「整除 DP size」而不是「整除 TP size」；标准 `tensor_parallel_size > 1` 时这几项根本不生效。
-- **「Fine-grained TP 是 model-agnostic 的，dense 模型也能开」**——官方文档确实这么写，但代码在配置加载期对非 MoE 模型直接抛 `AssertionError`。照文档在 Qwen dense 上配，得到的是启动失败 `[!]`。
+- **「`finegrained_tp_config` 是给某一层单独设一个更大的 TP，dense 模型也能开」**——两句都不成立：它切的是 DP 轴，而代码在配置加载期对非 MoE 模型直接抛 `AssertionError`。这两条连同其余门槛都在 [Fine-Grained Tensor Parallelism](fine-grained-tp.md) `[!]`。

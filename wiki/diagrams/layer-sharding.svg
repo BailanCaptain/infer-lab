@@ -5,7 +5,7 @@
   <rect x="36" y="40" width="254.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">加载期 · 注册时就把不归本卡的层丢掉</text>
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不归本卡的层直接置空张量、把 weight_loader 换成 no-op，连从磁盘读都省了；省下的显存是真的，代价写在下半张图里。</text>
   <rect x="20" y="320" width="860" height="242" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="334" width="373.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="352.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">前向期 · 借一层 attention 的时间把下一层的权重搬回来</text>
+  <rect x="36" y="334" width="380.8" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="352.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">前向期 · 借一层 attention 的时间把下一层的权重搬回来</text>
   <text x="38" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">广播只有被更重的 prefill 计算盖住才划算，所以启动期硬校验 kv_role 必须是 kv_producer。</text>
   <rect x="80" y="378" width="776" height="52" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="80" y="378" width="5" height="52" rx="2.5" fill="var(--color-kv, #4c65b6)"/>

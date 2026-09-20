@@ -2,7 +2,7 @@
   <title>门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）</title>
   <rect width="900" height="684" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="494" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="40" width="267.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开着门控时，这一层 MoE 的 prepare 期</text>
+  <rect x="36" y="40" width="275.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开着门控时，这一层 MoE 的 prepare 期</text>
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条副流各自起飞、各自 join；跨流传结果靠一个模块级全局单例，不是参数传递。</text>
   <rect x="20" y="536" width="860" height="96" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
   <rect x="36" y="550" width="116.5" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="47" y="568.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">关掉（默认）时</text>

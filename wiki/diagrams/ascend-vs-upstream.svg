@@ -2,9 +2,9 @@
   <title>上游每留一个口子，昇腾就交一个子类；同一行左右两边是同一个位置</title>
   <rect width="900" height="456" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="420" height="44" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="54" width="144" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 留的口子</text>
+  <rect x="36" y="54" width="147.3" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 留的口子</text>
   <rect x="460" y="40" width="420" height="44" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="476" y="54" width="162.4" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="487" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 交上来的</text>
+  <rect x="476" y="54" width="170.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="487" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 交上来的</text>
   <rect x="20" y="100" width="420" height="56" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="20" y="100" width="5" height="56" rx="2.5" fill="var(--color-control, #5b6763)"/>
   <g transform="translate(43.8 117.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>

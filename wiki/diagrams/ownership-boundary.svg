@@ -2,10 +2,10 @@
   <title>那条请求横穿两块地盘：界线左边的决定归 vLLM，右边归昇腾（v0.23.0）</title>
   <rect width="900" height="486" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="452" height="412" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="54" width="52.2" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vLLM</text>
+  <rect x="36" y="54" width="55.5" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vLLM</text>
   <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">决定算哪些 token · 选择与分配</text>
   <rect x="472" y="40" width="408" height="412" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="488" y="54" width="103" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="499" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend</text>
+  <rect x="488" y="54" width="111.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="499" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend</text>
   <text x="490" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">决定这些 token 怎么算出来 · 执行</text>
   <line x1="20" y1="274" x2="472" y2="274" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
   <line x1="472" y1="274" x2="880" y2="274" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
@@ -71,6 +71,6 @@
   <text x="800" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算子怎么算</text>
   <rect x="753.3" y="364.5" width="93.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="800" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">csrc/ 核函数</text>
   <rect x="21" y="260.5" width="78" height="27" rx="13.5" fill="var(--color-control, #5b6763)"/><text x="32" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一句问题</text>
-  <rect x="795.6" y="260.5" width="94.8" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="806.6" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一个 token</text>
+  <rect x="795.6" y="260.5" width="99" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="806.6" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一个 token</text>
   <text x="20" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一批 block：左边决定分几块，右边决定每个 token 落进哪一格。这两件事最常被混成一件。</text>
 </svg>

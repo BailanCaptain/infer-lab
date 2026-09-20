@@ -2,7 +2,7 @@
   <title>声明趟数的是层，分配趟数的是字节，中间隔着引擎的一次显存探测（vllm-ascend main）</title>
   <rect width="900" height="710" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="860" height="168" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="58" width="156.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">声明趟 · Worker 进程</text>
+  <rect x="36" y="58" width="161.3" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">声明趟 · Worker 进程</text>
   <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每层报一份 KVCacheSpec，引擎只从里面取一个数：一块多少字节。</text>
   <rect x="20" y="244" width="860" height="64" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="20" y="244" width="5" height="64" rx="2.5" fill="var(--color-kv, #4c65b6)"/>

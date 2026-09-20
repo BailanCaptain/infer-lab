@@ -2,7 +2,7 @@
   <title>两个 pass 盯着同一段子图，谁先改完谁算数——这就是「与 SP 冲突」的全部内容（v0.23 维护分支；main 上两条都已删）</title>
   <rect width="900" height="610" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="254" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="218" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">torch.compile 拿到的原始子图</text>
+  <rect x="36" y="40" width="227.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">torch.compile 拿到的原始子图</text>
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每层两处：attention 的 o_proj 接 post-attention norm、MLP 的 down_proj 接下一层 input norm。</text>
   <rect x="150" y="96" width="714" height="42" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="150" y="96" width="5" height="42" rx="2.5" fill="var(--color-control, #5b6763)"/>

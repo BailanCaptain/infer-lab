@@ -63,11 +63,11 @@ function round(n: number): number {
  * 文字宽度估算：中日韩字符约 1em，拉丁字母约 0.56em，标点约 0.4em。
  * 首版用 `label.length * 常数` 算胶囊宽度，中英混排时忽宽忽窄、还会裁掉半个字。
  */
-function textWidth(s: string, size: number): number {
+function textWidth(s: string, size: number, latin = 0.56): number {
   let em = 0;
   for (const ch of s) {
     if (/[⺀-鿿＀-￯　-〿]/.test(ch)) em += 1;
-    else if (/[A-Za-z0-9@_]/.test(ch)) em += 0.56;
+    else if (/[A-Za-z0-9@_]/.test(ch)) em += latin;
     else em += 0.4;
   }
   return em * size;
@@ -149,8 +149,11 @@ function label(x: number, y: number, s: string, o: TextOpts = {}): string {
 }
 
 /** 实色胶囊 + 反白字：「这是一块地的名字」「这是入口 / 出口」。 */
+/** 粗体的拉丁字符比常规体宽一截（约 0.62em）；按常规体估，「Qwen3-0.6B」这类词会顶到胶囊右缘 */
+const BOLD_LATIN = 0.62;
+
 function chip(x: number, y: number, text: string, fill: string, size = 13.5): string {
-  const w = textWidth(text, size) + 22;
+  const w = textWidth(text, size, BOLD_LATIN) + 22;
   const h = size + 13;
   inkRect(text, x, y, w, h);
   return `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(h)}" rx="${round(h / 2)}" fill="${fill}"/>${label(x + 11, y + h / 2 + size * 0.36, text, { size, weight: 700, fill: INVERSE })}`;

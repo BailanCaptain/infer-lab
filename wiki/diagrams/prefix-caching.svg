@@ -2,10 +2,10 @@
   <title>命中的单位是写满的块；昇腾侧只在块大小、哈希粒度、命中后的算子入参三处插手</title>
   <rect width="900" height="520" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="200" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="130.5" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 决定的</text>
+  <rect x="36" y="40" width="133.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 决定的</text>
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">逐块哈希、查表、引用计数、淘汰都在 EngineCore 进程里，昇腾侧没有另写一份</text>
   <rect x="20" y="268" width="860" height="200" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="282" width="189.4" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="300.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 做的三件适配</text>
+  <rect x="36" y="282" width="197.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="300.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 做的三件适配</text>
   <text x="38" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不碰匹配逻辑，改的是块多大、哈希按多大切、命中之后算子怎么收参数</text>
   <line x1="20" y1="250" x2="880" y2="250" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
   <text x="876" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">命中多少 token、用哪些块，过了这条线已成定局</text>

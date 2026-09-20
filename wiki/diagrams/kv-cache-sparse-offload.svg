@@ -2,11 +2,11 @@
   <title>D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（main 开发主线）</title>
   <rect width="900" height="532" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="380" height="424" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="58" width="118.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">主机 pinned 池</text>
+  <rect x="36" y="58" width="123.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">主机 pinned 池</text>
   <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个 DP 一份，DP 内 TP 共享。全量主 KV 住这里，能开多大</text>
   <text x="38" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">batch 变成主机内存问题。</text>
   <rect x="500" y="44" width="380" height="424" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="516" y="58" width="44.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="527" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU</text>
+  <rect x="516" y="58" width="47.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="527" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU</text>
   <text x="518" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">只剩 indexer 的 K 缓存和每层一份热缓冲区；主 paged KV </text>
   <text x="518" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认不分配。</text>
   <line x1="450" y1="44" x2="450" y2="468" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>

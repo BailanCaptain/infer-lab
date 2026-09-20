@@ -2,7 +2,7 @@
   <title>59 个 patch 文件，格子数就是真实文件数</title>
   <rect width="900" height="430" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="860" height="302" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="54" width="153.8" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm_ascend/patch/</text>
+  <rect x="36" y="54" width="166.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm_ascend/patch/</text>
   <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每加一个 patch，清单里就要补一段 Why / How / Related PR / Future Plan</text>
   <rect x="60" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
   <rect x="88" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>

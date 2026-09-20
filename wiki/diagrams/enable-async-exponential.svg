@@ -2,10 +2,10 @@
   <title>开关只挪动一件事——那批 q 是在 softmax 之后现填，还是在 28 层 forward 开始之前就填好（vllm-ascend v0.23 维护分支）</title>
   <rect width="900" height="630" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="214" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="247.2" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">关（默认）：q 在 softmax 之后才填</text>
+  <rect x="36" y="40" width="253.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">关（默认）：q 在 softmax 之后才填</text>
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条路径都在 global_stream 上填 q。差别只有一个：这一条填在主流已经算到采样的时候。</text>
   <rect x="20" y="262" width="860" height="320" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="276" width="220.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="294.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开：q 在 forward 之前就填好了</text>
+  <rect x="36" y="276" width="226.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="294.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开：q 在 forward 之前就填好了</text>
   <text x="38" y="319" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一批 q 改到 forward 之前填。副流那次 exponential_ 与 28 层前向并行，采样时它早就躺在那儿了。</text>
   <rect x="36" y="128" width="186" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
   <text x="52" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">28 层 model forward</text>

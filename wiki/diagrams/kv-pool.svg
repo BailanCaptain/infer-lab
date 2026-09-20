@@ -2,10 +2,10 @@
   <title>查表跨一次进程去问 worker，搬数据直接走 HBM 地址（vllm-ascend main 开发主线）</title>
   <rect width="900" height="600" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="34" width="860" height="152" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="48" width="200.2" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="66.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程 · 调度器侧</text>
+  <rect x="36" y="48" width="208.3" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="66.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程 · 调度器侧</text>
   <text x="38" y="91" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这里没有存储客户端，它问出来的只有一个整数：池里一共命中到第几个 token。</text>
   <rect x="20" y="230" width="860" height="172" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="244" width="205.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="262.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Worker 进程 · rank 0 那一个</text>
+  <rect x="36" y="244" width="214" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="262.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Worker 进程 · rank 0 那一个</text>
   <text x="38" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">存储客户端只在这里。REP 后台线程替调度器查表，主线程在前向前后搬数据。</text>
   <rect x="20" y="442" width="860" height="132" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="36" y="456" width="76" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="474.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">存储引擎</text>

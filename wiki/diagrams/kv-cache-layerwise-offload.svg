@@ -86,7 +86,7 @@
   <path d="M790 450 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
   <path d="M36 448 L36 138" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8" stroke-dasharray="6 4"/>
   <path d="M36 138 l-5.5 11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
-  <rect x="51.5" y="286.5" width="69" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="62.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">第 i 层</text>
+  <rect x="51.5" y="286.5" width="69.9" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="62.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">第 i 层</text>
   <text x="20" y="548" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">main 才有的第二件事：28 层轮流用 4 份 HBM buffer</text>
   <text x="20" y="626" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">左边那条虚线就是代价：第 L 层开始装之前，接收线程必须先确认第 L−3 层的 D2H 真的做完了。</text>
 </svg>

@@ -2,11 +2,11 @@
   <title>两个 ref 在目录层面只差 8 项——但同名不等于同内容</title>
   <rect width="900" height="440" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="252" height="300" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="58" width="162.9" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 v0.23 维护分支上</text>
+  <rect x="36" y="58" width="166.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 v0.23 维护分支上</text>
   <rect x="288" y="44" width="324" height="300" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="304" y="58" width="128.9" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="315" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">两边同名的 21 个</text>
+  <rect x="304" y="58" width="130.5" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="315" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">两边同名的 21 个</text>
   <rect x="628" y="44" width="252" height="300" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="644" y="58" width="157.5" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="655" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 main 开发主线上</text>
+  <rect x="644" y="58" width="160.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="655" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 main 开发主线上</text>
   <rect x="36" y="104" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
   <text x="52" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">flash_common3_context.py</text>
   <rect x="36" y="150" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>

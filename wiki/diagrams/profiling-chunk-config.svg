@@ -5,7 +5,7 @@
   <rect x="36" y="40" width="132.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期 · 只做一次</text>
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">拟合的是「这台机器上，一段长 l 的 prefill 要多久」，不是预设公式——所以换硬件不用改参数。</text>
   <rect x="20" y="216" width="860" height="412" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="230" width="250.4" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="248.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">每个 prefill 步 · 算出这一步切多少</text>
+  <rect x="36" y="230" width="256.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="248.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">每个 prefill 步 · 算出这一步切多少</text>
   <text x="38" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目标是让每块耗时相等：前缀越长，注意力越贵，块就得切得越小，流水线才不空转。</text>
   <rect x="52" y="292" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="52" y="292" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>

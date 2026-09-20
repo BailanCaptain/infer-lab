@@ -2,7 +2,7 @@
   <title>EngineCore 的 while 循环：那条请求的 200 步都是同一圈跑出来的</title>
   <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="860" height="382" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="54" width="130" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程</text>
+  <rect x="36" y="54" width="138.1" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程</text>
   <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">整个进程就是一个 while 循环。它转一圈，全部在跑的请求各往前走一步。</text>
   <line x1="66" y1="250" x2="790" y2="250" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
   <path d="M790 250 l-14 -7 l0 14 z" fill="var(--color-control, #5b6763)"/>

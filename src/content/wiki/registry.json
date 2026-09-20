@@ -136,6 +136,96 @@
       ]
     },
     {
+      "id": "ai-qos",
+      "title": "AI QoS：给 UB 交换机上的流量分车道，不是给请求排队",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "给一台 NPU 发出的三类流量（算子下发、卡间集合通信、KV 搬运）打优先级标签，在 UB 交换机上映射成不同虚拟通道并按严格优先级调度；全部实现都在 tools/ 下，vLLM 引擎里一行代码都没有。",
+      "aliases": [
+        "AI QoS",
+        "AI QoS Feature",
+        "ai_qos",
+        "流量 QoS",
+        "虚拟通道 VL",
+        "Virtual Lane",
+        "UB 交换机 QoS",
+        "hccs qos remap",
+        "严格优先级调度",
+        "MASTER_ID_SDMA",
+        "aiqos_table",
+        "tools/ai_qos.py"
+      ],
+      "chapters": [
+        "08",
+        "18"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L5-L7",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L11-L21",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L23-L40",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L42-L58",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L60-L63",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L65-L71",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L73-L82",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L1-L26",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L131-L147",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L326-L338",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L359-L377",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L379-L402",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L404-L422",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L439-L474",
+        "vllm-ascend@2c59ff10:tools/ai_qos.py#L270-L319",
+        "vllm-ascend@2c59ff10:tools/ai_qos/ai_qos.cpp#L38-L57",
+        "vllm-ascend@2c59ff10:tools/ai_qos/ai_qos.cpp#L121-L136",
+        "vllm-ascend@2c59ff10:tools/ai_qos/CMakeLists.txt#L10-L12",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L60-L63",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L44-L67",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L77-L86",
+        "vllm-ascend@b255ab59:tools/ai_qos.py#L18-L21",
+        "vllm-ascend@b255ab59:tools/ai_qos.py#L326-L331",
+        "vllm-ascend@b255ab59:tools/ai_qos.py#L357-L373",
+        "vllm-ascend@b255ab59:tools/ai_qos.py#L444-L449",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2185-L2189",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/Ai_QoS_introduction_en.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "占着 AIV 那条车道的 dispatch / combine 就是 EP 每层的全员交换，它为什么这么密写在那一页"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "SDMA 车道上的 AllReduce / AllGather 来自 TP 每层那两刀之后的同步，位置是写死的"
+        },
+        {
+          "to": "kv-cache-cpu-offload",
+          "kind": "builds-on",
+          "note": "默认被单独摁到最低优先级的那股流量，正是这一页讲的 KV 往主机内存搬"
+        },
+        {
+          "to": "kv-pool",
+          "kind": "builds-on",
+          "note": "main 上引擎内唯一能设 QoS 的口子 qos_priority 长在 KV 池的连接器配置里，取值范围和报错在那一页"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/ai-qos.md",
+      "backlinks": []
+    },
+    {
       "id": "ascend-config-system",
       "title": "AscendConfig 配置系统",
       "type": "feature",
@@ -1302,7 +1392,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/context-parallel.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "kvpp",
+          "kind": "enables",
+          "note": "组大小按 TP × PCP 算，PCP 要 Model Runner V2；DCP 与 KVPP 互斥，同开启动就抛 ValueError"
+        }
+      ]
     },
     {
       "id": "cpu-binding",
@@ -2406,6 +2502,11 @@
       "file": "concepts/expert-parallel.md",
       "backlinks": [
         {
+          "from": "ai-qos",
+          "kind": "enables",
+          "note": "占着 AIV 那条车道的 dispatch / combine 就是 EP 每层的全员交换，它为什么这么密写在那一页"
+        },
+        {
           "from": "eplb",
           "kind": "enables",
           "note": "EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页"
@@ -3067,6 +3168,11 @@
           "from": "recompute-cpu-offload",
           "kind": "alternative-to",
           "note": "两者都往主机内存搬 KV，但那条路搬的是块池 LRU 要淘汰的可复用前缀块，这条按请求点名、只保被抢占请求自己的活跃 KV"
+        },
+        {
+          "from": "ai-qos",
+          "kind": "enables",
+          "note": "默认被单独摁到最低优先级的那股流量，正是这一页讲的 KV 往主机内存搬"
         }
       ]
     },
@@ -3170,6 +3276,11 @@
           "note": "同一份官方文档把两者配成一对——P 节点整层搬、D 节点只搬 top-k，因为两阶段的算力/搬运比完全不同"
         },
         {
+          "from": "kvpp",
+          "kind": "alternative-to",
+          "note": "同样按层处理 KV 来腾 HBM，那边把层搬去 CPU/池再搬回来，这边把层留在组内别的卡上广播回来"
+        },
+        {
           "from": "mooncake-connector",
           "kind": "alternative-to",
           "note": "同样是按层搬 KV，那边搬进大家共用的 KV 池、按块哈希复用，这边点对点推给指定的那一个 D"
@@ -3260,6 +3371,11 @@
           "from": "kv-cache-sparse-offload",
           "kind": "enables",
           "note": "profiling 算出的可用显存是 plan_sparse_kv_offload_memory 三个块数上限里的 npu 那一项"
+        },
+        {
+          "from": "kvpp",
+          "kind": "enables",
+          "note": "每卡块数由 get_num_blocks 按「自己那几层 + 2 个暂存区」重算，那一页讲的第四道工序就是它"
         },
         {
           "from": "npu-worker-lifecycle",
@@ -3586,6 +3702,11 @@
           "note": "开关直接写进 AscendMLAAttentionSpec 的 store_on_host，由 spec 区分哪些层的 KV 落主机、哪些留设备"
         },
         {
+          "from": "kvpp",
+          "kind": "enables",
+          "note": "一层一个 bundle 的字节数直接来自 spec 的 page_size_bytes，逻辑 spec 与块编号一点没改"
+        },
+        {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
           "note": "第五步按 KVCacheConfig 分配张量，每层每块的形状由 spec 决定"
@@ -3714,11 +3835,115 @@
           "note": "GQA 模型上 Mooncake 系列连接器与 C8 同开会在启动时抛 ValueError——生产端存 bf16、消费端分配 int8，裸字节传过去会被错解"
         },
         {
+          "from": "ai-qos",
+          "kind": "enables",
+          "note": "main 上引擎内唯一能设 QoS 的口子 qos_priority 长在 KV 池的连接器配置里，取值范围和报错在那一页"
+        },
+        {
           "from": "kv-cache-layerwise-offload",
           "kind": "has-variant",
           "note": "layerwise 是 AscendStore KV Pool 的一种传输模式，池的后端选型、key 组织、P/D 角色都在那一页"
         }
       ]
+    },
+    {
+      "id": "kvpp",
+      "title": "KVPP：KV 按层分给 TP 组里各张卡，算到哪层就把整层广播回来",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "MLA/SFA 的 KV 在 TP 组内本来是每卡一份复制品；KVPP 把层连续均分给组里各 rank，算到某层时由 owner 把整层广播给其他卡。省的是复制的份数，花的是每层一次全量广播。",
+      "aliases": [
+        "KVPP",
+        "KV Pipeline Parallelism",
+        "KV 流水并行",
+        "KV 层并行",
+        "KV 按层并行",
+        "enable_kvpp",
+        "KVPPConfig",
+        "KVPPScheduler",
+        "KVPPPhysicalCachePlan",
+        "BroadcastKVPPTransport",
+        "LayerSplit"
+      ],
+      "chapters": [
+        "11",
+        "13"
+      ],
+      "order": 60,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L5-L9",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L60-L77",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L79-L100",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/parallel_state.py#L76-L89",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L128-L159",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L107-L125",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L18-L44",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L162-L173",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/kvpp_cache.py#L30-L57",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kvpp.py#L22-L36",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/v2/kvpp.py#L87-L110",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L2047-L2052",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2445-L2446",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1501-L1503",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L62-L82",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L128-L137",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L139-L163",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L165-L183",
+        "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/kvpp.md#L23-L52",
+        "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/kvpp.md#L54-L63",
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/kvpp.html",
+        "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L329-L340",
+        "vllm-ascend@b255ab59:docs/source/user_guide/support_matrix/supported_features.md#L9-L32"
+      ],
+      "verified": [
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "KVPP 组就是 TP 组（开了 PCP 则是 PCP × TP），它省掉的正是 TP 切权重时顺带复制出来的那几份 KV"
+        },
+        {
+          "to": "mla",
+          "kind": "builds-on",
+          "note": "只有 MLA/SFA 这种每卡一份完整 KV 的注意力才有可省的复制品，非 MLA 模型在启动校验就被挡回去"
+        },
+        {
+          "to": "pipeline-parallel",
+          "kind": "builds-on",
+          "note": "KVPP 组不跨 PP stage，每个 stage 在自己那段层里各分各的 owner；PP 切走的是权重与计算，KVPP 只动 KV"
+        },
+        {
+          "to": "context-parallel",
+          "kind": "builds-on",
+          "note": "组大小按 TP × PCP 算，PCP 要 Model Runner V2；DCP 与 KVPP 互斥，同开启动就抛 ValueError"
+        },
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "一层一个 bundle 的字节数直接来自 spec 的 page_size_bytes，逻辑 spec 与块编号一点没改"
+        },
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "每卡块数由 get_num_blocks 按「自己那几层 + 2 个暂存区」重算，那一页讲的第四道工序就是它"
+        },
+        {
+          "to": "kv-cache-layerwise-offload",
+          "kind": "alternative-to",
+          "note": "同样按层处理 KV 来腾 HBM，那边把层搬去 CPU/池再搬回来，这边把层留在组内别的卡上广播回来"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/kvpp.md",
+      "backlinks": []
     },
     {
       "id": "kvpp-config-0445bd352140",
@@ -4135,6 +4360,11 @@
           "from": "gqa",
           "kind": "alternative-to",
           "note": "同一个问题（KV 太占显存）的另一条路——GQA 减 K/V 的头数，MLA 换掉存进去的东西"
+        },
+        {
+          "from": "kvpp",
+          "kind": "enables",
+          "note": "只有 MLA/SFA 这种每卡一份完整 KV 的注意力才有可省的复制品，非 MLA 模型在启动校验就被挡回去"
         }
       ]
     },
@@ -5369,6 +5599,11 @@
           "from": "dynamic-chunked-pp",
           "kind": "enables",
           "note": "它治的是 PP 那页讲的气泡里的一种——同样大的块越往后越慢造成的那一种"
+        },
+        {
+          "from": "kvpp",
+          "kind": "enables",
+          "note": "KVPP 组不跨 PP stage，每个 stage 在自己那段层里各分各的 owner；PP 切走的是权重与计算，KVPP 只动 KV"
         }
       ]
     },
@@ -6894,6 +7129,11 @@
           "note": "同样两张卡拆同一个模型：TP 在每层里切矩阵、一层归约两次，PP 按层切段、一步只过一次 hidden"
         },
         {
+          "from": "ai-qos",
+          "kind": "enables",
+          "note": "SDMA 车道上的 AllReduce / AllGather 来自 TP 每层那两刀之后的同步，位置是写死的"
+        },
+        {
           "from": "batch-invariance",
           "kind": "enables",
           "note": "多卡时 all-reduce 的加法顺序也得钉死，靠 HCCL_DETERMINISTIC=strict 和 LCCL_DETERMINISTIC=1"
@@ -6907,6 +7147,11 @@
           "from": "fine-grained-tp",
           "kind": "enables",
           "note": "列切 / 行切与那两次 all-reduce 的规矩在那一页；这里只换掉「用哪个通信组」这一件事"
+        },
+        {
+          "from": "kvpp",
+          "kind": "enables",
+          "note": "KVPP 组就是 TP 组（开了 PCP 则是 PCP × TP），它省掉的正是 TP 切权重时顺带复制出来的那几份 KV"
         },
         {
           "from": "sequence-parallel",

@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 93 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 95 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -26,6 +26,7 @@
 
 ## 特性（feature）
 - [ACLGraph：批的 token 数先垫到捕获过的尺寸，垫不上就按 eager 跑](concepts/acl-graph.md) — 启动期把整网的算子下发序列按一批固定尺寸录成图，运行期按「token 数 + 这批是不是整齐的 decode」查缓存回放，省掉每个算子一次的 host 下发开销。 `16`
+- [AI QoS：给 UB 交换机上的流量分车道，不是给请求排队](concepts/ai-qos.md) — 给一台 NPU 发出的三类流量（算子下发、卡间集合通信、KV 搬运）打优先级标签，在 UB 交换机上映射成不同虚拟通道并按严格优先级调度；全部实现都在 tools/ 下，vLLM 引擎里一行代码都没有。 `08 18`
 - [AscendConfig 配置系统](concepts/ascend-config-system.md) — --additional-config 的那段 JSON 由 AscendConfig 按键拆成八个子配置对象，存成进程内单例；环境变量走另一条路。 `10`
 - [Patch 机制](concepts/ascend-patch-system.md) — 上游没留口子的地方，昇腾在运行时把上游的类和函数换掉。两个目录对应两个时机，靠 import 副作用生效。 `10`
 - [异步调度：下一步的调度压在上一步的执行底下](concepts/async-scheduling.md) — EngineCore 把这一步送下去之后不等结果，直接调度下一步；调度器靠给「还没产出」的 token 记一个占位，让那道减法照样算得出来。 `12`
@@ -52,6 +53,7 @@
 - [Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行](concepts/kv-cache-sparse-offload.md) — PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 top-k，再由每层一张 LRU 表决定哪几行要搬回 NPU 热缓冲区。 `11`
 - [KV Cache Spec：每层自己报价，引擎才算得出能分几块](concepts/kv-cache-spec.md) — 每个注意力层向引擎报一份规格——块大小、KV 头数、头维、dtype。引擎只从里面取「一块多少字节」这一个数去做除法，块数算完再发回 Worker 分配。 `11`
 - [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md) — 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；调度器只拿得到一个整数，搬数据的那一侧直接读写 HBM 原始地址。 `11`
+- [KVPP：KV 按层分给 TP 组里各张卡，算到哪层就把整层广播回来](concepts/kvpp.md) — MLA/SFA 的 KV 在 TP 组内本来是每卡一份复制品；KVPP 把层连续均分给组里各 rank，算到某层时由 owner 把整层广播给其他卡。省的是复制的份数，花的是每层一次全量广播。 `11 13`
 - [Large-Scale EP：一个 DP rank 一个 server，负载均衡搬到 vLLM 外面](concepts/large-scale-ep.md) — 几十上百张卡跑一个 MoE 模型时的部署形态——每个 DP rank 自己起一个完整的 API server 进程，rank 之间怎么分请求由 vLLM 外面的 proxy 决定，P 和 D 各用一套并行配置。 `14`
 - [LoRA 适配器：一份基座权重，按槽号给每一行加不同的小矩阵](concepts/lora.md) — 基座权重只装一份，一个适配器只是两个秩 r 的小矩阵；不同请求挂不同适配器，靠每 token 一个槽号拼在同一个 batch 里一次算完。 `17`
 - [Mooncake 连接器：真正把 KV 从 P 搬到 D 的那半个零件](concepts/mooncake-connector.md) — 上游把 KV 连接器切成调度侧与 worker 侧两半，昇腾在这个接口下写了三套 Mooncake 实现，差别在谁发起搬运、什么时候发起。 `18`
@@ -126,6 +128,7 @@
 - [Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行](concepts/kv-cache-sparse-offload.md)
 - [KV Cache Spec：每层自己报价，引擎才算得出能分几块](concepts/kv-cache-spec.md)
 - [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md)
+- [KVPP：KV 按层分给 TP 组里各张卡，算到哪层就把整层广播回来](concepts/kvpp.md)
 - [PagedAttention：分块是布局，那个算子默认不跑](concepts/paged-attention.md)
 - [Prefix Caching：命中的是块，不是 token](concepts/prefix-caching.md)
 - [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md)
@@ -150,6 +153,7 @@
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md)
 - [Fine-Grained Tensor Parallelism：给个别大矩阵单独借几个 DP rank 来切](concepts/fine-grained-tp.md)
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md)
+- [KVPP：KV 按层分给 TP 组里各张卡，算到哪层就把整层广播回来](concepts/kvpp.md)
 - [layer_sharding](params/layer-sharding.md)
 - [Pipeline Parallel：按层切开，界线上一步只过一份 hidden](concepts/pipeline-parallel.md)
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md)
@@ -183,6 +187,7 @@
 - [结构化输出：采样前先算一张「这一步允许哪些 token」的位图](concepts/structured-output.md)
 
 ### 18 PD / EPD 分离与 KV 传输
+- [AI QoS：给 UB 交换机上的流量分车道，不是给请求排队](concepts/ai-qos.md)
 - [EPD 分离：把视觉编码器也拆成一类实例](concepts/epd-disaggregation.md)
 - [Mooncake 连接器：真正把 KV 从 P 搬到 D 的那半个零件](concepts/mooncake-connector.md)
 - [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md)
@@ -212,6 +217,9 @@
 ### 05 Prefill 与 Decode
 - [KV Cache](concepts/kv-cache.md)
 - [Prefill](concepts/prefill.md)
+
+### 08 服务器与机柜
+- [AI QoS：给 UB 交换机上的流量分车道，不是给请求排队](concepts/ai-qos.md)
 
 ### 09 一次请求的硬件旅程
 - [NPUModelRunner 怎么读](concepts/npu-model-runner.md)

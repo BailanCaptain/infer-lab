@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="端点只写得下一个 QoS 标签，真正分车道的是交换机——同一个 SDMA 标签 2 靠入口 VL 劈成两条，AllReduce 进高优先级，KV 搬运掉到最低">
+  <title>端点只写得下一个 QoS 标签，真正分车道的是交换机——同一个 SDMA 标签 2 靠入口 VL 劈成两条，AllReduce 进高优先级，KV 搬运掉到最低</title>
+  <rect width="900" height="640" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="186" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="40" width="195.6" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">端点侧 · 每张 NPU 写进驱动</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一台流量引擎（master）只存得下一个 QoS 标签，它的 D2D 与 H2D 共用这一个数；ASCEND_RT_VISIBLE_DEVICES 列出的每张卡都要设一遍。</text>
+  <rect x="20" y="322" width="860" height="272" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="336" width="262.8" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="354.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">UB 交换机侧 · 同一个端口上的三条车道</text>
+  <text x="38" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">严格优先级（SP）：高优先级车道不空，低的那条一个字节也发不出去。默认只点亮三条，前两条同为 3——被区别对待的只有 KV 搬运。</text>
+  <rect x="40" y="234" width="820" height="56" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="40" y="234" width="5" height="56" rx="2.5" fill="var(--color-accent, #e85b32)"/>
+  <g transform="translate(63.8 251.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="98" y="259" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">交换机入口：按（标签，入口 VL）查一次表，改写成 dqos</text>
+  <text x="98" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">标签 2 进来，入口 VL=0 改写成 5，入口 VL=1 改写成 0——入口 VL 是端点唯一还剩的一位信息</text>
+  <rect x="703" y="249.5" width="138" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="772" y="267" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">generate_command</text>
+  <rect x="40" y="402" width="820" height="56" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="40" y="402" width="5" height="56" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
+  <g transform="translate(63.8 419.8) scale(0.85)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="98" y="427" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">VL 5 · SP 优先级 3</text>
+  <text x="98" y="447" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">算子下发：AIV 的 H2D 与 PCIe DMA 的 H2D 合用这一条</text>
+  <rect x="740.5" y="417.5" width="100.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="790.8" y="435" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">H2D_VL_INIT</text>
+  <rect x="40" y="466" width="820" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="40" y="466" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(63.8 483.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="98" y="491" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">VL 2 · SP 优先级 3</text>
+  <text x="98" y="511" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">卡间集合通信：dispatch / combine 与 AllReduce / AllGather 合用这一条</text>
+  <rect x="740.5" y="481.5" width="100.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="790.8" y="499" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">D2D_VL_INIT</text>
+  <rect x="40" y="530" width="820" height="56" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
+  <rect x="40" y="530" width="5" height="56" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
+  <g transform="translate(63.8 547.8) scale(0.85)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
+  <text x="98" y="555" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">VL 3 · SP 优先级 1</text>
+  <text x="98" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">KV 往 DDR 卸载与预取：上面两条空了才轮到它</text>
+  <rect x="763" y="545.5" width="78" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1"/><text x="802" y="563" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">SDMA_H2D</text>
+  <line x1="20" y1="308" x2="880" y2="308" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">脚本到此为止：它连不上交换机，下面这些得人去敲</text>
+  <rect x="36" y="124" width="262" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="48" y="146" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 152.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="88" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">AIV</text>
+  <text x="88" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">master 11、12 → 标签 5</text>
+  <text x="88" y="185" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">MASTER_ID_AIV_DATA</text>
+  <rect x="319" y="124" width="262" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="331" y="146" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(337.4 152.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="371" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SDMA</text>
+  <text x="371" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">master 13 → 标签 2</text>
+  <text x="371" y="185" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">MASTER_ID_SDMA</text>
+  <rect x="602" y="124" width="262" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
+  <rect x="614" y="146" width="32" height="32" rx="9" fill="var(--color-canvas, #f5f2ea)"/><g transform="translate(620.4 152.4) scale(0.8)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="654" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">PCIe DMA</text>
+  <text x="654" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">master 7 → 标签 7</text>
+  <text x="654" y="185" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)">MASTER_ID_PCIEDMA</text>
+  <path d="M167 202 L167 230" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M167 230 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M450 202 L450 230" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M450 230 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M733 202 L733 230" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
+  <path d="M733 230 l-5.5 -11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
+  <text x="20" y="614" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认值下去重后打印 23 条 hccs 命令：5 条 qos remap、9 条 vl remap、9 条 sp。VL 0、1、4 一条都没用到——只有把某种流量调低档位才会落到那里。</text>
+</svg>

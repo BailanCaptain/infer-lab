@@ -35,6 +35,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4447-L4468
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
   - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
 evidence: "C"
 relations:
   - to: paged-attention
@@ -57,7 +58,7 @@ file: kv-cache-spec
 
 ## 那条请求走到这里
 
-[那条请求](one-request.md)跑的是 Qwen3-0.6B：28 层，`n_kv = 8`，`d_h = 128`，KV 用 bf16。`block_size` 是 128——昇腾 GQA 后端只支持这一个值 [C10]，官方文档写别的参数时也直接拿 `block_size=128` 当前提 [S12]。
+[那条请求](one-request.md)跑的是 Qwen3-0.6B：28 层，`n_kv = 8`，`d_h = 128`，KV 用 bf16。`block_size` 是 128——命令行没写时由配置检查里的 `refresh_block_size` 填上 [C30]；昇腾 GQA 后端报的 kernel 块大小也是 128 [C10]，官方文档写别的参数时同样直接拿 `block_size=128` 当前提 [S12]。
 
 稠密 GQA 层的 spec 是上游造的，vllm-ascend 不接管，所以「一块多少字节」的式子就摆在上游 `AttentionSpec.real_page_size_bytes` 里，不用自己推 [C26]。式子开头那个 2 是「K 一份、V 一份」，**它只活在 `get_kv_cache_shape()` 的返回值里**——真落到显存上，K 和 V 是两次各自独立的申请：
 

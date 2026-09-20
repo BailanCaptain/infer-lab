@@ -15,6 +15,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
 evidence: "C"
 relations:
   - to: vllm-ascend-repo-map
@@ -45,7 +46,7 @@ file: locate-routes
 
 - **假设它第 92 步报了个 KV 越界**——栈里最下面那个 `vllm_ascend` 帧多半在 `worker/block_table.py`，落在 `worker/`，对上七跳里的第五跳。范围从 442 个文件缩到一个方法。
 - **假设想给它开某个昇腾特性**——去 `ascend_config.py` 搜键名，顺着 `get_ascend_config()` 找消费方，再确认校验族没把它拦掉。
-- **假设想知道它的 `block_size` 为什么是 128**——先搜 `patch/`（能搜到 `patch_mamba_config`，那是 mamba 类模型那条路），再找子类（`AscendAttentionBackend.get_supported_kernel_block_sizes` 返回 `[128]`）。两处都要看，这正是路线三顺序不能颠倒的原因。
+- **假设想知道它的 `block_size` 为什么是 128**——先搜 `patch/`（能搜到 `patch_mamba_config`，那是 mamba 类模型那条路），再找子类（`AscendAttentionBackend.get_supported_kernel_block_sizes` 返回 `[128]`，那是 kernel 支持范围）。两处走完都不是答案：真正填这个值的是路线二第 3 步里的 `check_and_update_config` → `refresh_block_size` [C9]。三条路线本来就要串着用。
 
 ## 路线一：从 traceback 出发
 

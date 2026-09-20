@@ -54,7 +54,7 @@ file: platform-hooks
 
 [那条请求](one-request.md)还没发出来，这张问卷就已经答完了——**它全部发生在启动阶段**。但答案会一路影响到这条请求的每一步：
 
-- `block_size` 被顶成 128，于是它的 37 个 token 占 1 块而不是别的数 [D]；
+- `block_size` 在 `check_and_update_config` 里被填成 128，于是它的 37 个 token 占 1 块而不是别的数 [D]；
 - `get_attn_backend_cls` 返回的那个类，决定了它第 92 步写 KV 时调的是哪个算子；
 - 连它这一步能拿多少 token 名额，都间接取决于 `get_device_total_memory()` 的返回值 [C8]。
 

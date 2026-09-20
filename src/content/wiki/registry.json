@@ -1624,7 +1624,8 @@
         "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L167-L200",
         "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4447-L4468",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
-        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46"
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
       ],
       "evidence": "C",
       "relations": [
@@ -2292,7 +2293,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L116-L118",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180",
         "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231"
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
       ],
       "evidence": "C",
       "relations": [
@@ -3309,7 +3311,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
       ],
       "evidence": "C",
       "relations": [
@@ -4102,7 +4105,8 @@
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L172",
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L226",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144",
-        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441"
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406"
       ],
       "evidence": "C",
       "relations": [

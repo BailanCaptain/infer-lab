@@ -76,7 +76,7 @@ file: prefix-caching
 
 平台层在配置检查里调一次 `refresh_block_size`。只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 为真、而 `block_size` 又不是 128，它就把 `block_size` 改成 128：不报错、不警告，只留一条 info 级日志 [C1][C2]。你在命令行写的 `--block-size 64` 就这么没了，而显存估算全都建在这个数上。
 
-改成 128 不是随便定的——`AscendAttentionBackend.get_supported_kernel_block_sizes()` 只返回 `[128]`，想为省内存把块调小无从下手 [C20]。
+128 也是 `AscendAttentionBackend.get_supported_kernel_block_sizes()` 报的唯一一个 kernel 块大小 [C20]，两者对得上；但定这个值的是上面那个函数，不是这个列表。
 
 但这条改写**不是无条件的**：`deepseek_v4` 和混合（attention + mamba）模型在这条分支之前就 `return` 了，走各自的块大小逻辑 [C1]。混合模型那边还有一条反向联动：`mamba_cache_mode="align"` 时，开着 APC 才让 `mamba_block_size` 等于 `block_size`；关掉 APC，mamba 状态按 `max_model_len` 整条分配，显存占用差一个量级 [C19]。
 

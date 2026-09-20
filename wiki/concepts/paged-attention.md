@@ -68,7 +68,7 @@ file: paged-attention
 
 不分块就得按 `max_model_len` 给每条序列预留一段连续显存。那条请求只要 237 个 token 的位置，却要按上限占满；并发一上来，显存全被没写过的空洞吃掉。分块把预留的粒度从「一条序列」降到「128 个 token」，浪费上限从 `max_model_len − 实际长度` 降到不足一块——就是那条请求第 1 块尾巴上空着的 19 格 [D]。
 
-代价是地址不再连续：第 300 个 token 在哪，得查表。所以**分块必须由 attention 算子本身支持**——不能在算子外面先把 KV 拼回连续的再算，那样等于白分。块大小也就没有了选择余地：`get_supported_kernel_block_sizes` 只返回 `[128]` [C1][C2]。
+代价是地址不再连续：第 300 个 token 在哪，得查表。所以**分块必须由 attention 算子本身支持**——不能在算子外面先把 KV 拼回连续的再算，那样等于白分。昇腾上块大小实际也只有 128：不写就由配置检查里的 `refresh_block_size` 填上（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），而后端报的 kernel 块大小同样是 `[128]` [C1][C2]——两者对上了，但定这个值的是前者。
 
 昇腾侧比上游多出来的那件事是：有两个算子都能按块读。v0.23 维护分支的源码注释写明了引入 PA 的理由——在某些场景下 `_npu_paged_attention` 仍比 `npu_fused_infer_attention_score` 快，等 FIA 在所有场景都更好时这条路就该删掉 [C14]。
 
@@ -89,7 +89,7 @@ vllm serve /path/to/Qwen3-0.6B \
     --additional-config '{"pa_shape_list":[32,48,64,96,128]}'
 ```
 
-每个值的来由：`--block-size 128` 是后端唯一支持的值，不写也会被 `refresh_block_size` 补成 128，写出来只是让配置自解释；`--no-enable-prefix-caching` **不是 PA 的前提**，它是为了让你写的 `--block-size` 保持不变——开了 prefix caching 或 chunked prefill，同一个函数会把它改回 128 [C12]；`FULL_DECODE_ONLY` 是硬门槛，别的图模式下 `pa_shape_list` 是死参数；`pa_shape_list` 里填的是**这一步喂进去多少 token**，不是块大小，官方示例干脆把 32 到 256 逐个列全。还有一条不能出现：`--speculative-config`，第一道门就把它挡了。
+每个值的来由：`--block-size 128` 不写也会被 `refresh_block_size` 补成 128，写出来只是让配置自解释；`--no-enable-prefix-caching` **不是 PA 的前提**，它是为了让你写的 `--block-size` 保持不变——开了 prefix caching 或 chunked prefill，同一个函数会把它改回 128 [C12]；`FULL_DECODE_ONLY` 是硬门槛，别的图模式下 `pa_shape_list` 是死参数；`pa_shape_list` 里填的是**这一步喂进去多少 token**，不是块大小，官方示例干脆把 32 到 256 逐个列全。还有一条不能出现：`--speculative-config`，第一道门就把它挡了。
 
 ## 两个算子看到的 KV 不一样
 

@@ -94,7 +94,7 @@ file: kv-cache-quantization
 
 ## 写的时候量化，读的时候不反量化
 
-**写。** 每步先由 `_quantize_kv_to_int8` 算 `clamp(round(x / scale + offset), -128, 127)` [C9]，再交给 `npu_scatter_pa_kv_cache` 按 `slot_mapping` 把 int8 散写进缓存。缓存被看成 NZ 5D：`(num_blocks, num_kv_heads, head_size / 32, block_size, 32)` [C12]，Qwen3-0.6B 上就是 `(num_blocks, 8, 4, 128, 32)`。`head_size` 与 `block_size` 都得被 32 整除，后者在 decode 里还有一句 assert 兜底；昇腾 GQA 后端只报 128 这一个块大小（见 [KV Cache Spec](kv-cache-spec.md)），两条都自动满足。
+**写。** 每步先由 `_quantize_kv_to_int8` 算 `clamp(round(x / scale + offset), -128, 127)` [C9]，再交给 `npu_scatter_pa_kv_cache` 按 `slot_mapping` 把 int8 散写进缓存。缓存被看成 NZ 5D：`(num_blocks, num_kv_heads, head_size / 32, block_size, 32)` [C12]，Qwen3-0.6B 上就是 `(num_blocks, 8, 4, 128, 32)`。`head_size` 与 `block_size` 都得被 32 整除，后者在 decode 里还有一句 assert 兜底；那条请求上 `block_size` 是 128（见 [KV Cache Spec](kv-cache-spec.md)），两条都自动满足。
 
 **读。** decode 这一路**不做任何显式反量化**：int8 缓存的 5D 视图、块表、`key_antiquant_scale` 与 `value_antiquant_scale` 一起塞给 `npu_fused_infer_attention_score`，`input_layout="BNSD"`、三个 antiquant mode 全填 0 [C10]。反量化在算子内部完成，零 gather、零额外显存——**省显存能顺带省时间就靠这一下**，否则省下的带宽会被多出来的搬运吃回去。
 

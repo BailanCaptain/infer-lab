@@ -16,6 +16,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236
   - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
 evidence: "C"
 relations:
   - to: kv-cache-spec
@@ -54,7 +55,7 @@ file: the-request
 | 版本 | vllm-ascend v0.23 维护分支 + 配套的 vLLM v0.23.0 | 两边必须成对，见 [vLLM 与昇腾各管什么](who-owns-what.md) |
 | 问题长度 | 37 个 token | 比一个块（128）短，于是 prefill 一步算完，不触发 chunked prefill |
 | 回答长度 | 200 个 token | 足够长到跨过块边界——这正是要看的那个时刻 |
-| `block_size` | 128 | 不是选的：昇腾五个注意力后端里，这条请求用的 `AscendAttentionBackend` 和另外三个都只返回这一个值 [C5][C6]，只有 `AscendDSABackend` 还支持更小的块 [C9] |
+| `block_size` | 128 | 不是选的：命令行没写，`check_and_update_config` 里的 `refresh_block_size` 就填 128 [C10]。后端报的 `[128]` [C5][C6]（`AscendDSABackend` 还报更小的块 [C9]）是 kernel 支持范围，不是定这个值的那一步 |
 
 上面只有「37」和「200」是我挑的 [A]，挑的理由写在第三列；其余都是模型和代码给定的。
 

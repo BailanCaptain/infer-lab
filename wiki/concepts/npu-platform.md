@@ -47,7 +47,7 @@ file: platform-surface
 
 | 它的哪个数 | 谁定的 |
 |---|---|
-| `block_size = 128`，于是 37 个 token 占 1 块 | `check_and_update_config` 顶上去的 |
+| `block_size = 128`，于是 37 个 token 占 1 块 | `check_and_update_config` 转手调 `refresh_block_size` 填的默认值 |
 | 第 92 步写 KV 时调哪个算子 | `get_attn_backend_cls` 查表查出来的 [C10] |
 | 一步最多能拿多少 token 名额 | 间接由 `get_device_total_memory` 决定——见下 |
 

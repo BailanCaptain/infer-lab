@@ -79,7 +79,7 @@ CPU 侧还有一个不起眼但关键的东西：`num_blocks_per_row`，一个�
 
 那条请求的配置下（`--max-model-len 4096`、`--max-num-seqs 256`），列数 = `cdiv(4096, 128) = 32`，行数 = 256，整张表 **256 × 32 × 4 B = 32 KiB**；而每一个表项指着一整块 KV——按那条请求的数，一块是 **14 MiB**。四个字节和十四兆，差了六个数量级 [D]。**所以别在这张表上做显存优化**，能省的量在噪声里。
 
-它的形状也基本由不得自己。列数是 `max_num_blocks_per_req`，由 KV cache spec 按 `max_model_len` 算好后传进来 [C11]；`BlockTable` 拿到之后还会按压缩比再调一次，那一段属于 [prepare_inputs 数据流](prepare-inputs-flow.md)。块大小同样如此：昇腾 GQA 后端的 `get_supported_kernel_block_sizes` 只返回 `[128]` [C18]，而上游分出来的物理块也是 128，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)。两者相等，于是 `blocks_per_phys_block == 1`，把一个物理块拆成多串逻辑块的 hybrid 路径默认根本不启用 [D]。
+它的形状也基本由不得自己。列数是 `max_num_blocks_per_req`，由 KV cache spec 按 `max_model_len` 算好后传进来 [C11]；`BlockTable` 拿到之后还会按压缩比再调一次，那一段属于 [prepare_inputs 数据流](prepare-inputs-flow.md)。块大小同样如此：它由配置检查里的 `refresh_block_size` 定成 128，上游据此分出来的物理块也是 128，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)；昇腾 GQA 后端报的 kernel 块大小同样是 `[128]` [C18]，但那是 kernel 支持范围，不是定值的那一步。两者相等，于是 `blocks_per_phys_block == 1`，把一个物理块拆成多串逻辑块的 hybrid 路径默认根本不启用 [D]。
 
 ## 慢的那一半留在 CPU，快的那一半留在 NPU
 

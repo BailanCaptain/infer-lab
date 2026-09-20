@@ -120,7 +120,7 @@ file: mla
 | `kv_cache[0]` | 压过的潜向量 | `(num_blocks, 128, 1, 512)` | 1024 |
 | `kv_cache[1]` | RoPE 那一段 | `(num_blocks, 128, 1, 64)` | 128 |
 
-块大小仍然只有 128 一个选项，`get_supported_kernel_block_sizes` 跟别的后端一样只返回 `[128]`，所以[块表](block-table.md)那一套完全照旧。开了稀疏或 LI C8 时这个元组会长到三、四项，多出来的是 indexer 的 key 和它的 scale——那部分归[四种注意力的代价](attention-cost.md)。
+块大小仍是 128——照样由配置检查里的 `refresh_block_size` 填上，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)；`get_supported_kernel_block_sizes` 跟别的后端一样报 `[128]`，所以[块表](block-table.md)那一套完全照旧。开了稀疏或 LI C8 时这个元组会长到三、四项，多出来的是 indexer 的 key 和它的 scale——那部分归[四种注意力的代价](attention-cost.md)。
 
 ## v0.23 维护分支与 main 的三处差异
 

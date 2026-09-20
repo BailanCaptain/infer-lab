@@ -16,6 +16,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L226
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406
 evidence: "C"
 relations:
   - to: vllm-scheduler
@@ -36,7 +37,7 @@ file: block-allocation
 
 ## 那条请求走到这里
 
-**第 1 步（prompt）。** 调度器挑中它之后调 `allocate_slots(request, num_new_tokens=37)` [C1]。37 个 token 要 `ceil(37 / 128) = 1` 块 [D]。`block_size` 是 128，因为昇腾的注意力后端只支持这一个值 [C8]。
+**第 1 步（prompt）。** 调度器挑中它之后调 `allocate_slots(request, num_new_tokens=37)` [C1]。37 个 token 要 `ceil(37 / 128) = 1` 块 [D]。`block_size` 是 128——命令行没写，`check_and_update_config` 里的 `refresh_block_size` 就填上这个默认值 [C10]。
 
 `KVCacheManager` 转身向 `BlockPool.get_new_blocks(1)` 要 [C5]。`BlockPool` 从 `free_block_queue` 队头 `popleft_n(1)` 取一块，把它的 `ref_cnt` 从 0 加到 1 [C5]。
 
@@ -76,4 +77,4 @@ file: block-allocation
 - **「decode 每一步都要分块」**——那条请求 199 步 decode 只分了 1 次 [D]。绝大多数步一块都不要。
 - **「块池是每个请求一份」**——是全机一份。`BlockPool` 持有全部块和那条空闲队列 [C6]。
 - **「释放就是清空内容」**——不是。`free` 只把 `ref_cnt` 减回去、块排进队尾 [C9]；内容留着，等真被别人取走时才失效 [C5]。
-- **「block_size 可以随便调」**——在昇腾上不行，后端只返回 `[128]` [C8]。
+- **「block_size 可以随便调」**——写了也多半保不住：开着前缀缓存或 chunked prefill 时，`refresh_block_size` 会把它改回 128 [C10]。后端报的 `[128]` [C8] 是 kernel 支持范围，不是改它的那一步。

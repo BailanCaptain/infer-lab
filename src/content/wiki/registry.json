@@ -273,7 +273,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/attention-cost.md",
       "backlinks": [
         {
@@ -359,7 +359,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/block-table.md",
       "backlinks": [
         {
@@ -2234,7 +2234,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/npu-worker-lifecycle.md",
       "backlinks": [
         {
@@ -2297,7 +2297,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/one-request.md",
       "backlinks": [
         {
@@ -2741,7 +2741,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/pd-disaggregation.md",
       "backlinks": [
         {
@@ -3162,7 +3162,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/prepare-inputs-flow.md",
       "backlinks": [
         {
@@ -3314,7 +3314,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/reading-vllm-ascend.md",
       "backlinks": []
     },
@@ -4281,7 +4281,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-20",
       "file": "concepts/vllm-v1-shape.md",
       "backlinks": [
         {

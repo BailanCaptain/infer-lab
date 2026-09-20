@@ -24,7 +24,7 @@ relations:
     kind: builds-on
     note: 这条请求尾巴上空着的 19 个槽位，就是分页方案承诺的「浪费最多一个块」的那个上限
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-20"
 origin: seed
 ---
 

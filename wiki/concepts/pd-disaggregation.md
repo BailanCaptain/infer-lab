@@ -52,7 +52,7 @@ relations:
     kind: alternative-to
     note: 同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-20"
 origin: seed
 ---
 

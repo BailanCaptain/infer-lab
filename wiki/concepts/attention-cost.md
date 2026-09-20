@@ -31,7 +31,7 @@ relations:
     kind: builds-on
     note: GQA 那一条的完整推导在那一页，这里只取结果拿来跟另外三条并排比
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-20"
 origin: seed
 ---
 

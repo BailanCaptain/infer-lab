@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 676" width="900" height="676" role="img" aria-label="TP=2 跑 Qwen3-0.6B 的一层：列切分头、行切分输入，每次行切之后必须 all-reduce 一次">
+  <title>TP=2 跑 Qwen3-0.6B 的一层：列切分头、行切分输入，每次行切之后必须 all-reduce 一次</title>
+  <rect width="900" height="676" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="176" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="292.3" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">切开的到底是哪一维（TP=2，Qwen3-0.6B）</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">列切切的是「头」这一维：q 头按 TP 整除分下去，kv 头不够分的时候会被复制，而不是再切细。</text>
+  <rect x="20" y="224" width="860" height="380" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="238" width="312.3" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="256.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一层跑一遍：四个 Linear，两次 all-reduce</text>
+  <text x="38" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">前两个属于 attention，后两个属于 MLP；上下顺序就是数据流向，每次行切之后必须归约一次才能往下走。</text>
+  <rect x="40" y="302" width="820" height="52" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="40" y="302" width="5" height="52" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(63.8 317.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="98" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① qkv_proj：整块按列切</text>
+  <text x="98" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">卡 0 只拿 q0–7 与 kv0–3 这几列，另一半在卡 1 手上</text>
+  <rect x="673" y="315.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="757" y="333" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">ColumnParallelLinear</text>
+  <rect x="40" y="362" width="820" height="52" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="40" y="362" width="5" height="52" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
+  <g transform="translate(63.8 377.8) scale(0.85)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="98" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② o_proj：按行切，两张卡各出一份部分和</text>
+  <text x="98" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这一步谁的结果都只是半个答案，不加起来就是错的</text>
+  <rect x="695.5" y="375.5" width="145.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="768.3" y="393" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">RowParallelLinear</text>
+  <rect x="40" y="448" width="820" height="52" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="40" y="448" width="5" height="52" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <g transform="translate(63.8 463.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="98" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ gate_up_proj：整块按列切</text>
+  <text x="98" y="491" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">中间维一人一半，激活函数也各算各的，不用通信</text>
+  <rect x="628" y="461.5" width="213" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="734.5" y="479" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">MergedColumnParallelLinear</text>
+  <rect x="40" y="508" width="820" height="52" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="40" y="508" width="5" height="52" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
+  <g transform="translate(63.8 523.8) scale(0.85)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="98" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">④ down_proj：按行切，又是两份部分和</text>
+  <text x="98" y="551" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">和 ② 同一个类、同一段 forward，只是矩阵换了</text>
+  <rect x="695.5" y="521.5" width="145.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="768.3" y="539" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">RowParallelLinear</text>
+  <line x1="40" y1="432" x2="880" y2="432" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="423" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">第一次 all-reduce：两份部分和在这里相加，hidden 才完整</text>
+  <line x1="40" y1="578" x2="880" y2="578" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="569" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">第二次 all-reduce：一层到此结束，两张卡又看到同一个 hidden</text>
+  <rect x="40" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="71" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="102" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="133" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="164" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="195" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="226" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="257" y="130" width="26" height="30" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="288" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="319" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="350" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="381" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="412" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="443" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="474" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="505" y="130" width="26" height="30" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <text x="40" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">16 个 q 头 · 每卡 8 个：TP 整除，谁也不重复</text>
+  <rect x="560" y="130" width="26" height="30" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="591" y="130" width="26" height="30" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="622" y="130" width="26" height="30" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="653" y="130" width="26" height="30" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="684" y="130" width="26" height="30" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="715" y="130" width="26" height="30" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="746" y="130" width="26" height="30" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="777" y="130" width="26" height="30" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="560" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">8 个 kv 头 · 每卡 4 个：TP 到 8 就见底了</text>
+  <path d="M40 122 l0 -9 L283 113 l0 9" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.4" opacity="0.75"/>
+  <text x="161.5" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-control, #5b6763)" text-anchor="middle">卡 0 的 8 个 q 头</text>
+  <path d="M560 122 l0 -9 L679 113 l0 9" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
+  <text x="619.5" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)" text-anchor="middle">卡 0 的 4 个 kv 头</text>
+  <text x="40" y="628" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">两次归约搬的都是 hidden，不是权重：那条请求在 TP=2 上 decode 一步，每次 all-reduce 是 1 × 1024 × 2 B = 2 KiB，一层两次、28 层再加词</text>
+  <text x="40" y="646.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">表那一次，一步 57 次约 114 KiB。</text>
+</svg>

@@ -1,0 +1,97 @@
+layout: scene
+id: tensor-parallel
+caption: TP=2 跑 Qwen3-0.6B 的一层：列切分头、行切分输入，每次行切之后必须 all-reduce 一次
+size: [900, 676]
+
+regions:
+  - label: 切开的到底是哪一维（TP=2，Qwen3-0.6B）
+    note: 列切切的是「头」这一维：q 头按 TP 整除分下去，kv 头不够分的时候会被复制，而不是再切细。
+    at: [20, 26]
+    size: [860, 176]
+    tone: upstream
+  - label: 一层跑一遍：四个 Linear，两次 all-reduce
+    note: 前两个属于 attention，后两个属于 MLP；上下顺序就是数据流向，每次行切之后必须归约一次才能往下走。
+    at: [20, 224]
+    size: [860, 380]
+    tone: ascend
+
+brackets:
+  - { at: [40, 122], span: 243, dir: up, label: 卡 0 的 8 个 q 头, tone: upstream }
+  - { at: [560, 122], span: 119, dir: up, label: 卡 0 的 4 个 kv 头, tone: neutral }
+
+strips:
+  - at: [40, 130]
+    cells: 16
+    cell: 26
+    h: 30
+    gap: 5
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    tone: upstream
+    label: "16 个 q 头 · 每卡 8 个：TP 整除，谁也不重复"
+  - at: [560, 130]
+    cells: 8
+    cell: 26
+    h: 30
+    gap: 5
+    highlights: [0, 1, 2, 3]
+    tone: neutral
+    label: "8 个 kv 头 · 每卡 4 个：TP 到 8 就见底了"
+
+bands:
+  - label: "① qkv_proj：整块按列切"
+    sub: 卡 0 只拿 q0–7 与 kv0–3 这几列，另一半在卡 1 手上
+    fn: ColumnParallelLinear
+    at: [40, 302]
+    size: [820, 52]
+    tone: upstream
+    icon: split
+  - label: "② o_proj：按行切，两张卡各出一份部分和"
+    sub: 这一步谁的结果都只是半个答案，不加起来就是错的
+    fn: RowParallelLinear
+    at: [40, 362]
+    size: [820, 52]
+    tone: neutral
+    icon: calc
+  - label: "③ gate_up_proj：整块按列切"
+    sub: 中间维一人一半，激活函数也各算各的，不用通信
+    fn: MergedColumnParallelLinear
+    at: [40, 448]
+    size: [820, 52]
+    tone: upstream
+    icon: split
+  - label: "④ down_proj：按行切，又是两份部分和"
+    sub: 和 ② 同一个类、同一段 forward，只是矩阵换了
+    fn: RowParallelLinear
+    at: [40, 508]
+    size: [820, 52]
+    tone: neutral
+    icon: calc
+
+boundaries:
+  - at: 432
+    from: 40
+    to: 880
+    vertical: false
+    label: 第一次 all-reduce：两份部分和在这里相加，hidden 才完整
+  - at: 578
+    from: 40
+    to: 880
+    vertical: false
+    label: 第二次 all-reduce：一层到此结束，两张卡又看到同一个 hidden
+
+notes:
+  - at: [40, 628]
+    text: "两次归约搬的都是 hidden，不是权重：那条请求在 TP=2 上 decode 一步，每次 all-reduce 是 1 × 1024 × 2 B = 2 KiB，一层两次、28 层再加词表那一次，一步 57 次约 114 KiB。"
+    size: 12.5
+    width: 820
+    strong: true
+
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L407-L452
+    symbols: [ColumnParallelLinear, output_size_per_partition]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1389-L1444
+    symbols: [RowParallelLinear, input_size_per_partition]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L78-L113
+    symbols: [qkv_proj, o_proj, num_kv_heads]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L93-L106
+    symbols: [gate_up_proj, down_proj, MergedColumnParallelLinear]

@@ -1,0 +1,120 @@
+layout: scene
+id: mla
+caption: 缓存里只有 512 维潜向量加 64 维 RoPE 段；prefill 把它展开，decode 改把展开矩阵搬到 Q 那边
+size: [900, 614]
+
+regions:
+  - label: 写进缓存的只有这一条
+    note: 压缩发生在一个投影里，RMSNorm、RoPE 和落盘由同一个融合算子做完。
+    at: [20, 22]
+    size: [860, 186]
+    tone: ascend
+  - label: "prefill 这一路：解压"
+    note: 从缓存取回的 512 维要先展开成每个头的 K 和 V，再喂给算子。
+    at: [20, 228]
+    size: [860, 156]
+    tone: upstream
+  - label: "decode 这一路：一次都不解压"
+    note: q 先被搬进 512 维的潜空间，算子的 key 和 value 收到同一个张量。
+    at: [20, 404]
+    size: [860, 176]
+    tone: accent
+
+strips:
+  - at: [236, 118]
+    cells: 8
+    cell: 56
+    gap: 4
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    tone: ascend
+    label: "kv_lora_rank = 512（一格 64 维）"
+  - at: [722, 118]
+    cells: 1
+    cell: 56
+    highlight: 0
+    tone: accent
+    label: "qk_rope_head_dim = 64"
+
+brackets:
+  - { at: [236, 112], span: 542, dir: up, label: "每 token 每层 576 × 2 B = 1152 B", tone: muted }
+
+boxes:
+  - at: [36, 112]
+    size: [176, 76]
+    title: 压一次
+    sub: "576 = 512 + 64"
+    fn: kv_a_proj_with_mqa
+    tone: ascend
+
+  - at: [36, 300]
+    size: [246, 70]
+    title: "解压：512 → 每头 128+128"
+    fn: kv_b_proj
+    tone: upstream
+  - at: [302, 300]
+    size: [286, 70]
+    title: 算子收三个不同的张量
+    sub: query / key / value 各自独立
+    fn: npu_fused_infer_attention_score
+    tone: ascend
+  - at: [608, 300]
+    size: [252, 70]
+    title: block_table 传 None
+    sub: 这一步的 KV 还在手上
+    tone: accent
+
+  - at: [36, 476]
+    size: [248, 76]
+    title: W_UK 搬到 Q 这边
+    sub: "q 每头 128 → 512"
+    fn: _q_proj_and_k_up_proj
+    tone: ascend
+  - at: [304, 476]
+    size: [300, 76]
+    title: key 和 value 是同一个张量
+    sub: k_nope 就是缓存里那 512 维
+    fn: npu_fused_infer_attention_score_v2
+    tone: accent
+  - at: [624, 476]
+    size: [236, 76]
+    title: 出来的还是 512 维
+    sub: W_UV 再映回 v_head_dim
+    fn: _v_up_proj
+    tone: upstream
+
+arrows:
+  - { from: [216, 150], to: [230, 150], tone: ascend }
+  - { from: [286, 335], to: [298, 335], tone: upstream }
+  - { from: [592, 335], to: [604, 335], tone: upstream }
+  - { from: [288, 514], to: [300, 514], tone: accent }
+  - { from: [608, 514], to: [620, 514], tone: accent }
+  - from: [786, 146]
+    via: [[870, 146], [870, 462], [560, 462]]
+    to: [560, 470]
+    label: decode 直接拿整块缓存
+    style: dashed
+    tone: accent
+
+notes:
+  - at: [20, 600]
+    text: "一层一个 token 只占 (512 + 64) × 2 = 1152 字节：prefill 每次重新展开，decode 一次都不展开。"
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/models/deepseek_v2.py#L935-L941
+    symbols: [kv_a_proj_with_mqa]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L736-L740
+    symbols: [kv_lora_rank, qk_rope_head_dim, v_head_dim]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L943-L955
+    symbols: [W_UK, W_UV]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1613-L1621
+    symbols: [kv_b_proj]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1274-L1301
+    symbols: [npu_fused_infer_attention_score, block_table]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L908-L920
+    symbols: [_q_proj_and_k_up_proj]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1586-L1592
+    symbols: [npu_fused_infer_attention_score_v2, k_nope]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L898-L905
+    symbols: [_v_up_proj]

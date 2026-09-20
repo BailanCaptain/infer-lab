@@ -81,6 +81,11 @@ describe("findGaps", () => {
     expect(findGaps(pages).map((g) => g.term)).toEqual(["MLA"]);
   });
 
+  it("commit 短号不是概念：全库重钉之后 `b255ab59` 会在几十页里出现", () => {
+    const pages = ["a", "b", "c"].map((id) => mk(id, rep("`b255ab59` `2c59ff10` ", 6) + rep("MLA", 6)));
+    expect(findGaps(pages).map((g) => g.term)).toEqual(["MLA"]);
+  });
+
   it("ignore 里的词被跳过", () => {
     const pages = [mk("a", rep("`Triton`", 5)), mk("b", rep("`Triton`", 5))];
     expect(findGaps(pages, { ...opts, ignore: ["Triton"] })).toEqual([]);

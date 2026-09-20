@@ -96,6 +96,8 @@ const STOPWORDS = new Set([
 ]);
 /** Python 异常类名：页里引用的是报错现象，不是要补的概念 */
 const EXCEPTION_RE = /(Error|Exception|Warning)$/;
+/** commit 短号（含数字的 7–40 位十六进制串）：页里写版本快照时会反复出现 */
+const COMMIT_RE = /^(?=.*\d)[a-f0-9]{7,40}$/;
 
 function candidates(text: string): string[] {
   const out: string[] = [];
@@ -131,7 +133,7 @@ export function findGaps(pages: WikiPage[], opts: GapOptions = {}): Gap[] {
   const hits = new Map<string, { n: number; pages: Set<string> }>();
   for (const p of pages) {
     for (const term of candidates(p.body)) {
-      if (STOPWORDS.has(term) || EXCEPTION_RE.test(term)) continue;
+      if (STOPWORDS.has(term) || EXCEPTION_RE.test(term) || COMMIT_RE.test(term)) continue;
       const id = toId(term);
       if (covered.has(id)) continue;
       const rec = hits.get(term) ?? { n: 0, pages: new Set<string>() };

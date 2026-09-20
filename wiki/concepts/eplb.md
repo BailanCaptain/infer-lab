@@ -58,6 +58,9 @@ relations:
   - to: enable-force-eplb-b7ec3661121f
     kind: conflicts-with
     note: main 上 enable_force_eplb 与 dynamic_eplb 同时开且模型是 MoE 会直接报错——前者改的是路由结果，不是摆放
+  - to: expert-parallel
+    kind: builds-on
+    note: EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页
 contradicts: []
 updated: "2026-09-21"
 origin: seed

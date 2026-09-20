@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 892" width="900" height="892" role="img" aria-label="EP 切的是专家不是矩阵：128 个专家整份分给 2 张卡；一个 token 的 8 个专家分散在两边，于是一层里多一次发出去、一次收回来">
+  <title>EP 切的是专家不是矩阵：128 个专家整份分给 2 张卡；一个 token 的 8 个专家分散在两边，于是一层里多一次发出去、一次收回来</title>
+  <rect width="900" height="892" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="212" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="495.9" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一层 MoE 的 128 个专家，按卡整份切开（Qwen3-30B-A3B，ep_size = 2）</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">切的是专家这一维。每个专家的三个矩阵都完整留在一张卡上，谁也没被切成条——切成条那是 TP 的做法。</text>
+  <rect x="20" y="250" width="860" height="296" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="264" width="344.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="282.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一个 token 在这一层里走的四步，只有中间两步跨卡</text>
+  <rect x="20" y="564" width="860" height="282" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="578" width="482.9" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="596.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">「发出去」和「收回来」怎么走：四种通信方式，每一步 forward 现选一种</text>
+  <text x="38" y="621" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">ep_size 大于 1 时四种实现才全部注册，否则注册表里只有 all-gather 一条。</text>
+  <line x1="70" y1="436" x2="262" y2="436" stroke="var(--color-kv, #4c65b6)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="262" y1="436" x2="672" y2="436" stroke="var(--color-accent, #e85b32)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="672" y1="436" x2="850" y2="436" stroke="var(--color-kv, #4c65b6)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <path d="M850 436 l-14 -7 l0 14 z" fill="var(--color-kv, #4c65b6)"/>
+  <line x1="450" y1="116" x2="450" y2="168" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="450" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">跨过这条线就得发包</text>
+  <rect x="40" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="46" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="52" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="58" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="64" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="70" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="1"/>
+  <rect x="76" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="82" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="88" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="94" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="100" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="106" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="112" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="118" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="124" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="130" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="136" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="142" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="148" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="154" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="1"/>
+  <rect x="160" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="166" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="172" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="178" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="184" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="190" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="196" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="202" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="208" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="214" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="220" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="226" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="232" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="238" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="1"/>
+  <rect x="244" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="250" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="256" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="262" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="268" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="274" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="280" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="286" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="292" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="298" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="304" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="310" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="316" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="322" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="328" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="1"/>
+  <rect x="334" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="340" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="346" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="352" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="358" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="364" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="370" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="376" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="382" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="388" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="394" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="400" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="1"/>
+  <rect x="406" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="412" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <rect x="418" y="134" width="5" height="28" fill="var(--color-control, #5b6763)" opacity="0.5"/>
+  <text x="40" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">本地 64 个专家 = 128 ÷ ep_size；实心格是这个 token 选中的 5 个</text>
+  <rect x="477" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="483" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="489" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="1"/>
+  <rect x="495" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="501" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="507" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="513" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="519" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="525" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="531" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="537" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="543" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="549" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="555" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="561" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="567" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="573" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="579" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="585" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="591" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="597" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="603" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="609" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="615" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="621" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="627" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="1"/>
+  <rect x="633" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="639" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="645" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="651" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="657" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="663" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="669" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="675" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="681" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="687" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="693" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="699" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="705" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="711" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="717" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="723" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="1"/>
+  <rect x="729" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="735" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="741" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="747" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="753" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="759" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="765" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="771" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="777" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="783" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="789" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="795" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="801" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="807" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="813" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="819" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="825" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="831" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="837" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="843" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="849" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <rect x="855" y="134" width="5" height="28" fill="var(--color-weight, #b87a00)" opacity="0.5"/>
+  <text x="477" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">另外 64 个本卡一份权重都没有；这个 token 还有 3 个专家在这边</text>
+  <rect x="40" y="628" width="400" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
+  <rect x="52" y="658" width="32" height="32" rx="9" fill="var(--color-canvas, #f5f2ea)"/><g transform="translate(58.4 664.4) scale(0.8)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
+  <text x="92" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">ALLGATHER</text>
+  <text x="92" y="680" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一个 token 都不发，只算自己那段专家区间</text>
+  <text x="92" y="697" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)">active_expert_range</text>
+  <rect x="460" y="628" width="400" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="472" y="658" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(478.4 664.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="512" y="662" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">MC2 与 FUSED_MC2</text>
+  <text x="512" y="680" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">昇腾融合算子，dispatch 与计算重叠着跑</text>
+  <text x="512" y="697" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">npu_moe_distribute_dispatch_v2</text>
+  <rect x="40" y="732" width="400" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="52" y="762" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(58.4 768.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="92" y="766" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">ALLTOALL</text>
+  <text x="92" y="784" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">按路由真发包，去一趟回一趟；超容量时的退路</text>
+  <text x="92" y="801" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">async_all_to_all</text>
+  <rect x="460" y="732" width="400" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="472" y="762" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(478.4 768.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
+  <text x="512" y="766" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">这一步选哪种，是现算的</text>
+  <text x="512" y="784" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">入参是这一步跨 DP 的最大 token 数、设备代次、EP 卡数</text>
+  <text x="512" y="801" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">select_moe_comm_method</text>
+  <line x1="120" y1="436" x2="120" y2="408" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="120" cy="436" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="120" cy="436" r="5.5" fill="var(--color-control, #5b6763)"/>
+  <rect x="100" y="367" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
+  <g transform="translate(108 375) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
+  <text x="120" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">① 路由</text>
+  <text x="120" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">每个 token 挑 8 个逻辑专家号</text>
+  <rect x="58.5" y="297.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="120" y="315" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">select_experts</text>
+  <line x1="330" y1="436" x2="330" y2="464" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="330" cy="436" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="330" cy="436" r="5.5" fill="var(--color-accent, #e85b32)"/>
+  <rect x="310" y="465" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
+  <g transform="translate(318 473) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="330" y="522" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">② dispatch</text>
+  <text x="330" y="541" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">把 token 发到专家所在的卡</text>
+  <rect x="268.5" y="545.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="330" y="563" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">token_dispatch</text>
+  <line x1="545" y1="436" x2="545" y2="408" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="545" cy="436" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="545" cy="436" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="525" y="367" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(533 375) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="545" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ 本地专家算</text>
+  <text x="545" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">只算落到本卡 64 个专家上的 token</text>
+  <rect x="472.3" y="297.5" width="145.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="545" y="315" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">unified_apply_mlp</text>
+  <line x1="755" y1="436" x2="755" y2="464" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="755" cy="436" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="755" cy="436" r="5.5" fill="var(--color-accent, #e85b32)"/>
+  <rect x="735" y="465" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
+  <g transform="translate(743 473) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
+  <text x="755" y="522" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">④ combine</text>
+  <text x="755" y="541" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">结果按来路送回原来的卡</text>
+  <rect x="697.3" y="545.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="755" y="563" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">token_combine</text>
+  <path d="M40 122 l0 -9 L423 113 l0 9" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.4" opacity="0.75"/>
+  <text x="231.5" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-control, #5b6763)" text-anchor="middle">卡 0：逻辑专家 0–63，权重整份在本地</text>
+  <path d="M477 122 l0 -9 L860 113 l0 9" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
+  <text x="668.5" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)" text-anchor="middle">卡 1：逻辑专家 64–127</text>
+  <text x="20" y="866" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">ep_size 没有独立参数：它等于 dp_size × pcp_size × tp_size，EP 一开，MoE 那部分的 tp_size 被置 1，本地专家数就是 global_num_experts //</text>
+  <text x="20" y="884.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">ep_size。</text>
+</svg>

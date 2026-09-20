@@ -1,0 +1,148 @@
+layout: scene
+id: expert-parallel
+caption: EP 切的是专家不是矩阵：128 个专家整份分给 2 张卡；一个 token 的 8 个专家分散在两边，于是一层里多一次发出去、一次收回来
+size: [900, 892]
+
+regions:
+  - label: 一层 MoE 的 128 个专家，按卡整份切开（Qwen3-30B-A3B，ep_size = 2）
+    note: 切的是专家这一维。每个专家的三个矩阵都完整留在一张卡上，谁也没被切成条——切成条那是 TP 的做法。
+    at: [20, 26]
+    size: [860, 212]
+    tone: upstream
+  - label: 一个 token 在这一层里走的四步，只有中间两步跨卡
+    at: [20, 250]
+    size: [860, 296]
+    tone: ascend
+  - label: 「发出去」和「收回来」怎么走：四种通信方式，每一步 forward 现选一种
+    note: ep_size 大于 1 时四种实现才全部注册，否则注册表里只有 all-gather 一条。
+    at: [20, 564]
+    size: [860, 282]
+    tone: neutral
+
+brackets:
+  - { at: [40, 122], span: 383, dir: up, label: "卡 0：逻辑专家 0–63，权重整份在本地", tone: upstream }
+  - { at: [477, 122], span: 383, dir: up, label: "卡 1：逻辑专家 64–127", tone: ascend }
+
+strips:
+  - at: [40, 134]
+    cells: 64
+    cell: 5
+    gap: 1
+    h: 28
+    highlights: [5, 19, 33, 48, 60]
+    tone: upstream
+    label: "本地 64 个专家 = 128 ÷ ep_size；实心格是这个 token 选中的 5 个"
+  - at: [477, 134]
+    cells: 64
+    cell: 5
+    gap: 1
+    h: 28
+    highlights: [2, 25, 41]
+    tone: ascend
+    label: "另外 64 个本卡一份权重都没有；这个 token 还有 3 个专家在这边"
+
+boundaries:
+  - at: 450
+    from: 116
+    to: 168
+    vertical: true
+    label: 跨过这条线就得发包
+
+spines:
+  - y: 436
+    from: 70
+    to: 850
+    tone: neutral
+    segments:
+      - { x: 262, tone: neutral }
+      - { x: 672, tone: accent }
+
+stops:
+  - x: 120
+    side: above
+    title: "① 路由"
+    detail: 每个 token 挑 8 个逻辑专家号
+    fn: select_experts
+    icon: pick
+    tone: upstream
+  - x: 330
+    side: below
+    title: "② dispatch"
+    detail: 把 token 发到专家所在的卡
+    fn: token_dispatch
+    icon: split
+    tone: accent
+  - x: 545
+    side: above
+    title: "③ 本地专家算"
+    detail: 只算落到本卡 64 个专家上的 token
+    fn: unified_apply_mlp
+    icon: calc
+    tone: ascend
+  - x: 755
+    side: below
+    title: "④ combine"
+    detail: 结果按来路送回原来的卡
+    fn: token_combine
+    icon: layers
+    tone: accent
+
+boxes:
+  - at: [40, 628]
+    size: [400, 92]
+    title: ALLGATHER
+    sub: 一个 token 都不发，只算自己那段专家区间
+    fn: active_expert_range
+    tone: muted
+    icon: grid
+  - at: [460, 628]
+    size: [400, 92]
+    title: MC2 与 FUSED_MC2
+    sub: 昇腾融合算子，dispatch 与计算重叠着跑
+    fn: npu_moe_distribute_dispatch_v2
+    tone: ascend
+    icon: bolt
+  - at: [40, 732]
+    size: [400, 92]
+    title: ALLTOALL
+    sub: 按路由真发包，去一趟回一趟；超容量时的退路
+    fn: async_all_to_all
+    tone: accent
+    icon: split
+  - at: [460, 732]
+    size: [400, 92]
+    title: 这一步选哪种，是现算的
+    sub: 入参是这一步跨 DP 的最大 token 数、设备代次、EP 卡数
+    fn: select_moe_comm_method
+    tone: upstream
+    icon: clock
+
+notes:
+  - at: [20, 866]
+    text: "ep_size 没有独立参数：它等于 dp_size × pcp_size × tp_size，EP 一开，MoE 那部分的 tp_size 被置 1，本地专家数就是 global_num_experts // ep_size。"
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1193-L1212
+    symbols: [ep_size, tp_size, FusedMoEParallelConfig]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L233-L237
+    symbols: [local_num_experts, global_num_experts]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L69
+    symbols: [select_experts, topk_ids, top_k]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_comm_method.py#L136-L172
+    symbols: [token_dispatch, token_combine]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_mlp.py#L461-L462
+    symbols: [unified_apply_mlp]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_comm_method.py#L55-L62
+    symbols: [setup_moe_comm_method, AllGatherCommImpl, MC2CommImpl, AlltoAllCommImpl, FusedMC2CommImpl]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L27-L31
+    symbols: [MoECommType, ALLGATHER, MC2, ALLTOALL, FUSED_MC2]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L95-L101
+    symbols: [select_moe_comm_method, moe_comm_type]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L391-L412
+    symbols: [active_expert_range, npu_moe_init_routing]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L225-L234
+    symbols: [npu_moe_distribute_dispatch_v2]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L502-L512
+    symbols: [async_all_to_all]

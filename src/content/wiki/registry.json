@@ -141,7 +141,9 @@
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
         "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16",
-        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76"
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L107-L111"
       ],
       "verified": [
         "releases/v0.23.0"
@@ -156,12 +158,12 @@
         {
           "to": "one-request",
           "kind": "builds-on",
-          "note": "那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch"
+          "note": "那条请求的每一步都跑在被 patch 改过的环境里，调用链上只有调度那一跳落在 patch/ 下面"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/ascend-patch-system.md",
       "backlinks": [
         {
@@ -1177,7 +1179,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_multiproc_executor.py#L24-L199",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
         "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
       ],
       "verified": [
         "releases/v0.23.0"
@@ -1197,7 +1201,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/engine-processes.md",
       "backlinks": [
         {
@@ -1305,6 +1309,11 @@
           "to": "enable-force-eplb-b7ec3661121f",
           "kind": "conflicts-with",
           "note": "main 上 enable_force_eplb 与 dynamic_eplb 同时开且模型是 MoE 会直接报错——前者改的是路由结果，不是摆放"
+        },
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页"
         }
       ],
       "related": [],
@@ -1312,6 +1321,109 @@
       "updated": "2026-09-21",
       "file": "concepts/eplb.md",
       "backlinks": []
+    },
+    {
+      "id": "expert-parallel",
+      "title": "Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "MoE 层按专家切开，每张卡完整持有一批专家的权重；代价是每层多一次把 token 发出去、一次把结果收回来。",
+      "aliases": [
+        "Expert Parallel",
+        "专家并行",
+        "EP",
+        "ep_size",
+        "enable_expert_parallel",
+        "MoECommType",
+        "select_moe_comm_method",
+        "FusedMoEParallelConfig",
+        "MC2 通信",
+        "token dispatch",
+        "专家切分"
+      ],
+      "chapters": [
+        "14"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/config/parallel.py#L152-L155",
+        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1073-L1082",
+        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1165-L1168",
+        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1193-L1212",
+        "vllm@0fc695fc:vllm/model_executor/layers/fused_moe/expert_map_manager.py#L62-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L937-L943",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L233-L237",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L71-L101",
+        "vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_utils.py#L73-L83",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L30-L69",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_comm_method.py#L136-L172",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_comm_method.py#L55-L62",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_mlp.py#L461-L462",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L391-L412",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L225-L234",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L502-L512",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L542-L556",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L321-L341",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L446-L457",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L27-L31",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L95-L101",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L202-L217",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L240-L252",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L255-L282",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L285-L300",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L330-L359",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L84-L96",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L25-L25",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L145-L167",
+        "https://huggingface.co/Qwen/Qwen3-30B-A3B/blob/main/config.json",
+        "vllm@568afb3a:vllm/model_executor/layers/fused_moe/config.py#L1232-L1240",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L334-L342",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L488-L495",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_forward_context.py#L291-L309",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_forward_context.py#L360-L364",
+        "vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L93-L99",
+        "vllm-ascend@b255ab59:docs/source/user_guide/support_matrix/supported_features.md#L25-L25"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "alternative-to",
+          "note": "同一批 MoE 权重的两种切法；EP 一开，FusedMoEParallelConfig 把 MoE 的 tp_size 置 1，TP 在 MoE 层里彻底让位"
+        },
+        {
+          "to": "who-owns-what",
+          "kind": "builds-on",
+          "note": "ep_size 与 expert_map 由上游 vLLM 算出来，「这一步用哪种通信」全在昇腾侧决定，这条归属线在那一页"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "四种通信方式最后都落到 torch_npu 算子上，FusedMoE 整个类被换成 AscendFusedMoE 走的是那一页的注册表"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "dispatch 要不要顺手把 token 量化成 int8、A3 上能不能走融合的 FUSED_MC2，都由这一层选出的量化类型决定"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/expert-parallel.md",
+      "backlinks": [
+        {
+          "from": "eplb",
+          "kind": "enables",
+          "note": "EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页"
+        }
+      ]
     },
     {
       "id": "fuse-allreduce-rms",
@@ -2898,7 +3010,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180",
         "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231",
-        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L146-L149",
+        "vllm@0fc695fc:vllm/config/vllm.py#L933-L1002"
       ],
       "verified": [
         "releases/v0.23.0"
@@ -2918,7 +3032,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/one-request.md",
       "backlinks": [
         {
@@ -2929,7 +3043,7 @@
         {
           "from": "ascend-patch-system",
           "kind": "enables",
-          "note": "那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch"
+          "note": "那条请求的每一步都跑在被 patch 改过的环境里，调用链上只有调度那一跳落在 patch/ 下面"
         },
         {
           "from": "attention-backend-family",
@@ -3164,6 +3278,11 @@
       "updated": "2026-09-20",
       "file": "concepts/ops-and-kernels.md",
       "backlinks": [
+        {
+          "from": "expert-parallel",
+          "kind": "enables",
+          "note": "四种通信方式最后都落到 torch_npu 算子上，FusedMoE 整个类被换成 AscendFusedMoE 走的是那一页的注册表"
+        },
         {
           "from": "op-to-ai-core",
           "kind": "enables",
@@ -4022,6 +4141,11 @@
           "from": "eplb",
           "kind": "enables",
           "note": "能不能搬取决于该量化方法有没有把每个专家的权重和 scale 拆成可按专家寻址的张量，不能拆的格式直接抛错"
+        },
+        {
+          "from": "expert-parallel",
+          "kind": "enables",
+          "note": "dispatch 要不要顺手把 token 量化成 int8、A3 上能不能走融合的 FUSED_MC2，都由这一层选出的量化类型决定"
         }
       ]
     },
@@ -4208,7 +4332,7 @@
       "title": "一次请求的调用链",
       "type": "concept",
       "origin": "seed",
-      "summary": "从 HTTP 到 token 一共七跳。前两跳在上游 vLLM，进程边界在第二跳与第三跳之间，之后全在昇腾侧。",
+      "summary": "从 HTTP 到 token 一共七跳。前两跳是上游 vLLM 的调度逻辑，进程边界在第二跳与第三跳之间，之后全在昇腾侧。",
       "aliases": [
         "调用链",
         "call chain",
@@ -4230,7 +4354,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075"
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
       ],
       "verified": [
         "releases/v0.23.0"
@@ -4255,7 +4381,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/request-call-chain.md",
       "backlinks": [
         {
@@ -4757,6 +4883,11 @@
           "note": "MoE 那几个矩阵上 EP 顶掉了 TP——EP 一开，MoE 的 tp_size 被置 1，每张卡整份拿走一批专家"
         },
         {
+          "from": "expert-parallel",
+          "kind": "alternative-to",
+          "note": "同一批 MoE 权重的两种切法；EP 一开，FusedMoEParallelConfig 把 MoE 的 tp_size 置 1，TP 在 MoE 层里彻底让位"
+        },
+        {
           "from": "pipeline-parallel",
           "kind": "alternative-to",
           "note": "同样两张卡拆同一个模型：TP 在每层里切矩阵、一层归约两次，PP 按层切段、一步只过一次 hidden"
@@ -4971,7 +5102,11 @@
         "vllm@0fc695fc:vllm/v1/engine/core.py#L474-L482",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L492",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1819"
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1819",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L146-L149",
+        "vllm@0fc695fc:vllm/config/vllm.py#L933-L1002",
+        "vllm@0fc695fc:vllm/config/vllm.py#L497-L507",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220"
       ],
       "verified": [],
       "evidence": "C",
@@ -4984,7 +5119,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-engine-core.md",
       "backlinks": [
         {
@@ -5157,7 +5292,9 @@
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L700",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995"
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
       ],
       "verified": [
         "releases/v0.23.0"
@@ -5177,7 +5314,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
         {
@@ -5275,7 +5412,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-v1-shape.md",
       "backlinks": [
         {
@@ -5404,7 +5541,9 @@
         "https://docs.vllm.ai/projects/ascend/en/latest/community/versioning_policy.html",
         "vllm@0fc695fc:vllm/platforms/interface.py#L259-L267",
         "vllm@0fc695fc:vllm/platforms/interface.py#L427-L468",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725"
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
       ],
       "verified": [
         "releases/v0.23.0"
@@ -5424,9 +5563,14 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/who-owns-what.md",
       "backlinks": [
+        {
+          "from": "expert-parallel",
+          "kind": "enables",
+          "note": "ep_size 与 expert_map 由上游 vLLM 算出来，「这一步用哪种通信」全在昇腾侧决定，这条归属线在那一页"
+        },
         {
           "from": "tensor-parallel",
           "kind": "enables",

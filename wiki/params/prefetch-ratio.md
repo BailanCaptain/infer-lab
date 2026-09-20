@@ -4,7 +4,7 @@ title: prefetch_ratio
 type: param
 summary: >-
   weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp
-  三组、五个权重分别指定"预取权重的前百分之几"；v0.23.0 存在，main 已随整个 weight prefetch 一起删除。
+  三组、五个权重分别指定「预取权重的前百分之几」；v0.23.0 维护分支上可用，main 开发主线已随整个 weight prefetch 特性一起删除，没有替代键。
 aliases:
   - 权重预取比例
   - weight prefetch ratio
@@ -28,20 +28,26 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L11-L32
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L232-L261'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369'
-  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L346'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L235-L249'
   - >-
-    vllm-ascend@28bf3a2e:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L73-L76
+    vllm-ascend@b255ab59:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L72-L75
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L709
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
 evidence: C
 relations:
   - to: weight-prefetch-config
     kind: builds-on
     note: 只有 weight_prefetch_config.enabled 为 true 时这张比例表才会被读到，比例本身不能开关特性
+  - to: ascend-config-system
+    kind: builds-on
+    note: 这个键只是 additional_config 里的一段嵌套 dict，main 上它被 extra="forbid" 拒收的机制在那一页
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -51,16 +57,20 @@ rawSources:
 
 ## 一句话
 
-`prefetch_ratio` 是 `--additional-config` 里 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套 dict，按 `attn` / `moe` / `mlp` 三组、共五个权重分别声明"把这块权重的前百分之几提前搬进 L2"；v0.23.0 的默认值是 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}` [S15]，main 上这个键连同整个 weight prefetch 特性已被移除 [C16]。
+`prefetch_ratio` 是 [weight_prefetch_config](weight-prefetch-config.md) 下的嵌套 dict，只回答一件事：**这块权重提前搬前百分之几进 L2**。按 `attn` / `moe` / `mlp` 三组共五个权重各给一个 0 到 1 的数，v0.23.0 的默认值是 `{"attn": {"qkv": 1.0, "o": 1.0}, "moe": {"gate_up": 0.8}, "mlp": {"gate_up": 1.0, "down": 1.0}}` [S15]。
+
+该碰它的人很少。这套默认值是按 Qwen3-235B-A22B-W8A8 那一档并发标定出来的，改它的前提是你的模型和并发跟标定场景差得远、而且已经抓过 profiling [S14]。更要紧的是版本：它只存在于 **v0.23.0 维护分支**，main 开发主线（`b255ab59`）把整个 weight prefetch 特性连根删掉了，这个键既没有替代品也不能照搬 [S21] [!]。
+
+[那条请求](../concepts/one-request.md)在 v0.23 上开了这个特性的话，五个比例里只有两个会被读到：Qwen3-0.6B 是稠密 bf16 模型，`attn` 那两项只认 W8A8 静态量化的线性层、写了白写，`moe` 那组压根不装载，真正起作用的是 `mlp.gate_up` 和 `mlp.down`。而且它是本页少见的「比例真的线性起作用」的情形——这两块权重单卡才 12 MiB 与 6 MiB，都没顶到 18 MiB 的天花板 [D]。
 
 ## 事实表
 
 | 项 | v0.23.0 | main | 意味着什么 |
 |---|---|---|---|
-| 是否存在 | `weight_prefetch_config.prefetch_ratio` | 不存在，且未知键硬失败 | 旧启动脚本原样搬到 main 会在配置校验阶段直接报错，不是静默忽略 [D] |
+| 是否存在 | `weight_prefetch_config.prefetch_ratio` | 不存在，未知键被 `extra="forbid"` 拒收 [C17] | 旧启动脚本原样搬到 main 一般是启动就报错，不是静默忽略 |
 | 类型 / 默认值 | dict，`{"attn":{"qkv":1.0,"o":1.0},"moe":{"gate_up":0.8},"mlp":{"gate_up":1.0,"down":1.0}}` | — | 顶层只要传了这个键就整个替换默认值，不做逐键合并 |
 | 每项取值范围 | `0 ≤ r ≤ 1`，越界项被静默丢弃 | — | 写 `1.2` 不报错，但那一项等同于没配 |
-| 某项缺失或越界时 | `.get(prefix, 0)` → 字节数 0 → `max_size <= 0` 被改写成全量 [C5] | — | 漏写一项不是"不预取"，而是 **100% 预取**，方向正好反了 [D] |
+| 某项缺失或越界时 | `.get(prefix, 0)` → 字节数 0 → `max_size <= 0` 被改写成全量 [C5] | — | 漏写一项不是「不预取」，而是 **100% 预取**，方向正好反了 [D] |
 | 整组全为 0 | 该组 `enable` 置 False，完全不预取 | — | 这是关掉某一组的唯一正确写法 |
 | 单次预取上限 | `mlp` 两项在 Python 侧截到 18 MiB [C6]；`attn`/`moe` 不截，由后端截 | — | 只要 `ratio × 单卡权重字节数 ≥ 18 MiB`，改比例看不出任何差别 [D] |
 | `attn.qkv` / `attn.o` 生效条件 | 仅 `AscendW8A8LinearMethod.apply` 内的 QKV / RowParallel 线性层 | — | 非 W8A8 静态量化的模型改这两个值完全无效 |
@@ -72,35 +82,13 @@ rawSources:
 
 权重预取的机制、触发条件与整体取舍在 [weight_prefetch_config](weight-prefetch-config.md) 那页。这里只管一件事：**搬多少**。搬得太少收益拿不满，搬得太多则与同一段 vector 计算抢 MTE 与 L2 带宽，反而更慢——所以上游加了 `prefetch_ratio`，让用户按具体负载调整这个尺寸 [S14]。
 
-比例要按权重种类分开给，是因为五个权重各自被藏在长度完全不同的 vector 窗口后面，起点也不在同一个算子里：
+比例要按权重种类分开给，是因为五个权重各自被藏在长度完全不同的 vector 窗口后面，起点也不在同一个算子里。而且写进去的那个小数，到发预取之前还要过两道手：先乘成字节数，再被 18 MiB 夹一次。
 
-```mermaid
-flowchart LR
-  R["prefetch_ratio"] --> A["attn.qkv"]
-  R --> B["attn.o"]
-  R --> C["moe.gate_up"]
-  R --> D["mlp.gate_up"]
-  R --> E["mlp.down"]
-
-  A --> AW["AscendQKVParallelLinear.weight"]
-  B --> BW["AscendRowParallelLinear.weight"]
-  C --> CW["experts.w13_weight"]
-  D --> DW["mlp.gate_up_proj.weight"]
-  E --> EW["mlp.down_proj.weight"]
-
-  AW --> AS["AscendW8A8LinearMethod.apply"]
-  BW --> AS
-  CW --> CS["experts_selector：门控 top_k 之前"]
-  DW --> DS["CustomRowParallelOp.apply：attention 的 o_proj 之后"]
-  EW --> ES["AscendSiluAndMul.forward_oot：SwiGLU 之前"]
-
-  AS --> P["torch.ops.vllm.prefetch_preprocess"]
-  CS --> P
-  DS --> P
-  ES --> P
+```wiki-diagram
+file: prefetch-ratio
 ```
 
-`attn` 组用层的类名而不是权重名来路由：`AscendQKVParallelLinear` 对应 `qkv`，`AscendRowParallelLinear` 对应 `o`。`moe.gate_up` 打到的是融合 MoE 的 `w13_weight`——本卡全部局部专家的 gate 与 up 权重栈，不是单个专家。
+`attn` 组用层的类名而不是权重名来路由：`AscendQKVParallelLinear` 对应 `qkv`，`AscendRowParallelLinear` 对应 `o` [C4]。`moe.gate_up` 打到的是融合 MoE 的 `w13_weight`——本卡全部局部专家的 gate 与 up 权重栈，不是单个专家。
 
 **`moe` 的 0.8 从哪来。** 源码与官方文档都没有给出推导，文档只说这套默认值在 Qwen3-235B-A22B-W8A8、`--max-num-seqs 144` 下表现良好，所以它是一个标定出来的经验值 [I]。机制上说得通的解释是：`moe.gate_up` 的遮蔽窗口是门控 top_k 那一小段 vector 计算，比 SwiGLU、RMSNorm 都短，而要搬的 `w13_weight` 又比任何单个稠密矩阵大几个量级，留 20% 余量可以降低预取压满带宽的风险 [I]。
 
@@ -120,7 +108,9 @@ flowchart LR
 2. **想关掉一组，要把该组所有项都写成 0。** 全 0 时 `enable` 被置 False，这一组才真正不预取；写成空 dict 或整组不写，都会回退到该组的内建默认值。
 3. **越界值不报错。** `1.2`、`-0.5` 会被静默丢出字典（上游单测锁死了这个行为），随后落进第 1 条的全量分支。
 
-**main 上的去向**：v0.23.0 的发布说明已把 weight prefetch 整体列入待废弃清单，main 上 `WeightPrefetchConfig`、`prefetch_ratio`、`ops/weight_prefetch.py` 与 `prefetch_preprocess` 算子注册均已不存在，`AscendConfig` 自述的"全部受支持键"里也没有 `weight_prefetch_config`。因为 main 把未知键改成了 `extra="forbid"` 的硬失败 [C17]，旧脚本里残留的这段 JSON 会让服务起不来——main 仓库自己的 e2e 用例和 Qwen3 稠密模型教程里都还留着这样的启动参数，迁移时要按该特性整体移除来清理，没有等价的替代开关 [!]。
+**main 上的去向：删了，没有替代开关。** v0.23.0 的发布说明先把 weight prefetch 列进待废弃清单 [S18]，随后 PR #11949 把它整体摘掉，v0.26.0rc1 的发布说明里记着这一笔 [S21]。在 `b255ab59` 上 `WeightPrefetchConfig`、`prefetch_ratio`、`ops/weight_prefetch.py` 和 `prefetch_preprocess` 的算子注册全都不在了，`AscendConfig` 自述的「全部受支持键」里也找不到 `weight_prefetch_config` [C16]。
+
+**而且 main 自己的仓库里还留着过期的启动命令**：two_card 的 Qwen3 性能 e2e 用例 [C19] 和 Qwen3 稠密模型教程 [S23] 都还写着 `"weight_prefetch_config":{"enabled":true}`。照抄它们会撞上 `extra="forbid"`，服务起不来 [!]。唯一的例外是装了 `vllm_omni` 的环境——那里未知键只打一条 warning 然后被丢掉，于是配置变成真正的静默无效 [C22]。
 
 ## 版本谱系
 

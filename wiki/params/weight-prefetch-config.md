@@ -39,16 +39,24 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74'
-  - 'vllm-ascend@28bf3a2e:vllm_ascend/ascend_config.py#L351-L369'
-  - 'vllm-ascend@28bf3a2e:docs/source/user_guide/release_notes.md#L114-L128'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L235-L249'
   - >-
-    vllm-ascend@28bf3a2e:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95
+    vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L52
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62'
+  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+  - >-
+    vllm-ascend@b255ab59:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22
+  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
 evidence: C
-relations: []
+relations:
+  - to: ascend-config-system
+    kind: builds-on
+    note: 它只是 additional_config 里的一个子配置对象；main 上被 extra="forbid" 当未知键拒收的机制在那一页
 contradicts: []
-updated: '2026-09-14'
+updated: '2026-09-20'
 rawSources:
   - >-
     raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md
@@ -58,7 +66,11 @@ rawSources:
 
 ## 一句话
 
-`weight_prefetch_config` 是 v0.23.0 的 `--additional-config` 子配置，开了之后 vllm-ascend 会在一条独立的 NPU stream 上，把下一个 linear 层的权重提前从 HBM 搬进 **L2 cache**，让这段搬运藏在当前正在跑的 vector 算子（quantize、MoE gating top_k、RMSNorm、SwiGLU）背后，从而降低 linear 计算时的 MTE 占用 [S1]。**两版行为完全分叉** [!]：v0.23.0 上它是一个可用的 `dict` 开关，默认 `{}` 即关闭；main（`28bf3a2e`）上整套 `vllm_ascend/ops/weight_prefetch.py` 与配置字段都已删除，而顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型 [C23]，所以传这个键不是被忽略，而是启动直接失败。它只有一个子键值得单独看：[prefetch_ratio](prefetch-ratio.md)。
+`weight_prefetch_config` 是 v0.23.0 的 `--additional-config` 子配置：开了之后 vllm-ascend 在一条独立的 NPU stream 上，把下一个 linear 层的权重提前从 HBM 搬进 **L2 cache**，让这段搬运藏在当前正在跑的 vector 算子（quantize、MoE gating top_k、RMSNorm、SwiGLU）背后，压低 linear 计算时的 MTE 占用 [S1]。默认 `{}`，等于关闭；该碰它的是高吞吐场景，低延迟优先的场景上游直接说别开。
+
+**两版行为完全分叉** [!]：v0.23.0 维护分支上它还能用；main 开发主线（`b255ab59`）把整套 `vllm_ascend/ops/weight_prefetch.py` 和配置字段一起删了，而顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型 [C23]，绝大多数环境下传这个键不是被忽略，是启动直接失败。它只有一个子键值得单独看：[prefetch_ratio](prefetch-ratio.md)。
+
+[那条请求](../concepts/one-request.md)在 v0.23 上至少不会被门槛挡住：Qwen3-0.6B 是稠密模型，37 token 的 prefill 和之后的每一步 decode 都满足 `num_tokens < 500`，走的是 MLP 那条路。具体搬多少字节、哪几块搬不动，下面「开了的代价」里按这条请求算了一遍。
 
 ## 事实表
 
@@ -83,7 +95,9 @@ Linear 层在昇腾上的瓶颈常常不在 Cube 而在 MTE——权重从 HBM �
 
 「藏在 vector 计算背后」这个说法在 `gate_up` 这条路径上尤其实在：它的起点判据是 `curr_layer_prefix.split(".")[-2] == "self_attn"` [C14]，也就是在 attention 的 o_proj 算完时就去取**同一层 MLP** 的 gate_up 权重，提前量接近一整个 attention 的时间。
 
-这个开关的血缘可以一直追到 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP`；v0.23.0 是它统一成 `weight_prefetch_config` 之后的形态 [I]。但同一份 v0.23.0 release notes 已经把 Weight prefetch 列进「Ready to Deprecate」，到 main 上 `vllm_ascend/ops/weight_prefetch.py` 与配置字段一起消失，**没有等价替代参数**——去向是直接下线，不是改名。需要注意别认错门：main 上的 `vllm_ascend/model_executor/offloader/prefetch.py` 是 CPU 权重卸载的预取（HBM ↔ 主机内存），和这里的 L2 预取不是一回事 [I]。
+这个开关的血缘可以一直追到 `enable_prefetch` 与环境变量 `VLLM_ASCEND_ENABLE_PREFETCH_MLP`；v0.23.0 是它统一成 `weight_prefetch_config` 之后的形态 [I]。但同一份 v0.23.0 release notes 已经把 Weight prefetch 列进「Ready to Deprecate」[S24]，PR #11949 随后把它整体摘掉，v0.26.0rc1 的发布说明里记着这一笔 [S27]。**没有等价替代参数**——去向是直接下线，不是改名。
+
+别认错门：main 上确实还有个 `vllm_ascend/model_executor/offloader/prefetch.py`，但它自己第一行就写明是「prefetch-based CPU offloading」，搬的是权重在 HBM 与主机内存之间的进出，和这里的 L2 预取不是一回事 [C29]。
 
 ## 开了的代价
 
@@ -106,7 +120,9 @@ Linear 层在昇腾上的瓶颈常常不在 Cube 而在 MTE——权重从 HBM �
 2. `prefetch_ratio` 是**整体替换**而非逐键合并；好在 `WeightPrefetchMethod` 会对缺失的模块用 `.get(..., {}) or {...}` 逐模块回填默认值 [C10]，所以只写 `{"mlp": {...}}` 实际仍然安全——但这层保护在配置对象里看不出来，别依赖它去推别的子配置。
 3. MLP `down` 的预取依赖 sequence parallel，要用就得同时开。
 
-**升级到 main 时必须动手删。** 因为 `extra="forbid"`，把 v0.23.0 的启动命令原样搬到 main 上会在配置解析阶段就失败，而不是打一条 warning 继续跑。想在 main 上要同类收益，只能走别的路子（图模式、算子融合等），这个参数本身没有对应物。
+**升级到 main 时必须动手删。** 因为 `extra="forbid"`，把 v0.23.0 的启动命令原样搬到 `b255ab59` 会在配置解析阶段就失败，而不是打一条 warning 继续跑。唯一的例外是装了 `vllm_omni` 的环境：那里未知键改成打 warning 再丢掉，于是它变成真正的静默无效——起得来但什么都没开 [C28]。
+
+**要删的不止你自己的脚本。** main 仓库里还留着两处过期示例：suffix speculative decoding 教程 [S25] 和 Qwen3 稠密模型教程 [S30]，都还写着 `weight_prefetch_config`。照抄会起不来。想在 main 上要同类收益，只能走别的路子（图模式、算子融合等），这个参数本身没有对应物。
 
 ## 版本谱系
 

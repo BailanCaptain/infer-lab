@@ -13,7 +13,7 @@ repos:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
     refs:
-      main: 28bf3a2e
+      main: b255ab59
       "releases/v0.23.0": 2c59ff10
 
 features:

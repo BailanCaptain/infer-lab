@@ -9,7 +9,7 @@ repos:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
     refs:
-      main: 28bf3a2e            # PLAN.md 事实基线，2026-08-29 核验
+      main: b255ab59            # 2026-09-20 全库页面的 main 来源统一重钉到这里（原 28bf3a2e 是 2026-08-29 的事实基线）
       "releases/v0.23.0": 2c59ff10   # 分支 tip，2026-09-09；layer_sharding 的完整形态所在分支
 
 features:

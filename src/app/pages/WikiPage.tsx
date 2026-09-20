@@ -14,7 +14,6 @@ import {
   sourceUrl,
   subscribeReader,
 } from "../../content/wiki/index";
-import { Mermaid } from "../../content/wiki/Mermaid";
 import { groupRelations } from "../../content/wiki/relations";
 import { parseRepoRef, type RegistryEntry, rawSourceHref } from "../../content/wiki/schema";
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
@@ -258,12 +257,14 @@ function Article({
           components={{
             // 图的围栏渲染成图。HANDBOOK 要求讲结构关系时必须画图，不接这一段
             // 就会以源码形式显示。在 pre 而不是 code 上拦，否则 <figure> 会落进
-            // <pre> 里。wiki-diagram 是现行载体，mermaid 是旧 18 张图的存量。
+            // <pre> 里。wiki-diagram 是唯一的图载体；存量 mermaid 已于 2026-09-20 全部迁完，渲染器随之删除。
             pre: ({ children, node }) => {
               const diagram = diagramId(node);
-              if (diagram) return <WikiDiagram id={diagram} svg={diagrams.get(diagram)} />;
-              const chart = fenceSource(node, "mermaid");
-              return chart ? <Mermaid chart={chart} /> : <pre>{children}</pre>;
+              return diagram ? (
+                <WikiDiagram id={diagram} svg={diagrams.get(diagram)} />
+              ) : (
+                <pre>{children}</pre>
+              );
             },
             // 事实表比正文列宽，不包一层会溢出到侧栏底下，把「来源」整列裁掉
             table: ({ children }) => (

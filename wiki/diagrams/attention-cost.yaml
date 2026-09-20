@@ -5,7 +5,7 @@ size: [900, 470]
 
 regions:
   - label: 存一个 token，一层要多少字节
-    note: 上面那条是那条请求走的路；下面三条是 MLA 系，代价差三倍以上。
+    note: 上面那条是那条请求走的路；下面三条是 MLA 系，代价只有它的三分之一上下。
     at: [20, 44]
     size: [860, 316]
     tone: neutral

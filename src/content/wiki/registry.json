@@ -6,7 +6,7 @@
       "title": "AscendConfig 配置系统",
       "type": "feature",
       "origin": "seed",
-      "summary": "--additional-config 的那段 JSON 由 AscendConfig 按键拆成十来个子配置对象，存成进程内单例；环境变量走另一条路。",
+      "summary": "--additional-config 的那段 JSON 由 AscendConfig 按键拆成八个子配置对象，存成进程内单例；环境变量走另一条路。",
       "aliases": [
         "AscendConfig",
         "additional_config",
@@ -24,12 +24,14 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L50",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L524-L530",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L598-L604",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L680-L690",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L662-L723",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L913-L930",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L475",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L90-L126",
-        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L21-L105"
+        "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L21-L113",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L763-L840",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L337-L346"
       ],
       "evidence": "C",
       "relations": [
@@ -46,7 +48,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/ascend-config-system.md",
       "backlinks": [
         {
@@ -111,10 +113,12 @@
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L151-L221",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L75-L131",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L20-L40",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L57",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
-        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16",
+        "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76"
       ],
       "evidence": "C",
       "relations": [
@@ -131,7 +135,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/ascend-patch-system.md",
       "backlinks": [
         {
@@ -156,7 +160,7 @@
       "title": "注意力后端家族",
       "type": "feature",
       "origin": "seed",
-      "summary": "attention/ 下五个后端类，按 (use_mla, use_sparse, use_compress) 三元组查表选出；普通后端的 KV 形状是五维，MLA 系是四维。",
+      "summary": "attention/ 下五个后端类，其中四个按 (use_mla, use_sparse, use_compress) 三元组查表选出，FA3 那个靠显式指定；普通后端的 KV 形状是五维，MLA 系是四维。",
       "aliases": [
         "AscendAttentionBackend",
         "AscendMLABackend",
@@ -175,9 +179,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L844-L870",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L106",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L165",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L217",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L118",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L177",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L228",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14"
       ],
       "evidence": "C",
@@ -200,7 +204,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/attention-backend-family.md",
       "backlinks": [
         {
@@ -251,7 +255,10 @@
         "vllm-ascend@2c59ff10:tests/ut/attention/a2/test_mla_cp.py#L269-L272",
         "vllm-ascend@2c59ff10:tests/ut/worker/a2/test_model_runner_v1.py#L338-L342",
         "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L160-L211",
-        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L255-L353"
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L255-L353",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4987-L4999",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841"
       ],
       "evidence": "C",
       "relations": [
@@ -763,12 +770,14 @@
       "sources": [
         "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35",
         "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L57-L68",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L75-L110",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_multiproc_executor.py#L24-L199",
-        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20"
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
+        "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48"
       ],
       "evidence": "C",
       "relations": [
@@ -785,7 +794,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/engine-processes.md",
       "backlinks": [
         {
@@ -960,10 +969,12 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L892-L897",
         "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L55-L64",
         "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L65-L85",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L680-L690",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L1-L14",
-        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30",
+        "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36"
       ],
       "evidence": "S",
       "relations": [
@@ -980,7 +991,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/graph-mode-layer.md",
       "backlinks": [
         {
@@ -2059,7 +2070,7 @@
       "title": "NPUModelRunner 怎么读",
       "type": "feature",
       "origin": "seed",
-      "summary": "5251 行的单文件，继承上游 GPUModelRunner。按九个区读，不要从头读；每个区对应一个可以单独进入的方法。",
+      "summary": "5251 行的单文件，继承上游 GPUModelRunner。按十个区读，不要从头读；其中七个区各对应一个可以单独进入的方法。",
       "aliases": [
         "NPUModelRunner",
         "model_runner_v1",
@@ -2078,7 +2089,7 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3375",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3383",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523"
@@ -2098,7 +2109,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/npu-model-runner.md",
       "backlinks": [
         {
@@ -2151,7 +2162,7 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L361-L449",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L882",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L896",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332"
       ],
@@ -2170,7 +2181,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/npu-platform.md",
       "backlinks": [
         {
@@ -2207,10 +2218,10 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L101-L130",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L535",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L553",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L558-L595",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L692",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L704",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41"
       ],
@@ -2280,7 +2291,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L116-L118",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236"
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231"
       ],
       "evidence": "C",
       "relations": [
@@ -2451,7 +2463,7 @@
       "order": 20,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207",
+        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L130-L207",
         "vllm@0fc695fc:vllm/model_executor/custom_op.py#L186-L196",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432",
@@ -2460,7 +2472,10 @@
         "vllm-ascend@2c59ff10:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L12-L40",
         "vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L215",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14",
-        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L142-L234",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L36-L51",
+        "vllm-ascend@2c59ff10:setup.py#L458-L464"
       ],
       "evidence": "C",
       "relations": [
@@ -2477,7 +2492,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/op-to-ai-core.md",
       "backlinks": []
     },
@@ -2505,7 +2520,7 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L54",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L403-L415",
-        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L762",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L65-L126",
         "vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14",
@@ -2526,7 +2541,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/ops-and-kernels.md",
       "backlinks": [
         {
@@ -2886,7 +2901,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/platform-plugin-registration.md",
       "backlinks": [
         {
@@ -3139,13 +3154,15 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/npu_input_batch.py#L33-L40",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L12-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L1-L95",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L108-L130",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L305-L318",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L323-L432",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196",
-        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283",
+        "vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164"
       ],
       "evidence": "C",
       "relations": [
@@ -3288,7 +3305,7 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L50",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L43",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
@@ -3427,13 +3444,15 @@
       "order": 10,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L640",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L675",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L678-L680",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112"
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075"
       ],
       "evidence": "C",
       "relations": [
@@ -3455,7 +3474,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/request-call-chain.md",
       "backlinks": [
         {
@@ -3940,7 +3959,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/vllm-ascend-overview.md",
       "backlinks": [
         {
@@ -4023,10 +4042,11 @@
         "vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1250",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L341-L350",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L819-L841",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L474-L482",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L492",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335"
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1819"
       ],
       "evidence": "C",
       "relations": [
@@ -4038,7 +4058,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/vllm-engine-core.md",
       "backlinks": [
         {
@@ -4080,8 +4100,9 @@
         "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L444",
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L360",
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L172",
-        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L218",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144"
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L226",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441"
       ],
       "evidence": "C",
       "relations": [
@@ -4093,7 +4114,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/vllm-kv-block-allocation.md",
       "backlinks": [
         {
@@ -4123,7 +4144,7 @@
       "title": "Platform：上游留给硬件的那张问卷",
       "type": "concept",
       "origin": "seed",
-      "summary": "上游把「凡是跟硬件有关的事」收成一个 Platform 类，88 个口子，全仓 873 处在问它。昇腾插件要做的就是把这张问卷答上。",
+      "summary": "上游把「凡是跟硬件有关的事」收成一个 Platform 类，78 个口子，`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。",
       "aliases": [
         "Platform",
         "current_platform",
@@ -4139,13 +4160,13 @@
       "prerequisites": [],
       "sources": [
         "vllm@0fc695fc:vllm/platforms/interface.py#L105-L140",
-        "vllm@0fc695fc:vllm/platforms/interface.py#L428-L434",
+        "vllm@0fc695fc:vllm/platforms/interface.py#L428-L441",
         "vllm@0fc695fc:vllm/platforms/interface.py#L458-L462",
         "vllm@0fc695fc:vllm/platforms/interface.py#L259-L266",
-        "vllm@0fc695fc:vllm/platforms/__init__.py#L212-L232",
+        "vllm@0fc695fc:vllm/platforms/__init__.py#L203-L232",
         "vllm@0fc695fc:vllm/platforms/__init__.py#L233-L252",
         "vllm@0fc695fc:vllm/config/vllm.py#L1330-L1338",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2316-L2335",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335",
         "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650"
       ],
       "evidence": "C",
@@ -4158,7 +4179,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/vllm-platform-interface.md",
       "backlinks": []
     },
@@ -4189,9 +4210,11 @@
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L479-L487",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L564-L570",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L870-L876",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L42-L63",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2316-L2335",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281"
+        "vllm@0fc695fc:vllm/config/scheduler.py#L42-L90",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L700",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995"
       ],
       "evidence": "C",
       "relations": [
@@ -4208,7 +4231,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
         {
@@ -4264,12 +4287,14 @@
         "vllm@0fc695fc:vllm/v1/engine/core.py#L403-L472",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231",
         "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L582",
-        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L625-L650",
         "vllm@0fc695fc:vllm/v1/worker/worker_base.py#L114-L158",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346",
         "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L115",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269",
-        "vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227"
+        "vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
       ],
       "evidence": "C",
       "relations": [
@@ -4403,7 +4428,10 @@
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L610-L626",
         "vllm-ascend@2c59ff10:docs/source/community/versioning_policy.md#L1-L3",
         "vllm-ascend@2c59ff10:docs/source/community/versioning_policy.md#L119-L126",
-        "https://docs.vllm.ai/projects/ascend/en/latest/community/versioning_policy.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/community/versioning_policy.html",
+        "vllm@0fc695fc:vllm/platforms/interface.py#L259-L267",
+        "vllm@0fc695fc:vllm/platforms/interface.py#L427-L468",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725"
       ],
       "evidence": "C",
       "relations": [
@@ -4420,7 +4448,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-20",
       "file": "concepts/who-owns-what.md",
       "backlinks": [
         {

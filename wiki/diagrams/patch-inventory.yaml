@@ -16,7 +16,7 @@ strips:
   - { at: [60, 272], cells: 7, cell: 24, gap: 4, tone: muted, label: "patch/worker/patch_v2/ · 配合实验性的 v2 model runner" }
 
 notes:
-  - { at: [20, 366], text: "两个 __init__.py 按 is_310p()、vllm_version_is()、HAS_TRITON 分支 import——没被 import 的文件等于没打。所以上面这些格子不是「都在生效」，是「都可能生效」。", size: 12.5, width: 860 }
+  - { at: [20, 366], text: "两个 __init__.py 按 is_310p()、vllm_version_is()、HAS_TRITON、DYNAMIC_EPLB 这类条件 import——没被 import 的文件等于没打。所以上面这些格子不是「都在生效」，是「都可能生效」。", size: 12.5, width: 860 }
   - { at: [20, 404], text: "数量本身不是结论：清单里每条都写了 Related PR 与 Future Plan，相当一部分在等上游合 PR 之后删掉。要判断质量得看那两栏。", size: 12.5, width: 860 }
 
 pins:

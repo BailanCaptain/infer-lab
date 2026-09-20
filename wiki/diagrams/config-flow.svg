@@ -11,8 +11,8 @@
   <text x="52" y="151.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">上游只是原样存着</text>
   <text x="52" y="169.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">VllmConfig.additional_config，一个 dict</text>
   <rect x="36" y="192" width="388" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">AscendConfig 按键拆成十来个子配置</text>
-  <text x="52" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">xlite_graph_config、eplb_config 等十来个</text>
+  <text x="52" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">AscendConfig 按键拆成八个子配置</text>
+  <text x="52" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">xlite_graph_config、eplb_config 等八个</text>
   <text x="52" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">ascend_config.py</text>
   <rect x="36" y="264" width="388" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
   <text x="52" y="287.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">全仓用 get_ascend_config() 取</text>

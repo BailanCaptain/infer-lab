@@ -2,7 +2,7 @@
 id: attention-backend-family
 title: 注意力后端家族
 type: feature
-summary: attention/ 下五个后端类，按 (use_mla, use_sparse, use_compress) 三元组查表选出；普通后端的 KV 形状是五维，MLA 系是四维。
+summary: attention/ 下五个后端类，其中四个按 (use_mla, use_sparse, use_compress) 三元组查表选出，FA3 那个靠显式指定；普通后端的 KV 形状是五维，MLA 系是四维。
 aliases: [AscendAttentionBackend, AscendMLABackend, AscendSFABackend, AscendDSABackend, AscendFABackend, get_attn_backend_cls, 注意力后端]
 chapters: ["04"]
 order: 10
@@ -10,9 +10,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L844-L870
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L106
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L165
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L217
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L118
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L177
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L228
   - vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14
 evidence: "C"
 relations:
@@ -26,13 +26,13 @@ relations:
     kind: builds-on
     note: 那条请求走最左边那个后端，它的 KV 形状是五维的，算显存要乘 2
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
 ## 一句话
 
-`vllm_ascend/attention/` 下有五个后端类，都继承上游 `AttentionBackend`。选哪一个由 `NPUPlatform.get_attn_backend_cls` 在启动时查表定下 [C1]，后端自己不参与选择。
+`vllm_ascend/attention/` 下有五个后端类，都继承上游 `AttentionBackend`。选哪一个由 `NPUPlatform.get_attn_backend_cls` 在启动时查表定下 [C1]，后端自己不参与选择。这个函数实际能返回六个类路径：多出来的那个是 310p 专用的 `AscendAttentionBackend310`，它在 `_310p/` 下，不在 `attention/` 里 [C1]。
 
 ```wiki-diagram
 file: attention-backend-choice
@@ -72,11 +72,11 @@ return backend_map[(attn_selector_config.use_mla, attn_selector_config.use_spars
 | `AscendDSABackend` | `(True, False, True)` | DSA |
 | `AscendFABackend` | 不走三元组，显式选 + 校验 | FA3 路径 |
 
-三元组取值与五个类路径都来自主表那一段 [C1]。主表只有这四项，所以 `(False, True, *)` 这类组合会直接 `KeyError`，不是回落到默认后端 [D]。
+三元组取值与前四个类路径来自主表那一段，`AscendFABackend` 的类路径写在主表上面的 FA3 分支里 [C1]。主表只有这四项，所以 `(False, True, *)` 这类组合会直接 `KeyError`，不是回落到默认后端 [D]。
 
 ## 同一个后端里还会按并行度换实现
 
-`get_impl_cls` 不是固定返回一个类。MLA 在 `enable_cp()` 为真时返回 `AscendMlaCPImpl` [C4]，SFA 在 `enable_sfa_dcp_replicated_indexer()` 为真时返回 `AscendSFADCPImpl` [C5]，DSA 在 `enable_dsa_cp()` 为真时返回 `AscendDSACPImpl` [C6]。所以「后端类」和「实际跑的 impl 类」是两层，排查算子行为要看第二层 [D]。
+`get_impl_cls` 不是固定返回一个类。那条请求走的普通后端也会换：`enable_cp()` 为真时返回 `AscendAttentionCPImpl` [C3]。MLA 在 `enable_cp()` 为真时返回 `AscendMlaCPImpl` [C4]，SFA 在 `enable_sfa_dcp_replicated_indexer()` 为真时返回 `AscendSFADCPImpl` [C5]，DSA 在 `enable_dsa_cp()` 为真时返回 `AscendDSACPImpl` [C6]。所以「后端类」和「实际跑的 impl 类」是两层，排查算子行为要看第二层 [D]。
 
 ## 常见误解
 

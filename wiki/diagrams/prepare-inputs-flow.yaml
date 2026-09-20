@@ -22,7 +22,7 @@ boxes:
   - { at: [596, 152], size: [268, 38], title: "positions   (1,)  值是 128", tone: ascend }
   - { at: [596, 196], size: [268, 38], title: "slot_mapping   (1,)", tone: ascend }
 
-  - { at: [336, 96], size: [238, 118], title: _prepare_inputs, sub: "第 862 行起，共 802 行", fn: Triton kernel 算槽位, tone: accent, icon: calc }
+  - { at: [336, 96], size: [238, 118], title: _prepare_inputs, sub: "第 862 行起，共 514 行", fn: Triton kernel 算槽位, tone: accent, icon: calc }
 
 arrows:
   - { from: [308, 155], to: [332, 155], tone: upstream }

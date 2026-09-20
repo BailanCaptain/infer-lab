@@ -1,6 +1,6 @@
 layout: scene
 id: model-runner-layout
-caption: model_runner_v1.py 的 5251 行按真实行号切开：_prepare_inputs 一个方法占了近六分之一
+caption: model_runner_v1.py 的 5251 行按真实行号切开：_prepare_inputs 领头的那一区占了近六分之一
 size: [900, 480]
 
 regions:

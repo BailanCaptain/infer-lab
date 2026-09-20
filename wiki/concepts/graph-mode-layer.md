@@ -12,10 +12,12 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L892-L897
   - vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L55-L64
   - vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L65-L85
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L680-L690
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L1-L14
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html
+  - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30
+  - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36
 evidence: "S"
 relations:
   - to: npu-model-runner
@@ -25,7 +27,7 @@ relations:
     kind: builds-on
     note: 那条请求的 199 步 decode 形状一样，回放的是同一张图——图模式的收益几乎全在这里
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -77,11 +79,11 @@ ACL Graph 的设计文档开门见山：ACL Graph 是 vLLM 静态图执行在昇
 
 `compile_or_warm_up_model` 里的逻辑 [C6]：先从 `compilation_config` 取 `compile_sizes` 与 `cudagraph_capture_sizes`；`cudagraph_mode` 不是 `NONE` 时，把已在捕获列表里的尺寸从 warmup 列表中剔除，避免重复；再按 compile range 补齐区间端点，保证每个区间至少有一个尺寸被编译或 warmup。
 
-最外层的条件是 `if not self.model_config.enforce_eager` [C6]——**`enforce_eager` 为真时整段跳过**。这是排查图模式问题最快的一刀：开 `enforce_eager` 如果问题消失，范围就锁在这一层 [A]。
+这段里有两处 `if not self.model_config.enforce_eager`：**为真时，上面那段尺寸裁剪和函数末尾那句 `capture_model()` 都跳过**；但 `compile_sizes` 里的尺寸照样逐个 `_dummy_run` 一遍，那个循环在 `if` 外面 [C6]。这是排查图模式问题最快的一刀：开 `enforce_eager` 如果问题消失，范围就锁在这一层 [A]。
 
 ## `xlite/` 是另一条路
 
-`xlite/` 有 5 个文件 1227 行，里面是 `xlite_worker.py` 与 `xlite_model_runner.py`——它平行于主干的 worker 与 runner [D]。开关是 `additional_config` 里的 `xlite_graph_config`，对应 `XliteGraphConfig` 类 [C7]。第一遍读可以跳过，但要知道它存在，否则看到两套 runner 会困惑。
+`xlite/` 有 5 个文件 1227 行，分量在 `xlite.py`（747 行）和 `utils.py`（395 行）；`xlite_worker.py` 与 `xlite_model_runner.py` 各只有几十行，是 `NPUWorker` 和 `NPUModelRunner` 的薄子类，不是另起一套 [C10][C11]。开关是 `additional_config` 里的 `xlite_graph_config`，对应 `XliteGraphConfig` 类 [C7]。第一遍读可以跳过，但要知道它存在，否则看到两套 runner 会困惑。
 
 ## 常见误解
 

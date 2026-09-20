@@ -19,6 +19,9 @@ sources:
   - vllm-ascend@2c59ff10:tests/ut/worker/a2/test_model_runner_v1.py#L338-L342
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L160-L211
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L255-L353
+  - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4987-L4999
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
 evidence: "C"
 relations:
   - to: attention-backend-family
@@ -47,7 +50,7 @@ file: attention-cost
 
 [那条请求](one-request.md)走的是图上**最长的那一条**。
 
-Qwen3-0.6B 是普通 GQA 模型，三个布尔量全是 `False`，查表查到 `AscendAttentionBackend` [C1]。它每个 token 每层要 4096 字节，28 层合起来 112 KiB [D]——这个数在全库反复出现，源头就在这条最长的条上。
+Qwen3-0.6B 是普通 GQA 模型，三个布尔量全是 `False`，查表查到 `AscendAttentionBackend` [C15]。它每个 token 每层要 4096 字节，28 层合起来 112 KiB [D]——这个数在全库反复出现，源头就在这条最长的条上。
 
 **它是四条里最贵的。** 同样 237 个 token，换成一个 MLA 模型，每层的 KV 会少掉七成以上 [D]。
 
@@ -80,7 +83,7 @@ return 2 * self.block_size * self.num_kv_heads * self.head_size * get_dtype_size
 
 不在压缩率，在**存的东西换了**。
 
-MLA 构造 KV spec 时传的是 `num_kv_heads=1`、`head_size = sum(sparse_head_dim)` [C8]——也就是说，不管模型有多少个注意力头，**KV 里只存一份**，长度是 `kv_lora_rank + qk_rope_head_dim`。
+昇腾只有在开了稀疏时才自己重算 spec，传 `num_kv_heads=1`、`head_size = sum(sparse_head_dim)` [C8]；不开稀疏的 MLA 层是照搬上游 `MLAAttention` 给的那一份，`num_kv_heads` 同样写死成 1 [C13][C14]——也就是说，不管模型有多少个注意力头，**KV 里只存一份**，长度是 `kv_lora_rank + qk_rope_head_dim`。
 
 - `kv_lora_rank = 512`：那份压缩过的潜向量，算注意力时再展开成每个头要的 K 和 V；
 - `qk_rope_head_dim = 64`：旋转位置编码那一段，它没法压进潜向量，只能原样存着。
@@ -119,5 +122,5 @@ SFA 和 DSA 在 MLA 的基础上多存一份东西：**indexer 的 key**。
 
 - **「MLA 是把 KV 压缩了」**——它存的是另一种东西（潜向量），不是把 K 和 V 压小。所以没有"压缩率"可谈，只有维度对比 [C2][C8]。
 - **「稀疏注意力省显存」**——它的 KV 占用反而**比 MLA 多** [D]。它省的是读取量，不是存储量。
-- **「四个后端的形状只是 head_size 不同」**——差一整个维度：普通后端五维，MLA 系四维 [C1][C2]，字节数差三倍半 [D]。
-- **「C8 能把 KV 砍一半」**——它只动 indexer 那一段，整体降约 9% [D]。
+- **「四个后端的形状只是 head_size 不同」**——差一整个维度：普通后端五维，MLA 系四维 [C1][C2]，字节数差三倍半。
+- **「C8 能把 KV 砍一半」**——它只动 indexer 那一段，整体降约 9%。

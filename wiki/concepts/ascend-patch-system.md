@@ -12,10 +12,12 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L151-L221
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L75-L131
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L20-L40
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L57
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16
+  - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76
 evidence: "C"
 relations:
   - to: npu-platform
@@ -25,7 +27,7 @@ relations:
     kind: builds-on
     note: 那条请求的每一步都跑在被 patch 改过的环境里，但它的调用链里一次都不会出现 patch
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -41,7 +43,7 @@ file: patch-timing
 
 那条请求跑完 200 步，**一次都不会看见 patch 这个词**。它在 `vllm_ascend/patch/` 下面没有任何一行代码。
 
-但它能跑起来，是因为这些替换在它到达之前就已经生效了。一个能查证的例子：`patch/platform/patch_multiproc_executor.py` 把子进程的 `daemon` 从 `True` 改成 `False`——而那条请求的 Worker 进程，正是被这个改过的执行器拉起来的。
+但它能跑起来，是因为这些替换在它到达之前就已经生效了。一个能查证的例子：`patch/platform/patch_torch_accelerator.py` 是无条件 import 的 [C6]，import 的那一刻就把 `torch.accelerator.empty_cache`、`memory_stats`、`memory_reserved`、`reset_peak_memory_stats` 全指到了 `torch.npu.*` [C10]——那条请求所在的进程里，上游代码调的 `torch.accelerator.memory_stats()` 早就不是 torch 原来那个了。
 
 这就是 patch 最难查的地方：**它不出现在任何一条调用链里**。排查时只能反过来——怀疑某个上游行为不对劲，就去 `patch/` 下搜那个类名或函数名。搜到了，说明你手上那份上游文档在昇腾上不作数。
 
@@ -54,6 +56,8 @@ file: patch-timing
 - `platform`：worker 启动**之前**生效，由 `NPUPlatform.pre_register_and_update()` 里的 `adapt_patch(is_global_patch=True)` 调起 [C4]。
 - `worker`：worker 启动**时**生效，由每个 worker 的 `__init__` 里的 `adapt_patch()` 调起 [C5]。
 
+`pre_register_and_update()` 不是 platform 那一侧唯一的调用点：`vllm_ascend/__init__.py` 里的 `_ensure_global_patch()` 也会调 `adapt_patch(is_global_patch=True)`，给的是 engine-core 子进程——它只加载 general plugin；四个 plugin 入口里 `register_connector`、`register_model_loader`、`register_service_profiling` 三个调了它，`register_model` 没调，模块级的 `_GLOBAL_PATCH_APPLIED` 保证同一进程只打一次 [C11]。
+
 在 `NPUWorker.__init__` 里，`adapt_patch()` 是注释 `# register patch for vllm` 之后的第一件实质工作，排在注册算子、解 AscendConfig、调 `super().__init__()` 之前 [C5]。顺序有意义：后面那些步骤会用到被 patch 过的上游行为。
 
 ## 生效方式是 import，所以顺序等于打补丁顺序
@@ -61,7 +65,8 @@ file: patch-timing
 两个子目录的 `__init__.py` 就是开关。`patch/platform/__init__.py` 里是一串 `import vllm_ascend.patch.platform.patch_xxx  # noqa`，而且带条件 [C6]：
 
 - `is_310p()` 为真导入 `patch_mamba_config_310`，否则导入 `patch_mamba_config`；
-- `vllm_version_is("0.23.0")` 为真时才多导入 5 个，其中包括 `patch_shm_broadcast`。
+- `vllm_version_is("0.23.0")` 为真时才多导入 5 个，其中包括 `patch_shm_broadcast`；为假时另导入 `patch_fused_moe`、`patch_dp_device_ids`；
+- `patch_multiproc_executor` 更严：环境变量 `DYNAMIC_EPLB` 或 `EXPERT_MAP_RECORD` 打开才导入，默认情况下这个文件等于没打。
 
 `patch/worker/__init__.py` 同样按 `is_310p()`、`vllm_version_is`、`HAS_TRITON` 分支导入 [C7]。所以「某个 patch 到底有没有生效」不能只看文件存在，要看这两个 `__init__.py` 在当前环境下走了哪条分支。
 
@@ -94,6 +99,6 @@ file: patch-inventory
 
 ## 常见误解
 
-- **「patch 目录里的文件都在生效」**——不一定。两个 `__init__.py` 按 `is_310p()`、`vllm_version_is()`、`HAS_TRITON` 分支导入，没被 import 的文件等于没打 [C6][C7]。
+- **「patch 目录里的文件都在生效」**——不一定。两个 `__init__.py` 按 `is_310p()`、`vllm_version_is()`、`HAS_TRITON`，以及 `DYNAMIC_EPLB` 这类环境变量分支导入，没被 import 的文件等于没打 [C6][C7]。
 - **「platform 与 worker 的区别是改的对象不同」**——区别是**时机**，不是对象类型。同名的 `patch_distributed.py` 和 `patch_fused_moe.py` 在两个目录下都存在 [D]，因为同一类对象在两个时机都需要处理。
 - **「patch 越少越好，所以数量多说明质量差」**——清单里每条都写了 Related PR 与 Future Plan [C1]，相当一部分是在等上游合 PR。判断质量要看那两栏，不是看总数。

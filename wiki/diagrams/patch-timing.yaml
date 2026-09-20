@@ -23,7 +23,7 @@ arrows:
   - { from: [500, 108], to: [670, 156], via: [[500, 130], [670, 130]], tone: ascend }
 
 bands:
-  - { label: 谁调它, sub: "NPUPlatform.pre_register_and_update()", at: [36, 246], size: [388, 50], tone: upstream }
+  - { label: 谁调它, sub: "pre_register_and_update / plugin 入口", at: [36, 246], size: [388, 50], tone: upstream }
   - { label: import 哪个包, sub: "from vllm_ascend.patch import platform", at: [36, 304], size: [388, 50], tone: upstream }
   - { label: 改的是什么, sub: 调度器、执行器这些 worker 之外的上游对象, at: [36, 362], size: [388, 50], tone: upstream }
 

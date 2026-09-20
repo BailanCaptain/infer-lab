@@ -10,7 +10,7 @@
   <rect x="36" y="246" width="388" height="50" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="246" width="5" height="50" rx="2.5" fill="var(--color-control, #5b6763)"/>
   <text x="58" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">谁调它</text>
-  <text x="58" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">NPUPlatform.pre_register_and_update()</text>
+  <text x="58" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">pre_register_and_update / plugin 入口</text>
   <rect x="36" y="304" width="388" height="50" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="304" width="5" height="50" rx="2.5" fill="var(--color-control, #5b6763)"/>
   <text x="58" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">import 哪个包</text>

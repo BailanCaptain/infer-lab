@@ -3,7 +3,7 @@
   <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="860" height="372" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="36" y="54" width="197.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">按行数排一遍就知道该读哪里</text>
-  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">深色三条是主干；读懂它们就能跟完一次请求。最长那条是「其余 16 个目录」加起来。</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">深色三条是主干；读懂它们就能跟完一次请求。最长那条是其余 16 个目录连同根下 13 个 .py 加起来。</text>
   <rect x="214" y="112" width="183.4" height="22" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
   <rect x="214" y="150" width="186.5" height="22" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
   <rect x="214" y="188" width="297.4" height="22" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
@@ -26,7 +26,7 @@
   <text x="307.3" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">6578 行 · 27 个文件 · 开量化时</text>
   <text x="204" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">_310p/</text>
   <text x="310.6" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">6838 行 · 49 个文件 · 只在 310P 上跑时</text>
-  <text x="204" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">其余 16 个目录</text>
+  <text x="204" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">其余 16 个目录加根文件</text>
   <text x="642" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">33012 行 · 119 个文件 · 按需</text>
   <text x="20" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">文件多不等于重要：ops/ 文件最多但读请求路径时它是被动的一层；worker/ 文件只有它的三分之一，却是主干。</text>
   <text x="20" y="462" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个例外要记住：core/ 不是核心推理逻辑，是接上游调度与 KV 管理的接缝；model_executor/ 只有 3 个文件 263 行，比名字小得多。</text>

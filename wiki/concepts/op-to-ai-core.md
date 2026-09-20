@@ -7,7 +7,7 @@ aliases: [算子链路, RMSNorm, AscendRMSNorm, AscendC, op_kernel, op_host, til
 chapters: ["16"]
 order: 20
 sources:
-  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207
+  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L130-L207
   - vllm@0fc695fc:vllm/model_executor/custom_op.py#L186-L196
   - vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432
@@ -17,6 +17,9 @@ sources:
   - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L215
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html
+  - vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L142-L234
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L36-L51
+  - vllm-ascend@2c59ff10:setup.py#L458-L464
 evidence: "C"
 relations:
   - to: ops-and-kernels
@@ -26,7 +29,7 @@ relations:
     kind: builds-on
     note: 走的是那条请求每一步都要跑 56 次的那个算子，次数和收益都按它算
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -40,7 +43,7 @@ file: op-to-ai-core
 
 ## 那条请求走到这里
 
-[那条请求](one-request.md)每一步 forward 要跑 28 层，每层两次 RMSNorm（注意力前一次、MLP 前一次）——**一步 56 次，200 步 11200 次** [A]。
+[那条请求](one-request.md)每一步 forward 要跑 28 层，每层有两次 RMSNorm 走带残差的那条路（注意力前一次、MLP 前一次）——**一步 56 次，200 步 11200 次** [A]。（Qwen3 每层另有 `q_norm`、`k_norm` 两次 RMSNorm，输入里没有残差，走的是不经过下面那个 `if` 的另一条分支 [C11]。）
 
 这个数字是读这一页的理由。单看一次调用，"少走一趟逐元素加法"听起来不值一提；乘以 11200 就不是了。**算子这一层的所有取舍都要乘以这个量级**，这也是为什么会有人愿意为一个 norm 去写一份 AscendC 核函数。
 
@@ -93,7 +96,7 @@ def forward_oot(self, x, residual=None):
 
 这就是"什么时候值得下到 `csrc/`"这个问题的标准答案形态：**当你能把两次显存往返合成一次的时候。** 不是"自己写的更快"，是"少走一趟"。
 
-顺带解释了 `register_dummy_fusion_op` 为什么存在——上游有些路径会直接引用融合算子，占位层先让它们有东西可调，真实现由这一层或图融合 pass 补上 [C5]。
+顺带解释了 `register_dummy_fusion_op` 为什么存在——它把 `rms_norm`、`fused_add_rms_norm` 等八个融合算子的名字挂到 `torch.ops._C_ascend` 上，挂上去的是只有 `name` 和 `default = None` 的 `dummyFusionOp`，不是能算的实现 [C12]；上游按名字取这些属性的代码因此不会在查找上报错 [I]。
 
 ## enable_custom_op 什么时候会悄悄变成假
 
@@ -105,9 +108,9 @@ def forward_oot(self, x, residual=None):
 
 前两条的后果很实际：**同一份代码在不同机器上会走不同的分支，而且不报错、只是慢一点** [D]。压测对不上时值得先打一行日志确认它返回的是真还是假 [A]。
 
-## 第三层：csrc 下一个算子是四个文件
+## 第三层：csrc 下一个算子是四类文件
 
-`csrc/moe/add_rms_norm_bias/` 这一个算子的目录里是固定的四类文件：
+`csrc/moe/add_rms_norm_bias/` 这一个算子的目录里有十几个文件（CMakeLists、tiling 头、几份 kernel 模板头），撑起它的是固定的四类：
 
 | 文件 | 在哪儿跑 | 干什么 |
 |---|---|---|
@@ -127,9 +130,10 @@ constexpr uint32_t UB_USED = 1024;
 constexpr uint32_t UB_FACTOR_B16 = 12288;
 constexpr uint32_t UB_FACTOR_B32 = 10240;
 constexpr uint32_t UB_FACTOR_B16_CUTD = 12096;
+constexpr uint32_t UB_FACTOR_B32_CUTD = 9696;
 ```
 
-`UB` 是 Unified Buffer，AI Core 上那块片上缓存。**这些数字就是"一趟最多搬多少个元素"的上限**，16 位类型能塞 12288 个、32 位只能塞 10240 个——位宽一变，一趟能处理的量就变了，所以要分开写。带 `CUTD` 的那两个是"一行放不下、要沿 D 轴切开"时的上限，比不切还小一点，因为切开之后要多留一些临时空间。
+`UB` 是 Unified Buffer，AI Core 上那块片上缓存。**这几个 `UB_FACTOR_*` 就是"一趟最多搬多少个元素"的上限**，16 位类型能塞 12288 个、32 位只能塞 10240 个——位宽一变，一趟能处理的量就变了，所以要分开写。带 `CUTD` 的那两个是"一行放不下、要沿 D 轴切开"时的上限，比不切还小一点，因为切开之后要多留一些临时空间。
 
 kernel 那一侧据此分派 [C6]：
 
@@ -161,7 +165,7 @@ extern "C" __global__ __aicore__ void add_rms_norm_bias(...)
 2. 语义对但要少走一趟显存 → 才考虑 `csrc/`；
 3. CANN 已经有的 → 直接调，不要重写。
 
-**这一层的门槛不在写 kernel，在构建**：`COMPILE_CUSTOM_KERNELS` 关掉时这一层根本不编，而没有自定义 kernel，大多数场景下 vllm-ascend 无法正常工作 [C5]。
+**这一层的门槛不在写 kernel，在构建**：`COMPILE_CUSTOM_KERNELS` 关掉时 `setup.py` 连这个 CMake 扩展都不挂上去 [C13]，而没有自定义 kernel，大多数场景下 vllm-ascend 无法正常工作 [C5]。
 
 ## 常见误解
 

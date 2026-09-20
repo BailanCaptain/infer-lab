@@ -16,6 +16,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_multiproc_executor.py#L24-L199
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
   - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48
 evidence: "C"
 relations:
   - to: ascend-patch-system
@@ -61,7 +62,7 @@ file: engine-processes
 
 ## 一个进程模型影响代码的具体例子
 
-`patch/platform/patch_multiproc_executor.py` 里定义了 `AscendMultiprocExecutor(MultiprocExecutor)`，在第 199 行把子进程的 `daemon` 设成 `False` [C7]。原因写在 patch 清单里：vLLM 用 `daemon=True` 创建子进程，而 EPLB 场景需要再起一个进程，`daemon=True` 的进程不允许这么做 [C3]。
+`patch/platform/patch_multiproc_executor.py` 里定义了 `AscendMultiprocExecutor(MultiprocExecutor)`，在第 199 行把子进程的 `daemon` 设成 `False` [C7]。原因写在 patch 清单里：vLLM 用 `daemon=True` 创建子进程，而 EPLB 场景需要再起一个进程，`daemon=True` 的进程不允许这么做 [C3]。所以这个 patch 也只在设了 `DYNAMIC_EPLB` 或 `EXPERT_MAP_RECORD` 环境变量时才导入 [C10]——那条默认请求的 Worker 仍然是上游执行器按 `daemon=True` 拉起来的。
 
 这条能说明两件事 [D]。一是进程模型不是背景知识，它直接决定了要打哪些 patch。二是这类 patch 归在 `platform` 而不是 `worker`——因为 executor 是在 worker 存在之前就要建好的。
 

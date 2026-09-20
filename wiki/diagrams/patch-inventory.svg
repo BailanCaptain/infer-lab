@@ -66,7 +66,7 @@
   <rect x="200" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
   <rect x="228" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
   <text x="60" y="314" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">patch/worker/patch_v2/ · 配合实验性的 v2 model runner</text>
-  <text x="20" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个 __init__.py 按 is_310p()、vllm_version_is()、HAS_TRITON 分支 import——没被 import 的文件等于没打。所以上面这些格子不是「都在生效</text>
-  <text x="20" y="384.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">」，是「都可能生效」。</text>
+  <text x="20" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个 __init__.py 按 is_310p()、vllm_version_is()、HAS_TRITON、DYNAMIC_EPLB 这类条件 import——没被 import 的文件等于没打。所以上面这些</text>
+  <text x="20" y="384.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">格子不是「都在生效」，是「都可能生效」。</text>
   <text x="20" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">数量本身不是结论：清单里每条都写了 Related PR 与 Future Plan，相当一部分在等上游合 PR 之后删掉。要判断质量得看那两栏。</text>
 </svg>

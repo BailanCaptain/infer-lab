@@ -2,7 +2,7 @@
 id: npu-model-runner
 title: NPUModelRunner 怎么读
 type: feature
-summary: 5251 行的单文件，继承上游 GPUModelRunner。按九个区读，不要从头读；每个区对应一个可以单独进入的方法。
+summary: 5251 行的单文件，继承上游 GPUModelRunner。按十个区读，不要从头读；其中七个区各对应一个可以单独进入的方法。
 aliases: [NPUModelRunner, model_runner_v1, model_runner_v1.py, execute_model]
 chapters: ["09"]
 order: 30
@@ -13,7 +13,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3375
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3383
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523
@@ -26,13 +26,13 @@ relations:
     kind: builds-on
     note: 那条请求的一步只走过这个文件里的四段，其余都是启动期或另一条路径
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
 ## 一句话
 
-`vllm_ascend/worker/model_runner_v1.py` 在 v0.23 分支上有 5251 行 [D]，是全仓最大的单文件。它只定义一个主类 `NPUModelRunner`，而且**继承的是上游的 `GPUModelRunner`** [C2]——这条继承关系是读这个文件的前提：文件里没有的方法不是缺失，是沿用上游 [D]。
+`vllm_ascend/worker/model_runner_v1.py` 在 v0.23 分支上有 5251 行 [D]，是全仓最大的单文件。它只定义一个主类 `NPUModelRunner`（另外两个 `GraphCaptureContext`、`ExecuteModelState` 只是装数据的小结构 [C1]），而且**继承的是上游的 `GPUModelRunner`** [C2]——这条继承关系是读这个文件的前提：文件里没有的方法不是缺失，是沿用上游 [D]。
 
 ```wiki-diagram
 file: model-runner-layout
@@ -53,9 +53,9 @@ file: model-runner-layout
 
 这就是这个文件的正确读法：**不要问「这个文件在干什么」，要问「我关心的那一步走过哪几段」**——前一个问题在 5251 行面前没有答案 [A]。
 
-## 九个区，从哪儿进都行
+## 十个区，从哪儿进都行
 
-上图是按行号切的九个区。实际使用时不要从第 1 行往下读，而是先决定你要改什么行为，再直接跳进对应的区 [A]：
+上图是按行号切的十个区。实际使用时不要从第 1 行往下读，而是先决定你要改什么行为，再直接跳进对应的区 [A]：
 
 | 你想做的事 | 进哪个方法 |
 |---|---|
@@ -67,7 +67,7 @@ file: model-runner-layout
 | 改 KV 张量怎么分配 | `initialize_kv_cache` / `initialize_kv_cache_tensors`（第 3843 行起）[C8] |
 | 改每层每块的 KV 形状声明 | `get_kv_cache_spec`（第 4909 行）[C9] |
 
-`_prepare_inputs` 一个方法从 862 行到 1663 行，占全文件近六分之一 [D]。它是这个文件里最值得先读的一段，内容单独成页：[prepare_inputs 数据流](prepare-inputs-flow.md)。
+`_prepare_inputs` 这个方法本身从 862 行排到 1375 行；图上那一区一直到 1663 行，后面接的是几个同样为准备输入服务的辅助方法，合起来占全文件近六分之一 [D]。它是这个文件里最值得先读的一段，内容单独成页：[prepare_inputs 数据流](prepare-inputs-flow.md)。
 
 ## 构造函数里有两条能省很多时间的注释
 

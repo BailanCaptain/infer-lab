@@ -14,7 +14,7 @@ arrows:
 
 notes:
   - { at: [20, 424], text: "判断顺序自上而下：能在 ops/ 里用现成 torch_npu 算子拼出来的，就不要下到 csrc/——后者要过完整 CMake 构建，而 COMPILE_CUSTOM_KERNELS 关掉时这一层根本不编。", size: 12.5, width: 860 }
-  - { at: [20, 462], text: "register_dummy_fusion_op 往 torch.ops._C_ascend 上挂了 9 个占位融合算子，让上游引用融合算子的代码路径有东西可调。看到 dummyFusionOp 不是没写完。", size: 12.5, width: 860 }
+  - { at: [20, 462], text: "register_dummy_fusion_op 往 torch.ops._C_ascend 上挂了 8 个占位算子，让上游引用融合算子的代码路径有东西可调。看到 dummyFusionOp 不是没写完。", size: 12.5, width: 860 }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L415

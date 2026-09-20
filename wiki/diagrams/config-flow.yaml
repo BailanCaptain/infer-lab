@@ -17,7 +17,7 @@ regions:
 
 boxes:
   - { at: [36, 128], size: [388, 54], title: 上游只是原样存着, sub: "VllmConfig.additional_config，一个 dict", tone: upstream }
-  - { at: [36, 192], size: [388, 62], title: AscendConfig 按键拆成十来个子配置, sub: "xlite_graph_config、eplb_config 等十来个", fn: ascend_config.py, tone: ascend }
+  - { at: [36, 192], size: [388, 62], title: AscendConfig 按键拆成八个子配置, sub: "xlite_graph_config、eplb_config 等八个", fn: ascend_config.py, tone: ascend }
   - { at: [36, 264], size: [388, 54], title: 全仓用 get_ascend_config() 取, sub: 没初始化就抛 RuntimeError, tone: ascend }
   - { at: [36, 328], size: [388, 38], title: "NPUPlatform.check_and_update_config 还能改它、拦它", tone: accent }
 
@@ -31,5 +31,5 @@ notes:
   - { at: [20, 452], text: "get_ascend_config() 抛的那条 RuntimeError 说的是时机不对，不是内容不对：这段代码跑在 init_ascend_config 之前。", size: 12.5, width: 860 }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L52-L53
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L33
     symbols: [AscendConfig]

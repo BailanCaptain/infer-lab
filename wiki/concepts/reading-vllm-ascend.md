@@ -10,7 +10,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L50
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L43
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98

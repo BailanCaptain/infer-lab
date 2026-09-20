@@ -18,7 +18,7 @@ regions:
 boxes:
   - { at: [36, 130], size: [368, 62], title: 取 compile_sizes 与 cudagraph_capture_sizes, sub: 已在捕获列表里的尺寸从 warmup 列表剔掉, tone: neutral }
   - { at: [36, 204], size: [368, 62], title: 逐个尺寸跑 _dummy_run 并录下来, sub: 每个 compile range 至少保一个尺寸, tone: neutral }
-  - { at: [36, 278], size: [368, 54], title: "enforce_eager 为真时整段跳过", tone: accent, icon: bolt }
+  - { at: [36, 278], size: [368, 54], title: "enforce_eager 为真时跳过捕获", tone: accent, icon: bolt }
 
   - { at: [496, 130], size: [368, 62], title: 从 forward context 拿 mode 与 batch_descriptor, sub: "docstring 的原话是「无条件信任它们」", tone: ascend }
   - { at: [496, 204], size: [368, 62], title: mode 不匹配就直接调原函数, sub: 分派决策不在这个类里, tone: ascend }
@@ -33,7 +33,7 @@ notes:
   - { at: [20, 460], text: "排查这一层最快的一刀：开 enforce_eager。问题消失，范围就锁在这里。", size: 12.5, width: 860 }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L348
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L176-L182
     symbols: [get_compile_backend]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L349-L360
+  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L892-L897
     symbols: [get_static_graph_wrapper_cls]

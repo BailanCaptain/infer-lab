@@ -10,10 +10,10 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L101-L130
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L535
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L553
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L558-L595
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L692
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L716
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L704
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41
 evidence: "C"
@@ -62,7 +62,7 @@ file: worker-lifecycle
 
 **五、`initialize_from_config(kv_cache_config)`。** 先 `ensure_kv_transfer_initialized`，再按 sleep mode 选 `tag="kv_cache"` 的内存池，然后调 `self.model_runner.initialize_kv_cache(kv_cache_config)` 真正分配张量 [C8]。
 
-**六、`compile_or_warm_up_model`。** 从 `compilation_config` 取 `compile_sizes` 与 `cudagraph_capture_sizes`，把已经要捕获的尺寸从 warmup 列表里剔掉，再按 compile range 补齐端点 [C7]。`enforce_eager` 为真时整段跳过 [C7]。
+**六、`compile_or_warm_up_model`。** 从 `compilation_config` 取 `compile_sizes` 与 `cudagraph_capture_sizes`，把已经要捕获的尺寸从 warmup 列表里剔掉，再按 compile range 补齐端点 [C7]。`enforce_eager` 为真时跳过的是这些剔除/补齐和最后的 `capture_model()`，`compile_sizes` 里的 warmup 仍然照跑 [C7]。
 
 ## 顺序为什么不能换
 
@@ -82,10 +82,10 @@ file: worker-lifecycle
 - 挂在第一步 → patch 或算子注册问题，去 `patch/` 与 `ops/`；
 - 挂在第二步 → 设备可见性（`ASCEND_RT_VISIBLE_DEVICES`）或 workspace；
 - 挂在第四步且提示可用显存反而变大 → 那条断言被触发了，profile 没有正常占住显存 [C5]；
-- 挂在第六步 → 图捕获，先试 `enforce_eager` 把整段跳过来确认范围 [C7]。
+- 挂在第六步 → 图捕获，先试 `enforce_eager` 把捕图那段跳过来确认范围 [C7]。
 
 ## 常见误解
 
 - **「`init_device` 只是选卡」**——model runner 也是在这里造的 [C3]；在它之前 `self.model_runner` 还不存在 [D]。
-- **「KV Cache 大小由启动参数直接决定」**——参数只给上限意图，实际字节数是第四步减出来的 [C5]。配了 `kv_cache_memory_bytes` 也仍然会跑 `profile_run()`，源码注释写明那是为了编译模型 [C5]。
+- **「KV Cache 大小由启动参数直接决定」**——参数只给上限意图，实际字节数是第四步减出来的 [C5]。配了 `kv_cache_memory_bytes` 会走快路径：跳过整段测算、直接把这个值返回，但 `profile_run()` 照跑，源码注释写明那是为了编译模型 [C4]。
 - **「sleep mode 只影响运行时」**——它在第三步和第五步分别决定权重与 KV Cache 进哪个内存池 [C6][C8]，是启动期就分叉的。

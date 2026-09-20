@@ -10,7 +10,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L54
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L403-L415
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L762
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L65-L126
   - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14
@@ -24,7 +24,7 @@ relations:
     kind: builds-on
     note: 那条请求每层碰到的三个算子都停在 torch_npu 那一层，没下到 csrc/
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -52,11 +52,11 @@ file: ops-layers
 
 注册动作在 `register_ascend_customop(vllm_config)`，它用的是上游 `vllm.model_executor.custom_op.CustomOp` 机制，并带 `_ASCEND_CUSTOMOP_IS_REIGISTERED` 全局量做幂等 [C4]。docstring 还给了一条约定：如果注册分支需要模型类型，要用 `vllm.config.get_current_vllm_config`，并保证在 model config 初始化之后执行 [C4]。
 
-这一步在 `NPUWorker.__init__` 里调，紧跟在注册 ATB 扩展之后 [C5]。所以**算子替换和 patch 是两套不同的机制**：算子走上游留的 CustomOp 口子，patch 是上游没留口子时才用。
+这一步在 `NPUWorker.__init__` 里调，紧跟在注册 ATB 扩展之后——而 ATB 那一步只在非 A5 的卡上做 [C5]。所以**算子替换和 patch 是两套不同的机制**：算子走上游留的 CustomOp 口子，patch 是上游没留口子时才用。
 
 ## `register_dummy_fusion_op` 是个占位层
 
-`ops/__init__.py` 里还有一个 `register_dummy_fusion_op()`，它往 `torch.ops._C_ascend` 上挂了 9 个 `dummyFusionOp`：`rms_norm`、`fused_add_rms_norm`、三个 fp8 量化、以及四个 rms_norm 与量化的融合算子 [C2]。
+`ops/__init__.py` 里还有一个 `register_dummy_fusion_op()`，它往 `torch.ops._C_ascend` 上挂了 8 个 `dummyFusionOp`：`rms_norm`、`fused_add_rms_norm`、三个 fp8 量化、以及三个 rms_norm 与量化的融合算子 [C2]。
 
 它也在 `NPUWorker.__init__` 里被调，而且排在 `register_ascend_customop` 之前 [C5]。作用是让上游那些引用了融合算子的代码路径有东西可调——真实融合实现要么由图融合 pass 替换，要么走别的路径。看到 `dummyFusionOp` 不要以为是未完成的代码。
 

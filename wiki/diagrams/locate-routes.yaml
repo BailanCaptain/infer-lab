@@ -38,5 +38,5 @@ notes:
   - { at: [20, 450], text: "grep 一个类名可能命中三处：patch 里的替换、子类、以及 _310p/ 里的专用副本。三者含义完全不同，先确认自己在看哪一套。", size: 12.5, width: 860 }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L704-L720
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944
     symbols: [get_ascend_config]

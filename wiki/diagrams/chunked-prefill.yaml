@@ -1,0 +1,121 @@
+layout: scene
+id: chunked-prefill
+caption: 5000 个 token 的 prompt 被 2048 的预算条切成三步；每一步 Q 只有本步的新 token，KV 却是块表指着的全长前文
+size: [900, 752]
+
+regions:
+  - label: "上游 vLLM：5000 个 token 的 prompt 被 2048 的预算条切成三步"
+    note: 调度器不知道「chunk」是什么。它只对每条请求做一道减法，减不完就下一步接着减——切块是这道减法的余数。
+    at: [20, 26]
+    size: [860, 300]
+    tone: upstream
+  - label: "算子这一步看到的：Q 只有新 token，KV 是块表指着的全长前文"
+    note: "以第 2 步为例：进 forward 的是 2048 个新 token，注意力要读的却是 4096 个 token 的 KV。"
+    at: [20, 360]
+    size: [860, 250]
+    tone: ascend
+
+bands:
+  - label: 第 1 步 · num_new_tokens = 2048
+    sub: num_computed_tokens 0 → 2048，预算条一滴不剩
+    at: [40, 104]
+    size: [820, 62]
+    tone: upstream
+  - label: 第 2 步 · num_new_tokens = 2048
+    sub: 2048 → 4096，这一步还是只剩它，别人插不进来
+    at: [40, 174]
+    size: [820, 62]
+    tone: upstream
+  - label: 第 3 步 · num_new_tokens = 904
+    sub: 4096 → 5000，剩下 1144 个名额才轮得到别的请求
+    at: [40, 244]
+    size: [820, 62]
+    tone: upstream
+
+strips:
+  - { at: [420, 123], cells: 1, cell: 400, h: 24, tone: muted }
+  - { at: [420, 123], cells: 1, cell: 400, h: 24, highlight: 0, overlay: true, tone: accent }
+  - { at: [420, 193], cells: 1, cell: 400, h: 24, tone: muted }
+  - { at: [420, 193], cells: 1, cell: 400, h: 24, highlight: 0, overlay: true, tone: accent }
+  - { at: [420, 263], cells: 1, cell: 400, h: 24, tone: muted }
+  - { at: [420, 263], cells: 1, cell: 176.6, h: 24, highlight: 0, overlay: true, tone: accent }
+  - at: [599, 263]
+    cells: 1
+    cell: 221
+    h: 24
+    highlight: 0
+    overlay: true
+    tone: neutral
+    label: 1144 个名额空着，或者塞别人的 decode
+  - at: [42, 466]
+    cells: 16
+    cell: 22
+    gap: 3
+    h: 26
+    tone: upstream
+    label: 上一步算完、已写进 KV 的 16 块
+  - at: [442, 466]
+    cells: 16
+    cell: 22
+    gap: 3
+    h: 26
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    tone: accent
+    label: 这一步进 forward 的 16 块 = 2048 个 token
+
+boundaries:
+  - at: 344
+    from: 20
+    to: 880
+    vertical: false
+    label: 跨进程：这一步算哪 2048 个 token，过了这条线已成定局
+
+brackets:
+  - { at: [42, 460], span: 797, dir: up, label: "注意力拿到的 KV 长度 = 4096，块表给出 32 个块号", tone: neutral }
+  - { at: [442, 518], span: 397, dir: down, label: "这一步的 Q 长度 = 2048", tone: accent }
+
+boxes:
+  - at: [20, 626]
+    size: [272, 62]
+    title: 落到 ChunkedPrefill
+    sub: 不全为 0，也不全是 1
+    fn: _build_attn_state
+    tone: ascend
+    icon: split
+  - at: [314, 626]
+    size: [272, 62]
+    title: 块表整张交给算子
+    sub: KV 按全长读，不切片
+    fn: _get_fia_params
+    tone: ascend
+    icon: grid
+  - at: [608, 626]
+    size: [272, 62]
+    title: 块大小被顶成 128
+    sub: --block-size 写了也不算
+    fn: refresh_block_size
+    tone: ascend
+    icon: gear
+
+notes:
+  - at: [42, 578]
+    text: 两步之间 KV 不回头重写：positions_np 从 num_computed_tokens 起接着排，槽位由它查块表算出；2048 是 128 的整数倍，所以第 2 块 chunk 正好从第 17 个块的第 0 格开始。
+    size: 12.5
+    width: 816
+  - at: [20, 712]
+    text: 切开的代价全落在被切的那条请求自己身上：它要多等两次 forward 才出第一个字。换来的是每一步的 token 数被 2048 钉住，正在 decode 的请求不必为一次 5000 token 的 prefill 停一整步。
+    size: 12.5
+    width: 860
+    strong: true
+
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L410
+    symbols: [num_new_tokens, num_computed_tokens, long_prefill_token_threshold, token_budget]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1497
+    symbols: [_build_attn_state, ChunkedPrefill, enable_chunked_prefill]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1174-L1232
+    symbols: [_get_fia_params, block_tables, seq_lens_list, actual_seq_lengths_q]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916
+    symbols: [positions_np, num_computed_tokens_cpu]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406
+    symbols: [refresh_block_size, enable_chunked_prefill]

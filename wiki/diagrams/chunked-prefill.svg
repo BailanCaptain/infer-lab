@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 752" width="900" height="752" role="img" aria-label="5000 个 token 的 prompt 被 2048 的预算条切成三步；每一步 Q 只有本步的新 token，KV 却是块表指着的全长前文">
+  <title>5000 个 token 的 prompt 被 2048 的预算条切成三步；每一步 Q 只有本步的新 token，KV 却是块表指着的全长前文</title>
+  <rect width="900" height="752" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="300" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="446.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM：5000 个 token 的 prompt 被 2048 的预算条切成三步</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">调度器不知道「chunk」是什么。它只对每条请求做一道减法，减不完就下一步接着减——切块是这道减法的余数。</text>
+  <rect x="20" y="360" width="860" height="250" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="374" width="415.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="392.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">算子这一步看到的：Q 只有新 token，KV 是块表指着的全长前文</text>
+  <text x="38" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">以第 2 步为例：进 forward 的是 2048 个新 token，注意力要读的却是 4096 个 token 的 KV。</text>
+  <rect x="40" y="104" width="820" height="62" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="40" y="104" width="5" height="62" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <text x="62" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步 · num_new_tokens = 2048</text>
+  <text x="62" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">num_computed_tokens 0 → 2048，预算条一滴不剩</text>
+  <rect x="40" y="174" width="820" height="62" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="40" y="174" width="5" height="62" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <text x="62" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第 2 步 · num_new_tokens = 2048</text>
+  <text x="62" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">2048 → 4096，这一步还是只剩它，别人插不进来</text>
+  <rect x="40" y="244" width="820" height="62" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="40" y="244" width="5" height="62" rx="2.5" fill="var(--color-control, #5b6763)"/>
+  <text x="62" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第 3 步 · num_new_tokens = 904</text>
+  <text x="62" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">4096 → 5000，剩下 1144 个名额才轮得到别的请求</text>
+  <line x1="20" y1="344" x2="880" y2="344" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">跨进程：这一步算哪 2048 个 token，过了这条线已成定局</text>
+  <rect x="420" y="123" width="400" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="420" y="123" width="400" height="24" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="420" y="193" width="400" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="420" y="193" width="400" height="24" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="420" y="263" width="400" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="420" y="263" width="176.6" height="24" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="599" y="263" width="221" height="24" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="599" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1144 个名额空着，或者塞别人的 decode</text>
+  <rect x="42" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="67" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="92" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="117" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="142" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="167" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="192" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="217" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="242" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="267" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="292" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="317" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="342" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="367" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="392" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="417" y="466" width="22" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <text x="42" y="510" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">上一步算完、已写进 KV 的 16 块</text>
+  <rect x="442" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="467" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="492" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="517" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="542" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="567" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="592" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="617" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="642" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="667" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="692" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="717" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="742" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="767" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="792" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="817" y="466" width="22" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <text x="442" y="510" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这一步进 forward 的 16 块 = 2048 个 token</text>
+  <rect x="20" y="626" width="272" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="32" y="641" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(38.4 647.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="72" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">落到 ChunkedPrefill</text>
+  <text x="72" y="663" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不全为 0，也不全是 1</text>
+  <text x="72" y="680" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_build_attn_state</text>
+  <rect x="314" y="626" width="272" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="326" y="641" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(332.4 647.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
+  <text x="366" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">块表整张交给算子</text>
+  <text x="366" y="663" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">KV 按全长读，不切片</text>
+  <text x="366" y="680" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_get_fia_params</text>
+  <rect x="608" y="626" width="272" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="620" y="641" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(626.4 647.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
+  <text x="660" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">块大小被顶成 128</text>
+  <text x="660" y="663" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">--block-size 写了也不算</text>
+  <text x="660" y="680" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">refresh_block_size</text>
+  <path d="M42 460 l0 -9 L839 451 l0 9" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
+  <text x="440.5" y="443" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)" text-anchor="middle">注意力拿到的 KV 长度 = 4096，块表给出 32 个块号</text>
+  <path d="M442 518 l0 9 L839 527 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
+  <text x="640.5" y="545" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">这一步的 Q 长度 = 2048</text>
+  <text x="42" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两步之间 KV 不回头重写：positions_np 从 num_computed_tokens 起接着排，槽位由它查块表算出；2048 是 128 的整数倍，所以第 2 块 </text>
+  <text x="42" y="596.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">chunk 正好从第 17 个块的第 0 格开始。</text>
+  <text x="20" y="712" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">切开的代价全落在被切的那条请求自己身上：它要多等两次 forward 才出第一个字。换来的是每一步的 token 数被 2048 钉住，正在 decode 的请求不必</text>
+  <text x="20" y="730.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">为一次 5000 token 的 prefill 停一整步。</text>
+</svg>

@@ -3,7 +3,7 @@ id: vllm-scheduler
 title: 调度器：没有 prefill 和 decode 之分
 type: concept
 summary: 调度器只做一道减法——每条请求还差多少 token 没算——再拿 token 预算去填。prefill 和 decode 是这道减法的两个结果，不是两条代码路径。
-aliases: [调度器, Scheduler, schedule, token 预算, max_num_batched_tokens, chunked prefill, 调度一步]
+aliases: [调度器, Scheduler, schedule, token 预算, max_num_batched_tokens, 调度一步]
 chapters: ["12"]
 order: 10
 sources:

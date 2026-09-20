@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 91 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 93 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -54,9 +54,11 @@
 - [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md) — 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；调度器只拿得到一个整数，搬数据的那一侧直接读写 HBM 原始地址。 `11`
 - [Large-Scale EP：一个 DP rank 一个 server，负载均衡搬到 vLLM 外面](concepts/large-scale-ep.md) — 几十上百张卡跑一个 MoE 模型时的部署形态——每个 DP rank 自己起一个完整的 API server 进程，rank 之间怎么分请求由 vLLM 外面的 proxy 决定，P 和 D 各用一套并行配置。 `14`
 - [LoRA 适配器：一份基座权重，按槽号给每一行加不同的小矩阵](concepts/lora.md) — 基座权重只装一份，一个适配器只是两个秩 r 的小矩阵；不同请求挂不同适配器，靠每 token 一个槽号拼在同一个 batch 里一次算完。 `17`
+- [Mooncake 连接器：真正把 KV 从 P 搬到 D 的那半个零件](concepts/mooncake-connector.md) — 上游把 KV 连接器切成调度侧与 worker 侧两半，昇腾在这个接口下写了三套 Mooncake 实现，差别在谁发起搬运、什么时候发起。 `18`
 - [NPUModelRunner 怎么读](concepts/npu-model-runner.md) — 5251 行的单文件，继承上游 GPUModelRunner。按十个区读，不要从头读；其中七个区各对应一个可以单独进入的方法。 `09`
 - [NPUPlatform](concepts/npu-platform.md) — 继承上游 Platform 的那个类。vLLM 一切硬件相关的问题都问它，它还会在启动时真的改写用户给的配置。 `10`
 - [NPUWorker 启动时序](concepts/npu-worker-lifecycle.md) — 从建对象到能接请求，六步固定顺序：打 patch、选卡建 runner、装权重、profile 出显存预算、分配 KV 张量、编译与捕获图。 `10`
+- [编译期图融合：ACL Graph 捕获之前，FX 图上先少掉一批算子](concepts/npugraph-ex.md) — 图模式之上还有一层——把 Dynamo 交来的 FX 图先做 pattern 替换，把 RMSNorm、RoPE、量化这些背靠背的小算子并成一个；npugraph_ex 是接这活的外部后端，static kernel 与 super kernel 是它上面的两级加码。 `16`
 - [算子层与自定义算子](concepts/ops-and-kernels.md) — ops/ 用 CustomOp 注册把上游算子换成昇腾实现；再往下是 torch_npu，最底下是 csrc/ 编出来的自定义 aclnn 算子，绑在 torch.ops._C_ascend 上。 `16`
 - [PagedAttention：分块是布局，那个算子默认不跑](concepts/paged-attention.md) — 昇腾把每层 KV 切成 128 token 的定长块，算子拿块表跳着读。但叫 _npu_paged_attention 的那个算子默认永远不执行——默认按块读 KV 的是 FIA。 `11`
 - [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md) — 把 prefill 和 decode 拆到两批实例上跑，P 节点算完整段 prompt 的 KV 就结束请求，D 节点把这些块整块拉过去再逐 token 生成。 `18`
@@ -169,6 +171,7 @@
 - [CPU 绑核：每个 Worker 钉死一段核，而且是 warmup 之后才钉](concepts/cpu-binding.md)
 - [Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉](concepts/flash-attention-3.md)
 - [图模式层](concepts/graph-mode-layer.md)
+- [编译期图融合：ACL Graph 捕获之前，FX 图上先少掉一批算子](concepts/npugraph-ex.md)
 - [一个算子从 Python 走到 AI Core](concepts/op-to-ai-core.md)
 - [算子层与自定义算子](concepts/ops-and-kernels.md)
 
@@ -181,6 +184,7 @@
 
 ### 18 PD / EPD 分离与 KV 传输
 - [EPD 分离：把视觉编码器也拆成一类实例](concepts/epd-disaggregation.md)
+- [Mooncake 连接器：真正把 KV 从 P 搬到 D 的那半个零件](concepts/mooncake-connector.md)
 - [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md)
 - [RecomputeScheduler：D 节点抢不到块，就把请求退回 P 节点](concepts/recompute-scheduler.md)
 

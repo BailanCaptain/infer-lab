@@ -127,6 +127,11 @@
           "from": "lora",
           "kind": "enables",
           "note": "批描述符上多带一位 has_lora 参与图的分桶，带 LoRA 的批和不带的批不能共用一张捕获好的图"
+        },
+        {
+          "from": "npugraph-ex",
+          "kind": "enables",
+          "note": "npugraph_ex 开不开由 cudagraph_mode 决定，而模式怎么选、尺寸怎么垫在那一页"
         }
       ]
     },
@@ -2840,6 +2845,11 @@
           "note": "ACLGraphWrapper 的四步、两个平台接入点、enforce_eager 只跳捕获不跳 warmup 都在那一页，这里只讲用法和行为"
         },
         {
+          "from": "npugraph-ex",
+          "kind": "enables",
+          "note": "这一层挂在 get_compile_backend 与 pass_key 两个平台接入点上，AscendCompiler 这个类本身在那一页"
+        },
+        {
           "from": "paged-attention",
           "kind": "enables",
           "note": "PA 的硬门槛是 cudagraph_mode 必须为 FULL_DECODE_ONLY，两个算子唯一的实质分叉也只在图捕获里"
@@ -3158,6 +3168,11 @@
           "from": "kv-cache-sparse-offload",
           "kind": "alternative-to",
           "note": "同一份官方文档把两者配成一对——P 节点整层搬、D 节点只搬 top-k，因为两阶段的算力/搬运比完全不同"
+        },
+        {
+          "from": "mooncake-connector",
+          "kind": "alternative-to",
+          "note": "同样是按层搬 KV，那边搬进大家共用的 KV 池、按块哈希复用，这边点对点推给指定的那一个 D"
         }
       ]
     },
@@ -4124,6 +4139,105 @@
       ]
     },
     {
+      "id": "mooncake-connector",
+      "title": "Mooncake 连接器：真正把 KV 从 P 搬到 D 的那半个零件",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "上游把 KV 连接器切成调度侧与 worker 侧两半，昇腾在这个接口下写了三套 Mooncake 实现，差别在谁发起搬运、什么时候发起。",
+      "aliases": [
+        "Mooncake 连接器",
+        "Mooncake Connector",
+        "KV Connector",
+        "KV 连接器",
+        "MooncakeConnector",
+        "MooncakeLayerwiseConnector",
+        "MooncakeHybridConnector",
+        "MooncakeConnectorV2",
+        "MooncakePullConnector",
+        "KVConnectorBase_V1",
+        "KVConnectorRole",
+        "kv_transfer_config",
+        "kv_connector_extra_config",
+        "Mooncake TransferEngine",
+        "逐层推 KV"
+      ],
+      "chapters": [
+        "18"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L7-L24",
+        "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L26-L40",
+        "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L124-L130",
+        "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L453-L458",
+        "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L542-L561",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1508-L1522",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1580-L1592",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L29-L55",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L89-L93",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L49-L59",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L247-L260",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L20",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L47-L54",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L962-L969",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L936-L982",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1808-L1837",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L494-L527",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1359-L1398",
+        "vllm@0fc695fc:vllm/config/kv_transfer.py#L26-L61",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2066-L2086",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2029-L2038",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L809-L812",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1163-L1169",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L603-L607",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1551-L1558",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1632-L1639",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2057-L2062",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L213-L237",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1762-L1782",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1522-L1530",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/utils/mooncake_transfer_engine.py#L24-L29",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/utils/utils.py#L428-L445",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/utils/utils.py#L55-L61",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L221-L242",
+        "vllm@0fc695fc:vllm/envs.py#L222-L222",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L101-L101",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L186-L197",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2464-L2472"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "为什么要把 P 和 D 拆开、那条请求在 1P1D 上的完整走法都在那一页，这一页只拆开负责搬运的那个零件"
+        },
+        {
+          "to": "vllm-kv-block-allocation",
+          "kind": "builds-on",
+          "note": "连接器自己不分块，它只在上游把块分完之后拿到块号，再把块号翻成 HBM 地址"
+        },
+        {
+          "to": "kv-cache-layerwise-offload",
+          "kind": "alternative-to",
+          "note": "同样是按层搬 KV，那边搬进大家共用的 KV 池、按块哈希复用，这边点对点推给指定的那一个 D"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/mooncake-connector.md",
+      "backlinks": []
+    },
+    {
       "id": "multistream-overlap-gate",
       "title": "multistream_overlap_gate",
       "type": "param",
@@ -4423,6 +4537,111 @@
           "note": "这条链路每一跳都假定 worker 已经走完六步启动，KV 张量和图都就位了"
         }
       ]
+    },
+    {
+      "id": "npugraph-ex",
+      "title": "编译期图融合：ACL Graph 捕获之前，FX 图上先少掉一批算子",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "图模式之上还有一层——把 Dynamo 交来的 FX 图先做 pattern 替换，把 RMSNorm、RoPE、量化这些背靠背的小算子并成一个；npugraph_ex 是接这活的外部后端，static kernel 与 super kernel 是它上面的两级加码。",
+      "aliases": [
+        "编译期图融合",
+        "图融合 pass",
+        "GraphFusionPassManager",
+        "ascend_compilation_config",
+        "enable_npugraph_ex",
+        "enable_static_kernel",
+        "enable_super_kernel",
+        "static kernel",
+        "super kernel",
+        "fuse_qknorm_rope",
+        "fuse_norm_quant",
+        "fuse_muls_add"
+      ],
+      "chapters": [
+        "16"
+      ],
+      "order": 50,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L282-L301",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L149-L223",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L110-L146",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L88-L108",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L71-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L79",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/base_pattern.py#L41-L63",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/base_pattern.py#L9-L12",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L52-L102",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L192-L226",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L296-L321",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L684-L731",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L658-L676",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/muls_add_pass.py#L54-L94",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L659",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L589-L643",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L158-L173",
+        "vllm@0fc695fc:vllm/compilation/backends.py#L946-L966",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L150-L159",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L82-L88",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/rotary_embedding.py#L248-L250",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/npugraph_ex.md#L5-L11",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/npugraph_ex.md#L17-L26",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L26-L45",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/graph_mode.md#L178-L184",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L133-L142",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/graph_mode.html",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/npugraph_ex.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/compiler_interface.py#L122-L135",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L37-L47",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L240-L245",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L122-L127",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L104-L160",
+        "vllm-ascend@b255ab59:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73",
+        "vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L137-L158",
+        "vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L195-L216",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L61-L90"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "graph-mode-layer",
+          "kind": "builds-on",
+          "note": "这一层挂在 get_compile_backend 与 pass_key 两个平台接入点上，AscendCompiler 这个类本身在那一页"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "npugraph_ex 开不开由 cudagraph_mode 决定，而模式怎么选、尺寸怎么垫在那一页"
+        },
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "融合的落点是 torch.ops.npu / torch.ops.vllm 上的那些算子，注册机制在那一页"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "fuse_norm_quant 只在量化模型上有东西可匹配，哪一层是 W8A8、哪一层是 W4A4 由那一页的 quant_description 决定"
+        },
+        {
+          "to": "sequence-parallel",
+          "kind": "builds-on",
+          "note": "v0.23 与 v0.26 上 SP 的两个 pass 和这几条融合 pass 挂在同一个 manager 里，按列表顺序改同一张图"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/npugraph-ex.md",
+      "backlinks": []
     },
     {
       "id": "one-request",
@@ -4776,6 +4995,11 @@
           "note": "bgmv / sgmv 这四个就是那页说的 csrc 自编 AscendC 算子，注册成 torch.ops._C_ascend 再从 Python 调的规矩也在那页"
         },
         {
+          "from": "npugraph-ex",
+          "kind": "enables",
+          "note": "融合的落点是 torch.ops.npu / torch.ops.vllm 上的那些算子，注册机制在那一页"
+        },
+        {
           "from": "op-to-ai-core",
           "kind": "enables",
           "note": "那一页画的是四层地图和各层的职责，这一页拿一个真算子从最上面走到最下面"
@@ -5032,6 +5256,11 @@
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "kv_role、Mooncake 怎么把块从 P 拉到 D、为什么 P 要撞长度上限，都在那一页；这一页只说大规模 EP 为什么几乎总把它一起开上"
+        },
+        {
+          "from": "mooncake-connector",
+          "kind": "enables",
+          "note": "为什么要把 P 和 D 拆开、那条请求在 1P1D 上的完整走法都在那一页，这一页只拆开负责搬运的那个零件"
         },
         {
           "from": "recompute-scheduler",
@@ -5685,6 +5914,11 @@
           "from": "expert-parallel",
           "kind": "enables",
           "note": "dispatch 要不要顺手把 token 量化成 int8、A3 上能不能走融合的 FUSED_MC2，都由这一层选出的量化类型决定"
+        },
+        {
+          "from": "npugraph-ex",
+          "kind": "enables",
+          "note": "fuse_norm_quant 只在量化模型上有东西可匹配，哪一层是 W8A8、哪一层是 W4A4 由那一页的 quant_description 决定"
         }
       ]
     },
@@ -6165,6 +6399,11 @@
           "from": "context-parallel",
           "kind": "conflicts-with",
           "note": "main 的 PCP 兼容表把四个后端的 SP + PCP 全标成不兼容；v0.23 上同开则会悄悄改大 max_num_batched_tokens"
+        },
+        {
+          "from": "npugraph-ex",
+          "kind": "enables",
+          "note": "v0.23 与 v0.26 上 SP 的两个 pass 和这几条融合 pass 挂在同一个 manager 里，按列表顺序改同一张图"
         }
       ]
     },
@@ -6983,6 +7222,11 @@
           "from": "block-table",
           "kind": "enables",
           "note": "格子里填的物理块号是上游分出来的；谁分、什么时候分、什么时候还，在那一页"
+        },
+        {
+          "from": "mooncake-connector",
+          "kind": "enables",
+          "note": "连接器自己不分块，它只在上游把块分完之后拿到块号，再把块号翻成 HBM 地址"
         },
         {
           "from": "prefix-caching",

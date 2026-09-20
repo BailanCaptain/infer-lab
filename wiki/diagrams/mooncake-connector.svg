@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620" role="img" aria-label="同一个连接器类在两个进程里各活半个；整块传和逐层传的区别不在快慢，在谁发起、什么时候发起（v0.23 维护分支）">
+  <title>同一个连接器类在两个进程里各活半个；整块传和逐层传的区别不在快慢，在谁发起、什么时候发起（v0.23 维护分支）</title>
+  <rect width="900" height="620" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="30" width="420" height="250" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="44" width="235" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="62.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">P 节点 · kv_role=kv_producer</text>
+  <rect x="460" y="30" width="420" height="250" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="476" y="44" width="235" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="487" y="62.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">D 节点 · kv_role=kv_consumer</text>
+  <line x1="20" y1="162" x2="880" y2="162" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">进程边界：上 EngineCore，下 Worker</text>
+  <rect x="60" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="83" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="106" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="129" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="152" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="175" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="198" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="221" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="244" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="267" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="290" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="313" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="336" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="359" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="382" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="405" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="428" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="451" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="474" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="497" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="520" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="543" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="566" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="589" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="612" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="635" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="658" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="681" y="410" width="20" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="60" y="454" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">整块传：P 把 28 层全算完、这条请求结束之后，D 才一次性读走</text>
+  <rect x="60" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="83" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="106" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="129" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="152" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="175" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="198" y="490" width="20" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="221" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="244" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="267" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="290" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="313" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="336" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="359" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="382" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="405" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="428" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="451" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="474" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="497" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="520" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="543" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="566" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="589" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="612" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="635" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="658" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="681" y="490" width="20" height="26" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <text x="60" y="534" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">逐层传：P 刚算完第 7 层，前 7 层已经躺在 D 的 HBM 里，剩下 21 层边算边传</text>
+  <rect x="38" y="72" width="384" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="50" y="90" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(56.4 96.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="90" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">调度侧：请求结束时先扣住块</text>
+  <text x="90" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">跑在 EngineCore 进程，碰不到 HBM</text>
+  <text x="90" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">MooncakeConnectorScheduler</text>
+  <rect x="478" y="72" width="384" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="490" y="90" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(496.4 96.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
+  <text x="530" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">调度侧：报出还差多少 token</text>
+  <text x="530" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">块先占上，这一步一个 token 都不算</text>
+  <text x="530" y="129" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">get_num_new_matched_tokens</text>
+  <rect x="38" y="176" width="384" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="50" y="202" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(56.4 208.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="90" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">worker 侧：把 KV 的 HBM 区间登记给传输引擎</text>
+  <text x="90" y="224" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">整块传时只答元数据，不发字节</text>
+  <text x="90" y="241" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">register_kv_caches</text>
+  <rect x="478" y="176" width="384" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="490" y="202" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(496.4 208.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="530" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">worker 侧：真正搬字节的那一半</text>
+  <text x="530" y="224" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">MooncakeConnectorWorker，丢给后台线程</text>
+  <text x="530" y="241" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">start_load_kv</text>
+  <path d="M60 308 L860 308" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
+  <path d="M860 308 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="324" y="298" width="272" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="460" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">整块传：D 发起 batch_transfer_sync_read</text>
+  <path d="M60 356 L860 356" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M860 356 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <rect x="320.5" y="346" width="279" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="460" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">逐层传：P 发起 batch_transfer_sync_write</text>
+  <text x="20" y="566" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条路的终点一样：D 都要等 28 层全到齐才开始 decode。逐层传省下来的是传输时间——它被藏进了 P 算后面那些层的时间里；另一半好处是 D 的块在 P </text>
+  <text x="20" y="584.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开算之前就占好了，不用等 P 结束才分配。</text>
+</svg>

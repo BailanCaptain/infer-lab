@@ -50,6 +50,7 @@ sources:
   - >-
     vllm-ascend@b255ab59:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22
   - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
+verified: ["main", "releases/v0.23.0"]
 evidence: C
 relations:
   - to: ascend-config-system

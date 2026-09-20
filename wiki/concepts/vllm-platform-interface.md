@@ -16,6 +16,7 @@ sources:
   - vllm@0fc695fc:vllm/config/vllm.py#L1330-L1338
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335
   - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
+verified: ["releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-v1-shape

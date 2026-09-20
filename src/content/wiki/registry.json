@@ -33,6 +33,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L763-L840",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L337-L346"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -120,6 +123,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16",
         "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -183,6 +189,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L177",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L228",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -259,6 +268,9 @@
         "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4987-L4999",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -340,6 +352,10 @@
         "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196",
         "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62",
         "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -440,6 +456,10 @@
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L10-L11",
         "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -481,6 +501,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L473"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -527,6 +550,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669",
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md",
@@ -562,6 +589,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -615,6 +645,10 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
@@ -650,6 +684,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L467"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -702,6 +739,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186",
         "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L280-L294"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "S",
       "rawSources": [
         "raw/sha256-024d8bdfc8e0a81cafa0b07e205478201aefcd1adf86c717b31c22e7c02f74cf.md",
@@ -737,6 +778,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L115"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -778,6 +822,9 @@
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
         "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -839,6 +886,10 @@
         "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "rawSources": [
@@ -914,6 +965,10 @@
         "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
         "https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -976,6 +1031,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30",
         "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "S",
       "relations": [
         {
@@ -1024,6 +1082,9 @@
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L49"
       ],
+      "verified": [
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
@@ -1058,6 +1119,9 @@
         "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L182-L200",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -1139,6 +1203,10 @@
         "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L87",
         "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_cache_cpu_offload.html"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -1262,6 +1330,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1826-L1830",
         "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L86-L91"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -1350,6 +1422,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L650-L732",
         "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546",
         "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1107"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "rawSources": [
@@ -1445,6 +1521,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1856-L1884",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1580-L1609"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -1525,6 +1605,10 @@
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566",
         "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -1626,6 +1710,10 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
         "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -1766,6 +1854,10 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L405-L415",
         "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L148-L153"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -1823,6 +1915,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L517"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -1882,6 +1977,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
@@ -1912,6 +2011,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/xlite/utils.py#L355"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -1973,6 +2075,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L82-L114",
         "https://arxiv.org/abs/2405.04434",
         "https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2048,6 +2154,10 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md",
@@ -2094,6 +2204,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2167,6 +2280,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -2225,6 +2342,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2295,6 +2415,9 @@
         "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2479,6 +2602,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L36-L51",
         "vllm-ascend@2c59ff10:setup.py#L458-L464"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -2527,6 +2653,9 @@
         "vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14",
         "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2606,6 +2735,10 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L60-L62",
         "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L526-L545",
         "vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2728,6 +2861,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L695-L703",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -2832,6 +2969,10 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -2887,6 +3028,10 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
         "vllm-ascend@b255ab59:setup.py#L518-L529",
         "https://docs.vllm.ai/projects/ascend/en/latest/index.html"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -2953,6 +3098,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
         "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
@@ -2998,6 +3147,9 @@
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -3084,6 +3236,10 @@
         "https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/",
         "vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -3166,6 +3322,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283",
         "vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -3238,6 +3397,10 @@
         "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153",
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "S",
       "rawSources": [
         "raw/sha256-9e727546228dccd4202221fadbabf5e7327a90a2133453ec62eaae1cc2bb2e88.md",
@@ -3273,6 +3436,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L51"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -3313,6 +3479,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -3388,6 +3558,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/worker/v2/model_runner.py#L309-L314",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -3457,6 +3631,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -3511,6 +3688,9 @@
         "vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L33-L40",
         "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
         "https://arxiv.org/abs/2104.09864"
+      ],
+      "verified": [
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [],
@@ -3580,6 +3760,10 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48",
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -3622,6 +3806,9 @@
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L465"
       ],
+      "verified": [
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
@@ -3646,6 +3833,9 @@
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L52"
       ],
+      "verified": [
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
@@ -3669,6 +3859,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L64"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -3732,6 +3925,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1107-L1132",
         "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/speculative_decoding.html",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -3827,6 +4024,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318",
         "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -3875,6 +4076,9 @@
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L1468"
       ],
+      "verified": [
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
@@ -3898,6 +4102,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [
@@ -3941,6 +4148,10 @@
         "vllm-ascend@2c59ff10:docs/source/index.md#L24-L26",
         "vllm-ascend@b255ab59:setup.py#L518-L529",
         "https://docs.vllm.ai/projects/ascend/en/latest/index.html"
+      ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -3997,6 +4208,10 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "D",
       "relations": [
         {
@@ -4051,6 +4266,7 @@
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1819"
       ],
+      "verified": [],
       "evidence": "C",
       "relations": [
         {
@@ -4107,6 +4323,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144",
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -4173,6 +4392,9 @@
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335",
         "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650"
       ],
+      "verified": [
+        "releases/v0.26.0rc"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -4219,6 +4441,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L700",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995"
+      ],
+      "verified": [
+        "releases/v0.23.0"
       ],
       "evidence": "C",
       "relations": [
@@ -4300,6 +4525,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -4378,6 +4606,10 @@
         "vllm-ascend@b255ab59:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22",
         "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541"
       ],
+      "verified": [
+        "main",
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md",
@@ -4437,6 +4669,9 @@
         "vllm@0fc695fc:vllm/platforms/interface.py#L427-L468",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725"
       ],
+      "verified": [
+        "releases/v0.23.0"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -4479,6 +4714,9 @@
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L50"
+      ],
+      "verified": [
+        "main"
       ],
       "evidence": "C",
       "rawSources": [

@@ -4,6 +4,7 @@ title: sfa_dcp_force_tmajor_restore
 type: param
 summary: sfa_dcp_force_tmajor_restore 的静态定义，正文待补。
 origin: seed
+verified: ["main"]
 evidence: C
 updated: '2026-09-19'
 sources:

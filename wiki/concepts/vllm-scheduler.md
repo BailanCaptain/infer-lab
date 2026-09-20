@@ -19,6 +19,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L700
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: vllm-engine-core

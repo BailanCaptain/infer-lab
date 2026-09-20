@@ -30,6 +30,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/ops/register_custom_ops.py#L89-L98
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: tensor-parallel

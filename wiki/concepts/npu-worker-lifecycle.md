@@ -16,6 +16,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: kv-cache-memory-profiling

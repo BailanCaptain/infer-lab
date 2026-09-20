@@ -22,6 +22,15 @@ test.describe("知识库阅读页", () => {
     await expect(page.getByRole("heading", { name: "一句话" })).toBeVisible();
   });
 
+  test("页头写明这页对过哪几个版本：v0.23 与 v0.26 并存，没列出的就是还没人对过", async ({ page }) => {
+    await page.goto("/#/wiki/block-table");
+    const versions = page.getByTestId("wiki-versions");
+    await expect(versions).toContainText("已核对");
+    await expect(versions).toContainText("v0.23.0");
+    // 分支名里的 releases/ 是 git 的事，不给读者看
+    await expect(versions).not.toContainText("releases/");
+  });
+
   test("目录分四部分：基础 → 全流程 → 特性 → 参数；参数默认收起，读参数页时展开", async ({ page }) => {
     await page.goto("/#/wiki");
     const toc = page.getByTestId("wiki-toc");

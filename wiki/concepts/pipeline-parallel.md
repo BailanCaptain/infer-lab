@@ -44,6 +44,7 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: tensor-parallel

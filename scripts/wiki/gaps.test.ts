@@ -20,6 +20,7 @@ const mk = (id: string, body: string, over: Partial<WikiPage["fm"]> = {}): WikiP
     relations: [],
     related: [],
     contradicts: [],
+    verified: [],
     updated: "2026-09-11",
     ...over,
   },

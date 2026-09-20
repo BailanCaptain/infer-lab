@@ -31,6 +31,7 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L60-L62
   - vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L526-L545
   - vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: kv-cache

@@ -24,6 +24,14 @@ import { WikiPanel } from "../wiki/WikiPanel";
 import "../../design/wiki.css";
 
 /** 与 scripts/wiki/build.ts 的显示名保持一致；漏一个页型会把原始字符串印在页面上 */
+/** seeds 里的分支名 → 页头上给读者看的版本名：`releases/v0.26.0rc` → `v0.26.0rc` */
+const versionLabel = (ref: string) => ref.replace(/^releases\//, "");
+/** 发布分支按版本号从旧到新，开发主线 main 放最后 */
+const versionOrder = (refs: string[]) =>
+  [...refs].sort(
+    (a, b) => Number(a === "main") - Number(b === "main") || a.localeCompare(b, "en", { numeric: true }),
+  );
+
 const TYPE_LABEL: Record<string, string> = {
   concept: "术语",
   feature: "特性",
@@ -233,6 +241,15 @@ function Article({
             </span>
           ))}
           <EvidenceBadge level={page.evidence} variant="full" />
+          {page.verified.length > 0 && (
+            <span
+              className="wiki-chip wiki-versions"
+              data-testid="wiki-versions"
+              title="这页已经对着这些版本的源码核过；没列出的版本还没人对过，不代表不成立"
+            >
+              已核对 {versionOrder(page.verified).map(versionLabel).join(" · ")}
+            </span>
+          )}
           <span
             className={`wiki-chip wiki-origin is-${page.origin}`}
             data-testid="wiki-origin"

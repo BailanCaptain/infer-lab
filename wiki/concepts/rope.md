@@ -13,6 +13,7 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L33-L40
   - https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json
   - https://arxiv.org/abs/2104.09864
+verified: ["releases/v0.26.0rc"]
 evidence: "C"
 relations: []
 contradicts: []

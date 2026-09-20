@@ -34,6 +34,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1107-L1132
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/speculative_decoding.html
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: npu-model-runner

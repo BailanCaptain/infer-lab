@@ -34,6 +34,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1111-L1119
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L695-L703
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: prefill

@@ -22,6 +22,7 @@ sources:
   - vllm@0fc695fc:vllm/platforms/interface.py#L259-L267
   - vllm@0fc695fc:vllm/platforms/interface.py#L427-L468
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: ascend-patch-system

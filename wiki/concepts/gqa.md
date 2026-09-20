@@ -28,6 +28,7 @@ sources:
   - https://arxiv.org/abs/2305.13245
   - https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json
   - https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: one-request

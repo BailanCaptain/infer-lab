@@ -33,6 +33,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L82-L114
   - https://arxiv.org/abs/2405.04434
   - https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: attention-cost

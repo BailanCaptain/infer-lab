@@ -35,6 +35,7 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L108-L119
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L405-L415
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L148-L153
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: prefix-caching

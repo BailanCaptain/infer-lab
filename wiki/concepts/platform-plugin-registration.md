@@ -14,6 +14,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@b255ab59:setup.py#L518-L529
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: engine-processes

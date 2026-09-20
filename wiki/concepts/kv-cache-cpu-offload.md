@@ -23,6 +23,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L87
   - vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_cache_cpu_offload.html
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: prefix-caching

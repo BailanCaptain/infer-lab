@@ -148,6 +148,14 @@ export const pageFrontmatterSchema = z.object({
         ),
     )
     .min(1, "sources 不得为空"),
+  /**
+   * 这页已经对过哪几个版本（seeds 里 vllm-ascend 的 ref 名）。页头照它显示版本标记。
+   *
+   * 2026-09-21 起 v0.23 与 v0.26 长期并存。没有这个字段，读者分不清一页是「在 v0.26 上也成立」
+   * 还是「还没人对过 v0.26」。记进来的条件：有人对着该版本的源码核过，差异已写进正文
+   * （`pnpm wiki:versions` 先筛出所引源码变了的条目，看完用 `--mark` 记）。
+   */
+  verified: z.array(z.string().min(1)).default([]),
   evidence: z.enum(EVIDENCE_LEVELS),
   rawSources: z.array(z.string().regex(RAW_SNAPSHOT_RE)).min(1).optional(),
   /** 有类型、有方向的边。新页用这个。 */

@@ -20,6 +20,7 @@ const page = (sources: string[]): WikiPage => ({
     relations: [],
     related: [],
     contradicts: [],
+    verified: [],
     updated: "2026-09-07",
   },
 });

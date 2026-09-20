@@ -17,6 +17,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236
   - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: kv-cache-spec

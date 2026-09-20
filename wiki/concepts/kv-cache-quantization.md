@@ -38,6 +38,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L481-L482
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1856-L1884
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1580-L1609
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: kv-cache-spec

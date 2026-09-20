@@ -4,6 +4,7 @@ title: shard_axis
 type: param
 summary: shard_axis 的静态定义，正文待补。
 origin: seed
+verified: ["main"]
 evidence: C
 updated: '2026-09-19'
 sources:

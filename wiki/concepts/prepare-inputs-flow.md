@@ -19,6 +19,7 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283
   - vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: block-table

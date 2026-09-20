@@ -22,6 +22,7 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4987-L4999
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: attention-backend-family

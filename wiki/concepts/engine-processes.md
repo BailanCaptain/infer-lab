@@ -17,6 +17,7 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
   - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: ascend-patch-system

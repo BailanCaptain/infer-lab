@@ -12,6 +12,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
+verified: ["main", "releases/v0.23.0"]
 evidence: "D"
 relations:
   - to: vllm-ascend-overview

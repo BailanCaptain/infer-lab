@@ -26,6 +26,7 @@ const mk = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiPage
     relations: [],
     related: [],
     contradicts: [],
+    verified: [],
     updated: "2026-09-07",
     ...over,
   },
@@ -81,6 +82,15 @@ describe("lintPages", () => {
     const r = lintPages([mk("a"), { ...mk("a"), file: "sources/a.md" }, mk("b", { aliases: ["A"] })], opts);
     expect(r.map((p) => p.rule)).toEqual(expect.arrayContaining(["dup-id", "dup-alias"]));
   });
+  it("unknown-verified-ref：verified 里写了 seeds 没登记的版本名", () => {
+    const pages = [mk("a", { verified: ["main", "releases/v0.26"] })];
+    const r = lintPages(pages, { ...opts, knownRefs: ["main", "releases/v0.26.0rc"] });
+    expect(r.map((p) => p.rule)).toEqual(["unknown-verified-ref"]);
+    expect(r[0]?.message).toContain("releases/v0.26");
+    // 没给 knownRefs（没有 seeds 的环境）就不查
+    expect(lintPages(pages, opts)).toEqual([]);
+  });
+
   it("unknown-chapter / relation-missing / broken-link", () => {
     const r = lintPages(
       [

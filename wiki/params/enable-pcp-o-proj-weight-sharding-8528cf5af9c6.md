@@ -4,6 +4,7 @@ title: enable_pcp_o_proj_weight_sharding
 type: param
 summary: enable_pcp_o_proj_weight_sharding 的静态定义，正文待补。
 origin: seed
+verified: ["main"]
 evidence: C
 updated: '2026-09-19'
 sources:

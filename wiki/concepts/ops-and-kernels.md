@@ -15,6 +15,7 @@ sources:
   - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: attention-backend-family

@@ -16,6 +16,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: npu-worker-lifecycle

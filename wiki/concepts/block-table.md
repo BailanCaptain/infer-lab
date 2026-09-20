@@ -28,6 +28,7 @@ sources:
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: paged-attention

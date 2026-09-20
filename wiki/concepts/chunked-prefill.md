@@ -33,6 +33,7 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L10-L11
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: vllm-scheduler

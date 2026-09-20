@@ -14,6 +14,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L177
   - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L228
   - vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: paged-attention

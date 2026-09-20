@@ -16,7 +16,7 @@ import { createBlobReader } from "./git";
 import { FACTS_BUDGET, MARK_FLOOD } from "./limits";
 import { loadPages, type PageProblem, type WikiPage } from "./pages";
 import { readPageRaw, readRawSnapshot } from "./raw";
-import { configuredRepoRoots } from "./repo-roots";
+import { configuredRefs, configuredRepoRoots, PRIMARY_REPO } from "./repo-roots";
 import { classifySource, supportsOfficialEvidence } from "./sources";
 
 /**
@@ -53,6 +53,8 @@ export interface LintOptions {
   /** 相对 wikiRoot 的文件是否存在（正文链接可指向 raw/ 等非页面文件） */
   existsFile: (rel: string) => boolean;
   requiredTerms?: string[];
+  /** seeds 里登记过的版本名；给了就检查 `verified` 里有没有写错的 */
+  knownRefs?: string[];
 }
 
 const LINK_RE = /\]\(([^)\s]+)\)/g;
@@ -282,6 +284,14 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       if (!opts.chapterIds.includes(c)) {
         problems.push({ file: p.file, rule: "unknown-chapter", message: `章节 ${c} 不存在` });
       }
+    }
+    for (const ref of opts.knownRefs ? p.fm.verified : []) {
+      if (!opts.knownRefs?.includes(ref))
+        problems.push({
+          file: p.file,
+          rule: "unknown-verified-ref",
+          message: `verified 里的「${ref}」不是 seeds 登记过的版本（有 ${opts.knownRefs?.join("、")}）`,
+        });
     }
     // 旧的无类型 related 只做迁移提示，不再检查对称性——新模型只写单向
     if (isLegacyPage(p)) {
@@ -605,6 +615,9 @@ export function runLint(
     }
   }
   const opts: LintOptions = { chapterIds: CHAPTER_IDS, existsFile: (rel) => existsSync(join(wikiRoot, rel)) };
+  // 版本标记只认 vllm-ascend 的分支名：上游 vLLM 在 seeds 里的键名是克隆工具要求的，不是给读者看的版本
+  const knownRefs = Object.keys(configuredRefs(rootDir)[PRIMARY_REPO] ?? {});
+  if (knownRefs.length > 0) opts.knownRefs = knownRefs;
   if (flags.terms) opts.requiredTerms = collectStepTerms();
   const logPath = join(wikiRoot, "log.md");
   const logProblems = existsSync(logPath) ? lintLog(readFileSync(logPath, "utf8")) : [];

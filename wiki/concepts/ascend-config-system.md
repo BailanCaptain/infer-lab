@@ -18,6 +18,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/envs.py#L21-L113
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L763-L840
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L337-L346
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: npu-worker-lifecycle

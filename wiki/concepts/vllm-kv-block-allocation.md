@@ -17,6 +17,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: vllm-scheduler

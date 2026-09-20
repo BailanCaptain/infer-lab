@@ -38,6 +38,7 @@ sources:
   - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62'
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
   - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
+verified: ["main", "releases/v0.23.0"]
 evidence: C
 relations:
   - to: weight-prefetch-config

@@ -20,6 +20,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L896
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: ascend-config-system

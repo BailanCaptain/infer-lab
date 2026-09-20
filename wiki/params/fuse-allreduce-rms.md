@@ -38,6 +38,7 @@ sources:
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
   - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
+verified: ["main", "releases/v0.23.0"]
 evidence: C
 relations:
   - to: enable-matmul-allreduce

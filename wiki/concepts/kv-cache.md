@@ -11,6 +11,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L182-L200
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: prefill

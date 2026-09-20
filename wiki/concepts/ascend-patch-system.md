@@ -18,6 +18,7 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: npu-platform

@@ -36,6 +36,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
   - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: paged-attention

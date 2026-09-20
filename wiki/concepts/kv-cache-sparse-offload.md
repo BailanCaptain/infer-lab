@@ -27,6 +27,7 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37
   - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566
   - https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: one-request

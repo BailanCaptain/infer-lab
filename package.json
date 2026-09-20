@@ -30,6 +30,7 @@
     "wiki:cite-screen": "tsx scripts/wiki-cite-screen.ts",
     "wiki:gaps": "tsx scripts/wiki-gaps.ts",
     "wiki:stale": "tsx scripts/wiki-stale.ts",
+    "wiki:versions": "tsx scripts/wiki-versions.ts",
     "wiki:lineage": "tsx scripts/wiki-lineage.ts",
     "wiki:lineage:apply": "tsx scripts/wiki-lineage-apply.ts",
     "wiki:ingest": "tsx scripts/wiki-ingest.ts",

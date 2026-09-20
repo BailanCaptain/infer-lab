@@ -23,6 +23,7 @@ const page = (id: string, type: WikiPage["fm"]["type"], chapters: string[]): Wik
     relations: [],
     related: [],
     contradicts: [],
+    verified: [],
     updated: "2026-09-07",
   },
 });

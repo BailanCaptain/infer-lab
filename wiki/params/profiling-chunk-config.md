@@ -59,6 +59,7 @@ sources:
     vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130
+verified: ["main", "releases/v0.23.0"]
 evidence: S
 relations:
   - to: ascend-config-system

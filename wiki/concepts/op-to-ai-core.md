@@ -20,6 +20,7 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L142-L234
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L36-L51
   - vllm-ascend@2c59ff10:setup.py#L458-L464
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: ops-and-kernels

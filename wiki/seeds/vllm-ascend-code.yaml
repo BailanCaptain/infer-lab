@@ -15,12 +15,14 @@ repos:
     path: tools/repos/vllm
     refs:
       main: 0fc695fc
+      "releases/v0.26.0": 568afb3a   # = vLLM v0.26.0 tag，与 vllm-ascend releases/v0.26.0rc 配套（该分支 mkdocs.yml 的 vllm_version）
   vllm-ascend:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
     refs:
       main: b255ab59            # 2026-09-20 全库页面的 main 来源统一重钉到这里（原 28bf3a2e 是 2026-08-29 的事实基线）
       "releases/v0.23.0": 2c59ff10   # 分支 tip，2026-09-09；本批页的主叙述版本
+      "releases/v0.26.0rc": 2ed6cbba   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
 
 features:
   - id: vllm-ascend-overview

@@ -16,6 +16,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: vllm-ascend-repo-map

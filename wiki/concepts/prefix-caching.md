@@ -31,6 +31,7 @@ sources:
   - vllm-ascend@b255ab59:tests/e2e/pull_request/two_card/test_prefix_caching.py#L63-L90
   - https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/
   - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: vllm-kv-block-allocation

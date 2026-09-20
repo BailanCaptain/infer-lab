@@ -33,6 +33,7 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L313-L317
   - vllm-ascend@b255ab59:vllm_ascend/worker/v2/model_runner.py#L309-L314
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: block-table

@@ -45,6 +45,7 @@ sources:
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L650-L732'
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546'
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1107'
+verified: ["main", "releases/v0.23.0"]
 evidence: C
 relations:
   - to: kv-cache-spec

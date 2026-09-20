@@ -10,6 +10,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
+verified: ["releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: one-request

@@ -43,6 +43,7 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1136-L1164
   - vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318
   - vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48
+verified: ["main", "releases/v0.23.0"]
 evidence: "C"
 relations:
   - to: kv-cache-spec

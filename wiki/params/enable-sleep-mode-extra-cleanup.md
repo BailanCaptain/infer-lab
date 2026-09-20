@@ -46,6 +46,7 @@ sources:
   - >-
     vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L280-L294'
+verified: ["main", "releases/v0.23.0"]
 evidence: S
 relations:
   - to: npu-worker-lifecycle

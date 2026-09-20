@@ -18,6 +18,7 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html
   - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30
   - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36
+verified: ["releases/v0.23.0"]
 evidence: "S"
 relations:
   - to: npu-model-runner

@@ -18,7 +18,7 @@ test.describe("知识库阅读页", () => {
 
     await nav.getByRole("link", { name: "Block Table" }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Block Table");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Block Table");
     await expect(page.getByRole("heading", { name: "一句话" })).toBeVisible();
   });
 

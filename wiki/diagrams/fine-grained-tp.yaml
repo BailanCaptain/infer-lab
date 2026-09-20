@@ -1,0 +1,99 @@
+layout: scene
+id: fine-grained-tp
+caption: 细粒度 TP 沿 DP 轴借 rank：省下的是权重副本，花掉的是每层多出来的两次集合通信，而「每层」到底是几层决定了这笔账划不划算
+size: [900, 742]
+
+regions:
+  - label: 组是沿 DP 轴建的，不是沿 TP 轴
+    note: rank_grid reshape 成 (pp, dp, tp) 之后，每个细粒度组取的是固定 tp_idx 上连续 group_size 个 dp 下标——所以硬约束写成「整除 data_parallel_size」，而不是整除 tensor_parallel_size。
+    at: [20, 26]
+    size: [860, 218]
+    tone: neutral
+  - label: 换来的是每卡少存 7/8 份权重
+    note: DeepSeek-R1 词表 129280、hidden 7168，lm_head 与 embedding 各 129280 × 7168 × 2 B = 1.73 GiB；不开的时候组里 8 张卡各存一份一模一样的。
+    at: [20, 264]
+    size: [860, 196]
+    tone: ascend
+  - label: 代价多大，看这一项落在几层上
+    note: mlp TP 只作用在 is_moe_layer 之外的层，DeepSeek-R1 的 first_k_dense_replace = 3，所以只有 3 层；o_proj 每一层都有，61 层各来一次同样的通信。
+    at: [20, 480]
+    size: [860, 214]
+    tone: accent
+
+strips:
+  - at: [40, 130]
+    cells: 16
+    cell: 46
+    gap: 6
+    h: 34
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    tone: neutral
+    label: "DP rank 0–15：--data-parallel-size 16，--tensor-parallel-size 1"
+  - at: [40, 372]
+    cells: 8
+    cell: 30
+    gap: 4
+    h: 26
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
+    tone: muted
+    label: "不开：8 张卡各一份完整 lm_head"
+  - at: [500, 372]
+    cells: 8
+    cell: 30
+    gap: 4
+    h: 26
+    highlights: [0]
+    tone: ascend
+    label: "开 lmhead TP=8：每卡只留 1/8 = 0.22 GiB，省 1.51 GiB"
+  - at: [40, 586]
+    cells: 61
+    cell: 11
+    gap: 2
+    h: 20
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
+    tone: accent
+    label: "oproj TP=8：61 层，每层一次 all_to_all_single + 一次放大 8 倍的 reduce_scatter"
+  - at: [40, 640]
+    cells: 3
+    cell: 11
+    gap: 2
+    h: 20
+    highlights: [0, 1, 2]
+    tone: ascend
+    label: "mlp TP=8：同样的两次通信，只跑 3 次"
+
+brackets:
+  - { at: [40, 192], span: 410, label: "otp / lmheadtp / emtp / mlptp 组 0 = rank 0–7", dir: down, tone: neutral }
+  - { at: [456, 192], span: 410, label: "组 1 = rank 8–15", dir: down, tone: muted }
+
+arrows:
+  - { from: [318, 385], to: [490, 385], tone: accent }
+
+notes:
+  - at: [404, 366]
+    text: 切成 8 份
+    size: 12.5
+    anchor: middle
+  - at: [20, 708]
+    text: "四项都要求模型是 MoE、且切分数整除 data_parallel_size；oproj 与 embedding 另外强制要求 recompute_scheduler_enable，因为这些跨 DP 的 HCCL 集合通信要求各 rank 的 num_tokens 一致。"
+    size: 12.5
+    width: 860
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L117-L133
+    symbols: [_create_or_get_group, rank_grid, group_ranks]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L135-L149
+    symbols: [otp, lmheadtp, emtp, mlptp, oproj_tensor_parallel_size]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L183-L222
+    symbols: [MLPRowParallelOp, all_gather, reduce_scatter]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L266-L299
+    symbols: [all_to_all_single, reduce_scatter]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L792-L811
+    symbols: [is_moe_layer, first_k_dense_replace]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L302-L321
+    symbols: [lm_head, all_gather]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L143-L161
+    symbols: [recompute_scheduler_enable, num_tokens, embedding_tensor_parallel_size]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L584-L593
+    symbols: [data_parallel_size, is_moe]

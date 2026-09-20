@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680" role="img" aria-label="1E1PD：代理先拿图去 E 换一份 embedding 落盘，PD 那边把「跑视觉塔」换成「读这个文件」">
+  <title>1E1PD：代理先拿图去 E 换一份 embedding 落盘，PD 那边把「跑视觉塔」换成「读这个文件」</title>
+  <rect width="900" height="680" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="206" width="860" height="152" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="220" width="245.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="238.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">E 实例 · ec_role = ec_producer</text>
+  <rect x="20" y="476" width="860" height="152" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="490" width="254.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="508.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">PD 实例 · ec_role = ec_consumer</text>
+  <line x1="40" y1="62" x2="300" y2="62" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="300" y1="62" x2="700" y2="62" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="700" y1="62" x2="860" y2="62" stroke="var(--color-ink-faint, #8a928f)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+  <path d="M860 62 l-14 -7 l0 14 z" fill="var(--color-ink-faint, #8a928f)"/>
+  <line x1="20" y1="376" x2="880" y2="376" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="876" y="367" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">进程边界：两个实例之间只有这一个目录</text>
+  <rect x="56" y="400" width="26" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="90" y="400" width="26" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <text x="56" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">本图：E + PD 两个实例</text>
+  <rect x="700" y="400" width="26" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="734" y="400" width="26" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="768" y="400" width="26" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <text x="700" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">另一种：E + P + D 三个实例</text>
+  <rect x="44" y="258" width="256" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="56" y="285" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(62.4 291.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="96" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">只跑视觉塔</text>
+  <text x="96" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">算完就返回，不进语言模型</text>
+  <text x="96" y="324" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">_execute_mm_encoder</text>
+  <rect x="320" y="258" width="256" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="332" y="285" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(338.4 291.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
+  <text x="372" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">KV 缓存分 0 块</text>
+  <text x="372" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这一路直接返回空 dict</text>
+  <text x="372" y="324" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">get_kv_cache_spec</text>
+  <rect x="596" y="258" width="260" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="608" y="285" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(614.4 291.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z M14 3v4h4"/></g>
+  <text x="648" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">embedding 写进共享目录</text>
+  <text x="648" y="307" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先 detach 到 CPU 再落盘</text>
+  <text x="648" y="324" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">save_caches</text>
+  <rect x="290" y="388" width="320" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="302" y="406" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(308.4 412.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z M14 3v4h4"/></g>
+  <text x="342" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">encoder_cache.safetensors</text>
+  <text x="342" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个 mm_hash 一个子目录</text>
+  <text x="342" y="445" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">shared_storage_path</text>
+  <rect x="44" y="528" width="258" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="56" y="555" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(62.4 561.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5"/></g>
+  <text x="96" y="559" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">调度时先查盘上有没有</text>
+  <text x="96" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">命中就不扣编码算力预算</text>
+  <text x="96" y="594" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">has_cache_item</text>
+  <rect x="322" y="528" width="270" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="334" y="555" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(340.4 561.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="374" y="559" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">这张图改走外部加载</text>
+  <text x="374" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">external_load_encoder_input</text>
+  <text x="374" y="594" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">update_state_after_alloc</text>
+  <rect x="600" y="528" width="256" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="612" y="555" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(618.4 561.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
+  <text x="652" y="559" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">worker 读盘填进缓存</text>
+  <text x="652" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">_gather_mm_embeddings 之前</text>
+  <text x="652" y="594" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">start_load_caches</text>
+  <line x1="140" y1="62" x2="140" y2="90" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="140" cy="62" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="140" cy="62" r="5.5" fill="var(--color-accent, #e85b32)"/>
+  <rect x="120" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
+  <g transform="translate(128 99) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="140" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">代理收到请求</text>
+  <text x="140" y="167" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">没有图就整条跳过 E</text>
+  <rect x="86" y="171.5" width="108" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="140" y="189" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">has_mm_input</text>
+  <line x1="370" y1="62" x2="370" y2="90" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="370" cy="62" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="370" cy="62" r="5.5" fill="var(--color-control, #5b6763)"/>
+  <rect x="350" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
+  <g transform="translate(358 99) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z M4 9h16M8 5v4"/></g>
+  <text x="370" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">整条转给 E</text>
+  <text x="370" y="167" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">只把 max_tokens 改成 1</text>
+  <rect x="278.5" y="171.5" width="183" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="370" y="189" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">_encode_single_request</text>
+  <line x1="600" y1="62" x2="600" y2="90" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="600" cy="62" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="600" cy="62" r="5.5" fill="var(--color-control, #5b6763)"/>
+  <rect x="580" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
+  <g transform="translate(588 99) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
+  <text x="600" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等 E 回 200</text>
+  <text x="600" y="167" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">响应体丢掉不用</text>
+  <line x1="800" y1="62" x2="800" y2="90" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
+  <circle cx="800" cy="62" r="9" fill="var(--color-surface, #fbfaf6)"/>
+  <circle cx="800" cy="62" r="5.5" fill="var(--color-weight, #b87a00)"/>
+  <rect x="780" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
+  <g transform="translate(788 99) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
+  <text x="800" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">原请求转给 PD</text>
+  <text x="800" y="167" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">不带任何 EC 参数</text>
+  <path d="M450 352 L450 384" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M450 384 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M450 460 L450 480" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M450 480 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <text x="20" y="654" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">拆出去的只有视觉塔那一段算力；E 上仍然摆着一整份模型权重，两边加起来的权重显存是单机的两倍。</text>
+</svg>

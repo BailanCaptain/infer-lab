@@ -104,6 +104,11 @@
       "file": "concepts/acl-graph.md",
       "backlinks": [
         {
+          "from": "fine-grained-tp",
+          "kind": "enables",
+          "note": "oproj 那项禁止 enforce_eager，静态交换缓冲区的设备地址要在图捕获与回放之间保持不变"
+        },
+        {
           "from": "lora",
           "kind": "enables",
           "note": "批描述符上多带一位 has_lora 参与图的分桶，带 LoRA 的批和不带的批不能共用一张捕获好的图"
@@ -1261,6 +1266,11 @@
           "note": "ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上"
         },
         {
+          "from": "fine-grained-tp",
+          "kind": "enables",
+          "note": "组是沿 DP 轴连续取 rank 建的，所以每个切分数必须整除 data_parallel_size"
+        },
+        {
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "大规模 EP 的每个「引擎」就是一个 DP rank；DP 复制什么、MoE 下各 rank 为什么必须齐步走，在那一页"
@@ -1842,6 +1852,100 @@
       ]
     },
     {
+      "id": "epd-disaggregation",
+      "title": "EPD 分离：把视觉编码器也拆成一类实例",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "多模态模型的视觉编码器单独起一个实例（E），算出的图像 embedding 经 EC 连接器交给 prefill/decode 那边，PD 上不再跑视觉塔。",
+      "aliases": [
+        "EPD 分离",
+        "EPD Disaggregation",
+        "Disaggregated-encoder",
+        "分离式编码器",
+        "编码器分离",
+        "E 实例",
+        "ec_transfer_config",
+        "ec_role",
+        "ECConnector",
+        "ECExampleConnector",
+        "encoder cache",
+        "EC 连接器"
+      ],
+      "chapters": [
+        "18"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L3-L13",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/epd_disaggregation.html",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L17-L33",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L39-L48",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L56-L63",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L65-L73",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/epd_disaggregation.md#L81-L85",
+        "vllm@0fc695fc:vllm/config/ec_transfer.py#L10-L36",
+        "vllm@0fc695fc:vllm/config/ec_transfer.py#L88-L104",
+        "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/factory.py#L77-L85",
+        "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/base.py#L139-L148",
+        "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L52-L57",
+        "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L98-L118",
+        "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L120-L133",
+        "vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L192-L200",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L142-L146",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1285-L1296",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L546-L550",
+        "vllm@0fc695fc:vllm/v1/worker/ec_connector_model_runner_mixin.py#L67-L69",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L4049-L4055",
+        "vllm@0fc695fc:vllm/v1/outputs.py#L318-L335",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L233-L235",
+        "vllm@0fc695fc:vllm/config/multimodal.py#L123-L131",
+        "vllm@0fc695fc:examples/disaggregated/ec_both_encoder/ec_both_encoder.sh#L43-L54",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2051-L2058",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4919",
+        "vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L817-L820",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1892-L1900",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2231-L2239",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L89-L104",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L111-L124",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L135-L141",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L106-L115",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L165-L184",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L312-L321",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L430",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L717-L720",
+        "vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L726-L732"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "E 是在 P 和 D 之外再拆出来的第三类实例；KV 怎么在 P 和 D 之间传归那一页，这一页只管 embedding 怎么从 E 到 P"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "那条纯文本请求连代理的第一道判断都过不去，这一页说明把模型和输入换成什么才触发得了"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "「盘上命中的图不扣编码算力预算」发生在调度器挑编码输入那一段，每步怎么发名额由那一页讲"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/epd-disaggregation.md",
+      "backlinks": []
+    },
+    {
       "id": "eplb",
       "title": "EPLB：把热门专家搬到闲着的卡上，但不改路由",
       "type": "feature",
@@ -2054,6 +2158,11 @@
           "note": "EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页"
         },
         {
+          "from": "fine-grained-tp",
+          "kind": "enables",
+          "note": "配置加载期就拦掉非 MoE 模型，它治的正是 DP+EP 全 DP 部署里注意力侧 TP=1 留下的权重副本"
+        },
+        {
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "ep_size 怎么由 dp × pcp × tp 压扁出来、四种 MoE 通信按什么判据选，全在那一页；这一页只负责把 ep_size 顶到 16 以上的那套拓扑"
@@ -2064,6 +2173,112 @@
           "note": "MoE 模型上 LoRA 与 EP 同开会把 MoECommType 锁成 ALLTOALL，四种通信方式各自什么代价在那页"
         }
       ]
+    },
+    {
+      "id": "fine-grained-tp",
+      "title": "Fine-Grained Tensor Parallelism：给个别大矩阵单独借几个 DP rank 来切",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "全局 TP 之外，单独给 embedding、lm_head、o_proj、dense MLP 各设一个切分数；切的是 DP 轴——从同一份 DP 里借几个 rank 把这张表分掉，省的是重复的权重副本。",
+      "aliases": [
+        "Fine-Grained Tensor Parallelism",
+        "细粒度 TP",
+        "模块级张量并行",
+        "FinegrainedTPConfig",
+        "oproj_tensor_parallel_size",
+        "lmhead_tensor_parallel_size",
+        "embedding_tensor_parallel_size",
+        "mlp_tensor_parallel_size",
+        "olora_tensor_parallel_size",
+        "OProjRowParallelOp",
+        "get_otp_group",
+        "lmheadtp"
+      ],
+      "chapters": [
+        "13"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L45-L52",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L27-L29",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L33-L43",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L91-L101",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L73-L87",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L107-L109",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L529-L534",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L537-L560",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L561-L570",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L584-L593",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L143-L161",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L319-L332",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L117-L133",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L135-L149",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L875-L893",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L183-L222",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L258-L299",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L719",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L792-L811",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L62-L73",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L170-L227",
+        "vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L302-L321",
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L1580-L1622",
+        "vllm-ascend@2c59ff10:vllm_ascend/quantization/method_adapters.py#L146-L150",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1187-L1195",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L521-L526",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L164-L173",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1135-L1164",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1166-L1192",
+        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L38-L48",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L680-L690",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/Fine_grained_TP.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/Fine_grained_TP.html",
+        "https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/config.json"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "列切 / 行切与那两次 all-reduce 的规矩在那一页；这里只换掉「用哪个通信组」这一件事"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "组是沿 DP 轴连续取 rank 建的，所以每个切分数必须整除 data_parallel_size"
+        },
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "配置加载期就拦掉非 MoE 模型，它治的正是 DP+EP 全 DP 部署里注意力侧 TP=1 留下的权重副本"
+        },
+        {
+          "to": "recompute-scheduler",
+          "kind": "builds-on",
+          "note": "oproj 与 embedding 两项硬性要求它开着，否则跨 DP 的集合通信会因各 rank num_tokens 不齐挂死"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "oproj 那项禁止 enforce_eager，静态交换缓冲区的设备地址要在图捕获与回放之间保持不变"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "oproj 那项只允许在 kv_role=kv_consumer 的 D 节点上开，混部环境配了起不来"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/fine-grained-tp.md",
+      "backlinks": []
     },
     {
       "id": "fuse-allreduce-rms",
@@ -3955,6 +4170,11 @@
           "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
         },
         {
+          "from": "epd-disaggregation",
+          "kind": "enables",
+          "note": "那条纯文本请求连代理的第一道判断都过不去，这一页说明把模型和输入换成什么才触发得了"
+        },
+        {
           "from": "gqa",
           "kind": "enables",
           "note": "那条请求的模型本身就是 GQA，它那 112 KiB 正是拿 8 个 KV 头而不是 16 个算出来的"
@@ -4409,6 +4629,16 @@
           "from": "dyntra-lb",
           "kind": "enables",
           "note": "它只装在 D 节点上，启动时硬查 kv_role 必须是 kv_consumer；P 和 D 各干什么、kv_role 三个取值在那一页"
+        },
+        {
+          "from": "epd-disaggregation",
+          "kind": "enables",
+          "note": "E 是在 P 和 D 之外再拆出来的第三类实例；KV 怎么在 P 和 D 之间传归那一页，这一页只管 embedding 怎么从 E 到 P"
+        },
+        {
+          "from": "fine-grained-tp",
+          "kind": "enables",
+          "note": "oproj 那项只允许在 kv_role=kv_consumer 的 D 节点上开，混部环境配了起不来"
         },
         {
           "from": "large-scale-ep",
@@ -5338,7 +5568,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/recompute-scheduler.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "fine-grained-tp",
+          "kind": "enables",
+          "note": "oproj 与 embedding 两项硬性要求它开着，否则跨 DP 的集合通信会因各 rank num_tokens 不齐挂死"
+        }
+      ]
     },
     {
       "id": "request-call-chain",
@@ -6034,6 +6270,11 @@
           "note": "DCP 不新建通信域、直接骑在 TP 组上，所以 tp % dcp == 0 是硬约束"
         },
         {
+          "from": "fine-grained-tp",
+          "kind": "enables",
+          "note": "列切 / 行切与那两次 all-reduce 的规矩在那一页；这里只换掉「用哪个通信组」这一件事"
+        },
+        {
           "from": "sequence-parallel",
           "kind": "has-variant",
           "note": "列切行切一刀没动，改的只是行切末尾那次 all-reduce 的形状——一层两次，位置还是那两处"
@@ -6492,6 +6733,11 @@
           "from": "dynamic-chunked-pp",
           "kind": "enables",
           "note": "ProfilingChunkScheduler 把上游 schedule() 整段抄过来改，被改的 num_new_tokens 预算逻辑在那页"
+        },
+        {
+          "from": "epd-disaggregation",
+          "kind": "enables",
+          "note": "「盘上命中的图不扣编码算力预算」发生在调度器挑编码输入那一段，每步怎么发名额由那一页讲"
         },
         {
           "from": "lora",

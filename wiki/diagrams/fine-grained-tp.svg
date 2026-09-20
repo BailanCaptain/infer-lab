@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 742" width="900" height="742" role="img" aria-label="细粒度 TP 沿 DP 轴借 rank：省下的是权重副本，花掉的是每层多出来的两次集合通信，而「每层」到底是几层决定了这笔账划不划算">
+  <title>细粒度 TP 沿 DP 轴借 rank：省下的是权重副本，花掉的是每层多出来的两次集合通信，而「每层」到底是几层决定了这笔账划不划算</title>
+  <rect width="900" height="742" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="218" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="40" width="225.6" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">组是沿 DP 轴建的，不是沿 TP 轴</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">rank_grid reshape 成 (pp, dp, tp) 之后，每个细粒度组取的是固定 tp_idx 上连续 group_size 个 dp 下标——所以硬约束写成「整除 </text>
+  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">data_parallel_size」，而不是整除 tensor_parallel_size。</text>
+  <rect x="20" y="264" width="860" height="196" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="278" width="203.4" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="296.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">换来的是每卡少存 7/8 份权重</text>
+  <text x="38" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">DeepSeek-R1 词表 129280、hidden 7168，lm_head 与 embedding 各 129280 × 7168 × 2 B = 1.73 GiB；不开的时候组里 8 张卡各存一份一模</text>
+  <text x="38" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一样的。</text>
+  <rect x="20" y="480" width="860" height="214" rx="12" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="36" y="494" width="211" height="26.5" rx="13.3" fill="var(--color-accent, #e85b32)"/><text x="47" y="512.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">代价多大，看这一项落在几层上</text>
+  <text x="38" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">mlp TP 只作用在 is_moe_layer 之外的层，DeepSeek-R1 的 first_k_dense_replace = 3，所以只有 3 层；o_proj 每一层都有，61 层各来一</text>
+  <text x="38" y="555" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">次同样的通信。</text>
+  <rect x="40" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="92" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="144" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="196" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="248" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="300" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="352" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="404" y="130" width="46" height="34" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="456" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="508" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="560" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="612" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="664" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="716" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="768" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <rect x="820" y="130" width="46" height="34" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
+  <text x="40" y="182" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">DP rank 0–15：--data-parallel-size 16，--tensor-parallel-size 1</text>
+  <rect x="40" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="74" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="108" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="142" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="176" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="210" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="244" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <rect x="278" y="372" width="30" height="26" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
+  <text x="40" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不开：8 张卡各一份完整 lm_head</text>
+  <rect x="500" y="372" width="30" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="534" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="568" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="602" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="636" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="670" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="704" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="738" y="372" width="30" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <text x="500" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开 lmhead TP=8：每卡只留 1/8 = 0.22 GiB，省 1.51 GiB</text>
+  <rect x="40" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="53" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="66" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="79" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="92" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="105" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="118" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="131" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="144" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="157" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="170" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="183" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="196" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="209" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="222" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="235" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="248" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="261" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="274" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="287" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="300" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="313" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="326" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="339" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="352" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="365" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="378" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="391" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="404" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="417" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="430" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="443" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="456" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="469" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="482" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="495" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="508" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="521" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="534" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="547" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="560" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="573" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="586" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="599" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="612" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="625" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="638" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="651" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="664" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="677" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="690" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="703" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="716" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="729" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="742" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="755" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="768" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="781" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="794" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="807" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <rect x="820" y="586" width="11" height="20" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
+  <text x="40" y="624" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">oproj TP=8：61 层，每层一次 all_to_all_single + 一次放大 8 倍的 reduce_scatter</text>
+  <rect x="40" y="640" width="11" height="20" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="53" y="640" width="11" height="20" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <rect x="66" y="640" width="11" height="20" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
+  <text x="40" y="678" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">mlp TP=8：同样的两次通信，只跑 3 次</text>
+  <path d="M318 385 L490 385" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M490 385 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M40 192 l0 9 L450 201 l0 -9" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
+  <text x="245" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)" text-anchor="middle">otp / lmheadtp / emtp / mlptp 组 0 = rank 0–7</text>
+  <path d="M456 192 l0 9 L866 201 l0 -9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
+  <text x="661" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">组 1 = rank 8–15</text>
+  <text x="404" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">切成 8 份</text>
+  <text x="20" y="708" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">四项都要求模型是 MoE、且切分数整除 data_parallel_size；oproj 与 embedding 另外强制要求 recompute_scheduler_enable，因为这些跨 DP 的</text>
+  <text x="20" y="726.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">HCCL 集合通信要求各 rank 的 num_tokens 一致。</text>
+</svg>

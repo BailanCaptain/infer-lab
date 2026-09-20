@@ -13,15 +13,16 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L444
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L360
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L172
-  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L218
+  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L226
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
+  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441
 evidence: "C"
 relations:
   - to: vllm-scheduler
     kind: builds-on
     note: 每次调度挑中一条请求，紧接着就调 allocate_slots；块不够就退回去抢占
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -39,7 +40,7 @@ file: block-allocation
 
 `KVCacheManager` 转身向 `BlockPool.get_new_blocks(1)` 要 [C5]。`BlockPool` 从 `free_block_queue` 队头 `popleft_n(1)` 取一块，把它的 `ref_cnt` 从 0 加到 1 [C5]。
 
-**第 2 到第 91 步 decode。** 每步 `allocate_slots(request, 1)`，但**一块都不要** [D]——第 0 块里还有空格。这一段里分配器基本上什么都没做。
+**第 1 到第 91 步 decode。** 每步 `allocate_slots(request, 1)`，但**一块都不要** [D]——第 0 块里还有空格。这一段里分配器基本上什么都没做。
 
 **第 92 步 decode。** 已算 128 个 token，第 0 块的 128 格正好填满。这一步要写位置 128，`allocate_slots` 算出还差一块，于是第二次 `get_new_blocks(1)` [D]。
 
@@ -51,7 +52,7 @@ file: block-allocation
 
 那条请求是第一次问，一块都命中不了，返回 0 [C2]。但这条路径值得知道它的形状，因为它有一个反直觉的细节：**就算整个 prompt 全部命中，也必须留最后一个 token 重算**。源码注释写明了理由——要拿到 logits 就必须真的算一次，所以缓存命中长度上限被压成 `num_tokens - 1` [C3]。
 
-更麻烦的是它的连带效果：`allocate_slots` 要求 `num_computed_tokens` 对齐到块边界，所以「少算一个 token」在实现上可能变成**整整一块要重算** [C3]。这条限制上游自己标了 TODO。
+更麻烦的是它的连带效果：`allocate_slots` 要求 `num_computed_tokens` 对齐到块边界，所以「少算一个 token」在实现上可能变成**整整一块要重算** [C3]。上游在同一段注释里留了话：将来去掉这条限制还能再快一点。
 
 ## 块什么时候才算「可以被别人复用」
 
@@ -74,5 +75,5 @@ file: block-allocation
 
 - **「decode 每一步都要分块」**——那条请求 199 步 decode 只分了 1 次 [D]。绝大多数步一块都不要。
 - **「块池是每个请求一份」**——是全机一份。`BlockPool` 持有全部块和那条空闲队列 [C6]。
-- **「释放就是清空内容」**——不是。`free` 只把 `ref_cnt` 减回去、块排进队尾；内容留着，等真被别人取走时才失效 [C5]。
+- **「释放就是清空内容」**——不是。`free` 只把 `ref_cnt` 减回去、块排进队尾 [C9]；内容留着，等真被别人取走时才失效 [C5]。
 - **「block_size 可以随便调」**——在昇腾上不行，后端只返回 `[128]` [C8]。

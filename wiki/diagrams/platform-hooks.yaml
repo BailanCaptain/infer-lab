@@ -21,7 +21,7 @@ stops:
   - { x: 820, side: above, title: 起 Worker 后设卡, fn: set_device, icon: chip, tone: upstream }
 
 notes:
-  - { at: [20, 436], text: "Platform 基类里一共 88 个 def，上游代码里 current_platform. 出现 873 处。插件不是「挂个钩子」，是把这 88 个口子逐个答上。", size: 13, strong: true, width: 860 }
+  - { at: [20, 436], text: "Platform 基类里一共 78 个 def，上游 vllm/ 包里 current_platform. 出现 873 处。插件不是「挂个钩子」，是把这 78 个口子逐个答上。", size: 13, strong: true, width: 860 }
   - { at: [20, 458], text: "其中 check_and_update_config 最特别：它只被调用一次，但那一次能改写整份 VllmConfig——昇腾拦掉不支持的配置就在这里。", size: 12.5, width: 860 }
 
 pins:

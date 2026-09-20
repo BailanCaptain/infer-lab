@@ -9,12 +9,13 @@ order: 80
 sources:
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L57-L68
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L75-L110
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_multiproc_executor.py#L24-L199
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
+  - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383
 evidence: "C"
 relations:
   - to: ascend-patch-system
@@ -24,7 +25,7 @@ relations:
     kind: builds-on
     note: 那条请求在三个进程里各是什么形态，决定了什么东西跨步活着
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -40,7 +41,7 @@ file: engine-processes
 
 那条请求在三个进程里各留下不同的痕迹：
 
-- **Main 进程**：它从没进去过。这个进程在它到达之前就把活干完了。
+- **Main 进程**：它只在这里待了一下——`AsyncLLM.add_request()` 用 `process_inputs` 把文字分成 token id，再把它交给 EngineCore [C9]；之后每一步计算都不再经过这个进程。
 - **EngineCore 进程**：它是一条 `Request` 对象，在这里待了 200 圈。第 92 圈时 `KVCacheManager` 为它要了第二块。
 - **Worker 进程**：它每一圈进来一次，变成几张形状 `(1,)` 的张量，算完就没了——**下一圈再进来是新的张量**，只有 KV Cache 留在显存里。
 
@@ -50,9 +51,9 @@ file: engine-processes
 
 | 进程 | 里面跑什么 | patch 怎么进去 |
 |---|---|---|
-| Main | 解析命令行、选平台、拉起 EngineCore | `NPUPlatform.pre_register_and_update()` 里的 `adapt_patch(is_global_patch=True)` [C4] |
-| EngineCore | 调度器、KV Cache 管理（上游 vLLM 的代码） | 四个 general plugin 各自调 `_ensure_global_patch()` 补一次 [C1][C2] |
-| Worker | `NPUWorker` + `NPUModelRunner`，真正的算子调用 | `NPUWorker.__init__` 第一步的 `adapt_patch()` [C6] |
+| Main | 解析命令行、选平台、请求在这里分词、拉起 EngineCore | `NPUPlatform.pre_register_and_update()` 里的 `adapt_patch(is_global_patch=True)` [C4] |
+| EngineCore | 调度器、KV Cache 管理（上游 vLLM 的代码） | 四个 general plugin 里有三个各自调 `_ensure_global_patch()` 补一次 [C1][C2] |
+| Worker | `NPUWorker` + `NPUModelRunner`，真正的算子调用 | `NPUWorker.__init__` 开头的 `adapt_patch()` [C6] |
 
 中间那一行是三条里最不直观的。`_ensure_global_patch()` 的 docstring 直接给了理由：vLLM 在 engine-core 子进程里加载 general plugin，而 E2E 测试的 conftest hook 在那个进程里不会跑，所以影响调度器与引擎代码的全局 patch 必须也经由这些 plugin 入口再打一次 [C1]。
 

@@ -10,17 +10,18 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
   - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
   - vllm@0fc695fc:vllm/v1/engine/core.py#L1233-L1250
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L341-L350
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L819-L841
   - vllm@0fc695fc:vllm/v1/engine/core.py#L474-L482
   - vllm@0fc695fc:vllm/v1/engine/core.py#L484-L492
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1335
+  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1819
 evidence: "C"
 relations:
   - to: vllm-v1-shape
     kind: builds-on
     note: 这个循环跑在三个进程里的中间那个，边界上传什么在那一页
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -52,8 +53,8 @@ while self._handle_shutdown():
 ## 那条请求走到这里
 
 - **第 0 圈**：那条请求还没来。`_process_input_queue` 里的 `while not self.has_work()` 为真，循环阻塞在 `input_queue.get(block=True)` 上——**引擎空转时是真的在睡，不是在忙等** [C3]。
-- **第 1 圈**：前端把 `EngineCoreRequest` 塞进队列，阻塞解除。`add_request` 把它变成一条 `Request` 放进 waiting 队列 [C4]，然后 `step()` 第一次跑起来：schedule 给它 37 个 token 的名额，execute 算完，update 记下「已经算了 37 个」。
-- **第 2 到第 200 圈**：每圈给它 1 个 token。代码路径和第 1 圈**完全一样**。
+- **第 1 圈**：前端把 `EngineCoreRequest` 塞进队列，阻塞解除。`preprocess_add_request` 把它变成一条 `Request` [C4]，再由 `Scheduler.add_request` 放进 waiting 队列 [C8]，然后 `step()` 第一次跑起来：schedule 给它 37 个 token 的名额，execute 算完，update 记下「已经算了 37 个」。
+- **第 2 到第 200 圈**：每圈给它 1 个 token。循环体走的路径和第 1 圈**完全一样**。
 - **第 200 圈之后**：`update_from_output` 发现采出了 EOS，把它标成结束，KV block 还回去，队列空了，循环又回到 `input_queue.get()` 上睡着。
 
 所以「那条请求跑了多久」这个问题，在代码里的准确形式是：**这个循环为它转了 200 圈** [D]。

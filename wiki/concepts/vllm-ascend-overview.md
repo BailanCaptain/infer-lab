@@ -32,13 +32,13 @@ relations:
     kind: builds-on
     note: 那条请求碰到的每一个昇腾对象，都是顺着这五个入口之一进来的
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
 ## 一句话
 
-vLLM-Ascend 是一个独立安装的 Python 包 `vllm_ascend`，它不 fork vLLM，而是通过 Python 的 entry point 在 vLLM 启动时把自己挂上去，然后由 vLLM 主动来问它「这块硬件叫什么」「注意力算子用哪个」「通信器是哪个类」。官方文档把它称为社区维护的硬件插件，遵循 vLLM 的 hardware-pluggable 原则，让昇腾 NPU 的接入与 vLLM 解耦 [S6]。
+vLLM-Ascend 是一个独立安装的 Python 包 `vllm_ascend`，它不 fork vLLM，而是通过 Python 的 entry point 在 vLLM 启动时把自己挂上去，然后由 vLLM 主动来问它「这块硬件叫什么」「注意力算子用哪个」「通信器是哪个类」。官方文档把它称为社区维护的硬件插件，遵循 vLLM 的 hardware-pluggable 原则，让昇腾 NPU 的接入与 vLLM 解耦 [S11]。
 
 ## 挂上去的一共是几个口
 
@@ -72,8 +72,8 @@ file: ascend-vs-upstream
 
 | 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| entry point 组数 | 2 组 / 5 个 [C1] | 3 组 / 6 个 [C7] | main 多一组 `ms_service_metric.providers`，指向 `vllm_ascend.observability:get_metric_provider` |
-| `NPUPlatform` 所在行 | `platform.py` 第 128 行 [C5] | 第 81 行 [D] | 同一个类，行号会漂；引用必须带 commit，不能只写行号 |
+| entry point 组数 | 2 组 / 5 个 [C1] | 3 组 / 6 个 [C12] | main 多一组 `ms_service_metric.providers`，指向 `vllm_ascend.observability:get_metric_provider` |
+| `NPUPlatform` 所在行 | `platform.py` 第 128 行 [C5] | 第 80 行 [D] | 同一个类，行号会漂；引用必须带 commit，不能只写行号 |
 
 这张表只列入口层面的差异。两个分支的目录层面差异在 [vllm_ascend 目录地图](vllm-ascend-repo-map.md)。
 

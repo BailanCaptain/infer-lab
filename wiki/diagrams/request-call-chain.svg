@@ -12,7 +12,7 @@
   <text x="84" y="164" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">Scheduler.schedule</text>
   <rect x="106" y="200" width="520" height="50" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
   <text x="122" y="213" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">三、昇腾侧第一跳</text>
-  <text x="122" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">PP 收发、判断这一步要不要真跑 forward</text>
+  <text x="122" y="231" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">PP 收发：收上一段的中间结果，算完再发给下一段</text>
   <text x="122" y="248" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">NPUWorker.execute_model</text>
   <rect x="144" y="260" width="520" height="50" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
   <text x="160" y="281.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">四、本卡这一步的主循环</text>
@@ -31,7 +31,7 @@
   <text x="814" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-control, #5b6763)">上游</text>
   <path d="M808 200 l-8 0 L800 490 l8 0" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
   <text x="814" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)">昇腾</text>
-  <text x="20" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">想改哪一跳就去哪儿：一、二两跳昇腾仓库里没有对应实现，只能用 patch 换掉上游对象；三到五、七在 worker/ 下，直接改；第六跳在 attention/ 与</text>
-  <text x="20" y="530.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">ops/。</text>
+  <text x="20" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">想改哪一跳就去哪儿：一、二两跳默认是上游代码，只能换掉整个调度器类或用 patch 换掉上游对象；三到五、七在 worker/ 下，直接改；第六跳在 </text>
+  <text x="20" y="530.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">attention/ 与 ops/。</text>
   <text x="20" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第二跳和第三跳之间那条线是进程边界，也是责任边界：过了它，「算哪些 token」已成定局，剩下全是「怎么算」。</text>
 </svg>

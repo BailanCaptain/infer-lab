@@ -19,6 +19,9 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/community/versioning_policy.md#L1-L3
   - vllm-ascend@2c59ff10:docs/source/community/versioning_policy.md#L119-L126
   - https://docs.vllm.ai/projects/ascend/en/latest/community/versioning_policy.html
+  - vllm@0fc695fc:vllm/platforms/interface.py#L259-L267
+  - vllm@0fc695fc:vllm/platforms/interface.py#L427-L468
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
 evidence: "C"
 relations:
   - to: ascend-patch-system
@@ -28,7 +31,7 @@ relations:
     kind: builds-on
     note: 那条请求是这条界线两侧分工最具体的例子
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -63,13 +66,13 @@ file: ownership-boundary
 
 因为昇腾侧的**入口代码确实很薄**：几个 entry point、一个平台类、一堆配置解析。如果只读这部分，结论自然是「一个挂钩子的壳」。
 
-但那是接缝，不是主体。主体是那条界线之后的东西——四个注意力后端各是一千多到近三千行的完整算法实现，`csrc/` 下还有上千个 AscendC 核函数文件。**真正跑在 NPU 上的每一次矩阵乘、每一次 softmax，都来自 vllm-ascend，上游一行都没有。**
+但那是接缝，不是主体。主体是那条界线之后的东西——五个注意力后端里有四个各是一千多到近三千行的完整算法实现，`csrc/` 下还有上千个 AscendC 算子源文件。**真正跑在 NPU 上的每一次矩阵乘、每一次 softmax，都来自 vllm-ascend，上游一行都没有。**
 
-反过来也成立：**「算哪些 token」这个决策在昇腾仓库里没有任何对应实现** [D]。不是「昇腾也有一份自己的调度器」，是根本没有。
+反过来也成立：**「算哪些 token」这个决策默认整个在上游**。昇腾仓库里确实有几个调度器子类（`vllm_ascend/core/` 下的 `SchedulerDynamicBatch`、`ProfilingChunkScheduler`），但只有打开对应配置时才用 `scheduler_cls` 顶掉上游那个类 [C15]，默认路径上一行都不走。
 
 ## 边界的物理形态
 
-上游在 `vllm/platforms/interface.py` 定了一个 `Platform` 基类，三个关键方法只有签名和 docstring [C1]；昇腾继承它并填上实现 [C7]：
+上游在 `vllm/platforms/interface.py` 定了一个 `Platform` 基类 [C1]，三个关键方法只有签名和 docstring——`get_attn_backend_cls` 返回空串 [C13]，另外两个是 `pass` [C14]；昇腾继承它并填上实现 [C7]：
 
 | 方法 | 上游 | 昇腾 | 它决定什么 |
 |---|---|---|---|
@@ -83,7 +86,7 @@ file: ownership-boundary
 
 这是这条边界最实用的用法：
 
-- **改调度策略** → 昇腾仓库里没有地方可改，只能用 patch 换掉上游那个对象。这是 [Patch 机制](ascend-patch-system.md) 存在的主要原因。
+- **改调度策略** → 昇腾侧没有默认实现可改，只能整类换掉（`scheduler_cls`）或用 patch 换掉上游那个对象。这是 [Patch 机制](ascend-patch-system.md) 存在的主要原因。
 - **改算子怎么算** → 昇腾的主场。先看 `ops/` 能不能用现成 `torch_npu` 算子拼出来，不行才下到 `csrc/`。
 - **改 KV 分配** → 要分两半：**块怎么分**是上游的，**块里每个 token 落哪个槽位**是昇腾的 [C8]。这两件事经常被混成一件。
 
@@ -99,13 +102,13 @@ def vllm_version_is(target_vllm_version: str):
     return Version(vllm_version) == Version(target_vllm_version)
 ```
 
-`==`，精确相等，不是版本范围。这个函数在昇腾仓库里被调 72 处 [D]，决定 patch 目录导入哪些文件、算子走哪条分支。
+`==`，精确相等，不是版本范围。这个函数在 `vllm_ascend/` 包里被调 49 处 [D]，决定 patch 目录导入哪些文件、算子走哪条分支。
 
 后果很实际：**装错版本不会在安装期报错**，而是在运行时以「某个 patch 没生效」的形式出现——判 false 时那段 import 整段跳过，不抛异常 [C9][D]。比依赖冲突难查得多。`main` 分支是例外，它跟 vLLM main 加最近 1~2 个 release，不锁单一版本 [S11]。
 
 ## 常见误解
 
 - **「关键的东西都在 vLLM 里」**——框架在上游，计算在昇腾。界线之后的每一行算子都是昇腾的 [D]。
-- **「昇腾侧只是包装器」**——四个注意力后端是完整算法实现，不是转发 [D]。
+- **「昇腾侧只是包装器」**——五个注意力后端里有四个是完整算法实现，不是转发 [D]。
 - **「版本对不上大不了跑不起来」**——它可能照样起得来，只是某些 patch 静默不生效 [C9][D]。
 - **「边界能按目录划」**——不能。界线在一条请求的时间线上，`SchedulerOutput` 交接的那一刻；两侧在代码里共用同一批方法名 [C1][C7]。

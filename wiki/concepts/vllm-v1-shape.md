@@ -13,12 +13,14 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/core.py#L403-L472
   - vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
   - vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L582
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
+  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L625-L650
   - vllm@0fc695fc:vllm/v1/worker/worker_base.py#L114-L158
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L115
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
   - vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
 evidence: "C"
 relations:
   - to: one-request
@@ -57,7 +59,7 @@ file: vllm-v1-shape
 - **EngineCore** 要尽快把下一步排出来，怕被任何东西阻塞住；
 - **Worker** 大部分时间在等 NPU 算完，是 GIL 的重灾区。
 
-分开之后，前端接新请求的同时 EngineCore 可以在排下一步，Worker 可以在算上一步 [A]。代价是**每跨一次边界都要序列化**，这解释了后面很多看起来绕的设计——比如为什么 `SchedulerOutput` 里塞的全是 id 和整数，没有一个对象引用。
+分开之后，前端接新请求的同时 EngineCore 可以在排下一步，Worker 可以在算上一步 [A]。代价是**每跨一次边界都要序列化**，这解释了后面很多看起来绕的设计——比如为什么 `SchedulerOutput` 里塞的全是 id、整数和可以序列化的参数，没有一条 `Request` 的引用。
 
 ## 两道边界上各传什么
 
@@ -67,7 +69,7 @@ file: vllm-v1-shape
 
 **边界 ②（EngineCore ↔ Worker）**
 
-下去的是 `SchedulerOutput`，上来的是 `ModelRunnerOutput` [C4]。这道边界更值得注意：它不只是进程边界，还是**责任边界**——过了这道线，「算哪些 token」已成定局，剩下的全是「怎么算」。这正是 [vLLM 与昇腾各管什么](who-owns-what.md) 那一页讲的那条线。
+下去的是 `SchedulerOutput`，上来的是 `ModelRunnerOutput` [C4][C8]。这道边界更值得注意：它不只是进程边界，还是**责任边界**——过了这道线，「算哪些 token」已成定局，剩下的全是「怎么算」。这正是 [vLLM 与昇腾各管什么](who-owns-what.md) 那一页讲的那条线。
 
 ## 执行器只是个传声筒
 
@@ -77,7 +79,7 @@ file: vllm-v1-shape
 
 它的活是**把同一个调用广播到每张卡的 Worker 上再收回来**——单卡时只有一个 Worker，多卡时才谈得上广播。`WorkerBase` 定义了它能广播哪些调用：`init_device`、`load_model`、`execute_model`、`sample_tokens` 等 [C8]。真正干活的是被广播到的 `Worker`。
 
-多进程执行器在起 Worker 之前会先问一句平台「这块硬件的 block size 要不要改」 [C7]——这是上游少数几个在 Worker 起来之前就让硬件插件插手的地方，昇腾把 `block_size` 顶成 128 就发生在这条路上。
+执行器要等 Worker 起来、`init_device` 和 `load_model` 都跑完，才回头问平台一句「这块硬件的 block size 要不要改」 [C7]。但昇腾把 `block_size` 顶成 128 不在这条路上：这个钩子在昇腾上只用来对齐 mamba 的块大小，源码里的 TODO 自己写明 block size 仍然是在更早的 `check_and_update_config` 里定的 [C13]，那里默认就把它设成 128 [C14]。
 
 ## 常见误解
 

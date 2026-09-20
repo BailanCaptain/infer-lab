@@ -26,7 +26,7 @@ boxes:
   - { at: [620, 172], size: [244, 76], title: 里面跑什么, sub: 昇腾代码占主体, fn: NPUModelRunner, tone: ascend }
 
   - { at: [36, 276], size: [244, 96], title: patch 从哪条路进来, sub: 平台层，进程最早, fn: "adapt_patch(True)", tone: accent, icon: patch }
-  - { at: [328, 276], size: [244, 96], title: patch 从哪条路进来, sub: 四个入口各补一次, fn: _ensure_global_patch, tone: accent, icon: patch }
+  - { at: [328, 276], size: [244, 96], title: patch 从哪条路进来, sub: 四个入口里三个各补一次, fn: _ensure_global_patch, tone: accent, icon: patch }
   - { at: [620, 276], size: [244, 96], title: patch 从哪条路进来, sub: worker 起来的那一刻, fn: "adapt_patch()", tone: accent, icon: patch }
 
 arrows:

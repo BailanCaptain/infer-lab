@@ -2,19 +2,19 @@
 id: vllm-platform-interface
 title: Platform：上游留给硬件的那张问卷
 type: concept
-summary: 上游把「凡是跟硬件有关的事」收成一个 Platform 类，88 个口子，全仓 873 处在问它。昇腾插件要做的就是把这张问卷答上。
+summary: 上游把「凡是跟硬件有关的事」收成一个 Platform 类，78 个口子，`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。
 aliases: [Platform, current_platform, 平台抽象, platform_plugins, 硬件插件接口, OOT]
 chapters: ["10"]
 order: 70
 sources:
   - vllm@0fc695fc:vllm/platforms/interface.py#L105-L140
-  - vllm@0fc695fc:vllm/platforms/interface.py#L428-L434
+  - vllm@0fc695fc:vllm/platforms/interface.py#L428-L441
   - vllm@0fc695fc:vllm/platforms/interface.py#L458-L462
   - vllm@0fc695fc:vllm/platforms/interface.py#L259-L266
-  - vllm@0fc695fc:vllm/platforms/__init__.py#L212-L232
+  - vllm@0fc695fc:vllm/platforms/__init__.py#L203-L232
   - vllm@0fc695fc:vllm/platforms/__init__.py#L233-L252
   - vllm@0fc695fc:vllm/config/vllm.py#L1330-L1338
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2316-L2335
+  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335
   - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
 evidence: "C"
 relations:
@@ -22,13 +22,13 @@ relations:
     kind: builds-on
     note: 这些口子分散在那三个进程的启动路径上，哪一层在哪个进程写在那一页
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
 ## 一句话
 
-上游把所有「答案取决于硬件」的问题收进一个类：`Platform`。它有 **88 个 `def`**，上游代码里 `current_platform.` 出现 **873 处** [D]。所谓「vLLM 支持一种新硬件」，具体就是有人把这张问卷答完了。
+上游把所有「答案取决于硬件」的问题收进一个类：`Platform`。它有 **78 个 `def`**，上游 `vllm/` 包里 `current_platform.` 出现 **873 处** [D]。所谓「vLLM 支持一种新硬件」，具体就是有人把这张问卷答完了。
 
 ```wiki-diagram
 file: platform-hooks
@@ -78,7 +78,7 @@ file: platform-hooks
 
 ## 常见误解
 
-- **「Platform 是个空接口，实际逻辑都在硬件插件里」**——它不空。88 个 `def` 里大部分有可用的默认实现，插件只覆盖要改的那些 [C1]。
-- **「插件只在启动时起作用」**——启动时答题，但答案影响运行时的每一步；`current_platform.` 的 873 处调用散布在全仓 [D]。
+- **「Platform 是个空接口，实际逻辑都在硬件插件里」**——它不空。78 个 `def` 里大部分有可用的默认实现，插件只覆盖要改的那些 [C1]。
+- **「插件只在启动时起作用」**——启动时答题，但答案影响运行时的每一步；`current_platform.` 的 873 处调用散布在 `vllm/` 包的 311 个文件里 [D]。
 - **「`get_attn_backend_cls` 返回一个类」**——返回的是类路径字符串，由上游自己 import [C4]。这一层间接是插件能跨进程工作的前提 [A]。
 - **「检测到 CUDA 就一定走 CUDA」**——不一定。OOT 插件的分支排在内置平台前面 [C6]。

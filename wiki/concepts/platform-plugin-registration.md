@@ -23,7 +23,7 @@ relations:
     kind: builds-on
     note: 这五个口在那条请求发出之前就已经用完了，是它能被昇腾接住的前提
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -73,5 +73,5 @@ file: plugin-registration
 ## 常见误解
 
 - **「注册要在代码里显式调用」**——不需要。`entry_points` 是安装期元数据，装完包就在；`pip uninstall vllm-ascend` 之后 vLLM 就完全看不到昇腾，不需要改任何配置 [D]。
-- **「五个入口有先后依赖」**——平台那一个和 general 那四个之间没有约定顺序，所以那四个才各自做幂等的 `_ensure_global_patch()` [C2]。假设「平台已经初始化好了」来写 general plugin 会在 engine-core 进程里出错 [I]。
+- **「五个入口有先后依赖」**——平台那一个和 general 那四个之间没有约定顺序，所以其中那三个才各自做幂等的 `_ensure_global_patch()` [C2]。假设「平台已经初始化好了」来写 general plugin 会在 engine-core 进程里出错 [I]。
 - **「`register_model` 也该补 patch，漏了」**——它确实不补，而且合理：见上。

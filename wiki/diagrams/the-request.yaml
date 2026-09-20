@@ -58,7 +58,7 @@ brackets:
   - { at: [163.0, 166], span: 597.0, label: 第 2 到第 200 步 · 每步只算 1 个 token, dir: down, tone: ascend }
   - { at: [200.0, 336], span: 173.9, label: prompt 一次写满, dir: down, tone: neutral }
   - { at: [373.9, 336], span: 427.7, label: decode 第 1 到第 91 步，每步一格, dir: down, tone: ascend }
-  - { at: [200.0, 426], span: 512.3000000000001, label: decode 第 92 到第 199 步, dir: down, tone: ascend }
+  - { at: [200.0, 426], span: 512.3000000000001, label: decode 第 92 步之后的 109 格, dir: down, tone: ascend }
   - { at: [712.3000000000001, 426], span: 89.3, label: 19 格空着，别人也拿不走, dir: down, tone: muted }
 
 pills:

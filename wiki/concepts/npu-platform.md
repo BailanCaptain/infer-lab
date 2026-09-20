@@ -17,7 +17,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L361-L449
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L882
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L896
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332
 evidence: "C"
@@ -29,7 +29,7 @@ relations:
     kind: builds-on
     note: 那条请求的 block_size、注意力后端、token 预算档位，三个数都是这个类定的
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-20"
 origin: seed
 ---
 
@@ -55,7 +55,7 @@ file: platform-surface
 
 后果是：**在昇腾上，那张「显存 ≥ 70 GiB 走大档」的表永远走不到大档**，跟卡上插了多少 HBM 无关。起 API server 时默认预算就是 2048，用 `LLM` 类是 8192 [C13]。那条请求的 37 个 token 之所以一步算完，最终可以追到这个 `NotImplementedError` 上 [D]。
 
-这不是 bug——注释写明了：实现它会连带提前初始化 `torch_npu`，而后者只允许全局初始化一次 [C4]。**一个「没实现」的方法改变了调度器的默认行为**，这是插件模式最典型的一种连带效应。
+这不是 bug——注释写明了：实现它会连带提前初始化 `torch_npu`，而后者只允许全局初始化一次。**一个「没实现」的方法改变了调度器的默认行为**，这是插件模式最典型的一种连带效应。
 
 ## 第一组：身份与属性
 
@@ -84,14 +84,14 @@ file: platform-surface
 
 ## 第四组：把请求转给具体实现
 
-`get_attn_backend_cls` 在五个注意力后端里选一个 [C10]，`get_device_communicator_cls` 给出通信器类路径，`get_compile_backend` 与 `get_static_graph_wrapper_cls` 各返回一个类路径字符串 [C2]。这四个方法是从平台层跳进各子系统的跳板 [D]；顺着它们能一路走到 [注意力后端家族](attention-backend-family.md) 与 [图模式层](graph-mode-layer.md)。
+`get_attn_backend_cls` 在五个注意力后端里选一个 [C10]，`get_device_communicator_cls` 给出通信器类路径，`get_compile_backend` [C2] 与 `get_static_graph_wrapper_cls` [C11] 各返回一个类路径字符串。这四个方法是从平台层跳进各子系统的跳板 [D]；顺着它们能一路走到 [注意力后端家族](attention-backend-family.md) 与 [图模式层](graph-mode-layer.md)。
 
 ## 行号会漂，引用必须带 commit
 
 | 项 | v0.23 维护分支 | main 开发主线 |
 |---|---|---|
-| `class NPUPlatform` 起始行 | 128 [C1] | 81 [C12] |
-| 两者相差 | — | 47 行 [D] |
+| `class NPUPlatform` 起始行 | 128 [C1] | 80 [C12] |
+| 两者相差 | — | 48 行 [D] |
 
 这就是本库所有来源都写成 `repo@commit:path#L起-L止` 的原因——只记行号的笔记在换分支之后会指到别的代码上。
 

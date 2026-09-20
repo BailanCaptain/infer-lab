@@ -508,7 +508,7 @@
   <path d="M373.9 336 l0 9 L801.5999999999999 345 l0 -9" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
   <text x="587.8" y="363" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)" text-anchor="middle">decode 第 1 到第 91 步，每步一格</text>
   <path d="M200 426 l0 9 L712.3000000000001 435 l0 -9" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
-  <text x="456.2" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)" text-anchor="middle">decode 第 92 到第 199 步</text>
+  <text x="456.2" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)" text-anchor="middle">decode 第 92 步之后的 109 格</text>
   <path d="M712.3000000000001 426 l0 9 L801.6 435 l0 -9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
   <text x="757" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">19 格空着，别人也拿不走</text>
   <rect x="816.3" y="308.5" width="79.7" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="827.3" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">block 0</text>

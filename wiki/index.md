@@ -4,7 +4,7 @@
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
-- [Block Table](concepts/block-table.md) — 一张 (请求数 × 每请求最大块数) 的 int32 表，把序列内第几个块翻译成显存里的物理块号，再由它算出每个 token 的写入槽位。 `11`
+- [Block Table：逻辑块号到物理块号的唯一翻译层](concepts/block-table.md) — 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请求在这一批里的座位号，列是它自己数出来的第几个块，格子里填的是显存里的物理块号。 `11`
 - [三个进程与 patch 注入点](concepts/engine-processes.md) — V1 引擎跑起来是 Main、EngineCore、Worker 三类进程；昇腾的 patch 要分别进这三处，用的是三条不同的路。 `10`
 - [KV Cache](concepts/kv-cache.md) — 把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。 `05 11`
 - [贯穿全书的那条请求](concepts/one-request.md) — 全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。 `00`
@@ -27,39 +27,39 @@
 - [Patch 机制](concepts/ascend-patch-system.md) — 上游没留口子的地方，昇腾在运行时把上游的类和函数换掉。两个目录对应两个时机，靠 import 副作用生效。 `10`
 - [注意力后端家族](concepts/attention-backend-family.md) — attention/ 下五个后端类，按 (use_mla, use_sparse, use_compress) 三元组查表选出；普通后端的 KV 形状是五维，MLA 系是四维。 `04`
 - [图模式层](concepts/graph-mode-layer.md) — 昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。 `16`
-- [KV Cache CPU Offload](concepts/kv-cache-cpu-offload.md) — 把 NPU 上要被淘汰的 KV 块异步拷到主机内存留一份备份，下次同一前缀在 NPU 上没命中但 CPU 池里还在，就再异步拷回来，省掉重新 prefill。 `11`
-- [Layerwise KV Offload](concepts/kv-cache-layerwise-offload.md) — 把 KV 的存取从「整趟前向做完一次性搬」改成「每层算完立刻搬」，搬运与下一层计算重叠；main 上还能让多层共用一份 HBM buffer。 `11`
-- [KV Cache Memory Profiling](concepts/kv-cache-memory-profiling.md) — 启动时跑一遍假数据前向，量出权重、激活峰值、非 torch 三块占用，再用「整卡容量 × gpu_memory_utilization 减去这三块」定下 KV Cache 能拿多少字节。 `11`
-- [KV Cache Quantization](concepts/kv-cache-quantization.md) — 用 ModelSlim 标定好的静态 scale 把 KV cache 存成 int8，decode 时交给 npu_fused_infer_attention_score 就地反量化；由 checkpoint 里的 kv_cache_type = C8 触发，不看 --kv-cache-dtype。 `11 17`
-- [Sparse KV Offload](concepts/kv-cache-sparse-offload.md) — PD 分离的 D 节点上，主 KV 全部住在主机内存，每步只把 indexer 选中的 top-k token 里未命中的那几行搬回 NPU 热缓冲区。 `11`
-- [KV Cache Spec](concepts/kv-cache-spec.md) — 每个注意力层向引擎声明自己的 KV Cache 长什么样——块大小、KV 头数、头维、dtype，引擎据此换算每块字节数并决定分配多少块。 `11`
-- [KV Pool](concepts/kv-pool.md) — 把 KV Cache 存进 HBM 之外、跨节点共享的存储池，让前缀命中不再受单卡显存与单节点边界限制。 `11`
+- [KV Cache CPU Offload：把要被淘汰的块存进主机内存](concepts/kv-cache-cpu-offload.md) — NPU 上的 KV 块被淘汰之前先异步拷一份进主机内存；下一条请求共享同一段前缀、而 NPU 上那几块已经没了，就再拷回来，省掉重新 prefill。昇腾只换掉 worker 侧的搬运。 `11`
+- [Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer](concepts/kv-cache-layerwise-offload.md) — 把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；main 上还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。 `11`
+- [KV Cache Memory Profiling：整卡的九成，减掉量出来的三块](concepts/kv-cache-memory-profiling.md) — 启动时跑一遍最大规模的假数据前向，量出权重、激活峰值、非 torch 三块；整卡容量 × gpu_memory_utilization 减掉这三块，就是 KV Cache 的字节预算。图捕获不在这个减法里。 `11`
+- [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md) — 每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。v0.23 只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。 `11 17`
+- [Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行](concepts/kv-cache-sparse-offload.md) — PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 top-k，再由每层一张 LRU 表决定哪几行要搬回 NPU 热缓冲区。 `11`
+- [KV Cache Spec：每层自己报价，引擎才算得出能分几块](concepts/kv-cache-spec.md) — 每个注意力层向引擎报一份规格——块大小、KV 头数、头维、dtype。引擎只从里面取「一块多少字节」这一个数去做除法，块数算完再发回 Worker 分配。 `11`
+- [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md) — 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；调度器只拿得到一个整数，搬数据的那一侧直接读写 HBM 原始地址。 `11`
 - [NPUModelRunner 怎么读](concepts/npu-model-runner.md) — 5251 行的单文件，继承上游 GPUModelRunner。按九个区读，不要从头读；每个区对应一个可以单独进入的方法。 `09`
 - [NPUPlatform](concepts/npu-platform.md) — 继承上游 Platform 的那个类。vLLM 一切硬件相关的问题都问它，它还会在启动时真的改写用户给的配置。 `10`
 - [NPUWorker 启动时序](concepts/npu-worker-lifecycle.md) — 从建对象到能接请求，六步固定顺序：打 patch、选卡建 runner、装权重、profile 出显存预算、分配 KV 张量、编译与捕获图。 `10`
 - [算子层与自定义算子](concepts/ops-and-kernels.md) — ops/ 用 CustomOp 注册把上游算子换成昇腾实现；再往下是 torch_npu，最底下是 csrc/ 编出来的自定义 aclnn 算子，绑在 torch.ops._C_ascend 上。 `16`
-- [PagedAttention](concepts/paged-attention.md) — 昇腾后端把 KV Cache 切成 128 token 的定长块，decode 时由块表指路、算子按块号跳着取 K/V；专用的 _npu_paged_attention 算子默认不启用，需手工配 pa_shape_list。 `11`
+- [PagedAttention：分块是布局，那个算子默认不跑](concepts/paged-attention.md) — 昇腾把每层 KV 切成 128 token 的定长块，算子拿块表跳着读。但叫 _npu_paged_attention 的那个算子默认永远不执行——默认按块读 KV 的是 FIA。 `11`
 - [插件注册机制](concepts/platform-plugin-registration.md) — 装包时声明两组 entry point，vLLM 启动时扫出来：一个给平台类，四个给连接器、加载器、profiling 与模型注册。 `10`
-- [Prefix Caching](concepts/prefix-caching.md) — 把已算过的 KV 块按内容哈希留在池子里，下一条请求若开头完全相同就直接复用这些块，只对不同的尾巴做前向。 `11`
+- [Prefix Caching：命中的是块，不是 token](concepts/prefix-caching.md) — 两条请求开头一样，那段 KV 就不用重算——把算过的块按内容哈希留着，下一条直接把块号填进块表，只对不同的尾巴做前向。 `11`
 - [prepare_inputs 数据流](concepts/prepare-inputs-flow.md) — 调度器给的请求集合，经 NPUInputBatch 与 BlockTable 变成算子要的四个张量；槽位由一个 Triton kernel 算出来。 `09`
-- [Recompute CPU Offload](concepts/recompute-cpu-offload.md) — PD 分离的 Decode 节点抢占请求时，把它已算好的 KV 块从 HBM 拷到锁页 CPU 内存里存着，恢复时再拷回来，避免整条请求被打回 Prefill 重算。 `11 12`
+- [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md) — PD 分离的 Decode 节点抢占一条请求时，先把它已算好的 KV 块同步拷进锁页主机内存，重新排上再拷回来，省掉一整轮 prefill。main 开发主线已把它改名成 PreemptOffloadConnector。 `11 12`
 
 ## 参数（param）
 - [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — combine_quant_mode 的静态定义，正文待补。
-- [enable_async_exponential](params/enable-async-exponential.md) — 把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除。 `19`
+- [enable_async_exponential](params/enable-async-exponential.md) — 把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除，残留的这个键还会让启动直接失败。 `19`
 - [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md) — enable_force_eplb 的静态定义，正文待补。
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md) — 把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 有，main 已整体移除。 `13`
 - [enable_pcp_o_proj_weight_sharding](params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md) — enable_pcp_o_proj_weight_sharding 的静态定义，正文待补。
-- [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md) — sleep 时额外销毁 HCCL 通信域并清空 ACL 图工作区，把更多显存还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。 `19`
+- [enable_sleep_mode_extra_cleanup](params/enable-sleep-mode-extra-cleanup.md) — sleep 时额外销毁 HCCL 通信域、清空 ACL 图工作区，把分配器池子之外的那两块显存也还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。v0.23 是顶层键，main 上已搬进 rl_config。 `19`
 - [enable_super_kernel](params/enable-super-kernel-ce990e186bfa.md) — enable_super_kernel 的静态定义，正文待补。
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md) — 把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main 上已整体删除。 `13`
 - [group](params/group-2b49ce9bdb0a.md) — group 的静态定义，正文待补。
 - [kvpp_config](params/kvpp-config-0445bd352140.md) — kvpp_config 的静态定义，正文待补。
 - [layer_sharding](params/layer-sharding.md) — 点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。 `13`
 - [mask](params/mask-e1795029cbdd.md) — mask 的静态定义，正文待补。
-- [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上已整体删除。 `14`
-- [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定"预取权重的前百分之几"；v0.23.0 存在，main 已随整个 weight prefetch 一起删除。 `19`
-- [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 通过启动时的 profiling 调整 chunk 大小，默认关闭。main 开发主线要求 PP>1，且不能与负载均衡调度同时开启；与 v0.23 维护分支对 need_timing 的处理不同。 `12 13`
+- [multistream_overlap_gate](params/multistream-overlap-gate.md) — v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上整套实现已删除，键留在启动命令里会让进程起不来。 `14`
+- [prefetch_ratio](params/prefetch-ratio.md) — weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定「预取权重的前百分之几」；v0.23.0 维护分支上可用，main 开发主线已随整个 weight prefetch 特性一起删除，没有替代键。 `19`
+- [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) — 上游叫 CPP 的动态切块：启动时量出 prefill 延迟曲线，运行时反解每步该切多少 token，把 PP 流水线的气泡抹平。默认关闭，要求 PP>1 且与负载均衡调度互斥；官方定位是 PD 分离里 P 节点的长序列优化。 `12 13`
 - [rank](params/rank-d6a905e66735.md) — rank 的静态定义，正文待补。
 - [sfa_dcp_force_tmajor_restore](params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md) — sfa_dcp_force_tmajor_restore 的静态定义，正文待补。
 - [shard_axis](params/shard-axis-036e26ba7f4b.md) — shard_axis 的静态定义，正文待补。
@@ -85,23 +85,23 @@
 - [vLLM 与昇腾各管什么](concepts/who-owns-what.md)
 
 ### 11 KV Cache 内存系统
-- [Block Table](concepts/block-table.md)
+- [Block Table：逻辑块号到物理块号的唯一翻译层](concepts/block-table.md)
 - [KV Cache](concepts/kv-cache.md)
-- [KV Cache CPU Offload](concepts/kv-cache-cpu-offload.md)
-- [Layerwise KV Offload](concepts/kv-cache-layerwise-offload.md)
-- [KV Cache Memory Profiling](concepts/kv-cache-memory-profiling.md)
-- [KV Cache Quantization](concepts/kv-cache-quantization.md)
-- [Sparse KV Offload](concepts/kv-cache-sparse-offload.md)
-- [KV Cache Spec](concepts/kv-cache-spec.md)
-- [KV Pool](concepts/kv-pool.md)
-- [PagedAttention](concepts/paged-attention.md)
-- [Prefix Caching](concepts/prefix-caching.md)
-- [Recompute CPU Offload](concepts/recompute-cpu-offload.md)
+- [KV Cache CPU Offload：把要被淘汰的块存进主机内存](concepts/kv-cache-cpu-offload.md)
+- [Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer](concepts/kv-cache-layerwise-offload.md)
+- [KV Cache Memory Profiling：整卡的九成，减掉量出来的三块](concepts/kv-cache-memory-profiling.md)
+- [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md)
+- [Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行](concepts/kv-cache-sparse-offload.md)
+- [KV Cache Spec：每层自己报价，引擎才算得出能分几块](concepts/kv-cache-spec.md)
+- [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md)
+- [PagedAttention：分块是布局，那个算子默认不跑](concepts/paged-attention.md)
+- [Prefix Caching：命中的是块，不是 token](concepts/prefix-caching.md)
+- [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md)
 - [block 是怎么分出来的](concepts/vllm-kv-block-allocation.md)
 
 ### 12 调度
 - [动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md)
-- [Recompute CPU Offload](concepts/recompute-cpu-offload.md)
+- [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md)
 - [调度器：没有 prefill 和 decode 之分](concepts/vllm-scheduler.md)
 
 ### 13 并行 I：TP / PP / DP
@@ -119,7 +119,7 @@
 - [算子层与自定义算子](concepts/ops-and-kernels.md)
 
 ### 17 量化与投机解码
-- [KV Cache Quantization](concepts/kv-cache-quantization.md)
+- [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md)
 
 ### 19 性能工程
 - [enable_async_exponential](params/enable-async-exponential.md)

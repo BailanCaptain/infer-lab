@@ -3,7 +3,7 @@ id: kv-cache-layerwise-offload
 title: "Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer"
 type: feature
 summary: 把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；main 上还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。
-aliases: [逐层 KV 卸载, 逐层 KV 传输, Layerwise KV Cache Offload, Layerwise KV Cache Offloading, Layerwise KV Pool, Layerwise Prefill Offload]
+aliases: [Layerwise KV Offload, 逐层 KV 卸载, 逐层 KV 传输, Layerwise KV Cache Offload, Layerwise KV Cache Offloading, Layerwise KV Pool, Layerwise Prefill Offload]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L26-L36

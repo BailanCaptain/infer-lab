@@ -3,7 +3,7 @@ id: kv-cache-spec
 title: "KV Cache Spec：每层自己报价，引擎才算得出能分几块"
 type: feature
 summary: 每个注意力层向引擎报一份规格——块大小、KV 头数、头维、dtype。引擎只从里面取「一块多少字节」这一个数去做除法，块数算完再发回 Worker 分配。
-aliases: [KV 缓存规格, KV Cache 规格, KV Cache 声明, KVCacheSpec, 按层 KV 规格声明]
+aliases: [KV Cache Spec, KV 缓存规格, KV Cache 规格, KV Cache 声明, KVCacheSpec, 按层 KV 规格声明]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1088-L1107

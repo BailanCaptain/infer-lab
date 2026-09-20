@@ -3,7 +3,7 @@ id: kv-cache-quantization
 title: "KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处"
 type: feature
 summary: "每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。v0.23 只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。"
-aliases: [KV Cache 量化, KV 缓存量化, C8, C8 KV Cache, INT8 KV Cache, FAKQuant]
+aliases: [KV Cache Quantization, KV Cache 量化, KV 缓存量化, C8, C8 KV Cache, INT8 KV Cache, FAKQuant]
 chapters: ["11", "17"]
 sources:
   - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L880-L898

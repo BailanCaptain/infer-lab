@@ -3,7 +3,7 @@ id: kv-cache-sparse-offload
 title: "Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行"
 type: feature
 summary: PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 top-k，再由每层一张 LRU 表决定哪几行要搬回 NPU 热缓冲区。
-aliases: [稀疏 KV 卸载, Sparse Decode Offload, Sparse KV Cache Offload, sparse_kv_offload_config]
+aliases: [Sparse KV Offload, 稀疏 KV 卸载, Sparse Decode Offload, Sparse KV Cache Offload, sparse_kv_offload_config]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L211-L251

@@ -3,7 +3,7 @@ id: kv-pool
 title: "KV Pool：命中的前缀不再只能来自本卡 HBM"
 type: feature
 summary: 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；调度器只拿得到一个整数，搬数据的那一侧直接读写 HBM 原始地址。
-aliases: [KV Cache Pool, KV 缓存池, Ascend Store, AscendStoreConnector]
+aliases: [KV Pool, KV Cache Pool, KV 缓存池, Ascend Store, AscendStoreConnector]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L3-L44

@@ -3,7 +3,7 @@ id: vllm-v1-shape
 title: vLLM 的形状：三个进程，两道边界
 type: concept
 summary: 那条请求要下去两层再上来两层。每跨一道边界，它携带的东西就换一种：字 → 整数 → 张量。
-aliases: [vLLM V1 架构, vLLM 进程结构, AsyncLLM, EngineCore 进程, 前端进程]
+aliases: [vLLM 的形状, vLLM V1 架构, vLLM 进程结构, AsyncLLM, EngineCore 进程, 前端进程]
 chapters: ["10"]
 order: 10
 sources:

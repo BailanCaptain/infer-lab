@@ -3,7 +3,7 @@ id: paged-attention
 title: PagedAttention：分块是布局，那个算子默认不跑
 type: feature
 summary: 昇腾把每层 KV 切成 128 token 的定长块，算子拿块表跳着读。但叫 _npu_paged_attention 的那个算子默认永远不执行——默认按块读 KV 的是 FIA。
-aliases: [分页注意力, 分页 Attention, PA, PagedAttention 算子]
+aliases: [PagedAttention, 分页注意力, 分页 Attention, PA, PagedAttention 算子]
 chapters: ["11"]
 order: 20
 sources:

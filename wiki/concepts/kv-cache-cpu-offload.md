@@ -3,7 +3,7 @@ id: kv-cache-cpu-offload
 title: "KV Cache CPU Offload：把要被淘汰的块存进主机内存"
 type: feature
 summary: NPU 上的 KV 块被淘汰之前先异步拷一份进主机内存；下一条请求共享同一段前缀、而 NPU 上那几块已经没了，就再拷回来，省掉重新 prefill。昇腾只换掉 worker 侧的搬运。
-aliases: [KV Cache CPU 卸载, KV 缓存 CPU 卸载, CPU Offload, NPUOffloadingSpec, CPUOffloadingSpec, TieringOffloadingSpec, OffloadingConnector, 多级 KV 卸载]
+aliases: [KV Cache CPU Offload, KV Cache CPU 卸载, KV 缓存 CPU 卸载, CPU Offload, NPUOffloadingSpec, CPUOffloadingSpec, TieringOffloadingSpec, OffloadingConnector, 多级 KV 卸载]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L14

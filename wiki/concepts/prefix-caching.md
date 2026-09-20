@@ -3,7 +3,7 @@ id: prefix-caching
 title: "Prefix Caching：命中的是块，不是 token"
 type: feature
 summary: 两条请求开头一样，那段 KV 就不用重算——把算过的块按内容哈希留着，下一条直接把块号填进块表，只对不同的尾巴做前向。
-aliases: [前缀缓存, 自动前缀缓存, Automatic Prefix Caching, APC]
+aliases: [Prefix Caching, 前缀缓存, 自动前缀缓存, Automatic Prefix Caching, APC]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1280-L1300

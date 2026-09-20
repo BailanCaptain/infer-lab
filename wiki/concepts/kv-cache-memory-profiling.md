@@ -6,6 +6,7 @@ summary: >-
   启动时跑一遍最大规模的假数据前向，量出权重、激活峰值、非 torch 三块；整卡容量 × gpu_memory_utilization
   减掉这三块，就是 KV Cache 的字节预算。图捕获不在这个减法里。
 aliases:
+  - KV Cache Memory Profiling
   - 显存探测
   - KV Cache 显存探测
   - KV Cache 显存测算

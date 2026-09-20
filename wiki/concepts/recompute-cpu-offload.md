@@ -3,7 +3,7 @@ id: recompute-cpu-offload
 title: "Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算"
 type: feature
 summary: PD 分离的 Decode 节点抢占一条请求时，先把它已算好的 KV 块同步拷进锁页主机内存，重新排上再拷回来，省掉一整轮 prefill。main 开发主线已把它改名成 PreemptOffloadConnector。
-aliases: [重算 CPU 卸载, RecomputeCPUOffloadConnector, Preempt Offload, PreemptOffloadConnector, 抢占卸载, 抢占 KV 卸载]
+aliases: [Recompute CPU Offload, 重算 CPU 卸载, RecomputeCPUOffloadConnector, Preempt Offload, PreemptOffloadConnector, 抢占卸载, 抢占 KV 卸载]
 chapters: ["11", "12"]
 sources:
   - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L316-L373

@@ -3,7 +3,7 @@ id: block-table
 title: Block Table：逻辑块号到物理块号的唯一翻译层
 type: concept
 summary: 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请求在这一批里的座位号，列是它自己数出来的第几个块，格子里填的是显存里的物理块号。
-aliases: [块表, 块映射表, BlockTable]
+aliases: [Block Table, 块表, 块映射表, BlockTable]
 chapters: ["11"]
 sources:
   - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L36-L108

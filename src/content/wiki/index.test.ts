@@ -17,7 +17,7 @@ describe("读取器", () => {
   it("getPage 返回 frontmatter 与正文，正文不含 frontmatter 分隔符", () => {
     const page = getPage("block-table");
     expect(page).toBeTruthy();
-    expect(page?.fm.title).toBe("Block Table");
+    expect(page?.fm.title).toMatch(/^Block Table/);
     expect(page?.body.startsWith("---")).toBe(false);
     expect(page?.body).toContain("## 一句话");
   });

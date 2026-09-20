@@ -102,7 +102,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/acl-graph.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "lora",
+          "kind": "enables",
+          "note": "批描述符上多带一位 has_lora 参与图的分桶，带 LoRA 的批和不带的批不能共用一张捕获好的图"
+        }
+      ]
     },
     {
       "id": "ascend-config-system",
@@ -406,6 +412,11 @@
           "from": "recompute-scheduler",
           "kind": "enables",
           "note": "换掉 scheduler_cls 的特性必须自备一个 Async 子类，它是 v0.23 上唯一备了的那个"
+        },
+        {
+          "from": "structured-output",
+          "kind": "enables",
+          "note": "欠条还没销账时 pending_structured_output_tokens 为真，这一圈的采样被推迟到下一圈才发得出去"
         }
       ]
     },
@@ -2046,6 +2057,11 @@
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "ep_size 怎么由 dp × pcp × tp 压扁出来、四种 MoE 通信按什么判据选，全在那一页；这一页只负责把 ep_size 顶到 16 以上的那套拓扑"
+        },
+        {
+          "from": "lora",
+          "kind": "enables",
+          "note": "MoE 模型上 LoRA 与 EP 同开会把 MoECommType 锁成 ALLTOALL，四种通信方式各自什么代价在那页"
         }
       ]
     },
@@ -3320,6 +3336,110 @@
       "backlinks": []
     },
     {
+      "id": "lora",
+      "title": "LoRA 适配器：一份基座权重，按槽号给每一行加不同的小矩阵",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "基座权重只装一份，一个适配器只是两个秩 r 的小矩阵；不同请求挂不同适配器，靠每 token 一个槽号拼在同一个 batch 里一次算完。",
+      "aliases": [
+        "LoRA",
+        "LoRA 适配器",
+        "低秩适配",
+        "Low-Rank Adaptation",
+        "Multi-LoRA",
+        "多 LoRA",
+        "多租户适配器",
+        "PunicaWrapperNPU",
+        "punica",
+        "bgmv",
+        "sgmv",
+        "LoRARequest",
+        "enable-lora",
+        "lora-modules"
+      ],
+      "chapters": [
+        "17"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/lora.md#L9-L24",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/lora.md#L26-L30",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/lora.md#L30-L37",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L13-L13",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L40-L40",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/lora.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L870-L872",
+        "vllm-ascend@2c59ff10:vllm_ascend/lora/punica_npu.py#L21-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/lora/punica_npu.py#L52-L104",
+        "vllm-ascend@2c59ff10:vllm_ascend/lora/lora_ops.py#L19-L32",
+        "vllm-ascend@2c59ff10:csrc/torch_binding.cpp#L2294-L2308",
+        "vllm-ascend@2c59ff10:csrc/kernels/bgmv_shrink.cpp#L66-L71",
+        "vllm-ascend@2c59ff10:vllm_ascend/lora/utils.py#L74-L88",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1349-L1352",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3793-L3794",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2965-L2970",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/lora/test_qwen3_multi_loras.py#L13-L20",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/lora/test_qwen3_multi_loras.py#L52-L63",
+        "vllm@0fc695fc:vllm/config/lora.py#L26-L45",
+        "vllm@0fc695fc:vllm/config/lora.py#L108-L116",
+        "vllm@0fc695fc:vllm/lora/request.py#L25-L44",
+        "vllm@0fc695fc:vllm/lora/model_manager.py#L273-L308",
+        "vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L91-L107",
+        "vllm@0fc695fc:vllm/lora/punica_wrapper/utils.py#L27-L41",
+        "vllm@0fc695fc:vllm/lora/punica_wrapper/punica_base.py#L249-L256",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L589-L602",
+        "vllm@0fc695fc:vllm/lora/layers/column_parallel_linear.py#L223-L244",
+        "vllm@0fc695fc:vllm/lora/layers/column_parallel_linear.py#L442-L459",
+        "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L93-L99",
+        "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
+        "vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L52-L57",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L329-L352",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L487-L496",
+        "vllm-ascend@b255ab59:vllm_ascend/lora/punica_npu.py#L31-L33",
+        "vllm-ascend@b255ab59:vllm_ascend/lora/quant_moe.py#L14-L19",
+        "vllm-ascend@2c59ff10:vllm_ascend/lora/punica_npu.py#L312-L322"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "ops-and-kernels",
+          "kind": "builds-on",
+          "note": "bgmv / sgmv 这四个就是那页说的 csrc 自编 AscendC 算子，注册成 torch.ops._C_ascend 再从 Python 调的规矩也在那页"
+        },
+        {
+          "to": "npu-platform",
+          "kind": "builds-on",
+          "note": "get_punica_wrapper 是平台类交出去的类路径之一，上游按这个字符串 import 昇腾的实现"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "一步里适配器名额占满时，要新适配器的请求被弹进 skipped_waiting，而不是留在 waiting 队首"
+        },
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "MoE 模型上 LoRA 与 EP 同开会把 MoECommType 锁成 ALLTOALL，四种通信方式各自什么代价在那页"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "批描述符上多带一位 has_lora 参与图的分桶，带 LoRA 的批和不带的批不能共用一张捕获好的图"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/lora.md",
+      "backlinks": []
+    },
+    {
       "id": "mask-e1795029cbdd",
       "title": "mask",
       "type": "param",
@@ -3575,6 +3695,11 @@
           "from": "speculative-decoding",
           "kind": "enables",
           "note": "验证这一步的草稿、提议下一步的草稿，都长在 execute_model 的同一次调用里，那一页讲这个文件怎么读"
+        },
+        {
+          "from": "structured-output",
+          "kind": "enables",
+          "note": "贴位图落在 sample_tokens 那一区，昇腾在那里把 logits 搬到 CPU 再搬回来"
         }
       ]
     },
@@ -3641,6 +3766,11 @@
           "from": "attention-backend-family",
           "kind": "enables",
           "note": "选哪个后端不是后端自己决定的，是平台类的 get_attn_backend_cls 查表定的"
+        },
+        {
+          "from": "lora",
+          "kind": "enables",
+          "note": "get_punica_wrapper 是平台类交出去的类路径之一，上游按这个字符串 import 昇腾的实现"
         },
         {
           "from": "quantization",
@@ -4036,6 +4166,11 @@
           "from": "expert-parallel",
           "kind": "enables",
           "note": "四种通信方式最后都落到 torch_npu 算子上，FusedMoE 整个类被换成 AscendFusedMoE 走的是那一页的注册表"
+        },
+        {
+          "from": "lora",
+          "kind": "enables",
+          "note": "bgmv / sgmv 这四个就是那页说的 csrc 自编 AscendC 算子，注册成 torch.ops._C_ascend 再从 Python 调的规矩也在那页"
         },
         {
           "from": "op-to-ai-core",
@@ -5671,8 +5806,120 @@
           "from": "async-scheduling",
           "kind": "conflicts-with",
           "note": "只有 EAGLE / MTP / 草稿模型 / NGram GPU 这几种方法能和它同开，别的方法显式开异步直接 ValueError，而且同开会顺手关掉 cascade attention"
+        },
+        {
+          "from": "structured-output",
+          "kind": "enables",
+          "note": "位图按「1 + 草稿数」行分配，每个草稿位置各占一行；同开之后草稿 token 必须回 CPU 给文法校验"
         }
       ]
+    },
+    {
+      "id": "structured-output",
+      "title": "结构化输出：采样前先算一张「这一步允许哪些 token」的位图",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "把 JSON schema / 正则 / 文法编译成状态机，每步算出一张允许位图，把不允许的 token 的 logit 写成 -inf 再采样；昇腾默认把 logits 搬回 CPU 才贴这张位图。",
+      "aliases": [
+        "结构化输出",
+        "Structured Output",
+        "Guided Decoding",
+        "引导解码",
+        "受限解码",
+        "约束解码",
+        "guided_json",
+        "structured_outputs",
+        "StructuredOutputManager",
+        "grammar bitmask",
+        "文法位图",
+        "apply_grammar_bitmask",
+        "xgrammar"
+      ],
+      "chapters": [
+        "17"
+      ],
+      "order": 60,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/structured_output.md#L5-L17",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L22-L22",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/structured_output.html",
+        "vllm@0fc695fc:vllm/sampling_params.py#L71-L82",
+        "vllm@0fc695fc:vllm/v1/structured_output/request.py#L31-L57",
+        "vllm@0fc695fc:vllm/v1/request.py#L108-L113",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1651-L1663",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2205-L2210",
+        "vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L130-L171",
+        "vllm@0fc695fc:vllm/v1/structured_output/backend_xgrammar.py#L77-L95",
+        "vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L220-L229",
+        "vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L293-L300",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1305-L1327",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L450-L463",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L520-L536",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L577-L596",
+        "vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L25-L29",
+        "vllm@0fc695fc:vllm/v1/structured_output/utils.py#L99-L122",
+        "vllm@0fc695fc:vllm/v1/structured_output/utils.py#L124-L135",
+        "vllm@0fc695fc:vllm/v1/worker/gpu/structured_outputs.py#L63-L76",
+        "vllm@0fc695fc:vllm/config/structured_outputs.py#L12-L25",
+        "vllm@0fc695fc:vllm/sampling_params.py#L933-L972",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L326-L336",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L1491-L1493",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2448-L2455",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1919-L1929",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/v2/structured_outputs.py#L19-L23",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/v2/structured_outputs.py#L34-L50",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_v2/patch_triton.py#L30-L34",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_structured_output.py#L46-L53",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_structured_output.py#L116-L128",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L374-L394",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/__init__.py#L712-L724",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_structured_output.py#L113-L118",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/triton/v2/apply_grammar_bitmask.py#L84-L93",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/triton/v2/docs/apply_grammar_bitmask.md#L5-L13",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/triton/v2/docs/apply_grammar_bitmask.md#L115-L127",
+        "vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_structured_output.py#L144-L156",
+        "vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L1220-L1224",
+        "vllm-ascend@b255ab59:tests/e2e/weekly/single_node/features/structured_output/README.md#L6-L13"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "relations": [
+        {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "取位图那一步就夹在那一页说的 execute_model(non_block=True) 与 future.result() 之间，那句「中间那几行做的是取 grammar bitmask」指的就是它"
+        },
+        {
+          "to": "async-scheduling",
+          "kind": "builds-on",
+          "note": "欠条还没销账时 pending_structured_output_tokens 为真，这一圈的采样被推迟到下一圈才发得出去"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "文法没编译完的请求排进的是 skipped_waiting 这条旁路队列，两条 while 和 token 预算的规则一行没动"
+        },
+        {
+          "to": "npu-model-runner",
+          "kind": "builds-on",
+          "note": "贴位图落在 sample_tokens 那一区，昇腾在那里把 logits 搬到 CPU 再搬回来"
+        },
+        {
+          "to": "speculative-decoding",
+          "kind": "builds-on",
+          "note": "位图按「1 + 草稿数」行分配，每个草稿位置各占一行；同开之后草稿 token 必须回 CPU 给文法校验"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-21",
+      "file": "concepts/structured-output.md",
+      "backlinks": []
     },
     {
       "id": "tensor-parallel",
@@ -6037,6 +6284,11 @@
           "note": "流水线靠 EngineCore 的批队列同时压住 pp_size 步才填得满，那个 step_with_batch_queue 就在那一页"
         },
         {
+          "from": "structured-output",
+          "kind": "enables",
+          "note": "取位图那一步就夹在那一页说的 execute_model(non_block=True) 与 future.result() 之间，那句「中间那几行做的是取 grammar bitmask」指的就是它"
+        },
+        {
           "from": "vllm-scheduler",
           "kind": "enables",
           "note": "这段代码是循环体的第一句，谁在什么时候调它写在那一页"
@@ -6242,6 +6494,11 @@
           "note": "ProfilingChunkScheduler 把上游 schedule() 整段抄过来改，被改的 num_new_tokens 预算逻辑在那页"
         },
         {
+          "from": "lora",
+          "kind": "enables",
+          "note": "一步里适配器名额占满时，要新适配器的请求被弹进 skipped_waiting，而不是留在 waiting 队首"
+        },
+        {
           "from": "pd-disaggregation",
           "kind": "enables",
           "note": "D 上那条请求能「一个 token 都不分也占一步」，前提是调度器每步只发 token 名额、不分阶段"
@@ -6265,6 +6522,11 @@
           "from": "speculative-decoding",
           "kind": "enables",
           "note": "草稿 token 靠 num_tokens_with_spec 混进那道减法，token 预算不够时最先被砍掉的也是它们"
+        },
+        {
+          "from": "structured-output",
+          "kind": "enables",
+          "note": "文法没编译完的请求排进的是 skipped_waiting 这条旁路队列，两条 while 和 token 预算的规则一行没动"
         },
         {
           "from": "vllm-kv-block-allocation",

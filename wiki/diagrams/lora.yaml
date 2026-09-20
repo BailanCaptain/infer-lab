@@ -1,0 +1,126 @@
+layout: scene
+id: lora
+caption: 基座权重只有一份；每一行带一个槽号，昇腾侧只接管「按槽号取两个小矩阵再乘回去」这一段
+size: [900, 720]
+
+regions:
+  - label: 上游 vLLM 决定的：哪一行记哪个槽号
+    note: 适配器注册、占槽、按 token 展开成下标，全在上游那一侧，昇腾没有另写一份
+    at: [20, 26]
+    size: [860, 250]
+    tone: upstream
+  - label: vllm-ascend 决定的：这些行怎么乘出来
+    note: 基座那次 GEMM 一点没变，多出来的只有下面这两步，权重按行各取各的
+    at: [20, 320]
+    size: [860, 230]
+    tone: ascend
+
+pills:
+  - { at: [158, 104], text: "请求 1 · 槽 0", tone: neutral }
+  - { at: [378, 104], text: "请求 2 · 槽 1", tone: accent }
+  - { at: [558, 104], text: "请求 3 · 不挂 · -1", tone: muted }
+
+strips:
+  - at: [40, 138]
+    cells: 15
+    cell: 36
+    gap: 4
+    h: 34
+    tone: muted
+    label: "一次 forward 里的 15 行（示意批次）：三个请求混在一起，基座权重还是那一份"
+  - at: [40, 138]
+    cells: 6
+    cell: 36
+    gap: 4
+    h: 34
+    highlights: [0, 1, 2, 3, 4, 5]
+    overlay: true
+    tone: neutral
+  - at: [280, 138]
+    cells: 5
+    cell: 36
+    gap: 4
+    h: 34
+    highlights: [0, 1, 2, 3, 4]
+    overlay: true
+    tone: accent
+  - at: [40, 588]
+    cells: 36
+    cell: 20
+    gap: 2
+    h: 22
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]
+    tone: upstream
+    label: "Qwen3-0.6B 的 qkv_proj 这一层：36 格灰的是基座那 4 194 304 个参数，末尾 1 格橙的才是 r=16 的适配器加的 114 688 个"
+  - at: [832, 588]
+    cells: 1
+    cell: 20
+    h: 22
+    highlight: 0
+    overlay: true
+    tone: accent
+
+boxes:
+  - at: [648, 120]
+    size: [212, 116]
+    title: 槽位表
+    sub: 长度就是 max_loras
+    fn: lora_index_to_id
+    tone: upstream
+    icon: slot
+  - at: [36, 434]
+    size: [268, 100]
+    title: "prefill：按段乘"
+    sub: 同槽的相邻请求合成一段
+    fn: sgmv_shrink
+    tone: ascend
+    icon: chip
+  - at: [316, 434]
+    size: [268, 100]
+    title: "decode：按行乘"
+    sub: 每行按自己的槽号查权重
+    fn: bgmv_shrink
+    tone: ascend
+    icon: chip
+  - at: [596, 434]
+    size: [268, 100]
+    title: 走不了就退回 PyTorch
+    sub: 310P，或秩到 128 以上
+    fn: torch_ops
+    tone: muted
+    icon: patch
+
+notes:
+  - at: [40, 224]
+    text: "槽号不是适配器编号：activate_adapter 把适配器放进表里第一个空格，那个下标才是槽号；token_lora_indices 里逐 token 存的就是它，-1 表示这一行什么都不加，算子按行跳过。"
+    size: 12.5
+    width: 584
+  - at: [40, 396]
+    text: "挂了 LoRA 的线性层每层多两步：先 x·Aᵀ 把 1024 维压到 r（shrink），再 ·Bᵀ 抬回输出宽度、乘上 scale 加进基座的输出（expand）。"
+    size: 12.5
+    width: 816
+  - at: [40, 664]
+    text: "而 NPU 上占掉的地不是一个适配器那么多：lora_a_stacked / lora_b_stacked 的第一维直接是 max_loras，槽位在建层时就全开好了，加载几个适配器都一样。"
+    size: 12.5
+    width: 816
+
+boundaries:
+  - at: 296
+    from: 20
+    to: 880
+    vertical: false
+    label: 过了这条线，每一行用哪个槽已成定局；昇腾侧只决定怎么把它乘出来
+
+pins:
+  - source: vllm@0fc695fc:vllm/lora/model_manager.py#L273-L308
+    symbols: [activate_adapter, lora_index_to_id, max_loras]
+  - source: vllm@0fc695fc:vllm/lora/punica_wrapper/punica_base.py#L249-L256
+    symbols: [token_lora_indices]
+  - source: vllm@0fc695fc:vllm/lora/layers/column_parallel_linear.py#L223-L244
+    symbols: [lora_a_stacked, lora_b_stacked, max_lora_rank]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/lora/punica_npu.py#L52-L104
+    symbols: [sgmv_shrink, bgmv_shrink]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/lora/punica_npu.py#L21-L50
+    symbols: [torch_ops, max_lora_rank]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L93-L99
+    symbols: [qkv_proj]

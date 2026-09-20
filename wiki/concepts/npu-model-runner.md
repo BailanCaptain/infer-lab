@@ -14,7 +14,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3375
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3850
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523
 evidence: "C"

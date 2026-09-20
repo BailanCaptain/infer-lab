@@ -10,8 +10,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L27
   - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L29-L80
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L151-L221
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L75-L131
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L20-L40
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20

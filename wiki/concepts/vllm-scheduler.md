@@ -14,9 +14,9 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L479-L487
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L564-L570
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L870-L876
-  - vllm@0fc695fc:vllm/config/scheduler.py#L42-L49
+  - vllm@0fc695fc:vllm/config/scheduler.py#L42-L63
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2316-L2335
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L280
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L273-L281
 evidence: "C"
 relations:
   - to: vllm-engine-core

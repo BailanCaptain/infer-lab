@@ -10,11 +10,11 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/input_processor.py#L242-L250
   - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L290
   - vllm@0fc695fc:vllm/v1/engine/core.py#L341-L350
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L403-L472
   - vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
   - vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L582
   - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
-  - vllm@0fc695fc:vllm/v1/worker/worker_base.py#L142-L158
+  - vllm@0fc695fc:vllm/v1/worker/worker_base.py#L114-L158
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L115
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269

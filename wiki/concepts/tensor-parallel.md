@@ -21,7 +21,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L734-L746
   - vllm-ascend@2c59ff10:vllm_ascend/ops/linear.py#L307-L313
   - vllm-ascend@2c59ff10:vllm_ascend/ops/linear.py#L363-L371
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L96-L107
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L88-L140
   - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L700-L739
   - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L183-L222
   - vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L266-L299
@@ -31,7 +31,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L537-L560
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L584-L593
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L143-L161
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_distributed.py#L58-L76
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_distributed.py#L58-L100
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_distributed.py#L152-L178
   - vllm-ascend@2c59ff10:vllm_ascend/ops/vocab_parallel_embedding.py#L302-L321
   - vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L73-L91

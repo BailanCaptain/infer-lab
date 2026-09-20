@@ -8,11 +8,11 @@ chapters: ["11"]
 order: 10
 sources:
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L250
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L215
+  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L238
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L216-L226
   - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L444
-  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L348
-  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L165-L172
+  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L360
+  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L172
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L218
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
 evidence: "C"

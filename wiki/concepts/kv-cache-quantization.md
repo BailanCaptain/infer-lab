@@ -12,13 +12,13 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/kv_c8.py#L119-L139
   - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L388-L400
   - vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L545-L558
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L595-L626
+  - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L559-L626
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1925-L1958
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2008-L2029
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2031-L2067
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1756-L1792
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1920-L1923
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2000-L2006
+  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1960-L2006
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2195-L2208
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2086-L2144
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2246-L2261
@@ -32,7 +32,7 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/quantization.md#L123-L125
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L105-L107
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/quantization.md#L105-L121
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1388-L1390
+  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1348-L1390
   - vllm-ascend@b255ab59:docs/source/tutorials/models/GLM5.2.md#L1668-L1669
   - vllm@0fc695fc:vllm/utils/torch_utils.py#L396-L402
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L481-L482

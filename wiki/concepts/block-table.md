@@ -11,10 +11,10 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L150-L190
   - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L291-L296
   - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L298-L313
-  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/compute_slot_mapping.py#L31-L90
+  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/compute_slot_mapping.py#L12-L94
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L148
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1665-L1680
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1221-L1225
+  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1200-L1225
   - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1546-L1550
   - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5357-L5383
   - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1252-L1278

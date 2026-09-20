@@ -10,12 +10,12 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_pool.html
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L3-L15
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/KV_Cache_Pool_Guide.md#L38-L52
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L67-L77
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L46-L81
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L101-L146
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L311-L332
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L234-L253
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L399-L442
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L610-L645
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L593-L645
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L168-L189
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L1161-L1176
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L40

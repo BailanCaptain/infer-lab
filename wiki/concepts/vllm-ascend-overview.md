@@ -7,11 +7,11 @@ aliases: [vllm-ascend, vLLM Ascend, 昇腾插件, out-of-tree 插件]
 chapters: ["10"]
 order: 40
 sources:
-  - vllm-ascend@2c59ff10:setup.py#L543-L551
+  - vllm-ascend@2c59ff10:setup.py#L506-L551
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L96-L146
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L882
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269

@@ -32,13 +32,13 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3584-L3603
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4927
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L634-L646
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L38-L52
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L30-L52
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L430-L447
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L467-L470
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L69-L74
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L389-L433
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L470-L478
-  - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L755-L794
+  - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L755-L810
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L159-L181
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L186-L217
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334

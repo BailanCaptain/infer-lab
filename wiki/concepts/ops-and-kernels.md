@@ -9,10 +9,10 @@ order: 10
 sources:
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L54
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L415
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L403-L415
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L113-L118
-  - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L215
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L65-L126
+  - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html
 evidence: "C"

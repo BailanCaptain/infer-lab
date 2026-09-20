@@ -11,9 +11,9 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/custom_op.py#L186-L196
   - vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L111-L120
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L90-L126
   - vllm-ascend@2c59ff10:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L30-L45
-  - vllm-ascend@2c59ff10:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L18-L40
+  - vllm-ascend@2c59ff10:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L12-L40
   - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L215
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html

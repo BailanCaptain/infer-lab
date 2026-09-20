@@ -8,7 +8,7 @@ chapters: ["10"]
 order: 110
 sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L130
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L101-L130
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L535
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L558-L595

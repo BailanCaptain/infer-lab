@@ -7,9 +7,9 @@ aliases: [KV 占用, 每 token 字节数, MLA 省多少, page_size_bytes, 稀疏
 chapters: ["04"]
 order: 20
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L99-L106
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L158-L165
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L106
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L165
   - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L212-L217
   - vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L28-L55
   - vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L66-L121
@@ -17,8 +17,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4976-L4986
   - vllm-ascend@2c59ff10:tests/ut/attention/a2/test_mla_cp.py#L269-L272
   - vllm-ascend@2c59ff10:tests/ut/worker/a2/test_model_runner_v1.py#L338-L342
-  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L194-L200
-  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L295-L315
+  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L160-L211
+  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L255-L353
 evidence: "C"
 relations:
   - to: attention-backend-family

@@ -11,9 +11,9 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L126-L134
   - vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L150-L151
   - vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L189-L196
-  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1033-L1042
+  - vllm@0fc695fc:vllm/model_executor/layers/linear.py#L972-L1063
   - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L281-L292
-  - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L483-L488
+  - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L452-L513
   - vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L603-L608
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428

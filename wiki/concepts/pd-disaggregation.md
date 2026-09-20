@@ -23,12 +23,12 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1979-L1986
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L951-L969
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L322-L386
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2429-L2465
+  - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2429-L2494
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2474-L2494
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L804-L824
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2176-L2186
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2236-L2248
-  - vllm@0fc695fc:vllm/v1/core/sched/utils.py#L100-L117
+  - vllm@0fc695fc:vllm/v1/core/sched/utils.py#L94-L117
   - vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L790-L806
   - vllm-ascend@2c59ff10:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L161-L186
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1111-L1119

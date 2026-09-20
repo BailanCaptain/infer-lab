@@ -16,7 +16,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L179
   - vllm-ascend@2c59ff10:vllm_ascend/sample/rejection_sampler.py#L928-L979
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L794-L801
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L246-L257
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L217-L265
   - vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L284-L294
   - vllm-ascend@2c59ff10:vllm_ascend/spec_decode/llm_base_proposer.py#L1201-L1219
   - vllm@0fc695fc:vllm/v1/sample/rejection_sampler.py#L735-L764

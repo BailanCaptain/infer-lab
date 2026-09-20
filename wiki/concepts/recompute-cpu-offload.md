@@ -7,14 +7,14 @@ aliases: [Recompute CPU Offload, 重算 CPU 卸载, RecomputeCPUOffloadConnector
 chapters: ["11", "12"]
 sources:
   - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L316-L373
-  - vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L294-L347
+  - vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L294-L349
   - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L103-L166
   - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L992-L1021
   - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L504-L521
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L90-L113
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L154-L188
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L211-L232
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L284-L334
+  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L262-L334
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L251-L299
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L550-L586
   - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L44-L111

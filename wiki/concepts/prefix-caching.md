@@ -15,15 +15,15 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1245-L1254
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L151-L156
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1340-L1344
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1200-L1210
+  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1313-L1378
+  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1174-L1210
   - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L91-L121
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L127-L147
   - vllm-ascend@b255ab59:tests/ut/patch/platform/test_prefix_cache_cp_patches.py#L373-L397
   - vllm-ascend@b255ab59:vllm_ascend/models/layer/attention/layer.py#L133-L139
   - vllm-ascend@2c59ff10:vllm_ascend/models/layer/attention/layer.py#L114-L120
   - vllm-ascend@b255ab59:vllm_ascend/attention/dsa_v1.py#L276-L303
-  - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L203-L204
+  - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L173-L207
   - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_mamba_config.py#L182-L185
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L146-L148
   - vllm-ascend@b255ab59:docs/source/user_guide/support_matrix/feature_matrix.md#L17-L18

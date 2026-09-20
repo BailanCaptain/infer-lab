@@ -16,7 +16,7 @@ sources:
   - vllm@0fc695fc:vllm/config/scheduler.py#L259-L271
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2259-L2267
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2376-L2392
-  - vllm@0fc695fc:vllm/config/model.py#L1804-L1811
+  - vllm@0fc695fc:vllm/config/model.py#L1768-L1811
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1497
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1296-L1305

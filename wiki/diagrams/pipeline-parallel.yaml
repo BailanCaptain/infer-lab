@@ -1,0 +1,117 @@
+layout: scene
+id: pipeline-parallel
+caption: PP=2 跑 Qwen3-0.6B：28 层切成 14+14，每卡只建自己那一段；一步之内两段串着跑，界线上只过一次 hidden
+size: [900, 664]
+
+regions:
+  - label: 加载期 · 28 层切成两段，每卡只建自己那 14 层
+    note: 不归本卡的那 14 格换成 PPMissingLayer——一个 Identity，权重不读、KV 不分，forward 把第一个参数原样退回。
+    at: [20, 26]
+    size: [860, 250]
+    tone: upstream
+  - label: 一步之内 · 两段是串着跑的
+    note: 前一段不算 logits、不采样；它把 hidden_states 和 residual 两条张量交给下一段，自己就能接下一步了。
+    at: [20, 300]
+    size: [860, 250]
+    tone: ascend
+
+strips:
+  - at: [40, 128]
+    cells: 28
+    cell: 20
+    gap: 4
+    h: 30
+    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    tone: upstream
+    label: "PP rank 0：start_layer=0，end_layer=14"
+  - at: [40, 196]
+    cells: 28
+    cell: 20
+    gap: 4
+    h: 30
+    highlights: [14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+    tone: ascend
+    label: "PP rank 1：start_layer=14，end_layer=28"
+
+boundaries:
+  - at: 374
+    from: 124
+    to: 232
+    label: 切点 · 层 14
+    vertical: true
+
+boxes:
+  - at: [724, 118]
+    size: [156, 72]
+    title: 只有头一段有词表
+    fn: embed_tokens
+    tone: upstream
+  - at: [724, 202]
+    size: [156, 72]
+    title: 末段还带输出头
+    fn: ParallelLMHead
+    tone: ascend
+
+spines:
+  - y: 390
+    from: 60
+    to: 868
+    tone: neutral
+    segments:
+      - { x: 374, tone: upstream }
+      - { x: 700, tone: ascend }
+
+stops:
+  - x: 150
+    side: below
+    title: 头一段算 14 层
+    detail: 只有它拿 input_ids
+    fn: make_layers
+    icon: layers
+    tone: upstream
+  - x: 380
+    side: below
+    title: 界线上发一次
+    detail: 两条张量，decode 一步 4 KiB
+    fn: isend_tensor_dict
+    icon: bolt
+    tone: accent
+  - x: 610
+    side: below
+    title: 末段算另 14 层
+    detail: 收下来的就是这两条
+    fn: IntermediateTensors
+    icon: layers
+    tone: ascend
+  - x: 800
+    side: below
+    title: 采样只在这
+    detail: 别的段拿不到 logits
+    fn: compute_logits
+    icon: pick
+    tone: neutral
+
+notes:
+  - at: [40, 578]
+    text: "每卡的 KV 也只按自己那 14 层分：14 × 4 KiB = 56 KiB 每 token，正好是单卡 112 KiB 的一半；界线上一步只过 2 × tokens × 1024 × 2 B，decode 是 4 KiB、37 个 token 的 prefill 是 148 KiB。"
+    size: 12.5
+    width: 820
+  - at: [40, 622]
+    text: "两段串着跑，所以一条请求填不满流水线：要靠 EngineCore 的批队列同时压住 pp_size 步，才有活让两段同时忙。"
+    size: 12.5
+    width: 820
+    strong: true
+
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/models/utils.py#L632-L664
+    symbols: [make_layers, PPMissingLayer, start_layer, end_layer]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L355-L384
+    symbols: [embed_tokens, PPMissingLayer, make_layers]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen2.py#L389-L426
+    symbols: [IntermediateTensors, hidden_states, residual, input_ids]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L294-L311
+    symbols: [ParallelLMHead, PPMissingLayer]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L620-L663
+    symbols: [isend_tensor_dict, irecv_tensor_dict, get_pp_group]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2337-L2358
+    symbols: [compute_logits, IntermediateTensors, is_last_rank]

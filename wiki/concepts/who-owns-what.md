@@ -70,7 +70,7 @@ file: ownership-boundary
 
 因为昇腾侧的**入口代码确实很薄**：几个 entry point、一个平台类、一堆配置解析。如果只读这部分，结论自然是「一个挂钩子的壳」。
 
-但那是接缝，不是主体。主体是那条界线之后的东西——五个注意力后端里有四个各是一千多到近三千行的完整算法实现，`csrc/` 下还有上千个 AscendC 算子源文件。**真正跑在 NPU 上的每一次矩阵乘、每一次 softmax，都来自 vllm-ascend，上游一行都没有。**
+但那是接缝，不是主体。主体是那条界线之后的东西——`attention/` 下的后端类里有四个各是一千多到近三千行的完整算法实现（v0.23 上后端一共五个，v0.26 分支起六个，见 [注意力后端家族](attention-backend-family.md)），`csrc/` 下还有上千个 AscendC 算子源文件。**真正跑在 NPU 上的每一次矩阵乘、每一次 softmax，都来自 vllm-ascend，上游一行都没有。**
 
 反过来也成立：**「算哪些 token」这个决策的逻辑在上游**。但「跑的是上游那个类」这句话不成立：`patch/platform/__init__.py` 无条件 import `patch_balance_schedule`，文件末尾一句 `vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler` 把这个名字换掉了 [C16][C17]。`BalanceScheduler` 是上游 `schedule()` 的一份抄件，只在扫 waiting 那条循环里多一道默认关着的闸门，闸门关着时行为与上游一致——细节见 [Balance Scheduling](balance-scheduling.md)。除此之外还有几个调度器子类，打开对应配置时用 `scheduler_cls` 换上去 [C15]——v0.23 维护分支上是 `vllm_ascend/core/` 下的 `SchedulerDynamicBatch` 与 `ProfilingChunkScheduler`，这份名单换过一批，见下面的差异表。
 
@@ -123,6 +123,6 @@ def vllm_version_is(target_vllm_version: str):
 ## 常见误解
 
 - **「关键的东西都在 vLLM 里」**——框架在上游，计算在昇腾。界线之后的每一行算子都是昇腾的 [D]。
-- **「昇腾侧只是包装器」**——五个注意力后端里有四个是完整算法实现，不是转发 [D]。
+- **「昇腾侧只是包装器」**——注意力后端里有四个是完整算法实现，不是转发 [D]。
 - **「版本对不上大不了跑不起来」**——在 v0.23 维护分支上它可能照样起得来，只是某些 patch 静默不生效 [D]。
 - **「边界能按目录划」**——不能。界线在一条请求的时间线上，`SchedulerOutput` 交接的那一刻；两侧在代码里共用同一批方法名 [C1][C7]。

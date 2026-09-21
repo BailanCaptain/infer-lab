@@ -98,7 +98,7 @@ file: platform-surface
 
 ## 第四组：把请求转给具体实现
 
-`get_attn_backend_cls` 在 `attention/` 下的五个注意力后端里选一个（310p 走另一张表，选的是 `_310p/` 下的专用后端）[C10]，`get_device_communicator_cls` 给出通信器类路径，`get_compile_backend` [C2] 与 `get_static_graph_wrapper_cls` [C11] 各返回一个类路径字符串。这四个方法是从平台层跳进各子系统的跳板 [D]；顺着它们能一路走到 [注意力后端家族](attention-backend-family.md) 与 [图模式层](graph-mode-layer.md)。
+`get_attn_backend_cls` 在 `attention/` 下的注意力后端里选一个（v0.23 上那里五个类、v0.26 分支起六个，多出来的那个不由它选；310p 又走另一张表，选的是 `_310p/` 下的专用后端）[C10]，`get_device_communicator_cls` 给出通信器类路径，`get_compile_backend` [C2] 与 `get_static_graph_wrapper_cls` [C11] 各返回一个类路径字符串。这四个方法是从平台层跳进各子系统的跳板 [D]；顺着它们能一路走到 [注意力后端家族](attention-backend-family.md) 与 [图模式层](graph-mode-layer.md)。
 
 ## 行号会漂，引用必须带 commit
 

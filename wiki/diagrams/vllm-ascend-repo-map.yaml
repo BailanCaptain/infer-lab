@@ -26,7 +26,7 @@ notes:
   - { at: [204.0, 166], text: attention/, size: 13, anchor: end, strong: true }
   - { at: [410.5, 166], text: "14732 行 · 17 个文件 · 第一遍就读", size: 12 }
   - { at: [204.0, 204], text: ops/, size: 13, anchor: end, strong: true }
-  - { at: [521.4, 204], text: "23484 行 · 89 个文件 · 追一个具体算子时", size: 12 }
+  - { at: [521.4, 204], text: "v0.23 上 23484 行 · 89 个文件 · 追一个具体算子时", size: 12 }
   - { at: [204.0, 242], text: patch/, size: 13, anchor: end, strong: true }
   - { at: [357.5, 242], text: "10546 行 · 64 个文件 · 怀疑上游被改过时", size: 12 }
   - { at: [204.0, 280], text: distributed/, size: 13, anchor: end, strong: true }

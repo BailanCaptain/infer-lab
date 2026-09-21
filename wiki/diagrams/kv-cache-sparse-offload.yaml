@@ -1,6 +1,6 @@
 layout: scene
 id: kv-cache-sparse-offload
-caption: D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（main 开发主线）
+caption: D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（v0.26 分支）
 size: [900, 532]
 
 regions:
@@ -30,7 +30,7 @@ boxes:
     size: [334, 70]
     title: 每层一张 LRU 驻留表
     sub: 命中挪队尾，miss 占队首可驱逐槽
-    fn: sparse_kv_lru_resident_compact
+    fn: lru_resident_compact
     icon: queue
     tone: upstream
   - at: [522, 130]
@@ -44,14 +44,14 @@ boxes:
     size: [334, 70]
     title: indexer 选中 2048 个历史位置
     sub: 模型自带的 DSA，与卸载无关
-    fn: npu_lightning_indexer
+    fn: indexer_select_post_process
     icon: pick
     tone: ascend
   - at: [522, 380]
     size: [334, 70]
     title: 稀疏注意力只读热缓冲区
     sub: 喂进去的是物理槽位
-    fn: execute_sparse_flash_attention_process
+    fn: _execute_sparse_flash_attention_process
     tone: accent
 
 strips:
@@ -87,15 +87,15 @@ notes:
     width: 860
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L320-L344
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_kv_offload.py#L271-L300
     symbols: [_compute_kv_only]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L1098-L1134
-    symbols: [execute_sparse_flash_attention_process]
-  - source: vllm-ascend@b255ab59:vllm_ascend/device/device_op.py#L1367-L1380
-    symbols: [npu_lightning_indexer]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L752-L768
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_kv_offload.py#L345-L400
+    symbols: [_execute_sparse_flash_attention_process]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L473-L520
+    symbols: [indexer_select_post_process]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L461-L500
     symbols: [topk_buffers_k, k_caches_cpu, v_caches_cpu]
-  - source: vllm-ascend@b255ab59:csrc/torch_binding.cpp#L2304-L2398
-    symbols: [sparse_kv_lru_resident_compact]
-  - source: vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1457-L1476
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp#L77-L200
+    symbols: [lru_resident_compact]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1041-L1089
     symbols: [keep_device_kv_cache]

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 532" width="900" height="532" role="img" aria-label="D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（main 开发主线）">
-  <title>D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（main 开发主线）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 532" width="900" height="532" role="img" aria-label="D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（v0.26 分支）">
+  <title>D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（v0.26 分支）</title>
   <rect width="900" height="532" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="380" height="424" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="36" y="58" width="123.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">主机 pinned 池</text>
@@ -79,7 +79,7 @@
   <rect x="54" y="319" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(60.4 325.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
   <text x="94" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">每层一张 LRU 驻留表</text>
   <text x="94" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">命中挪队尾，miss 占队首可驱逐槽</text>
-  <text x="94" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">sparse_kv_lru_resident_compact</text>
+  <text x="94" y="358" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">lru_resident_compact</text>
   <rect x="522" y="130" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
   <rect x="534" y="149" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(540.4 155.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
   <text x="574" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">本步的 K 和 V 算完就走</text>
@@ -89,11 +89,11 @@
   <rect x="534" y="241" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(540.4 247.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
   <text x="574" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">indexer 选中 2048 个历史位置</text>
   <text x="574" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">模型自带的 DSA，与卸载无关</text>
-  <text x="574" y="280" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">npu_lightning_indexer</text>
+  <text x="574" y="280" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">indexer_select_post_process</text>
   <rect x="522" y="380" width="334" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
   <text x="538" y="403" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">稀疏注意力只读热缓冲区</text>
   <text x="538" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">喂进去的是物理槽位</text>
-  <text x="538" y="438" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">execute_sparse_flash_attention_process</text>
+  <text x="538" y="438" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">_execute_sparse_flash_attention_process</text>
   <path d="M518 152 L382 152" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
   <path d="M382 152 l11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
   <rect x="402.8" y="142" width="94.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>

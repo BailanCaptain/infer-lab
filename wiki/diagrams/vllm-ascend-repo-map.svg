@@ -17,7 +17,7 @@
   <text x="204" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">attention/</text>
   <text x="410.5" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">14732 行 · 17 个文件 · 第一遍就读</text>
   <text x="204" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">ops/</text>
-  <text x="521.4" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">23484 行 · 89 个文件 · 追一个具体算子时</text>
+  <text x="521.4" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">v0.23 上 23484 行 · 89 个文件 · 追一个具体算子时</text>
   <text x="204" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">patch/</text>
   <text x="357.5" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #5b6763)">10546 行 · 64 个文件 · 怀疑上游被改过时</text>
   <text x="204" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)" text-anchor="end">distributed/</text>

@@ -44,8 +44,8 @@
   <text x="482" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">model_runner_v1.py，5251 行</text>
   <rect x="460" y="298" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="460" y="298" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <text x="482" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">五个后端类</text>
-  <text x="482" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">attention/ 下 17 个文件</text>
+  <text x="482" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">后端类：v0.23 上五个</text>
+  <text x="482" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">attention/ 下 17 个文件；v0.26 起六个</text>
   <rect x="460" y="364" width="420" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="460" y="364" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
   <text x="482" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NPUCommunicator</text>

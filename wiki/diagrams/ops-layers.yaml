@@ -1,10 +1,10 @@
 layout: scene
 id: ops-layers
 caption: 那条请求里的一次矩阵乘，从 Python 一路掉到 AI Core 要穿过四层
-size: [900, 470]
+size: [900, 510]
 
 bands:
-  - { label: "vllm_ascend/ops/", sub: "89 个文件、23484 行。走上游 CustomOp 注册这个正规口子，不是 patch。", right: 上游算子在昇腾上实现不优时改这里, at: [64, 56], size: [816, 74], tone: ascend, icon: layers }
+  - { label: "vllm_ascend/ops/", sub: "v0.23 上 89 个文件、23484 行。走 CustomOp 注册，不是 patch。", right: 上游算子在昇腾上实现不优时改这里, at: [64, 56], size: [816, 74], tone: ascend, icon: layers }
   - { label: torch_npu, sub: CANN 已经提供的算子，直接调，不改。, right: 绝大多数算子停在这一层, at: [64, 144], size: [816, 74], tone: neutral, icon: box }
   - { label: "csrc/ 编出来的自定义 aclnn 算子", sub: "装进 vllm_ascend/cann_ops_custom/，绑到 torch.ops._C_ascend", right: CANN 里没有、或要做特定融合时才下来, at: [64, 232], size: [816, 74], tone: accent, icon: bolt }
   - { label: CANN / AI Core, sub: 真正的乘加发生在这里。不改。, right: 一次矩阵乘的终点, at: [64, 320], size: [816, 74], tone: muted, icon: chip }
@@ -13,7 +13,7 @@ arrows:
   - { from: [40, 60], to: [40, 392], via: [[40, 392]], tone: accent }
 
 notes:
-  - { at: [20, 424], text: "判断顺序自上而下：能在 ops/ 里用现成 torch_npu 算子拼出来的，就不要下到 csrc/——后者要过完整 CMake 构建，而 COMPILE_CUSTOM_KERNELS 关掉时这一层根本不编。", size: 12.5, width: 860 }
+  - { at: [20, 424], text: "判断顺序自上而下：能在 ops/ 里用现成 torch_npu 算子拼出来的，就不要下到 csrc/——后者要过完整 CMake 构建，而 COMPILE_CUSTOM_KERNELS 关掉时这一层根本不编。v0.26 分支起 ops/ 是 96 个 .py、25737 行。", size: 12.5, width: 860 }
   - { at: [20, 462], text: "register_dummy_fusion_op 往 torch.ops._C_ascend 上挂了 8 个占位算子，让上游引用融合算子的代码路径有东西可调。看到 dummyFusionOp 不是没写完。", size: 12.5, width: 860 }
 
 pins:

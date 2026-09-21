@@ -28,7 +28,7 @@ bands:
   - { label: NPUPlatform, sub: "platform.py，第 128 行", at: [460, 100], size: [420, 56], tone: ascend }
   - { label: NPUWorker, sub: "worker/worker.py", at: [460, 166], size: [420, 56], tone: ascend }
   - { label: NPUModelRunner, sub: "model_runner_v1.py，5251 行", at: [460, 232], size: [420, 56], tone: ascend }
-  - { label: 五个后端类, sub: "attention/ 下 17 个文件", at: [460, 298], size: [420, 56], tone: ascend }
+  - { label: "后端类：v0.23 上五个", sub: "attention/ 下 17 个文件；v0.26 起六个", at: [460, 298], size: [420, 56], tone: ascend }
   - { label: NPUCommunicator, sub: "distributed/ 下 46 个文件", at: [460, 364], size: [420, 56], tone: ascend }
 
 notes:

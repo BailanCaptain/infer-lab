@@ -2,7 +2,7 @@
 id: flash-attention-3
 title: "Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉"
 type: feature
-summary: 昇腾上第五个注意力后端，把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。
+summary: 昇腾 attention/ 下一个独立的注意力后端（v0.23 上那里五个后端类、v0.26 起六个），把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。
 aliases: [Flash Attention 3, FA3, AscendFAImpl, flash_attn_npu_v3, flash_attn_npu, flash_attn_with_kvcache, _validate_fa3_backend, 训推一致, 训练推理一致, VLLM_BATCH_INVARIANT, use_batch_invariant, enable_training_consistency]
 chapters: ["16", "04"]
 order: 50
@@ -47,7 +47,7 @@ evidence: "C"
 relations:
   - to: attention-backend-family
     kind: builds-on
-    note: 它是五个后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页
+    note: 它是所有后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页
   - to: paged-attention
     kind: builds-on
     note: 块表、128 的块大小、五维块张量全是分页那套，FA3 只换了读块的算子
@@ -67,7 +67,7 @@ origin: seed
 
 ## 一句话
 
-`AscendFABackend` 是 `attention/` 下第五个注意力后端，整个文件一百四十多行。它做的事只有一件：**把注意力那一步的算子从默认的 FIA 换成外部包 `flash_attn_npu_v3` 里的 `flash_attn_with_kvcache`**。换它不是为了快——官方文档直说可能更慢，这是为训推一致有意付的代价 [S20]。
+`AscendFABackend` 是 `attention/` 下一个独立的注意力后端（那里 v0.23 上有五个后端类、v0.26 分支起是六个，见 [注意力后端家族](attention-backend-family.md)），整个文件一百四十多行。它做的事只有一件：**把注意力那一步的算子从默认的 FIA 换成外部包 `flash_attn_npu_v3` 里的 `flash_attn_with_kvcache`**。换它不是为了快——官方文档直说可能更慢，这是为训推一致有意付的代价 [S20]。
 
 三个在册版本上这个文件都在，v0.20.2rc1 就引入了 [S23]。**但「怎么把它打开」在 main 上换了一套**：v0.23 与 v0.26 分支靠 `--attention-backend FLASH_ATTN` 加批不变模式，main 改成 `rl_config` 里的两个开关，而 `--attention-backend` 在那边已经会被无条件丢掉 [C30]。下面按 v0.23 维护分支讲，差异集中在最后那张表。
 

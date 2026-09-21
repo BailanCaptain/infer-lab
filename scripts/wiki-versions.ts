@@ -85,7 +85,11 @@ if (argv.includes("--init")) {
   console.log(`--init：按已引用的版本给 ${touched} 页记了 verified`);
   process.exit(0);
 }
-const results = crossCheck(pages, pairs, read);
+const toRefName = pairs[0]?.toRef ?? "";
+// 已经有人对过目标版本的页不再列出来：它们的 v0.23 来源在目标版本上变了是意料之中的，
+// 差异已经写进正文（三版本写法的新页一出生就是这样）。
+const done = new Set(pages.filter((p) => p.fm.verified.includes(toRefName)).map((p) => p.fm.id));
+const results = crossCheck(pages, pairs, read).filter((r) => !done.has(r.id));
 const toRef = pairs[0]?.toRef ?? "";
 const holds = results.filter((r) => r.holds);
 const broken = results.filter((r) => !r.holds);
@@ -95,7 +99,7 @@ const report = [
   `# 跨版本核对 → ${toRef}`,
   "",
   `来源 ${results.reduce((n, r) => n + r.items.length, 0)} 条：原位未变 ${count("same")}，挪了行号 ${count("moved")}，变了 ${count("changed")}，文件没了 ${count("gone")}`,
-  `页 ${results.length}：所引源码全部原样 ${holds.length}，需要人看 ${broken.length}`,
+  `已对过 ${toRefName} 的页 ${done.size}（不再列出）；还没对过的页 ${results.length}：所引源码全部原样 ${holds.length}，需要人看 ${broken.length}`,
   "",
   `## 需要人看（${broken.length} 页，按受影响来源数排）`,
   ...broken
@@ -140,5 +144,5 @@ if (mark) {
   console.log(`已把 ${toRef} 记进 ${touched} 页的 verified`);
 }
 console.log(
-  `页 ${results.length}：全部原样 ${holds.length}，需要人看 ${broken.length}${out ? `（清单在 ${out}）` : ""}`,
+  `已对过 ${done.size} 页；还没对过 ${results.length} 页：全部原样 ${holds.length}，需要人看 ${broken.length}${out ? `（清单在 ${out}）` : ""}`,
 );

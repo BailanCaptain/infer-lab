@@ -82,11 +82,8 @@ describe("handleRpc（MCP 的 stdio JSON-RPC）", () => {
 
   it("tools/list 给出三个只读工具", () => {
     const res = handleRpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, wiki());
-    expect((res?.result as { tools: { name: string }[] }).tools.map((t) => t.name)).toEqual([
-      "wiki_search",
-      "wiki_get_page",
-      "wiki_neighbors",
-    ]);
+    const tools = (res?.result as { tools: { name: string }[] } | undefined)?.tools ?? [];
+    expect(tools.map((t) => t.name)).toEqual(["wiki_search", "wiki_get_page", "wiki_neighbors"]);
   });
 
   it("tools/call 把结果放进 text 内容；查不到的页是 isError，不是协议错误", () => {
@@ -99,9 +96,8 @@ describe("handleRpc（MCP 的 stdio JSON-RPC）", () => {
       },
       wiki(),
     );
-    expect(JSON.parse((ok?.result as { content: { text: string }[] }).content[0]?.text ?? "")[0].id).toBe(
-      "block-table",
-    );
+    const body = (ok?.result as { content: { text: string }[] } | undefined)?.content[0]?.text ?? "[]";
+    expect(JSON.parse(body)[0]?.id).toBe("block-table");
     const miss = handleRpc(
       {
         jsonrpc: "2.0",

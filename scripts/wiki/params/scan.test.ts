@@ -97,3 +97,31 @@ it("parses upstream starred type subscriptions without executing the inspected m
   });
   expect(rows.find((p) => p.name === "enabled")).toMatchObject({ default: "False", line: 4 });
 });
+
+it("只有从 AscendConfig 够得着的配置类才算确定的参数：名字碰巧以 Config 结尾的内部数据类不算", () => {
+  // 2026-09-21 实遇：`WeightSwitchConfig`（内部 dataclass：group / world_size / rank / shard_axis）和 xlite 里的
+  // 一个 TypedDict 被当成 `additional_config` 的键，夜间任务据此生成了 5 个正式参数页。
+  const rows = scanSources({
+    "vllm_ascend/ascend_config.py": `class KVPPConfig:
+    size: int = 0
+class AscendConfig:
+    def __init__(self, additional_config):
+        self.kvpp_config = KVPPConfig()
+        self.eplb_config = EplbConfig(additional_config.get("eplb_config", {}))
+`,
+    "vllm_ascend/eplb/config.py": `class EplbConfig:
+    dynamic_eplb: bool = False
+`,
+    "vllm_ascend/weight_switch/linear.py": `@dataclass(frozen=True)
+class WeightSwitchConfig:
+    group: Any
+    rank: int
+`,
+  }).filter((p) => p.form === "field");
+  expect(Object.fromEntries(rows.map((p) => [p.name, p.confidence]))).toEqual({
+    size: "certain", // 定义在根配置所在的文件里
+    dynamic_eplb: "certain", // 定义在别处，但根配置所在的文件点名用了它
+    group: "suspect",
+    rank: "suspect",
+  });
+});

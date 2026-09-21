@@ -5,6 +5,9 @@ import re
 import sys
 
 
+ROOT_CONFIG = "AscendConfig"
+
+
 def scan(files):
     trees = {path: ast.parse(text, filename=path) for path, text in files.items()}
     classes = {}
@@ -14,6 +17,24 @@ def scan(files):
                 cls.name.endswith("Config") or any("config" in ast.unparse(d).lower() for d in cls.decorator_list)
             ):
                 classes[(path, cls.name)] = cls
+    # Which config classes are really user-facing: when the scanned set contains the root config
+    # class, only trust classes defined in the root's file or named by it. Internal dataclasses
+    # that merely end in "Config" (WeightSwitchConfig, a TypedDict in xlite, ...) do not hang under
+    # additional_config; they stay "suspect" so a human looks before a page is published.
+    # Without a root class in scope (single files, other repos) nothing changes.
+    root_files = {
+        path
+        for path, tree in trees.items()
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == ROOT_CONFIG
+    }
+    root_text = "\n".join(files[path] for path in root_files)
+
+    def reachable(path, name):
+        if not root_files or path in root_files:
+            return True
+        return re.search(r"\b" + re.escape(name) + r"\b", root_text) is not None
+
     parents = {}
     names = {name for _, name in classes}
     for (path, name), cls in classes.items():
@@ -47,7 +68,9 @@ def scan(files):
                 if isinstance(node, ast.If) and any(isinstance(n, (ast.Raise, ast.Assign, ast.AugAssign)) for n in ast.walk(node)):
                     statement = ast.unparse(node)
                     conditions.append((statement, set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", statement))))
-        certain = name.endswith("Config") or any("config" in ast.unparse(d).lower() for d in cls.decorator_list)
+        certain = reachable(path, name) and (
+            name.endswith("Config") or any("config" in ast.unparse(d).lower() for d in cls.decorator_list)
+        )
         for field in fields:
             label = field.target.id
             comments = []

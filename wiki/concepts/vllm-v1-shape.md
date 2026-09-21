@@ -21,7 +21,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: one-request

@@ -22,7 +22,7 @@
   <rect x="20" y="382" width="5" height="64" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
   <g transform="translate(43.8 403.8) scale(0.85)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
   <text x="78" y="411" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">请求结束</text>
-  <text x="78" y="431" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两块一起还回队尾，ref_cnt 归零；开了前缀缓存就先留着内容</text>
+  <text x="78" y="431" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两块一起还回空闲队列，ref_cnt 归零；开了前缀缓存就先留着内容</text>
   <rect x="813" y="401.5" width="48" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1"/><text x="837" y="419" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">free</text>
   <rect x="44" y="120" width="16" height="16" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
   <rect x="64" y="120" width="16" height="16" rx="3" fill="var(--color-ink-faint, #8a928f)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>

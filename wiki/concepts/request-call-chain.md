@@ -18,7 +18,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L58-L82
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L101-L101
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: npu-worker-lifecycle
@@ -83,9 +85,19 @@ file: request-call-chain
 - 最深处是 `torch_npu` 或 aclnn 调用 → 第六跳，看算子层；
 - 最深处在 `_prepare_inputs` 里 → 第五跳，多半是形状或槽位问题；
 - 栈里根本没有 `vllm_ascend` 帧 → 问题在前两跳，先去上游查，再看有没有对应 patch。
-- 反过来不成立：栈里出现 `patch/platform/patch_balance_schedule.py` 仍然是第二跳，那是被换掉名字的调度器 [C10][C11]。
+- 反过来不成立：栈里出现 `patch/platform/patch_balance_schedule.py` 仍然是第二跳，那是被换掉名字的调度器 [C10][C11]；v0.26 分支上这一帧也可能落在 `patch/platform/patch_kv_delivery_preemption.py`，同样是第二跳 [C12]。
 
 完整的定位方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
+
+## 第二跳那个类，v0.26 上多了一层
+
+七跳的划分、每一跳的职责和交接物，v0.23 维护分支与 v0.26 分支一致；差异只在第二跳究竟跑的是哪个类。
+
+| 项 | v0.23 维护分支 与 main 开发主线 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| `BalanceScheduler` 的父类 | 上游 `Scheduler` | 同在 patch 里的 `KVDeliveryScheduler` [C13]，它自己也带一份完整的 `schedule()` | [!] 第二跳的栈多一层，按文件名认跳数时别把这一层当成昇腾的执行侧 |
+
+开关与语义见 [Balance Scheduling](balance-scheduling.md)，这里只关心它对「第几跳」的影响。
 
 ## 常见误解
 

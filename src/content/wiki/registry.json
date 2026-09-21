@@ -2158,7 +2158,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -4903,10 +4904,12 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231",
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381",
         "vllm@0fc695fc:vllm/config/scheduler.py#L146-L149",
-        "vllm@0fc695fc:vllm/config/vllm.py#L933-L1002"
+        "vllm@0fc695fc:vllm/config/vllm.py#L933-L1002",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1240-L1290"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -6467,10 +6470,13 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2060-L2075",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L58-L82",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L101-L101"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -7369,7 +7375,10 @@
         "vllm@0fc695fc:vllm/config/vllm.py#L497-L507",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
+      ],
       "evidence": "C",
       "relations": [
         {
@@ -7445,10 +7454,13 @@
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L211-L226",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144",
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441",
-        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406"
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406",
+        "vllm@568afb3a:vllm/v1/core/block_pool.py#L719-L740",
+        "vllm@568afb3a:vllm/v1/core/single_type_kv_cache_manager.py#L753-L763"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -7460,7 +7472,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-kv-block-allocation.md",
       "backlinks": [
         {
@@ -7573,7 +7585,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -7701,7 +7714,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -7849,10 +7863,12 @@
         "vllm@0fc695fc:vllm/platforms/interface.py#L427-L468",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L677-L725"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [

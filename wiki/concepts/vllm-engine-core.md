@@ -19,6 +19,7 @@ sources:
   - vllm@0fc695fc:vllm/config/vllm.py#L933-L1002
   - vllm@0fc695fc:vllm/config/vllm.py#L497-L507
   - vllm@0fc695fc:vllm/v1/engine/core.py#L188-L220
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-v1-shape
@@ -54,7 +55,7 @@ while self._handle_shutdown():
 
 **没有第五件事，也没有任何 if 在区分 prefill 和 decode。** 这是这一页最值得记住的一句。
 
-但**默认配置下被调用的那个函数不叫 `step()`**：`async_scheduling` 默认是 `None`，配置检查走自动分支，四道闸都不撞就置成 `True` [C9][C10]，于是 `step_fn` 指向下面那条 `step_with_batch_queue`。上面四件事仍然是循环的骨架，差别只在第 3 件之后不等结果就回头做下一圈的第 2 件，见 [异步调度](async-scheduling.md)。
+但**默认配置下被调用的那个函数不叫 `step()`**：`async_scheduling` 默认是 `None`，配置检查走自动分支，那几道闸一道都不撞就置成 `True` [C9][C10]，于是 `step_fn` 指向下面那条 `step_with_batch_queue`。上面四件事仍然是循环的骨架，差别只在第 3 件之后不等结果就回头做下一圈的第 2 件；闸的清单逐版本不同，连同欠条怎么记一起见 [异步调度](async-scheduling.md)。
 
 ## 那条请求走到这里
 

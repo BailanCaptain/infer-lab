@@ -21,7 +21,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-engine-core
@@ -61,7 +61,7 @@ file: token-budget
 
 `max_num_batched_tokens` 的默认值是 2048 [C8]，但真正生效的值由启动时的一张表决定：**单卡显存 ≥ 70 GiB 且不是 A100** 时，`LLM` 类走 16384、API server 走 8192；否则分别是 8192 和 2048 [C9]。**在昇腾上它永远走后一档，而且跟卡上有多少显存无关**：`NPUPlatform.get_device_total_memory` 直接抛 `NotImplementedError`，上游那段查询包在 `try` 里，异常被吞掉之后把显存当成 0 [C10]。所以那条请求（按 API server 这一档算）面对的预算条就是 2048 [D]，理由在 [NPUPlatform](npu-platform.md)。
 
-值得注意的是这张表怎么查出显存的：它调 `current_platform.get_device_total_memory()` 和 `get_device_name()` [C9]。**也就是说，硬件插件间接决定了调度器的默认预算**——这是上游那 88 个平台口子影响面的一个具体例子，见 [Platform：上游留给硬件的口子](vllm-platform-interface.md)。
+值得注意的是这张表怎么查出显存的：它调 `current_platform.get_device_total_memory()` 和 `get_device_name()` [C9]。**也就是说，硬件插件间接决定了调度器的默认预算**——这是上游那张平台问卷影响面的一个具体例子，问卷上一共几道题、各版本数目不同，见 [Platform：上游留给硬件的口子](vllm-platform-interface.md)。
 
 ## 两条队列，先照顾在跑的
 

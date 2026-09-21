@@ -19,7 +19,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
   - vllm@0fc695fc:vllm/config/scheduler.py#L146-L149
   - vllm@0fc695fc:vllm/config/vllm.py#L933-L1002
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1240-L1290
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: kv-cache-spec
@@ -55,10 +56,10 @@ file: the-request
 |---|---|---|
 | 模型 | Qwen3-0.6B：28 层，H=1024，n_q=16，n_kv=8，d_h=128，bf16 | 全库的 worked example 一直用它，换模型等于把已有二十页的数都作废 |
 | 硬件 | 单张 Atlas A2（910B），TP=1 | 并行一开，「哪张卡算哪一半」会盖住「这一步在算什么」 |
-| 版本 | vllm-ascend v0.23 维护分支 + 配套的 vLLM v0.23.0 | 两边必须成对，见 [vLLM 与昇腾各管什么](who-owns-what.md) |
+| 版本 | vllm-ascend v0.23 维护分支 + 配套的 vLLM v0.23.0；这张表的每个取值在 v0.26 分支 + vLLM v0.26.0 上都一样 | 两边必须成对，见 [vLLM 与昇腾各管什么](who-owns-what.md) |
 | 问题长度 | 37 个 token | 比一个块（128）短，于是 prefill 一步算完，不触发 chunked prefill |
 | 回答长度 | 200 个 token | 足够长到跨过块边界——这正是要看的那个时刻 |
-| `block_size` | 128 | 不是选的：命令行没写，`check_and_update_config` 里的 `refresh_block_size` 就填 128 [C10]。后端报的 `[128]` [C5][C6]（`AscendDSABackend` 还报更小的块 [C9]）是 kernel 支持范围，不是定这个值的那一步 |
+| `block_size` | 128 | 不是选的：命令行没写，`check_and_update_config` 里的 `refresh_block_size` 就填 128 [C10]（v0.26 分支上这个函数逐字未动，只是挪到了 `utils.py` 的另一处 [C13]）。后端报的 `[128]` [C5][C6]（`AscendDSABackend` 还报更小的块 [C9]）是 kernel 支持范围，不是定这个值的那一步 |
 
 上面只有「37」和「200」是我挑的 [A]，挑的理由写在第三列；其余都是模型和代码给定的。
 

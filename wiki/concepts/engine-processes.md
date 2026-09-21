@@ -19,7 +19,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: ascend-patch-system

@@ -7,7 +7,7 @@ bands:
   - { label: BlockPool, sub: 全机共用的空闲块队列，按淘汰顺序排着, at: [20, 44], size: [860, 62], tone: muted, icon: box }
   - { label: 第 1 步, sub: "prompt 37 个 token → ceil(37 / 128) = 1 块", at: [20, 178], size: [860, 84], fn: allocate_slots, tone: neutral, icon: grid }
   - { label: 第 92 步 decode, sub: 第 0 块的 128 格刚好写满，才去要第二块, at: [20, 280], size: [860, 84], fn: get_new_blocks, tone: ascend, icon: grid }
-  - { label: 请求结束, sub: "两块一起还回队尾，ref_cnt 归零；开了前缀缓存就先留着内容", at: [20, 382], size: [860, 64], fn: free, tone: muted, icon: queue }
+  - { label: 请求结束, sub: "两块一起还回空闲队列，ref_cnt 归零；开了前缀缓存就先留着内容", at: [20, 382], size: [860, 64], fn: free, tone: muted, icon: queue }
 
 strips:
   - { at: [44, 120], cells: 40, cell: 16, gap: 4, highlights: [0, 1], tone: muted, label: "实心的那两块就是这条请求拿走的；popleft_n 从队头取，所以它俩是队里最早空出来的" }

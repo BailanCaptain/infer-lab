@@ -17,14 +17,16 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
   - vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406
-verified: ["releases/v0.23.0"]
+  - vllm@568afb3a:vllm/v1/core/block_pool.py#L719-L740
+  - vllm@568afb3a:vllm/v1/core/single_type_kv_cache_manager.py#L753-L763
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-scheduler
     kind: builds-on
     note: 每次调度挑中一条请求，紧接着就调 allocate_slots；块不够就退回去抢占
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -73,9 +75,16 @@ file: block-allocation
 
 后半句不在这一页，也不在这个进程。见 [块表](block-table.md) 与 [准备输入](prepare-inputs-flow.md)。
 
+## v0.26 起，还回去的块不再一律排队尾
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| `free_blocks` 把还回来的块排在哪一头 | 一律 `append_n` 排队尾，另有一个 `prepend` 开关整批插队头 | 按有没有哈希分两拨：没进过缓存表的插队头，进过的照旧排队尾，`prepend` 开关取消 [C11] | [!] 那条请求的第 1 块只写了 109 格、从没进过缓存表，v0.26 上它会被下一条请求立刻取走，v0.23 上它还排在整条空闲队列后面 |
+| 没写满的块能不能进缓存表 | 不能 | 同一条规则，只多一个例外：某个 KV group 的 `block_size` 大于哈希块大小时，prompt 尾部那个没填满的块可以登记一条「部分」条目；两者相等就直接 return [C12] | 只有各 KV group 块大小不同的混合模型碰得到；那条请求这种单一 group、两者都是 128 的配置上，两版一样 |
+
 ## 常见误解
 
 - **「decode 每一步都要分块」**——那条请求 199 步 decode 只分了 1 次 [D]。绝大多数步一块都不要。
 - **「块池是每个请求一份」**——是全机一份。`BlockPool` 持有全部块和那条空闲队列 [C6]。
-- **「释放就是清空内容」**——不是。`free` 只把 `ref_cnt` 减回去、块排进队尾 [C9]；内容留着，等真被别人取走时才失效 [C5]。
+- **「释放就是清空内容」**——不是。`free` 只把 `ref_cnt` 减回去、块排回空闲队列 [C9]（排哪一头两版不同，见上表）；内容留着，等真被别人取走时才失效 [C5]。
 - **「block_size 可以随便调」**——写了也多半保不住：开着前缀缓存或 chunked prefill 时，`refresh_block_size` 会把它改回 128 [C10]。后端报的 `[128]` [C8] 是 kernel 支持范围，不是改它的那一步。

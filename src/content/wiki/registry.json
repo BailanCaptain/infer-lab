@@ -119,6 +119,16 @@
           "note": "这个算子的 tiling 在 host 侧做，和 FULL_DECODE_ONLY 图模式不能同时开，官方要求退到 PIECEWISE"
         },
         {
+          "from": "enable-force-eplb-b7ec3661121f",
+          "kind": "enables",
+          "note": "表必须在图捕获之前按每个 capture size 预先建好，预建那一步挂在 _dummy_run 上，跑的是非捕获那一趟"
+        },
+        {
+          "from": "enable-super-kernel-ce990e186bfa",
+          "kind": "enables",
+          "note": "第二个生效点在 ACL Graph 捕获期——整网框进一个 scope，录完再对图调一次 super_kernel_optimize"
+        },
+        {
           "from": "fine-grained-tp",
           "kind": "enables",
           "note": "oproj 那项禁止 enforce_eager，静态交换缓冲区的设备地址要在图捕获与回放之间保持不变"
@@ -294,6 +304,16 @@
           "note": "batch_job_sched_config 是 additional_config.scheduler_config 下的子配置，嵌套键与顶层旧键的优先级在那一页"
         },
         {
+          "from": "c8-enable-reshape-optim-8bd7e5f82c6c",
+          "kind": "enables",
+          "note": "同一个名字在三个版本上分别是用户键、用户键和派生只读属性，能不能写、写了算不算数全看那条构造链"
+        },
+        {
+          "from": "combine-quant-mode-2a3f7cd47997",
+          "kind": "enables",
+          "note": "它是 main 上 pydantic AscendConfig 的顶层 Literal 字段，v0.23 / v0.26 那套逐键 .get() 根本不认识这个名字"
+        },
+        {
           "from": "cpu-binding",
           "kind": "enables",
           "note": "enable_cpu_binding 是 additional_config 顶层的布尔键，不属于任何子配置类，默认 True"
@@ -304,6 +324,16 @@
           "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 上把它挡在启动期的正是这一环"
         },
         {
+          "from": "enable-force-eplb-b7ec3661121f",
+          "kind": "enables",
+          "note": "它是 main 上 pydantic AscendConfig 的顶层 bool 字段，互斥检查跑在 derive_and_validate 而不是 pydantic 校验里"
+        },
+        {
+          "from": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+          "kind": "enables",
+          "note": "读这个键的 utils 函数带 lru_cache(maxsize=1)，值在第一次读取后冻结，只有 clear_enable_sp() 能清"
+        },
+        {
           "from": "enable-sleep-mode-extra-cleanup",
           "kind": "enables",
           "note": "这个键从顶层搬进 rl_config 子配置，旧写法在 main 上会撞上 extra=\"forbid\"——搬家的机制在那一页"
@@ -312,6 +342,11 @@
           "from": "eplb",
           "kind": "enables",
           "note": "eplb_config 是 additional_config 拆出来的八个子配置之一，键名与默认值怎么进来的在那一页"
+        },
+        {
+          "from": "kvpp-config-0445bd352140",
+          "kind": "enables",
+          "note": "它是工厂注入的字段而不是用户输入，能不能写、写了会怎样，由 _NON_USER_INPUT_KEYS 那条构造链决定"
         },
         {
           "from": "multistream-overlap-gate",
@@ -332,6 +367,11 @@
           "from": "profiling-chunk-config",
           "kind": "enables",
           "note": "它是 additional_config 下的一个嵌套 dict，顶层写法从 v0.26 起被降级成弃用告警的那套解析规则就在那一页"
+        },
+        {
+          "from": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+          "kind": "enables",
+          "note": "与同批的 enable_dsa_cp 不同，这个读取函数没有 lru_cache，每次走到都现读一次配置单例"
         },
         {
           "from": "short-request-first",
@@ -634,6 +674,11 @@
           "from": "ops-and-kernels",
           "kind": "enables",
           "note": "注意力是算子层最大的一个消费方，后端选完之后调到的就是这一层"
+        },
+        {
+          "from": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+          "kind": "enables",
+          "note": "读它的是 SFA 后端的 DCP 子类 AscendSFADCPImpl，后端怎么按 (use_mla, use_sparse, use_compress) 选出来在那一页"
         }
       ]
     },
@@ -1145,23 +1190,60 @@
       "title": "c8_enable_reshape_optim",
       "type": "param",
       "origin": "seed",
-      "summary": "c8_enable_reshape_optim 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "让 LightningIndexer 的 C8 缓存写入改走 StoreKVBlock 算子，不再逐 token scatter。两个发布分支上是默认 false 的用户键、要配合 enable_sparse_li_c8；main 上被改成派生只读，并且只在 PD 分离的 P 节点才可能为真。",
+      "aliases": [
+        "additional_config.c8_enable_reshape_optim",
+        "C8 reshape 优化",
+        "StoreKVBlock",
+        "store_kv_block"
+      ],
+      "chapters": [
+        "17"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L526"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L526",
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L780-L786",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L772-L782",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1079-L1082",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/indexer.py#L234-L274",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/indexer.py#L1068-L1080",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1668",
+        "vllm-ascend@b255ab59:docs/source/tutorials/models/GLM5.2.md#L217",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L280-L284",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L89",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L286-L290",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L1547-L1549",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L460-L467",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L83",
+        "https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "kv-cache-quantization",
+          "kind": "builds-on",
+          "note": "它只作用在 LightningIndexer 那份 C8 量化缓存的写入路径上，indexer 不走 C8 时这个键恒等于没开"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "同一个名字在三个版本上分别是用户键、用户键和派生只读属性，能不能写、写了算不算数全看那条构造链"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
       "backlinks": []
     },
@@ -1275,14 +1357,34 @@
       "title": "combine_quant_mode",
       "type": "param",
       "origin": "seed",
-      "summary": "combine_quant_mode 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "MoE 的 MC2 combine 阶段（专家算完把结果收回来的那次 all-to-all）通信时用哪种量化：非 0 就强行覆盖模型自己推出来的模式，只认 0/2/3/4，默认 0 不干预。只在 main 开发主线上有，v0.23 与 v0.26 两个发布分支上配了会被静默忽略。",
+      "aliases": [
+        "MC2 combine 通信量化",
+        "combine 阶段通信量化模式",
+        "强制 combine 量化模式"
+      ],
+      "chapters": [
+        "14",
+        "17"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L473",
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L474"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L474",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/token_dispatcher.py#L274-L287",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/token_dispatcher.py#L162-L173",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/token_dispatcher.py#L327-L333",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/moe_comm_method.py#L215-L232",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/moe_comm_method.py#L473-L524",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L470-L473",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L336",
+        "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L82",
+        "vllm-ascend@b255ab59:tests/ut/test_ascend_config.py#L1624-L1655",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
       ],
       "verified": [
         "main"
@@ -1292,10 +1394,26 @@
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "它改的是 MC2 那对 dispatch / combine 算子里 combine 那一半的通信量化位，而 MC2 正是 EP 收发 token 的通道"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "默认值 0 的含义是「跟着模型权重声明的 quant_type 走」，要判断覆盖掉了什么，先得知道 quant_type 从哪来"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "它是 main 上 pydantic AscendConfig 的顶层 Literal 字段，v0.23 / v0.26 那套逐键 .get() 根本不认识这个名字"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/combine-quant-mode-2a3f7cd47997.md",
       "backlinks": []
     },
@@ -1417,9 +1535,19 @@
       "file": "concepts/context-parallel.md",
       "backlinks": [
         {
+          "from": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+          "kind": "enables",
+          "note": "它只在 prefill_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类接手，PCP 怎么切序列在那一页"
+        },
+        {
           "from": "kvpp",
           "kind": "enables",
           "note": "组大小按 TP × PCP 算，PCP 要 Model Runner V2；DCP 与 KVPP 互斥，同开启动就抛 ValueError"
+        },
+        {
+          "from": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
+          "kind": "enables",
+          "note": "只有 decode_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类读它，DCP 怎么切 KV 在那一页"
         }
       ]
     },
@@ -1930,14 +2058,36 @@
       "title": "enable_force_eplb",
       "type": "param",
       "origin": "seed",
-      "summary": "enable_force_eplb 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "把 MoE 路由算出来的 topk_ids 整个丢掉，换成一张按 ep_size / ep_rank 算出来的轮转表，让每个专家、每张卡收到的 token 数完全相等——压测和算子调优用，开了输出就不对。默认 false，只在 main 开发主线上有。",
+      "aliases": [
+        "强制 EPLB",
+        "强制专家均衡路由",
+        "force_eplb",
+        "轮转 topk_ids"
+      ],
+      "chapters": [
+        "14"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466",
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L467"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L467",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L559-L567",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/routed_experts.py#L594-L633",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L108-L142",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L89-L105",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L22-L56",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L59-L86",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L3981-L3983",
+        "vllm-ascend@b255ab59:tests/ut/ops/test_force_eplb.py#L11-L33",
+        "vllm-ascend@b255ab59:tests/ut/ops/test_force_eplb.py#L36-L58",
+        "vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/routed_experts.py#L649-L650",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L334",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
       ],
       "verified": [
         "main"
@@ -1947,10 +2097,26 @@
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "expert-parallel",
+          "kind": "builds-on",
+          "note": "轮转表按 ep_size / ep_rank 算，目的就是把 EP 那两次 all-to-all 的每卡收发量压成完全相等"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "表必须在图捕获之前按每个 capture size 预先建好，预建那一步挂在 _dummy_run 上，跑的是非捕获那一趟"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "它是 main 上 pydantic AscendConfig 的顶层 bool 字段，互斥检查跑在 derive_and_validate 而不是 pydantic 校验里"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/enable-force-eplb-b7ec3661121f.md",
       "backlinks": [
         {
@@ -2036,14 +2202,35 @@
       "title": "enable_pcp_o_proj_weight_sharding",
       "type": "param",
       "origin": "seed",
-      "summary": "enable_pcp_o_proj_weight_sharding 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "开了 SFA-PCP 之后，让 o_proj 权重在加载期就按 PCP 组再切一刀、常驻只留 1/pcp_size，prefill 现 all-gather 出一份全量、decode 直接用本地片。默认 false，只在 main 开发主线上有，对 DSA-CP 无效。",
+      "aliases": [
+        "PCP o_proj 权重分片",
+        "SFA-PCP O-proj 权重切分",
+        "o_proj weight switch"
+      ],
+      "chapters": [
+        "15"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L467",
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L468"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L468",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L1445-L1455",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L58-L91",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L93-L110",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L112-L158",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1571-L1586",
+        "vllm-ascend@b255ab59:vllm_ascend/weight_switch/linear.py#L259-L296",
+        "vllm-ascend@b255ab59:vllm_ascend/weight_switch/linear.py#L441-L456",
+        "vllm-ascend@b255ab59:vllm_ascend/weight_switch/o_proj.py#L28-L51",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L154-L158",
+        "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L76",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L1458-L1473",
+        "vllm-ascend@b255ab59:tests/ut/test_ascend_config.py#L1281-L1295",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
       ],
       "verified": [
         "main"
@@ -2053,10 +2240,26 @@
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "context-parallel",
+          "kind": "builds-on",
+          "note": "它只在 prefill_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类接手，PCP 怎么切序列在那一页"
+        },
+        {
+          "to": "layer-sharding",
+          "kind": "alternative-to",
+          "note": "两者都是为了不让每层都常驻一份全量 o_proj；layer_sharding 按层轮流放、v0.24 起已删，这个按 PCP 组切且只针对 o_proj"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "读这个键的 utils 函数带 lru_cache(maxsize=1)，值在第一次读取后冻结，只有 clear_enable_sp() 能清"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
       "backlinks": []
     },
@@ -2136,25 +2339,63 @@
       "title": "enable_super_kernel",
       "type": "param",
       "origin": "seed",
-      "summary": "enable_super_kernel 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "ascend_compilation_config 里的第三级加码开关：把整网框进一个 super kernel scope 再融一次。v0.23 上没有这个键，v0.26 起有，不写就跟随 enable_static_kernel，开了必须静态内核也开。",
+      "aliases": [
+        "ascend_compilation_config.enable_super_kernel",
+        "超级内核开关",
+        "super_kernel_optimize",
+        "super_kernel_scope"
+      ],
+      "chapters": [
+        "16"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L115"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L115",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L113-L134",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L136-L160",
+        "vllm-ascend@b255ab59:vllm_ascend/compilation/compiler_interface.py#L122-L135",
+        "vllm-ascend@b255ab59:vllm_ascend/compilation/acl_graph.py#L37-L47",
+        "vllm-ascend@b255ab59:vllm_ascend/compilation/acl_graph.py#L240-L245",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1179-L1220",
+        "vllm-ascend@b255ab59:vllm_ascend/compilation/compiler_interface.py#L245-L255",
+        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L48",
+        "vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L205-L216",
+        "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L104-L108",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/graph_mode.md#L212-L217",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L124",
+        "https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L612",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L640-L659",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/graph_mode.md#L180-L186"
       ],
       "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
         "main"
       ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "npugraph-ex",
+          "kind": "builds-on",
+          "note": "它是 npugraph_ex → static kernel 之上的第三级，融的是什么、为什么要分三级，在那一页"
+        },
+        {
+          "to": "acl-graph",
+          "kind": "builds-on",
+          "note": "第二个生效点在 ACL Graph 捕获期——整网框进一个 scope，录完再对图调一次 super_kernel_optimize"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/enable-super-kernel-ce990e186bfa.md",
       "backlinks": []
     },
@@ -2539,6 +2780,16 @@
           "from": "ai-qos",
           "kind": "enables",
           "note": "占着 AIV 那条车道的 dispatch / combine 就是 EP 每层的全员交换，它为什么这么密写在那一页"
+        },
+        {
+          "from": "combine-quant-mode-2a3f7cd47997",
+          "kind": "enables",
+          "note": "它改的是 MC2 那对 dispatch / combine 算子里 combine 那一半的通信量化位，而 MC2 正是 EP 收发 token 的通道"
+        },
+        {
+          "from": "enable-force-eplb-b7ec3661121f",
+          "kind": "enables",
+          "note": "轮转表按 ep_size / ep_rank 算，目的就是把 EP 那两次 all-to-all 的每卡收发量压成完全相等"
         },
         {
           "from": "eplb",
@@ -3010,33 +3261,6 @@
       ]
     },
     {
-      "id": "group-2b49ce9bdb0a",
-      "title": "group",
-      "type": "param",
-      "origin": "seed",
-      "summary": "group 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L49"
-      ],
-      "verified": [
-        "main"
-      ],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
-      ],
-      "relations": [],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-09-19",
-      "file": "params/group-2b49ce9bdb0a.md",
-      "backlinks": []
-    },
-    {
       "id": "kv-cache",
       "title": "KV Cache",
       "type": "concept",
@@ -3347,6 +3571,11 @@
           "from": "mooncake-connector",
           "kind": "alternative-to",
           "note": "同样是按层搬 KV，那边搬进大家共用的 KV 池、按块哈希复用，这边点对点推给指定的那一个 D"
+        },
+        {
+          "from": "use-layerwise-b475778cd352",
+          "kind": "enables",
+          "note": "这个键就是那一页讲的「按层搬」的总开关，机制、收益和 buffer 复用在那一页，本页只讲键本身"
         }
       ]
     },
@@ -3562,6 +3791,11 @@
           "from": "kv-cache-sparse-offload",
           "kind": "conflicts-with",
           "note": "enable_sparse_sfa_c8 与本特性互斥，主 KV 必须 BF16；只有 indexer 的 LI C8 还能开"
+        },
+        {
+          "from": "c8-enable-reshape-optim-8bd7e5f82c6c",
+          "kind": "enables",
+          "note": "它只作用在 LightningIndexer 那份 C8 量化缓存的写入路径上，indexer 不走 C8 时这个键恒等于没开"
         }
       ]
     },
@@ -3675,6 +3909,11 @@
           "from": "kv-cache-cpu-offload",
           "kind": "alternative-to",
           "note": "那一页让 D 节点的全量主 KV 常驻主机内存、每步按 top-k 取回；这一页 NPU 仍是主存放地，主机内存只是被淘汰块的备份"
+        },
+        {
+          "from": "use-fused-overlap-75a180fff6ab",
+          "kind": "enables",
+          "note": "它是那套卸载在 decode 上的第二条路径开关，只有 sparse_kv_offload_config.enabled 为真时才有人读它"
         }
       ]
     },
@@ -3936,6 +4175,11 @@
           "note": "main 上引擎内唯一能设 QoS 的口子 qos_priority 长在 KV 池的连接器配置里，取值范围和报错在那一页"
         },
         {
+          "from": "use-layerwise-b475778cd352",
+          "kind": "enables",
+          "note": "它是 AscendStoreConnector 的 kv_connector_extra_config 里的一个键，连接器怎么挂上 vLLM KV Connector 接口在那一页"
+        },
+        {
           "from": "kv-cache-layerwise-offload",
           "kind": "has-variant",
           "note": "layerwise 是 AscendStore KV Pool 的一种传输模式，池的后端选型、key 组织、P/D 角色都在那一页"
@@ -4039,21 +4283,53 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/kvpp.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "kvpp-config-0445bd352140",
+          "kind": "enables",
+          "note": "这个对象只是 KVPP 那一套机制的开关读数，层怎么分、广播怎么发、收益与限制全在那一页"
+        },
+        {
+          "from": "size-40a1c2ca47b8",
+          "kind": "enables",
+          "note": "它是 KVPP 分层广播的除数，层归属、广播时机与实测收益都在那一页"
+        }
+      ]
     },
     {
       "id": "kvpp-config-0445bd352140",
       "title": "kvpp_config",
       "type": "param",
       "origin": "seed",
-      "summary": "kvpp_config 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进 additional_config 会被静默剔掉。只在 main 开发主线上有。",
+      "aliases": [
+        "additional_config.kvpp_config",
+        "KVPP 配置对象",
+        "KVPPConfig.from_vllm_config",
+        "KVPP 派生子配置"
+      ],
+      "chapters": [
+        "11"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L517",
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L518"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L518",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L60-L77",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L79-L100",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1619-L1624",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1668",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1501-L1503",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/parallel_state.py#L76-L89",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1103",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4541-L4543",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L215-L219",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L135-L159",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L62-L69",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50"
       ],
       "verified": [
         "main"
@@ -4063,12 +4339,29 @@
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "kvpp",
+          "kind": "builds-on",
+          "note": "这个对象只是 KVPP 那一套机制的开关读数，层怎么分、广播怎么发、收益与限制全在那一页"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "它是工厂注入的字段而不是用户输入，能不能写、写了会怎样，由 _NON_USER_INPUT_KEYS 那条构造链决定"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/kvpp-config-0445bd352140.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "size-40a1c2ca47b8",
+          "kind": "enables",
+          "note": "size 是 kvpp_config 里唯一的字段，这个数由谁算出来、为什么用户写不进去，在那一页"
+        }
+      ]
     },
     {
       "id": "large-scale-ep",
@@ -4241,7 +4534,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "params/layer-sharding.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
+          "kind": "alternative-to",
+          "note": "两者都是为了不让每层都常驻一份全量 o_proj；layer_sharding 按层轮流放、v0.24 起已删，这个按 PCP 组切且只针对 o_proj"
+        }
+      ]
     },
     {
       "id": "lora",
@@ -4345,33 +4644,6 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/lora.md",
-      "backlinks": []
-    },
-    {
-      "id": "mask-e1795029cbdd",
-      "title": "mask",
-      "type": "param",
-      "origin": "seed",
-      "summary": "mask 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/xlite/utils.py#L355"
-      ],
-      "verified": [
-        "main"
-      ],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-7208a7a5310b669614d3fd4c6a11405a02ade0a36f1a32d477d45864d928afeb.md"
-      ],
-      "relations": [],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-09-19",
-      "file": "params/mask-e1795029cbdd.md",
       "backlinks": []
     },
     {
@@ -4988,7 +5260,13 @@
       "contradicts": [],
       "updated": "2026-09-21",
       "file": "concepts/npugraph-ex.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "enable-super-kernel-ce990e186bfa",
+          "kind": "enables",
+          "note": "它是 npugraph_ex → static kernel 之上的第三级，融的是什么、为什么要分三级，在那一页"
+        }
+      ]
     },
     {
       "id": "one-request",
@@ -6289,6 +6567,11 @@
       "file": "concepts/quantization.md",
       "backlinks": [
         {
+          "from": "combine-quant-mode-2a3f7cd47997",
+          "kind": "enables",
+          "note": "默认值 0 的含义是「跟着模型权重声明的 quant_type 走」，要判断覆盖掉了什么，先得知道 quant_type 从哪来"
+        },
+        {
           "from": "eplb",
           "kind": "enables",
           "note": "能不能搬取决于该量化方法有没有把每个专家的权重和 scale 拆成可按专家寻址的张量，不能拆的格式直接抛错"
@@ -6304,33 +6587,6 @@
           "note": "fuse_norm_quant 只在量化模型上有东西可匹配，哪一层是 W8A8、哪一层是 W4A4 由那一页的 quant_description 决定"
         }
       ]
-    },
-    {
-      "id": "rank-d6a905e66735",
-      "title": "rank",
-      "type": "param",
-      "origin": "seed",
-      "summary": "rank 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L51"
-      ],
-      "verified": [
-        "main"
-      ],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
-      ],
-      "relations": [],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-09-19",
-      "file": "params/rank-d6a905e66735.md",
-      "backlinks": []
     },
     {
       "id": "reading-vllm-ascend",
@@ -6810,14 +7066,35 @@
       "title": "sfa_dcp_force_tmajor_restore",
       "type": "param",
       "origin": "seed",
-      "summary": "sfa_dcp_force_tmajor_restore 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "DCP 解码路径上 query all-gather 之后，把布局还原从零拷贝的 strided view 改回真的物化一份 t-major 连续存储——上游为对照实验留的回退开关，默认 false 走优化后的零拷贝路径。只在 main 开发主线上有。",
+      "aliases": [
+        "SFA DCP t-major 还原",
+        "强制 t-major 连续化",
+        "DCP query gather 布局回退"
+      ],
+      "chapters": [
+        "15"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L465",
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L466"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L466",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L1436-L1442",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1424-L1434",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1145-L1157",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1264-L1305",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1362-L1408",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1307-L1320",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1159-L1172",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L375-L399",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/sfa_v1.py#L1454-L1456",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1571-L1586",
+        "vllm-ascend@b255ab59:vllm_ascend/utils.py#L144-L151",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L334",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
       ],
       "verified": [
         "main"
@@ -6827,38 +7104,27 @@
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "context-parallel",
+          "kind": "builds-on",
+          "note": "只有 decode_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类读它，DCP 怎么切 KV 在那一页"
+        },
+        {
+          "to": "attention-backend-family",
+          "kind": "builds-on",
+          "note": "读它的是 SFA 后端的 DCP 子类 AscendSFADCPImpl，后端怎么按 (use_mla, use_sparse, use_compress) 选出来在那一页"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "与同批的 enable_dsa_cp 不同，这个读取函数没有 lru_cache，每次走到都现读一次配置单例"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
-      "backlinks": []
-    },
-    {
-      "id": "shard-axis-036e26ba7f4b",
-      "title": "shard_axis",
-      "type": "param",
-      "origin": "seed",
-      "summary": "shard_axis 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L52"
-      ],
-      "verified": [
-        "main"
-      ],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
-      ],
-      "relations": [],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-09-19",
-      "file": "params/shard-axis-036e26ba7f4b.md",
       "backlinks": []
     },
     {
@@ -6957,13 +7223,30 @@
       "title": "size",
       "type": "param",
       "origin": "seed",
-      "summary": "size 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "KVPPConfig 里唯一的字段：KVPP 把层分成几份的那个除数，int、默认 1（即关闭），开了 KVPP 后等于 TP × PCP，用户不能直接写。只在 main 开发主线上有。",
+      "aliases": [
+        "kvpp_config.size",
+        "additional_config.kvpp_config.size",
+        "KVPP 组大小",
+        "kvpp_size"
+      ],
+      "chapters": [
+        "11"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L64"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L64",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L60-L77",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/parallel_state.py#L76-L89",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L128-L159",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1103",
+        "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L19-L44",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L1501-L1503",
+        "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4541-L4543",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L62-L69",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1619-L1624"
       ],
       "verified": [
         "main"
@@ -6972,10 +7255,21 @@
       "rawSources": [
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "kvpp-config-0445bd352140",
+          "kind": "builds-on",
+          "note": "size 是 kvpp_config 里唯一的字段，这个数由谁算出来、为什么用户写不进去，在那一页"
+        },
+        {
+          "to": "kvpp",
+          "kind": "builds-on",
+          "note": "它是 KVPP 分层广播的除数，层归属、广播时机与实测收益都在那一页"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/size-40a1c2ca47b8.md",
       "backlinks": []
     },
@@ -7335,14 +7629,38 @@
       "title": "use_fused_overlap",
       "type": "param",
       "origin": "seed",
-      "summary": "use_fused_overlap 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config 这个嵌套块里（不是顶层），bool、默认 false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬 miss 再算」。只在 main 开发主线上有。",
+      "aliases": [
+        "sparse_kv_offload_config.use_fused_overlap",
+        "融合重叠 decode",
+        "npu_fused_sparse_attention_overlap",
+        "fused_overlap decode"
+      ],
+      "chapters": [
+        "11"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
         "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L1468",
-        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L1478"
+        "vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L1478",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1457-L1476",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1478-L1486",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1595-L1597",
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1668",
+        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L48",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L13-L19",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L202-L205",
+        "vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1047",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L650-L657",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L714-L717",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L556-L559",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L778-L788",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L851-L855",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1090-L1093",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L219-L238",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054"
       ],
       "verified": [
         "main"
@@ -7352,10 +7670,16 @@
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "kv-cache-sparse-offload",
+          "kind": "builds-on",
+          "note": "它是那套卸载在 decode 上的第二条路径开关，只有 sparse_kv_offload_config.enabled 为真时才有人读它"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/use-fused-overlap-75a180fff6ab.md",
       "backlinks": []
     },
@@ -7364,25 +7688,62 @@
       "title": "use_layerwise",
       "type": "param",
       "origin": "seed",
-      "summary": "use_layerwise 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
+      "summary": "KV 池连接器的逐层开关：把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」。它不在 additional_config 里，真正的入口是 --kv-transfer-config 的 kv_connector_extra_config；三个版本都有，默认 false。",
+      "aliases": [
+        "逐层 KV 存取开关",
+        "kv_connector_extra_config.use_layerwise",
+        "layerwise 总开关"
+      ],
+      "chapters": [
+        "11"
+      ],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20"
+        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L101-L114",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L92-L99",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L28-L36",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L43-L71",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L49",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L80-L90",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L691-L712",
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L33",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L1215",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L113",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L83-L92",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L570-L591",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L75-L78",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L229-L236",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L92-L101",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L192"
       ],
       "verified": [
-        "main"
+        "main",
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-d3d9a827c7c10514c64a59996d439dd3073b7e210488d124f267f418725693c2.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "kv-cache-layerwise-offload",
+          "kind": "builds-on",
+          "note": "这个键就是那一页讲的「按层搬」的总开关，机制、收益和 buffer 复用在那一页，本页只讲键本身"
+        },
+        {
+          "to": "kv-pool",
+          "kind": "builds-on",
+          "note": "它是 AscendStoreConnector 的 kv_connector_extra_config 里的一个键，连接器怎么挂上 vLLM KV Connector 接口在那一页"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "params/use-layerwise-b475778cd352.md",
       "backlinks": []
     },
@@ -8077,33 +8438,6 @@
           "note": "读这一页之前要先知道两边各管什么，否则会把接缝当成主体"
         }
       ]
-    },
-    {
-      "id": "world-size-bbb55aac584a",
-      "title": "world_size",
-      "type": "param",
-      "origin": "seed",
-      "summary": "world_size 的静态定义，正文待补。",
-      "aliases": [],
-      "chapters": [],
-      "order": 500,
-      "prerequisites": [],
-      "sources": [
-        "vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/weight_switch/linear.py#L50"
-      ],
-      "verified": [
-        "main"
-      ],
-      "evidence": "C",
-      "rawSources": [
-        "raw/sha256-1582d6e98f9bda4bd5beee173e02581c418b88eeb5474cfd66b2952dc051a31e.md"
-      ],
-      "relations": [],
-      "related": [],
-      "contradicts": [],
-      "updated": "2026-09-19",
-      "file": "params/world-size-bbb55aac584a.md",
-      "backlinks": []
     }
   ]
 }

@@ -58,18 +58,18 @@
 
 ## 4. 接下来做什么（按优先级）
 
-**先记一笔欠账：恢复「agent 写、人只审」。** 现在「不走待审、Opus 直接写进知识库」是**过渡办法**，不是长期约定——用户 09-21 原话「这里我的意思只是暂时这样 要做」。要还的两笔（补这批页的 raw / log 或给它们如实的 `origin`；把 `wiki:ingest` → `_drafts/` → `wiki:review` 真跑通，它等同于打开 `maxTasks`，需用户点头付费）写在 [wiki-audit-status-2026-09-21](docs/plans/wiki-audit-status-2026-09-21.md) §3。在用户拍板之前照旧写页，但别把现状当终态。
+**先记一笔欠账：恢复「agent 写、人只审」。** 现在「不走待审、Opus 直接写进知识库」是**过渡办法**，不是长期约定——用户 09-21 原话「这里我的意思只是暂时这样 要做」。要还的两笔（补这批页的 raw / log 或给它们如实的 `origin`；把 `wiki:ingest` → `_drafts/` → `wiki:review` 真跑通，它等同于打开 `maxTasks`）写在 [wiki-audit-status-2026-09-21](docs/plans/wiki-audit-status-2026-09-21.md) §3。**还账的时点用户 09-21 已经定了：这个阶段做完、大规模导入之前开 `maxTasks`**（见下面第 8 条）。在那之前照旧写页，但别把现状当终态。
 
 **特性页主线已补齐、v0.26 已对完**（§6），所以剩下的是：
 
-1. **14 个参数骨架页的正文。** 夜间生成、直接进 `wiki/params/`（既有设计：全是程序抽取的事实），定义 / 默认值 / 约束 / 谱系是真的，解释正文写着「待补」。这是现在最直接的可读内容缺口，也是页数涨得比内容快的那一头。
+1. ~~参数骨架页的正文~~ —— **09-21 已完成**：误报的 5 页删掉之后剩 10 页，当天全部补成正文（名单与要点见 §6）。`wiki/params/` 里已没有写着「待补」的页（现查 `git grep -l 待补 -- wiki/params`）。
 2. **课程术语页。** 30 个里 `kv-cache`、`rope`、`prefill` 三页试点已由用户批准、写法也认可；缺哪些词用 `pnpm wiki:lint --terms` 现查。**等模型计算层的章节在另一个会话定下来再做**（术语要跟着章节走）；三页试点还**没配图**，而 HANDBOOK 要求讲结构关系的页必须有图。**「把 `<Term>` 悬停卡接进课程正文」现在无处可接**：这个分支的 `src/app` 里没有地方渲染 `Step.terms`，等课程界面定下来再接，不算漏做。
 3. **硬件页**：留到硬件段最后接入，不要提前开。
 4. **LMCache / UCM 两篇**：官方特性主线就剩这两篇第三方存储部署指南，写法同三版本规则。
 5. **main 重钉**：库里 main 来源统一钉在 09-19 的 `b255ab59`，上游每天在动，`wiki:stale` 已经在报一批（预期内）。重钉是一次性的一笔活——`wiki:stale --fetch` 出清单 → 逐页核 → 统一改 seeds，挑一轮专门做，不要顺手做。
 6. **新页作者们反复建议补的地基页——是建议，不是已定**：被点名最多的是 `hardware-profile`（设备类型）、`model-runner-v2`、`mooncake-connector-v2`、`fused-moe-layer`。开写前先问用户。
 7. **明确挂起、等用户说开始**：三项大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉）**仍放在最后一步，必须用户点头**。
-8. **等用户决定的两件事**：① 同步用的解释器路径已经不在共享配置里了（09-21 `7781837`），共享的 `wiki/sync.config.json` 不写 `python`，本机路径在 gitignore 的 `wiki/sync.config.local.json` 里——**这台机器上它仍指向 Codex 的私有缓存目录**，换机器会断；要不要建一个专用的 conda 3.12 环境（`conda create -n llm-wiki python=3.12 -y` 后把 `python` 指过去）**仍等用户定，要下载安装，已问过两次未答复**；② 三个付费开关（`maxTasks` / `reconcileBatches` / `driftSample`，各是什么见状态文档 §6）从未在生产跑过——`maxTasks` 用户 09-21 已定**先不开**（它就是上面那笔欠账的开关），另外两个照旧建议先不开。另：F004 AC3 的「够不够」仍是回答模型自报。
+8. **两件已定、不必再问的事**：① **conda 环境不用建**（用户 09-21 定）——参数扫描脚本 `scripts/wiki/params/scan.py` 只 import `ast` / `json` / `re` / `sys`，全是标准库，任何 3.12+ 的解释器都跑得了。开源用户 PATH 上有 Python 3.12+ 就行，不合适再写一行 `wiki/sync.config.local.json`（gitignore，`{"python": "<路径>"}`）。这台机器现在借的是 Codex 私有缓存里的那份，哪天它没了，夜间任务会**当场报错**并在错误信息里写明「解释器 X；当前上游需要 3.11+，可用 `WIKI_PYTHON` 或同步配置 `python` 指定」（`scripts/wiki/params/scan.ts:17`），不会悄悄坏掉，所以不值得为它装一套 conda；② **`maxTasks` 什么时候开**——用户 09-21 定：**等这个阶段做完、大规模导入之前再开**。它一开，新内容自然走「agent 写草稿 → 人在面板上审」，上面那笔欠账也就一并还了。另外两个付费开关（`reconcileBatches` / `driftSample`，各是什么见状态文档 §6）照旧建议先不开；F004 AC3 的「够不够」仍是回答模型自报。
    还有两项**不是缺陷，别再当 TODO**：`wiki/sources/` 空着，是因为它只是「存进 Wiki」保存问答记录的落点，还没人存过；`log.md` 记不进问答是**有意不做**——它属于知识快照，每问一次就写它会让知识版本号变、所有问答会话被重置。
 
 ## 5. 怎么做事，和已经踩过的坑
@@ -104,16 +104,21 @@
 
 - **加了 v0.26，不是换版本**（用户 09-21 定）：v0.23 维护分支、v0.26、main 三个在册版本长期并存。seeds 登记 `releases/v0.26.0rc` = `vllm-ascend@2ed6cbba`（分支 tip，还在 rc），配套上游 vLLM v0.26.0 = `vllm@568afb3a`（`74b053a`）。
 - **`pnpm wiki:versions`**（只读，不调模型不花钱）：对钉在 `--from` 上的每条来源，查所引的那几行在 `--to` 上是不是原样（same / moved / changed / gone）；`--init` 建字段，`--mark` 记核对结果，已对过目标版本的页不再列出（`8aa80cc`）。
-- **`verified: [...]`**：frontmatter 新字段 + 页头「已核对 v0.23.0 · v0.26.0rc · main」+ lint `unknown-verified-ref`（只查名字拼没拼对）。**绝不自动记**：行没变不等于每句话还成立，数出来的 `[D]` 结论（「442 个文件」「78 个方法」）根本不落在任何来源的行号里。踩过的坑——撤回那次自动标记时 sed 漏了「只有一个版本」的写法，`rope` 与 `vllm-platform-interface` 带着错标记挂了一夜，后者因此顶着三个 v0.23 的数显示「已核对 v0.26」。标记只能在人看过之后加。
-- **全库对 v0.26 核完了**（`f932968`、`e6bf8db`、`75d7496`、`6307720`、`35db847`）：`pnpm wiki:versions` 现报「已对过 78 页；还没对过 1 页」，剩的那页是 `dyntra-lb`——只有 main 有，永远不会标 v0.26，属正常。每页的真实差异都进了各自的差异表；**全库级的几条结论，接手的人最该先知道**：那条共享请求的全部设定在 v0.26 上一个没变（`refresh_block_size` 逐字节相同）；v0.26 的 `AscendConfig` 仍是逐键 `.get()`，写错或已删的键静默忽略，main 才报错；默认跑的调度器类是被 patch 换掉的 `BalanceScheduler`，v0.26 上外面再套一层 `KVDeliveryScheduler`；`vllm_version_is` 调用处 49 → 10，patch 目录不再按 vLLM 版本分叉；KV 池 key 三个版本互不通用；PCP 在 v0.26 的 model runner v1 上整个被摘掉。
+- **`verified: [...]`**：frontmatter 新字段 + 页头「已核对 v0.23.0 · v0.26.0rc · main」+ lint `unknown-verified-ref`（只查名字拼没拼对）。**绝不自动记**：行没变不等于每句话还成立，数出来的 `[D]` 结论根本不落在任何来源的行号里。踩过的坑——撤回那次自动标记时 sed 漏了「只有一个版本」的写法，两页带着错标记挂了一夜。标记只能在人看过之后加。
+- **全库对 v0.26 核完了**（`f932968`、`e6bf8db`、`75d7496`、`6307720`、`35db847`）：`wiki:versions` 现报「已对过 78 页；还没对过 1 页」，剩的 `dyntra-lb` 只有 main 有，属正常。每页的真实差异进了各自的差异表；**全库级的几条结论最该先知道**：那条共享请求的全部设定在 v0.26 上一个没变；v0.26 的 `AscendConfig` 仍是逐键 `.get()`，写错或已删的键静默忽略，main 才报错；默认调度器是被 patch 换掉的 `BalanceScheduler`，v0.26 外面再套一层 `KVDeliveryScheduler`；`vllm_version_is` 调用处 49 → 10；KV 池 key 三个版本互不通用；PCP 在 v0.26 的 model runner v1 上整个被摘掉。
 - **新写 25 页特性页，全部三版本写法**：先查这个特性在三个版本上各存不存在 → `## 一句话` 后第一段写明存在范围 → 主叙述以「它存在的最早那个发布分支」为准、正文只写一遍 → 只列有差异的行与有差异的版本 → `verified` 只填真逐条对过的；规则的唯一真相源是 `wiki/HANDBOOK.md`「页面格式 › 版本」与「教学页的推荐写法」。这 25 页：调度 9、并行 / EP 6、PD 与 KV 传输 3、图模式与算子 3、量化 / LoRA / 结构化输出 / AI QoS 4（`ai-qos` 其实是 UB 交换机上的流量 QoS，归硬件 / KV 传输那章，不是调度）。页名现查 `git log --diff-filter=A --name-only 74b053a^..HEAD -- wiki/concepts`。**官方特性主线到此只剩 LMCache、UCM 两篇第三方存储部署指南没写。**
 - **旧页被新页查出来的更正**（`551a0b7`、`d18d319`）：默认调度器类被 patch 换掉、那条请求默认走异步调度（`step_with_batch_queue`）、`kv-cache-quantization` 的 `--quantization ascend` 其实可不写、细粒度 TP 的细节与检索词从 TP 总览页挪到 `fine-grained-tp` 专页、两页卸载类页面的主叙述改钉到发布分支。
 - **顺手修的两个脚本问题**（`13a83ef`）：`wiki:lineage:apply` 把页面标题当参数名，标题写成「中文名（参数名）」时整批失败——现在取括号里的参数名，取不到就跳过该页；参数页「版本谱系」表改成逐个发布分支列出（v0.13 … v0.28 + main）。
 - **主仓有了项目地图**：`infra-view-new/PROJECT-MAP.md`（草稿，a–h 五段结构已由用户定，章号待模型计算层定下来后统一编；**特性段以官方文档点出的全集为准**，不以知识库现有页为准）与 PLAN.md §1.3「章节与知识库的关系」——两处**已提交**（主仓 `0aebe95`）。
-- **下午做的三件（都已提交）**：
-  - **agent 只读入口**（`d9f4fe5`、`bfacba1`）——`pnpm wiki:find <词> [--limit N] | --page <id> | --neighbors <id> [--json]`，加只读 MCP server `pnpm wiki:mcp`（stdio 上手写的换行分隔 JSON-RPC，没加依赖；三个工具 `wiki_search` / `wiki_get_page` / `wiki_neighbors`；接法 `claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`）。两者共用 `scripts/wiki/agent-access.ts`，检索只走 `src/content/wiki/retrieve.ts` 这一个入口，**命中规则与站内问答一致，不另起一套**。使用说明两份：任何 agent 看 [wiki/AGENTS-GUIDE.md](wiki/AGENTS-GUIDE.md)，Claude Code 另有项目级 skill `.claude/skills/llm-wiki/SKILL.md`；根 `CLAUDE.md` / `AGENTS.md` 各加了同样一行指过去（两份仍逐字相同）。
-  - **站外死链真的请求了一遍**（`a64bce1`）——`pnpm wiki:urls`：404 / 410 才判死链，403 / 5xx / 超时只列「这次没验证到」（否则夜里断一次网就是几十条假警报）。共享配置 `checkUrls: true`，每晚巡检自动跑，死链以规则名 `dead-url` 写进 `wiki/warnings/patrol-<日期>.md`。第一次跑 95 条里 1 条死链（官方文档站把 `patch.html` 挪到了 `Design_Documents/` 下），已修。
-  - **同步配置的本机覆盖**（`7781837`）——`wiki/sync.config.local.json`（gitignore）盖在共享配置上，过同一个严格 schema；共享配置里不再写死解释器路径，不写 `python` 时退回环境变量 `WIKI_PYTHON`、再退回 PATH 上的 `python`（上游源码要 3.12+ 才解析得了）。这是为以后开源做的：别人克隆下来不会撞上这台机器的私有路径。
+- **下午做的三件（都已提交，细节见状态文档 §4、§5）**：**agent 只读入口**（`d9f4fe5`、`bfacba1`）`pnpm wiki:find` + 只读 MCP `pnpm wiki:mcp`，与站内问答共用 `src/content/wiki/retrieve.ts` 这一个检索入口，说明在 [wiki/AGENTS-GUIDE.md](wiki/AGENTS-GUIDE.md) 与 `.claude/skills/llm-wiki/SKILL.md`；**站外死链真发请求**（`a64bce1`）`pnpm wiki:urls`，404 / 410 才算死链，已挂进每晚巡检，首跑 95 条里修了 1 条；**同步配置的本机覆盖**（`7781837`）`wiki/sync.config.local.json`（gitignore）盖在共享配置上，共享配置不再写死解释器路径，不写 `python` 时退回 `WIKI_PYTHON`、再退回 PATH 上的 `python`。
+- **参数扫描器的一次修复与一次清理**（`a306f29`）：原规则是「类名以 `Config` 结尾 = 确定的 `additional_config` 键」，而夜间任务对「确定」的条目**直接生成正式页**，于是内部 dataclass `WeightSwitchConfig` 的 `group` / `rank` / `world_size` / `shard_axis` 和 xlite 里一个 TypedDict 的 `mask` 被生成了 5 个正式参数页。现在的判据：扫描范围里有 `AscendConfig` 时，只有「定义在它所在的文件里」或「被那个文件点名用到」的类才算确定，其余降为 suspect、不自动出页（main 上 149 个字段里 111 个仍确定，全在 `ascend_config.py`）。5 个误报页已删，知识库现在 90 页（现查 `src/content/wiki/registry.json`）。
+- **扫描器还剩的三类不准（未修，记为欠账）**：
+  1. **子配置类不是靠类型注解字段挂到 `AscendConfig` 上**时，它的字段被推成顶层键。main 上是 `SparseKVOffloadConfig.from_additional_config(..., additional_config.get("sparse_kv_offload_config", {}))` 这种写法——`use_fused_overlap` 的真实路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`，生成区写的却是顶层。
+  2. **不认 `_NON_USER_INPUT_KEYS`**：`kvpp_config` 是工厂注入的，用户写了会被静默剔掉，扫描器却当成用户键。
+  3. **定义在别的配置面上的键**被标成 `additional_config[...]`：`use_layerwise` 其实在 `--kv-transfer-config` 的 `kv_connector_extra_config` 与 `$YR_CONFIG_PATH` 指的 JSON 里。
+
+  这三类目前靠页面正文里的 `[!]` 说明兜着。**①③ 别顺手改**：改它们会动参数的身份键（`json_path`）→ 页面 id 的哈希后缀跟着变 → 现有页变成孤儿、夜间任务重新生成一批，所以要和「参数页 id 迁移」放在一起做。② 可以单独修（从根配置文件里解析出那个集合，命中的降为 suspect）。
+- **补完最后 10 个参数骨架页**（`params/`，`updated: 2026-09-21`）：`kvpp_config`、`size`、`enable_super_kernel`、`use_fused_overlap`、`c8_enable_reshape_optim`、`combine_quant_mode`、`enable_force_eplb`、`enable_pcp_o_proj_weight_sharding`、`sfa_dcp_force_tmajor_restore`、`use_layerwise`。**统一成手册规定的参数页五节 + 生成区**（一句话 / 事实表 / 为什么存在 / 开了的代价 / 版本谱系 / 参数定义（自动生成）），不写教学页才有的「常见误解」——HANDBOOK「整合」那条写得很明白，四篇样板页也都没有这一节。其中值得先知道的三件事：`c8_enable_reshape_optim` 在钉住的 main 快照 `b255ab59` 上**不存在**（上游 09-07 删掉用户键、09-20 又恢复且默认值翻成 `True`，快照正落在中间，官方教程的启动行照抄会起不来）；`enable_force_eplb` 开了**输出就不对**（它是压测夹具，把路由整表换成轮转表，不是优化开关）；`combine_quant_mode` 配上 `enable_fused_mc2` 反而失效（融合路径不走 `token_combine`，这个键一次都不会被读）。
 - **本轮收尾的验证**：单元 716 通过、e2e 30 通过、typecheck 通过、lint 保持 14 条基线警告。最后一次全量验证现查这几条：`pnpm test`（要带 `WIKI_PYTHON`）、`pnpm exec playwright test tests/wiki`、`pnpm typecheck`、`pnpm lint`、`pnpm wiki:lint | audit | diagrams --check | stale | versions`。**`wiki:stale` 报一批页引用的文件变了是预期内的**——上游 main 每天在动，库里钉的是 09-19 的 `b255ab59`，重钉是一笔单独的活（§4）。
 
 ## 7. 2026-09-20 这轮做了什么（摘要）

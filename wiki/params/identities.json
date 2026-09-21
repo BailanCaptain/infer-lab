@@ -85,7 +85,7 @@
       "repo": "vllm-ascend",
       "file": "vllm_ascend/ops/weight_prefetch.py",
       "class": "ModuleWeightPrefetchConfig",
-      "json_path": "additional_config[\"prefetch_ratio\"]",
+      "json_path": "ModuleWeightPrefetchConfig[\"prefetch_ratio\"]",
       "pageId": "prefetch-ratio",
       "role": "reference"
     },
@@ -96,6 +96,22 @@
       "json_path": "additional_config[\"layer_sharding\"]",
       "pageId": "layer-sharding",
       "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SparseKVOffloadConfig",
+      "json_path": "additional_config[\"sparse_kv_offload_config\"][\"use_fused_overlap\"]",
+      "pageId": "use-fused-overlap-75a180fff6ab",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py",
+      "class": "YuanrongConfig",
+      "json_path": "YuanrongConfig[\"use_layerwise\"]",
+      "pageId": "use-layerwise-b475778cd352",
+      "role": "definition"
     }
   ]
 }

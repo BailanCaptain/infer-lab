@@ -48,12 +48,61 @@ def scan(files):
                         if len(candidates) == 1:
                             parents.setdefault(candidates[0], []).append(((path, name), field.target.id))
 
+    # A sub-config can also be attached without its class appearing in the annotation: the field is
+    # typed `Any` (forward reference) and the factory builds it and passes it by keyword, e.g.
+    #   sparse_kv = SparseKVOffloadConfig.from_additional_config(...)
+    #   AscendConfig(sparse_kv_offload_config=sparse_kv, ...)
+    # Follow that inside the root file so the fields land under the right key, not at top level.
+    for path in root_files:
+        built = {}
+        for node in ast.walk(trees[path]):
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                call = node.value
+                if isinstance(call, ast.Call):
+                    func = call.func.value if isinstance(call.func, ast.Attribute) else call.func
+                    # a classmethod of the root itself returns a plain value, not a sub-config
+                    if isinstance(func, ast.Name) and func.id in names and func.id != ROOT_CONFIG:
+                        built[node.targets[0].id] = func.id
+        for node in ast.walk(trees[path]):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == ROOT_CONFIG:
+                for kw in node.keywords:
+                    target = built.get(kw.value.id) if kw.arg and isinstance(kw.value, ast.Name) else None
+                    candidates = [(p, n) for p, n in classes if n == target]
+                    if (path, target) in classes:
+                        candidates = [(path, target)]
+                    link = ((path, ROOT_CONFIG), kw.arg)
+                    if len(candidates) == 1 and link not in parents.get(candidates[0], []):
+                        parents.setdefault(candidates[0], []).append(link)
+
+    # Keys the factory strips from user input before validation (`_NON_USER_INPUT_KEYS`). Some of
+    # them are still user keys — the factory reads them itself (`additional_config.get("x")`) and
+    # passes the result explicitly. The rest are factory-injected or purely derived: a user who
+    # writes them gets them silently dropped, so they must not be published as parameters.
+    stripped = set()
+    for path in root_files:
+        for node in ast.walk(trees[path]):
+            if (
+                isinstance(node, ast.Assign)
+                and any(isinstance(t, ast.Name) and t.id == "_NON_USER_INPUT_KEYS" for t in node.targets)
+                and isinstance(node.value, (ast.Set, ast.List, ast.Tuple))
+            ):
+                stripped |= {e.value for e in node.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)}
+
+    def user_reads(key):
+        quoted = re.escape(json.dumps(key))
+        return re.search(r"(?:\.get\(\s*|\[\s*)" + quoted, root_text) is not None or re.search(quoted + r"\s+in\s+", root_text) is not None
+
+    non_user = {key for key in stripped if not user_reads(key)}
+
     def class_paths(name, visited=()):
         if name in visited:
             return ["additional_config"]
         ps = parents.get(name, [])
         if not ps:
-            return ["additional_config"]
+            # A class the root config cannot reach does not live under additional_config (it may be
+            # a connector's extra config, a JSON file's schema, or plain internal state). Do not
+            # claim it does: start its path with the class name instead.
+            return ["additional_config"] if reachable(*name) else [name[1]]
         return sorted(set(base + "[" + json.dumps(field) + "]" for parent, field in ps for base in class_paths(parent, visited + (name,))))
 
     rows = []
@@ -82,7 +131,10 @@ def scan(files):
             annotation = ast.unparse(field.annotation)
             value = ast.unparse(field.value) if field.value else "<required>"
             for base in class_paths((path, name)):
-                row = dict(name=label, type=annotation, default=value, **{"class": name}, json_path=base + "[" + json.dumps(label) + "]", file=path, line=field.lineno, comment="\n".join(comments), constraints=list(dict.fromkeys(constraints)), confidence="certain" if certain else "suspect", form="field")
+                json_path = base + "[" + json.dumps(label) + "]"
+                top_key = re.match(r'additional_config\["([^"]+)"\]', json_path)
+                user_facing = certain and not (top_key and top_key.group(1) in non_user)
+                row = dict(name=label, type=annotation, default=value, **{"class": name}, json_path=json_path, file=path, line=field.lineno, comment="\n".join(comments), constraints=list(dict.fromkeys(constraints)), confidence="certain" if user_facing else "suspect", form="field")
                 rows.append(row)
                 if re.search(r"\b(?:dict|Dict)\b", annotation):
                     for key in sorted(set(re.findall(r"\b[a-z][a-z0-9]*_[a-z0-9_]+\b", row["comment"])) - {label}):

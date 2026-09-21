@@ -3,8 +3,8 @@ id: use-layerwise-b475778cd352
 title: use_layerwise
 type: param
 summary: >-
-  KV 池连接器的逐层开关：把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」。它不在 additional_config
-  里，真正的入口是 --kv-transfer-config 的 kv_connector_extra_config；三个版本都有，默认 false。
+  KV 池连接器的逐层开关：把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」。它不在 additional_config 里，真正的入口是
+  --kv-transfer-config 的 kv_connector_extra_config；三个版本都有，默认 false。
 origin: seed
 aliases:
   - 逐层 KV 存取开关
@@ -24,7 +24,9 @@ relations:
     note: 这个键就是那一页讲的「按层搬」的总开关，机制、收益和 buffer 复用在那一页，本页只讲键本身
   - to: kv-pool
     kind: builds-on
-    note: 它是 AscendStoreConnector 的 kv_connector_extra_config 里的一个键，连接器怎么挂上 vLLM KV Connector 接口在那一页
+    note: >-
+      它是 AscendStoreConnector 的 kv_connector_extra_config 里的一个键，连接器怎么挂上 vLLM KV
+      Connector 接口在那一页
 contradicts: []
 sources:
   - >-
@@ -46,8 +48,7 @@ sources:
   - >-
     vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69
   - 'vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L33'
-  - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L1215
+  - 'vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L1215'
   - >-
     vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L113
   - >-
@@ -64,6 +65,8 @@ sources:
     vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69
   - >-
     vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L192
+  - >-
+    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
 rawSources:
   - >-
     raw/sha256-d3d9a827c7c10514c64a59996d439dd3073b7e210488d124f267f418725693c2.md
@@ -163,11 +166,11 @@ main 上还多了一层保护：`validate_mooncake_layerwise_topology` 在连接
 
 | 项 | 静态记录 |
 | --- | --- |
-| 标识 | `additional_config["use_layerwise"]` |
+| 标识 | `YuanrongConfig["use_layerwise"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py:20` [C1] |
-| 版本 | main · b255ab59662d8c665e5534e926f913b1c1179b1c |
+| 定义 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py:20` [C20] |
+| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
 
 字段注释：
 

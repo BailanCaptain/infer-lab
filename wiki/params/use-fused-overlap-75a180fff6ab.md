@@ -3,8 +3,9 @@ id: use-fused-overlap-75a180fff6ab
 title: use_fused_overlap
 type: param
 summary: >-
-  Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config 这个嵌套块里（不是顶层），bool、默认
-  false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬 miss 再算」。只在 main 开发主线上有。
+  Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config
+  这个嵌套块里（不是顶层），bool、默认 false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬
+  miss 再算」。只在 main 开发主线上有。
 aliases:
   - sparse_kv_offload_config.use_fused_overlap
   - 融合重叠 decode
@@ -48,7 +49,8 @@ sources:
     vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1090-L1093
   - >-
     vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L219-L238
-  - 'https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html'
+  - >-
+    https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054'
 rawSources:
   - >-
@@ -139,7 +141,7 @@ rawSources:
 
 | 项 | 静态记录 |
 | --- | --- |
-| 标识 | `additional_config["use_fused_overlap"]` |
+| 标识 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/ascend_config.py:1478` [C2] |

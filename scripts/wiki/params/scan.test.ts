@@ -124,4 +124,73 @@ class WeightSwitchConfig:
     group: "suspect",
     rank: "suspect",
   });
+  // 够不着的类也不再谎称自己挂在 additional_config 下：路径以类名起头
+  expect(rows.find((p) => p.name === "rank")?.json_path).toBe('WeightSwitchConfig["rank"]');
+  expect(rows.find((p) => p.name === "size")?.json_path).toBe('additional_config["size"]');
+});
+
+const MAIN_STYLE_ROOT = `@config
+class AscendConfig:
+    enable_kvpp: bool = False
+    sparse_kv_offload_config: Any = dataclasses.field(kw_only=True)
+    kvpp_config: KVPPConfig = dataclasses.field(default_factory=KVPPConfig, kw_only=True)
+    pd_tp_ratio: int = 1
+
+@config
+class SparseKVOffloadConfig:
+    use_fused_overlap: bool = False
+
+@config
+class KVPPConfig:
+    size: int = 1
+    @classmethod
+    def from_vllm_config(cls, vllm_config):
+        return cls(size=2 if vllm_config.additional_config.get("enable_kvpp") else 1)
+
+def init_ascend_config(vllm_config):
+    additional_config = vllm_config.additional_config
+    sparse_kv = SparseKVOffloadConfig.from_additional_config(
+        vllm_config, additional_config.get("sparse_kv_offload_config", {})
+    )
+    kvpp_config = KVPPConfig.from_vllm_config(vllm_config)
+    dump_config_path = AscendConfig._resolve_dump_config_path(additional_config)
+    _NON_USER_INPUT_KEYS = {
+        "sparse_kv_offload_config",
+        "enable_kvpp",
+        "kvpp_config",
+        "pd_tp_ratio",
+    }
+    kwargs = {k: v for k, v in additional_config.items() if k not in _NON_USER_INPUT_KEYS}
+    return AscendConfig(
+        sparse_kv_offload_config=sparse_kv, kvpp_config=kvpp_config, dump_config_path=dump_config_path, **kwargs
+    )
+`;
+
+it("字段注解写成 Any、靠工厂函数把子配置传进根配置时，子配置的字段仍然挂在那个字段名下面", () => {
+  // 2026-09-21 实遇：main 上 sparse_kv_offload_config 的注解是 Any，use_fused_overlap 被推成了顶层键
+  const rows = scanSources({ "vllm_ascend/ascend_config.py": MAIN_STYLE_ROOT });
+  expect(rows.find((p) => p.name === "use_fused_overlap")?.json_path).toBe(
+    'additional_config["sparse_kv_offload_config"]["use_fused_overlap"]',
+  );
+  // 根配置自己的类方法算出来的值（dump_config_path）不是子配置：不能把整棵树挂到它下面
+  expect(rows.filter((p) => p.json_path.includes('"dump_config_path"]['))).toEqual([]);
+  // 注解已经点名的那条路不受影响，也不会重复出两行
+  expect(rows.filter((p) => p.name === "size").map((p) => p.json_path)).toEqual([
+    'additional_config["kvpp_config"]["size"]',
+  ]);
+});
+
+it("被工厂从用户输入里剔掉、又没有任何一处从用户输入读它的键，不算用户参数；它下面的字段跟着不算", () => {
+  const rows = scanSources({ "vllm_ascend/ascend_config.py": MAIN_STYLE_ROOT }).filter((p) => p.form === "field");
+  const confidence = Object.fromEntries(rows.map((p) => [p.json_path, p.confidence]));
+  expect(confidence).toMatchObject({
+    // 在剔除名单里，但工厂自己从 additional_config 读它：仍是用户键
+    'additional_config["enable_kvpp"]': "certain",
+    'additional_config["sparse_kv_offload_config"]': "certain",
+    'additional_config["sparse_kv_offload_config"]["use_fused_overlap"]': "certain",
+    // 在剔除名单里，且没有任何一处读它：工厂注入 / 纯派生
+    'additional_config["kvpp_config"]': "suspect",
+    'additional_config["kvpp_config"]["size"]': "suspect",
+    'additional_config["pd_tp_ratio"]': "suspect",
+  });
 });

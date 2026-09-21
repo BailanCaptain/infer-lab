@@ -1,6 +1,6 @@
 layout: scene
 id: prepare-inputs-flow
-caption: 第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」
+caption: 第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」（行号按 v0.23 画；v0.26 上是第 890 行起、共 437 行）
 size: [900, 510]
 
 regions:

@@ -255,10 +255,15 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L90-L126",
         "vllm-ascend@2c59ff10:vllm_ascend/envs.py#L21-L113",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L763-L840",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L337-L346"
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L337-L346",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L86",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1039",
+        "vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -275,7 +280,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/ascend-config-system.md",
       "backlinks": [
         {
@@ -372,10 +377,15 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16",
         "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L107-L111"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L107-L111",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/__init__.py#L17-L60",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/worker/__init__.py#L18-L76",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L101-L178",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L58-L83"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -4556,10 +4566,13 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3367-L3383",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523"
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L296-L307",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1799-L1815"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -4576,7 +4589,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/npu-model-runner.md",
       "backlinks": [
         {
@@ -4646,11 +4659,16 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L896",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
-        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332"
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L903-L911"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -4667,7 +4685,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/npu-platform.md",
       "backlinks": [
         {
@@ -4719,10 +4737,13 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L704",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L772-L778",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/worker/__init__.py#L27-L33"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -4744,7 +4765,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/npu-worker-lifecycle.md",
       "backlinks": [
         {
@@ -5635,11 +5656,14 @@
         "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
         "vllm-ascend@b255ab59:setup.py#L518-L529",
-        "https://docs.vllm.ai/projects/ascend/en/latest/index.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/index.html",
+        "vllm-ascend@2ed6cbba:setup.py#L543-L551",
+        "vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5656,7 +5680,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/platform-plugin-registration.md",
       "backlinks": [
         {
@@ -5938,10 +5962,15 @@
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196",
         "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283",
-        "vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164"
+        "vllm@0fc695fc:vllm/v1/worker/block_table.py#L141-L164",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L1-L50",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L151-L190",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L408-L411",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L466-L481"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5958,7 +5987,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/prepare-inputs-flow.md",
       "backlinks": [
         {
@@ -6533,9 +6562,7 @@
         "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
         "https://arxiv.org/abs/2104.09864"
       ],
-      "verified": [
-        "releases/v0.26.0rc"
-      ],
+      "verified": [],
       "evidence": "C",
       "relations": [],
       "related": [],
@@ -7252,11 +7279,14 @@
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567",
         "vllm-ascend@2c59ff10:docs/source/index.md#L24-L26",
         "vllm-ascend@b255ab59:setup.py#L518-L529",
-        "https://docs.vllm.ai/projects/ascend/en/latest/index.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/index.html",
+        "vllm-ascend@2ed6cbba:setup.py#L543-L551",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -7278,7 +7308,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-ascend-overview.md",
       "backlinks": [
         {
@@ -7293,7 +7323,7 @@
       "title": "vllm_ascend 目录地图",
       "type": "concept",
       "origin": "seed",
-      "summary": "23 个子目录、442 个 .py、130661 行。按职责分成六组，主干只有 worker、attention、ops 三个。",
+      "summary": "23 个子目录、442 个 .py、130661 行（v0.26 上 24 / 500 / 150827）。按职责分成六组，主干只有 worker、attention、ops 三个。",
       "aliases": [
         "目录结构",
         "代码结构",
@@ -7311,11 +7341,13 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269",
         "vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33",
-        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98"
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "D",
       "relations": [
@@ -7332,7 +7364,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-ascend-repo-map.md",
       "backlinks": [
         {
@@ -7507,7 +7539,7 @@
       "title": "Platform：上游留给硬件的那张问卷",
       "type": "concept",
       "origin": "seed",
-      "summary": "上游把「凡是跟硬件有关的事」收成一个 Platform 类，78 个口子，`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。",
+      "summary": "上游把「凡是跟硬件有关的事」收成一个 Platform 类，v0.23 上 78 个口子、`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。",
       "aliases": [
         "Platform",
         "current_platform",
@@ -7530,7 +7562,8 @@
         "vllm@0fc695fc:vllm/platforms/__init__.py#L233-L252",
         "vllm@0fc695fc:vllm/config/vllm.py#L1330-L1338",
         "vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335",
-        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650"
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650",
+        "vllm@568afb3a:vllm/platforms/interface.py#L134-L169"
       ],
       "verified": [
         "releases/v0.26.0rc"
@@ -7545,7 +7578,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/vllm-platform-interface.md",
       "backlinks": []
     },

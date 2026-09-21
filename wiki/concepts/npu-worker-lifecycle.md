@@ -16,7 +16,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L772-L778
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/worker/__init__.py#L27-L33
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: kv-cache-memory-profiling
@@ -29,7 +31,7 @@ relations:
     kind: builds-on
     note: 那条请求能不能在第 92 步要到第二块，取决于启动第四步算出的那个预算
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -73,8 +75,17 @@ file: worker-lifecycle
 |---|---|
 | 先分配 KV Cache 再 profile | 预算是 profile 的产物，第五步的 `kv_cache_config` 依赖第四步的字节数 [C5] |
 | 先建 model runner 再选卡 | runner 的构造函数要 `self.device`，注释明说 [C3] |
-| 先装权重再打 patch | 权重加载路径本身被 `patch_process_weights_after_loading`、`patch_weight_utils` 改过，patch 必须更早 [C9] |
+| 先装权重再打 patch | 权重加载路径本身被 `patch_process_weights_after_loading`、`patch_weight_utils` 改过（后者 v0.26 上已删），patch 必须更早 [C9] |
 | 先捕获图再装权重 | 捕获要跑真实 forward，没有权重跑不了 [C7] |
+
+## v0.23 与 v0.26 的差异
+
+六步的划分、顺序和每一步的产物在两个版本上一样，差在第六步里多了一段、以及第三步依赖的那个 patch 少了一个：
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| 第六步 warmup 之后 | 跑完 `_dummy_run` 就去 `capture_model()` | 中间无条件插一次 `kernel_warmup(self)`，`enforce_eager` 也拦不住 [C10] | 启动慢在第六步时，v0.26 上还要多认一段算子预热，它不在 `compile_sizes` 里 |
+| 改权重加载路径的 worker patch | `patch_process_weights_after_loading` 与 `patch_weight_utils` 两个 | 只剩 `patch_process_weights_after_loading`，`patch_weight_utils` 整个文件已删 [C11] | 「patch 必须早于装权重」这条理由还在；照 v0.23 的印象去 v0.26 上找 `patch_weight_utils` 会扑空 |
 
 ## 排查时怎么用
 
@@ -82,11 +93,11 @@ file: worker-lifecycle
 
 - 挂在第一步 → patch 或算子注册问题，去 `patch/` 与 `ops/`；
 - 挂在第二步 → 设备可见性（`ASCEND_RT_VISIBLE_DEVICES`）或 workspace；
-- 挂在第四步且提示可用显存反而变大 → 那条断言被触发了，profile 没有正常占住显存 [C5]；
+- 挂在第四步且提示可用显存反而变大 → 那条断言被触发了，profile 没有正常占住显存；
 - 挂在第六步 → 图捕获，先试 `enforce_eager` 把捕图那段跳过来确认范围 [C7]。
 
 ## 常见误解
 
-- **「`init_device` 只是选卡」**——model runner 也是在这里造的 [C3]；在它之前 `self.model_runner` 还不存在 [D]。
+- **「`init_device` 只是选卡」**——model runner 也是在这里造的；在它之前 `self.model_runner` 还不存在 [D]。
 - **「KV Cache 大小由启动参数直接决定」**——参数只给上限意图，实际字节数是第四步减出来的 [C5]。配了 `kv_cache_memory_bytes` 会走快路径：跳过整段测算、直接把这个值返回，但 `profile_run()` 照跑，源码注释写明那是为了编译模型 [C4]。
 - **「sleep mode 只影响运行时」**——它在第三步和第五步分别决定权重与 KV Cache 进哪个内存池 [C6][C8]，是启动期就分叉的。

@@ -18,7 +18,11 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/envs.py#L21-L113
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L763-L840
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L337-L346
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L86
+  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1039
+  - vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: npu-worker-lifecycle
@@ -28,7 +32,7 @@ relations:
     kind: builds-on
     note: 那条请求没配任何昇腾开关，走的全是这套默认值
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -69,7 +73,7 @@ self.xlite_graph_config = XliteGraphConfig(xlite_graph_config, vllm_config)
 
 ## 谁最后说了算
 
-`additional_config` 的值不是终局。`NPUPlatform.check_and_update_config` 在启动时会跑完四个校验再初始化 AscendConfig [C7]，其中 `_validate_layer_sharding_config` 这类会直接抛 `ValueError`、拦掉不合法的组合 [C11]。所以排查「我配了但没生效」时，顺序应该是：先确认键名在 `ascend_config.py` 里存在，再看 `check_and_update_config` 有没有把它改掉或拦掉 [A]。校验族的清单见 [NPUPlatform](npu-platform.md)。
+`additional_config` 的值不是终局。`NPUPlatform.check_and_update_config` 在启动时会跑完四个校验再初始化 AscendConfig [C7]，其中 `_validate_layer_sharding_config` 这类会直接抛 `ValueError`、拦掉不合法的组合 [C11]。v0.26 分支上这里只剩两个校验，`_validate_layer_sharding_config` 连同 `layer_sharding` 这个键一起没了 [C15]。所以排查「我配了但没生效」时，顺序应该是：先确认键名在 `ascend_config.py` 里存在，再看 `check_and_update_config` 有没有把它改掉或拦掉 [A]。校验族的清单见 [NPUPlatform](npu-platform.md)。
 
 ## 环境变量是另一条路
 
@@ -77,8 +81,18 @@ self.xlite_graph_config = XliteGraphConfig(xlite_graph_config, vllm_config)
 
 这些**不进 `AscendConfig`**，代码里是直接读 `envs_ascend.XXX`。判断一个开关该从哪儿配：名字带 `VLLM_ASCEND_` 前缀或全大写的去 `envs.py` 找，小写下划线的键名去 `ascend_config.py` 找 [A]。
 
+## v0.26 上键挪了位置，但解法还是同一套
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| `AscendConfig.__init__` 的写法 | 逐键 `.get()` 拿 dict，再交给子配置类 | 一字不差还是这一套，没有换成 pydantic [C12] | [!] main 开发主线上这块已经迁到 pydantic（`extra="forbid"`）；照 main 写的说明去 v0.26 上找严格校验会扑空 |
+| `__init__` 直接造的子配置类 | 8 个，含 `WeightPrefetchConfig` 与 `ProfilingChunkConfig` | 还是 8 个，但 `WeightPrefetchConfig` 已删、`ProfilingChunkConfig` 挪进 `scheduler_config` 下，换上 `SchedulerConfig` 与 `SparseKVOffloadConfig` [C12] | 照 v0.23 配 `weight_prefetch_config` 在 v0.26 上不报错也不生效 |
+| 调度相关的键放哪一层 | 只有顶层 | 推荐嵌在 `scheduler_config` 下；顶层仍然认，但打一条 deprecated 警告，两处都写时以嵌套的为准 [C13] | 受影响的是这五个键：`enable_balance_scheduling`、`recompute_scheduler_enable`、`short_request_first_config`、`profiling_chunk_config`、`batch_job_sched_config` |
+| 不认识的键怎么处理 | 静默忽略 | 一样静默忽略：全程 `.get()`，接 `**` 的那两个子配置类也都带 `**kwargs` 兜底 [D] | 两个发布分支上拼错键名都不会报错，只会安静走默认——所以排查时先确认键名真的存在 |
+| `env_variables` 条目数 | 21 个 | 20 个：删了 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 与 `VLLM_ASCEND_FLASHCOMM2_PARALLEL_SIZE`，新增 `VLLM_ASCEND_MLA_FIA_SPLIT` [C14] | 上一节举的 matmul-allreduce 那个开关是 v0.23 的例子，在 v0.26 上设它没有任何作用 |
+
 ## 常见误解
 
-- **「`--additional-config` 是上游 vLLM 的功能，所以文档在 vLLM 那边」**——上游只提供这个口子并原样保存，键的含义全部由 `AscendConfig` 定义 [C1]。查昇腾的键要看昇腾的源码或昇腾的文档。
-- **「拿不到配置是因为 JSON 写错了」**——`get_ascend_config()` 抛的那条 `RuntimeError` 说的是**时机**不对，不是内容不对 [C6]。
-- **「同一进程里配置只解一次」**——`additional_config` 里带 `refresh` 时会重建；绑定的 `vllm_config` 换了对象也会重建 [C5]。
+- **「`--additional-config` 是上游 vLLM 的功能，所以文档在 vLLM 那边」**——上游只提供这个口子并原样保存，键的含义全部由 `AscendConfig` 定义。查昇腾的键要看昇腾的源码或昇腾的文档。
+- **「拿不到配置是因为 JSON 写错了」**——`get_ascend_config()` 抛的那条 `RuntimeError` 说的是**时机**不对，不是内容不对。
+- **「同一进程里配置只解一次」**——`additional_config` 里带 `refresh` 时会重建；绑定的 `vllm_config` 换了对象也会重建。

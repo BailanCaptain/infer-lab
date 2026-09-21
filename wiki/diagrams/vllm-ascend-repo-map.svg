@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="条的长度就是真实行数（v0.23 维护分支，vllm_ascend/ 共 442 个文件、130661 行）">
-  <title>条的长度就是真实行数（v0.23 维护分支，vllm_ascend/ 共 442 个文件、130661 行）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="条的长度就是真实行数（按 v0.23 维护分支画，vllm_ascend/ 共 442 个文件、130661 行；v0.26 分支上是 500 个文件、150827 行）">
+  <title>条的长度就是真实行数（按 v0.23 维护分支画，vllm_ascend/ 共 442 个文件、130661 行；v0.26 分支上是 500 个文件、150827 行）</title>
   <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="860" height="372" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="36" y="54" width="197.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">按行数排一遍就知道该读哪里</text>

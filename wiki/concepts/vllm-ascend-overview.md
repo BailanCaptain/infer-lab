@@ -20,7 +20,9 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/index.md#L24-L26
   - vllm-ascend@b255ab59:setup.py#L518-L529
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:setup.py#L543-L551
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: who-owns-what
@@ -33,7 +35,7 @@ relations:
     kind: builds-on
     note: 那条请求碰到的每一个昇腾对象，都是顺着这五个入口之一进来的
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -69,17 +71,18 @@ file: ascend-vs-upstream
 
 上游留不出口子的地方，插件就只能改上游对象本身——那就是 `vllm_ascend/patch/` 存在的全部理由，见 [Patch 机制](ascend-patch-system.md)。所以读这个仓库时有个基本判断：**一段昇腾行为，要么在某个上游基类的子类里，要么在 patch 目录里，不会凭空出现。**
 
-## 两个分支的入口数不一样
+## 三个分支的入口数不一样
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| entry point 组数 | 2 组 / 5 个 [C1] | 3 组 / 6 个 [C12] | main 多一组 `ms_service_metric.providers`，指向 `vllm_ascend.observability:get_metric_provider` |
-| `NPUPlatform` 所在行 | `platform.py` 第 128 行 [C5] | 第 80 行 [D] | 同一个类，行号会漂；引用必须带 commit，不能只写行号 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| entry point 组数 | 2 组 / 5 个 [C1] | 2 组 / 5 个 [C14] | 3 组 / 6 个 [C12] | 多出来的那组只有 main 有：`ms_service_metric.providers` → `vllm_ascend.observability:get_metric_provider` |
+| `NPUPlatform` 所在行 | `platform.py` 第 128 行 [C5] | 第 127 行 [C15] | 第 80 行 [D] | 同一个类，三边行号各不相同；引用必须带 commit，不能只写行号 |
+| `patch/` 下的 `patch_*.py` | 59 个 | 64 个 [D] | 59 个 | v0.26 比另外两边多五个补丁文件，照文件名清点 patch 目录的笔记换分支就对不上 |
 
-这张表只列入口层面的差异。两个分支的目录层面差异在 [vllm_ascend 目录地图](vllm-ascend-repo-map.md)。
+这张表只列入口层面的差异。分支之间的目录层面差异在 [vllm_ascend 目录地图](vllm-ascend-repo-map.md)。
 
 ## 常见误解
 
 - **「它是 vLLM 的一个 fork」**——不是。仓库里没有 `vllm/` 目录，装完之后 `vllm` 和 `vllm_ascend` 是两个独立包；耦合点只有 entry point 和 patch 两处。
-- **「插件模式意味着不碰上游代码」**——只对了一半。上游留了口子的地方（Platform、Worker、Runner、AttentionBackend、Communicator）确实是继承；留不出口子的地方是运行时替换上游的类与函数，即 patch。v0.23 分支上光 `patch/` 下就有 59 个 patch 文件 [D]。
-- **「`register()` 返回的是 `NPUPlatform` 类」**——它返回的是那个类的**路径字符串**，导入动作在 vLLM 一侧 [C3]。这不是风格问题：字符串让 vLLM 能在真正需要时才导入，避免在还没确认硬件的进程里就把 `torch_npu` 拉进来。
+- **「插件模式意味着不碰上游代码」**——只对了一半。上游留了口子的地方（Platform、Worker、Runner、AttentionBackend、Communicator）确实是继承；留不出口子的地方是运行时替换上游的类与函数，即 patch。光 `patch/` 一个目录下就有五六十个补丁文件，各分支的数目见上表。
+- **「`register()` 返回的是 `NPUPlatform` 类」**——它返回的是那个类的**路径字符串**，导入动作在 vLLM 一侧。这不是风格问题：字符串让 vLLM 能在真正需要时才导入，避免在还没确认硬件的进程里就把 `torch_npu` 拉进来。

@@ -17,7 +17,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4915
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L296-L307
+  - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1799-L1815
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: prepare-inputs-flow
@@ -27,13 +29,13 @@ relations:
     kind: builds-on
     note: 那条请求的一步只走过这个文件里的四段，其余都是启动期或另一条路径
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
 ## 一句话
 
-`vllm_ascend/worker/model_runner_v1.py` 在 v0.23 分支上有 5251 行 [D]，是全仓最大的单文件。它只定义一个主类 `NPUModelRunner`（另外两个 `GraphCaptureContext`、`ExecuteModelState` 只是装数据的小结构 [C1]），而且**继承的是上游的 `GPUModelRunner`** [C2]——这条继承关系是读这个文件的前提：文件里没有的方法不是缺失，是沿用上游 [D]。
+`vllm_ascend/worker/model_runner_v1.py` 在 v0.23 分支上有 5251 行、v0.26 分支上 5314 行 [D]，是全仓最大的单文件。它只定义一个主类 `NPUModelRunner`（另外两个 `GraphCaptureContext`、`ExecuteModelState` 只是装数据的小结构 [C1]），而且**继承的是上游的 `GPUModelRunner`** [C2]——这条继承关系是读这个文件的前提：文件里没有的方法不是缺失，是沿用上游 [D]。
 
 ```wiki-diagram
 file: model-runner-layout
@@ -58,25 +60,36 @@ file: model-runner-layout
 
 上图是按行号切的十个区。实际使用时不要从第 1 行往下读，而是先决定你要改什么行为，再直接跳进对应的区 [A]：
 
-| 你想做的事 | 进哪个方法 |
-|---|---|
-| 看调度结果怎么合进本卡状态 | `_update_states`（第 729 行）[C3] |
-| 看张量怎么拼出来 | `_prepare_inputs`（第 862 行）[C4] |
-| 改一步执行的主流程 | `execute_model`（第 1950 行）[C5] |
-| 改采样与输出 | `sample_tokens`（第 2404 行）[C6] |
-| 改 profile 或图捕获用的假批 | `_dummy_run`（第 3367 行）[C7] |
-| 改 KV 张量怎么分配 | `initialize_kv_cache` / `initialize_kv_cache_tensors`（第 3843 行起）[C8] |
-| 改每层每块的 KV 形状声明 | `get_kv_cache_spec`（第 4909 行）[C9] |
+| 你想做的事 | 进哪个方法 | v0.23 行号 | v0.26 行号 |
+|---|---|---|---|
+| 看调度结果怎么合进本卡状态 | `_update_states` | 729 [C3] | 823 |
+| 看张量怎么拼出来 | `_prepare_inputs` | 862 [C4] | 890 |
+| 改一步执行的主流程 | `execute_model` | 1950 [C5] | 1799 |
+| 改采样与输出 | `sample_tokens` | 2404 [C6] | 2311 |
+| 改 profile 或图捕获用的假批 | `_dummy_run` | 3367 [C7] | 3374 |
+| 改 KV 张量怎么分配 | `initialize_kv_cache` / `initialize_kv_cache_tensors` | 3843 起 [C8] | 3901 起 |
+| 改每层每块的 KV 形状声明 | `get_kv_cache_spec` | 4909 [C9] | 4954 |
+
+十个区的划分、方法名和进入方式两个版本一样，只有行号漂了；右列是在 `2ed6cbba` 上重新数的 [D]，`execute_model` 反而往前挪了 151 行 [C12]。
 
 `_prepare_inputs` 这个方法本身从 862 行排到 1375 行；图上那一区一直到 1663 行，后面接的是几个同样为准备输入服务的辅助方法，合起来占全文件近六分之一 [D]。它是这个文件里最值得先读的一段，内容单独成页：[prepare_inputs 数据流](prepare-inputs-flow.md)。
 
 ## 构造函数里有两条能省很多时间的注释
 
-`__init__` 开头就改了传进来的配置：把 `prefill_context_parallel_size * 2 * max_num_seqs` 加到 `scheduler_config.max_num_batched_tokens` 上，注释标了 TODO 并给出上游 PR 链接，说明这是为扩几个 buffer 而做的手工 pad，等那个 PR 合了要撤掉 [C2]。
+`__init__` 开头就改了传进来的配置：把 `prefill_context_parallel_size * 2 * max_num_seqs` 加到 `scheduler_config.max_num_batched_tokens` 上，注释标了 TODO 并给出上游 PR 链接，说明这是为扩几个 buffer 而做的手工 pad，等那个 PR 合了要撤掉 [C2]——v0.26 上它已经撤掉了，见下面的差异表。
 
 紧接着还有一条：某些字段**必须在 `super().__init__()` 之前设好**，因为父类的初始化可能调到 `_allocate_kv_cache_tensors`，而那个方法会访问 `self.use_compress` [C2]。
 
 这两条注释说明了读这类子类文件的通用方法：**先看它在 `super().__init__()` 前后各做了什么** [A]。前面的是父类会依赖的东西，后面的是覆盖与补充 [D]。
+
+## v0.23 与 v0.26 的差异
+
+继承关系、区的划分、每个入口方法的名字在 v0.26 上都没变，差的是构造函数开头那段 pad 和整套行号：
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| `__init__` 开头那段手工 pad | 先把 `prefill_context_parallel_size * 2 * max_num_seqs` 加到 `max_num_batched_tokens`，`super().__init__()` 之后再减回去 | 这段 pad 和那条 TODO 注释都没有了，`__init__` 第一件事就是设 `use_compress` [C11] | 上面说的「两条注释」在 v0.26 上只剩第二条；父类初始化期间的批 token 上限不再被临时顶高 [!] |
+| 文件行数与入口行号 | 5251 行 | 5314 行，七个入口全部漂位 | 照这页的行号跳进去要先看清版本，引用一律写 `repo@commit:path#L起-L止` |
 
 ## `execute_model` 开头就有一段跨进程约定
 

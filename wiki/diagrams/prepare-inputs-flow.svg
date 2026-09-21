@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」">
-  <title>第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 510" width="900" height="510" role="img" aria-label="第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」（行号按 v0.23 画；v0.26 上是第 890 行起、共 437 行）">
+  <title>第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」（行号按 v0.23 画；v0.26 上是第 890 行起、共 437 行）</title>
   <rect width="900" height="510" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="300" height="190" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="54" width="103" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游交过来的</text>

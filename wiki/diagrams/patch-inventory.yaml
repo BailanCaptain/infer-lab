@@ -1,6 +1,6 @@
 layout: scene
 id: patch-inventory
-caption: 59 个 patch 文件，格子数就是真实文件数
+caption: 59 个 patch 文件，格子数就是真实文件数（按 v0.23 画；v0.26 分支上是 64 个）
 size: [900, 430]
 
 regions:

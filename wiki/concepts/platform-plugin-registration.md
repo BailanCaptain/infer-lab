@@ -14,7 +14,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@b255ab59:setup.py#L518-L529
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:setup.py#L543-L551
+  - vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: engine-processes
@@ -24,13 +26,13 @@ relations:
     kind: builds-on
     note: 这五个口在那条请求发出之前就已经用完了，是它能被昇腾接住的前提
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
 ## 一句话
 
-`setup.py` 里的 `entry_points` 是昇腾接进 vLLM 的唯一入口。v0.23 维护分支上声明了两组、共五个 [C1]；vLLM 启动时用 Python 的 entry point 机制扫出这五个函数并逐个调用，此外不需要任何注册代码。
+`setup.py` 里的 `entry_points` 是昇腾接进 vLLM 的唯一入口。v0.23 与 v0.26 两个发布分支上都声明了两组、共五个 [C1][C8]；vLLM 启动时用 Python 的 entry point 机制扫出这五个函数并逐个调用，此外不需要任何注册代码。
 
 ```wiki-diagram
 file: plugin-registration
@@ -59,17 +61,18 @@ file: plugin-registration
 | `register_service_profiling` | 服务级 profiling 的配置生成 |
 | `register_model` | 昇腾自己的模型实现 |
 
-四个里有三个的第一句都是 `_ensure_global_patch()`，只有 `register_model` 不是 [C4]。这不是疏漏 [D]：前三者会碰到调度器与引擎侧的对象，而那些对象所在的进程走不到平台层打 patch 的那条路；`register_model` 只往模型注册表里加条目，不依赖被改过的上游行为 [D]。
+四个里有三个的第一句都是 `_ensure_global_patch()`，只有 `register_model` 不是 [C4]。这不是疏漏 [D]：前三者会碰到调度器与引擎侧的对象，而那些对象所在的进程走不到平台层打 patch 的那条路；`register_model` 只做模型侧的注册，不依赖被改过的调度器与引擎行为 [D]。
 
 `_ensure_global_patch()` 自己带一个 `_GLOBAL_PATCH_APPLIED` 布尔量做幂等，所以三个函数各调一次也只真正打一遍 [C2]。它的 docstring 直接写明了理由：vLLM 在 engine-core 子进程里加载 general plugin，而 E2E 测试的 conftest hook 在那个进程里不会跑，所以影响调度器与引擎代码的全局 patch 必须也从这些 plugin 入口再打一次 [C2]。
 
-## 两个分支的入口清单
+## 三个分支的入口清单
 
-| 项 | v0.23 维护分支 | main 开发主线 |
-|---|---|---|
-| `vllm.platform_plugins` | `ascend`（1 个）[C1] | 同 [C6] |
-| `vllm.general_plugins` | 4 个 [C1] | 同 [C6] |
-| 第三组 | 没有 [C1] | `ms_service_metric.providers` → `vllm_ascend.observability:get_metric_provider` [C6] |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| `vllm.platform_plugins` | `ascend`（1 个）[C1] | 同 v0.23 | 同 [C6] | 平台入口三边一样，认这一个名字就够 |
+| `vllm.general_plugins` | 4 个 [C1] | 4 个，名字和顺序都没变 [C8] | 同 [C6] | 这四个入口名可以当成稳定契约来用 |
+| 第三组 | 没有 [C1] | 没有 | `ms_service_metric.providers` → `vllm_ascend.observability:get_metric_provider` [C6] | 只有 main 会被指标框架扫到；照 main 写的接入文档搬到两个发布分支上会找不到这个 provider |
+| `register_model` 的函数体 | 只调 `.models.register_model()` | 还要先注册 kimi-k3 的 config，再装一个 HunyuanVL processor 兼容补丁 [C9] | 同 v0.23 | v0.26 上这个入口已经不只是「往注册表加条目」，它会连带 import `transformers` 的 processor 类 |
 
 ## 常见误解
 

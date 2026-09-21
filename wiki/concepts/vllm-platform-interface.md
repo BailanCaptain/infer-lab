@@ -2,7 +2,7 @@
 id: vllm-platform-interface
 title: Platform：上游留给硬件的那张问卷
 type: concept
-summary: 上游把「凡是跟硬件有关的事」收成一个 Platform 类，78 个口子，`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。
+summary: 上游把「凡是跟硬件有关的事」收成一个 Platform 类，v0.23 上 78 个口子、`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。
 aliases: [Platform, current_platform, 平台抽象, platform_plugins, 硬件插件接口, OOT]
 chapters: ["10"]
 order: 70
@@ -16,6 +16,7 @@ sources:
   - vllm@0fc695fc:vllm/config/vllm.py#L1330-L1338
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335
   - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
+  - vllm@568afb3a:vllm/platforms/interface.py#L134-L169
 verified: ["releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -23,13 +24,13 @@ relations:
     kind: builds-on
     note: 这些口子分散在那三个进程的启动路径上，哪一层在哪个进程写在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
 ## 一句话
 
-上游把所有「答案取决于硬件」的问题收进一个类：`Platform`。它有 **78 个 `def`**，上游 `vllm/` 包里 `current_platform.` 出现 **873 处** [D]。所谓「vLLM 支持一种新硬件」，具体就是有人把这张问卷答完了。
+上游把所有「答案取决于硬件」的问题收进一个类：`Platform`。v0.23 维护分支配套的 vLLM 上它有 **78 个 `def`**，`vllm/` 包里 `current_platform.` 出现 **873 处**；到 v0.26 配套的 vLLM 上是 82 个和 1069 处 [D]。所谓「vLLM 支持一种新硬件」，具体就是有人把这张问卷答完了。
 
 ```wiki-diagram
 file: platform-hooks
@@ -77,9 +78,18 @@ file: platform-hooks
 
 所以在一台既插了昇腾卡又插了 N 卡的机器上，只要 `vllm_ascend` 装着并且能激活，vLLM 就会走昇腾这条路。**这不是 bug，是明写在分支顺序里的优先级。**
 
+## 这张问卷还在变长
+
+| 项 | vLLM v0.23.0 | vLLM v0.26.0 | 意味着什么 |
+|---|---|---|---|
+| `Platform` 类体里直接定义的 `def` | 78 个 | 82 个 [D] | 半年多出四道题。插件跟着上游升版本时，要重新过一遍自己覆盖了哪些、基类默认实现又换了哪些 |
+| `vllm/` 包里带 `current_platform.` 的行 | 873 行、311 个文件 | 1069 行、362 个文件 [D] | 涨了两成多。平台抽象还在往上游各处渗透，不是一个已经收敛的接口 |
+
+变长的全是方法：类体顶部那几道填空题（`dispatch_key`、`device_control_env_var`、`simple_compile_backend`、`dist_backend`）两个版本逐字一样 [C10]。所以昇腾那几行属性不用动，要盯的是基类新加的方法。
+
 ## 常见误解
 
-- **「Platform 是个空接口，实际逻辑都在硬件插件里」**——它不空。78 个 `def` 里大部分有可用的默认实现，插件只覆盖要改的那些 [C1]。
-- **「插件只在启动时起作用」**——启动时答题，但答案影响运行时的每一步；`current_platform.` 的 873 处调用散布在 `vllm/` 包的 311 个文件里 [D]。
+- **「Platform 是个空接口，实际逻辑都在硬件插件里」**——它不空。那七八十个 `def` 里大部分有可用的默认实现，插件只覆盖要改的那些 [C1]。
+- **「插件只在启动时起作用」**——启动时答题，但答案影响运行时的每一步；那八百多处 `current_platform.` 调用散布在 `vllm/` 包的三百多个文件里，数目见上表。
 - **「`get_attn_backend_cls` 返回一个类」**——返回的是类路径字符串，由上游自己 import [C4]。这一层间接是插件能跨进程工作的前提 [A]。
 - **「检测到 CUDA 就一定走 CUDA」**——不一定。OOT 插件的分支排在内置平台前面 [C6]。

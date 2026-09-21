@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 464" width="900" height="464" role="img" aria-label="上游在启动过程里向 Platform 问问题的那几个时刻">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-label="上游在启动过程里向 Platform 问问题的那几个时刻">
   <title>上游在启动过程里向 Platform 问问题的那几个时刻</title>
-  <rect width="900" height="464" fill="var(--color-surface, #fbfaf6)"/>
+  <rect width="900" height="486" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="40" width="860" height="372" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="54" width="114.9" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vLLM 启动过程</text>
   <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个站点都是上游主动来问硬件插件一句。插件能改的，就是这些时刻。</text>
@@ -45,6 +45,7 @@
   <g transform="translate(808 179) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
   <text x="820" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">起 Worker 后设卡</text>
   <rect x="773.5" y="120.5" width="93" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="820" y="138" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">set_device</text>
-  <text x="20" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)">Platform 基类里一共 78 个 def，上游 vllm/ 包里 current_platform. 出现 873 处。插件不是「挂个钩子」，是把这 78 个口子逐个答上。</text>
-  <text x="20" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">其中 check_and_update_config 最特别：它只被调用一次，但那一次能改写整份 VllmConfig——昇腾拦掉不支持的配置就在这里。</text>
+  <text x="20" y="436" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)">Platform 基类里一共 78 个 def（v0.26 起 82 个），上游 vllm/ 包里 current_platform. 出现 873 处。插件不是「挂个钩子」，是把这些口子</text>
+  <text x="20" y="455" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)">逐个答上。</text>
+  <text x="20" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">其中 check_and_update_config 最特别：它只被调用一次，但那一次能改写整份 VllmConfig——昇腾拦掉不支持的配置就在这里。</text>
 </svg>

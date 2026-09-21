@@ -2,7 +2,7 @@
 id: vllm-ascend-repo-map
 title: vllm_ascend 目录地图
 type: concept
-summary: 23 个子目录、442 个 .py、130661 行。按职责分成六组，主干只有 worker、attention、ops 三个。
+summary: 23 个子目录、442 个 .py、130661 行（v0.26 上 24 / 500 / 150827）。按职责分成六组，主干只有 worker、attention、ops 三个。
 aliases: [目录结构, 代码结构, 仓库结构, repo map, vllm_ascend 目录]
 chapters: ["20"]
 order: 10
@@ -12,7 +12,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "D"
 relations:
   - to: vllm-ascend-overview
@@ -22,13 +23,13 @@ relations:
     kind: builds-on
     note: 跟完那条请求只需要读两个目录，其余 394 个文件它一个都不碰
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
 ## 一句话
 
-v0.23 维护分支上 `vllm_ascend/` 有 23 个子目录、442 个 `.py` 文件、130661 行代码 [D]。全读一遍不现实也没必要——按职责分成六组之后，真正的主干只有三个目录。
+v0.23 维护分支上 `vllm_ascend/` 有 23 个子目录、442 个 `.py` 文件、130661 行代码；v0.26 分支上是 24 个子目录、500 个文件、150827 行 [D]。全读一遍不现实也没必要——按职责分成六组之后，真正的主干只有三个目录，两个版本上都是这三个。
 
 ```wiki-diagram
 file: vllm-ascend-repo-map
@@ -50,7 +51,7 @@ file: vllm-ascend-repo-map
 
 ## 六组里只有第一组是主干
 
-**第一组 · 主干（三个目录，137 个文件）。** `worker/` 是「一张卡上发生什么」的全部，`attention/` 是注意力算子与 KV Cache 形状，`ops/` 是被替换掉的各类算子。读懂这三个就能跟完一次请求；`worker/model_runner_v1.py` 一个文件 5251 行，占了 `worker/` 的三分之一。
+**第一组 · 主干（三个目录，137 个文件）。** `worker/` 是「一张卡上发生什么」的全部，`attention/` 是注意力算子与 KV Cache 形状，`ops/` 是被替换掉的各类算子。读懂这三个就能跟完一次请求；`worker/model_runner_v1.py` 一个文件 5251 行，占了 `worker/` 的三分之一；v0.26 上它 5314 行，占 `worker/` 的五分之二 [D]。
 
 **第二组 · 接缝（`patch/`、`core/`、`model_executor/`）。** 这一组不实现推理逻辑，只负责「怎么接进上游 vLLM」。`patch/` 64 个文件是运行时替换上游对象的地方，见 [Patch 机制](ascend-patch-system.md)。
 
@@ -64,24 +65,26 @@ file: vllm-ascend-repo-map
 
 ## 按规模排一下，读的顺序会更清楚
 
-| 目录 | 文件数 | 行数 | 什么时候读 |
+| 目录 | 文件数 v0.23 → v0.26 | 行数 v0.23 → v0.26 | 什么时候读 |
 |---|---|---|---|
-| `ops/` | 89 | 23484 | 追一个具体算子时 |
-| `distributed/` | 46 | 20985 | 排查跨卡问题时 |
-| `attention/` | 17 | 14732 | 第一遍就读 |
-| `worker/` | 31 | 14486 | 第一遍就读 |
-| `patch/` | 64 | 10546 | 怀疑上游行为被改过时 |
-| `_310p/` | 49 | 6838 | 只在 310P 上跑时 |
-| `quantization/` | 27 | 6578 | 开量化时 |
+| `ops/` | 89 → 96 | 23484 → 25737 | 追一个具体算子时 |
+| `distributed/` | 46 → 53 | 20985 → 25547 | 排查跨卡问题时 |
+| `attention/` | 17 → 17 | 14732 → 15188 | 第一遍就读 |
+| `worker/` | 31 → 41 | 14486 → 13481 | 第一遍就读 |
+| `patch/` | 64 → 76 | 10546 → 14058 | 怀疑上游行为被改过时 |
+| `_310p/` | 49 → 49 | 6838 → 6648 | 只在 310P 上跑时 |
+| `quantization/` | 27 → 27 | 6578 → 6748 | 开量化时 |
 
-行数全部实测于 `2c59ff10` [D]。注意 `ops/` 与 `patch/` 的文件数多但单文件都很小，`attention/` 与 `worker/` 反过来——文件少而单文件极大。这决定了两种不同的读法：前者靠目录名定位，后者必须靠函数名跳转，见 [NPUModelRunner 怎么读](npu-model-runner.md)。
+两列都实测于 `2c59ff10` 与 `2ed6cbba` [D]。唯一改了名次的是 `worker/`：文件多了十个、行数反而少了一千，`patch/` 因此在 v0.26 上越过了它。原因是 `pcp_utils.py`（2387 行）与 `kvcomp_utils.py` 这两个大文件没了，新增的十来个小文件多半落在 `worker/v2/spec_decode/` 下 [D]。它仍然是第一遍就该读的那个。注意 `ops/` 与 `patch/` 的文件数多但单文件都很小，`attention/` 与 `worker/` 反过来——文件少而单文件极大。这决定了两种不同的读法：前者靠目录名定位，后者必须靠函数名跳转，见 [NPUModelRunner 怎么读](npu-model-runner.md)。
 
 ## 两个分支在目录层面差 8 项
 
 `2c59ff10` 上独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 上独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。其余 21 个子目录两边同名——**同名不等于同内容**，例如 `platform.py` 里 `class NPUPlatform` 在 `2c59ff10` 是第 128 行、在 `b255ab59` 是第 80 行 [C2][C5]。对照方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
 
+**v0.26 分支在目录层面几乎没动。** `2ed6cbba` 与 `2c59ff10` 相比只差两项：`flash_common3_context.py` 没了，多出一个 `transformers_utils/`；v0.23 那 23 个子目录在 v0.26 上一个不少 [D]。可文件数和行数涨了一大截（442 → 500 个 `.py`、130661 → 150827 行），**涨的部分全在同名目录内部** [A]——所以「目录没变」千万别读成「代码没变」。同一个 `class NPUPlatform`，v0.26 上在第 127 行，只比 v0.23 差一行 [C6]。
+
 ## 常见误解
 
-- **「目录名能直接推出职责」**——大部分能，两个例外要记住：`core/` 不是核心推理逻辑而是接上游调度与 KV Cache 管理的接缝；`model_executor/` 只有 3 个文件 263 行，远比名字听起来小 [D]。
-- **「`_310p/` 是旧代码」**——它是 310P 这一代硬件的专用实现，49 个文件在 v0.23 分支上是活的 [D]。看到同名类有两套实现，先确认自己在看哪一套。
+- **「目录名能直接推出职责」**——大部分能，两个例外要记住：`core/` 不是核心推理逻辑而是接上游调度与 KV Cache 管理的接缝；`model_executor/` 只有 3 个文件 263 行（v0.26 上 9 个文件 876 行），远比名字听起来小 [D]。
+- **「`_310p/` 是旧代码」**——它是 310P 这一代硬件的专用实现，49 个文件在 v0.23 与 v0.26 两个分支上都是活的 [D]。看到同名类有两套实现，先确认自己在看哪一套。
 - **「文件多的目录最重要」**——`ops/` 文件最多，但第一次读请求路径时它是被动的一层；`worker/` 文件少一半却是主干 [D]。

@@ -20,7 +20,11 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L896
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L903-L911
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: ascend-config-system
@@ -30,7 +34,7 @@ relations:
     kind: builds-on
     note: 那条请求的 block_size、注意力后端、token 预算档位，三个数都是这个类定的
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -54,7 +58,7 @@ file: platform-surface
 
 **第三行是这一页最值得记的一条。** 上游算 `max_num_batched_tokens` 默认值时要先问卡有多大显存，而昇腾这个方法**直接抛 `NotImplementedError`** [C4]。上游那段查询包在 `try` 里，异常被吞掉之后把显存当成 0 [C13]。
 
-后果是：**在昇腾上，那张「显存 ≥ 70 GiB 走大档」的表永远走不到大档**，跟卡上插了多少 HBM 无关。起 API server 时默认预算就是 2048，用 `LLM` 类是 8192 [C13]。那条请求的 37 个 token 之所以一步算完，最终可以追到这个 `NotImplementedError` 上 [D]。
+后果是：**在昇腾上，那张「显存 ≥ 70 GiB 走大档」的表永远走不到大档**，跟卡上插了多少 HBM 无关。起 API server 时默认预算就是 2048，用 `LLM` 类是 8192。那条请求的 37 个 token 之所以一步算完，最终可以追到这个 `NotImplementedError` 上 [D]。
 
 这不是 bug——注释写明了：实现它会连带提前初始化 `torch_npu`，而后者只允许全局初始化一次。**一个「没实现」的方法改变了调度器的默认行为**，这是插件模式最典型的一种连带效应。
 
@@ -72,16 +76,25 @@ file: platform-surface
 
 ## 第三组：四个校验决定什么配置组合不合法
 
-按 `check_and_update_config` 里的调用顺序 [C9]：
+按 `check_and_update_config` 里的调用顺序：
 
 | 校验 | 拦的是什么 |
 |---|---|
 | `_validate_layer_sharding_config` | `layer_sharding` 只允许在 PD 分离的 P 节点开；`kv_role` 不是 `kv_producer` 就直接抛 `ValueError` [C6] |
 | `_validate_draft_decode_context_parallel_config` | 投机解码与 decode 侧上下文并行的组合 [C8] |
 | `_validate_parallel_config` | 并行组合，例如 `data_parallel_size > 1` 同时 `prefill_context_parallel_size > 1` 就抛错 [C7] |
-| `_validate_pd_pp_mtp_config` | PD 分离、PP 与 MTP 三者的组合 [C8] |
+| `_validate_pd_pp_mtp_config` | PD 分离、PP 与 MTP 三者的组合 |
 
 这是排查「为什么我这套参数起不来」时最值得先看的一组：报错文本就在这几个函数里，比翻文档快 [A]。
+
+## v0.26 上这组校验只剩两个
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| 开头按顺序跑几个校验 | 4 个：layer sharding → draft DCP → 并行 → PD+PP+MTP | 2 个：draft DCP → 并行 [C15] | [!] 拿 v0.23 的报错文本去 v0.26 上搜函数名会搜不到——那两个校验连同它们拦的组合一起没了 |
+| `layer_sharding` 这个键 | 有，只许在 PD 分离的 P 节点开 | `vllm_ascend/` 下整个 grep 不到 [D] | 这个特性在 v0.26 上不存在，不是「不校验了」；照 v0.23 配了也不会报错，只会被当成不认识的键 |
+| `_validate_parallel_config` 拦什么 | DP>1 且 PCP>1 同时开才抛错 | 只要没开 v2 model runner，PCP>1 就抛错 [C16] | 在 v0.26 上单开 prefill 上下文并行也会被拦下；要用它得先走 v2 model runner |
+| `_validate_kv_load_failure_policy` | 没有 | 有，但排在 `init_ascend_config` 之后、不在开头那组里 [C17] | 混合模型配 `kv_load_failure_policy=recompute` 会在这里断言失败，报错位置比上面那两个晚得多 |
 
 ## 第四组：把请求转给具体实现
 
@@ -89,15 +102,15 @@ file: platform-surface
 
 ## 行号会漂，引用必须带 commit
 
-| 项 | v0.23 维护分支 | main 开发主线 |
-|---|---|---|
-| `class NPUPlatform` 起始行 | 128 [C1] | 80 [C12] |
-| 两者相差 | — | 48 行 [D] |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 |
+|---|---|---|---|
+| `class NPUPlatform` 起始行 | 128 [C1] | 127 [C14] | 80 [C12] |
+| 与 v0.23 相差 | — | 1 行 | 48 行 [D] |
 
 这就是本库所有来源都写成 `repo@commit:path#L起-L止` 的原因——只记行号的笔记在换分支之后会指到别的代码上。
 
 ## 常见误解
 
-- **「平台类只是个属性表」**——它还改配置、还拦配置。`check_and_update_config` 会真的修改传进来的 `VllmConfig` [C9]，启动参数和实际生效的配置可能不是一回事。
-- **「`get_device_total_memory` 没实现是个 bug」**——是有意的，注释写明了是为了避免过早初始化 `torch_npu` [C4]。
-- **「`simple_compile_backend = "eager"` 说明昇腾不支持图模式」**——只说明它不走上游那条 `torch.compile` 默认路径；昇腾自己那套在 `get_compile_backend` 与 `get_static_graph_wrapper_cls` 里 [C1][C2]。
+- **「平台类只是个属性表」**——它还改配置、还拦配置。`check_and_update_config` 会真的修改传进来的 `VllmConfig`，启动参数和实际生效的配置可能不是一回事。
+- **「`get_device_total_memory` 没实现是个 bug」**——是有意的，注释写明了是为了避免过早初始化 `torch_npu`。
+- **「`simple_compile_backend = "eager"` 说明昇腾不支持图模式」**——只说明它不走上游那条 `torch.compile` 默认路径；昇腾自己那套在 `get_compile_backend` 与 `get_static_graph_wrapper_cls` 里。

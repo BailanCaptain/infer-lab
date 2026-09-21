@@ -1,6 +1,6 @@
 layout: scene
 id: vllm-ascend-repo-map
-caption: 条的长度就是真实行数（v0.23 维护分支，vllm_ascend/ 共 442 个文件、130661 行）
+caption: 条的长度就是真实行数（按 v0.23 维护分支画，vllm_ascend/ 共 442 个文件、130661 行；v0.26 分支上是 500 个文件、150827 行）
 size: [900, 470]
 
 regions:

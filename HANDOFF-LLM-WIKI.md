@@ -31,6 +31,8 @@
 | 引用是否真的支持那句话 | `pnpm wiki:cite-screen`（只读预筛，`--apply` 会就近放宽来源范围）。清单误报很多，它是「派人核对前先缩小范围」的工具，**不是闸** |
 | 读者常撞到却没有页的词 | `pnpm wiki:gaps` |
 | 30 个课程术语哪些还没页 | `pnpm wiki:lint --terms` |
+| 站外链接有没有死链 | `pnpm wiki:urls`（真发 HTTP，不调模型；404 / 410 才算死链，403 / 5xx / 超时只列「这次没验证到」。每晚 `wiki:sync` 也做同一件事） |
+| 别的 agent 怎么查这个库 | `pnpm wiki:find "<词>"`、`--page <id>`、`--neighbors <id>`、`--json`；MCP 是 `pnpm wiki:mcp`。使用说明 [wiki/AGENTS-GUIDE.md](wiki/AGENTS-GUIDE.md) |
 | 夜间维护上次结果 | `wiki/_jobs/sync/last-run.json`；任务本身是 Windows 计划任务 `LLM-Wiki-infra-view-new-llm-wiki`（每日 03:00，`scripts/wiki-schedule.ps1` 注册，配置 `wiki/sync.config.json`） |
 
 ## 3. 方向
@@ -67,7 +69,7 @@
 5. **main 重钉**：库里 main 来源统一钉在 09-19 的 `b255ab59`，上游每天在动，`wiki:stale` 已经在报一批（预期内）。重钉是一次性的一笔活——`wiki:stale --fetch` 出清单 → 逐页核 → 统一改 seeds，挑一轮专门做，不要顺手做。
 6. **新页作者们反复建议补的地基页——是建议，不是已定**：被点名最多的是 `hardware-profile`（设备类型）、`model-runner-v2`、`mooncake-connector-v2`、`fused-moe-layer`。开写前先问用户。
 7. **明确挂起、等用户说开始**：三项大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉）**仍放在最后一步，必须用户点头**。
-8. **等用户决定的两件事**：① 同步用的 Python 仍指向 Codex 的私有缓存目录（`wiki/sync.config.json`），本机 conda 可用，建议 `conda create -n llm-wiki python=3.12 -y` 后把 `python` 指过去——**要下载安装，必须用户点头，已问过两次未答复**；② 三个付费开关（`maxTasks` / `reconcileBatches` / `driftSample`，各是什么见状态文档 §6）从未在生产跑过，**我的建议是先不开**；其中 `maxTasks` 就是上面那笔欠账的开关。另：F004 AC3 的「够不够」仍是回答模型自报。
+8. **等用户决定的两件事**：① 同步用的解释器路径已经不在共享配置里了（09-21 `7781837`），共享的 `wiki/sync.config.json` 不写 `python`，本机路径在 gitignore 的 `wiki/sync.config.local.json` 里——**这台机器上它仍指向 Codex 的私有缓存目录**，换机器会断；要不要建一个专用的 conda 3.12 环境（`conda create -n llm-wiki python=3.12 -y` 后把 `python` 指过去）**仍等用户定，要下载安装，已问过两次未答复**；② 三个付费开关（`maxTasks` / `reconcileBatches` / `driftSample`，各是什么见状态文档 §6）从未在生产跑过——`maxTasks` 用户 09-21 已定**先不开**（它就是上面那笔欠账的开关），另外两个照旧建议先不开。另：F004 AC3 的「够不够」仍是回答模型自报。
    还有两项**不是缺陷，别再当 TODO**：`wiki/sources/` 空着，是因为它只是「存进 Wiki」保存问答记录的落点，还没人存过；`log.md` 记不进问答是**有意不做**——它属于知识快照，每问一次就写它会让知识版本号变、所有问答会话被重置。
 
 ## 5. 怎么做事，和已经踩过的坑
@@ -92,7 +94,8 @@
 - 全库共用一条请求（`concepts/one-request.md`：37 token 问题、200 token 回答），能落到它上面的页都要写「这条请求走到这里时发生了什么」。
 - 图（wiki-diagram）**不缩放、窄了横向滚**，是既定决策，不要改成缩放。
 - 改 `scripts/wiki/*.ts` 会让 Vite dev server 重启并重新预构建依赖（约 40 秒），因为 `vite.config.ts` 经 reader-plugin 间接 import 了它们；这期间页面打不开是正常的。
-- `pnpm test` 要带 `WIKI_PYTHON`（取 `wiki/sync.config.json` 的 `python`），否则参数扫描相关测试会用到旧解释器。
+- `pnpm test` 要带 `WIKI_PYTHON`，否则参数扫描相关测试会用到旧解释器。取值在**本机覆盖文件** `wiki/sync.config.local.json` 的 `python`（共享的 `sync.config.json` 09-21 起不再写路径）。PowerShell 里一条搞定：
+  `$env:WIKI_PYTHON = (Get-Content wiki/sync.config.local.json | ConvertFrom-Json).python; pnpm test`
 - `pnpm lint` 有 14 条 `noDescendingSpecificity` 警告，是规则只看选择器末尾元素造成的误报，不要为消警告去改选择器。
 - 问答侧：「声明未收录」的回答判 `cited: true` 是复测验收（`scripts/wiki/retest.ts:244`）依赖的语义，**看着像 bug 也不要改成 false**——试过，`worker.test.ts` 会红，「结论带引用 + 其他版本尚未收录」这种好回答会永远验收不了。前端该显示的中性「未收录」标记已经补上（`ChatDrawer.tsx`，`data-testid="chat-uncovered"`）。
 - 用户对视觉要求高，前端改动必须截图验收。应用内浏览器面板截图经常超时，用仓库自带 Playwright 写临时脚本截（放 `test-results/`，已 gitignore）。
@@ -106,7 +109,11 @@
 - **新写 25 页特性页，全部三版本写法**：先查这个特性在三个版本上各存不存在 → `## 一句话` 后第一段写明存在范围 → 主叙述以「它存在的最早那个发布分支」为准、正文只写一遍 → 只列有差异的行与有差异的版本 → `verified` 只填真逐条对过的；规则的唯一真相源是 `wiki/HANDBOOK.md`「页面格式 › 版本」与「教学页的推荐写法」。这 25 页：调度 9、并行 / EP 6、PD 与 KV 传输 3、图模式与算子 3、量化 / LoRA / 结构化输出 / AI QoS 4（`ai-qos` 其实是 UB 交换机上的流量 QoS，归硬件 / KV 传输那章，不是调度）。页名现查 `git log --diff-filter=A --name-only 74b053a^..HEAD -- wiki/concepts`。**官方特性主线到此只剩 LMCache、UCM 两篇第三方存储部署指南没写。**
 - **旧页被新页查出来的更正**（`551a0b7`、`d18d319`）：默认调度器类被 patch 换掉、那条请求默认走异步调度（`step_with_batch_queue`）、`kv-cache-quantization` 的 `--quantization ascend` 其实可不写、细粒度 TP 的细节与检索词从 TP 总览页挪到 `fine-grained-tp` 专页、两页卸载类页面的主叙述改钉到发布分支。
 - **顺手修的两个脚本问题**（`13a83ef`）：`wiki:lineage:apply` 把页面标题当参数名，标题写成「中文名（参数名）」时整批失败——现在取括号里的参数名，取不到就跳过该页；参数页「版本谱系」表改成逐个发布分支列出（v0.13 … v0.28 + main）。
-- **主仓有了项目地图**：`infra-view-new/PROJECT-MAP.md`（草稿，a–h 五段结构已由用户定，章号待模型计算层定下来后统一编；**特性段以官方文档点出的全集为准**，不以知识库现有页为准）与 PLAN.md §1.3「章节与知识库的关系」——**两处都还没提交**，在 `C:/Users/-/Desktop/infra-view-new` 的工作区里。
+- **主仓有了项目地图**：`infra-view-new/PROJECT-MAP.md`（草稿，a–h 五段结构已由用户定，章号待模型计算层定下来后统一编；**特性段以官方文档点出的全集为准**，不以知识库现有页为准）与 PLAN.md §1.3「章节与知识库的关系」——两处**已提交**（主仓 `0aebe95`）。
+- **下午做的三件（都已提交）**：
+  - **agent 只读入口**（`d9f4fe5`、`bfacba1`）——`pnpm wiki:find <词> [--limit N] | --page <id> | --neighbors <id> [--json]`，加只读 MCP server `pnpm wiki:mcp`（stdio 上手写的换行分隔 JSON-RPC，没加依赖；三个工具 `wiki_search` / `wiki_get_page` / `wiki_neighbors`；接法 `claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`）。两者共用 `scripts/wiki/agent-access.ts`，检索只走 `src/content/wiki/retrieve.ts` 这一个入口，**命中规则与站内问答一致，不另起一套**。使用说明两份：任何 agent 看 [wiki/AGENTS-GUIDE.md](wiki/AGENTS-GUIDE.md)，Claude Code 另有项目级 skill `.claude/skills/llm-wiki/SKILL.md`；根 `CLAUDE.md` / `AGENTS.md` 各加了同样一行指过去（两份仍逐字相同）。
+  - **站外死链真的请求了一遍**（`a64bce1`）——`pnpm wiki:urls`：404 / 410 才判死链，403 / 5xx / 超时只列「这次没验证到」（否则夜里断一次网就是几十条假警报）。共享配置 `checkUrls: true`，每晚巡检自动跑，死链以规则名 `dead-url` 写进 `wiki/warnings/patrol-<日期>.md`。第一次跑 95 条里 1 条死链（官方文档站把 `patch.html` 挪到了 `Design_Documents/` 下），已修。
+  - **同步配置的本机覆盖**（`7781837`）——`wiki/sync.config.local.json`（gitignore）盖在共享配置上，过同一个严格 schema；共享配置里不再写死解释器路径，不写 `python` 时退回环境变量 `WIKI_PYTHON`、再退回 PATH 上的 `python`（上游源码要 3.12+ 才解析得了）。这是为以后开源做的：别人克隆下来不会撞上这台机器的私有路径。
 - **本轮收尾的验证**：单元 716 通过、e2e 30 通过、typecheck 通过、lint 保持 14 条基线警告。最后一次全量验证现查这几条：`pnpm test`（要带 `WIKI_PYTHON`）、`pnpm exec playwright test tests/wiki`、`pnpm typecheck`、`pnpm lint`、`pnpm wiki:lint | audit | diagrams --check | stale | versions`。**`wiki:stale` 报一批页引用的文件变了是预期内的**——上游 main 每天在动，库里钉的是 09-19 的 `b255ab59`，重钉是一笔单独的活（§4）。
 
 ## 7. 2026-09-20 这轮做了什么（摘要）

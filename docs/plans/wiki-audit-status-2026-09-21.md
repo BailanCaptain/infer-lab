@@ -67,7 +67,7 @@
 **需要留意的漂移风险**：
 
 1. 这两天精力几乎全在内容上，审视里「等用户决定」的三件事（付费机制、Python 环境、推远端）一直挂着，没人推。
-2. 知识库和主项目的关系是 09-21 才对齐的（主仓 `PROJECT-MAP.md`、`PLAN.md` §1.3，**尚未提交**）：知识库是主章节的底稿 + 右侧问答，**不是独立产品**。继续无限扩页之前应回到主线。
+2. 知识库和主项目的关系是 09-21 才对齐的（主仓 `PROJECT-MAP.md`、`PLAN.md` §1.3，已提交 `0aebe95`）：知识库是主章节的底稿 + 右侧问答，**不是独立产品**。继续无限扩页之前应回到主线。
 
 ## 4. 用户更早提过、不在这次审视清单里的要求
 
@@ -88,44 +88,45 @@
 | 查不到后自动整合成草稿给人审 | **机制在，从未在生产跑过**。F004 的队列（`wiki:jobs` / `wiki:work`）、审阅面板（`/api/wiki/reviews`）、`origin: gap` 都有；`sync.config.json` 的 `maxTasks` 是 0。属付费机制 | `scripts/wiki/`、`server/review.ts` |
 | 加入 wiki 时交叉审视 | `pnpm wiki:reconcile` 存在，`reconcileBatches: 0`，同上没开 | `sync.config.json` |
 | 建链 | `relations` 有类型有方向，由作者写在依赖方一侧，`wiki:build` 派生反向边；lint 的 `relation-missing`、`relation-duplicate`、`broken-link`、`orphan` 守着 | `scripts/wiki/lint.ts:315,324,334,344,351` |
-| 死链定期审查 | **站内有，站外没有**。站内：`wiki:lint` 的 `broken-link` + 每晚 `wiki:sync` 里的巡检，结果写 `wiki/warnings/patrol-<日期>.md`。站外 URL：`pnpm wiki:audit` 每次都报「URL 未联网验证 N 条」（今天实测 73 条，官方文档与论文链接），**没有任何脚本真的去请求过它们**。这是一个真实缺口，修它不花模型钱——一个带超时与白名单的 HEAD/GET 检查，可挂进夜间巡检 | `scripts/wiki/maintenance.ts:64`（`patrol`）、`scripts/wiki-audit.ts:80` |
+| 死链定期审查 | **站内站外都有了**（站外是 09-21 下午补的，`a64bce1`）。站内：`wiki:lint` 的 `broken-link` + 每晚 `wiki:sync` 里的巡检。站外：`pnpm wiki:urls` 带超时真发 HEAD / GET，404 / 410 才判死链，403 / 5xx / 超时只列「这次没验证到」（否则夜里断一次网就是几十条假警报）；共享配置 `checkUrls: true`，每晚巡检自动跑，死链以规则名 `dead-url` 写进 `wiki/warnings/patrol-<日期>.md`。第一次跑 95 条里 1 条死链（官方文档站把 `patch.html` 挪到 `Design_Documents/` 下），已修。不花模型钱 | `scripts/wiki/urls.ts`、`scripts/wiki-urls.ts`、`scripts/wiki/sync.ts:168-171` |
 | 回答能不能体现页面之间的联系 | **机制在，没系统评过**。检索把命中页的邻域（含派生的反向边）一起交给问答 agent，阅读页的「接着看」也由它生成。09-20 做过一次真实问答测试（约 $0.45/问），但**没有成组评过「回答有没有把相关页串起来」**——`wiki:retest` / `wiki:eval` 有框架，没有这一类用例 | `src/content/wiki/relations.ts:11`（`buildAdjacency`）、`:93`（`neighborhood`）、`server/related-reading.ts` |
 | 手动 drop 资料 | **有，只有命令行**：`pnpm wiki:drop`（F004，`origin: drop`），规则硬编码在脚本里。**阅读页面板上没有 drop 入口**——已核，`src/app/wiki/` 里只有问答 / 审阅 / 刷新 / 状态四个页签，全仓库对 `drop` 的引用只剩 schema 里的枚举值 | `scripts/wiki/drop.ts`、`src/content/wiki/schema.ts:28` |
 | 图少 | 78 张，手写 spec → SVG（`pnpm wiki:diagrams`）。**上游文档自带的图不保留、不搬运**，只按源码重画 | `wiki/diagrams/` |
 | 「layer share 这种问法查不查得到」 | 每页有 `aliases`（lint 查重），检索按 alias 命中，新页都按这个写了。**模糊问法的命中率没有成组评测过** | `retrieve.ts:102,109` |
 
-## 5. 知识库做完以后，别的 agent 怎么调用（现状：基本没有）
+## 5. 知识库做完以后，别的 agent 怎么调用（已做：①②③全做了）
 
-- 现在对外只有站内问答自己用的 HTTP 接口，全在 `server/`，**只绑 127.0.0.1**（`server/index.ts:33`）：`/api/wiki/chat`、`/pages`、`/raw`、`/status`、`/reviews`、`/answers/*`、`/health`。
-- **没有** MCP server、**没有**给 Claude Code / Codex 用的 skill、**没有** `wiki:ask` 这类命令行。`server/chat.ts` 里出现的 MCP 是「给问答子进程传一个空的 MCP 配置以防继承」，不是对外提供。
-- 但知识库本身就是 git 里的 markdown，今天就能被任何 agent 用，只是没人写过这份使用说明：`wiki/index.md`（人读目录）→ `src/content/wiki/registry.json`（机器读：id、title、aliases、summary、relations、verified、backlinks）→ `wiki/concepts|params/*.md`。
+问这话的时候（2026-09-21 上午）的回答是「基本没有」：对外只有站内问答自己用的 HTTP 接口，全在 `server/`、**只绑 127.0.0.1**（`server/index.ts:33`），没有 MCP、没有 skill、没有命令行；知识库本身是 git 里的 markdown，任何 agent 今天就能读，只是没人写过使用说明。
 
-给用户的选项，按代价从小到大（**是建议，不是已定**）：
+当天下午按「①一页说明 / ②只读命令 / ③只读 MCP」三档全做了，`wiki:find` 与 MCP 的 search 走同一份打分、不另起一套：
 
-1. **一页 agent 使用说明**，放 `wiki/` 根或仓库根，零代码。
-2. **一个只读命令 `pnpm wiki:find <词>`**，复用 `retrieve.ts`，输出命中页的路径与摘要。任何能跑 shell 的 agent 都能用。
-3. **一个只读 MCP server**，暴露 search / get_page / neighbors 三个工具，复用同一个检索入口。
+1. **使用说明**：[wiki/AGENTS-GUIDE.md](../../wiki/AGENTS-GUIDE.md)（不依赖任何工具，Codex 等也能读）+ `.claude/skills/llm-wiki/SKILL.md`（Claude Code 项目级 skill）。根 `CLAUDE.md` / `AGENTS.md` 各加一行指过去，两份仍逐字相同。
+2. **命令行**（`d9f4fe5`、`bfacba1`）：`pnpm wiki:find <词> [--limit N] | --page <id> | --neighbors <id> [--json]`。
+3. **只读 MCP server**（同上）：`pnpm wiki:mcp`，stdio 上手写的换行分隔 JSON-RPC（没加依赖），三个工具 `wiki_search` / `wiki_get_page` / `wiki_neighbors`；接法 `claude mcp add llm-wiki -- pnpm --dir <本仓库绝对路径> -s wiki:mcp`。
 
-用户倾向做到位：**②与③一起做**，两者共用 `retrieve.ts` 这一个检索入口（`wiki:find` 与 MCP 的 search 走同一份打分，不另起一套），① 的使用说明顺手写。**用户 2026-09-21 在问哪一档最好，上面是 AI 的推荐（②+③），尚待用户一句话确认。**
+②③ 共用 `scripts/wiki/agent-access.ts`，检索只走 `src/content/wiki/retrieve.ts` 这一个入口，**命中规则与站内问答完全一致**。三个动作都只读：不写文件、不调模型、不联网。
 
 ## 6. 接手的人先做什么
 
 1. 先读 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md) §4 的优先级清单，本页不重复排序。手上没活时按那个顺序往下走（参数骨架页正文 → LMCache/UCM → main 重钉）。
 2. 动笔之前先看 §3 的偏离说明：**现在的写页流程是「Opus 直接写 + 主会话对源码抽查」，不走待审**——这是用户同意的过渡办法，不是终态。手上有页要写就照它写，但别把它当成约定：恢复「agent 写、人只审」是一笔要还的欠账，怎么还看 §3。
-3. 扩页之前先确认主线：知识库是主仓章节的底稿，不是独立产品。主仓 `PROJECT-MAP.md` 与 `PLAN.md` §1.3 还没提交，接手时先去 `C:/Users/-/Desktop/infra-view-new` 看工作区里的那两份。
+3. 扩页之前先确认主线：知识库是主仓章节的底稿，不是独立产品。主仓 `PROJECT-MAP.md` 与 `PLAN.md` §1.3 已提交（`0aebe95`），接手时先去 `C:/Users/-/Desktop/infra-view-new` 读那两份。
 4. 不写死数字。状态一律现查（HANDOFF §2 的命令表），别抄本页表格里的数。
 
 **等用户拍板的事**（在他说话之前都不要开工）：
 
-- **三个付费开关要不要开**（`wiki/sync.config.json`，现在全是 0）：
-  - `maxTasks`：每晚从队列里取几个任务，让 agent 写成草稿进审阅面板。任务来源是问答没答好记下的缺口与用户 drop 的资料——**「越用越聪明」靠的就是它**，也是 §3 那笔欠账（恢复「agent 写、人只审」）的开关。
+- **两个付费开关要不要开**（`wiki/sync.config.json`，现在全是 0）：
   - `reconcileBatches`：每晚交叉审视几批相关页，找互相矛盾的说法。
   - `driftSample`：每晚抽几页对照上游最新代码，看有没有过时。
 
-  三个里任一个大于 0，就必须同时写 `paid`（模型 + 预算上限），否则 `scripts/wiki/sync.ts:47` 直接报错——**这是防止夜里偷偷花钱的保险，不要绕过**。当前建议：先不开，等页数再多一些。
+  连同下面已定的 `maxTasks`，三个里任一个大于 0 就必须同时写 `paid`（模型 + 预算上限），否则 `scripts/wiki/sync.ts:47` 直接报错——**这是防止夜里偷偷花钱的保险，不要绕过**。当前建议：先不开，等页数再多一些。
 - **F004 AC3 的独立评判**（不是配置项，要写代码）：缺口够不够现在靠回答模型自己在末尾报 `satisfied`（`server/coverage.ts`，同文件注释已写明这不是 AC3 要的东西）；验收条件要的是另起一个模型来评。
-- 同步用的 Python 要不要建 conda 3.12 环境（要下载安装，已问过两次未答复）。
-- 分支 `feat/llm-wiki` 要不要推远端。
-- **站外死链检查要不要做**（§4：73 条 URL 从未被请求过；不花模型钱，可挂夜间巡检）。
-- **agent 调用选哪一档**（§5 的 ①②③）。
+- 同步用的 Python 要不要建 conda 3.12 环境（要下载安装，已问过两次未答复）。路径本身 09-21 已挪出共享配置（`7781837`），现在在 gitignore 的 `wiki/sync.config.local.json` 里，这台机器上仍指向 Codex 的私有目录。
 - 三项大批量导入（全量灌种 / 全量参数页 / GitHub 全库首拉）仍放在最后一步，必须用户点头后手动执行。
+
+**已定、不必再问的**（09-21 当天结掉）：
+
+- ~~站外死链检查要不要做~~ → **做了**（§4 那一行、`a64bce1`），已挂进夜间巡检。
+- ~~agent 调用选哪一档~~ → **①②③全做了**（§5）。
+- ~~`maxTasks` 要不要开~~ → 用户 09-21 定**先不开**。它是 §3 那笔欠账（恢复「agent 写、人只审」）的开关，欠账仍在，只是现在不开这个开关。
+- ~~分支 `feat/llm-wiki` 要不要推远端~~ → 用户定 **worktree 先不推**。

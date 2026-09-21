@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 472" width="900" height="472" role="img" aria-label="这条短请求的一次 prefill 产生第一个回答 token，随后 199 次 decode 产生余下回答；示意时间轴不按耗时比例。">
+  <title>这条短请求的一次 prefill 产生第一个回答 token，随后 199 次 decode 产生余下回答；示意时间轴不按耗时比例。</title>
+  <rect width="900" height="472" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="24" width="860" height="142" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="38" width="287.4" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="56.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">已知的 prompt：37 个 token 可并排处理</text>
+  <rect x="44" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="66" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="88" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="110" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="132" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="154" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="176" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="198" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="220" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="242" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="264" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="286" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="308" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="330" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="352" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="374" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="396" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="418" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="440" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="462" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="484" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="506" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="528" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="550" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="572" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="594" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="616" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="638" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="660" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="682" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="704" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="726" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="748" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="770" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="792" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="814" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="836" y="101" width="20" height="26" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
+  <rect x="36" y="220" width="248" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="52" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步 · prefill</text>
+  <text x="52" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">输入 37 个，写 37 格 KV</text>
+  <text x="52" y="289" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">采样回答 token 1</text>
+  <rect x="326" y="220" width="248" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="342" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">第 2 步 · decode</text>
+  <text x="342" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">输入回答 token 1，追加 1 格</text>
+  <text x="342" y="289" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">采样回答 token 2</text>
+  <rect x="616" y="220" width="248" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="632" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">…第 200 步 · decode</text>
+  <text x="632" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">输入回答 token 199，追加 1 格</text>
+  <text x="632" y="289" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">采样回答 token 200</text>
+  <path d="M160 129 L160 216" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M160 216 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M286 266 L322 266" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M322 266 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M576 266 L612 266" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M612 266 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M326 343 l0 9 L864 352 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
+  <text x="595" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">199 次 decode：下一步输入依赖上一步采样结果</text>
+  <text x="36" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">总共输入模型 37 + 199 = 236 个 token 次；最后采出的 token 不再送回。</text>
+  <text x="36" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">长 prompt 可由 schedule 分到多步，不能把本图的一步 prefill 当成普遍规则。</text>
+</svg>

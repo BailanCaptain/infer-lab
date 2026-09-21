@@ -1,0 +1,29 @@
+layout: scene
+id: kv-cache
+caption: 第一步 decode，在某一层复用前 37 个 token 的 K/V，只追加位置 37；格子是逻辑 token 位置，不是物理块。
+size: [900, 500]
+regions:
+  - { label: 某一层的 KV Cache, at: [20, 174], size: [860, 226], tone: upstream }
+boxes:
+  - { at: [20, 28], size: [370, 84], title: 前 37 个 token 已在 prefill 算过, sub: 旧的 K 与 V 留在这一层，不重新投影, tone: upstream }
+  - { at: [510, 28], size: [370, 84], title: 本步只输入位置 37 的新 token, sub: 生成本步 Q、K、V；K 已经过 RoPE, tone: accent }
+strips:
+  - { at: [58, 244], cells: 37, cell: 18, gap: 2, h: 24, tone: upstream }
+  - { at: [798, 244], cells: 1, cell: 18, h: 24, highlight: 0, tone: accent }
+  - { at: [58, 312], cells: 37, cell: 18, gap: 2, h: 24, tone: upstream }
+  - { at: [798, 312], cells: 1, cell: 18, h: 24, highlight: 0, tone: accent }
+arrows:
+  - { from: [695, 114], via: [[845, 146], [845, 255]], to: [818, 255], tone: accent }
+  - { from: [845, 255], via: [[845, 323]], to: [818, 323], tone: accent }
+brackets:
+  - { at: [58, 367], span: 758, dir: down, label: 本步注意力可读 38 个位置；Q 只属于新 token, tone: accent }
+notes:
+  - { at: [31, 261], text: K, size: 14, strong: true }
+  - { at: [31, 329], text: V, size: 14, strong: true }
+  - { at: [58, 224], text: 位置 0–36：复用旧值, size: 13 }
+  - { at: [756, 224], text: 位置 37, size: 13 }
+  - { at: [20, 430], text: 每层各有一份：图只展开一层；实际槽位由 slot_mapping 决定。, size: 13, width: 850 }
+  - { at: [20, 465], text: do_kv_cache_update → reshape_and_cache 只写本步新产生的 K/V。, size: 13, width: 850 }
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
+    symbols: [do_kv_cache_update, reshape_and_cache, slot_mapping]

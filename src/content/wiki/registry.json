@@ -3309,7 +3309,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-22",
       "file": "concepts/kv-cache.md",
       "backlinks": [
         {
@@ -4168,9 +4168,19 @@
       "file": "concepts/kv-pool.md",
       "backlinks": [
         {
+          "from": "lmcache",
+          "kind": "alternative-to",
+          "note": "AscendStoreConnector 与 LMCache 是两条独立的外部 KV 接入路线，配置名和依赖不能混用"
+        },
+        {
           "from": "pd-disaggregation",
           "kind": "alternative-to",
           "note": "同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D"
+        },
+        {
+          "from": "ucm",
+          "kind": "alternative-to",
+          "note": "UCMConnector 与 AscendStoreConnector 分别接自己的存储实现，配置和容量语义不能互换"
         },
         {
           "from": "kv-cache-quantization",
@@ -4551,6 +4561,61 @@
           "note": "两者都是为了不让每层都常驻一份全量 o_proj；layer_sharding 按层轮流放、v0.24 起已删，这个按 PCP 组切且只针对 o_proj"
         }
       ]
+    },
+    {
+      "id": "lmcache",
+      "title": "LMCache：先分清谁注册连接器，再谈外部 KV 复用",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "LMCache-Ascend 把 LMCache 接到昇腾 NPU。两个发布分支由 vllm-ascend 注册连接器，main 已把注册交回插件；连接器能创建不等于存储后端和版本组合已经配好。",
+      "aliases": [
+        "LMCache",
+        "LMCache-Ascend",
+        "LMCacheAscendConnector",
+        "LMCacheConnectorV1"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "order": 90,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L65",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5",
+        "vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L83-L115",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L53-L94",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L3-L24",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L65",
+        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md#L70-L72",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/lmcache_ascend_deployment.html",
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/lmcache_ascend_deployment.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "S",
+      "rawSources": [
+        "raw/sha256-270dff2763ab31da099d3b705abb5a04988fb56717bd6319f797153dc2cb61ef.md"
+      ],
+      "relations": [
+        {
+          "to": "prefix-caching",
+          "kind": "builds-on",
+          "note": "先理解复用前缀为什么能少做 prefill，再看连接器如何接入外部 KV"
+        },
+        {
+          "to": "kv-pool",
+          "kind": "alternative-to",
+          "note": "AscendStoreConnector 与 LMCache 是两条独立的外部 KV 接入路线，配置名和依赖不能混用"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-22",
+      "file": "concepts/lmcache.md",
+      "backlinks": []
     },
     {
       "id": "lora",
@@ -5911,6 +5976,11 @@
           "from": "recompute-scheduler",
           "kind": "enables",
           "note": "只装在 kv_role='kv_consumer' 的 D 节点上；P 节点上配了会被警告后就地关掉，PD 混布直接 ValueError"
+        },
+        {
+          "from": "ucm",
+          "kind": "enables",
+          "note": "集中式存储与 Mooncake P2P 是两种把 Prefill 的 KV 送给 Decode 的部署路径"
         }
       ]
     },
@@ -6191,7 +6261,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-22",
       "file": "concepts/prefill.md",
       "backlinks": [
         {
@@ -6326,9 +6396,19 @@
           "note": "池查询把 HBM 里已命中的 token 数当起点，只把多出来的那一段搬进来；命中的单位同样是写满的块"
         },
         {
+          "from": "lmcache",
+          "kind": "enables",
+          "note": "先理解复用前缀为什么能少做 prefill，再看连接器如何接入外部 KV"
+        },
+        {
           "from": "recompute-cpu-offload",
           "kind": "enables",
           "note": "enable_offload_prefix_caching 打开后，已算满的块按 prefix cache 的 block_hash 在多个被抢占请求间共享同一个 CPU 块"
+        },
+        {
+          "from": "ucm",
+          "kind": "enables",
+          "note": "UCM 的前缀存储扩展复用的落点，命中收益仍来自少算已有前缀"
         }
       ]
     },
@@ -6932,7 +7012,7 @@
       "title": "RoPE (Rotary Position Embedding)",
       "type": "concept",
       "origin": "seed",
-      "summary": "把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」转一个角度。转完之后，两个 token 的注意力分数只取决于它们相隔多远。",
+      "summary": "把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。",
       "aliases": [
         "旋转位置编码",
         "旋转位置嵌入",
@@ -6960,7 +7040,7 @@
       "relations": [],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-22",
       "file": "concepts/rope.md",
       "backlinks": [
         {
@@ -7635,6 +7715,71 @@
           "note": "列切行切一刀没动，改的只是行切末尾那次 all-reduce 的形状——一层两次，位置还是那两处"
         }
       ]
+    },
+    {
+      "id": "ucm",
+      "title": "UCM：共享前缀存储与 PD 传输要分开看",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "UCM 通过连接器把 KV 接到主机缓存和持久存储。集中式 PD 经共享存储传 KV；P2P 示例则由 Mooncake 传 KV、UCM 服务 Prefill 前缀复用，两条路径不能混为一谈。",
+      "aliases": [
+        "UCM",
+        "Unified Cache Manager",
+        "UCMConnector",
+        "UCMConnectorV1",
+        "UcmPipelineStore",
+        "统一缓存管理"
+      ],
+      "chapters": [
+        "11",
+        "13"
+      ],
+      "order": 100,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L19-L38",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L68-L117",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L202-L206",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L270-L294",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L373-L416",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L100-L159",
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L194-L218",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L59",
+        "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L85-L89",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/ucm_deployment.html"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "S",
+      "rawSources": [
+        "raw/sha256-b02fcec2ac497a6a4141c5124ee3aa3e4daff01994d99d56f16e32cb3aa97707.md"
+      ],
+      "relations": [
+        {
+          "to": "prefix-caching",
+          "kind": "builds-on",
+          "note": "UCM 的前缀存储扩展复用的落点，命中收益仍来自少算已有前缀"
+        },
+        {
+          "to": "pd-disaggregation",
+          "kind": "builds-on",
+          "note": "集中式存储与 Mooncake P2P 是两种把 Prefill 的 KV 送给 Decode 的部署路径"
+        },
+        {
+          "to": "kv-pool",
+          "kind": "alternative-to",
+          "note": "UCMConnector 与 AscendStoreConnector 分别接自己的存储实现，配置和容量语义不能互换"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-22",
+      "file": "concepts/ucm.md",
+      "backlinks": []
     },
     {
       "id": "use-fused-overlap-75a180fff6ab",

@@ -21,13 +21,17 @@ relations:
     kind: builds-on
     note: 存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
 ## 一句话
 
 模型每生成一个 token，都要让它「看」一遍前面所有的 token。看的方式是拿新 token 的 Q 去和前面每个 token 的 K 点乘、再按分数取它们的 V。**前面那些 token 的 K 和 V 一旦算出来就再也不会变**，所以算一次、留在显存里，后面每一步直接读——这块显存就是 KV Cache。
+
+```wiki-diagram
+file: kv-cache
+```
 
 ## 没有它会怎样
 

@@ -23,6 +23,17 @@ function transport(events: unknown[]) {
   });
 }
 describe("restricted CLI contract", () => {
+  it("preserves the provider failure diagnostic without accepting it as a draft", async () => {
+    mocks.spawn.mockImplementation(async (_req, onLine) => {
+      onLine(
+        JSON.stringify({ type: "result", is_error: true, result: "Usage limit reached", total_cost_usd: 0 }),
+      );
+      return { id: "a", ok: false, exitCode: 1, costUsd: 0, stderrTail: "", reason: "exit 1" };
+    });
+    const result = await runRestrictedClaude(req());
+    expect(result).toMatchObject({ ok: false, reason: "exit 1: Usage limit reached", costUsd: 0 });
+    expect(result.output).toBeUndefined();
+  });
   it("returns text only after one successful final result", async () => {
     transport([success]);
     expect(await runRestrictedClaude(req())).toMatchObject({ ok: true, output: "markdown", costUsd: 0.2 });

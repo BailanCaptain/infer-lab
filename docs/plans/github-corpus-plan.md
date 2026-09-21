@@ -1,5 +1,7 @@
 # F003 Implementation Plan：社区语料检索与修复溯源
 
+> 2026-09-22：这是原本地采集器的历史设计。用户已决定优先近一年、vllm / vllm-ascend 双仓库在线查证；当前范围和验收只看 [F003](../features/F003-github-corpus.md)。下文全量首拉不再是排错的前置条件，也不是本轮执行指令。
+
 **Feature:** [F003 — GitHub issue / PR 语料与报错溯源](../features/F003-github-corpus.md)
 **Goal:** 学习者提交报错后能查到相关讨论、修复 PR 和已证实的版本范围；重要变更进入既有知识积累闭环。
 **Acceptance Criteria:** 规范和完成状态只在 feature；下表逐项覆盖 AC1–AC7。

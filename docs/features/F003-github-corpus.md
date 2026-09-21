@@ -1,106 +1,75 @@
 ---
 id: F003
-title: GitHub issue / PR 语料与报错溯源
+title: GitHub issue / PR 在线报错溯源
 status: in-progress
 owner: BailanCaptain
 created: 2026-09-10
 ---
 
-# F003 — GitHub issue / PR 语料与报错溯源
+# F003 — GitHub issue / PR 在线报错溯源
 
-**Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
-**Created**: 2026-09-10
+**Status**: in-progress。2026-09-22 用户改定在线查证优先：贴报错 → 找 issue → 读解决办法 → 追修复 PR → 核对自己的版本。全量本地镜像不再是目标的前置条件。历史同步器保留，本轮不运行大规模导入。
 
 ## Why
 
-用户 2026-09-10 提的第二个需求：
-
-> 比如我遇到一个报错，我们的 LLM-wiki 是否可以找到对应的 PR 或者 issue。
-
-这类知识不在源码里，也不在文档里，只存在于社区讨论中。vllm-ascend 当前规模（2026-09-10 查 GitHub API）：
-
-| 项 | 数 |
-|---|---|
-| PR 总数 | 12,074 |
-| issue 总数 | 4,188 |
-| 最新编号 | #16285 |
-
-关键取舍先说清楚：**这 1.6 万条不做成 wiki 页**。按 2026-09-10 的试点单价估，全量转页要四万美元量级（当时的估价，是「不做成页」这个决策的依据；实际花费一律以 `pnpm wiki:budget status` 为准），且绝大多数 issue 没有沉淀价值。它们的正确用法是**检索语料**——纯文本存本地，提问时才被读到，不过 LLM 就不花额度。只有真正改动核心特性的 PR 才升级成 wiki 页。
+用户要的是有依据的处理办法。全量保存不能替代读懂讨论、匹配环境、核对回移与实际版本。默认只缓存已查证据；值得沉淀的少量材料通过现有草稿审阅流程进入 Wiki。
 
 ## What
 
-用户能感知到的变化：
-
-- 贴一段报错到聊天框，能得到「issue #1234 报过同样的错，PR #1300 修了，修复进了 v0.9.1，`v0.7.3-dev` 分支没有这个修复」。
-- 问某个特性时，答案能带上相关的设计讨论与已知问题。
-- 语料每天自动增量更新，不需要人操作。
+- 同查 `vllm-project/vllm-ascend` 与 `vllm-project/vllm`；初次搜索按本机当天向前一个日历年、`updated` 限定，2026-09-22 对应 2025-09-22。
+- 关联证据可以早于窗口，避免截断修复链；扩大初始仓库或时间范围需用户明确要求。
+- 配置唯一来源 [`wiki/github-trace.config.json`](../../wiki/github-trace.config.json)，判断流程唯一来源 [`vllm-error-trace` skill](../../.agents/skills/vllm-error-trace/SKILL.md)。
+- 当前入口是 Codex skill / CLI。**网页聊天框尚未接入在线搜索**，仍使用原有本地检索，不能将本轮成果描述为网页端到端已经完成。
 
 ## Acceptance Criteria
 
-### 验收状态（更新于 2026-09-21）
+### 验收状态（更新于 2026-09-22）
 
-这张表是 F003 验收状态的唯一真相源。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；语料条数、预算这类会变的数字现查。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。
+本表是当前唯一验收状态。旧全量导入口径见 Git 历史，按用户本次决定调整，不再把未首拉作为无法排错的阻碍。
 
-**2026-09-21 本轮未改动 F003**：09-20 夜到 09-21 的工作全在 F001 / F002（v0.26 入册、补特性页、参数扫描器与参数页、agent 只读入口、站外死链），没有一条提交动过 GitHub 采集器或语料（`git log 74b053a^..HEAD -- scripts/wiki/github* tools/corpus` 为空）。下面只改两处随全局变化而过时的东西：几个行号（`scripts/wiki/sync.ts` 因插入死链巡检整体后移）与语料条数复核。**结论一条没动**。
-
-| AC | 当前结论 | 证据与未满足条件 |
+| AC | 当前结论 | 证据与边界 |
 |---|---|---|
-| AC1 | 未执行（全量为用户暂缓项） | 采集器与断点续拉有回归（101 条分页中断后从第二页续跑并补查更新）。**真实语料仍只有 2 个 issue + 2 个 PR**（2026-09-21 现数：`tools/corpus/vllm-ascend/issues/` 是 15815、16625，`prs/` 是 11953、15981；本机数据不进 git），与 AC 要求的全量遍历、与 API 计数核对、随机抽 5 条对照都没做。没有自动入口会触发首拉：没有全库检查点时每日任务只返回 `needs-initial-import`（`scripts/wiki/sync.ts:164`）。 |
-| AC2 | 部分实现 | 真实小样本重复抓取 `changed=0`、检查点只在整轮成功后推进，有回归。**全库计数对照没做**，因为 AC1 没跑。 |
-| AC3 | 真实实现并测试 | 真实无效 token 返回 GitHub auth (401)，日志记失败且检查点未推进；网络失败、限额、404 分开测试，报错可区分。 |
-| AC4 | 部分实现（小样本达线，不等于真实召回） | 预先冻结 10 条真实 traceback，在 30 个真实 issue 正文里测得 Top-1 = 9/10、Top-5 = 9/10，无匹配对照 = 0；冻结投影与正文 SHA 留存。样本只有 10 条且语料只有 4 条真实条目，**不能据此声称报错检索在真实规模上可用**，是否给语料加向量检索也还没到评估条件。 |
-| AC5 | 真实实现并测试（静态链路） | issue #15815 → PR #15981 → 提交 `87c345c1` → `origin/releases/v0.26.0rc`，`tags=[]`；没有已含该提交的本地 tag 就不伪造发布版本。PR #11953 的提交包含列表另核到 3 个 tag。 |
-| AC6 | 部分实现 | 升级链路接通：PR 触及 seeds 入口文件或参数定义文件时排队（`queueImportantPr`，`scripts/wiki/sync.ts:165`），不可信文本经 sanitize，注入片段不进 prompt 有断言。**真实 PR #11953 编译 60 秒超时，没有产出成功草稿**，此后未重试。 |
-| AC7 | 真实实现并测试（10 条样本） | 10 条含文档链接的真实 issue：12 个链接全部解析出版本与路径，9 个映射到本地文件，3 个给出「本地无对应版本 ref」的原因；不同 pin 明示。trace CLI 与问答预检索共用同一份映射。 |
+| AC1 | 在线范围已真实验证 | 双仓库搜索 `UnquantizedFusedMoEMethod is_monolithic`，返回 Ascend #15815 与上游候选；输入没有 issue 编号或 URL。仓库、日期、查询与候选边界均输出。全库首拉未执行。 |
+| AC2 | 按需证据链已真实验证 | 读取 #15815 正文、评论和时间线，追到 #15981 的真实 patch、评审与逐行评论。复读缓存有 `cacheHits` 和逐项时间；TTL、强制刷新、分页与请求上限有回归。证据不全显式标记，不声称全库离线可查。 |
+| AC3 | 失败边界已测试 | 共用 GitHub 客户端的 auth / rate-limit / network / not-found / API 分类；原有真实无效 token 401 验收保留。新增回归确认 API 失败不等于零命中，分页或请求耗尽不冒充完整，注入文本被标记。 |
+| AC4 | 在线小样本达到门槛，仍需更多真实评估 | 用原先冻结的 10 条 Ascend traceback，不带编号或 URL，双仓库近一年在线搜索：**Top-1 = 6/10、Top-5 = 8/10**，46 次有节奏的搜索请求、全部完整返回；无匹配对照为 0。另核未合并 PR 不当修复。这是自动关键词候选召回，尚不代表全仓库召回或 skill 的因果判断正确率。 |
+| AC5 | 在线修复版本链已真实验证 | #15815 → #15981 → `87c345c13d3b259fac8761d68381bd91df6906aa`；在线解析 v0.26 分支为 `2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f`，compare 确认包含。详情缺失的合并 SHA 从明确 merged 事件取得，标记来源；回移、revert 与运行前提仍须另核。 |
+| AC6 | 真实 PR 草稿与待审 diff 已产出 | #11953 参数删除 diff 经 sanitize → compileRaw → prepareDraftReview，产出 `pr-11953`；review `c95be1987f15bf3a9dd302c0089aeed969193d8d381f78bda4bb5aa1f878d120` 为 pending。作者是当前 Codex 会话，经通用 `RunAgent` 递交真实撰写结果，不冒称 Claude 成功或无人值守验收通过。正式库未自动发布。 |
+| AC7 | 既有 10 条真实样本验收保留 | 12 个文档链接均解析版本与路径，9 个映射本地，3 个明确无对应 ref。在线 skill 继续遵循文档版本边界；新 CLI 尚未额外嵌入映射结果。 |
 
+判准保持七项，不另扩验收机制：
 
-- **AC1 · 全量拉取**：`pnpm wiki:sync-github --full` 把 vllm-ascend 全部 issue 与 PR 拉到 `tools/corpus/vllm-ascend/{issues,prs}/<n>.md`，每条含标题、正文、状态、标签、作者、创建与关闭时间、关联引用（`fixes #n`、`closes #n`）、合并状态与提交 sha，以及带永久链接的讨论评论。纯文本、不进 git（`.gitignore` 加 `tools/corpus/`）。断点续拉：保留分页进度与已落盘条目，重试按仓库、类型、编号去重，并补扫中断期间的更新。验收：完整遍历分页，分开统计 issue / PR，与同一观测窗口的 API 计数核对；变动导致的差异须补扫并解释，不能用最大编号充当条数。随机抽 5 条与网页版对照无缺字段。
-- **AC2 · 增量更新**：`pnpm wiki:sync-github` 按 `updated_at` 增量拉取，覆盖正文、状态和评论更新，检查点只在本轮完整成功后推进。验收：上游无变化时连跑两次，第二次新增 / 更新落盘条数为 0 且退出码 0；允许为边界去重发起重叠查询。
-- **AC3 · 失败可见**：API 限额、网络失败、token 失效各自给出可区分的报错信息，非零退出，并在 `wiki/log.md` 写一条同步记录（时间、拉取数、失败数、原因）。验收：用无效 token 跑一次，报错指明是鉴权问题而不是笼统的网络错误。
-- **AC4 · 报错检索**：聊天层通过 F001 AC10 的 `retrieve()` 接口接入语料。第一版实现：从用户贴的报错里抽取稳定片段（异常类名、错误信息主干、去掉路径与行号等易变部分）做精确 grep。验收：预先固定 10 条真实 issue traceback，Top-5 包含原 issue 的条数 ≥ 7，同时报告 Top-1；调参样本另取，检索输入不含 issue 编号、URL 或答案标注。另设无匹配对照，不得把词面相似呈现成已确认修复。不达标记录实测数据，按 F001 的约定评估是否给语料加向量检索。
-- **AC5 · 溯源链路**：命中 issue 后顺着 `fixed by #NNNN` 找到 PR，再查 F002 的谱系得出修复进了哪些 tag 与分支。验收：给定一条已修复的 issue，输出链路完整（issue → PR → 合并提交 → 含该提交的 tag 列表）。
-- **AC6 · 重要 PR 升级为 wiki 页**：PR 的 diff 若触及 seeds 里声明的入口文件或 F002 的参数定义文件，自动排进 ingest 队列生成草稿；社区不可信文本（PR 正文、评论）经 sanitize 模块处理后才进 prompt。验收：挑一个真实的参数改动 PR，草稿生成且 diff 可读；构造一条含提示注入的评论，sanitize 后注入片段不出现在 prompt 里。
+- **AC1 · 有界在线搜索**：实际仓库、时间与查询可核对；候选数量不冒充全量计数。
+- **AC2 · 按需取证与缓存**：正文、讨论、关联事件、PR diff 和评审有来源与时间，截断或缺失显式报告。缓存不自动成为正式页。
+- **AC3 · 失败可见**：失败与零命中分开；保留可读的部分证据，不猜缺失内容，不连续重试限额错误。
+- **AC4 · 报错检索质量**：固定真实 traceback，查询不带答案编号或 URL，报告 Top-1 / Top-5 与无匹配对照。10 题 Top-5 至少 7 题仅为小样本门槛；另验证 skill 的环境差异与因果判断，不能把关键词命中当修复确认。
+- **AC5 · 修复版本判断**：明确修复因果、合并状态、修复 commit、目标 ref 解析出的 SHA。`not-ancestor` 只证明原提交不在祖先链，等价回移仍可能存在；证据不足返回无法确认。
+- **AC6 · 重要 PR 升级**：保留触及 seeds / 参数入口的排队逻辑；清洗后由可替换作者生成草稿，经现有来源、schema、lint 与整合校验，完整 diff 可审阅，发布遵循审阅状态。不绑定一家模型。
+- **AC7 · 文档链接**：解析官方 URL 并区分引用版本和当前 pin，映射失败给原因，不将 latest 当作所有版本。
 
-- **AC7 · 解析 issue 里引用的文档链接**：社区讨论大量引用官方文档 URL（`docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html`）。抓取时把这类链接解析成结构化引用（版本 + 路径），并映射到本地 `docs/source/` 的对应文件，让「这条 issue 讲的是哪一页文档」可被检索与跳转。链接指向的版本与当前钉住的版本不同时要标出来。验收：取 10 条含文档链接的真实 issue，链接全部被解析出版本与路径，且能映射到本地文件（映射不到的要给出原因，例如该页已被删除）。
+## 使用与费用边界
 
-**Out of scope**：向量检索（先做 AC4 的 grep 实现并实测命中率，不达标再评估）；vllm 上游仓库的 issue（需要时同一套脚本加一个 repo）；把全部 issue 转成 wiki 页（成本不成立，见 Why）；GitHub webhook 实时推送（每日增量足够）。
+```bash
+pnpm -s wiki:github-trace plan --input <日志文件>
+pnpm -s wiki:github-trace search --query "UnquantizedFusedMoEMethod is_monolithic"
+pnpm -s wiki:github-trace inspect --url https://github.com/vllm-project/vllm-ascend/issues/15815
+pnpm -s wiki:github-trace verify --repo vllm-project/vllm-ascend --fix 87c345c13d3b259fac8761d68381bd91df6906aa --target releases/v0.26.0rc
+```
 
-## Dependencies
+命令不调用模型、不写 GitHub；凭据只读环境 `GITHUB_TOKEN`，无凭据也可查询公开资料，限额不足如实报告。默认缓存已读响应；`--no-cache` 禁用，`--refresh` 重取，`--output` 只写本机 runtime。`complete` 只描述此次有界请求，不代表穷尽全库。skill 另行阅读、判断并组织回答。
 
-- **GitHub 访问（真实全量验收前检查）**：凭据放本机环境变量 `GITHUB_TOKEN`，不进仓库、不输出值。按实际端点选择最低所需读取权限；请求量、限额与首拉耗时实测记录，不沿用按条数估时。离线开发与计划编写不依赖 token。
-- **F001 AC10（阻塞 AC4）**：可替换的 `retrieve()` 接口。
-- **F002（阻塞 AC5）**：版本谱系提供「修复进了哪个 tag / 哪些分支」。
-- **官方文档站与本地 `docs/source/`（AC7）**：解析 issue 里的文档链接需要两边的映射关系。
-- **F004 共用编译与审阅管线（AC6）**：sanitize、队列、草稿和批准后的整合由 [F004 plan](../plans/knowledge-loop-plan.md) 定义一次；参考 Multi-Agent 的 sanitize 纯函数与测试，核对后引入，不整套搬运。
+AC6 原 Claude 调用因周额度耗尽失败，现能透传具体诊断；用户随后授权当前会话。桥接回执的 `costUsd: 0` 只表示没有新增项目 CLI/API 账单，**不表示交互会话不消耗额度，也不是交互会话美元计费数据**。默认自动 CLI 仍是 Claude，跨提供方无人值守调用尚未实现；现有 `RunAgent` 和 `wiki:stage` 可让其它作者经过同一校验、审阅流程。
 
-## Design Decisions
+本机证据：`tools/wiki-runtime/f3-online-20260922/` 下 `search-error-real.json`、`issue-real.json`、`pr-real.json`、`version-real.json`、`vllm-pr-real.json`、`nomatch-real.json`、`ac6-result.json`、`ac6-review.diff`。换机器需重跑；它们不是另一份共享状态表。
 
-| 决策 | 选项 | 结论 | 原因 |
-|------|------|------|------|
-| 1.6 万条的处置 | 全转 wiki 页 / 存为检索语料 | **检索语料，选择性升级为页** | 按 2026-09-10 的估价全转要四万美元量级，且多数无沉淀价值；语料不过 LLM，零额度，提问时才读 |
-| 语料是否进 git | 进 / 不进 | **不进**，`.gitignore` 加 `tools/corpus/`，靠脚本重建 | 1.6 万条文本会显著撑大仓库；与 `tools/repos/` 同样的处置方式 |
-| 拉取方式 | GitHub REST 逐条 / GraphQL 批量 | **REST + 分页**，先做对再谈快 | REST 的限额与错误语义更直白，断点续拉容易实现；不够快再换 GraphQL |
-| 报错检索第一版 | 直接上向量 / 先精确 grep 并实测 | **先 grep，实测命中率再决定**（用户 2026-09-10 拍板先不加向量） | issue 里的 traceback 多为原样粘贴，精确片段命中率可能已足够；向量要引入嵌入模型、向量库与重嵌入流程，且会成为第二个真相源 |
-| PR 号与 issue 的关联 | 只存原文让 agent 自己找 / 解析出结构化关联 | **解析 `fixes/closes #n` 存成字段** | 溯源链路要能被脚本跟随，不能每次都靠 LLM 读原文 |
-| 不可信文本 | 直接进 prompt / 先 sanitize | **先 sanitize，并限制编译 agent 的工具与读取范围** | issue、PR 正文、评论、投喂及聊天都不能作为工具指令；文本清洗本身不是完整隔离 |
+## 尚待完成
 
-各轮的历史实施证据在 [逐轮 review 归档](../plans/archive/README.md)，只作历史保留；当前状态一律以上方验收表为准，花费以 `pnpm wiki:budget status` 为准。
+更多真实排错评估、网页聊天在线入口；待审 PR 按实际审核结果发布。`maxTasks` 保持用户既定时点：这个阶段做完、大规模导入前配置，不由本轮私自开启。其它付费开关、课程术语与硬件边界仍看交接页。
 
-## Timeline
+## Dependencies / Links
 
-| 日期 | 事件 |
-|------|------|
-| 2026-09-10 | 用户提出报错溯源需求；查明仓库规模 12,074 PR / 4,188 issue；确认全量转页成本不成立，定为检索语料；用户表示会提供 token。立此 feature |
-| 2026-09-14 | 补实施计划；校正分页、增量去重与验收口径，明确评论覆盖和 F004 共用依赖。全部 AC 仍待实施与验证 |
-
-## Links
-
-- Plan: [github-corpus-plan.md](../plans/github-corpus-plan.md)
-- 依赖: [F001](F001-llm-wiki.md) AC10、[F002](F002-param-lineage.md)
-- sanitize 来源: `C:\Users\-\Desktop\Multi-Agent\packages\api\src\wiki\sanitize\`
-
-## Evolution
-
-- **Evolved from**: [F001](F001-llm-wiki.md) AC8（PR ingest 从「手动一条命令」扩成「全量语料 + 自动升级」）
-- **Blocks**: 无
-- **Related**: PLAN 第 21 章「PR 影响分析」
+- [F001](F001-llm-wiki.md)：检索、知识页与证据规则。
+- [F002](F002-param-lineage.md)：本地版本谱系，在线 compare 提供补充。
+- [F004](F004-knowledge-loop.md)：清洗、草稿、审阅和发布共用链路。
+- [历史采集计划](../plans/github-corpus-plan.md)：保留旧同步器设计，不是当前首拉指令。
+- [GitHub Search](https://docs.github.com/en/rest/search/search)、[PR API](https://docs.github.com/en/rest/pulls/pulls)：搜索上限与 PR 字段的官方依据。

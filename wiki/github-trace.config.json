@@ -1,0 +1,12 @@
+{
+  "repos": ["vllm-project/vllm-ascend", "vllm-project/vllm"],
+  "years": 1,
+  "queriesPerRepo": 3,
+  "resultsPerQuery": 10,
+  "candidateLimit": 12,
+  "relatedPrLimit": 3,
+  "pagesPerResource": 3,
+  "requestLimit": 60,
+  "cacheHours": 6,
+  "textLimit": 16000
+}

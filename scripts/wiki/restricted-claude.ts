@@ -49,6 +49,7 @@ export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
   let results = 0;
   let output: string | undefined;
   let invalid = false;
+  let diagnostic: string | undefined;
   const result = await spawnClaude(req, (line) => {
     let value: Record<string, unknown>;
     try {
@@ -62,6 +63,7 @@ export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
       invalid = true;
     if (value.type !== "result") return;
     results++;
+    if (value.is_error === true && typeof value.result === "string") diagnostic = value.result.slice(0, 2000);
     if (
       value.is_error !== false ||
       typeof value.result !== "string" ||
@@ -75,6 +77,12 @@ export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
     };
   });
   if (!result.ok || invalid || results !== 1 || !output?.trim())
-    return { ...result, ok: false, reason: result.reason ?? "受限编译未返回唯一有效文本，或出现工具调用" };
+    return {
+      ...result,
+      ok: false,
+      reason: diagnostic
+        ? `${result.reason ?? "provider-error"}: ${diagnostic}`
+        : (result.reason ?? "受限编译未返回唯一有效文本，或出现工具调用"),
+    };
   return { ...result, output };
 };

@@ -1,5 +1,5 @@
-# 11 章 KV Cache 内存系统 · 试点批（11 个 feature）。
-# 每个 feature 对照两个 ref：稳定分支 releases/v0.23.0 与开发主线 main。
+# 11 章 KV Cache 内存系统；具体数量与每页版本范围以 features 为准。
+# 09-22 新增 LMCache / UCM 的三版本巡检入口，未启动批量 ingest。
 # 只钉一个 ref 是 2026-09-12 被推翻的做法——读者在稳定分支上开发、页面讲 main，
 # 对不上就等于没用；讲清版本差异正是这个知识库存在的理由之一。
 # 跑法：pnpm wiki:clone --seeds wiki/seeds/vllm-ascend.yaml && pnpm wiki:ingest --seeds wiki/seeds/vllm-ascend.yaml
@@ -132,3 +132,25 @@ features:
     entry: [docs/source/user_guide/feature_guide/quantization.md, vllm_ascend/quantization/quant_type.py, vllm_ascend/attention/attention_v1.py]
     docs: [docs/source/user_guide/feature_guide/quantization.md]
     ask: kv_cache_dtype 支持哪些取值、int8 KV 的 scale 从哪来、attention 算子如何消费量化 KV、与权重量化的关系。
+
+  - id: lmcache
+    title: LMCache
+    type: feature
+    chapters: ["11"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+    entry: [docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md, vllm_ascend/distributed/kv_transfer/__init__.py]
+    docs: [docs/source/user_guide/feature_guide/lmcache_ascend_deployment.md]
+    ask: 核对各分支谁负责注册 LMCache 连接器、上游与外部插件的职责边界、部署依赖和冷/热缓存验证，不将文档示例的包版本当成已测试兼容性。
+
+  - id: ucm
+    title: UCM
+    type: feature
+    chapters: ["11", "13"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+    entry: [docs/source/user_guide/feature_guide/ucm_deployment.md, vllm_ascend/distributed/kv_transfer/__init__.py]
+    docs: [docs/source/user_guide/feature_guide/ucm_deployment.md]
+    ask: 区分集中式共享存储 PD 与 Mooncake P2P 加 UCM 前缀复用；核对连接器模块迁移和配置示例的适用范围，不猜外部包内部实现与兼容矩阵。

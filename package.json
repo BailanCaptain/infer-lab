@@ -57,7 +57,8 @@
     "wiki:sync": "tsx scripts/wiki-sync.ts",
     "wiki:drift": "tsx scripts/wiki-drift.ts",
     "wiki:retest": "tsx scripts/wiki-retest.ts",
-    "wiki:trace": "tsx scripts/wiki-trace.ts"
+    "wiki:trace": "tsx scripts/wiki-trace.ts",
+    "wiki:github-trace": "tsx scripts/wiki-github-trace.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

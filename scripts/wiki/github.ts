@@ -45,9 +45,21 @@ export class GithubClient {
     private token?: string,
     private fetcher: typeof fetch = fetch,
   ) {}
+  searchIssues(query: string, perPage = 10): Promise<unknown> {
+    if (!query.trim() || !Number.isInteger(perPage) || perPage < 1 || perPage > 100)
+      throw new Error("无效的 GitHub 搜索参数");
+    return this.request(`/search/issues?q=${encodeURIComponent(query)}&per_page=${perPage}`);
+  }
+  compareCommits(repo: string, base: string, head: string): Promise<unknown> {
+    if (![base, head].every((sha) => /^[a-f\d]{40}$/i.test(sha))) throw new Error("比较提交需要两个完整 SHA");
+    return this.request(`${repoPath(repo)}/compare/${base}...${head}`);
+  }
   async get(path: string): Promise<unknown> {
     if (!path.startsWith("/repos/") || path.includes("..") || path.includes("\\"))
       throw new Error("非法 GitHub API 路径");
+    return this.request(path);
+  }
+  private async request(path: string): Promise<unknown> {
     let response: Response;
     try {
       response = await this.fetcher(`https://api.github.com${path}`, {

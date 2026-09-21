@@ -1,0 +1,76 @@
+layout: scene
+id: lmcache
+caption: 注册责任的变化：发布分支由昇腾接到上游连接器，main 把入口交回插件；图不推断插件内部存储布局。
+size: [900, 540]
+regions:
+  - label: v0.23 维护分支 / v0.26 分支
+    at: [20, 24]
+    size: [530, 470]
+    tone: ascend
+  - label: main 开发主线
+    at: [574, 24]
+    size: [306, 470]
+    tone: neutral
+boxes:
+  - at: [44, 84]
+    size: [482, 66]
+    title: 服务配置里的注册名
+    fn: LMCacheAscendConnector
+    tone: ascend
+    icon: plug
+  - at: [44, 190]
+    size: [482, 80]
+    title: 昇腾包装模块先导入插件
+    sub: 再从上游 vLLM 导入连接器类
+    fn: lmcache_ascend
+    tone: ascend
+    icon: patch
+  - at: [44, 326]
+    size: [482, 68]
+    title: 上游连接器选择实现
+    fn: LMCacheConnectorV1
+    sub: 默认 use_native = False
+    tone: upstream
+    icon: split
+  - at: [598, 100]
+    size: [258, 90]
+    title: 本仓库不再注册旧名称
+    sub: 旧配置不能原样当成新入口
+    tone: neutral
+    icon: diff
+  - at: [598, 302]
+    size: [258, 90]
+    title: LMCache-Ascend 包负责
+    sub: 注册方式与运行配置一起核对
+    tone: accent
+    icon: plug
+boundaries:
+  - at: 296
+    from: 44
+    to: 526
+    vertical: false
+    label: 昇腾包装层 / 上游连接器
+arrows:
+  - { from: [285, 152], to: [285, 188], tone: ascend }
+  - { from: [285, 272], to: [285, 324], tone: upstream }
+  - { from: [727, 192], to: [727, 300], tone: accent }
+notes:
+  - at: [44, 424]
+    text: 默认实现从已安装的 LMCache 包加载；注册成功仍不证明后端配置正确。
+    width: 480
+    size: 12.5
+  - at: [598, 424]
+    text: 这里的变化不等于取消昇腾支持。
+    width: 250
+    size: 12.5
+  - at: [20, 514]
+    text: 先确认四个版本：vLLM、vllm-ascend、LMCache、LMCache-Ascend；再验证冷缓存与热缓存。
+    width: 860
+    size: 12.5
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L65
+    symbols: [LMCacheAscendConnector, LMCacheConnectorV1]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5
+    symbols: [lmcache_ascend]
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L83-L115
+    symbols: [use_native]

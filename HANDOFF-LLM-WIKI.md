@@ -6,7 +6,7 @@
 ## 1. 从哪开始
 
 - **目录**：`C:/Users/-/Desktop/infra-view-new-llm-wiki`，分支 `feat/llm-wiki`，只在本地，未推送未合并。用户默认打开的 `infra-view-new` 是 `main`，**不是 Wiki 的现状，不要在那边重做**。
-- **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源，已更新到 2026-09-21）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
+- **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源；F003 于 2026-09-22 按在线查证方向更新）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
 - **东西在哪**：内容 `wiki/`（`concepts/` 教学页、`params/` 参数页、`diagrams/` 图 spec、`seeds/` 源码钉点）；命令 `scripts/wiki*.ts` + `scripts/wiki/`；后端 `server/`；阅读页 `src/app/wiki/`。`src/sim/`、`src/timeline/` 是同仓库里 infer-lab 的东西，与 Wiki 无关，**别去读**。
 - 仓库根的 `CLAUDE.md` 与 `AGENTS.md` 逐字重复是**有意保留**（两个工具各读一份），不要合并。
 - **本机数据不在 git 里**：`tools/repos/`（源码语料）、`tools/corpus/`、`tools/wiki-runtime/`、`wiki/_jobs/budget/`、`wiki/_jobs/sync/`。换机器要 `pnpm wiki:clone` 重建，账本和回执带不走。
@@ -43,7 +43,7 @@
 
 **用户 2026-09-20 定的做事方式——接手的人最容易做错的就是这一段：**
 
-- **凡是写文档 / 知识页的活一律派 Opus 5 子代理写，主会话不自己写正文**；主会话负责定规范、派活、逐页核对事实、跑校验、提交。
+- **本会话授权更新（09-22）**：用户明确“暂时不用交给 Opus，当前会话直接推进”，后又明确“额度用完用你自己的，不需要定死 Claude”。本会话可直接撰写并核对正文；编译与审阅契约不绑定提供方，自动 CLI 的默认实现仍需单独配置。历史 Opus-only 约定不阻塞本会话。
 - **暂时不逐页待审**：和用户方向一致时，写好并过校验就直接更新知识库。`pnpm wiki:stage`（不调模型、过同一套生产校验、产出待审包）仍在，只用于确实需要用户过目的改动。**这是过渡办法**——用户 09-21 明确「只是暂时这样」，「agent 写、人只审」最后要做回来，见 §4 开头那笔欠账。
 - **一直往下推进，不要停下来问**，除非需要用户审批或确实拿不准。
 - **页面写法**：用户认可的是 `wiki/concepts/vllm-v1-shape.md`、`vllm-ascend-overview.md` 那一类（一句话 + 图 → 那条请求走到这里 → 结论句小标题 → 常见误解）。全库已统一，规则写在 HANDBOOK「页面格式 › 正文分节 › 教学页的推荐写法」。
@@ -63,12 +63,12 @@
 **特性页主线已补齐、v0.26 已对完**（§6），所以剩下的是：
 
 1. ~~参数骨架页的正文~~ —— **09-21 已完成**：误报的 5 页删掉之后剩 10 页，当天全部补成正文（名单与要点见 §6）。`wiki/params/` 里已没有写着「待补」的页（现查 `git grep -l 待补 -- wiki/params`）。
-2. **课程术语页。** 30 个里 `kv-cache`、`rope`、`prefill` 三页试点已由用户批准、写法也认可；缺哪些词用 `pnpm wiki:lint --terms` 现查。**等模型计算层的章节在另一个会话定下来再做**（术语要跟着章节走）；三页试点还**没配图**，而 HANDBOOK 要求讲结构关系的页必须有图。**「把 `<Term>` 悬停卡接进课程正文」现在无处可接**：这个分支的 `src/app` 里没有地方渲染 `Step.terms`，等课程界面定下来再接，不算漏做。
+2. **课程术语页。** 30 个里 `kv-cache`、`rope`、`prefill` 三页试点已由用户批准、写法也认可；缺哪些词用 `pnpm wiki:lint --terms` 现查。**等模型计算层的章节在另一个会话定下来再做**（术语要跟着章节走）；三页试点的配图已于 **09-22 补齐**，并收紧 RoPE 相对位置与 prefill 分块的表述。**「把 `<Term>` 悬停卡接进课程正文」现在无处可接**：这个分支的 `src/app` 里没有地方渲染 `Step.terms`，等课程界面定下来再接，不算漏做。
 3. **硬件页**：留到硬件段最后接入，不要提前开。
-4. **LMCache / UCM 两篇**：官方特性主线就剩这两篇第三方存储部署指南，写法同三版本规则。
+4. ~~LMCache / UCM 两篇~~ —— **09-22 已补齐正文与图**，均核对三个在册分支。LMCache 的 main 注册责任已交回插件，UCM 的模块路径迁移与两种部署方式分别说明，不猜第三方包的兼容性。
 5. ~~main 重钉~~ —— **09-22 已重钉到 `baa023ad`（上游 09-21 快照）**：正文、图、参数生成区与 seeds 已对齐，两个发布分支保持原 pin。本轮只读 `wiki:stale` 已归零；以后上游变化仍按 `wiki:stale --fetch` 出清单 → 逐页核 → 统一改 seeds，单独做一轮。
 6. **新页作者们反复建议补的地基页——是建议，不是已定**：被点名最多的是 `hardware-profile`（设备类型）、`model-runner-v2`、`mooncake-connector-v2`、`fused-moe-layer`。开写前先问用户。
-7. **明确挂起、等用户说开始**：三项大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉）**仍放在最后一步，必须用户点头**。
+7. **明确挂起、等用户说开始**：大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页；GitHub 全库镜像已不是 F003 必经步骤）**仍放在最后一步，必须用户点头**。
 8. **两件已定、不必再问的事**：① **conda 环境不用建**（用户 09-21 定）——参数扫描脚本 `scripts/wiki/params/scan.py` 只 import `ast` / `json` / `re` / `sys`，全是标准库，任何 3.11+ 的解释器都跑得了（3.11 是硬下限：钉住的 main 快照里有两处 `typing.Literal[*args]` 这种 PEP 646 星号下标，3.10 及以下 `ast.parse` 直接语法错、整轮扫描退出）。开源用户 PATH 上有 Python 3.11+ 就行，不合适再写一行 `wiki/sync.config.local.json`（gitignore，`{"python": "<路径>"}`）。这台机器现在借的是 Codex 私有缓存里的那份，哪天它没了，夜间任务会**当场报错**并在错误信息里写明「解释器 X；当前上游需要 3.11+，可用 `WIKI_PYTHON` 或同步配置 `python` 指定」（`scripts/wiki/params/scan.ts:17`），不会悄悄坏掉，所以不值得为它装一套 conda；② **`maxTasks` 什么时候开**——用户 09-21 定：**等这个阶段做完、大规模导入之前再开**。它一开，新内容自然走「agent 写草稿 → 人在面板上审」，上面那笔欠账也就一并还了。另外两个付费开关（`reconcileBatches` / `driftSample`，各是什么见状态文档 §6）照旧建议先不开；F004 AC3 的「够不够」仍是回答模型自报。
    还有两项**不是缺陷，别再当 TODO**：`wiki/sources/` 空着，是因为它只是「存进 Wiki」保存问答记录的落点，还没人存过；`log.md` 记不进问答是**有意不做**——它属于知识快照，每问一次就写它会让知识版本号变、所有问答会话被重置。
 
@@ -100,7 +100,15 @@
 - 问答侧：「声明未收录」的回答判 `cited: true` 是复测验收（`scripts/wiki/retest.ts:244`）依赖的语义，**看着像 bug 也不要改成 false**——试过，`worker.test.ts` 会红，「结论带引用 + 其他版本尚未收录」这种好回答会永远验收不了。前端该显示的中性「未收录」标记已经补上（`ChatDrawer.tsx`，`data-testid="chat-uncovered"`）。
 - 用户对视觉要求高，前端改动必须截图验收。应用内浏览器面板截图经常超时，用仓库自带 Playwright 写临时脚本截（放 `test-results/`，已 gitignore）。
 
-## 6. 最近两轮做了什么
+## 6. 最近做了什么
+
+### 2026-09-22：补内容与在线报错溯源
+
+- LMCache、UCM 两篇及配图已完成；三个术语试点 kv-cache / rope / prefill 补图，修正 RoPE 分数只由距离决定的过强说法。
+- F003 按用户决定转为近一年、vllm 与 vllm-ascend 双仓库在线查证；入口为 `.agents/skills/vllm-error-trace/SKILL.md`，命令 `pnpm wiki:github-trace help`，范围只读 `wiki/github-trace.config.json`。缓存已查证据，不进行全库导入；网页聊天在线入口尚未接入。真实链路与验收边界只看 F003 表。
+- AC6 真实 PR #11953 已由当前会话撰写并经过 compileRaw / prepareDraftReview，停在 pending；运行 `pnpm wiki:review list` 查看，不把待审冒称发布。Claude 周额度失败不再阻塞本会话，回执标明真实作者与费用统计边界。
+- 大规模导入、夜间付费开关、待定的新地基主题、课程与硬件方向均未擅自开启。
+
 
 ### 2026-09-22：main 重钉
 

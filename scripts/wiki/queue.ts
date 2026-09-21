@@ -116,6 +116,7 @@ export async function runTask(
       if (current.lease?.token !== task.lease?.token) throw new Error("队列租约已变化");
       const next = { ...current, ...output };
       delete next.lease;
+      delete next.reason;
       save(root, next);
       return next;
     });

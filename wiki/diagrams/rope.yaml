@@ -1,0 +1,29 @@
+layout: scene
+id: rope
+caption: 只画一个二维配对：Q 与 K 各按自己的位置旋转。点积的位置因子取决于角度差，内容向量仍决定分数。
+size: [900, 500]
+regions:
+  - { label: Q 的一对分量 · 位置 p, at: [20, 24], size: [414, 304], tone: upstream }
+  - { label: K 的一对分量 · 位置 q, at: [466, 24], size: [414, 304], tone: ascend }
+arrows:
+  - { from: [105, 260], to: [370, 260], tone: muted }
+  - { from: [105, 260], to: [105, 90], tone: muted }
+  - { from: [105, 260], to: [300, 224], tone: muted, style: dashed }
+  - { from: [105, 260], to: [232, 108], tone: upstream }
+  - { from: [551, 260], to: [816, 260], tone: muted }
+  - { from: [551, 260], to: [551, 90], tone: muted }
+  - { from: [551, 260], to: [728, 204], tone: muted, style: dashed }
+  - { from: [551, 260], to: [587, 78], tone: ascend }
+notes:
+  - { at: [236, 102], text: 旋转后 Q, size: 13 }
+  - { at: [270, 215], text: 原 Q, size: 13 }
+  - { at: [598, 98], text: 旋转后 K, size: 13 }
+  - { at: [740, 198], text: 原 K, size: 13 }
+  - { at: [158, 291], text: 转角 p × 频率, size: 13 }
+  - { at: [604, 291], text: 转角 q × 频率, size: 13 }
+  - { at: [42, 354], text: 同一对分量使用同一个频率；实线和虚线等长，示意角度不对应具体 token。, size: 13, width: 820 }
+boxes:
+  - { at: [42, 385], size: [816, 76], title: 点积里的位置项只剩 (q − p) × 频率, sub: 两个内容向量一起平移位置时点积不变；换 token 内容，分数仍会变。, tone: accent }
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/common.py#L164-L177
+    symbols: [cos, sin]

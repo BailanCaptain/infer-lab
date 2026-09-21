@@ -1,0 +1,96 @@
+{
+  "observedAt": "2026-09-21T17:49:52.616Z",
+  "inputHash": "86b55ae9c25a383ce5f80084adc78f7fb48d0814dd0dd1cd37192268a863fd4c",
+  "scope": "Original frozen Ascend traceback set; searched both configured repositories. Terms are sanitized and contain no answer IDs. Relevance, not causal accuracy.",
+  "top1": 6,
+  "top5": 8,
+  "cases": [
+    {
+      "terms": [
+        "ERROR core RuntimeError NPUModelRunner failed error npuSynchronizeDevice NPU function AclrtSynchronizeDeviceWithTimeout code",
+        "ERROR core RuntimeError npuSynchronizeDevice NPU function error AclrtSynchronizeDeviceWithTimeout code",
+        "RuntimeError"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16581",
+      "observedRank": 1
+    },
+    {
+      "terms": [
+        "EngineCore_DP1 ERROR core RuntimeError Executor failed",
+        "EngineCore_DP1 ERROR core RuntimeError cancelled",
+        "AssertionError collective_rpc should not called follower node"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16577",
+      "observedRank": 1
+    },
+    {
+      "terms": [
+        "frame c10 Error SourceLocation std __cxx11 basic_string char char_traits allocator"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16576",
+      "observedRank": 2
+    },
+    {
+      "terms": [
+        "vllm engine exceptions EngineDeadError EngineCore encountered issue See stack trace above for the root",
+        "vllm serving except Exception logger exception prints the full accumulated once per request",
+        "The exception propagates through AsyncLLM generate except EngineDeadError raise vllm ascend patch_glm_reasoning_usage_accounting _tracked_stream_results wrapper"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16567",
+      "observedRank": 1
+    },
+    {
+      "terms": [
+        "frame c10 Error SourceLocation std __cxx11 basic_string char char_traits allocator",
+        "ERROR RUNTIME stream GetError DFX_INFO Core kernel execution failed device_id stream_id report_stream_id task_id flip_num",
+        "ERROR RUNTIME stream GetError AIC_INFO after execute mixCtx print end"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16535",
+      "observedRank": 2
+    },
+    {
+      "terms": [
+        "RuntimeError NPUModelRunner init failed error expected src have size",
+        "RuntimeError src size slice",
+        "Worker_TP0 ERROR multiproc_executor RuntimeError expected src have"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16488",
+      "observedRank": 1
+    },
+    {
+      "terms": [
+        "Worker_DP1_TP1_EP9 pid xxxxx ERROR RuntimeError synchronize NPU function error aclrtSynchronizeEvent event_ code",
+        "RuntimeError synchronize NPU function error aclrtSynchronizeEvent event_ code",
+        "RuntimeError"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16446",
+      "observedRank": 1
+    },
+    {
+      "terms": [
+        "Worker_DP3_TP0_EP12 pid ERROR multiproc_executor RuntimeError aclnnHcPre aclnnHcPreGetWorkspaceSize not libopapi sonot found",
+        "RuntimeError libopapi",
+        "RuntimeError"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16379",
+      "observedRank": 10
+    },
+    {
+      "terms": [
+        "RuntimeError npu_chunk_gated_delta_rule NPU function error aclnnChunkGatedDeltaRule failed code",
+        "RuntimeError"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16359",
+      "observedRank": 9
+    },
+    {
+      "terms": [
+        "RuntimeError Connection closed peer",
+        "Worker_PP1_TP15_EP15 pid ERROR multiproc_executor zmq error ZMQError Address already use addr",
+        "worker ZMQError Address already use addr"
+      ],
+      "expected": "https://github.com/vllm-project/vllm-ascend/issues/16237",
+      "observedRank": 1
+    }
+  ]
+}

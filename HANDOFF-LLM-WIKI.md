@@ -6,7 +6,7 @@
 ## 1. 从哪开始
 
 - **目录**：`C:/Users/-/Desktop/infra-view-new-llm-wiki`，分支 `feat/llm-wiki`，只在本地，未推送未合并。用户默认打开的 `infra-view-new` 是 `main`，**不是 Wiki 的现状，不要在那边重做**。
-- **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源，已更新到 2026-09-20）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
+- **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源，已更新到 2026-09-21）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
 - **东西在哪**：内容 `wiki/`（`concepts/` 教学页、`params/` 参数页、`diagrams/` 图 spec、`seeds/` 源码钉点）；命令 `scripts/wiki*.ts` + `scripts/wiki/`；后端 `server/`；阅读页 `src/app/wiki/`。`src/sim/`、`src/timeline/` 是同仓库里 infer-lab 的东西，与 Wiki 无关，**别去读**。
 - 仓库根的 `CLAUDE.md` 与 `AGENTS.md` 逐字重复是**有意保留**（两个工具各读一份），不要合并。
 - **本机数据不在 git 里**：`tools/repos/`（源码语料）、`tools/corpus/`、`tools/wiki-runtime/`、`wiki/_jobs/budget/`、`wiki/_jobs/sync/`。换机器要 `pnpm wiki:clone` 重建，账本和回执带不走。

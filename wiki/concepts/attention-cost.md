@@ -22,7 +22,10 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4987-L4999
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L104-L129
+  - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L5008-L5052
+  - vllm-ascend@2ed6cbba:tests/ut/worker/a2/test_model_runner_v1.py#L625-L646
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: attention-backend-family
@@ -35,7 +38,7 @@ relations:
     kind: builds-on
     note: GQA 那一条的完整推导在那一页，这里只取结果拿来跟另外三条并排比
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -103,7 +106,7 @@ SFA 和 DSA 在 MLA 的基础上多存一份东西：**indexer 的 key**。
 
 ## C8 那一档在省什么
 
-开 LI C8 之后，indexer 那份 key 从 bf16 换成 int8，另外补一个 fp16 的 scale [C6][C7]：
+开 LI C8 之后，indexer 那份 key 从 bf16 换成 int8，另外补一个 fp16 的 scale [C7]：
 
 ```
 576 × 2（潜向量，还是 bf16） + 128 × 1（key，int8） + 1 × 2（scale，fp16） = 1282 B
@@ -116,12 +119,22 @@ SFA 和 DSA 在 MLA 的基础上多存一份东西：**indexer 的 key**。
 ## 算显存最容易错的三处
 
 1. **给 MLA 也乘了 2。** 那个 2 只属于五维那条，套上去直接偏一倍 [D]。
-2. **忘了 indexer 那一份。** 开稀疏时 `head_size` 是三段之和，不是两段 [C8]。
+2. **忘了 indexer 那一份。** 开稀疏时它是要单算的：v0.23 把它并进 `head_size` 的三段之和 [C8]，v0.26 起它自己一份 spec。
 3. **拿"每 token 字节数"直接乘序列长度就当成占用。** 实际占用按**块**取整——那条请求 237 个 token 真正用掉 25.9 MiB，却占住两个整块 28 MiB。零头是拿不回来的。
+
+## v0.23 与 v0.26 起的差异
+
+稀疏那两条的账在 v0.26 上被拆成两份 spec 记，每 token 的总字节数没变。MLA 那一支的页字节覆写方法也改了名，见 [KV Cache Spec](kv-cache-spec.md)。
+
+| 项 | v0.23 维护分支 | v0.26 起 | 意味着什么 |
+|---|---|---|---|
+| 稀疏层的 KV spec | 一份 `AscendMLAAttentionSpec`，`head_size` 是 512+64+128 | MLA 主缓存的 `head_size` 只剩 512+64，indexer 另起一份 `AscendSFAIndexerCacheSpec` [C17] | 拿单份 spec 的页字节算稀疏层显存，v0.26 上只会拿到 1152，漏掉 indexer 那一份 `[!]` |
+| indexer 的 key 与 scale | 主缓存的 `kv_cache[2]` 与 `kv_cache[3]` | indexer 层自己的一份 spec 和物理张量 [C16] | 按下标去主缓存取 indexer 的 key，v0.26 上取不到 |
+| 每 token 每层总字节 | 1408，C8 档 1282 | 主缓存 1152 ＋ indexer 256（C8 档 130）[C18] | 合起来还是 1408 与 1282，换的只是记在哪份 spec 上 |
 
 ## 常见误解
 
-- **「MLA 是把 KV 压缩了」**——它存的是另一种东西（潜向量），不是把 K 和 V 压小。所以没有"压缩率"可谈，只有维度对比 [C2][C8]。
+- **「MLA 是把 KV 压缩了」**——它存的是另一种东西（潜向量），不是把 K 和 V 压小。所以没有"压缩率"可谈，只有维度对比。
 - **「稀疏注意力省显存」**——它的 KV 占用反而**比 MLA 多** [D]。它省的是读取量，不是存储量。
-- **「四个后端的形状只是 head_size 不同」**——差一整个维度：普通后端五维，MLA 系四维 [C1][C2]，字节数差三倍半。
+- **「四个后端的形状只是 head_size 不同」**——差一整个维度：普通后端五维，MLA 系四维 [C1]，字节数差三倍半。
 - **「C8 能把 KV 砍一半」**——它只动 indexer 那一段，整体降约 9%。

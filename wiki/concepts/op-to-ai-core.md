@@ -20,7 +20,7 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L142-L234
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L36-L51
   - vllm-ascend@2c59ff10:setup.py#L458-L464
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: ops-and-kernels
@@ -30,7 +30,7 @@ relations:
     kind: builds-on
     note: 走的是那条请求每一步都要跑 56 次的那个算子，次数和收益都按它算
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 

@@ -15,7 +15,7 @@ sources:
   - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L14
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: attention-backend-family
@@ -25,7 +25,7 @@ relations:
     kind: builds-on
     note: 那条请求每层碰到的三个算子都停在 torch_npu 那一层，没下到 csrc/
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -77,6 +77,14 @@ file: ops-layers
 | CANN / AI Core | 不改 |
 
 判断顺序自上而下：能在 `ops/` 用现成 `torch_npu` 算子拼出来的，就不要下到 `csrc/`——后者要过完整的 CMake 构建，而 `COMPILE_CUSTOM_KERNELS` 关掉时这一层根本不编，源码里对此有明确警告：没有自定义 kernel，大多数场景下 vllm-ascend 无法正常工作 [C5]。什么情况下这笔账才划算，见 [一个算子从 Python 走到 AI Core](op-to-ai-core.md)。
+
+## v0.23 与 v0.26 起的差异
+
+这一页讲的四件事——CustomOp 注册那个口子、`register_dummy_fusion_op` 挂的那 8 个名字、`NPUWorker.__init__` 里的调用顺序、`csrc/` 那几个构建目标——在 v0.26 上逐行一致。变的只有规模。
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| `ops/` 的大小 | 89 个 `.py`、23484 行 | 96 个 `.py`、25737 行，另多了两份 `.md` 说明 [D] | 半年长了一成，它仍是 `vllm_ascend/` 下文件最多的目录；拿目录规模判断改动面时别用旧数 |
 
 ## 常见误解
 

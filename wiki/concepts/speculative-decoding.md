@@ -34,7 +34,11 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1107-L1132
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/speculative_decoding.html
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/__init__.py#L35-L58
+  - vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L505-L521
+  - vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L237-L263
+  - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/speculative_decoding.md#L62-L63
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: npu-model-runner
@@ -53,7 +57,7 @@ relations:
     kind: conflicts-with
     note: using_paged_attention 的第一道门就是「开了投机解码直接返回 False」，PA 算子在投机解码下永远不执行
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -82,7 +86,7 @@ vllm serve /path/to/Qwen3-0.6B \
 | 这一页的东西 | 那条请求（K=3）上是多少 |
 |---|---|
 | 一步排几个 token | 4 = 1 个已确定 + 3 个草稿，2048 的预算绰绰有余 |
-| `uniform_decode_query_len` | 1 + 3 = **4** [C18] |
+| `uniform_decode_query_len` | 1 + 3 = **4** |
 | 注意力的 `decode_threshold` | 4，硬上限 16 |
 | 200 个 token 要几步 | 全命中 ⌈200 / 4⌉ = **50 步**；一个都不中还是 **200 步** [D] |
 | 每步写几个 KV 槽 | 4 个，被拒的那几格下一步原地覆盖 |
@@ -96,7 +100,7 @@ vllm serve /path/to/Qwen3-0.6B \
 
 1. **排队**——调度器把上一步产出的 K 个草稿当普通 token 排进这一步，`_calc_spec_decode_metadata` 把它们摊成三组下标：`logits_indices`（K+1 个，要取哪些位置的 logits）、`target_logits_indices`（K 个，拿去和草稿比）、`bonus_logits_indices`（1 个，最后那个位置）[C3]。
 2. **验证**——`_sample` 带着这一步的 logits 和 `spec_decode_metadata` 一起被调用，走的是拒绝采样那一路，不是普通采样。
-3. **提议**——`_bookkeeping_sync` 跑完之后才轮到 `propose_draft_token_ids`，它产出的是**下一步**要验的草稿。
+3. **提议**——`_bookkeeping_sync` 跑完之后才轮到 `propose_draft_token_ids`，它产出的是**下一步**要验的草稿。（v0.26 给 PP 开了一条例外：PP 投机解码 + 同步调度 + padded batch 时提前到 `_bookkeeping_sync` 之前提议，其余情形顺序照旧。）
 
 所以「草稿模型跑在目标模型前面」这个直觉在代码里是反的：草稿器挂在 `execute_model` 的尾巴上，吃的正是目标模型这一次算出来的 hidden states。Eagle / MTP 这类自回归草稿器还要在这一段里**串行**跑 `num_speculative_tokens - 1` 次额外前向，第 i 次的输出当第 i+1 次的输入 [C12]——K 越大，这段串行就越长，草稿本身的耗时会把收益吃回去一部分。
 
@@ -112,34 +116,34 @@ vllm serve /path/to/Qwen3-0.6B \
 
 ## 被拒 token 的 KV 槽位：不回收，等着被下一步覆盖
 
-目标模型对这 K+1 个位置**全都写了 KV**——它们是真进了 forward 的 token。被拒之后没人去擦：调度器只是把位置指针退回去，`num_computed_tokens -= num_rejected` [C16]。而下一步的 position 是 `num_computed_tokens + arange` 算出来的 [C6]，slot 又是 position 查[块表](block-table.md)得到的，所以下一步写的就是同一批物理槽，旧内容被原样盖掉 [D]。**「回收被拒 token 的 KV」这件事在代码里根本不存在**，因为它退化成了一次普通的覆盖写。
+目标模型对这 K+1 个位置**全都写了 KV**——它们是真进了 forward 的 token。被拒之后没人去擦：调度器只是把位置指针退回去，`num_computed_tokens -= num_rejected` [C16]。而下一步的 position 是 `num_computed_tokens + arange` 算出来的，slot 又是 position 查[块表](block-table.md)得到的，所以下一步写的就是同一批物理槽，旧内容被原样盖掉 [D]。**「回收被拒 token 的 KV」这件事在代码里根本不存在**，因为它退化成了一次普通的覆盖写。
 
 块层面也不退。`allocate_slots` 的注释说得很直白：新 token 里既有已验证的也有未验证的草稿，**只有已验证的那部分会被缓存**（数量按 `request.num_tokens` 封顶）[C17]。也就是说被拒的草稿不会污染[前缀缓存](prefix-caching.md)的哈希表，但它占过的块内空间也不会还给你。
 
-真要额外预留的是草稿模型**自己**的 KV，由 `num_lookahead_tokens` 按方法分档：eagle / eagle3 / mtp / draft_model 是 K，dflash 是 K+1，**ngram 和 suffix 是 0**——后两种压根没有模型，也就没有 KV 要放 [C14]。
+真要额外预留的是草稿模型**自己**的 KV，由 `num_lookahead_tokens` 按方法分档：eagle / eagle3 / mtp / draft_model 是 K，dflash 是 K+1，**ngram 和 suffix 是 0**——后两种压根没有模型，也就没有 KV 要放 [C14]。v0.26 起这张档表多一行 `dspark`，也是 K。
 
 ## 它和图模式、token 预算互相卡着
 
-- **图模式**：一个 uniform decode 批次的 token 数必须是 `uniform_decode_query_len = 1 + K` 的整数倍。FULL decode 图下上游会把 `cudagraph_capture_sizes` 里每个尺寸**向上取整到 K+1 的倍数**，取整后一个都不剩就直接报错 [C19]。官方 EAGLE 教程要求你手写成 `n × (K + 1)` [S22]，其实代码会替你圆上去。
+- **图模式**：一个 uniform decode 批次的 token 数必须是 `uniform_decode_query_len = 1 + K` 的整数倍。FULL decode 图下上游会把 `cudagraph_capture_sizes` 里每个尺寸**向上取整到 K+1 的倍数**，取整后一个都不剩就直接报错 [C19]。官方 EAGLE 教程要求你手写成 `n × (K + 1)`，其实代码会替你圆上去。
 - **算子上限**：`AscendAttentionMetadataBuilder` 里 `decode_threshold = 1 + K`，紧跟一句 `assert decode_threshold <= 16`，理由写在报错串里——FIA 的 TND 布局一轮最多 16 个 token [C10]。
 - **PagedAttention 算子**：`using_paged_attention` 的第一道门就是「`speculative_config` 非 None 直接返回 False」，两者不可能同时生效，细节在 [PagedAttention](paged-attention.md)。
 - **token 预算**：草稿 token 花的是普通名额。调度器先定 `num_new_tokens`，再倒推这一步放得下几个草稿；放不下时 `spec_token_ids` 被**截断**，而不是把整条请求推到下一步 [C15]。预算条有多长见[调度器](vllm-scheduler.md)。
-- **一条硬报错**：`disable_padded_drafter_batch` 和 FULL 图同时开，proposer 构造函数直接抛 `NotImplementedError` [C11]。
+- **一条硬报错**：`disable_padded_drafter_batch` 和 FULL 图同时开，proposer 构造函数直接抛 `NotImplementedError`。
 
-## v0.23 维护分支与 main 的差异
+## 三个分支在哪儿分的叉
 
-下表 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。核心那条「排 K+1 个位置 → 第一个不符截断 → 槽位原地覆盖」两版一字不差。
+下表 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。核心那条「排 K+1 个位置 → 第一个不符截断 → 槽位原地覆盖」三版一字不差，`assert decode_threshold <= 16` 也一样。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 文档写的 K 上限 | 文档说 `(K+1)` 必须 ≤ 15 [S21]，代码 `assert <= 16` | 文档改成 ≤ 16 [S23]，与代码一致 | `[!]` 照 v0.23 文档配会白白少用一个草稿位；以代码为准 |
-| 草稿方法 | 九种，`mtp` 与 `eagle` 共用 `AscendEagleProposer` | 多出 `dspark`；`dflash` 按草稿权重分流到 `AscendDflash2Proposer`；Gemma4 的 MTP 单走一个 proposer [C2] | 同一个 `method` 字符串在两版可能落到不同的类上 |
-| 草稿侧滑动窗口 | 没有这个东西 | `additional_config` 里的 `draft_window_size` 只裁草稿模型的注意力，目标模型照看全长；`mtp` 会被忽略并打警告 [C24] | 长上下文把接受率拖垮时，main 上多一个补救口子 |
-| K 能不能动 | 只有固定的 `num_speculative_tokens` | `dynamic_spec_config` 按草稿置信度调每条请求的验证长度，目前只认 `dspark` 和 `dflash` [C25] | 并发上来时 main 能自动缩短验证长度，v0.23 只能重启改参数 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 文档写的 K 上限 | 文档说 `(K+1)` 必须 ≤ 15 [S21]，代码 `assert <= 16` | 文档已改成 ≤ 16 [S31]，与代码一致 | 同 v0.26 | `[!]` 照 v0.23 文档配会白白少用一个草稿位；以代码为准 |
+| 草稿方法 | 九个 proposer 类，`mtp` 与 `eagle` 共用 `AscendEagleProposer` | 多出 `dspark` 一个，其余分流逐字同 v0.23 [C28] | 再多出两个：`dflash` 按草稿权重分流到 `AscendDflash2Proposer`，Gemma4 的 MTP 单走一个 proposer [C2] | 同一个 `method` 字符串在三版可能落到不同的类上 |
+| 草稿侧滑动窗口 | 没有这个东西 | 有：`draft_window_size` 直接从 `additional_config` 读，只裁草稿模型的注意力；**没有任何方法级检查** [C29] | 搬进 `AscendConfig`，并对 `mtp` 打警告说窗口被忽略、对 DeepSeek-V4 上的 `dspark` 提示会掉接受率 [C24] | `[!]` v0.26 上给 `mtp` 配 `draft_window_size` 既不报错也不警告，而 MTP 复用的是目标模型自己的层——窗口会连目标模型一起裁掉 |
+| K 能不能动 | 只有固定的 `num_speculative_tokens` | 昇腾侧仍没有；但上游多了 `num_speculative_tokens_per_batch_size`，按 batch size 区间查一张表决定这一步猜几个 [C30] | 昇腾侧的 `dynamic_spec_config` 按草稿置信度调每条请求的验证长度，目前只认 `dspark` 和 `dflash` [C25] | 并发上来时 v0.26 能按批大小、main 能按置信度缩短验证长度，v0.23 只能重启改参数 |
 
 ## 常见误解
 
 - **「被拒绝的草稿等于白算了」**——不全是。第一个不匹配位置上写下的，正是不开投机解码时这一步也会产出的那个 token；真正浪费掉的只是它**后面**那些位置的计算和 KV 写入。
 - **「投机解码会让输出变差」**——贪心路径上它是无损的：写进输出的永远是目标模型的 `argmax`，草稿只决定「能一次写几个」。会动判据的是昇腾额外提供的 block verify 与 entropy verify，而这两个默认都关着。
-- **「MTP 是一个独立的 proposer 实现」**——在 v0.23 上不是：`method` 为 `eagle`、`eagle3`、`mtp` 时落到的都是 `AscendEagleProposer`，只有 step3p5 那种特例才另行分流 [C1]。
+- **「MTP 是一个独立的 proposer 实现」**——在 v0.23 和 v0.26 上都不是：`method` 为 `eagle`、`eagle3`、`mtp` 时落到的都是 `AscendEagleProposer`，只有 step3p5 那种特例才另行分流 [C1]；到 main 才多出一个 Gemma4 专用的 MTP proposer。
 - **「草稿模型先跑，目标模型后跑」**——一步之内顺序是反的：草稿器挂在 `execute_model` 的尾巴上，用的是目标模型这一次的 hidden states，产出的是下一步要验的草稿。

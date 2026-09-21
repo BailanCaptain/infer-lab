@@ -30,7 +30,9 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/ops/register_custom_ops.py#L89-L98
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L861-L888
+  - vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L467-L521
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: tensor-parallel
@@ -44,9 +46,9 @@ relations:
     note: 三个 maybe_* 通信算子靠那一页讲的自定义算子注册挂上去，模型代码里只看得到 torch.ops.vllm.xxx
   - to: fuse-allreduce-rms
     kind: conflicts-with
-    note: 两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到
+    note: 两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到；只在 v0.23 上撞得到，v0.26 起那个 pass 已删
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -77,7 +79,7 @@ file: sequence-parallel
 
 官方文档把这件事说得比大多数二手介绍都直白：拆开 AllReduce 本身不带来性能收益，它减少的是 LayerNorm 的计算量，而这点收益很小；真正的两项好处一是量化部署下 LayerNorm 后面跟着 Quant、all-gather 搬的是 INT8 于是通信量减半，二是 reduce-scatter 与 all-gather 能分别和前后的 matmul 融成通算并行算子 [S2]。
 
-第二项在代码里看得见：`SequenceRowParallelOp.matmul_and_reduce` 里，`flash_comm_v1_enabled` 为假时第一句就 `return tensor_model_parallel_all_reduce(...)`；为真且 `mmrs_fusion` 成立时走 `npu_mm_reduce_scatter_base` 一个算子，否则才退回「先 matmul 再 `tensor_model_parallel_reduce_scatter`」两步 [C11]。而 `mmrs_fusion` 自己有两道限制：`tp_world_size <= 8`，且 MoE 模型直接置 False [C7]。
+第二项在代码里看得见：`SequenceRowParallelOp.matmul_and_reduce` 里，`flash_comm_v1_enabled` 为假时第一句就 `return tensor_model_parallel_all_reduce(...)`；为真且 `mmrs_fusion` 成立时走 `npu_mm_reduce_scatter_base` 一个算子，否则才退回「先 matmul 再 `tensor_model_parallel_reduce_scatter`」两步 [C11]。而 `mmrs_fusion` 自己有两道限制：`tp_world_size <= 8`，且 MoE 模型直接置 False。
 
 ## 形状怎么对上：补零、切残差、再补回来
 
@@ -89,13 +91,13 @@ file: sequence-parallel
 
 `pad_size` 只算一次，存在 forward context 上：`(tp_world_size - (num_tokens % tp_world_size)) % tp_world_size`。**所以 token 数除不尽 TP 不会报错，只是每卡多算几行零。** 另有一处会悄悄改你的配置：SP 与 prefill context parallel 同时开时，`max_num_batched_tokens` 被向上取整到 `tp_size × pcp_size` 的倍数，只留一条 warning [C15]。
 
-哪些层会被换，是两条有序 if 链的最后一档：行切认 `o_proj` / `out_proj` / `down_proj` / `attention.dense` / `wo_b`，列切认 `gate_up_proj` / `in_proj` / `qkv_proj` / `conv1d` / `query_key_value`，两条都先把 `shared_expert` 排除掉 [C12]。排在前面的 matmul-allreduce、FlashComm2 一旦命中，SP 这一档就轮不上——顺序即优先级，这条规则在 [Tensor Parallel](tensor-parallel.md) 那页说全了。
+哪些层会被换，是两条有序 if 链的最后一档：行切认 `o_proj` / `out_proj` / `down_proj` / `attention.dense` / `wo_b`，列切认 `gate_up_proj` / `in_proj` / `qkv_proj` / `conv1d` / `query_key_value`，两条都先把 `shared_expert` 排除掉 [C12]。顺序即优先级，排在前面的一档命中之后 SP 这一档就静默轮不上，这条规则在 [Tensor Parallel](tensor-parallel.md) 那页说全了。**v0.23 上排在 SP 前面的还有 matmul-allreduce 和 FlashComm2，v0.26 上这两档已经删掉**：行切前面只剩 DSV4 / MLP / OTP，列切前面只剩 DSA-CP / DSV4 / MLP，列切的前缀表则多了一个 `indexer_proj` [C25]。
 
 ## 开关有两个，名字都叫 sp
 
 这是最容易踩的地方：`enable_sp()` 和 `pass_config.enable_sp` 互不相干，走两套实现。
 
-`utils.enable_sp()` 从头到尾只读一件事——`additional_config["enable_flashcomm1"]`，缺了退到 `AscendConfig.enable_flashcomm1`，再缺才退到环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`；结果缓存在模块全局 `_ENABLE_SP`，只有 `additional_config["refresh"]` 能让它重算，另外 `enable_shared_expert_dp` 会反过来把它顶成 True [C5]。**它不看模型类型也不看 token 数**——那两道门在上一节的 forward context 那一层。环境变量默认 `0`，注释里已标着 DEPRECATED [C6]。
+`utils.enable_sp()` 从头到尾只读一件事——`additional_config["enable_flashcomm1"]`，缺了退到 `AscendConfig.enable_flashcomm1`，再缺才退到环境变量 `VLLM_ASCEND_ENABLE_FLASHCOMM1`；结果缓存在模块全局 `_ENABLE_SP`，只有 `additional_config["refresh"]` 能让它重算；v0.23 上还有一条——`enable_shared_expert_dp` 会反过来把它顶成 True [C5]，v0.26 起这个参数只为兼容旧调用方保留，不再改动 FlashComm1 的开关 [C24]。**它不看模型类型也不看 token 数**——那两道门在上一节的 forward context 那一层。环境变量默认 `0`，注释里已标着 DEPRECATED [C6]。
 
 另一个 `enable_sp_by_pass()` 读的是 `compilation_config.pass_config.enable_sp`，而且要求 `not enforce_eager` [C13]——这条路靠 Inductor pass 改图，eager 模式下没有图可改。它的 token 门槛也是另一套：`get_sp_min_token_num` 对 dense 返回 1000、对 MoE 返回 1 [C14]。官方文档把两条路称为互补——pass 版是为 VL 类模型做的，FC1 版基于 Custom OP、难以支持 VL [S3]。
 
@@ -112,15 +114,15 @@ vllm serve Qwen/Qwen3-VL-2B-Instruct --tensor-parallel-size 2 \
     --compilation-config '{"pass_config": {"enable_sp": true}}'
 ```
 
-②那条命令与「`sp_min_token_num` 在昇腾上默认 1000、一般不必改」的说法都出自官方文档 [S23]。TP 必须大于 1，否则没有 all-reduce 可换；`--max-num-batched-tokens 8192` 是为了让一步凑得过 1000 那道门，凑不过就等于开了不生效 [D]。**注意 v0.23 官方文档的支持矩阵里 Sequence Parallelism 一行四格全是 `x`，与同一篇文档上面那条 Qwen3-VL 启动命令直接矛盾** [S4] `[!]`。两条命令对应的官网页面是 [Sequence Parallelism（v0.23.0）](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/sequence_parallelism.html)。
+②那条命令与「`sp_min_token_num` 在昇腾上默认 1000、一般不必改」的说法都出自官方文档 [S23]。TP 必须大于 1，否则没有 all-reduce 可换；`--max-num-batched-tokens 8192` 是为了让一步凑得过 1000 那道门，凑不过就等于开了不生效 [D]。**注意 v0.23 官方文档的支持矩阵里 Sequence Parallelism 一行四格全是 `x`，与同一篇文档上面那条 Qwen3-VL 启动命令直接矛盾** [S4] `[!]`——v0.26 那份文档逐行照旧，这处矛盾也照旧。两条命令对应的官网页面是 [Sequence Parallelism（v0.23.0）](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/sequence_parallelism.html)。
 
-## 两个分支在哪儿分的叉
+## 两个发布分支在一边，main 在另一边
 
-下表 v0.23 维护分支指 `2c59ff10`，main 开发主线指 2026-09-19 的源码快照 `b255ab59`。这一页的差异比库里大多数页都大——**不是参数改名，是整套实现换了地方**；main 的官网页面是 [Sequence Parallelism（latest）](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/sequence_parallelism.html)。
+下表 v0.23 维护分支指 `2c59ff10`、v0.26 分支指 `2ed6cbba`，main 开发主线指 2026-09-19 的源码快照 `b255ab59`。**这六行上 v0.26 与 v0.23 完全同边**，所以只摆两列；这一页的差异比库里大多数页都大——**不是参数改名，是整套实现换了地方**；main 的官网页面是 [Sequence Parallelism（latest）](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/sequence_parallelism.html)。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
+| 项 | v0.23 与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| `enable_sp()` 读什么 | `enable_flashcomm1` 或同名环境变量，缓存在 `_ENABLE_SP` | `parallel_config.use_sequence_parallel_moe`，上游算好的一个 property [C16] | 真相源搬到了上游；main 上再写 `enable_flashcomm1`，`init_ascend_config` 只打一条 `FlashComm is deprecated` 警告 [C19]，真正生效与否仍看上游那个 property `[!]` |
+| `enable_sp()` 读什么 | `enable_flashcomm1` 或同名环境变量，缓存在 `_ENABLE_SP` | `parallel_config.use_sequence_parallel_moe`，上游算好的一个 property [C16] | 真相源搬到了上游；main 上再写 `enable_flashcomm1` 只换来一条 `FlashComm is deprecated` 警告，真正生效与否仍看上游那个 property `[!]` |
 | dense + 纯 TP 能不能开 | 能，门槛是 `num_tokens > 1000` | 不能。上游那个 property 要求 `enable_expert_parallel` 且 `tensor_parallel_size > 1` 且 `data_parallel_size > 1` [C17] | 单机 dense 模型上的 SP 在 main 已经没有了 `[!]` |
 | Linear 这一层 | 两条分派链末尾各有一档 `enable_sp()`，返回 `Sequence*ParallelOp` | 两条链里再没有一档读 `enable_sp`，`Sequence*ParallelOp` 两个类整个删掉 [C18] | 想靠 profiling 找 `SequenceRowParallelOp` 的人在 main 上找不到 |
 | `maybe_pad_and_reduce` | 按 `flash_comm_v1_enabled` 在 all-reduce 与 reduce-scatter 之间二选一 | 注释写死 “EP communication only”，只剩 EP 那一路，没有 TP 分支 [C21] | 同名算子换了职责，照旧理解会读错调用链 |
@@ -131,4 +133,4 @@ vllm serve Qwen/Qwen3-VL-2B-Instruct --tensor-parallel-size 2 \
 
 - **「all-reduce 拆成两半，通信量就减半了」**——没有。ring all-reduce 本来就是 reduce-scatter 加 all-gather 两段，SP 只是把中间那个接缝撬开塞进 norm。官方文档原话就是拆开本身不带来性能收益。
 - **「`--compilation-config '{"pass_config":{"enable_sp":true}}'` 等于打开了 `enable_sp()`」**——两个开关。`enable_sp()` 只读 `enable_flashcomm1`，pass 那个由 `enable_sp_by_pass()` 读，且 eager 模式下恒假。
-- **「开了 SP，decode 也跟着省」**——dense 模型要 `num_tokens > 1000` 才生效，decode 每步那几个 token 差得远；而且与它争抢同一段子图的 [fuse_allreduce_rms](../params/fuse-allreduce-rms.md) 还会让它静默失效，连告警都没有。
+- **「开了 SP，decode 也跟着省」**——dense 模型要 `num_tokens > 1000` 才生效，decode 每步那几个 token 差得远；而且在 v0.23 上，与它争抢同一段子图的 [fuse_allreduce_rms](../params/fuse-allreduce-rms.md) 还会让它静默失效、连告警都没有——v0.26 起 `allreduce_rmsnorm_fusion_pass.py` 整个文件已经删掉，这条冲突跟着消失。

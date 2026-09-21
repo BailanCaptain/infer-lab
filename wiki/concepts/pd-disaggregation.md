@@ -34,7 +34,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1111-L1119
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L695-L703
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L93
+  - vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L105
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: prefill
@@ -53,7 +55,7 @@ relations:
     kind: alternative-to
     note: 同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -127,14 +129,16 @@ vllm serve /model/Qwen3-0.6B --port 13700 --tensor-parallel-size 1 \
 
 同一个连接器类在两个进程里各造一份：`KVConnectorRole.SCHEDULER` 造 `MooncakeConnectorScheduler`，WORKER 造 `MooncakeConnectorWorker`——上游接口本来就分成调度侧和 worker 侧两组方法。
 
-## 两个分支的差别
+## 三个分支的差别
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| Mooncake 连接器 | 只有 `kv_p2p/mooncake_connector.py` 这一套 | 另加 `kv_p2p/mooncake/` 包，注册成 `MooncakeConnectorV2` 和 `MooncakePullConnector` [C9] | 老连接器两版都在、行为一致；换 V2 才有下一行那道校验 |
-| `kv_both` 配 P2P | 静默退化成只收不发，两个方向都报不出完成 | 初始化即 `ValueError` | [!] v0.23 上这个配置不报错也不工作，排查时只看得到「请求卡住」 |
-| LMCache | 注册了 `LMCacheAscendConnector` | 注册表里没有这一项 | [!] 按 v0.23 配 LMCache 的部署升到 main 会「连接器不存在」 |
-| 设计文档的限制清单 | 列了「P 节点不支持非默认 `max_num_partial_prefills`」[S4] | 这条被删掉了 [S5] | [!] 限制并没有解除：两版平台层都无条件把它重置回 1，而且这跟 PD 无关，是整个昇腾平台的行为 [C25][C26] |
+整体流程（代理把 `max_tokens` 改成 1、P 必须以长度上限结束、D 拉 KV、D 上多算一次）三版一字不差；连接器自己那一层的版本差异都在 [Mooncake Connector](mooncake-connector.md)。这里只留总览层面的四行。
+
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| Mooncake 连接器 | 只有 `kv_p2p/mooncake_connector.py` 这一套 | 同 v0.23，另多注册一个 p2p 连接器 `SfaRemoteD2HConnector` [C28] | 另加 `kv_p2p/mooncake/` 包，注册成 `MooncakeConnectorV2` 和 `MooncakePullConnector` [C9] | 老连接器三版都在、行为一致；换 V2 才有下一行那道校验 |
+| `kv_both` 配 P2P | 静默退化成只收不发，两个方向都报不出完成 | 同 v0.23，照样静默 | 初始化即 `ValueError` | [!] v0.23 和 v0.26 上这个配置不报错也不工作，排查时只看得到「请求卡住」 |
+| LMCache | 注册了 `LMCacheAscendConnector` | 同样注册着 | 注册表里没有这一项 | [!] 按 v0.23 或 v0.26 配 LMCache 的部署升到 main 会「连接器不存在」 |
+| 设计文档的限制清单 | 列了「P 节点不支持非默认 `max_num_partial_prefills`」[S4] | 这条已经删掉 [S29] | 同 v0.26 | [!] 限制并没有解除：三版平台层都无条件把它重置回 1，而且这跟 PD 无关，是整个昇腾平台的行为 [C25] |
 
 ## 常见误解
 

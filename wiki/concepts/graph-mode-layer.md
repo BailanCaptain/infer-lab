@@ -18,7 +18,8 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html
   - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30
   - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L768-L778
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "S"
 relations:
   - to: npu-model-runner
@@ -28,7 +29,7 @@ relations:
     kind: builds-on
     note: 那条请求的 199 步 decode 形状一样，回放的是同一张图——图模式的收益几乎全在这里
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -84,7 +85,16 @@ ACL Graph 的设计文档开门见山：ACL Graph 是 vLLM 静态图执行在昇
 
 ## `xlite/` 是另一条路
 
-`xlite/` 有 5 个文件 1227 行，分量在 `xlite.py`（747 行）和 `utils.py`（395 行）；`xlite_worker.py` 与 `xlite_model_runner.py` 各只有几十行，是 `NPUWorker` 和 `NPUModelRunner` 的薄子类，不是另起一套 [C10][C11]。开关是 `additional_config` 里的 `xlite_graph_config`，对应 `XliteGraphConfig` 类 [C7]。第一遍读可以跳过，但要知道它存在，否则看到两套 runner 会困惑。
+`xlite/` 在 v0.23 上有 5 个文件 1227 行，分量在 `xlite.py`（747 行）和 `utils.py`（395 行）；`xlite_worker.py` 与 `xlite_model_runner.py` 各只有几十行，是 `NPUWorker` 和 `NPUModelRunner` 的薄子类，不是另起一套 [C10][C11]。开关是 `additional_config` 里的 `xlite_graph_config`，对应 `XliteGraphConfig` 类 [C7]。第一遍读可以跳过，但要知道它存在，否则看到两套 runner 会困惑。
+
+## v0.23 与 v0.26 起的差异
+
+两个接入点、包装器那四步、`enforce_eager` 那两刀在 v0.26 上逐行一致；ACLGraph 自己那一摊的版本差异在 [ACL Graph](acl-graph.md)。这一页范围内只差两处。
+
+| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| warmup 跑完到捕获之间 | `_dummy_run` 循环跑完直接 `capture_model()` | 中间多插一步 `kernel_warmup(self)` [C12] | 启动日志里 warmup 之后、捕获之前多出一段耗时，不是卡住 |
+| `xlite/` 的大小 | 5 个文件 1227 行，`xlite.py` 747 行、`utils.py` 395 行 | 还是 5 个文件，1220 行，`xlite.py` 722 行、`utils.py` 413 行 [D] | 分量在这两个文件之间挪了一点，两个薄子类和整体结构没变 |
 
 ## 常见误解
 

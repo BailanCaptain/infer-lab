@@ -33,7 +33,8 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L10-L11
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L725
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-scheduler
@@ -49,7 +50,7 @@ relations:
     kind: alternative-to
     note: 官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -110,14 +111,14 @@ KV 是一路往后写的，没有任何「把上一块接起来」的代码。`_
 
 这个参数有两处要当心。一是**文档和代码对不上**：docstring 说它是「prompt 比这个数长就算长请求」的分类阈值 [C5]，代码里它是直接把 `num_new_tokens` 截断到这个值的一把闸刀 [!]。二是它的自动值走不到：只有 `max_num_partial_prefills > 1` 时才会被设成 `max_model_len × 0.04` [C6]，而 V1 的 `EngineArgs` 一旦发现这两个并发 partial prefill 参数被改过就抛 `NotImplementedError`，所以**这个阈值只能手写** [C8]。
 
-## v0.23 维护分支与 main 的差异
+## v0.23、v0.26 与 main 的差异
 
-上游调度器这边只钉了 v0.23.0 配套的那一个 commit，所以下面只比 vllm-ascend 的两版。核心路径是一致的：`_build_attn_state` 的分支顺序逐行相同，`_get_fia_params` 里 `ChunkedPrefill` 与 `PrefillCacheHit` 的判据也没动（main 只是把取 KV 视图那几行抽成了独立函数，见[前缀缓存](prefix-caching.md)的差异表）。分叉在外围两处。
+核心路径三边一致：扫两条队列那两处减法与 `min(预算)` 逐行相同，`enable_chunked_prefill` 默认仍是 `True`、昇腾上的预算条仍是 2048（v0.26 的 `schedule()` 多了一个 `throttle_prefills` 参数，减法本身没动，见[调度器](vllm-scheduler.md)）；`_build_attn_state` 的分支顺序、`_get_fia_params` 里 `ChunkedPrefill` 与 `PrefillCacheHit` 的判据也没动（main 只是把取 KV 视图那几行抽成了独立函数，见[前缀缓存](prefix-caching.md)的差异表）。分叉在外围两处。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 谁会替你打开它 | 设了 `SLO_limits_for_dynamic_batch` 就顺手 `enable_chunked_prefill = True` [C19] | 这段换成了 `dyntra_lb_config` 选调度器类，不再动这个开关 [C20] | 同一套 SLO 配置，v0.23 上 chunked prefill 被悄悄打开，main 上不会 |
-| batch invariance 的说明 | 整篇不提 chunked prefill | 多出一节 Scheduling Limitations：要逐位可复现，必须显式关掉 chunked prefill 和前缀缓存，并同时配 `--block-size 128` [S23] | [!] 照 v0.23 那篇文档配 batch invariance，结果不可复现，而坑到 main 才写明 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 谁会替你打开它 | 设了 `SLO_limits_for_dynamic_batch` 就顺手 `enable_chunked_prefill = True` [C19] | 这段连同 `SchedulerDynamicBatch` 整个删掉，选调度器那一段只剩 ProfilingChunk 与 BatchJobAware 两支，没有一处碰这个开关 [C27] | 和 v0.26 一样不碰它，改由 `dyntra_lb_config` 选调度器类 | 同一套 SLO 配置，只有 v0.23 会把 chunked prefill 悄悄打开；v0.26 与 main 上它不再有这个副作用 |
+| batch invariance 的说明 | 整篇不提 chunked prefill | 也整篇不提 | 多出一节 Scheduling Limitations：要逐位可复现，必须显式关掉 chunked prefill 和前缀缓存，并同时配 `--block-size 128` [S23] | [!] 照 v0.23 或 v0.26 那篇文档配 batch invariance，结果不可复现，而坑到 main 才写明 |
 
 ## 常见误解
 

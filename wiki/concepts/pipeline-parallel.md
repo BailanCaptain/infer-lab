@@ -44,7 +44,9 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374
-verified: ["main", "releases/v0.23.0"]
+  - vllm@568afb3a:vllm/distributed/parallel_state.py#L1787-L1801
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L423-L429
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: tensor-parallel
@@ -60,7 +62,7 @@ relations:
     kind: builds-on
     note: 跨段的 irecv / isend 就发生在 NPUWorker.execute_model 这一跳，整条链在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -92,7 +94,7 @@ file: pipeline-parallel
 
 ## PP 是 rank 网格里的第三维，同组 rank 之间隔着一整个 TP 组
 
-上游把全部 rank reshape 成五维 `(ExternalDP, DP, PP, PCP, TP)`，PP 是从外往里数的第三维 [C1]。**紧挨着的那行注释只写了四维 `ExternalDP x DP x PP x TP`，PCP 是后来插进 PP 和 TP 中间的，注释没跟着改** `[!]`——昇腾自己那份 `init_ascend_model_parallel` 抄的是同一套五维 reshape，头上那行注释写的却是 `ExternalDP * EP`，更对不上 [C26]。看维度请看 reshape，别看注释。
+上游把全部 rank reshape 成五维 `(ExternalDP, DP, PP, PCP, TP)`，PP 是从外往里数的第三维 [C1]。**v0.23 上紧挨着的那行注释只写了四维 `ExternalDP x DP x PP x TP`，PCP 是后来插进 PP 和 TP 中间的，注释没跟着改** `[!]`；v0.26 起这行注释已经补成五维，reshape 本身一字未动 [C38]——昇腾自己那份 `init_ascend_model_parallel` 抄的是同一套五维 reshape，头上那行注释写的却是 `ExternalDP * EP`，更对不上 [C26]。看维度请看 reshape，别看注释。
 
 PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，所以**同一个 PP 组里相邻两个 rank 的全局编号差 `pcp_size × tp_size`**：TP=8、PP=2 时组是 `[0, 8]`、`[1, 9]` … 而 TP 组永远连号。这正是官方推荐的两机拓扑的由来——TP 关在机内走高频集合通信，PP 拉到机间，一步只过一次。
 
@@ -111,7 +113,7 @@ PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，�
 - **KV 不分配。** `Attention` 在 `__init__` 时把自己登记进 `static_forward_context`，而 `get_kv_cache_spec` 遍历的正是这张表。层都没建，表里就没有它，这一段自然只为自己那 14 层报价 [D]——每卡每 token 的 KV 也就从 112 KiB 降到 56 KiB。
 - **首尾两段不对称。** `embed_tokens` 只在第一段建，`norm` 只在最后一段建，其余位置一律是 `PPMissingLayer` [C9]；`lm_head` 也一样，而 `tie_word_embeddings` 为真时最后一段的 `lm_head` 直接复用它自己那份 `embed_tokens`。
 
-所以**层数相等不等于负载相等**：最后一段还要背 norm、lm_head、logits 和采样，投机解码的 drafter 也整个压在它身上（`if get_pp_group().is_last_rank: self.drafter = ...`）[C25]。上游的自动切分对此有个专门的让步：`num_hidden_layers % pp_size` 的余数从**倒数第二段**开始往前加，不给最后一段——61 层切 PP4 因此是 `[15, 15, 16, 15]`，官方文档给的也是这个数 [C6][S33]。要手动调就写 `VLLM_PP_LAYER_PARTITION="15,13"`：条数必须等于 PP size、总和必须等于层数，错一个启动就失败 [S34]。
+所以**层数相等不等于负载相等**：最后一段还要背 norm、lm_head、logits 和采样，投机解码的 drafter 也整个压在它身上（`if get_pp_group().is_last_rank: self.drafter = ...`）[C25]。上游的自动切分对此有个专门的让步：`num_hidden_layers % pp_size` 的余数从**倒数第二段**开始往前加，不给最后一段——61 层切 PP4 因此是 `[15, 15, 16, 15]`，官方文档给的也是这个数 [S33]。要手动调就写 `VLLM_PP_LAYER_PARTITION="15,13"`：条数必须等于 PP size、总和必须等于层数，错一个启动就失败 [S34]。
 
 ## 中间只过两条张量；logits 和采样只在最后一段
 
@@ -137,15 +139,15 @@ PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，�
 - **一条请求填不满流水线。** 队列里只有那条请求时，任一时刻只有一段在忙，另一段是纯气泡；官方对低并发 decode 的判断也是如此——跨段与通信通常让延迟比机内 TP 更差 [S36]。
 - **气泡由最慢那一段决定。** 长序列 prefill 把这件事放大成了一个专门的开关：`profiling_chunk_config` 量出耗时曲线、反解每步该切多少 token，好让各段每块耗时拉平，硬门槛正是 `pipeline_parallel_size > 1`。它治的是「同样大的块越往后越慢」这一种气泡，细节在[动态切块配置](../params/profiling-chunk-config.md)。
 
-## 两个分支在哪儿分的叉
+## 三个分支在哪儿分的叉
 
-PP 的主干——分层函数、`PPMissingLayer`、两条张量、只在末段采样、异步 isend/irecv——两个分支**一字不差**：`worker.py` 里那段收发只是行号从 620 挪到了 755 [C32]。叉都分在外围的校验和文档上。下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`。
+PP 的主干——分层函数、`PPMissingLayer`、两条张量、只在末段采样、异步 isend/irecv——三个分支**一字不差**：`worker.py` 里那段收发到 main 上只是行号从 620 挪到了 755 [C32]。叉都分在外围的校验和文档上。下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| PP + MTP | `_validate_pd_pp_mtp_config`：开着 MTP 且 PP>1，节点又不是 `kv_role="kv_producer"`，配置期直接 `ValueError` [C27] | `check_and_update_config` 的校验清单里已经没有这一条 [C31] | 在 v0.23 上想在 D 节点或混部环境同时开 MTP 和 PP，起都起不来；main 撤掉了这道闸，但撤闸不等于那条路已经验证过 `[!]` |
-| 稀疏注意力模型的切点 | 没有这项检查 | 新增 `_validate_indexer_pp_config`：切点落在一个跳过 Top-K 的层上就 `ValueError`，并写明「不支持跨 PP 传 Top-K 索引」[C30] | 提醒了一件通用的事——层与层之间除了 hidden 还有别的依赖时，切点不能随便放 |
-| 官方 PP 使用指南 | 没有这份文档 | `docs/source/user_guide/feature_guide/pipeline_parallel.md` 一整篇 [S37] | 在 v0.23 上部署也只能去读 main 那篇（<https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/pipeline_parallel.html>）。它讲的自动切分规则跟 v0.23 配套上游的 `get_pp_indices` 对得上；但那份「不兼容清单」（PCP、Xlite 图模式、Sparse KV Offload、Mooncake 的 D 侧 PP=1）是照 main 写的，别直接搬到 v0.23 `[!]` |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| PP + MTP | `_validate_pd_pp_mtp_config`：开着 MTP 且 PP>1，节点又不是 `kv_role="kv_producer"`，配置期直接 `ValueError` [C27] | `check_and_update_config` 的校验清单里已经没有这一条 [C39] | 同 v0.26，也没有这一条 | 在 v0.23 上想在 D 节点或混部环境同时开 MTP 和 PP，起都起不来；v0.26 起撤掉了这道闸，但撤闸不等于那条路已经验证过 `[!]` |
+| 稀疏注意力模型的切点 | 没有这项检查 | 也没有这项检查 | 新增 `_validate_indexer_pp_config`：切点落在一个跳过 Top-K 的层上就 `ValueError`，并写明「不支持跨 PP 传 Top-K 索引」[C30] | 提醒了一件通用的事——层与层之间除了 hidden 还有别的依赖时，切点不能随便放 |
+| 官方 PP 使用指南 | 没有这份文档 | 也没有这份文档 | `docs/source/user_guide/feature_guide/pipeline_parallel.md` 一整篇 [S37] | 在 v0.23 和 v0.26 上部署也只能去读 main 那篇（<https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/pipeline_parallel.html>）。它讲的自动切分规则跟这两个分支配套上游的 `get_pp_indices` 对得上；但那份「不兼容清单」（PCP、Xlite 图模式、Sparse KV Offload、Mooncake 的 D 侧 PP=1）是照 main 写的，别直接搬 `[!]` |
 
 ## 常见误解
 

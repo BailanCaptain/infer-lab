@@ -1,6 +1,6 @@
 layout: scene
 id: ref-diff
-caption: 两个 ref 在目录层面只差 8 项——但同名不等于同内容
+caption: 口径是 v0.23（2c59ff10）↔ main（b255ab59）这一对：目录层面只差 8 项——但同名不等于同内容；v0.26 不在这张图里
 size: [900, 440]
 
 regions:

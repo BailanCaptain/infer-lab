@@ -33,7 +33,9 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L82-L114
   - https://arxiv.org/abs/2405.04434
   - https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/ops/mla.py#L117-L129
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L224-L258
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: attention-cost
@@ -49,7 +51,7 @@ relations:
     kind: builds-on
     note: 先看清普通模型缓存里躺的是 K 和 V 两份真向量，才看得出 MLA 换掉的到底是什么
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -123,15 +125,15 @@ file: mla
 
 块大小仍是 128——照样由配置检查里的 `refresh_block_size` 填上，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)；`get_supported_kernel_block_sizes` 跟别的后端一样报 `[128]`，所以[块表](block-table.md)那一套完全照旧。开了稀疏或 LI C8 时这个元组会长到三、四项，多出来的是 indexer 的 key 和它的 scale——那部分归[四种注意力的代价](attention-cost.md)。
 
-## v0.23 维护分支与 main 的三处差异
+## 三个分支之间的三处差异
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`，完整提交号在来源里。核心机制（压在哪、解压在哪、decode 怎么吸收 `W_UK`）两版逐字相同，差的是下面这三处。
+下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，完整提交号在来源里。核心机制（压在哪、解压在哪、decode 怎么吸收 `W_UK`）三版逐字相同，差的是下面这三处。v0.26 在后两处上站在 v0.23 这边 [C28]，第一处它跟 main 一样有，只是开关的取值来路不同 [C27]。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 没有 RoPE 段的 MLA 层 | 不支持：写缓存一律走 `npu_kv_rmsnorm_rope_cache`，必须给得出 cos/sin | 多一条 `use_mla_rope` 开关（取值就是 `rotary_emb is not None`）[C23]，为假时走 `_exec_kv_no_rope`：单独做一次 RMSNorm，再 `reshape_and_cache` [C22] | `qk_rope_head_dim == 0` 的 MLA 层只有 main 跑得起来，v0.23 上这一路根本没有代码 `[!]` |
-| 后端叫什么名字 | `get_name()` 在 `VLLM_USE_V2_MODEL_RUNNER` 为真时返回 `FLASH_ATTN`，注释写明这是绕上游断言的 HACK [C2] | 恒返回 `ASCEND_MLA` [C24] | 在 v0.23 上开了 V2 runner，日志里看到的后端名是 `FLASH_ATTN`，别据此以为没走 MLA `[!]` |
-| 上下文并行的实现类 | `enable_cp()` 为真时换成 `AscendMlaCPImpl` / `AscendMlaCPMetadataBuilder` [C2] | 换成 `enable_dcp()` 与 `AscendMlaDCPImpl` / `AscendMlaDCPMetadataBuilder` [C24] | 照 v0.23 的类名到 main 里搜是搜不到的；排查 MLA 行为前先确认自己在哪个分支 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 没有 RoPE 段的 MLA 层 | 不支持：写缓存一律走 `npu_kv_rmsnorm_rope_cache`，必须给得出 cos/sin | 有 `use_mla_rope`，为假时同样走 `_exec_kv_no_rope`；取值来自模型文件显式设的 `mla_modules.use_mla_rope`，默认真 | 多一条 `use_mla_rope` 开关（取值就是 `rotary_emb is not None`）[C23]，为假时走 `_exec_kv_no_rope`：单独做一次 RMSNorm，再 `reshape_and_cache` [C22] | `qk_rope_head_dim == 0` 的 MLA 层在 v0.23 上这一路根本没有代码；v0.26 上有，但模型文件不主动关掉这个开关就还是走 RoPE 那一路 `[!]` |
+| 后端叫什么名字 | `get_name()` 在 `VLLM_USE_V2_MODEL_RUNNER` 为真时返回 `FLASH_ATTN`，注释写明这是绕上游断言的 HACK [C2] | 同 v0.23，一字未改 | 恒返回 `ASCEND_MLA` [C24] | 在 v0.23 和 v0.26 上开了 V2 runner，日志里看到的后端名是 `FLASH_ATTN`，别据此以为没走 MLA `[!]` |
+| 上下文并行的实现类 | `enable_cp()` 为真时换成 `AscendMlaCPImpl` / `AscendMlaCPMetadataBuilder` | 同 main | 换成 `enable_dcp()` 与 `AscendMlaDCPImpl` / `AscendMlaDCPMetadataBuilder` | 照 v0.23 的类名到 v0.26 或 main 里搜是搜不到的；排查 MLA 行为前先确认自己在哪个分支 |
 
 ## 常见误解
 

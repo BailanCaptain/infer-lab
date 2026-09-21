@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="两个 ref 在目录层面只差 8 项——但同名不等于同内容">
-  <title>两个 ref 在目录层面只差 8 项——但同名不等于同内容</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="口径是 v0.23（2c59ff10）↔ main（b255ab59）这一对：目录层面只差 8 项——但同名不等于同内容；v0.26 不在这张图里">
+  <title>口径是 v0.23（2c59ff10）↔ main（b255ab59）这一对：目录层面只差 8 项——但同名不等于同内容；v0.26 不在这张图里</title>
   <rect width="900" height="440" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="44" width="252" height="300" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
   <rect x="36" y="58" width="166.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 v0.23 维护分支上</text>

@@ -14,7 +14,11 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L177
   - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L228
   - vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14
-verified: ["releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/indexer.py#L14-L54
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L83-L97
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L234-L258
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L124-L156
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: paged-attention
@@ -27,13 +31,15 @@ relations:
     kind: builds-on
     note: 那条请求走最左边那个后端，它的 KV 形状是五维的，算显存要乘 2
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
 ## 一句话
 
 `vllm_ascend/attention/` 下有五个后端类，都继承上游 `AttentionBackend`。选哪一个由 `NPUPlatform.get_attn_backend_cls` 在启动时查表定下 [C1]，后端自己不参与选择。这个函数实际能返回六个类路径：多出来的那个是 310p 专用的 `AscendAttentionBackend310`，它在 `_310p/` 下，不在 `attention/` 里 [C1]。
+
+**五个是 v0.23 上的数。** v0.26 分支起 `attention/` 多了一个 `indexer.py`，里面的 `AscendSFAIndexerBackend` 是第六个类，但它不由这张表选出来——它是 runner 给 SFA 的 indexer 缓存层单独挂的占位后端，只负责让那份缓存被初始化看见 [C8]。查表那两段本身两版一字不差 [C1]。
 
 ```wiki-diagram
 file: attention-backend-choice
@@ -78,6 +84,15 @@ return backend_map[(attn_selector_config.use_mla, attn_selector_config.use_spars
 ## 同一个后端里还会按并行度换实现
 
 `get_impl_cls` 不是固定返回一个类。那条请求走的普通后端也会换：`enable_cp()` 为真时返回 `AscendAttentionCPImpl` [C3]。MLA 在 `enable_cp()` 为真时返回 `AscendMlaCPImpl` [C4]，SFA 在 `enable_sfa_dcp_replicated_indexer()` 为真时返回 `AscendSFADCPImpl` [C5]，DSA 在 `enable_dsa_cp()` 为真时返回 `AscendDSACPImpl` [C6]。所以「后端类」和「实际跑的 impl 类」是两层，排查算子行为要看第二层 [D]。
+
+这一层在 v0.26 上换过一轮名字和条件，下表只列这一节受影响的部分；CP 自己那一摊的全貌在 [Context Parallel](context-parallel.md)。
+
+| 项 | v0.23 维护分支 | v0.26 起 | 意味着什么 |
+|---|---|---|---|
+| 普通后端与 MLA 的分流条件 | `enable_cp()` → `AscendAttentionCPImpl` / `AscendMlaCPImpl` | `enable_dcp()` → `AscendAttentionDCPImpl` / `AscendMlaDCPImpl` [C9] | 照 v0.23 的开关名和类名去新版搜，一个都搜不到 `[!]` |
+| SFA 的分流条件 | `enable_sfa_dcp_replicated_indexer()` 与 `enable_cp()` 两支 | 前一支留着，`enable_cp()` 那支换成 `sparse_kv_offload_config.enabled` [C11] | 开了稀疏 KV offload，SFA 跑的是 `AscendSFAKVOffloadImpl` 而不是 `AscendSFAImpl` |
+
+`AscendMlaDCPImpl` 那一支的原文在 MLA 后端类里 [C10]；DSA 那一支三版都还是 `enable_dsa_cp()`，没动。
 
 ## 常见误解
 

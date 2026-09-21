@@ -577,10 +577,15 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L80-L118",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L135-L177",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L191-L228",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14"
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/fa3_v1.py#L12-L14",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/indexer.py#L14-L54",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L83-L97",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L234-L258",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L124-L156"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -602,7 +607,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/attention-backend-family.md",
       "backlinks": [
         {
@@ -666,10 +671,14 @@
         "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L255-L353",
         "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4987-L4999",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841"
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L104-L129",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L5008-L5052",
+        "vllm-ascend@2ed6cbba:tests/ut/worker/a2/test_model_runner_v1.py#L625-L646"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -691,7 +700,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/attention-cost.md",
       "backlinks": [
         {
@@ -1203,11 +1212,13 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L188",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L10-L11",
-        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html"
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L725"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -1234,7 +1245,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/chunked-prefill.md",
       "backlinks": [
         {
@@ -2812,7 +2823,7 @@
         {
           "from": "sequence-parallel",
           "kind": "conflicts-with",
-          "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到"
+          "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到；只在 v0.23 上撞得到，v0.26 起那个 pass 已删"
         }
       ]
     },
@@ -2864,11 +2875,14 @@
         "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1304-L1311",
         "https://arxiv.org/abs/2305.13245",
         "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
-        "https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html"
+        "https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L450-L451",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1241-L1257"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -2895,7 +2909,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/gqa.md",
       "backlinks": []
     },
@@ -2930,10 +2944,12 @@
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ACL_Graph.md#L1-L14",
         "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html",
         "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30",
-        "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36"
+        "vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L768-L778"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "S",
       "relations": [
@@ -2950,7 +2966,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/graph-mode-layer.md",
       "backlinks": [
         {
@@ -4362,11 +4378,14 @@
         "vllm-ascend@b255ab59:vllm_ascend/ops/mla.py#L207-L217",
         "vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L82-L114",
         "https://arxiv.org/abs/2405.04434",
-        "https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json"
+        "https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/mla.py#L117-L129",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/mla_v1.py#L224-L258"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -4393,7 +4412,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/mla.md",
       "backlinks": [
         {
@@ -5185,7 +5204,8 @@
         "vllm-ascend@2c59ff10:setup.py#L458-L464"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5202,7 +5222,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/op-to-ai-core.md",
       "backlinks": []
     },
@@ -5237,7 +5257,8 @@
         "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5254,7 +5275,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/ops-and-kernels.md",
       "backlinks": [
         {
@@ -5479,11 +5500,14 @@
         "vllm-ascend@2c59ff10:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L161-L186",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1111-L1119",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L695-L703",
-        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075"
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L93",
+        "vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L105"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5515,7 +5539,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/pd-disaggregation.md",
       "backlinks": [
         {
@@ -5617,11 +5641,14 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L186-L217",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350",
-        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374"
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374",
+        "vllm@568afb3a:vllm/distributed/parallel_state.py#L1787-L1801",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L423-L429"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5648,7 +5675,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/pipeline-parallel.md",
       "backlinks": [
         {
@@ -6278,11 +6305,15 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53",
-        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/__init__.py#L17-L50",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/worker/__init__.py#L18-L41",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -6304,7 +6335,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/reading-vllm-ascend.md",
       "backlinks": []
     },
@@ -6671,11 +6702,14 @@
         "vllm-ascend@b255ab59:vllm_ascend/models/common/ops/sequence_parallel.py#L29-L49",
         "vllm-ascend@b255ab59:vllm_ascend/ops/register_custom_ops.py#L89-L98",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48",
-        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21"
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L861-L888",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L467-L521"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -6697,12 +6731,12 @@
         {
           "to": "fuse-allreduce-rms",
           "kind": "conflicts-with",
-          "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到"
+          "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到；只在 v0.23 上撞得到，v0.26 起那个 pass 已删"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/sequence-parallel.md",
       "backlinks": [
         {
@@ -6941,11 +6975,16 @@
         "vllm-ascend@b255ab59:vllm_ascend/spec_decode/llm_base_proposer.py#L414-L436",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1107-L1132",
         "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/speculative_decoding.html",
-        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/__init__.py#L35-L58",
+        "vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/llm_base_proposer.py#L505-L521",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L237-L263",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/speculative_decoding.md#L62-L63"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -6977,7 +7016,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/speculative-decoding.md",
       "backlinks": [
         {
@@ -7154,11 +7193,13 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1136-L1164",
         "vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318",
-        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48"
+        "vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [

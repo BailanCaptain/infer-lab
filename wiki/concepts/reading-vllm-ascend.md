@@ -16,7 +16,10 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/__init__.py#L17-L50
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/worker/__init__.py#L18-L41
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-ascend-repo-map
@@ -29,13 +32,13 @@ relations:
     kind: builds-on
     note: 拿那条请求的三个具体问题各走一遍，是这三条路线最快的练法
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
 ## 一句话
 
-在一个 442 个文件、13 万行的仓库里，通读不是办法。实际有用的是三条路线：**手上有一条报错、有一个特性名、有一个上游类名**，三种起点各走一条固定路径。
+在一个 442 个文件、13 万行（v0.26 分支上是 500 个文件、15 万行，见[目录地图](vllm-ascend-repo-map.md)）的仓库里，通读不是办法。实际有用的是三条路线：**手上有一条报错、有一个特性名、有一个上游类名**，三种起点各走一条固定路径。
 
 ```wiki-diagram
 file: locate-routes
@@ -79,20 +82,20 @@ file: locate-routes
 file: ref-diff
 ```
 
-目录层面只差 8 项：`2c59ff10` 独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。
+**这张图画的是 `2c59ff10` ↔ `b255ab59` 这一对**，第三个 ref `2ed6cbba`（v0.26 分支）不在图上。目录层面只差 8 项：`2c59ff10` 独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。三个 ref 两两都得这么比一遍，v0.26 那边的目录清单在[目录地图](vllm-ascend-repo-map.md)。
 
-但**同名不等于同内容**。最直接的例子：`class NPUPlatform` 在 `2c59ff10` 是 `platform.py` 第 128 行 [C6]，在 `b255ab59` 是第 80 行 [C7]，相差 48 行。对照的正确做法是按符号名而不是行号：先 `grep -n "^class X"` 各自拿到行号，再比内容。
+但**同名不等于同内容**。最直接的例子：`class NPUPlatform` 在 `2c59ff10` 是 `platform.py` 第 128 行 [C6]，在 `b255ab59` 是第 80 行 [C7]，相差 48 行；而在 `2ed6cbba` 上是第 127 行 [C12]——**跟 v0.23 只差一行，文件内容却早已不同**，这正是不能按行号对照的理由。正确做法是按符号名：先 `grep -n "^class X"` 各自拿到行号，再比内容。
 
 本库所有来源都写成 `repo@commit:path#L起-L止`，就是为了这件事——只记行号的笔记换个分支就会指到别的代码上。
 
 ## 三个会得出错结论的查法
 
-- **只看文件存在就认为 patch 生效。** 两个 `patch/*/__init__.py` 按 `is_310p()`、`vllm_version_is()`、`HAS_TRITON` 分支导入，没被 `import` 的文件等于没打 [C5][C8]。要看当前环境走了哪条分支。
-- **在 `_310p/` 里读到实现就当成通用实现。** 那是 310P 这一代硬件的专用副本，49 个文件 [D]；同名类有两套实现，先确认自己在看哪一套。
+- **只看文件存在就认为 patch 生效。** 两个 `patch/*/__init__.py` 是条件导入，没被 `import` 的文件等于没打，要看当前环境走了哪条分支。**分支条件本身也按版本变**：v0.23 上是 `is_310p()`、`vllm_version_is()`、`HAS_TRITON` [C5][C8]，v0.26 上 `vllm_version_is()` 这一档已经没有了，换成 `is_310p()`、`HAS_TRITON`、`DYNAMIC_EPLB` / `EXPERT_MAP_RECORD` 两个环境变量，外加一处 `try / except ImportError` [C10][C11]。
+- **在 `_310p/` 里读到实现就当成通用实现。** 那是 310P 这一代硬件的专用副本，v0.23 与 v0.26 上都是 49 个文件 [D]；同名类有两套实现，先确认自己在看哪一套。
 - **拿 DeepWiki 之类的 AI 生成站当依据。** 这类站点对找方向有用，但本库的来源白名单不收它们——结论要落到 `repo@commit:path#L行` 才算。
 
 ## 常见误解
 
-- **「读源码应该从入口往下通读」**——入口只有 5 个 entry point，往下第二层就分叉成 23 个目录。三条路线都是**从问题反查**，不是正向通读。
+- **「读源码应该从入口往下通读」**——入口只有 5 个 entry point（v0.23 与 v0.26 上都是这 5 个），往下第二层就分叉成 23 个目录，v0.26 上 24 个。三条路线都是**从问题反查**，不是正向通读。
 - **「grep 类名就能找到实现」**——可能找到三处：patch 里的替换、子类、以及 `_310p/` 里的专用副本。三者含义完全不同。
 - **「main 分支更新所以更准」**——两个 ref 是两个使用场景：在稳定分支上开发就该读稳定分支。讲清版本差异本身就是本库存在的理由之一。

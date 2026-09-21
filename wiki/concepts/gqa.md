@@ -28,7 +28,9 @@ sources:
   - https://arxiv.org/abs/2305.13245
   - https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json
   - https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L450-L451
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1241-L1257
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: one-request
@@ -44,7 +46,7 @@ relations:
     kind: alternative-to
     note: 同一个问题（KV 太占显存）的另一条路——GQA 减 K/V 的头数，MLA 换掉存进去的东西
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 origin: seed
 ---
 
@@ -104,7 +106,7 @@ QK 点乘：16 × S × 128 次乘加                    （和 n_kv 无关）
 
 从 Python 侧看，K 和 V 从头到尾只有 8 份。
 
-- `Attention.forward` 里 query 是 `view(-1, num_heads, head_size)`，key / value 是 `view(-1, num_kv_heads, head_size)`——两个形状本来就不一样，没有 expand 也没有 repeat [C7]。昇腾 impl 的 docstring 把这条形状契约原样抄了一遍 [C14]。
+- `Attention.forward` 里 query 是 `view(-1, num_heads, head_size)`，key / value 是 `view(-1, num_kv_heads, head_size)`——两个形状本来就不一样，没有 expand 也没有 repeat [C7]。昇腾 impl 的 docstring 把这条形状契约原样抄了一遍。
 - 取缓存那一步，8 个头干脆被压进最后一维：`key_cache.view(num_block, block_size, -1)` 把 `(128, 8, 128)` 变成 `(128, 1024)`，头的边界在张量里已经看不见了 [C11]。
 - 边界靠入参还原：`npu_fused_infer_attention_score(..., num_heads=16, num_key_value_heads=8)` [C12]；[PagedAttention](paged-attention.md) 那个算子收的是同一对参数 `num_heads` / `num_kv_heads`。**分组发生在算子内部**，Python 这一侧一次都没摊开。
 
@@ -116,17 +118,17 @@ QK 点乘：16 × S × 128 次乘加                    （和 n_kv 无关）
 
 官方文档拿 Qwen3-Next 举过这个例子：16 个 Q 头、只有 2 个 KV 头，TP ≥ 16 时「GQA degenerates into MHA」，而 FIA 算子在 `head_dim` 256 的 MHA 场景下跑不起来，于是这个模型索性不支持 TP ≥ 16 [S16]（<https://docs.vllm.ai/projects/ascend/en/v0.23.0/tutorials/models/Qwen3-Next.html>）。**KV 头数因此是 TP 的一道软上限**，踩过去不只是多存一份，还可能换掉算子走的分支。
 
-## 两个分支只在「8 个头摆在哪」上分叉
+## 三个分支只在「8 个头摆在哪」上分叉
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`（2026-09-10），完整提交号在来源里。
+下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`（2026-09-10），v0.26 分支指 `2ed6cbba`，完整提交号在来源里。v0.26 两行都站在 v0.23 这边：分组那两行一字不差 [C22]，块里的摆法也还是固定压平 [C23]，`_get_kv_cache_view` 在它的 `vllm_ascend` 里 grep 不到。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
+| 项 | v0.23 维护分支与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| 分组本身 | `assert num_heads % num_kv_heads == 0` 后算 `num_queries_per_kv` [C10] | 同样两行，一字不差 [C17] | GQA 的机制两版没有分叉，跨分支排查不用先看版本 |
-| 8 个 KV 头在块里怎么摆 | 固定压平：`key_cache.view(num_block, block_size, -1)` | 多一个 `_get_kv_cache_view`，`VLLM_KV_CACHE_LAYOUT` 取 `HND` / `LBHNC` 时不压平，四维直接进算子 [C18] | 字节数一个不差，但 profiling 上 key 一个是三维一个是四维，照 v0.23 的经验读 main 的 dump 会对不上 `[!]`；布局这一刀的全貌在 [KV Cache Spec](kv-cache-spec.md) |
+| 分组本身 | `assert num_heads % num_kv_heads == 0` 后算 `num_queries_per_kv` [C10] | 同样两行，一字不差 [C17] | GQA 的机制三版没有分叉，跨分支排查不用先看版本 |
+| 8 个 KV 头在块里怎么摆 | 固定压平：`key_cache.view(num_block, block_size, -1)` | 多一个 `_get_kv_cache_view`，`VLLM_KV_CACHE_LAYOUT` 取 `HND` / `LBHNC` 时不压平，四维直接进算子 [C18] | 字节数一个不差，但 profiling 上 key 一个是三维一个是四维，照 v0.23 或 v0.26 的经验读 main 的 dump 会对不上 `[!]`；布局这一刀的全貌在 [KV Cache Spec](kv-cache-spec.md) |
 
 ## 常见误解
 
 - **「GQA 省的是算力」**——省的是 KV 的字节数和 decode 每步要搬的字节数。16 个 Q 头照样各算一遍全序列，QK 点乘和取 V 的乘加次数和 MHA 一模一样；真变小的只有 `qkv_proj` 那块 GEMM [D]。
 - **「算注意力前要先把 8 份 K/V 复制成 16 份」**——解码器这条路不用，`num_heads` 和 `num_key_value_heads` 两个数一起交给算子，分组在算子内部完成。倒是多模态 encoder 那条自写路径真的 `repeat_interleave`。
-- **「GQA 和 MQA、MHA 是三种并列的东西」**——是同一个轴上的三个点，轴就是 `num_key_value_heads`：等于 1 是 MQA，等于 `num_heads` 是 MHA，夹在中间才叫 GQA [S19]。所以 TP 把它压到 1 之后，代码和算子都不会报错，只是这一层安静地变回了 MHA。
+- **「GQA 和 MQA、MHA 是三种并列的东西」**——是同一个轴上的三个点，轴就是 `num_key_value_heads`：等于 1 是 MQA，等于 `num_heads` 是 MHA，夹在中间才叫 GQA。所以 TP 把它压到 1 之后，代码和算子都不会报错，只是这一层安静地变回了 MHA。

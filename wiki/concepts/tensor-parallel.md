@@ -43,7 +43,8 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1136-L1164
   - vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318
   - vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: kv-cache-spec
@@ -129,15 +130,15 @@ file: tensor-parallel
 
 `finegrained_tp_config` 底下那几个 `*_tensor_parallel_size` 看着像「给某一层单独设一个更大的 TP」，可建组那段代码沿的是 DP 轴：`rank_grid` reshape 成 `(pp, dp, tp)` 之后，每个组取的是**固定 `tp_idx`、连续几个 dp 下标**的那一列 [C19]。所以它的硬约束写成「整除 `data_parallel_size`」，标准 `tensor_parallel_size > 1` 时这几项根本不生效——这是整个特性最容易读反的地方。四个键各自的门槛、省下多少显存、通信形状换成了什么，以及为什么 `o_proj` 那一项反而更慢，都在 [Fine-Grained Tensor Parallelism](fine-grained-tp.md)。
 
-## 两个分支在哪儿分的叉
+## 三个分支在哪儿分的叉
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。标准 TP 的那套（列切/行切/两次 all-reduce/kv 头复制）**两边一字不差**，差异全在昇腾那一侧。
+下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。标准 TP 的那套（列切/行切/两次 all-reduce/kv 头复制）**三边一字不差**，差异全在昇腾那一侧。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| row-parallel 分派链 | 七档：DSV4 / DSA-CP / MLP / OTP / matmul-allreduce / FlashComm2 / SP | 三档，只剩 DSV4 / MLP / OTP [C35] | matmul-allreduce 与 FlashComm2 整套删干净；序列并行还在，但不再从 Linear 这一层接管 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| row-parallel 分派链 | 七档：DSV4 / DSA-CP / MLP / OTP / matmul-allreduce / FlashComm2 / SP | 四档：DSV4 / MLP / OTP / SP [C37] | 三档，只剩 DSV4 / MLP / OTP [C35] | matmul-allreduce、FlashComm2、DSA-CP 三档在 v0.26 上就已经删干净——照 v0.23 配这几项的人升到 v0.26 会发现这条链上没有它们了 `[!]`；序列并行到 v0.26 为止还从 Linear 这一层接管，main 上才不再接管 |
 
-细粒度 TP 那几个键在两个分支之间怎么变（配置类怎么建、main 上删掉的第五个键、文档补的那一节），见 [Fine-Grained Tensor Parallelism](fine-grained-tp.md)。
+细粒度 TP 那几个键在这几个分支之间怎么变（配置类怎么建、main 上删掉的第五个键、文档补的那一节），见 [Fine-Grained Tensor Parallelism](fine-grained-tp.md)。
 
 ## 常见误解
 

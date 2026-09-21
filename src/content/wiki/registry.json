@@ -373,7 +373,7 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L57",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53",
         "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20",
-        "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/patch.html",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16",
         "vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",

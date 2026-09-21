@@ -8,6 +8,7 @@ import { gitText } from "./git";
 import { parseSeeds } from "./ingest";
 import { appendWikiLog } from "./log";
 import { patrol } from "./maintenance";
+import { loadPages } from "./pages";
 import { ParameterBulkDeferred, publishParamSync } from "./params/publish-sync";
 import { scanRepo } from "./params/scan";
 import { parameterDiff, parameterKey } from "./params/sync";
@@ -17,6 +18,7 @@ import { reconcileCycle } from "./reconcile";
 import { readReview } from "./review";
 import { localFile } from "./review-files";
 import { syncGithub } from "./sync-github";
+import { checkUrls, collectUrls, httpFetcher, urlFindings } from "./urls";
 import { workOne } from "./worker";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 import { workflowPolicySchema } from "./workflow-policy";
@@ -31,6 +33,8 @@ export const syncConfigSchema = z
     github: z.boolean().default(false),
     githubRepo: z.string().default("vllm-project/vllm-ascend"),
     patrolAgeDays: z.number().int().nonnegative().default(30),
+    /** 巡检时把站外链接真的请求一遍（不调模型）；404 / 410 进巡检问题清单 */
+    checkUrls: z.boolean().default(false),
     paid: workflowPolicySchema.optional(),
     maxTasks: z.number().int().min(0).max(10).default(0),
     reconcileBatches: z.number().int().min(0).max(10).default(0),
@@ -161,7 +165,10 @@ async function runSync(
     for (const pr of readCorpus(root, config.githubRepo)) await queueImportantPr(root, pr, config.seeds);
   }
   progress("patrol");
-  const inspection = await patrol(root, seeds, config.patrolAgeDays);
+  const deadUrls = config.checkUrls
+    ? urlFindings(await checkUrls(collectUrls(loadPages(join(root, "wiki")).pages), httpFetcher()))
+    : [];
+  const inspection = await patrol(root, seeds, config.patrolAgeDays, undefined, deadUrls);
   progress("reconcile");
   const reconciliation = config.reconcileBatches
     ? await reconcileCycle(root, config.reconcileBatches, config.paid!)

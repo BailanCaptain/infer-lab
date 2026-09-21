@@ -61,10 +61,21 @@ export function patrolFindings(pages: WikiPage[], seeds: Seeds, root: string, no
   }
   return findings;
 }
-export async function patrol(root: string, seeds: Seeds, maxAgeDays = 30, now = new Date().toISOString()) {
+export async function patrol(
+  root: string,
+  seeds: Seeds,
+  maxAgeDays = 30,
+  now = new Date().toISOString(),
+  /** 巡检之外算好的问题（站外死链要联网，不能放进下面这把锁里做），一并写进同一份报告 */
+  extra: { file: string; rule: string; message: string }[] = [],
+) {
   return new WorkflowStore(root).locked(() => {
     const loaded = loadPages(join(root, "wiki"));
-    const findings = [...loaded.problems, ...patrolFindings(loaded.pages, seeds, root, now, maxAgeDays)];
+    const findings = [
+      ...loaded.problems,
+      ...patrolFindings(loaded.pages, seeds, root, now, maxAgeDays),
+      ...extra,
+    ];
     const path = localFile(root, `wiki/warnings/patrol-${now.slice(0, 10)}.md`);
     mkdirSync(localFile(root, "wiki/warnings"), { recursive: true });
     atomicText(

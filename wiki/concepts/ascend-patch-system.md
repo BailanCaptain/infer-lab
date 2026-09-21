@@ -15,7 +15,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L57
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/patch.md#L1-L20
-  - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html
+  - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/patch.html
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_torch_accelerator.py#L1-L16
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L18-L76
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
@@ -85,7 +85,7 @@ file: patch-timing
 
 这个格式是这套机制最值钱的部分：**它让每个 patch 都自带退出条件**。读一遍这个文件，就知道哪些 patch 是临时的、哪些是硬件差异导致的长期存在。
 
-官方设计文档把态度写得更直白：patch 不是好办法，只是临时方案，最好的办法是把改动贡献回 vLLM；并给了三条原则——「Less is more，除非目前只有这条路，否则不要打 patch」「一旦加了 patch，必须写清未来移除它的计划」「任何时候清理 patch 代码都是受欢迎的」[S8]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/feature_guide/patch.html)）。所以文件数本身不是结论，要连着每条的 Future Plan 一起读。
+官方设计文档把态度写得更直白：patch 不是好办法，只是临时方案，最好的办法是把改动贡献回 vLLM；并给了三条原则——「Less is more，除非目前只有这条路，否则不要打 patch」「一旦加了 patch，必须写清未来移除它的计划」「任何时候清理 patch 代码都是受欢迎的」[S8]（[线上同页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/patch.html)）。所以文件数本身不是结论，要连着每条的 Future Plan 一起读。
 
 ```wiki-diagram
 file: patch-inventory

@@ -6,6 +6,7 @@
   "github": true,
   "githubRepo": "vllm-project/vllm-ascend",
   "patrolAgeDays": 30,
+  "checkUrls": true,
   "maxTasks": 0,
   "reconcileBatches": 0,
   "driftSample": 0

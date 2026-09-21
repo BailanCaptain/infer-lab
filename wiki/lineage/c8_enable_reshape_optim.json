@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "term": "c8_enable_reshape_optim",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "6f9e86a714ffbc2d5cfd6740bccf3252b7c81d30",
+      "files": 2
+    },
+    {
+      "ref": "releases/v0.28.0rc",
+      "commit": "c8addbb24fe8fa820bb79685c116e43ba89b77e9",
+      "files": 0
+    },
+    {
+      "ref": "main",
+      "commit": "c173a64a44dec4ba97aaba6277b1dfc1562eda19",
+      "files": 1
+    }
+  ],
+  "events": [
+    {
+      "commit": "a53f8a023016219a3d5246a881d74d4d8d892f0c",
+      "date": "2026-06-10",
+      "subject": "[Feature] add ascendc ops store_kv_block (#10292)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "added": 51,
+          "removed": 10
+        },
+        {
+          "path": "vllm_ascend/worker/model_runner_v1.py",
+          "added": 3,
+          "removed": 2
+        },
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 1,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/attention/utils.py",
+          "added": 4,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/spec_decode/llm_base_proposer.py",
+          "added": 3,
+          "removed": 0
+        }
+      ],
+      "pr": 10292,
+      "containedIn": {
+        "tags": [
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann"
+        ]
+      }
+    },
+    {
+      "commit": "c30092741be0829dfb387103a32f433f5c0ecb5c",
+      "date": "2026-09-07",
+      "subject": "[Refactor] Auto-enable LI C8 reshape optimization (#15752)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 21,
+          "removed": 10
+        },
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "added": 2,
+          "removed": 2
+        }
+      ],
+      "pr": 15752,
+      "containedIn": {
+        "tags": [],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.28.0rc",
+          "origin/revert-15908-new-refactor"
+        ]
+      }
+    },
+    {
+      "commit": "1e0742722d149b99f91ece504180aa9bdf8b69af",
+      "date": "2026-09-20",
+      "subject": "[Misc][Config] Restore C8 reshape optimization switch (#16952)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 7,
+          "removed": 3
+        }
+      ],
+      "pr": 16952,
+      "containedIn": {
+        "tags": [],
+        "branches": [
+          "origin/main"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0rc1",
+    "v0.24.0rc1",
+    "v0.25.1rc1",
+    "v0.26.0rc1",
+    "v0.26.0rc2"
+  ]
+}

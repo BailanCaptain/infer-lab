@@ -2,24 +2,39 @@
   "schemaVersion": 1,
   "term": "layer_sharding",
   "paths": [
-    "*.py"
+    "vllm_ascend/"
   ],
   "interpretation": "textual-presence-not-runtime-behavior",
   "presence": [
     {
       "ref": "releases/v0.13.0",
       "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
-      "files": 8
+      "files": 6
     },
     {
       "ref": "releases/v0.18.0",
       "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
-      "files": 9
+      "files": 7
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 7
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 7
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 7
     },
     {
       "ref": "releases/v0.23.0",
       "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
-      "files": 14
+      "files": 8
     },
     {
       "ref": "releases/v0.24.0rc",
@@ -33,17 +48,22 @@
     },
     {
       "ref": "releases/v0.26.0rc",
-      "commit": "5f12bbf34a530cd6c87463c56404535246af6e94",
-      "files": 1
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 0
     },
     {
       "ref": "releases/v0.27.1rc",
-      "commit": "9934c93ee9bf196d228c8ff6648dfc83d876b937",
+      "commit": "6f9e86a714ffbc2d5cfd6740bccf3252b7c81d30",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.28.0rc",
+      "commit": "c8addbb24fe8fa820bb79685c116e43ba89b77e9",
       "files": 0
     },
     {
       "ref": "main",
-      "commit": "84d6dc83a9b0016c1dcc7d3ed059acb829b61091",
+      "commit": "c173a64a44dec4ba97aaba6277b1dfc1562eda19",
       "files": 0
     }
   ],
@@ -100,7 +120,8 @@
           "v0.23.0rc1",
           "v0.24.0rc1",
           "v0.25.1rc1",
-          "v0.26.0rc1"
+          "v0.26.0rc1",
+          "v0.26.0rc2"
         ],
         "branches": [
           "main",
@@ -117,8 +138,11 @@
           "origin/releases/v0.25.1rc",
           "origin/releases/v0.26.0rc",
           "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
           "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
           "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
           "origin/rfc/community-contrib",
           "origin/rfc/megakernel",
           "origin/rfc/vllm_cann"
@@ -132,16 +156,6 @@
       "kind": "removed",
       "topFiles": [
         {
-          "path": "tests/ut/ops/test_flashcomm2_oshard_manager.py",
-          "added": 0,
-          "removed": 487
-        },
-        {
-          "path": "tests/ut/ops/test_layer_shard_linear.py",
-          "added": 0,
-          "removed": 468
-        },
-        {
           "path": "vllm_ascend/ops/layer_shard_linear.py",
           "added": 0,
           "removed": 296
@@ -152,9 +166,19 @@
           "removed": 103
         },
         {
-          "path": "tests/ut/attention/a2/test_mla_v1.py",
+          "path": "vllm_ascend/ops/linear_op.py",
           "added": 1,
-          "removed": 77
+          "removed": 72
+        },
+        {
+          "path": "vllm_ascend/distributed/parallel_state.py",
+          "added": 1,
+          "removed": 51
+        },
+        {
+          "path": "vllm_ascend/attention/sfa_v1.py",
+          "added": 3,
+          "removed": 37
         }
       ],
       "pr": 11953,
@@ -162,7 +186,8 @@
         "tags": [
           "v0.24.0rc1",
           "v0.25.1rc1",
-          "v0.26.0rc1"
+          "v0.26.0rc1",
+          "v0.26.0rc2"
         ],
         "branches": [
           "main",
@@ -173,50 +198,11 @@
           "origin/releases/v0.25.1rc",
           "origin/releases/v0.26.0rc",
           "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
           "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
           "origin/rfc/megakernel"
-        ]
-      }
-    },
-    {
-      "commit": "23cfbd5bae8028dc31d8ddd66673f985cf66e5f5",
-      "date": "2026-07-31",
-      "subject": "[Feature][v0.26.0rc] Support Kimi K3 on Ascend (#12950)",
-      "kind": "introduced",
-      "topFiles": [
-        {
-          "path": "vllm_ascend/ops/fused_moe/moe_mlp.py",
-          "added": 863,
-          "removed": 686
-        },
-        {
-          "path": "vllm_ascend/ops/fused_moe/prepare_finalize.py",
-          "added": 543,
-          "removed": 544
-        },
-        {
-          "path": "tests/ut/ops/test_moe_comm_method.py",
-          "added": 328,
-          "removed": 270
-        },
-        {
-          "path": "vllm_ascend/ops/register_custom_ops.py",
-          "added": 282,
-          "removed": 259
-        },
-        {
-          "path": "tests/ut/ops/test_prepare_finalize.py",
-          "added": 253,
-          "removed": 207
-        }
-      ],
-      "pr": 12950,
-      "containedIn": {
-        "tags": [
-          "v0.26.0rc1"
-        ],
-        "branches": [
-          "origin/releases/v0.26.0rc"
         ]
       }
     }
@@ -236,7 +222,6 @@
     "v0.21.0rc1",
     "v0.22.1rc1",
     "v0.23.0",
-    "v0.23.0rc1",
-    "v0.26.0rc1"
+    "v0.23.0rc1"
   ]
 }

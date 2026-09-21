@@ -53,8 +53,18 @@ See https://github.com/vllm-project/vllm-ascend/issues/15896
 
 | 版本 | 是否存在 |
 | --- | --- |
-| b255ab59662d8c665e5534e926f913b1c1179b1c | 无 |
-| c173a64a44dec4ba97aaba6277b1dfc1562eda19 | 有（1 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 有（2 个文件） |
+| releases/v0.22.1rc | 有（2 个文件） |
+| releases/v0.23.0 | 有（2 个文件） |
+| releases/v0.24.0rc | 有（2 个文件） |
+| releases/v0.25.1rc | 有（2 个文件） |
+| releases/v0.26.0rc | 有（2 个文件） |
+| releases/v0.27.1rc | 有（2 个文件） |
+| releases/v0.28.0rc | 无 |
+| main | 有（1 个文件） |
 
 - **引入**：2026-06-10 · a53f8a023016219a3d5246a881d74d4d8d892f0c · PR [#10292](https://github.com/vllm-project/vllm-ascend/pull/10292) —— [Feature] add ascendc ops store_kv_block (#10292)
   包含该提交的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann

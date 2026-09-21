@@ -131,25 +131,35 @@ v0.23.0 上的等价写法是 `--additional-config '{"enable_sleep_mode_extra_cl
 
 | 版本 | 是否存在 |
 | --- | --- |
-| main | 无 |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
 | releases/v0.23.0 | 有（2 个文件） |
+| releases/v0.24.0rc | 有（2 个文件） |
+| releases/v0.25.1rc | 有（2 个文件） |
+| releases/v0.26.0rc | 有（2 个文件） |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 无 |
+| main | 无 |
 
 - **引入**：2026-06-22 · 92eeab2fe9a73394d2118de3c8459d69cc9d8e62 · PR [#9585](https://github.com/vllm-project/vllm-ascend/pull/9585) —— [Feature] vllm-ascend sleep mode optimization for residual memory usage (#9585)
-  包含该提交的 tag：v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  包含该提交的 tag：v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
   - `vllm_ascend/patch/worker/patch_distributed.py` +85 / −49（文本行变化）
   - `vllm_ascend/ascend_config.py` +2 / −0（文本行变化）
   - `vllm_ascend/compilation/acl_graph.py` +2 / −0（文本行变化）
   - `vllm_ascend/device_allocator/sleep_mem_optimized.py` +186 / −0（文本行变化）
   - `vllm_ascend/ops/fused_moe/token_dispatcher.py` +7 / −0（文本行变化）
 - **移除**：2026-08-24 · 9cf7a0a23944b032d512040f4da542777042cc3e · PR [#13838](https://github.com/vllm-project/vllm-ascend/pull/13838) —— [Refactor][Config] Migrate AscendConfig to @config pydantic dataclass (#13838)
-  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.27.1rc、origin/revert-15210-glm52_v2_dspark、origin/rfc/megakernel
+  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/megakernel
   - `vllm_ascend/ascend_config.py` +674 / −748（文本行变化）
   - `vllm_ascend/utils.py` +17 / −25（文本行变化）
   - `vllm_ascend/compilation/graph_fusion_pass_manager.py` +7 / −5（文本行变化）
   - `vllm_ascend/model_loader/rfork/rfork_loader.py` +3 / −5（文本行变化）
   - `vllm_ascend/spec_decode/llm_base_proposer.py` +5 / −3（文本行变化）
 
-当前含该标识符的 tag：v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1
+当前含该标识符的 tag：v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
 
 ## 参数定义（自动生成）
 

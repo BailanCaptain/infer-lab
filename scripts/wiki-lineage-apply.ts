@@ -12,7 +12,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
-import { LINEAGE_SECTION, replaceSection } from "./wiki/lineage";
+import { LINEAGE_SECTION, lineageTerm, replaceSection } from "./wiki/lineage";
 import { publishLineage } from "./wiki/lineage-publish";
 
 function arg(name: string, def?: string): string | undefined {
@@ -40,10 +40,13 @@ const updates: { path: string; before: string; after: string }[] = [];
 for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
   const file = join(pagesDir, name);
   const text = readFileSync(file, "utf8");
-  const term = titleOf(text);
-  if (!term) continue;
   // 只处理参数页；概念页没有这一节也不该有
   if (!/^type:\s*param\s*$/m.test(text.split("---")[1] ?? "")) continue;
+  const term = lineageTerm(titleOf(text) ?? "");
+  if (!term) {
+    console.warn(`! 跳过 wiki/${dir}/${name}：标题里找不到参数名，版本谱系没有重算`);
+    continue;
+  }
 
   const md = execFileSync(
     process.execPath,

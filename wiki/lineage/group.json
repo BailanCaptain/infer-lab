@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "term": "group",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 84
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 95
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 132
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 143
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 149
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 161
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 159
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 161
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 183
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "6f9e86a714ffbc2d5cfd6740bccf3252b7c81d30",
+      "files": 212
+    },
+    {
+      "ref": "releases/v0.28.0rc",
+      "commit": "c8addbb24fe8fa820bb79685c116e43ba89b77e9",
+      "files": 249
+    },
+    {
+      "ref": "main",
+      "commit": "c173a64a44dec4ba97aaba6277b1dfc1562eda19",
+      "files": 254
+    }
+  ],
+  "events": [
+    {
+      "commit": "d5e7756028bd5884ade96b654555c375770a2f64",
+      "date": "2025-02-05",
+      "subject": "[Core] Init vllm-ascend (#3)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/__init__.py",
+          "added": 21,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/attention.py",
+          "added": 678,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/communicator.py",
+          "added": 28,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/model_runner.py",
+          "added": 620,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/ops/__init__.py",
+          "added": 18,
+          "removed": 0
+        }
+      ],
+      "pr": 3,
+      "containedIn": {
+        "tags": [
+          "v0.7.1rc1",
+          "v0.7.3",
+          "v0.7.3.post1",
+          "v0.7.3rc1",
+          "v0.7.3rc2",
+          "v0.8.4rc1",
+          "v0.8.4rc2",
+          "v0.8.5rc1",
+          "v0.9.0rc1",
+          "v0.9.0rc2",
+          "v0.9.1",
+          "v0.9.1rc1",
+          "v0.9.1rc2",
+          "v0.9.1rc3",
+          "v0.9.2rc1",
+          "v0.10.0rc1",
+          "v0.10.1rc1",
+          "v0.10.2rc1",
+          "v0.11.0",
+          "v0.11.0rc0",
+          "v0.11.0rc1",
+          "v0.11.0rc2",
+          "v0.11.0rc3",
+          "v0.12.0rc1",
+          "v0.13.0",
+          "v0.13.0rc1",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann",
+          "origin/v0.11.0-dev",
+          "origin/v0.7.1-dev",
+          "origin/v0.7.3-dev",
+          "origin/v0.9.1-dev"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.7.1rc1",
+    "v0.7.3",
+    "v0.7.3.post1",
+    "v0.7.3rc1",
+    "v0.7.3rc2",
+    "v0.8.4rc1",
+    "v0.8.4rc2",
+    "v0.8.5rc1",
+    "v0.9.0rc1",
+    "v0.9.0rc2",
+    "v0.9.1",
+    "v0.9.1rc1",
+    "v0.9.1rc2",
+    "v0.9.1rc3",
+    "v0.9.2rc1",
+    "v0.10.0rc1",
+    "v0.10.1rc1",
+    "v0.10.2rc1",
+    "v0.11.0",
+    "v0.11.0rc0",
+    "v0.11.0rc1",
+    "v0.11.0rc2",
+    "v0.11.0rc3",
+    "v0.12.0rc1",
+    "v0.13.0",
+    "v0.13.0rc1",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0rc1",
+    "v0.24.0rc1",
+    "v0.25.1rc1",
+    "v0.26.0rc1",
+    "v0.26.0rc2"
+  ]
+}

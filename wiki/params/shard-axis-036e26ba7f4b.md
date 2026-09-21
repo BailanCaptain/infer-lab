@@ -54,8 +54,18 @@ rawSources:
 
 | 版本 | 是否存在 |
 | --- | --- |
-| 28bf3a2e8e8db396ee5dcfa6812626eee2d394ab | 有（1 个文件） |
-| b255ab59662d8c665e5534e926f913b1c1179b1c | 有（3 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 有（1 个文件） |
+| releases/v0.28.0rc | 有（3 个文件） |
+| main | 有（3 个文件） |
 
 - **引入**：2026-08-07 · a533aed9815e1ba638a1aa5254f0fb11c15df4fd · PR [#12982](https://github.com/vllm-project/vllm-ascend/pull/12982) —— [Refactor][DSA] Move TP weight switching into quantization methods (#12982)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/megakernel

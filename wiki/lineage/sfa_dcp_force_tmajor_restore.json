@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "term": "sfa_dcp_force_tmajor_restore",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "6f9e86a714ffbc2d5cfd6740bccf3252b7c81d30",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.28.0rc",
+      "commit": "c8addbb24fe8fa820bb79685c116e43ba89b77e9",
+      "files": 3
+    },
+    {
+      "ref": "main",
+      "commit": "c173a64a44dec4ba97aaba6277b1dfc1562eda19",
+      "files": 3
+    }
+  ],
+  "events": [
+    {
+      "commit": "8f26bb734759e79f3186cc0efbca6d9cb1b594ee",
+      "date": "2026-09-16",
+      "subject": "[Performance] Optimize the DCP decode query-gather layout path (#15970)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/attention/context_parallel/sfa_cp.py",
+          "added": 34,
+          "removed": 2
+        },
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 2,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/ops/triton/query_gather_prep.py",
+          "added": 193,
+          "removed": 0
+        },
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 9,
+          "removed": 0
+        }
+      ],
+      "pr": 15970,
+      "containedIn": {
+        "tags": [],
+        "branches": [
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.28.0rc"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": []
+}

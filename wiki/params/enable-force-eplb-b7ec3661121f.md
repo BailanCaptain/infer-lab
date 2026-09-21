@@ -64,8 +64,18 @@ if self.enable_force_eplb and self.eplb_config.dynamic_eplb and (vc.model_config
 
 | 版本 | 是否存在 |
 | --- | --- |
-| b255ab59662d8c665e5534e926f913b1c1179b1c | 有（3 个文件） |
-| c173a64a44dec4ba97aaba6277b1dfc1562eda19 | 有（3 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 有（3 个文件） |
+| main | 有（3 个文件） |
 
 - **引入**：2026-09-02 · 2825e368b0ee0cd5ecfddc075cee92be658508f9 · PR [#15499](https://github.com/vllm-project/vllm-ascend/pull/15499) —— [Feature] add force EPLB Feature through additional config (#15499)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor、origin/rfc/megakernel

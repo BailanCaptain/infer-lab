@@ -54,3 +54,16 @@ export function replaceSection(body: string, section: string, content: string): 
     ? `${body.trimEnd()}\n\n${content.trimEnd()}\n`
     : `${body.slice(0, start)}${content.trimEnd()}\n`;
 }
+
+const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * 参数页的 title → 拿去算谱系的标识符。约定是「title 就是参数名」，但统一写法之后有的页把标题
+ * 写成了「中文名（参数名）」；这时取括号里的那个。找不到就返回 undefined，让调用方跳过这一页。
+ */
+export function lineageTerm(title: string): string | undefined {
+  const trimmed = title.trim();
+  if (IDENT.test(trimmed)) return trimmed;
+  for (const m of trimmed.matchAll(/[（(]\s*([A-Za-z_][A-Za-z0-9_]*)\s*[）)]/g)) if (m[1]) return m[1];
+  return undefined;
+}

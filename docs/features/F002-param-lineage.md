@@ -10,7 +10,7 @@ created: 2026-09-10
 
 **Status**: in-progress（当前验收仅以下表为准；排除大规模导入，真实模型未通过项不以工程测试替代）
 **Created**: 2026-09-10
-**Updated**: 2026-09-20
+**Updated**: 2026-09-21
 
 ## Why
 
@@ -52,18 +52,19 @@ F001 结构上答不了这类问题，三个原因：
 
 ## Acceptance Criteria
 
-### 验收状态（更新于 2026-09-20）
+### 验收状态（更新于 2026-09-21）
 
 这张表是 F002 验收状态的唯一真相源。「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。分级取 [2026-09-19 审视](../plans/wiki-audit-2026-09-19.md) §3 的口径：真实实现并测试 / 只用固定输出验证 / 部分实现 / 未执行 / 与 AC 文本不符。
 
 | AC | 当前结论 | 证据与未满足条件 |
 |---|---|---|
-| AC1 | 部分实现（扫描器在生产跑，全量确认未完成） | 四种定义形态、注释字典键、grep 交叉引用、同名类作用域各有单测。夜间同步每晚在 main 上实跑一次扫描（结果落 `wiki/_jobs/sync/last-run.json`）。**扫描产物 `wiki/lineage/params-<ref>.json` 是本机数据、不在 git 里**，换机器要重跑；`confidence: suspect` 的长尾未经 AC2 复核，因此不能说「参数清单已全部确认」。 |
-| AC2 | 只用固定输出验证 | 三态输出、逐字引文、保留 `undetermined` 各有固定输出测试。**未用真实模型复测**分类准确率；夜间任务不调模型（配置里没有 `paid` 块，见 `scripts/wiki/sync.ts:47`），所以复核不会自己发生。 |
-| AC3 | 真实实现并测试 | `wiki/lineage/layer_sharding.json` 记录八个 ref 的完整 commit、搜索路径、tag 与逐提交核实的边界：8/9/14/0/0/1/0/0，移除提交 `89601215` / PR #11953。可用 `pnpm wiki:lineage layer_sharding --paths '*.py'` 复算。v0.26 的单测文本残留不算功能回归。 |
-| AC4 | 部分实现（生成器已在生产产出，全量未覆盖） | 夜间同步已从 main 真实生成骨架页两批：提交 `9567b6c`（10 页，另 4 个留到下一晚）与 `7283d4c`（03:00 定时任务跑出的那 4 页）。全程不调模型。`pnpm wiki:lint` 2026-09-20 通过。**全量覆盖尚未达成**：每晚上限 10、队列按批推进，当前参数页数现查。幂等（重复生成后 `git diff` 为空）本轮未重跑。 |
-| AC5 | 只用固定输出验证 | `ingest --params` 只收模型正文、生成区由脚本覆盖、重刷保留正文，均有固定输出测试。**真实补文未用真实模型复测**。09-14 那批 8 页是 LLM 整页生成（与本 AC 的设计相反，偏差记在下方 AC5 条目）；这批页 2026-09-20 已由人按新写法重写并把 main 来源重钉到 `b255ab59`（`5672131`、`5e001c4`、`aab558c`），那是人写，不是 AC5 的链路。 |
-| AC6 | 部分实现（调度已实跑成功，两处未解决） | 上限与分批：`maxNewParamPages` 上限 10（schema 见 `scripts/wiki/sync.ts:30`，取值见 `wiki/sync.config.json`）；超限时只做前 N 个、其余留到下一晚，检查点只记已处理条目、commit 不前进（`scripts/wiki/params/publish-sync.ts:61-71`、`scripts/wiki/sync.ts:129-137`）；上限 0 仍表示「不生成新页」。**2026-09-20 的 03:00 定时任务实跑成功**：`wiki/_jobs/sync/last-run.json` 为 `status: "succeeded"`、`deferred: 0`、`findings: 0`，产物即提交 `7283d4c`。未解决：① 同步用的解释器路径 2026-09-21（`7781837`）已挪出共享配置——`wiki/sync.config.json` 不再写 `python`，本机路径在 gitignore 的 `wiki/sync.config.local.json` 里，不写时退回环境变量 `WIKI_PYTHON`、再退回 PATH 上的 `python`（上游源码要 3.12+ 才解析得了）；**这台机器上它仍指向 Codex 的私有缓存目录**，换机器仍会断，要不要建一个独立的 Python 3.12 环境等用户决定；② 「人为改掉一条，跑 sync 报出新增 1 / 删除 1 / 变更 1」这条红绿验收本轮未复跑。 |
+| AC1 | 部分实现（扫描器在生产跑，全量确认未完成） | 四种定义形态、注释字典键、grep 交叉引用、同名类作用域各有单测。夜间同步每晚在 main 上实跑一次扫描（结果落 `wiki/_jobs/sync/last-run.json`）。**扫描产物 `wiki/lineage/params-<ref>.json` 是本机数据、不在 git 里**，换机器要重跑；`confidence: suspect` 的长尾未经 AC2 复核，因此不能说「参数清单已全部确认」。**2026-09-21 三轮修复，判据比原来严得多**：① 原规则「类名以 `Config` 结尾 = 确定的 `additional_config` 键」把内部 dataclass 也算了进去，而夜间任务对「确定」的条目直接出正式页，于是多出 5 个误报正式页；现在扫描范围里有 `AscendConfig` 时，只有定义在它所在文件里、或被那个文件点名用到的类才算 certain，其余降 suspect、不自动出页（`a306f29`，那 5 页同批删掉）。② 工厂函数构造后按关键字传进 `AscendConfig(...)` 的子配置现在挂到正确的键下（`additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`）；`_NON_USER_INPUT_KEYS` 里、且根配置文件中没有任何一处从用户输入读的键（`kvpp_config` 及其下的 `size`、`pd_tp_ratio`、`pd_head_ratio`、`num_head_replica`、`enable_sp_by_pass`）判 suspect；`AscendConfig` 够不着的类，路径改以类名起头（`YuanrongConfig["use_layerwise"]`），不再谎称挂在 `additional_config` 下（`2329ead`）。③ 页面里原先兜底说明「生成区是错的」改成正面写法（`52f5d9c`）。现在 main 上 149 个字段、105 个判 certain（全在 `ascend_config.py`）。**改扫描器必须拿真实仓库跑一遍**——这次就是在真实仓库核对时抓到一个自己刚引入的 bug（根配置自己的类方法赋值被当成子配置，所有路径凭空多一层），已用测试钉住，单元测试覆盖不到上游的写法。 |
+| AC2 | 只用固定输出验证 | 三态输出、逐字引文、保留 `undetermined` 各有固定输出测试。**未用真实模型复测**分类准确率；夜间任务不调模型（配置里没有 `paid` 块，见 `scripts/wiki/sync.ts:47`），所以复核不会自己发生。09-21 收紧判据之后 certain 从 111 降到 105，suspect 这条长尾变长了，复核反而更该跑——但仍未跑。 |
+| AC3 | 真实实现并测试 | `wiki/lineage/layer_sharding.json` 记录每个 ref 的完整 commit、搜索路径、tag 与逐提交核实的边界；移除提交 `89601215` / PR #11953 与引入提交 `f7db812e` / PR #5181 都在。**2026-09-21 谱系表改成逐个发布分支列出**（`13a83ef`）：从原来的八个 ref 扩成 12 个（v0.13.0 / v0.18.0 / v0.20.2rc / v0.21.0rc / v0.22.1rc / v0.23.0 / v0.24.0rc / v0.25.1rc / v0.26.0rc / v0.27.1rc / v0.28.0rc / main），27 份 lineage JSON 与 24 页参数页同批重算。**口径变了，数字要跟着读**：现在存盘的 `paths` 是 `["vllm_ascend/"]`，文件数 6/7/7/7/7/8/0/0/0/0/0/0；AC 文本里的 8/9/14 是 `--paths '*.py'`（全仓 py 文件，含 tests）量的，分母不同，本轮未用 `--paths '*.py'` 重算。同一条修复还治了一个会整批失败的 bug：`wiki:lineage:apply` 把页面标题当参数名，标题写成「中文名（参数名）」时整批炸掉（`profiling-chunk-config` 改标题后触发）——现在取括号里的参数名，取不到就跳过该页。v0.26 的单测文本残留不算功能回归。 |
+| AC4 | 部分实现（生成器已在生产产出，全量未覆盖） | 夜间同步已从 main 真实生成骨架页两批：提交 `9567b6c`（10 页，另 4 个留到下一晚）与 `7283d4c`（03:00 定时任务跑出的那 4 页）。全程不调模型。`pnpm wiki:lint` 2026-09-21 通过。**09-21 的两件事**：夜间生成的 15 个骨架页里 5 个是扫描器误报、已删（见 AC1），剩下 10 个当天全部补成正文（`4e47a03`），`wiki/params/` 现在没有写着「待补」的页（2026-09-21 `git grep -l 待补 -- wiki/params` 为空）；参数页现有 19 页（`registry.json`，现查）。**全量覆盖仍未达成**：每晚上限 10、队列按批推进。幂等（重复生成后 `git diff` 为空）本轮未重跑。 |
+| AC5 | 只用固定输出验证 | `ingest --params` 只收模型正文、生成区由脚本覆盖、重刷保留正文，均有固定输出测试。**真实补文未用真实模型复测**。09-14 那批 8 页是 LLM 整页生成（与本 AC 的设计相反，偏差记在下方 AC5 条目）；这批页 2026-09-20 已由人按新写法重写并把 main 来源重钉到 `b255ab59`（`5672131`、`5e001c4`、`aab558c`）。**09-21 补完的那 10 个骨架页同样不是 AC5 的链路**：Opus 子代理直接写正文、主会话对钉住的源码抽查后提交（`4e47a03`），统一成手册规定的参数页五节 + 生成区，不写教学页才有的「常见误解」。所以 AC5 描述的「骨架交给提取 agent、脚本覆盖生成区」这条路至今没在生产跑过。 |
+| AC6 | 部分实现（调度已实跑成功，两处未解决） | 上限与分批：`maxNewParamPages` 上限 10（schema 见 `scripts/wiki/sync.ts:30`，取值见 `wiki/sync.config.json`）；超限时只做前 N 个、其余留到下一晚，检查点只记已处理条目、commit 不前进（`scripts/wiki/params/publish-sync.ts:61-71`、`scripts/wiki/sync.ts:129-137`）；上限 0 仍表示「不生成新页」。**2026-09-21 03:00 的定时任务同样实跑成功**：`wiki/_jobs/sync/last-run.json` 为 `status: "succeeded"`、`phase: "worker"`、`deferred: 0`、`findings: 0`（`startedAt` 2026-09-20T19:00:02Z = 北京时间 09-21 03:00），当晚还给 v0.26 建了参数基线。①**解释器一项 09-21 已结**：`7781837` 把路径挪出共享配置——`wiki/sync.config.json` 不再写 `python`，本机路径在 gitignore 的 `wiki/sync.config.local.json` 里（现值指向 Codex 私有缓存里的那份），不写时退回环境变量 `WIKI_PYTHON`、再退回 PATH 上的 `python`。**硬下限是 Python 3.11+ 不是 3.12**（钉住的 main 快照里有 `typing.Literal[*args]` 这种 PEP 646 星号下标，3.10 及以下 `ast.parse` 直接语法错）；`scripts/wiki/params/scan.py` 只 import `ast` / `json` / `re` / `sys`，全是标准库。用户 09-21 定**不建 conda 环境**：开源用户 PATH 上有 3.11+ 就行，不合适再写一行本机覆盖。这台机器借的那份哪天没了，夜间任务会当场报错并在错误信息里写明解释器与可用的覆盖办法（`scripts/wiki/params/scan.ts:17`），不会悄悄坏掉。②仍未解决：「人为改掉一条，跑 sync 报出新增 1 / 删除 1 / 变更 1」这条红绿验收本轮未复跑。 |
+| — | **迁移办法（09-21 新定，不属于任何一条 AC）** | 以后再动扫描器，身份键（`json_path`）变了的页照这套迁移：在 `wiki/params/identities.json` 加一条绑定把新身份键指回原页 id（页面 id 与公开链接都不变，该文件 2026-09-21 现有 2 个顶层键 `schemaVersion` / `bindings`）；用 `buildParamPage(..., previous)` 重算该页的生成区；**用新扫描器按各自钉住的提交重算 `wiki/_jobs/parameter-sync/` 下的三份基线**（三份均已在 2026-09-21 17:38 重算），否则夜间任务会把「身份变了」当成「新增参数」，再生成一批骨架页。验证口径：改动前后对每条基线条目跑 `parameterPageId` 对比，这次新增的身份冲突只有 1 条（v0.23 上内部类的 `prefetch_ratio`，已把原有那条 reference 绑定改到新路径）。 |
 
 
 - **AC1 · 参数扫描器**：`pnpm wiki:scan-params --ref <ref>` 输出该 ref 的全量参数清单到 `wiki/lineage/params-<ref>.json`，每条含 `name`、`type`、`default`、`class`、`json_path`（如 `additional_config["eplb_config"]["dynamic_eplb"]`）、`file`、`line`、`comment`（字段上方注释）、`constraints`（从 validator 的报错字符串提取的取值范围与联动）、`confidence`（`certain` / `suspect`）。三路合一：Python `ast` 拿结构 + 全仓 grep 交叉验证 + 注释里捞自由字典的合法键。验收：单元测试用固定的 Python 源码样本断言四种定义形态都被识别（见 Design Decisions「四种定义形态」）。
@@ -85,7 +86,7 @@ F001 结构上答不了这类问题，三个原因：
 ## Dependencies
 
 - **F001 AC9（阻塞）**：多 ref 钉定与完整克隆。参数扫描要跨分支跑，部分克隆会静默漏文件（实测 v0.23.0 漏 2 个）。
-- **Python 3.11+**：当前上游已使用旧 3.9 无法解析的 starred subscription。本机维护配置固定 Python 3.12；独立命令与测试可通过 `WIKI_PYTHON` 指定。扫描器只用 `ast` 解析源码文本，不执行、不 import，因此不需要安装 vllm 或 pydantic；解析失败明确报错，不跳文件或降级正则。具体配置见 HANDBOOK。
+- **Python 3.11+**：当前上游已使用旧 3.9 无法解析的 starred subscription（钉住的 main 快照里有两处 `typing.Literal[*args]`，3.10 及以下 `ast.parse` 直接语法错、整轮扫描退出），所以 3.11 是硬下限，不是「固定 3.12」。**2026-09-21 起解释器路径不再写死在共享配置里**（`7781837`）：`wiki/sync.config.json` 不含 `python`，本机路径写在 gitignore 的 `wiki/sync.config.local.json`（`{"python": "<路径>"}`）；没写就退回环境变量 `WIKI_PYTHON`，再退回 PATH 上的 `python`。独立命令与测试同样可用 `WIKI_PYTHON` 指定。扫描器只用 `ast` 解析源码文本，不执行、不 import，`scan.py` 只 import `ast` / `json` / `re` / `sys` 这四个标准库，因此不需要安装 vllm 或 pydantic，也**不需要专门建 conda 环境**（用户 2026-09-21 定）；解析失败明确报错并写明当前解释器与两种覆盖办法（`scripts/wiki/params/scan.ts:17`），不跳文件或降级正则。具体配置见 HANDBOOK。
 - **共用 agent 执行器**：已抽出 `scripts/wiki/batch.ts`，与受限调用、持久任务和共享预算配合；AC2 / AC5 / F004 复用同一底座。早期 plan 的执行器拆分已不构成阻塞。预算上限与实际花费一律以预算账本为准（`pnpm wiki:budget status`），不在本页抄数字。
 - 不依赖 GitHub token（PR 号从本地 git 提交信息里取，不查 API）。
 - **官方文档站**（<https://docs.vllm.ai/projects/ascend/>）：版本清单查 ReadTheDocs API；参数页里的版本号、安装命令等含占位符的内容取渲染后的值。这是唯一需要联网的部分，失败时降级为「只出代码侧谱系」并在 warnings 里注明，不阻塞。

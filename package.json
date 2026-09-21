@@ -32,6 +32,8 @@
     "wiki:stale": "tsx scripts/wiki-stale.ts",
     "wiki:versions": "tsx scripts/wiki-versions.ts",
     "wiki:urls": "tsx scripts/wiki-urls.ts",
+    "wiki:find": "tsx scripts/wiki-find.ts",
+    "wiki:mcp": "tsx scripts/wiki-mcp.ts",
     "wiki:lineage": "tsx scripts/wiki-lineage.ts",
     "wiki:lineage:apply": "tsx scripts/wiki-lineage-apply.ts",
     "wiki:ingest": "tsx scripts/wiki-ingest.ts",

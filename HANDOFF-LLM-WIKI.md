@@ -54,12 +54,17 @@
 
 ## 4. 接下来做什么（按优先级）
 
-1. **内容是主线，但下一批开写前先问用户。** 这轮新写 8 页（`tensor-parallel`、`pipeline-parallel`、`sequence-parallel`、`mla`、`gqa`、`speculative-decoding`、`pd-disaggregation`、`chunked-prefill`），「特性」部分不再只有 KV Cache 一类；09-21 又补了 6 页（见 §6），仍缺图模式深入、DP、CP/PCP、HCCL/CANN 这些底层词（量化总览、EPLB 已补，`expert-parallel` 在写）。**特性的全集以官方 51 项为准，不以库里现有页为准**，缺口清单在主仓 `PROJECT-MAP.md`。写作代理汇报里建议的下一批相邻页：`data-parallel`、`decode`、`fia-operator`、`mtp`、`kv-connector-interface`、`flashcomm2`、`moe-comm-method`、`batch-invariance`、`preemption`。但**用户 09-20 对「一直在写稿子」表示过疑问**——不要再自作主张一批批开，先问要不要继续、要哪些；获准后按 §3 的写法派子代理，每批 3–4 页。
-2. **27 个课程术语页。** 30 个里 `kv-cache`、`rope`、`prefill` 三页试点已由用户批准、写法也认可；用户说不急，但这是「名词不懂就能问」的前提。缺哪些词用 `pnpm wiki:lint --terms` 现查；三页试点**还没配图**，而 HANDBOOK 要求讲结构关系的页必须有图。**「把 `<Term>` 悬停卡接进课程正文」现在无处可接**：这个分支的 `src/app` 里没有任何地方渲染 `Step.terms`，课程画面此前已按用户要求删除、主仓库正在重做——等课程界面定下来再接，这不算漏做。
-3. **夜间生成的参数骨架页。** 定义、默认值、约束、谱系是真的，解释正文写着「待补」，且不经审阅直接进 `wiki/params/`（既有设计：全是程序抽取的事实）。每晚最多 10 页，页数涨得比可读内容快。
-4. **未解决的小项**：同步用的 Python 仍指向 Codex 的私有缓存目录（`wiki/sync.config.json`），本机 conda 可用，建议 `conda create -n llm-wiki python=3.12 -y` 后把 `python` 指过去——**要下载安装，必须用户点头，已问过两次未答复**；F004 AC3 的「够不够」仍是回答模型自报；矛盾检测 / 过期抽检 / 交叉审视从未在生产跑过（都要花钱，等用户决定）。
-   另两项**不是缺陷，别再当 TODO**：`wiki/sources/` 空着，是因为它只是「存进 Wiki」保存问答记录的落点，还没人存过；`log.md` 记不进问答是**有意不做**——它属于知识快照，每问一次就写它会让知识版本号变、所有问答会话被重置。
-5. **明确挂起、等用户说开始**：三项大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉）。
+**特性页主线已补齐、v0.26 已对完**（§6），所以剩下的是：
+
+1. **14 个参数骨架页的正文。** 夜间生成、直接进 `wiki/params/`（既有设计：全是程序抽取的事实），定义 / 默认值 / 约束 / 谱系是真的，解释正文写着「待补」。这是现在最直接的可读内容缺口，也是页数涨得比内容快的那一头。
+2. **课程术语页。** 30 个里 `kv-cache`、`rope`、`prefill` 三页试点已由用户批准、写法也认可；缺哪些词用 `pnpm wiki:lint --terms` 现查。**等模型计算层的章节在另一个会话定下来再做**（术语要跟着章节走）；三页试点还**没配图**，而 HANDBOOK 要求讲结构关系的页必须有图。**「把 `<Term>` 悬停卡接进课程正文」现在无处可接**：这个分支的 `src/app` 里没有地方渲染 `Step.terms`，等课程界面定下来再接，不算漏做。
+3. **硬件页**：留到硬件段最后接入，不要提前开。
+4. **LMCache / UCM 两篇**：官方特性主线就剩这两篇第三方存储部署指南，写法同三版本规则。
+5. **main 重钉**：库里 main 来源统一钉在 09-19 的 `b255ab59`，上游每天在动，`wiki:stale` 已经在报一批（预期内）。重钉是一次性的一笔活——`wiki:stale --fetch` 出清单 → 逐页核 → 统一改 seeds，挑一轮专门做，不要顺手做。
+6. **新页作者们反复建议补的地基页——是建议，不是已定**：被点名最多的是 `hardware-profile`（设备类型）、`model-runner-v2`、`mooncake-connector-v2`、`fused-moe-layer`。开写前先问用户。
+7. **明确挂起、等用户说开始**：三项大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉）**仍放在最后一步，必须用户点头**。
+8. **等用户决定的两件事**：① 同步用的 Python 仍指向 Codex 的私有缓存目录（`wiki/sync.config.json`），本机 conda 可用，建议 `conda create -n llm-wiki python=3.12 -y` 后把 `python` 指过去——**要下载安装，必须用户点头，已问过两次未答复**；② 矛盾检测 / 过期抽检 / 交叉审视三个付费机制从未在生产跑过，**我的建议是先不开**。另：F004 AC3 的「够不够」仍是回答模型自报。
+   还有两项**不是缺陷，别再当 TODO**：`wiki/sources/` 空着，是因为它只是「存进 Wiki」保存问答记录的落点，还没人存过；`log.md` 记不进问答是**有意不做**——它属于知识快照，每问一次就写它会让知识版本号变、所有问答会话被重置。
 
 ## 5. 怎么做事，和已经踩过的坑
 
@@ -77,7 +82,7 @@
 
 - **加一页的路**（不花钱）：读 `tools/repos/` 里钉住的源码 → 按 HANDBOOK 写页 → 过下面那条校验 → 直接提交。需要用户过目时才改走 `pnpm wiki:stage --ids a,b [--touch concepts/邻居.md]` 产待审包（`--touch` 用来把「给邻居页补一条 relations」放进同一个包）。
 - **提交前**：内容改动跑 `pnpm wiki:build`（必跑，刷 `registry.json` 与 `index.md`，不刷 `server/reader-build.test.ts` 就会红）→ `pnpm wiki:lint` → `pnpm wiki:audit` → `pnpm wiki:diagrams --check`；动了代码再加 `pnpm check`（= typecheck + lint + test + 依赖/内容检查 + 图检查 + wiki:lint，记得带 `WIKI_PYTHON`），前端改动另跑 `pnpm test:e2e`。
-- 写的行号必须是实际打开读过的行。证据用钉住的源码：vllm-ascend main 全库统一钉在 `b255ab59`，vLLM 发布版是 v0.23.0（`vllm@0fc695fc`）；另可用论文、官方模型卡。
+- 写的行号必须是实际打开读过的行。证据用钉住的源码：vllm-ascend main 全库统一钉在 `b255ab59`，发布分支两个——v0.23.0（配套 `vllm@0fc695fc`）与 v0.26.0rc = `2ed6cbba`（配套 `vllm@568afb3a`）；另可用论文、官方模型卡。
 - **往文件里写带反斜杠或反引号的内容，不要用 heredoc 或 `python -c`**，会被转义吃掉（这轮又踩了一次）；整文件直接用 Write 工具写。
 - HANDBOOK 写了可引 `infer-lab@commit`，但**代码里没实现这种来源**，引了过不了校验。
 - 全库共用一条请求（`concepts/one-request.md`：37 token 问题、200 token 回答），能落到它上面的页都要写「这条请求走到这里时发生了什么」。
@@ -90,22 +95,20 @@
 
 ## 6. 2026-09-21 这轮做了什么
 
-- **加了 v0.26，不是换版本**（用户 09-21 定）：v0.23 维护分支与 v0.26 分支长期并存，连同 main 一共三个在册版本。seeds 登记 `releases/v0.26.0rc` = `vllm-ascend@2ed6cbba`（分支 tip，2026-09-17，还在 rc 阶段），配套上游 vLLM v0.26.0 = `vllm@568afb3a`（`74b053a`）。
-- **`pnpm wiki:versions`**：对钉在 `--from` 上的每条来源，查所引的那几行在 `--to` 上是不是原样（same / moved / changed / gone）。v0.23 → v0.26rc 第一次跑：619 条来源，325 条原样，294 条变了或文件没了，集中在 51 页。现查用 `pnpm wiki:versions --out <file>`（只读，不调模型不花钱）。
-- **`verified: [...]`**：页面 frontmatter 新字段，记「有人真对着这个版本核过、差异已写进正文」，页头显示「已核对 v0.23.0 · v0.26.0rc · main」；lint 新增 `unknown-verified-ref` 只查名字拼没拼对。**绝不自动记**——所引的行没变不等于每句话都成立，数出来的 `[D]` 结论（「442 个文件」「78 个方法」）不落在任何来源的行号里，第一次跑就撞上了目录地图页；人看完才用 `--mark` 记。
-- **51 页待对 v0.26 是一笔明确的欠账**：这些页只对过 v0.23 / main，在 v0.26 上成不成立没人看过。是哪几页现查 `pnpm wiki:versions` 的「需要人看」名单；对完一页记一页 `verified`。
-- **新写特性页一律三版本写法**：先查这个特性在三个版本上各存不存在、`## 一句话` 后第一段写明存在范围 → 主叙述以「它存在的最早那个发布分支」为准、正文只写一遍 → 只列有差异的行与有差异的版本列的差异表 → `verified` 只填真逐条对过的。规则写进 `wiki/HANDBOOK.md`「页面格式 › 版本」与「教学页的推荐写法」，那里是唯一真相源。
-- **今天新增 6 页**（都按三版本写法）：`short-request-first`、`batch-job-aware-scheduler`、`quantization`（`099b4cd`），`async-scheduling`、`balance-scheduling`、`eplb`（`9c52a2a`）；`expert-parallel` 还在写。页数与类型分布现查 `pnpm wiki:build`。
-- **主仓有了项目地图**：`infra-view-new/PROJECT-MAP.md`（草稿——五段结构；**特性段以官方文档点出的 51 项为全集**，不以知识库现有页为准，覆盖情况现查那份文档；章号待模型计算层定下来后统一编），PLAN.md §1.3 补上了「章节与知识库的关系」。按官方全集补知识库属于批量写页，**开工前要用户点头**（§4 第 1 条）。
+- **加了 v0.26，不是换版本**（用户 09-21 定）：v0.23 维护分支、v0.26、main 三个在册版本长期并存。seeds 登记 `releases/v0.26.0rc` = `vllm-ascend@2ed6cbba`（分支 tip，还在 rc），配套上游 vLLM v0.26.0 = `vllm@568afb3a`（`74b053a`）。
+- **`pnpm wiki:versions`**（只读，不调模型不花钱）：对钉在 `--from` 上的每条来源，查所引的那几行在 `--to` 上是不是原样（same / moved / changed / gone）；`--init` 建字段，`--mark` 记核对结果，已对过目标版本的页不再列出（`8aa80cc`）。
+- **`verified: [...]`**：frontmatter 新字段 + 页头「已核对 v0.23.0 · v0.26.0rc · main」+ lint `unknown-verified-ref`（只查名字拼没拼对）。**绝不自动记**：行没变不等于每句话还成立，数出来的 `[D]` 结论（「442 个文件」「78 个方法」）根本不落在任何来源的行号里。踩过的坑——撤回那次自动标记时 sed 漏了「只有一个版本」的写法，`rope` 与 `vllm-platform-interface` 带着错标记挂了一夜，后者因此顶着三个 v0.23 的数显示「已核对 v0.26」。标记只能在人看过之后加。
+- **全库对 v0.26 核完了**（`f932968`、`e6bf8db`、`75d7496`、`6307720`、`35db847`）：`pnpm wiki:versions` 现报「已对过 78 页；还没对过 1 页」，剩的那页是 `dyntra-lb`——只有 main 有，永远不会标 v0.26，属正常。每页的真实差异都进了各自的差异表；**全库级的几条结论，接手的人最该先知道**：那条共享请求的全部设定在 v0.26 上一个没变（`refresh_block_size` 逐字节相同）；v0.26 的 `AscendConfig` 仍是逐键 `.get()`，写错或已删的键静默忽略，main 才报错；默认跑的调度器类是被 patch 换掉的 `BalanceScheduler`，v0.26 上外面再套一层 `KVDeliveryScheduler`；`vllm_version_is` 调用处 49 → 10，patch 目录不再按 vLLM 版本分叉；KV 池 key 三个版本互不通用；PCP 在 v0.26 的 model runner v1 上整个被摘掉。
+- **新写 25 页特性页，全部三版本写法**：先查这个特性在三个版本上各存不存在 → `## 一句话` 后第一段写明存在范围 → 主叙述以「它存在的最早那个发布分支」为准、正文只写一遍 → 只列有差异的行与有差异的版本 → `verified` 只填真逐条对过的；规则的唯一真相源是 `wiki/HANDBOOK.md`「页面格式 › 版本」与「教学页的推荐写法」。这 25 页：调度 9、并行 / EP 6、PD 与 KV 传输 3、图模式与算子 3、量化 / LoRA / 结构化输出 / AI QoS 4（`ai-qos` 其实是 UB 交换机上的流量 QoS，归硬件 / KV 传输那章，不是调度）。页名现查 `git log --diff-filter=A --name-only 74b053a^..HEAD -- wiki/concepts`。**官方特性主线到此只剩 LMCache、UCM 两篇第三方存储部署指南没写。**
+- **旧页被新页查出来的更正**（`551a0b7`、`d18d319`）：默认调度器类被 patch 换掉、那条请求默认走异步调度（`step_with_batch_queue`）、`kv-cache-quantization` 的 `--quantization ascend` 其实可不写、细粒度 TP 的细节与检索词从 TP 总览页挪到 `fine-grained-tp` 专页、两页卸载类页面的主叙述改钉到发布分支。
+- **顺手修的两个脚本问题**（`13a83ef`）：`wiki:lineage:apply` 把页面标题当参数名，标题写成「中文名（参数名）」时整批失败——现在取括号里的参数名，取不到就跳过该页；参数页「版本谱系」表改成逐个发布分支列出（v0.13 … v0.28 + main）。
+- **主仓有了项目地图**：`infra-view-new/PROJECT-MAP.md`（草稿，a–h 五段结构已由用户定，章号待模型计算层定下来后统一编；**特性段以官方文档点出的全集为准**，不以知识库现有页为准）与 PLAN.md §1.3「章节与知识库的关系」——**两处都还没提交**，在 `C:/Users/-/Desktop/infra-view-new` 的工作区里。
+- **本轮收尾的验证**：单元 716 通过、e2e 30 通过、typecheck 通过、lint 保持 14 条基线警告。最后一次全量验证现查这几条：`pnpm test`（要带 `WIKI_PYTHON`）、`pnpm exec playwright test tests/wiki`、`pnpm typecheck`、`pnpm lint`、`pnpm wiki:lint | audit | diagrams --check | stale | versions`。**`wiki:stale` 报一批页引用的文件变了是预期内的**——上游 main 每天在动，库里钉的是 09-19 的 `b255ab59`，重钉是一笔单独的活（§4）。
 
-## 7. 2026-09-20 这轮做了什么
+## 7. 2026-09-20 这轮做了什么（摘要）
 
-- **阅读页**：目录固定四部分（基础 → 全流程 → 特性 → 参数，`src/content/wiki/toc.ts` 是唯一定义，参数默认折叠，`06a6cb2`）；右侧面板加只读「状态」页签（`c07da54`）；未收录的回答有了中性标记（`7d145f2`）。
-- **内容（重写）**：09-07 那批老风格概念页全部按新写法重写（`4d4cdc9` … `403ac38`），9 个手写参数页更新；全库 main 来源统一重钉到 `b255ab59`、seeds 的钉点同步（`4432386`）；mermaid 全部迁成 wiki-diagram，渲染器与依赖已删（`b222c58`）。重写时每页都对着上游源码核实、改掉了老页的事实错误（例：main 上 KV 量化必须同时给 C8 权重和 `--kv-cache-dtype`，PR #15514；Recompute CPU Offload 改名 Preempt Offload，PR #16510；main 从 KV 池的 key 里删了 pcp，升级即清池；310P 已支持前缀缓存）。
-- **内容（新写）**：8 个特性页首次上线——TP / PP / SP 三种并行、MLA、GQA、投机解码、PD 分离、chunked prefill（`60d561d` … `5e452c7`，`1b370af` 刷 registry 与 index）。
-- **引用质量**：新命令 `pnpm wiki:cite-screen` 机械预筛「引用行里没有句子点名的标识符」（`72dbe1b`），全库跑了一轮——48 条来源范围过窄已就近放宽（`a0e07e2`），91 条可疑里 10 条是真错已修、其余 81 条是误报（`f7272bd`）。证据标记正则与「S/C/M 必须带编号」两处重复定义收成一处（`b5d25cf`）。
-- **语义核对（24 页做完）**：09-19 手写直入 `concepts/` 的 24 页已逐句对照钉住的源码核过（`b5bd499`、`e00ae72`，另加 `block_size` 因果链一处），改正约 80 处，四类典型错误：行为说反或说过头、漏掉前提条件、数字错、角标指到不相干的行。**审视文档 §5 里「24 个手写页未做语义复核」到此了结**（那份文档写完即定稿，不动它）；同批 19 个旧页已在重写时逐页核过。
-- **问答**：预算恢复后第一次用真实模型实测，链路通（检索命中重写后的页、回答带引用、账本记账），单次约 $0.45。
-- **夜间维护**：死循环修掉（超限时只做前 N 个、其余留到下一晚，上限 10，`0c3d40d`），03:00 定时任务实跑成功（`9567b6c`、`7283d4c`）。
-- **工具修复**：`wiki:stale` 三处误判（重钉过的页被静默跳过、有意钉住发布版的页误报过期、分支读不到时悄悄说「都没变」）；`wiki:audit` 不再必须点名 seeds（`6c47729`）；`wiki:gaps` 去噪声（`b9d56b0`）；图渲染器按等宽字体算宽度，溢出检查不再漏报（`c3958de`），实体色块按粗拉丁文本定宽（`b6c234f`）；标记上限与事实表上限原先各定义两遍且数值不同，现统一在 `scripts/wiki/limits.ts`。
-- **文档**：HANDBOOK 的推荐写法换成新风格并消掉内部矛盾（`8944b1a`）；四份 feature 验收表更新到 09-20（多条如实降级）、状态真相源统一、27 份逐轮 review 报告归档到 `docs/plans/archive/`（`c45aaf5`）。
+- **阅读页**：目录固定四部分（基础 → 全流程 → 特性 → 参数，`src/content/wiki/toc.ts` 是唯一定义，参数默认折叠）；右侧面板加只读「状态」页签；未收录的回答有了中性标记。
+- **内容**：09-07 那批老风格概念页全部按新写法重写（`4d4cdc9` … `403ac38`），重写时逐页对着上游源码改掉老页的事实错误（例：main 上 KV 量化要同时给 C8 权重和 `--kv-cache-dtype`；Recompute CPU Offload 改名 Preempt Offload；main 从 KV 池 key 里删了 pcp，升级即清池；310P 已支持前缀缓存）；首批 8 个特性页上线（TP / PP / SP、MLA、GQA、投机解码、PD 分离、chunked prefill）；全库 main 来源统一重钉到 `b255ab59`（`4432386`）；mermaid 全部迁成 wiki-diagram，渲染器与依赖已删。
+- **引用质量**：新命令 `pnpm wiki:cite-screen` 全库跑了一轮——48 条来源范围过窄已放宽，91 条可疑里 10 条真错已修、81 条是误报。09-19 手写直入的 24 页逐句语义核对做完，改正约 80 处（行为说反、漏前提、数字错、角标指错四类），**审视文档 §5 那条欠账到此了结**（那份文档写完即定稿，不动它）。
+- **问答 / 夜间维护**：预算恢复后第一次用真实模型实测，链路通，单次约 $0.45；夜间死循环修掉（超限只做前 N 个，上限 10），03:00 定时任务实跑成功。
+- **工具与文档**：`wiki:stale` 三处误判、`wiki:audit` 不再必须点名 seeds、`wiki:gaps` 去噪、图渲染器宽度计算修正；重复定义的上限常量统一到 `scripts/wiki/limits.ts`；HANDBOOK 推荐写法换成新风格；四份 feature 验收表更新到 09-20（多条如实降级），27 份逐轮 review 报告归档到 `docs/plans/archive/`。

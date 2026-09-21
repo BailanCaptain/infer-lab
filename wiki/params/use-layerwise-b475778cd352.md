@@ -73,7 +73,7 @@ rawSources:
 ---
 ## 一句话
 
-**先说配置路径：这个键不在 `additional_config` 里。** 下面自动生成区标的 `additional_config["use_layerwise"]` 是扫描器的误判——三个版本的 `vllm_ascend/` 里都没有任何一处从 `additional_config` 读这个名字。真正的入口是 `--kv-transfer-config` 里的 `kv_connector_extra_config`：
+**先说配置路径：这个键不在 `additional_config` 里**——三个版本的 `vllm_ascend/` 里都没有任何一处从 `additional_config` 读这个名字。绝大多数人要配的那一处，入口是 `--kv-transfer-config` 里的 `kv_connector_extra_config`：
 
 ```bash
 --kv-transfer-config '{"kv_connector":"AscendStoreConnector","kv_role":"kv_producer",
@@ -86,7 +86,7 @@ rawSources:
 
 1. `AscendStoreConnector` 的 `kv_connector_extra_config`，默认 `false`——绝大多数人要配的就是这一处 [C2]；
 2. P2P 连接器 `kv_p2p/sfa_pd_rd2h` 的 `kv_connector_extra_config`，默认 **`true`**（v0.26 起才有这个连接器）[C9]；
-3. Yuanrong 后端自己的 JSON 配置文件（路径由环境变量 `YR_CONFIG_PATH` 给），默认 `false` [C1]——扫描器钉住的正是这一处，官方要求它必须与第 1 处取值一致 [S11]。
+3. Yuanrong 后端自己的 JSON 配置文件（路径由环境变量 `YR_CONFIG_PATH` 给），默认 `false` [C1]——**文末自动生成区钉的是这一处**，所以那里的标识写成 `YuanrongConfig["use_layerwise"]`，指的是那份 JSON 的字段而不是 `additional_config`；官方要求它必须与第 1 处取值一致 [S11]。
 
 **存在范围。** 第 1 处三个版本都有、默认值和读法一字未变 [C13] [C17]；第 2、3 处分别是 v0.26 与 main 才出现的。三个版本上都没有校验去比对这几处是否一致。
 
@@ -96,7 +96,7 @@ rawSources:
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
-| 配置路径 | `kv_connector_extra_config["use_layerwise"]` | 同左 | 同左 | 生成区写的 `additional_config[...]` 是错的，照它配一点效果都没有 [!] |
+| 配置路径 | `kv_connector_extra_config["use_layerwise"]` | 同左 | 同左 | 这是第 1 处、绝大多数人要配的那一处；文末生成区钉的是第 3 处 Yuanrong JSON，别把两者混成一个键 [!] |
 | 类型 / 默认 | `bool` / `false`，`.get()` 取原值 | 同左 | 同左 | 没有 pydantic 强转，JSON 里写 `"false"`（带引号）是真值 [D] |
 | 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改判 `mooncake`，函数改名 `is_block_key_layerwise` [C4] | 同一份配置在 main 上走的是另一套数据面；`use_gva_layerwise` 这个名字在 main 上已搜不到 [!] |
 | 额外校验 | 无 | 无 | mooncake + layerwise 时 PP / PCP / DCP 任一 > 1 直接 `ValueError` | main 上多一道启动期闸门，只允许纯 TP 拓扑 |

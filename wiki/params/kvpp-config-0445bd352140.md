@@ -64,7 +64,7 @@ rawSources:
 | 项 | 值 | 意味着什么 |
 |---|---|---|
 | 字段构成 | frozen `@config` 类，唯一字段 `size: int = 1` [C3] | 没有第二个旋钮——广播粒度、owner 怎么分都不可配，官方文档把这句话直接写了出来 [S13] |
-| 谁给它赋值 | `KVPPConfig.from_vllm_config(vllm_config)` | 值是**算出来**的不是读出来的；扫描器标的那条 `additional_config["kvpp_config"]` 路径不通 [!] |
+| 谁给它赋值 | `KVPPConfig.from_vllm_config(vllm_config)` | 值是**算出来**的不是读出来的；用户往 `additional_config["kvpp_config"]` 写这条路径不通，所以扫描器现在也不把它当用户参数 [!] |
 | `enable_kvpp` 为假时 | `cls()`，即 `size = 1` | 默认路径上它恒等于 1，整套机制等于不存在 |
 | `enable_kvpp` 为真时 | `size = tensor_parallel_size × prefill_context_parallel_size` [C3] | TP=1、PCP=1 的单卡上开了也还是 1，什么都不会发生 |
 | 写进 `additional_config` | 被 `_NON_USER_INPUT_KEYS` 过滤，无日志 [C6] | main 上别的错键会被 `extra="forbid"` 拒收，这个键不会——静默无效是唯一结局 |

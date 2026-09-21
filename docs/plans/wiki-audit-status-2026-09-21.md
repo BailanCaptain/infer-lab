@@ -39,7 +39,9 @@
 
 原规则是「类名以 `Config` 结尾 = 确定的 `additional_config` 键」，而夜间任务对「确定」的条目**直接生成正式页**，于是内部 dataclass `WeightSwitchConfig` 的 `group` / `rank` / `world_size` / `shard_axis`、以及 xlite 里一个 TypedDict 的 `mask`，各自得到了一个正式参数页。`a306f29` 收紧了判据（扫描范围里有 `AscendConfig` 时，只有定义在它所在文件里、或被那个文件点名用到的类才算确定，其余降为 suspect、不自动出页），删掉那 5 页。
 
-**还剩三类不准，未修，记为欠账**：① 子配置类不是靠类型注解字段挂到 `AscendConfig` 上时（main 上的 `SparseKVOffloadConfig.from_additional_config(..., additional_config.get("sparse_kv_offload_config", {}))`），字段被推成顶层键——`use_fused_overlap` 的真实路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`；② 不认 `_NON_USER_INPUT_KEYS`——`kvpp_config` 是工厂注入的，用户写了会被静默剔掉，却被当成用户键；③ 定义在别的配置面上的键（`kv_connector_extra_config`、`$YR_CONFIG_PATH` 指的 JSON）被标成 `additional_config[...]`——`use_layerwise`。三类现在都靠页面正文里的 `[!]` 说明兜着。**①③ 不能顺手改**：改了会动参数的身份键（`json_path`）→ 页面 id 的哈希后缀跟着变 → 现有页变成孤儿、夜间任务重新生成一批，要和「参数页 id 迁移」一起做；② 可以单独修（从根配置文件里解析出那个集合，命中的降为 suspect）。
+**剩下三类不准已修**（`2329ead`）：① 字段注解写成 `Any`、靠工厂函数构造后按关键字传进 `AscendConfig(...)` 的子配置，现在能挂到正确的键下（`additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`）；② `_NON_USER_INPUT_KEYS` 里、且根配置文件中没有任何一处从用户输入读它的键（`kvpp_config` 及其下的 `size`、`pd_tp_ratio`、`pd_head_ratio`、`num_head_replica`、`enable_sp_by_pass`）判成 suspect，不再自动出页；③ `AscendConfig` 够不着的类，路径改以类名起头（`YuanrongConfig["use_layerwise"]`、`WeightSwitchConfig["rank"]`），不再谎称挂在 `additional_config` 下。main 上 149 个字段、105 个判成确定（全在 `ascend_config.py`）；受影响的四页正文已从「生成区是错的」改成正面写法。
+
+**以后再改扫描器，迁移照这套做**：身份键（`json_path`）变了的页，在 `wiki/params/identities.json` 加一条绑定把新身份键指回原页 id——页面 id 与公开链接都不变；用 `buildParamPage(..., previous)` 重算该页的生成区；**用新扫描器按各自钉住的提交重算 `wiki/_jobs/parameter-sync/` 下的三份基线**，否则夜间任务会把「身份变了」当成「新增参数」再生成一批骨架页。验证口径：改动前后对每条基线条目跑 `parameterPageId` 对比，这次新增的身份冲突只有 1 条（v0.23 上内部类的 `prefetch_ratio`，已把原有那条 reference 绑定改到新路径）。**改扫描器一定要拿真实仓库跑一遍**：这次在真实仓库核对时抓到并修了一个自己刚引入的 bug（根配置自己的类方法赋值被当成子配置，导致所有路径多出一层），已用测试钉住——单元测试覆盖不到上游的写法。
 
 ### 总判断的现状对比
 
@@ -134,5 +136,5 @@
 - ~~站外死链检查要不要做~~ → **做了**（§4 那一行、`a64bce1`），已挂进夜间巡检。
 - ~~agent 调用选哪一档~~ → **①②③全做了**（§5）。
 - ~~`maxTasks` 什么时候开~~ → 用户 09-21 定：**等这个阶段做完、大规模导入之前再开**。它就是 §3 那笔欠账（恢复「agent 写、人只审」）的开关——开了它，新内容自然走「agent 写草稿 → 人在面板上审」，欠账也就一并还了。所以这不是「先不开就算了」，是有时点的。
-- ~~同步用的 Python 要不要建 conda 3.12 环境~~ → **不用建**（用户 09-21 问「开源以后别人也要建吗」之后定的）。参数扫描脚本 `scripts/wiki/params/scan.py` 只 import `ast` / `json` / `re` / `sys`，全是标准库，任何 3.12+ 的解释器都能跑；开源用户 PATH 上有 Python 3.12+ 就行，不行再写一行 `wiki/sync.config.local.json`（`{"python": "<路径>"}`，gitignore）。这台机器现在借的是 Codex 私有缓存里的那份，哪天它没了，夜间任务会**当场报错**并在错误信息里写明解释器是哪个、可以用 `WIKI_PYTHON` 或同步配置的 `python` 改（`scripts/wiki/params/scan.ts:17`），不会悄悄坏掉。路径本身 09-21 已挪出共享配置（`7781837`）。
+- ~~同步用的 Python 要不要建 conda 3.12 环境~~ → **不用建**（用户 09-21 问「开源以后别人也要建吗」之后定的）。参数扫描脚本 `scripts/wiki/params/scan.py` 只 import `ast` / `json` / `re` / `sys`，全是标准库，任何 3.11+ 的解释器都能跑；开源用户 PATH 上有 Python 3.11+ 就行，不行再写一行 `wiki/sync.config.local.json`（`{"python": "<路径>"}`，gitignore）。这台机器现在借的是 Codex 私有缓存里的那份，哪天它没了，夜间任务会**当场报错**并在错误信息里写明解释器是哪个、可以用 `WIKI_PYTHON` 或同步配置的 `python` 改（`scripts/wiki/params/scan.ts:17`），不会悄悄坏掉。路径本身 09-21 已挪出共享配置（`7781837`）。
 - ~~分支 `feat/llm-wiki` 要不要推远端~~ → 用户定 **worktree 先不推**。

@@ -62,7 +62,7 @@ rawSources:
 
 [Sparse KV Offload](../concepts/kv-cache-sparse-offload.md) 的 decode 有两条路：默认那条是「indexer 选出 top-k → 把没命中的行 H2D 搬进常驻热缓冲 → 跑一次常驻 SFA」，`use_fused_overlap` 打开的是第二条——**不搬了，直接用 `npu_fused_sparse_attention_overlap` 读主机上那份全量 KV**，NPU 上只留一块选择缓冲 [C8]。`bool`、默认 `false` [C3]。
 
-**先纠正一件事：这个键不在 `additional_config` 顶层。** 上面自动生成区那行 `additional_config["use_fused_overlap"]` 是扫描器按字段名推的路径，实际它是 `SparseKVOffloadConfig` 的一个字段，要写在 `sparse_kv_offload_config` 这个嵌套块里 [!]。照顶层那个写法在 main 上启动，会被 `AscendConfig` 的 `extra="forbid"` 当拼写错误直接拒掉 [C6]。
+**它不在 `additional_config` 顶层。** 它是 `SparseKVOffloadConfig` 的字段，真实路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`（见文末「参数定义」），必须写在 `sparse_kv_offload_config` 这个嵌套块里。写成顶层那样在 main 上启动，会被 `AscendConfig` 的 `extra="forbid"` 当拼写错误直接拒掉 [C6]。
 
 **存在范围。** 只在 main 开发主线上有（以及从 main 分出去的 v0.28.0rc，见下面「版本谱系」）。v0.26 分支（2026-09-17 源码快照）的 `SparseKVOffloadConfig` 是普通类、逐个 `user_config.get(...)` 取值，只认 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache` 四个键 [C19]，写上它会被静默忽略；v0.23 维护分支上整套 Sparse KV Offload 都不存在。
 
@@ -70,7 +70,7 @@ rawSources:
 
 | 项 | 值 | 意味着什么 |
 |---|---|---|
-| 真实配置路径 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]` [C3] | 生成区那行顶层路径是扫描器推错的，照抄会让 main 启动失败 [!] |
+| 真实配置路径 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]` [C3] | 必须嵌在 `sparse_kv_offload_config` 块里；写到顶层会让 main 启动失败 [!] |
 | 类型与默认 | `bool`，默认 `False` | 不写就是老路径；它和 `enabled` 是两个独立的开关 |
 | 生效前提 | 只有 `sparse_kv_offload_config.enabled` 为真时才有人构造这套对象 [C5] | 单独开它什么也不会发生，因为整套卸载没启动 |
 | 官方文档 | 一个字都没有：`layerwise_and_sparse_kv_cache_offloading.md` 的启动示例只给了三个键 [S17] | 它目前是「代码里有、文档里没有」的状态，行为随时可能改 |

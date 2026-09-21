@@ -33,7 +33,10 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L313-L317
   - vllm-ascend@b255ab59:vllm_ascend/worker/v2/model_runner.py#L309-L314
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L83-L87
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L40-L71
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L252-L281
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: block-table
@@ -52,12 +55,12 @@ relations:
     kind: alternative-to
     note: 两者都往主机内存搬 KV，但那条路搬的是块池 LRU 要淘汰的可复用前缀块，这条按请求点名、只保被抢占请求自己的活跃 KV
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
 
-PD 分离的 Decode 节点上 HBM 块不够用时，调度器会踢掉一条正在 decode 的请求。**没有这个连接器，那条请求被直接终止、退回 Prefill 节点把整条 prompt 重算一遍**；有了它，它已经算好的 KV 块先同步拷进锁页主机内存，重新排上再拷回来，一个 token 都不用重算。**它在 main 开发主线上已经改名搬家**：连接器名从 `RecomputeCPUOffloadConnector` 变成 `PreemptOffloadConnector` [C21]，旧名字在 main 的注册表里已经查无此项，配置照抄过去连接器根本造不出来 `[!]`。
+PD 分离的 Decode 节点上 HBM 块不够用时，调度器会踢掉一条正在 decode 的请求。**没有这个连接器，那条请求被直接终止、退回 Prefill 节点把整条 prompt 重算一遍**；有了它，它已经算好的 KV 块先同步拷进锁页主机内存，重新排上再拷回来，一个 token 都不用重算。**它在 main 开发主线上已经改名搬家**：连接器名从 `RecomputeCPUOffloadConnector` 变成 `PreemptOffloadConnector` [C21]，旧名字在 main 的注册表里已经查无此项，配置照抄过去连接器根本造不出来 `[!]`。两个发布分支都还是旧名字、旧路径——v0.26 的注册表里写的仍是 `RecomputeCPUOffloadConnector` [C28]。
 
 ```wiki-diagram
 file: recompute-cpu-offload
@@ -77,7 +80,7 @@ file: recompute-cpu-offload
 | 同时保得住几条 | 1170 ÷ 256 = 4.57 → **4 条** | 第 5 条 `_create_preempt_state` 发现空闲块不够，打一条 warning 返回 `False` [C9] |
 | 保一条要搬多少字节 | 256 × 14 MiB = **3.5 GiB** | D2H、H2D 各一次，两次都在调度关键路径上同步阻塞 |
 
-**最该记住的是「什么都不配」时会发生什么。** main 删掉了 8 GiB 的字节默认值，改成按比例开：两个字节参数都不给时走 `offload_host_memory_ratio`，默认 `1`，于是 `num_cpu_blocks = HBM 块数` [S22]——等于把整个 HBM KV 池的大小原样再锁一份 pinned 主机内存，而且是启动时一次性分配好的。真机上还要记得 Docker 的 `--shm-size`：官方建议 A3 上按 16 GiB/卡 的预算给 `--shm-size=1024g`，给小了会在启动阶段 OOM 或挂住（在线版见 <https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html> [S27]）。
+**最该记住的是「什么都不配」时会发生什么。** 这一段讲的是 main：它删掉了 8 GiB 的字节默认值，改成按比例开：两个字节参数都不给时走 `offload_host_memory_ratio`，默认 `1`，于是 `num_cpu_blocks = HBM 块数` [S22]——等于把整个 HBM KV 池的大小原样再锁一份 pinned 主机内存，而且是启动时一次性分配好的。真机上还要记得 Docker 的 `--shm-size`：官方建议 A3 上按 16 GiB/卡 的预算给 `--shm-size=1024g`，给小了会在启动阶段 OOM 或挂住（在线版见 <https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html> [S27]）。
 
 ## D2H 必须阻塞，因为块 id 可能在同一步里就被发给别人
 
@@ -99,18 +102,18 @@ file: recompute-cpu-offload
 
 ## 两个分支在这一页上的差别
 
-main 开发主线（源码快照 `b255ab59`，2026-09-19）在 `9eb752ab`（PR #16510，2026-09-16）把这个特性整体改名搬家：目录从 `kv_pool/recompute_cpu_offload/` 挪到 `kv_pool/kv_offload/preempt_offload/`，和 [KV Cache CPU Offload](kv-cache-cpu-offload.md) 并进同一个 `kv_offload/` 下；所有 `RecomputeCPUOffload*` 标识符在 main 上已不存在。v0.23 维护分支（源码快照 `2c59ff10`）仍是老名字、老路径，用户文档也还叫 `recompute_cpu_offload.md` [S23]。调度器那一侧的类名 `RecomputeScheduler` 两版都没变。
+main 开发主线（源码快照 `b255ab59`，2026-09-19）在 `9eb752ab`（PR #16510，2026-09-16）把这个特性整体改名搬家：目录从 `kv_pool/recompute_cpu_offload/` 挪到 `kv_pool/kv_offload/preempt_offload/`，和 [KV Cache CPU Offload](kv-cache-cpu-offload.md) 并进同一个 `kv_offload/` 下；所有 `RecomputeCPUOffload*` 标识符在 main 上已不存在。v0.23 维护分支（`2c59ff10`）与 v0.26 分支（`2ed6cbba`）仍是老名字、老路径，用户文档也还叫 `recompute_cpu_offload.md` [S23]。调度器那一侧的类名 `RecomputeScheduler` 三版都没变。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 连接器注册名 | `RecomputeCPUOffloadConnector` | `PreemptOffloadConnector` | `[!]` 名字照抄过去，注册表里查无此项，不是「开了没效果」那种降级 |
-| 开关键路径 | `additional_config.recompute_scheduler_enable` [C20] | 嵌进 `additional_config.scheduler_config.…`，顶层旧写法仍接受但打弃用警告 | `[!]` 反方向抄同样出事：main 的嵌套写法在 v0.23 上被静默忽略 |
-| 两个容量参数都不写 | `cpu_bytes_to_use` 默认 8 GiB（整实例，再除 `world_size`） | 没有字节默认值了，按 `offload_host_memory_ratio` 开，默认 1 : 1 对齐 HBM 块数 | `[!]` 同一份「什么都不配」的配置，两版锁掉的主机内存量完全不同 |
-| 受害者怎么挑 | `kv_consumer` 分支写死 `self.running.pop()`，不看调度策略 [C2] | 和普通抢占共用一套选择：`PRIORITY` 策略下挑 `max(priority, arrival_time)` | 开了优先级调度的 D 节点，v0.23 踢掉的不是最该踢的那条 |
-| `_create_preempt_state` 挑哪些块 | 所有组按 attention 的 `block_size` 一视同仁；另有一段 `_maybe_evict_cached_block`，把本步刚打上 hash、前向还没写入的 GPU 块从前缀缓存里摘掉 [C10] | Mamba 组只卸载最后 `1 + num_spec_tokens` 块；那段逐出循环已删 [C9] | `[!]` 混合模型上两版行为不同，v0.23 未针对 Mamba 状态适配 |
-| 模型执行器 | 只有 model_runner_v1 | v1 与 v2 两个执行器都调 `handle_preemptions` [C26] | MRV2 上也能用了，这正是改名那个 PR 的主题 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 连接器注册名 | `RecomputeCPUOffloadConnector` | 同 v0.23 | `PreemptOffloadConnector` | `[!]` 名字照抄过去，注册表里查无此项，不是「开了没效果」那种降级 |
+| 开关键路径 | `additional_config.recompute_scheduler_enable` [C20] | 顶层与嵌套都认，顶层打弃用警告 | 同 v0.26 | `[!]` main 的嵌套写法在 v0.23 上被静默忽略；细节见 [Recompute Scheduler](recompute-scheduler.md) |
+| 两个容量参数都不写 | `cpu_bytes_to_use` 默认 8 GiB（整实例，再除 `world_size`） | 同 v0.23 | 没有字节默认值了，按 `offload_host_memory_ratio` 开，默认 1 : 1 对齐 HBM 块数 | `[!]` 同一份「什么都不配」的配置，发布分支与 main 锁掉的主机内存量完全不同 |
+| 受害者怎么挑 | `kv_consumer` 分支写死 `self.running.pop()`，不看调度策略 [C2] | 同 v0.23 | 和普通抢占共用一套选择：`PRIORITY` 策略下挑 `max(priority, arrival_time)` | 开了优先级调度的 D 节点，两个发布分支踢掉的不是最该踢的那条 |
+| `_create_preempt_state` 挑哪些块 | 所有组按 attention 的 `block_size` 一视同仁；另有一段 `_maybe_evict_cached_block`，把本步刚打上 hash、前向还没写入的 GPU 块从前缀缓存里摘掉 [C10] | 同 main：Mamba 组只卸载最后 `1 + num_spec_tokens` 块，逐出循环也没有 | Mamba 组只卸载最后 `1 + num_spec_tokens` 块；那段逐出循环已删 | `[!]` 混合模型上只有 v0.23 没针对 Mamba 状态适配 |
+| 模型执行器 | 只有 model_runner_v1 | 同 v0.23 | v1 与 v2 两个执行器都调 `handle_preemptions` [C26] | MRV2 上也能用了，这正是改名那个 PR 的主题 |
 
-两版一致的部分：`kv_role` 必须是 `kv_consumer`，`kv_producer` 上警告后强制关闭，其余情况 `ValueError` [C18]；`enable_offload_prefix_caching` 默认 `false` 且官方标为实验性；`cpu_bytes_to_use_per_rank` 优先级最高、不会被 `world_size` 再除一次 [C12]；`decode_context_parallel_size` 与 `prefill_context_parallel_size` 都断言必须为 1，开了 dcp / pcp 就 assert 失败 [C6]。
+三版一致的部分：`kv_role` 必须是 `kv_consumer`，`kv_producer` 上警告后强制关闭，其余情况 `ValueError` [C18]；`enable_offload_prefix_caching` 默认 `false` 且官方标为实验性；`cpu_bytes_to_use_per_rank` 优先级最高、不会被 `world_size` 再除一次 [C12]；`decode_context_parallel_size` 与 `prefill_context_parallel_size` 都断言必须为 1，开了 dcp / pcp 就 assert 失败 [C6]。
 
 ## 常见误解
 

@@ -11,7 +11,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L182-L200
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: prefill
@@ -21,7 +21,7 @@ relations:
     kind: builds-on
     note: 存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 

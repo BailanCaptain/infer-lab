@@ -47,9 +47,9 @@
 - [Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉](concepts/flash-attention-3.md) — 昇腾上第五个注意力后端，把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。 `16 04`
 - [图模式层](concepts/graph-mode-layer.md) — 昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。 `16`
 - [KV Cache CPU Offload：把要被淘汰的块存进主机内存](concepts/kv-cache-cpu-offload.md) — NPU 上的 KV 块被淘汰之前先异步拷一份进主机内存；下一条请求共享同一段前缀、而 NPU 上那几块已经没了，就再拷回来，省掉重新 prefill。昇腾只换掉 worker 侧的搬运。 `11`
-- [Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer](concepts/kv-cache-layerwise-offload.md) — 把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；main 上还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。 `11`
+- [Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer](concepts/kv-cache-layerwise-offload.md) — 把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；v0.26 起还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。 `11`
 - [KV Cache Memory Profiling：整卡的九成，减掉量出来的三块](concepts/kv-cache-memory-profiling.md) — 启动时跑一遍最大规模的假数据前向，量出权重、激活峰值、非 torch 三块；整卡容量 × gpu_memory_utilization 减掉这三块，就是 KV Cache 的字节预算。图捕获不在这个减法里。 `11`
-- [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md) — 每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。v0.23 只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。 `11 17`
+- [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md) — 每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。两个发布分支只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。 `11 17`
 - [Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行](concepts/kv-cache-sparse-offload.md) — PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 top-k，再由每层一张 LRU 表决定哪几行要搬回 NPU 热缓冲区。 `11`
 - [KV Cache Spec：每层自己报价，引擎才算得出能分几块](concepts/kv-cache-spec.md) — 每个注意力层向引擎报一份规格——块大小、KV 头数、头维、dtype。引擎只从里面取「一块多少字节」这一个数去做除法，块数算完再发回 Worker 分配。 `11`
 - [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md) — 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；调度器只拿得到一个整数，搬数据的那一侧直接读写 HBM 原始地址。 `11`

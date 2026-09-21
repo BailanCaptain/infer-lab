@@ -27,7 +27,8 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37
   - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566
   - https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1041-L1089
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: one-request
@@ -52,12 +53,12 @@ relations:
     kind: conflicts-with
     note: enable_sparse_sfa_c8 与本特性互斥，主 KV 必须 BF16；只有 indexer 的 LI C8 还能开
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
 
-Sparse KV Offload 让 PD 分离部署里的 D 节点**不再分配 NPU 主 KV 缓存**：全量主 KV 住在主机 pinned 内存里，每个 decode 步由模型自带的 indexer 选出 `index_topk` 个 token，再由每层一张 LRU 驻留表判断哪些已经躺在 NPU 热缓冲区里，**只把没命中的那几行 H2D 搬回来** [S2]。搬运量于是正比于 top-k 的未命中数，而不是序列长度——这是它能在算力极少的 decode 阶段成立的全部理由。它只在 main 开发主线上存在：v0.23 维护分支全仓搜 `sparse_kv_offload` 零命中，特性指南目录里也没有这一页 [S19][!]。
+Sparse KV Offload 让 PD 分离部署里的 D 节点**不再分配 NPU 主 KV 缓存**：全量主 KV 住在主机 pinned 内存里，每个 decode 步由模型自带的 indexer 选出 `index_topk` 个 token，再由每层一张 LRU 驻留表判断哪些已经躺在 NPU 热缓冲区里，**只把没命中的那几行 H2D 搬回来** [S2]。搬运量于是正比于 top-k 的未命中数，而不是序列长度——这是它能在算力极少的 decode 阶段成立的全部理由。**v0.23 维护分支上没有它**：全仓搜 `sparse_kv_offload` 零命中，特性指南目录里也没有这一页 [S19][!]。v0.26 分支起才有，配置键、默认值与启动期那几道校验和 main 一模一样 [C22]，只有下面那条融合路径是 main 独有的。
 
 ```wiki-diagram
 file: kv-cache-sparse-offload
@@ -111,21 +112,22 @@ MTP / 投机场景还多一道作废：`stable_prefix_len` 之后的 token 会�
 
 整条卸载逻辑住在单独的 `sfa_kv_offload.py`：开关一打开，`AscendSFABackend` 的 `get_impl_cls()` / `get_builder_cls()` 就换成那一对类，`sfa_v1.py` 保持干净；impl 顺手把预处理钉死成 `PreprocessType.NATIVE`，`sfa_prolog_v3`/mlapo 融合预处理被关掉。
 
-main 上新出现的是 `use_fused_overlap`，默认 `False`，而整个 `docs/` 里搜不到这个词 [C3][!]。打开之后 decode 不再走「LRU 搬 miss → 再跑一次稀疏注意力」两步，而是一次 `npu_fused_sparse_attention_overlap`：算子**直接读主机池里的全量 KV**，NPU 上那对 `topk_buffers` 改当一块带 block_status / membership_map 的选择缓存用 [C10]。同一个 PR 还把原来独立的 `sparse_kv_offload.cpp` 整个搬进了 `csrc/torch_binding.cpp`，LRU 主体逐行照搬，只多了一个 `visible_seq_len` 门——MTP 里还没可见的 token 不参与选中 [C17]。
+main 上新出现的是 `use_fused_overlap`，默认 `False`，而整个 `docs/` 里搜不到这个词 [C3][!]。打开之后 decode 不再走「LRU 搬 miss → 再跑一次稀疏注意力」两步，而是一次 `npu_fused_sparse_attention_overlap`：算子**直接读主机池里的全量 KV**，NPU 上那对 `topk_buffers` 改当一块带 block_status / membership_map 的选择缓存用 [C10]。同一个 PR 还把原来独立的 `sparse_kv_offload.cpp` 整个搬进了 `csrc/torch_binding.cpp`（v0.26 上它仍是那个独立文件），LRU 主体逐行照搬，只多了一个 `visible_seq_len` 门——MTP 里还没可见的 token 不参与选中。
 
-下表对照 **v0.23 维护分支**（源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。前者整个特性不存在，所以那一列统一是「—」：
+下表对照 **v0.23 维护分支**（源码快照 `2c59ff10`）、**v0.26 分支**（`2ed6cbba`）与 **main 开发主线**（`b255ab59`）。v0.23 上整个特性不存在，所以那一列统一是「—」：
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 特性本身 | 代码与文档都没有 | `sparse_kv_offload_config` | 在稳定分支上照 main 文档配，这个键无人接收 [!] |
-| `topk_buffer_size` | — | 默认 4096，须 ≥ `index_topk` 且被 `block_size` 整除 | 两条都是硬校验；正因 ≥ topk，每个 miss 必定分得到槽位 |
-| `dram_size_per_dp_GB` | — | 默认 128，每 DP 一份 | 主机总占用 = 该值 × `data_parallel_size`，DP 内 TP 共享一份 |
-| `keep_device_kv_cache` | — | 默认 `false` | 开了等于不省显存，只为 PD 同机调试；生产必须关 |
-| `use_fused_overlap` | — | 默认 `false`，`docs/` 里查不到 | main 新加的融合 decode 路径，文档还没跟上 [!] |
-| 主 KV dtype | — | 必须 BF16 | `enable_sparse_sfa_c8` 直接报错，indexer 的 LI C8 不受限 |
-| 部署形态 | — | 仅 PD 分离的 D 节点 | 非 D 节点启用直接 `AssertionError` |
-| 并行与 runner | — | DP / TP 可用；CP、PP、model runner v2 报错 | 长序列想同时开 CP 的路走不通 |
-| 预处理路径 | — | 强制 `PreprocessType.NATIVE` | 融合预处理被关掉，是确定要付的吞吐代价 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 特性本身 | 代码与文档都没有 | 有 | `sparse_kv_offload_config` | 在 v0.23 上照 main 文档配，这个键无人接收 [!] |
+| `topk_buffer_size` | — | 同 main | 默认 4096，须 ≥ `index_topk` 且被 `block_size` 整除 | 两条都是硬校验；正因 ≥ topk，每个 miss 必定分得到槽位 |
+| `dram_size_per_dp_GB` | — | 同 main | 默认 128，每 DP 一份 | 主机总占用 = 该值 × `data_parallel_size`，DP 内 TP 共享一份 |
+| `keep_device_kv_cache` | — | 同 main | 默认 `false` | 开了等于不省显存，只为 PD 同机调试；生产必须关 |
+| `use_fused_overlap` | — | 没有这个键 | 默认 `false`，`docs/` 里查不到 | main 新加的融合 decode 路径，v0.26 上配了也没人认 [!] |
+| 主 KV dtype | — | 同 main | 必须 BF16 | `enable_sparse_sfa_c8` 直接报错，indexer 的 LI C8 不受限 |
+| 部署形态 | — | 同 main | 仅 PD 分离的 D 节点 | 非 D 节点启用直接 `AssertionError` |
+| 并行与 runner | — | 同 main | DP / TP 可用；CP、PP、model runner v2 报错 | 长序列想同时开 CP 的路走不通 |
+| 预处理路径 | — | 同 main | 强制 `PreprocessType.NATIVE` | 融合预处理被关掉，是确定要付的吞吐代价 |
+| LRU 那段 C++ 住哪 | — | 独立文件 `sparse_kv_offload.cpp` | 已并进 `csrc/torch_binding.cpp` | main 多一个 `visible_seq_len` 门，v0.26 还没有 |
 
 v0.23 维护分支上有的是完整的 SFA + lightning indexer 稀疏注意力 [C20]：选中的 token 和 main 一样，差别只在这些 KV 从显存取还是从主机取。
 

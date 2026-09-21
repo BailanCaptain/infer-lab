@@ -36,7 +36,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
   - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L19-L129
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: paged-attention
@@ -46,7 +47,7 @@ relations:
     kind: builds-on
     note: spec 描述的是「缓存的一块长什么样、多大」；缓存本身为什么存在、存的是什么，在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
@@ -103,20 +104,22 @@ page_size_bytes = 2 × block_size × n_kv × d_h × sizeof(bf16)
 
 **这解释了为什么 KV 量化能直接换成显存**：字节数是从 spec 算出来的，不是张量类型带出来的。main 上还多一条纪律——同一条 `KVCacheTensor` 里的每一层各拿一对私有的 `(k_tensor, v_tensor)`，块下标从此不可能在层与层之间撞上 [C18]。
 
-## 两个分支在哪儿分的叉
+## 三个分支在哪儿分的叉
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 一层的字节预算 | 引擎给的 `KVCacheTensor.size` 除以切分因子 [C19] | 自己算 `num_blocks × page_size_bytes` [C17] | main 上一条 `KVCacheTensor` 描述的是整组层，再按 size 平分就会算错 `[!]` |
-| sleep mode 的 KV 池边界 | 包住整个 `initialize_kv_cache` [C28] | 只包住原始 buffer 的申请 [C13] | 睡一觉醒来，块表和后端这些元数据不会跟着被丢掉 |
-| GQA 块张量布局 | 固定 `(2, num_blocks, block_size, num_kv_heads, head_size)` [C9] | `VLLM_KV_CACHE_LAYOUT` 取 `HND` / `LBHNC` 时换成 `(2, num_blocks, num_kv_heads, block_size, head_size)` [C8] | 字节数一个不差，但块内的轴序变了 `[!]` |
-| MLA 的页字节 | 覆写 `page_size_bytes` [C25] | 改叫 `real_page_size_bytes`，物理块大小统一走 `get_storage_block_size()` [C24] | 按属性名取 MLA 页大小的脚本跨版本会读到不同的值 `[!]` |
-| SFA indexer | 跳过该层，k_cache 由 `IndexerWrapper` 顶替 [C6] | 独立的 `AscendSFAIndexerCacheSpec`，走自己的物理张量 [C5] | main 上 indexer 是一等公民，v0.23 上它和 MLA 主缓存共用一次分配 |
+v0.26 分支（`2ed6cbba`）在前三行上还站在 v0.23 这边；后两行它已经跟上 main：MLA 那支改叫了 `real_page_size_bytes`，indexer 也已经是独立的 `AscendSFAIndexerCacheSpec`，只是还没有 `get_storage_block_size()` 这层间接，块大小仍直接取 `block_size` [C31]。
+
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 一层的字节预算 | 引擎给的 `KVCacheTensor.size` 除以切分因子 [C19] | 同 v0.23 | 自己算 `num_blocks × page_size_bytes` [C17] | main 上一条 `KVCacheTensor` 描述的是整组层，再按 size 平分就会算错 `[!]` |
+| sleep mode 的 KV 池边界 | 包住整个 `initialize_kv_cache` [C28] | 同 v0.23 | 只包住原始 buffer 的申请 [C13] | 睡一觉醒来，块表和后端这些元数据不会跟着被丢掉 |
+| GQA 块张量布局 | 固定 `(2, num_blocks, block_size, num_kv_heads, head_size)` [C9] | 同 v0.23 | `VLLM_KV_CACHE_LAYOUT` 取 `HND` / `LBHNC` 时换成 `(2, num_blocks, num_kv_heads, block_size, head_size)` [C8] | 字节数一个不差，但块内的轴序变了 `[!]` |
+| MLA 的页字节 | 覆写 `page_size_bytes` [C25] | 覆写 `real_page_size_bytes`，块大小直接用 `block_size` | 同名覆写，物理块大小统一走 `get_storage_block_size()` [C24] | 按属性名取 MLA 页大小的脚本跨版本会读到不同的值 `[!]` |
+| SFA indexer | 跳过该层，k_cache 由 `IndexerWrapper` 顶替 [C6] | 同 main | 独立的 `AscendSFAIndexerCacheSpec`，走自己的物理张量 [C5] | v0.26 起 indexer 是一等公民，v0.23 上它和 MLA 主缓存共用一次分配 |
 
 前两行稠密 GQA 也吃得到，后三行都在 MLA / SFA 那一侧。
 
 ## 常见误解
 
-- **「一层的 KV 是一块 `(2, num_blocks, ...)` 的连续显存。」** 在昇腾上不是。K 和 V 是两次独立的 `torch.zeros`，地址之间没有任何关系；首维那个 2 在 reshape 时就被 `kv_cache_shape[1:]` 切掉了 [C22]。
+- **「一层的 KV 是一块 `(2, num_blocks, ...)` 的连续显存。」** 在昇腾上不是。K 和 V 是两次独立的 `torch.zeros`，地址之间没有任何关系；首维那个 2 在 reshape 时就被 `kv_cache_shape[1:]` 切掉了。
 - **「spec 声明 bf16，申请的就是 bf16 张量。」** 申请阶段一律 `torch.int8`，spec 的 dtype 只在 reshape 时用来 `.view(dtype)`。
-- **「spec 里的 `block_size` 就是算子看到的块大小。」** 稠密 GQA 上成立，MLA 上不成立：main 里算子用的物理块大小是 `block_size // tokens_per_state`，调度器用的才是 `block_size` [C29]。
+- **「spec 里的 `block_size` 就是算子看到的块大小。」** 稠密 GQA 上成立，MLA 上不成立：main 里算子用的物理块大小是 `block_size // tokens_per_state`，调度器用的才是 `block_size` [C29]；v0.26 上还没有这层区分，`tokens_per_state` 在它的 `vllm_ascend` 里 grep 不到。

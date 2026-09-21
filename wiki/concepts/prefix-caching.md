@@ -31,7 +31,8 @@ sources:
   - vllm-ascend@b255ab59:tests/e2e/pull_request/two_card/test_prefix_caching.py#L63-L90
   - https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/
   - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L28-L61
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: vllm-kv-block-allocation
@@ -50,7 +51,7 @@ relations:
     kind: builds-on
     note: PrefillCacheHit 只是 AscendAttentionState 五个取值里的一个，整张枚举表在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
@@ -97,17 +98,17 @@ file: prefix-caching
 
 vllm-ascend 打了 `_ascend_resolve_kv_cache_block_sizes` 覆盖上游同名函数，返回一个二元组 `(scheduler_block_size, hash_block_size)`——**「哈希以块为单位」这件事直接写在了接口的形状里**。单个 KV cache group 时两者相等；多 group 且开了上下文并行时，调度块取各 group 块大小的 lcm 再乘 CP 因子，而哈希块在开 APC 时取 gcd，匹配粒度比调度粒度更细。两个分支的单元测试都把这两个数钉死了：`lcm(16, 32) × 2` 与 `gcd(16, 32)` [C14]。
 
-两个分支在这一带分叉，其余行为（开关名、强制 128、命中后的全长 KV）两版一致：
+分支在这一带分叉，其余行为（开关名、强制 128、命中后的全长 KV）三版一致：
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| CP 因子 | `lcm(...) × dcp × pcp`，`pcp ≠ 1` 单独就触发 [C13] | `lcm(...) × dcp`，只有 `dcp ≠ 1` 触发 [C12] | [!] 同一套 PCP 配置，两版算出的调度块大小不同 |
-| 多 group 时筛不筛组 | 不筛 | 先用 `is_prefix_cacheable` 筛掉不可缓存的组；筛完只剩一组时改用该组自己的 `block_size` | main 上「固定尾块」这类私有组不再参与块大小计算 |
-| `_get_fia_params` 取 KV 视图 | 分支里直接 `.view(...)` [C11] | 抽成 `_get_kv_cache_view`，多一条 BNSD 布局分支 | 只是重构：命中后拿到的块表切片和全长 `seq_lens_list` 没变 |
-| 310P 的 model runner v2 | 该路径不存在 | 支持 APC [C18] | [!] 「开 APC 直接 `NotImplementedError`」在 main 上已不成立；代价是开了 FULL 图时命中批次被强制退回 eager [C25] |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| CP 因子 | `lcm(...) × dcp × pcp`，`pcp ≠ 1` 单独就触发 [C13] | 同 main，`pcp` 在这个补丁里已经删干净 [C26] | `lcm(...) × dcp`，只有 `dcp ≠ 1` 触发 [C12] | [!] 同一套 PCP 配置，v0.23 与 v0.26 起算出的调度块大小不同 |
+| 多 group 时筛不筛组 | 不筛 | 同 v0.23 | 先用 `is_prefix_cacheable` 筛掉不可缓存的组；筛完只剩一组时改用该组自己的 `block_size` | main 上「固定尾块」这类私有组不再参与块大小计算 |
+| `_get_fia_params` 取 KV 视图 | 分支里直接 `.view(...)` [C11] | 同 v0.23 | 抽成 `_get_kv_cache_view`，多一条 BNSD 布局分支 | 只是重构：命中后拿到的块表切片和全长 `seq_lens_list` 没变 |
+| 310P 的 model runner v2 | 该路径不存在 | 同 v0.23，仍只有 `worker_310p.py` | 支持 APC [C18] | [!] 「开 APC 直接 `NotImplementedError`」只在 main 上不成立；代价是开了 FULL 图时命中批次被强制退回 eager [C25] |
 
 ## 常见误解
 
-- **「命中了就不用读 KV 了。」**——命中省掉的是把前缀 token 再过一遍 embedding / QKV 投影 / MLP；算子拿到的 `actual_seq_lengths_kv` 仍是完整序列长度，命中的那部分 KV 一个字节不少地从 HBM 读进来 [C10]。
+- **「命中了就不用读 KV 了。」**——命中省掉的是把前缀 token 再过一遍 embedding / QKV 投影 / MLP；算子拿到的 `actual_seq_lengths_kv` 仍是完整序列长度，命中的那部分 KV 一个字节不少地从 HBM 读进来。
 - **「`--block-size 64` 可以和前缀缓存一起用。」**——不能，会被静默改成 128，以为自己在用 64 的人显存估算会全盘偏掉。反过来也要当心：混合 attention + mamba 模型走的是另一条路，这条改写压根不会发生。
 - **「`layer.py` 里那句 `cache_config.enable_prefix_caching = False` 说明昇腾会在某些模型上自动关掉 APC。」**——那条分支要求后端名等于 `TRITON_MLA` 或 `FLASHINFER`，两版一字不差 [C15]；而这条路径上取得到的后端只有 `AscendDSA*` 系列，main 上是 `ASCEND_DSA_C4` / `ASCEND_DSA_C128` / `ASCEND_DSA_SWA` [C17]。它是从 CUDA 侧照搬过来的死分支 [D]。

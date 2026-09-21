@@ -2,7 +2,7 @@
 id: kv-cache-quantization
 title: "KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处"
 type: feature
-summary: "每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。v0.23 只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。"
+summary: "每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。两个发布分支只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。"
 aliases: [KV Cache Quantization, KV Cache 量化, KV 缓存量化, C8, C8 KV Cache, INT8 KV Cache, FAKQuant]
 chapters: ["11", "17"]
 sources:
@@ -38,7 +38,12 @@ sources:
   - vllm-ascend@b255ab59:vllm_ascend/platform.py#L481-L482
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1856-L1884
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1580-L1609
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L455-L460
+  - vllm-ascend@2ed6cbba:vllm_ascend/quantization/modelslim_config.py#L586-L596
+  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1348-L1351
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L460-L461
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1765-L1774
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: kv-cache-spec
@@ -57,12 +62,12 @@ relations:
     kind: alternative-to
     note: 两者都在压 NPU 上的 KV 显存，C8 把每 token 字节减半，offload 改把冷块搬去 host 再取回
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
 
-vllm-ascend 上的 KV cache 量化叫 **C8**：每层缓存的 K、V 用一组离线标定的静态 per-channel scale 存成 int8，**每 token 的字节数对半砍**。它最容易踩空的地方不是算法，是**开关在哪**——v0.23 维护分支只认 checkpoint 里的 `kv_cache_type = "C8"`，main 开发主线还要 `--kv-cache-dtype` 一起点头，两边对不上就要么安静地少做事、要么启动直接失败 [C22]。
+vllm-ascend 上的 KV cache 量化叫 **C8**：每层缓存的 K、V 用一组离线标定的静态 per-channel scale 存成 int8，**每 token 的字节数对半砍**。它最容易踩空的地方不是算法，是**开关在哪**——v0.23 与 v0.26 两个发布分支只认 checkpoint 里的 `kv_cache_type = "C8"` [C33]，main 开发主线还要 `--kv-cache-dtype` 一起点头，两边对不上就要么安静地少做事、要么启动直接失败。
 
 ```wiki-diagram
 file: kv-cache-quantization
@@ -85,9 +90,9 @@ file: kv-cache-quantization
 
 **代价看一个具体的数。** 设某通道标定出 `scale = 0.0125`，于是 `1/scale = 80`：`k = 1.0` 存成 int8 的 `80`，读回来正好 `1.0`，无损；`k = 1.7` 本该是 `136`，超出 int8 上界被 clamp 到 `127`，读回来是 `1.5875`，误差 `0.1125` [D]。这就是静态标定的软肋——scale 离线定死，运行时碰上比校准集更极端的激活值只能截断。
 
-## v0.23 一把钥匙，main 两把
+## 发布分支一把钥匙，main 两把
 
-**当初为什么不做成命令行开关。** 因为 scale 必须来自校准，而校准结果只能跟 checkpoint 一起发；命令行给不出 scale，开关自然落在 checkpoint 上。v0.23 把这条走到底：`_add_kvcache_quant_metadata` 读描述文件里的 `kv_cache_type`，是 `"C8"` 就置上 `enable_c8_quant`，并把出现过 `k_proj.kv_cache_scale` 的层号收进 `c8_quant_layers` [C2]——**所以 C8 是逐层开的，不必全模型一刀切**。`--kv-cache-dtype` 那一侧则根本没人接：昇腾主力 GQA、MLA 后端都没有声明 `supported_kv_cache_dtypes`，全仓只有 MiniMax-M3 的两个稀疏后端声明过 [C21]。
+**当初为什么不做成命令行开关。** 因为 scale 必须来自校准，而校准结果只能跟 checkpoint 一起发；命令行给不出 scale，开关自然落在 checkpoint 上。两个发布分支都把这条走到底：`_add_kvcache_quant_metadata` 读描述文件里的 `kv_cache_type`，是 `"C8"` 就置上 `enable_c8_quant`，并把出现过 `k_proj.kv_cache_scale` 的层号收进 `c8_quant_layers` [C2]——**所以 C8 是逐层开的，不必全模型一刀切**。`--kv-cache-dtype` 那一侧则根本没人接：昇腾主力 GQA、MLA 后端都没有声明 `supported_kv_cache_dtypes`，全仓只有 MiniMax-M3 的两个稀疏后端声明过 [C21]。
 
 **main 把这个参数请了回来。** GQA 后端构造时先把 `cache_config.cache_dtype` 解析成 torch dtype：落在 fp16/bf16 上，就把刚从 checkpoint 读来的 `enable_c8_quant` 按回 `False`；落在别的 dtype 上而 checkpoint 又没配 C8，直接抛 `ValueError` 叫你改启动参数 [C22]。而 `--kv-cache-dtype` 的默认值 `auto` 解析出来正好就是模型 dtype [C29]，**所以在 main 上拿 C8 checkpoint 按老办法起服务，落进的是第一条分支**。官方文档也跟着改了口径：`--kv-cache-dtype int8` 这个写法在 v0.23 分支的文档里一处都没有，main 的 GLM5.2 教程直接把它列进了特性表 [S28]。
 
@@ -116,23 +121,23 @@ prefill 分两种，代价差一整趟搬运：
 
 **MLA 不走这条路。** DeepSeek 一类的 MLA 模型认的不是 `kv_cache_type` 而是 `fa_quant_type`，scale 挂在 `fa_q` / `fa_k` / `fa_v` 上；dtype 由 `get_kv_quant_dtype` 定——硬件支持 FP8 注意力时用 `float8_e4m3fn`、其余用 int8，而且 **MLA 只量化 K，V 保持模型 dtype**，注释给的理由就是保精度 [C18]。它存的东西和 GQA 根本不是一回事，见 [四种注意力的代价](attention-cost.md)。
 
-## 两个分支在这一步的差别
+## 三个分支在这一步的差别
 
-下表对照 **v0.23 维护分支**（源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。
+下表对照 **v0.23 维护分支**（`2c59ff10`）、**v0.26 分支**（`2ed6cbba`）与 **main 开发主线**（`b255ab59`）。v0.26 不是整齐地站在哪一边：开关和两处名单还是 v0.23 的样子，scale 映射和图捕获判断已经跟了 main。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 开关 | 只看 checkpoint 的 `kv_cache_type` | 还要 `--kv-cache-dtype` 配合，对不上就关掉、或者启动失败 | 同一个 checkpoint、同一条命令，两个分支跑的不是一件事 `[!]` |
-| scale 改名 | `get_cache_scale(name)` 逐个名字映射 | 改成返回 `WeightsMapper` 的 `get_cache_scale_mapper()` [C5] | 接口换了签名，按老办法挂 scale 的外部代码过不去 `[!]` |
-| 图捕获判断的位置 | 嵌在 `DecodeOnly` 分支里面 | 提到了 `attn_state` 判断之前 [C31] | main 上非 decode 的步也可能走进捕获那条路 `[!]` |
-| 与 Mooncake 互斥的名单 | `MooncakeConnector`、`MooncakeConnectorV1` | 多了 `MooncakeConnectorV2` [C27] | GQA + C8 + 名单里任一个，启动即 `ValueError` |
-| `index_topk` 模型的 cache_dtype | 平台层静默改写回模型 dtype | 这段删了，改成给 `fp8` 时断言硬件支持 FP8 注意力 [C30] | v0.23 上这类模型给了 `--kv-cache-dtype` 也是白给 `[!]` |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 开关 | 只看 checkpoint 的 `kv_cache_type` | 同 v0.23 | 还要 `--kv-cache-dtype` 配合，对不上就关掉、或者启动失败 | 同一个 checkpoint、同一条命令，发布分支和 main 跑的不是一件事 `[!]` |
+| scale 改名 | `get_cache_scale(name)` 逐个名字映射 | 同 main | 改成返回 `WeightsMapper` 的 `get_cache_scale_mapper()` [C5] | 接口换了签名，按老办法挂 scale 的外部代码在 v0.26 上就已经过不去 `[!]` |
+| 图捕获判断的位置 | 嵌在 `DecodeOnly` 分支里面 | 同 main | 提到了 `attn_state` 判断之前 [C31] | v0.26 起非 decode 的步也可能走进捕获那条路 `[!]` |
+| 与 Mooncake 互斥的名单 | `MooncakeConnector`、`MooncakeConnectorV1` | 同 v0.23 | 多了 `MooncakeConnectorV2` [C27] | GQA + C8 + 名单里任一个，启动即 `ValueError` |
+| `index_topk` 模型的 cache_dtype | 平台层静默改写回模型 dtype | 同 v0.23 | 这段删了，改成给 `fp8` 时断言硬件支持 FP8 注意力 [C30] | 两个发布分支上这类模型给了 `--kv-cache-dtype` 也是白给 `[!]` |
 
-主路径——量化式子、NZ 5D 布局、decode 的 antiquant 调用、chunked prefill 的两条岔路——两个分支逐字一致。
+主路径——量化式子、NZ 5D 布局、decode 的 antiquant 调用、chunked prefill 的两条岔路——三个分支逐字一致。
 
 ## 常见误解
 
-- **「加 `--kv-cache-dtype int8` 就能开」**——两个分支都不行，但不行的方式不一样：v0.23 上没有后端认领这个参数，C8 只看 checkpoint；main 上它是必要条件而不是充分条件，没有配套 checkpoint 会直接抛 `ValueError`。
+- **「加 `--kv-cache-dtype int8` 就能开」**——哪个分支都不行，但不行的方式不一样：两个发布分支上没有后端认领这个参数，C8 只看 checkpoint；main 上它是必要条件而不是充分条件，没有配套 checkpoint 会直接抛 `ValueError`。
 - **「FP8 checkpoint 就是 FP8 KV cache」**——不是一回事。官方指南里的 Native FP8 那一节讲的是**权重**存成 `float8_e4m3fn`，而且只支持带 `weight_block_size` 的块量化 [S26]；量化 KV 走的是 `kv_cache_type` / `fa_quant_type` 这条完全独立的线。
 - **「checkpoint 没带 scale 也能跑，顶多退化成不量化」**——不会。`create_weights` 注册的默认 scale 是 `torch.ones(1)` [C3]，而 `_prepare_c8_scales` 要把它 view 成 `(num_kv_heads, 1, head_size)`，1 个元素 view 成 1024 个元素会在第一次 forward 就抛出来 [D]。
 - **「C8 和权重量化是两个独立开关」**——同一份描述文件、同一次 `get_quant_method` 分发：`LinearBase` 拿到权重量化方法，`AttentionLayerBase` 且 `is_c8_quant_layer` 为真才拿到 KV 量化方法，剩下的注意力层直接 `return None` [C7]。

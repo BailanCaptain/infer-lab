@@ -35,7 +35,10 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L108-L119
   - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L405-L415
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L148-L153
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L114-L124
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L249-L258
+  - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L99-L103
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: prefix-caching
@@ -51,7 +54,7 @@ relations:
     kind: builds-on
     note: 查表之所以非走 ZMQ 不可，就是因为调度器和 worker 是那一页讲的两个进程
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
@@ -64,7 +67,7 @@ file: kv-pool
 
 ## 那条请求走不到这里，差一个块
 
-[那条请求](one-request.md)的问题只有 37 个 token。就算真给它配上 `kv-transfer-config`，`get_num_new_matched_tokens` 也会在最前面几行退出：`discard_partial_chunks` 默认为真，先把 prompt 长度向下取整到传输粒度，`37 // 128 × 128 = 0`，`0 < 128`，`return 0, False` [C10][C24]。**池的最小单位是一个写满的块，和前缀缓存完全一样**——连一个块都凑不出来的请求，池根本不会被问到。
+[那条请求](one-request.md)的问题只有 37 个 token。就算真给它配上 `kv-transfer-config`，`get_num_new_matched_tokens` 也会在最前面几行退出：`discard_partial_chunks` 默认为真，先把 prompt 长度向下取整到传输粒度，`37 // 128 × 128 = 0`，`0 < 128`，`return 0, False` [C24]。**池的最小单位是一个写满的块，和前缀缓存完全一样**——连一个块都凑不出来的请求，池根本不会被问到。
 
 要让这一页有数可算，把那条请求的问题拉长到顶格 4096 token，其余设定不变 [A]：
 
@@ -85,13 +88,13 @@ file: kv-pool
 
 ## 换个并行切分，池里的旧数据就全部作废
 
-非 layerwise 模式下**层不是 key 的一部分**：一条 key 一次覆盖该 kv cache group 在本 rank 上的全部 28 层，地址由 `base_addr + block_id × block_stride` 直接算出。key 串里带的是模型名、各并行维度的 rank、group、cache_role、cache_family，最后才是那个块哈希——换模型名、换 TP/PP/DCP 切分，池里的旧数据一条都对不上。**升级也算换切分**：v0.23 维护分支的 key 以 `@pcp<n>@dcp<n>` 开头 [C20]，main 开发主线把 `pcp` 这一段整个删掉，只剩 `@dcp:<n>` [C19]。同一个池不能同时喂给两个分支的实例。
+非 layerwise 模式下**层不是 key 的一部分**：一条 key 一次覆盖该 kv cache group 在本 rank 上的全部 28 层，地址由 `base_addr + block_id × block_stride` 直接算出。key 串里带的是模型名、各并行维度的 rank、group、cache_role、cache_family，最后才是那个块哈希——换模型名、换 TP/PP/DCP 切分，池里的旧数据一条都对不上。**升级也算换切分**：v0.23 维护分支的 key 以 `@pcp<n>@dcp<n>` 开头 [C20]，v0.26 分支写成 `@pcp:<n>@dcp:<n>` [C30]，main 开发主线把 `pcp` 这一段整个删掉，只剩 `@dcp:<n>` [C19]。三个分支的池数据两两不通用。
 
 ## 默认只有 Prefill 碰池；读是同步的，写交后台线程
 
-`kv_role == "kv_consumer"` 且没开 `consumer_is_to_load` 时，`get_num_new_matched_tokens` 第一行就返回 0 [C10]；写回侧由 `consumer_is_to_put` 把关，两个开关默认都是 `false` [S1]。PD 分离部署里 Decode 的 KV 由 `MooncakeConnectorV1` 点对点送来，池只服务 Prefill。两个方向的同步性却完全不同，这直接决定它压在哪条关键路径上：
+`kv_role == "kv_consumer"` 且没开 `consumer_is_to_load` 时，`get_num_new_matched_tokens` 第一行就返回 0 [C10]；写回侧由 `consumer_is_to_put` 把关，两个开关默认都是 `false`。PD 分离部署里 Decode 的 KV 由 `MooncakeConnectorV1` 点对点送来，池只服务 Prefill。两个方向的同步性却完全不同，这直接决定它压在哪条关键路径上：
 
-- **读默认是同步的。** `load_async` 同样默认关，不开时 `start_load_kv` 里直接调 `m_store.get(...)`，这一步的耗时算进前向 [C16]。
+- **读默认是同步的。** `load_async` 同样默认关，不开时 `start_load_kv` 里直接调 `m_store.get(...)`，这一步的耗时算进前向。
 - **写交后台线程，但不是不等。** `wait_for_save` 录一个 `torch.npu.Event` 后把请求塞进发送线程队列，随即 `request_queue.join()` 等队列排空；发送线程在真正 `put` 之前会 `current_event.synchronize()`，确保前向已经把 KV 写进 HBM [C18]。
 
 一份能直接跑的 PD 混部配置（`kv_both` = 既读也写池）[S28]。`lookup_rpc_port: "0"` 是本节点第一个实例，第二个改 `"1"`；`backend` 名字写错是启动即 `ValueError`，不会静默退回默认值 [C11]。main 上还多一个 `qos_priority`，整数 0–4，越大越优先，类型错或越界同样是启动即 `ValueError` [C25]：
@@ -104,15 +107,15 @@ KV_CONFIG='{
 }'
 ```
 
-## 两个分支在这一页上的差别
+## 三个分支在这一页上的差别
 
-下表对照 **v0.23 维护分支**（源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。此外 main 把 `config_data.py` 改名成 `metadata.py`、`backend/backend.py` 改名成 `backend/base.py`——那只是重构，import 路径不兼容，数据兼不兼容看下表第一行。
+下表对照 **v0.23 维护分支**（源码快照 `2c59ff10`）、**v0.26 分支**（`2ed6cbba`）与 **main 开发主线**（`b255ab59`）。此外 main 把 `config_data.py` 改名成 `metadata.py`、`backend/backend.py` 改名成 `backend/base.py`，v0.26 仍用 v0.23 那两个文件名——那只是重构，import 路径不兼容，数据兼不兼容看下表第一行。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| key 串开头 | `@pcp<n>@dcp<n>@…` | 去掉 `pcp`，只剩 `@dcp:<n>@…` | [!] 两版的池数据互不通用，升级等于清池 |
-| layerwise 下 Decode 写不写池 | `save_kv_layer` 只看 `kv_role`，是 consumer 就直接 return [C8] | 和非 layerwise 一样走 `is_kv_save_role(kv_role, consumer_is_to_put)` [C7] | [!] 同时开 `use_layerwise` 和 `consumer_is_to_put` 的 Decode 节点，两版行为不同 |
-| mooncake + layerwise | 没有这条路，`use_gva_layerwise` 写死只认 `memcache` [C29] | 多一条 mooncake 专属的 block-key 路径，且只支持纯 TP：PP / PCP / DCP 任一 > 1 就 `ValueError` [C23] | main 新增，但用户文档的参数表仍写着 `use_layerwise` 需要 `memcache` [S1]——照文档配会漏掉它；逐层传输本身见 [Layerwise KV Offload](kv-cache-layerwise-offload.md) |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| key 串开头 | `@pcp<n>@dcp<n>@…` | `@pcp:<n>@dcp:<n>@…` | 去掉 `pcp`，只剩 `@dcp:<n>@…` | [!] 三版的池数据两两不通用，升级等于清池 |
+| layerwise 下 Decode 写不写池 | `save_kv_layer` 只看 `kv_role`，是 consumer 就直接 return [C8] | 和非 layerwise 一样看 `consumer_is_to_put` [C31] | 同 v0.26，只是抽成 `is_kv_save_role()` [C7] | [!] 同时开 `use_layerwise` 和 `consumer_is_to_put` 的 Decode 节点，只有 v0.23 仍不写池 |
+| mooncake + layerwise | 没有这条路，`use_gva_layerwise` 写死只认 `memcache` [C29] | 同 v0.23，仍只认 `memcache` [C32] | 多一条 mooncake 专属的 block-key 路径，且只支持纯 TP：PP / PCP / DCP 任一 > 1 就 `ValueError` [C23] | main 新增，但用户文档的参数表仍写着 `use_layerwise` 需要 `memcache` [S1]——照文档配会漏掉它；逐层传输本身见 [Layerwise KV Offload](kv-cache-layerwise-offload.md) |
 
 ## 常见误解
 

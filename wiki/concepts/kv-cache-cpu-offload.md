@@ -23,7 +23,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L87
   - vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_cache_cpu_offload.html
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/kv_offload/npu.py#L16-L23
+  - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L71
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: prefix-caching
@@ -45,12 +47,14 @@ relations:
     kind: alternative-to
     note: 那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整个 chunk
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
 
-KV Cache CPU Offload 在 NPU 的 KV 块被淘汰之前，把它异步拷一份到主机内存；下一条请求若与它共享前缀、而 NPU 上那几块已经被别人占了，就再异步拷回来。**它是拿带宽换算力，不是省显存**——付一次跨 PCIe 的往返，省一次全层前向。块池、LRU、前缀匹配全是上游 `OffloadingConnector` 的，vllm-ascend 换掉的只有 worker 侧那段搬运：NPU 流加一次批量 DMA [S1]。**两个对照版本的配置键几乎没有一个能照搬** [!]。
+KV Cache CPU Offload 在 NPU 的 KV 块被淘汰之前，把它异步拷一份到主机内存；下一条请求若与它共享前缀、而 NPU 上那几块已经被别人占了，就再异步拷回来。**它是拿带宽换算力，不是省显存**——付一次跨 PCIe 的往返，省一次全层前向。块池、LRU、前缀匹配全是上游 `OffloadingConnector` 的，vllm-ascend 换掉的只有 worker 侧那段搬运：NPU 流加一次批量 DMA [S1]。**发布分支与 main 之间，配置键几乎没有一个能照搬** [!]。
+
+三个版本上都有，但形状不同：**v0.23 维护分支和 v0.26 分支在这一页上一条不差**——实现在 `vllm_ascend/kv_offload/` 下，只有 `NPUOffloadingSpec` 一个 spec，容量键是必填的 `num_cpu_blocks`，还得自己用 `spec_module_path` 把模块指出来 [C18]，官方文档给的也是这套键 [S19]。昇腾接管连接器注册表、改用字节预算、加多级卸载，都是 main 才有的事。**下面的正文按 main 讲**，两边怎么对应见末尾的差异表。
 
 ```wiki-diagram
 file: kv-cache-cpu-offload
@@ -105,14 +109,14 @@ main 多出来一条路：`TieringOffloadingSpec` 复用上游的 tiering manage
 
 这不是嘴上说说：e2e 用例把两种 spec 都跑一遍，但「CPU 命中必须快过冷启动」那条断言只对 CPU-only 开，tiering 那一遍只验正确性 [C11]。
 
-## v0.23 维护分支与 main：配置键换了一遍
+## 两个发布分支与 main：配置键换了一遍
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`，完整提交号在来源里。v0.23 那一版的实现整个住在 `vllm_ascend/kv_offload/` 下：spec 在 `npu.py` [C13]，搬运在 `cpu_npu.py` [C14]，连接器注册表里没有 `OffloadingConnector` 这一项 [C15]，e2e 用例被整条 skip 掉 [C16]；只有最底下那段 `swap_blocks_batch` 的 C++ 两版逐字相同 [C12]。
+下表的 main 指 2026-09-19 的源码快照 `b255ab59`，两个发布分支指 `2c59ff10`（v0.23）与 `2ed6cbba`（v0.26），完整提交号在来源里。v0.26 与 v0.23 在下表每一行上都相同，所以并成一列。v0.23 那一版的实现整个住在 `vllm_ascend/kv_offload/` 下：spec 在 `npu.py` [C13]，搬运在 `cpu_npu.py` [C14]，连接器注册表里没有 `OffloadingConnector` 这一项 [C15]，e2e 用例被整条 skip 掉 [C16]；只有最底下那段 `swap_blocks_batch` 的 C++ 三版逐字相同 [C12]。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
+| 项 | v0.23 与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
 | 怎么插进去 | 注册表里没有 `OffloadingConnector`，靠配置里的 `spec_module_path` 把 spec 塞进去 | 连接器名和两个 spec 名都被就地换成昇腾实现 | 旧配置照抄到 main，`spec_module_path` 指的模块已经不在那个路径上 `[!]` |
-| 容量参数 | `num_cpu_blocks`，块数，**必填**，缺了直接抛异常 [C13] | `cpu_bytes_to_use`，字节，全服务器预算 | 同一个数字在两版含义完全不同 |
+| 容量参数 | `num_cpu_blocks`，块数，**必填**，缺了直接抛异常 [C13] | `cpu_bytes_to_use`，字节，全服务器预算 | 同一个数字在发布分支与 main 上含义完全不同 |
 | `num_cpu_blocks` 的地位 | 唯一容量参数 | 折算成 `cpu_bytes_to_use` 的那段兼容代码已删，spec 里只剩 worker 构造 [C7]，文档也不再提 | 旧配置迁到 main 得自己换算，别指望它还被认 `[!]` |
 | 分块参数 | `block_size`：CPU 块的 token 数，须为 NPU 块的整数倍 [S4] | `blocks_per_chunk` 与 `block_size` **二选一**，互斥 | 前者是绝对值、后者是倍数，迁移时要换算 |
 | CPU 池张量 | 每层固定两张，保留原 dtype 与形状 | 每个规范视图一张 int8 二维 `[格数, page_size × blocks_per_chunk]` [C9] | main 的池按字节寻址，与模型布局解耦 |

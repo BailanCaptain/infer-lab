@@ -1068,11 +1068,13 @@
         "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381",
         "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196",
         "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62",
-        "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205"
+        "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L1-L290"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -1099,7 +1101,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/block-table.md",
       "backlinks": [
         {
@@ -3030,7 +3032,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3047,7 +3050,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache.md",
       "backlinks": [
         {
@@ -3111,11 +3114,14 @@
         "vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L54-L230",
         "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L87",
         "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147",
-        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_cache_cpu_offload.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_cache_cpu_offload.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/kv_offload/npu.py#L16-L23",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L71"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3152,7 +3158,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache-cpu-offload.md",
       "backlinks": [
         {
@@ -3192,7 +3198,7 @@
       "title": "Layerwise KV Offload：按层搬，顺手让多层共用一份 buffer",
       "type": "feature",
       "origin": "seed",
-      "summary": "把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；main 上还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。",
+      "summary": "把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」，搬运与下一层计算重叠；v0.26 起还能让多层轮流用同一份 HBM buffer，把 Prefill 侧的 KV 显存压成常数份。",
       "aliases": [
         "Layerwise KV Offload",
         "逐层 KV 卸载",
@@ -3242,11 +3248,17 @@
         "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4254-L4263",
         "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1556-L1560",
         "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1826-L1830",
-        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L86-L91"
+        "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L86-L91",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L114-L178",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1722-L1774",
+        "vllm-ascend@2ed6cbba:vllm_ascend/memcache_comm_fence.py#L27-L61",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L1-L16",
+        "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L1-L16"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3273,7 +3285,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache-layerwise-offload.md",
       "backlinks": [
         {
@@ -3345,11 +3357,14 @@
         "https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/utils.py#L405-L425",
         "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L650-L732",
         "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546",
-        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1107"
+        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1107",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L605",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L3714-L3730"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -3370,7 +3385,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache-memory-profiling.md",
       "backlinks": [
         {
@@ -3405,7 +3420,7 @@
       "title": "KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处",
       "type": "feature",
       "origin": "seed",
-      "summary": "每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。v0.23 只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。",
+      "summary": "每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。两个发布分支只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。",
       "aliases": [
         "KV Cache Quantization",
         "KV Cache 量化",
@@ -3453,11 +3468,17 @@
         "vllm@0fc695fc:vllm/utils/torch_utils.py#L396-L402",
         "vllm-ascend@b255ab59:vllm_ascend/platform.py#L481-L482",
         "vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1856-L1884",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1580-L1609"
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1580-L1609",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L455-L460",
+        "vllm-ascend@2ed6cbba:vllm_ascend/quantization/modelslim_config.py#L586-L596",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1348-L1351",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L460-L461",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1765-L1774"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3489,7 +3510,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache-quantization.md",
       "backlinks": [
         {
@@ -3543,11 +3564,13 @@
         "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5602-L5610",
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566",
-        "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp"
+        "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1041-L1089"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3589,7 +3612,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache-sparse-offload.md",
       "backlinks": [
         {
@@ -3648,11 +3671,13 @@
         "vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4447-L4468",
         "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918",
         "vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46",
-        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381",
+        "vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L19-L129"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3669,7 +3694,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-cache-spec.md",
       "backlinks": [
         {
@@ -3801,11 +3826,15 @@
         "vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L3036-L3046",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L108-L119",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L405-L415",
-        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L148-L153"
+        "vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L148-L153",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/config_data.py#L114-L124",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L249-L258",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L99-L103"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -3832,7 +3861,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/kv-pool.md",
       "backlinks": [
         {
@@ -5317,11 +5346,14 @@
         "vllm-ascend@b255ab59:docs/source/faqs.md#L305-L307",
         "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L60-L62",
         "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L526-L545",
-        "vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95"
+        "vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95",
+        "vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L55-L65",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L734-L759"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5338,7 +5370,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/paged-attention.md",
       "backlinks": [
         {
@@ -5781,7 +5813,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
       ],
       "verified": [
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5793,7 +5826,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "concepts/prefill.md",
       "backlinks": [
         {
@@ -5871,11 +5904,13 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L2231-L2231",
         "vllm-ascend@b255ab59:tests/e2e/pull_request/two_card/test_prefix_caching.py#L63-L90",
         "https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/",
-        "vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420"
+        "vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L28-L61"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -5907,7 +5942,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/prefix-caching.md",
       "backlinks": [
         {
@@ -6321,11 +6356,15 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L262-L281",
         "vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L313-L317",
         "vllm-ascend@b255ab59:vllm_ascend/worker/v2/model_runner.py#L309-L314",
-        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L83-L87",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L40-L71",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L252-L281"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "relations": [
@@ -6357,7 +6396,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "concepts/recompute-cpu-offload.md",
       "backlinks": [
         {
@@ -6562,12 +6601,15 @@
         "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
         "https://arxiv.org/abs/2104.09864"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
+      ],
       "evidence": "C",
       "relations": [],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-19",
+      "updated": "2026-09-21",
       "file": "concepts/rope.md",
       "backlinks": [
         {

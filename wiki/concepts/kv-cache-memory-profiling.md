@@ -45,7 +45,9 @@ sources:
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L650-L732'
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546'
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1107'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L605'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L3714-L3730'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
   - to: kv-cache-spec
@@ -55,7 +57,7 @@ relations:
     kind: builds-on
     note: 这一页算出的 3875 块里，那条请求只占 2 块；每块 14 MiB 这个除数也是从那条请求来的
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-28e0c42a4da3e1d1ae42ea272529d11b6a688cde2e0759b672471cc832358025.md
@@ -110,9 +112,9 @@ vllm serve Qwen/Qwen3-0.6B \
 
 - `weights_memory` 不是现算的，是 `load_model()` 结束时记下的 `model_memory_usage`，profiling 只是把它当参数传进上下文；
 - `non_torch_increase` 由上游的 `memory_profiling` 上下文从进出两张快照的差值推出来，ACL context、HCCL 缓冲、驱动层分配都落在这一项里；
-- `torch_peak_increase` 被**手动覆写**过：代码在 `memory_profiling` 上下文**内部**、图捕获之前单独读一次 `allocated_bytes.all.peak`，再减去 profiling 前的峰值，为的是不把图池分配算进激活 [C3]。
+- `torch_peak_increase` 被**手动覆写**过：代码在 `memory_profiling` 上下文**内部**、图捕获之前单独读一次 `allocated_bytes.all.peak`，再减去 profiling 前的峰值，为的是不把图池分配算进激活。
 
-「跑一遍最坏情况」这件事本身也被昇腾加过料，而且两版加的不是同一件事 [!]：main 多了 sparse offload 的 topk 缓冲预分配 [C10]，v0.23 多了 PCP 分支——`pcp_size > 1` 时把 `max_num_tokens` 缩小到 `ceil(max_num_tokens / (pcp_size × 2)) × 2` 再跑，跑完还原 [C11]。后者会直接压低测出的激活峰值，从而放大 KV 预算。
+「跑一遍最坏情况」这件事本身也被昇腾加过料，而且各分支加的不是同一件事 [!]：v0.26 起多了 sparse offload 的 topk 缓冲预分配 [C27][C10]，v0.23 多了 PCP 分支——`pcp_size > 1` 时把 `max_num_tokens` 缩小到 `ceil(max_num_tokens / (pcp_size × 2)) × 2` 再跑，跑完还原 [C11]。后者会直接压低测出的激活峰值，从而放大 KV 预算。
 
 ## 图捕获的显存不在预算里
 
@@ -132,7 +134,7 @@ suggested_to_gpu_limit = 63.20 − 6.41 − 0.146 = 56.64 GiB
 
 ## 主公式之后，main 还要过四道手
 
-v0.23 算完 `requested_memory − non_kv_cache_memory` 就 `return`。main 不是，返回值还要再过四层，每层都可能改写它 [C4]：
+v0.23 算完 `requested_memory − non_kv_cache_memory` 就 `return`。main 不是，返回值还要再过四层，每层都可能改写它 [C4]；v0.26 只接了其中第 2、3 两层：
 
 1. **多组缩放**——模型有多个 KV cache group（注意力 + Mamba 这类混合架构）时，按「最大一组的每块字节 ÷ 所有组的每块字节之和」把预算缩小，因为昇腾按层建连续缓冲，不缩会超 [C23]。单组模型两个数相等，原样返回——那条请求就是单组 [D]。
 2. **层复用缩放**——[Layerwise Offload](kv-cache-layerwise-offload.md) 开启且存在层复用时，预算乘上「层数 ÷ 缓冲区个数」。
@@ -141,29 +143,29 @@ v0.23 算完 `requested_memory − non_kv_cache_memory` 就 `return`。main 不�
 
 那条单卡请求四道全不触发：第一道要换混合架构的模型，第二、三道要配 PD 分离，第四道要开 KV 流水并行。
 
-main 还在 profiling 的第一行插了 `maybe_apply_startup_plan(self)`，并在建议值为正时调 `maybe_save_startup_plan()`——上游新加的机制，把这次量出来的结果存下来，下次同样配置的启动直接套用，不必再量一遍 [I]。
+main 还在 profiling 的第一行插了 `maybe_apply_startup_plan(self)`，并在建议值为正时调 `maybe_save_startup_plan()`——上游新加的机制，把这次量出来的结果存下来，下次同样配置的启动直接套用，不必再量一遍 [I]。这两个名字在 v0.26 的 `vllm_ascend` 里 grep 不到。
 
-Atlas 300I Duo（310P）走的是另一条路：整个方法被覆盖，预算**再整除 2**，注释说明是给算子 workspace 和其它缓存留地方；RC 形态下还改用 `psutil.virtual_memory()` 统计，因为主机内存与设备内存共享 [C14]。两版的折半逻辑逐字相同，main 只是在它后面接了上面第 1 条的多组缩放 [C15]。
+Atlas 300I Duo（310P）走的是另一条路：整个方法被覆盖，预算**再整除 2**，注释说明是给算子 workspace 和其它缓存留地方；RC 形态下还改用 `psutil.virtual_memory()` 统计，因为主机内存与设备内存共享 [C14]。三版的折半逻辑逐字相同，main 只是在它后面接了上面第 1 条的多组缩放 [C15]。
 
 预算落到 `initialize_from_config()` 之后怎么切成块，是 [KV Cache Spec](kv-cache-spec.md) 的事。
 
-## 两个分支在这一步的差别
+## 三个分支在这一步的差别
 
-下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。
+下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）、**v0.26 分支**（2026-09-17 的 `2ed6cbba`）与 **main 开发主线**（源码快照 `b255ab59`）。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 主公式之后 | 直接 `return` | 多组缩放 → 层复用 → 稀疏 → kvpp，四道 | 这些特性开了，返回值就不等于主公式 [!] |
-| `--kv-cache-memory` 快路径 | 跳过全部计算，原样返回该值 | 也跳过，但仍过稀疏与 kvpp 两道 | 两版都不受 `gpu_memory_utilization` 约束 [!] |
-| `profile_run()` 的加料 | EPLB 预热 + MC2 dummy run + PCP token 切分 | EPLB 预热 + MC2 dummy run + sparse topk 缓冲 | v0.23 开 PCP 会压低激活峰值、放大预算 [!] |
-| 跨次启动 | 每次启动都重量一遍 | profiling 前 apply、给出建议值后 save | main 上第二次启动可能根本没量 [!] |
-| 310P | 主公式结果 `// 2` | 同式，后接多组缩放 | 同样的卡同样的配置，310P 只拿到一半 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 主公式之后 | 直接 `return` | 层复用 → 稀疏，两道 [C26] | 多组缩放 → 层复用 → 稀疏 → kvpp，四道 | 这些特性开了，返回值就不等于主公式 [!] |
+| `--kv-cache-memory` 快路径 | 跳过全部计算，原样返回该值 | 也跳过，但仍过稀疏一道 | 也跳过，但仍过稀疏与 kvpp 两道 | 三版都不受 `gpu_memory_utilization` 约束 [!] |
+| `profile_run()` 的加料 | EPLB 预热 + MC2 dummy run + PCP token 切分 | 同 main | EPLB 预热 + MC2 dummy run + sparse topk 缓冲 | v0.23 开 PCP 会压低激活峰值、放大预算 [!] |
+| 跨次启动 | 每次启动都重量一遍 | 同 v0.23 | profiling 前 apply、给出建议值后 save | main 上第二次启动可能根本没量 [!] |
+| 310P | 主公式结果 `// 2` | 同 v0.23 | 同式，后接多组缩放 | 同样的卡同样的配置，310P 只拿到一半 |
 
-两版一致的有三条：分母都是整卡 `total_memory`、`non_kv_cache_memory` 都只有三项（图池不在内）、建议值的安全余量都是 `150 MiB`。
+三版一致的有三条：分母都是整卡 `total_memory`、`non_kv_cache_memory` 都只有三项（图池不在内）、建议值的安全余量都是 `150 MiB`。
 
 ## 常见误解
 
-- **「`gpu_memory_utilization=0.9` 是最多用掉空闲显存的 90%」**——分母是整卡 `total_memory`，不是 `free_memory` [C1]。卡上已经跑着别的东西时，0.9 意味着你要走的是整卡的九成，只有启动那一刻「空闲够不够」会被检查一次。
+- **「`gpu_memory_utilization=0.9` 是最多用掉空闲显存的 90%」**——分母是整卡 `total_memory`，不是 `free_memory`。卡上已经跑着别的东西时，0.9 意味着你要走的是整卡的九成，只有启动那一刻「空闲够不够」会被检查一次。
 - **「profiling 过了就不会 OOM」**——预算里没有图池那一块，`capture_model()` 在 KV Cache 分配之后才吃显存。官方模型手册里就有 profiling 通过、图捕获把 worker 撑死的实测记录。
 - **「预算算成负数会兜底成 0」**——不会，`int()` 之后原样返回负值，单元测试专门锁住了这个行为 [C18]。真正的报错要等到按这个字节数去切块时才出现。
 

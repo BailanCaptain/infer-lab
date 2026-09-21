@@ -28,7 +28,8 @@ sources:
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
   - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
   - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L1-L290
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: paged-attention
@@ -44,7 +45,7 @@ relations:
     kind: builds-on
     note: 格子里填的物理块号是上游分出来的；谁分、什么时候分、什么时候还，在那一页
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
@@ -98,19 +99,19 @@ slot_ids      = block_numbers * block_size + pos % block_size
 
 翻译出来的东西有两个消费者，别混：`block_table.gpu` 的前若干行进 `AscendMetadata.block_tables`，供算子读历史 KV；`slot_mapping` 切到 `[:num_actual_tokens]` 交给 `reshape_and_cache`，写本步新算的 K/V [C22][C8]。**这解释了后面很多看起来绕的设计**——同一张表既要按行给算子，又要按 token 展开成槽位，所以它必须同时活在 CPU 和 NPU 两份缓冲里。
 
-## 两个分支在这张表上的差别
+## 分支之间在这张表上的差别
 
-下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）与 **main 开发主线**（源码快照 `b255ab59`）。
+下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）与 **v0.26 分支起**（v0.26 的 2026-09-17 快照 `2ed6cbba`、main 的 `b255ab59`）。前三行 v0.26 与 main 的写法一致 [C23]；最后一行是 main 独有，`is_circular` 在 `2ed6cbba` 的 `vllm_ascend` 里 grep 不到。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
+| 项 | v0.23 维护分支 | v0.26 分支起 | 意味着什么 |
 |---|---|---|---|
-| 槽位 kernel | 从 `vllm.v1.worker.block_table` 导入上游那个 [C13]，分块大小写死 `BLOCK_SIZE=1024` [C16] | 昇腾自己的 `ops/triton/compute_slot_mapping.py`，一批 `TILE_BLOCK_SIZE = 1024` 个 token，且只把行内 `BLOCK_TABLE_WINDOW_SIZE` 个相邻列载进片上再 `tl.gather` [C3] | 算出来的槽位一样；main 这版避免了整行随机访存 [!] |
-| 行扩展与缓冲长度 | `pcp × dcp > 1` 时行数乘 `(1 + num_speculative_tokens)`，`slot_mapping` 还多留 `2 × pcp × max_num_reqs` 个元素 [C15] | 只看 `dcp > 1`；`slot_mapping` 就是 `max_num_batched_tokens + MTP 余量` [C1] | 同样开 PCP + 投机解码两版行数不同；v0.23 不开 PCP 也多留 512 个 int32，不是 bug [!] |
+| 槽位 kernel | 从 `vllm.v1.worker.block_table` 导入上游那个 [C13]，分块大小写死 `BLOCK_SIZE=1024` [C16] | 昇腾自己的 `ops/triton/compute_slot_mapping.py`，一批 `TILE_BLOCK_SIZE = 1024` 个 token，且只把行内 `BLOCK_TABLE_WINDOW_SIZE` 个相邻列载进片上再 `tl.gather` [C3] | 算出来的槽位一样；v0.26 起避免了整行随机访存 [!] |
+| 行扩展与缓冲长度 | `pcp × dcp > 1` 时行数乘 `(1 + num_speculative_tokens)`，`slot_mapping` 还多留 `2 × pcp × max_num_reqs` 个元素 [C15] | 只看 `dcp > 1`；`slot_mapping` 就是 `max_num_batched_tokens + MTP 余量` [C1] | v0.23 不开 PCP 也白留 512 个 int32，不是 bug；v0.26 起 `pcp` 在这个文件里一个字都没有，照 v0.23 的行数去对新版会对不上 [!] |
 | 提交方式 | 手写 `gpu[:n].copy_(cpu[:n].clone().pin_memory(), non_blocking=True)` [C17] | 直接调上游 `CpuGpuBuffer.copy_to_gpu(num_reqs)` [C4] | 行为等价，v0.23 每步多一次 clone [!] |
-| 环形 KV cache | 没有这条路径 | `is_circular` 的 spec 把整行压成一列，且不许开上下文并行 [C1] | main 新增，默认不触发；读新版 `__init__` 时别被那一段带偏 [!] |
+| 环形 KV cache | 没有这条路径 | v0.26 上也还没有；main 上 `is_circular` 的 spec 把整行压成一列，且不许开上下文并行 [C1] | main 新增，默认不触发；读 main 的 `__init__` 时别被那一段带偏 [!] |
 
 ## 常见误解
 
 - **「块表里存的是显存地址」**——存的是块号，一个 int32。地址要现算，而且算出来的 `slot` 仍然是「第几个 token 槽」，不是字节偏移；字节偏移由算子按块张量的布局推，见 [KV Cache](kv-cache.md)。
 - **「decode 每步都要重建这张表」**——那条请求 199 步 decode 里只往表里写过一次 [D]。每步真正全量重算的是 `slot_mapping`，而它在 NPU 上算。
-- **「块 0 是一块正常可用的 KV 块」**——官方设计文档明确用 block_0 标记未使用的块 [S20]，`clear_row` 也是把用过的列填回 0 [C2]。看到表里一片 0，那是空位，不是都指向第一块。
+- **「块 0 是一块正常可用的 KV 块」**——官方设计文档明确用 block_0 标记未使用的块 [S20]，`clear_row` 也是把用过的列填回 0。看到表里一片 0，那是空位，不是都指向第一块。

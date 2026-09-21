@@ -31,7 +31,9 @@ sources:
   - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L60-L62
   - vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L526-L545
   - vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95
-verified: ["main", "releases/v0.23.0"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L55-L65
+  - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L734-L759
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: kv-cache
@@ -41,7 +43,7 @@ relations:
     kind: builds-on
     note: PA 的硬门槛是 cudagraph_mode 必须为 FULL_DECODE_ONLY，两个算子唯一的实质分叉也只在图捕获里
 contradicts: []
-updated: "2026-09-20"
+updated: "2026-09-21"
 ---
 
 ## 一句话
@@ -69,13 +71,13 @@ file: paged-attention
 
 不分块就得按 `max_model_len` 给每条序列预留一段连续显存。那条请求只要 237 个 token 的位置，却要按上限占满；并发一上来，显存全被没写过的空洞吃掉。分块把预留的粒度从「一条序列」降到「128 个 token」，浪费上限从 `max_model_len − 实际长度` 降到不足一块——就是那条请求第 1 块尾巴上空着的 19 格 [D]。
 
-代价是地址不再连续：第 300 个 token 在哪，得查表。所以**分块必须由 attention 算子本身支持**——不能在算子外面先把 KV 拼回连续的再算，那样等于白分。昇腾上块大小实际也只有 128：不写就由配置检查里的 `refresh_block_size` 填上（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），而后端报的 kernel 块大小同样是 `[128]` [C1][C2]——两者对上了，但定这个值的是前者。
+代价是地址不再连续：第 300 个 token 在哪，得查表。所以**分块必须由 attention 算子本身支持**——不能在算子外面先把 KV 拼回连续的再算，那样等于白分。昇腾上块大小实际也只有 128：不写就由配置检查里的 `refresh_block_size` 填上（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），而后端报的 kernel 块大小同样是 `[128]` [C2]——两者对上了，但定这个值的是前者。
 
 昇腾侧比上游多出来的那件事是：有两个算子都能按块读。v0.23 维护分支的源码注释写明了引入 PA 的理由——在某些场景下 `_npu_paged_attention` 仍比 `npu_fused_infer_attention_score` 快，等 FIA 在所有场景都更好时这条路就该删掉 [C14]。
 
 ## 默认跑的不是 PagedAttention 算子
 
-`forward_impl` 里只有一个 if，三个条件全真才走 PA：当前批次是纯 decode（`AscendAttentionState.DecodeOnly`）、这一层不是滑动窗口层、且 `using_paged_attention()` 返回真 [C4][C5]。两版这段逐字相同。
+`forward_impl` 里只有一个 if，三个条件全真才走 PA：当前批次是纯 decode（`AscendAttentionState.DecodeOnly`）、这一层不是滑动窗口层、且 `using_paged_attention()` 返回真 [C4][C5]。三个分支这段的判断条件逐字相同。
 
 第三个条件自己又是四道门，按顺序：开了投机解码直接假；当前硬件档位没有 `PAGED_ATTENTION` 这项能力直接假（哪些硬件有这项能力见下面那张表）；`head_size == 512` 的大头维层直接真（Gemma4 回退）；`cudagraph_mode` 不是 `FULL_DECODE_ONLY` 假；最后才看这一步的 token 数在不在 `pa_shape_list` 里 [C6][C7]。而 `pa_shape_list` 默认是空表 [C13]，所以最后一句默认恒假。
 
@@ -101,16 +103,16 @@ vllm serve /path/to/Qwen3-0.6B \
 
 `_get_fia_params` 的四个分支里，只有 `PrefillNoCache` 那一支把 `block_table` 设成 `None` [C10]——那一步的 K/V 还在手上，还没进缓存。
 
-## v0.23 维护分支与 main 的四处差异
+## 三个分支的四处差异
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。
+下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 2026-09-17 的 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。前两行 v0.26 已经跟上 main，后两行它还站在 v0.23 这边。
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| KV 写入算子 | `torch_npu._npu_reshape_and_cache`，参数名 `slot_indices` [C16] | `torch_npu.npu_scatter_pa_kv_cache`，参数名 `slot_mapping` 加 `cache_mode="Norm"` [C15] | 对使用者透明，但抓 profiling 时算子名对不上 `[!]` |
-| 图重放列表 | 存裸 9 元组，靠 `using_paged_attention` 一次性判定整张图走 PA 还是走 FIA [C19] | 存带类型的 `PagedAttentionGraphParam`（多一个 `layer_name`），重放时按 `isinstance` 逐个分流 [C17][C18] | 只有 main 能让 PA 层和 FIA 层共存在同一张重放图里 `[!]` |
-| KV 张量布局 | 只有 `(2, num_blocks, 128, n_kv, d_h)` 一种 | 把 vLLM 的 `VLLM_KV_CACHE_LAYOUT` 设成 `HND` 或 `LBHNC` 时换成 `(2, num_blocks, n_kv, 128, d_h)` [C1] | 换了布局 FIA 不再压三维、写入改走 `scatter_mode="NHSD"` [C20]；不设这个环境变量就还是原来那套 `[!]` |
-| PA 的硬件门 | 写死判一句「是不是 A5」 | 查能力表里有没有 `PAGED_ATTENTION`；标准档的 A2、A3 有，A5 与 310P 没有 [C8] | A2、A3 的结果不变；判断依据从写死的型号换成了一张能力表 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| KV 写入算子 | `torch_npu._npu_reshape_and_cache`，参数名 `slot_indices` [C16] | `torch_npu.npu_scatter_pa_kv_cache`，参数名 `slot_mapping` 加 `cache_mode="Norm"` [C25] | 同 v0.26，另多一条 `use_bnsd` 的 NHSD 分支 [C15] | 对使用者透明，但抓 profiling 时算子名对不上 `[!]` |
+| 图重放列表 | 存裸 9 元组，靠 `using_paged_attention` 一次性判定整张图走 PA 还是走 FIA [C19] | 存带类型的 `PagedAttentionGraphParam`（多一个 `layer_name`），重放时按 `isinstance` 逐个分流 [C26] | 同 v0.26 [C17] | v0.26 起 PA 层和 FIA 层才能共存在同一张重放图里 `[!]` |
+| KV 张量布局 | 只有 `(2, num_blocks, 128, n_kv, d_h)` 一种 | 同 v0.23，仍只有这一种 | 把 vLLM 的 `VLLM_KV_CACHE_LAYOUT` 设成 `HND` 或 `LBHNC` 时换成 `(2, num_blocks, n_kv, 128, d_h)` [C1] | 换了布局 FIA 不再压三维、写入改走 `scatter_mode="NHSD"` [C20]；v0.26 上 `VLLM_KV_CACHE_LAYOUT` 在 `vllm_ascend` 里 grep 不到，不用找这个开关 `[!]` |
+| PA 的硬件门 | 写死判一句「是不是 A5」 | 同 v0.23，逐字未变 | 查能力表里有没有 `PAGED_ATTENTION`；标准档的 A2、A3 有，A5 与 310P 没有 [C8] | A2、A3 的结果不变；判断依据从写死的型号换成了一张能力表 |
 
 ## 常见误解
 

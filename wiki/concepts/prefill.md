@@ -10,14 +10,14 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
-verified: ["releases/v0.23.0"]
+verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: one-request
     kind: builds-on
     note: 这一页所有的数（37 个 token 一步算完、之后 199 步每步 1 个）都是那条请求的数
 contradicts: []
-updated: "2026-09-19"
+updated: "2026-09-21"
 origin: seed
 ---
 

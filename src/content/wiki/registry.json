@@ -331,7 +331,7 @@
         {
           "from": "profiling-chunk-config",
           "kind": "enables",
-          "note": "它是 additional_config 下的一个嵌套 dict，顶层写法在 main 上被降级成弃用告警的那套解析规则就在那一页"
+          "note": "它是 additional_config 下的一个嵌套 dict，顶层写法从 v0.26 起被降级成弃用告警的那套解析规则就在那一页"
         },
         {
           "from": "short-request-first",
@@ -623,7 +623,7 @@
         {
           "from": "flash-attention-3",
           "kind": "enables",
-          "note": "它是五个后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页"
+          "note": "它是所有后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页"
         },
         {
           "from": "mla",
@@ -1866,7 +1866,7 @@
       "title": "enable_async_exponential",
       "type": "param",
       "origin": "seed",
-      "summary": "把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main 上已整体删除，残留的这个键还会让启动直接失败。",
+      "summary": "把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，v0.25.1rc 起已整体删除，残留的这个键在 v0.26 上被静默忽略、在 main 上会让启动直接失败。",
       "aliases": [
         "异步指数分布重叠",
         "Asynchronous exponential overlap"
@@ -1893,11 +1893,14 @@
         "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L262",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669",
-        "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64"
+        "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "vllm-ascend@2ed6cbba:vllm_ascend/sample/sampler.py#L33-L44"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -1918,7 +1921,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/enable-async-exponential.md",
       "backlinks": []
     },
@@ -1962,7 +1965,7 @@
       "title": "enable_matmul_allreduce",
       "type": "param",
       "origin": "seed",
-      "summary": "把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 有，main 已整体移除。",
+      "summary": "把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子 npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 与 v0.24.0rc 有，v0.25.1rc 起整体移除，v0.26 上配了被静默忽略、main 上直接报错。",
       "aliases": [
         "matmul allreduce 开关",
         "VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE",
@@ -1996,11 +1999,14 @@
         "https://www.hiascend.com/developer/techArticles/20240729-1",
         "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L167",
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
-        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661"
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -2010,7 +2016,7 @@
       "relations": [],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/enable-matmul-allreduce.md",
       "backlinks": [
         {
@@ -2059,7 +2065,7 @@
       "title": "enable_sleep_mode_extra_cleanup",
       "type": "param",
       "origin": "seed",
-      "summary": "sleep 时额外销毁 HCCL 通信域、清空 ACL 图工作区，把分配器池子之外的那两块显存也还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。v0.23 是顶层键，main 上已搬进 rl_config。",
+      "summary": "sleep 时额外销毁 HCCL 通信域、清空 ACL 图工作区，把分配器池子之外的那两块显存也还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。v0.23 与 v0.26 都是顶层键，main 上才搬进 rl_config。",
       "aliases": [
         "sleep 模式额外清理",
         "rl_config.sleep_mode_extra_cleanup"
@@ -2092,11 +2098,15 @@
         "vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64",
         "vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128",
         "vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186",
-        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L280-L294"
+        "vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L280-L294",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L175-L175",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L228-L230",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/release_notes.md#L120-L120"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "S",
       "rawSources": [
@@ -2117,7 +2127,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/enable-sleep-mode-extra-cleanup.md",
       "backlinks": []
     },
@@ -2666,7 +2676,7 @@
       "title": "Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉",
       "type": "feature",
       "origin": "seed",
-      "summary": "昇腾上第五个注意力后端，把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。",
+      "summary": "昇腾 attention/ 下一个独立的注意力后端（v0.23 上那里五个后端类、v0.26 起六个），把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。",
       "aliases": [
         "Flash Attention 3",
         "FA3",
@@ -2734,7 +2744,7 @@
         {
           "to": "attention-backend-family",
           "kind": "builds-on",
-          "note": "它是五个后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页"
+          "note": "它是所有后端里唯一不走三元组主表的那个，选中它的那段分支和主表的关系在那一页"
         },
         {
           "to": "paged-attention",
@@ -2768,7 +2778,7 @@
       "title": "fuse_allreduce_rms",
       "type": "param",
       "origin": "seed",
-      "summary": "把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main 上已整体删除。",
+      "summary": "把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，v0.25.1rc 起已整体删除，v0.26 上配了被静默吞掉、main 上直接报错。",
       "aliases": [
         "Matmul AllReduce RMSNorm 融合",
         "MatmulAllReduceAddRMSNormPass"
@@ -2797,11 +2807,14 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L104-L111",
         "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
-        "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64"
+        "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L607",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -2817,7 +2830,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/fuse-allreduce-rms.md",
       "backlinks": [
         {
@@ -3132,7 +3145,18 @@
         "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_cache_cpu_offload.html",
         "vllm-ascend@2ed6cbba:vllm_ascend/kv_offload/npu.py#L16-L23",
-        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L71"
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L71",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L23-L32",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L73-L78",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L102-L108",
+        "vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L45-L63",
+        "vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L232-L252",
+        "https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/kv_cache_cpu_offload.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/kv_offload/cpu_npu.py#L54-L230",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L93",
+        "vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L62-L128",
+        "vllm-ascend@2c59ff10:csrc/torch_binding.cpp#L127-L247",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L13"
       ],
       "verified": [
         "main",
@@ -3149,12 +3173,12 @@
         {
           "to": "paged-attention",
           "kind": "builds-on",
-          "note": "卸载与回填的最小单位就是分页 KV 块，一次传输搬 blocks_per_chunk 个块"
+          "note": "卸载与回填的最小单位就是分页 KV 块，一个 CPU 格由整数个 NPU 块拼成"
         },
         {
           "to": "kv-cache-spec",
           "kind": "builds-on",
-          "note": "一个 CPU 格子的字节数直接由每块每层的 page_size_bytes 乘 blocks_per_chunk 得出"
+          "note": "一个 CPU 格的字节数直接由每块每层的 page_size_bytes 乘这个倍数得出"
         },
         {
           "to": "recompute-cpu-offload",
@@ -3169,7 +3193,7 @@
         {
           "to": "kv-cache-layerwise-offload",
           "kind": "alternative-to",
-          "note": "那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整个 chunk"
+          "note": "那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整格"
         }
       ],
       "related": [],
@@ -3307,7 +3331,7 @@
         {
           "from": "kv-cache-cpu-offload",
           "kind": "alternative-to",
-          "note": "那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整个 chunk"
+          "note": "那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整格"
         },
         {
           "from": "kv-cache-sparse-offload",
@@ -3412,7 +3436,7 @@
         {
           "from": "kv-cache-sparse-offload",
           "kind": "enables",
-          "note": "profiling 算出的可用显存是 plan_sparse_kv_offload_memory 三个块数上限里的 npu 那一项"
+          "note": "profiling 探出来的可用显存，就是被主机/设备字节比放大、再拿去分块的那个数"
         },
         {
           "from": "kvpp",
@@ -3581,7 +3605,23 @@
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566",
         "https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp",
-        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1041-L1089"
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1041-L1089",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L105-L128",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L141-L168",
+        "https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L353-L367",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L124-L155",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_kv_offload.py#L1-L17",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_kv_offload.py#L135-L180",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L52-L97",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L121-L184",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L310-L371",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L373-L409",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L486-L503",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L940-L975",
+        "vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp#L77-L200",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L607-L639",
+        "vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L473-L520"
       ],
       "verified": [
         "main",
@@ -3608,7 +3648,7 @@
         {
           "to": "kv-cache-memory-profiling",
           "kind": "builds-on",
-          "note": "profiling 算出的可用显存是 plan_sparse_kv_offload_memory 三个块数上限里的 npu 那一项"
+          "note": "profiling 探出来的可用显存，就是被主机/设备字节比放大、再拿去分块的那个数"
         },
         {
           "to": "kv-cache-layerwise-offload",
@@ -3731,7 +3771,7 @@
         {
           "from": "kv-cache-cpu-offload",
           "kind": "enables",
-          "note": "一个 CPU 格子的字节数直接由每块每层的 page_size_bytes 乘 blocks_per_chunk 得出"
+          "note": "一个 CPU 格的字节数直接由每块每层的 page_size_bytes 乘这个倍数得出"
         },
         {
           "from": "kv-cache-layerwise-offload",
@@ -4135,7 +4175,7 @@
       "title": "layer_sharding",
       "type": "param",
       "origin": "seed",
-      "summary": "点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main 上已整体删除。",
+      "summary": "点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc 起已整体删除，v0.26 上照旧配置会被静默忽略、main 上直接报错。",
       "aliases": [
         "Layer Sharding Linear",
         "层间权重分片",
@@ -4175,11 +4215,15 @@
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1603-L1651",
         "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L76",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
-        "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64"
+        "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -4195,7 +4239,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/layer-sharding.md",
       "backlinks": []
     },
@@ -4531,7 +4575,7 @@
       "title": "multistream_overlap_gate",
       "type": "param",
       "origin": "seed",
-      "summary": "v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；main 上整套实现已删除，键留在启动命令里会让进程起不来。",
+      "summary": "v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 上会让进程起不来。",
       "aliases": [
         "FlashComm3 多流重叠门控",
         "多流门控重叠"
@@ -4563,11 +4607,14 @@
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454",
         "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140",
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64",
-        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669"
+        "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L153"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -4583,7 +4630,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/multistream-overlap-gate.md",
       "backlinks": []
     },
@@ -5422,7 +5469,7 @@
         {
           "from": "kv-cache-cpu-offload",
           "kind": "enables",
-          "note": "卸载与回填的最小单位就是分页 KV 块，一次传输搬 blocks_per_chunk 个块"
+          "note": "卸载与回填的最小单位就是分页 KV 块，一个 CPU 格由整数个 NPU 块拼成"
         },
         {
           "from": "kv-cache-quantization",
@@ -5754,7 +5801,7 @@
       "title": "prefetch_ratio",
       "type": "param",
       "origin": "seed",
-      "summary": "weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定「预取权重的前百分之几」；v0.23.0 维护分支上可用，main 开发主线已随整个 weight prefetch 特性一起删除，没有替代键。",
+      "summary": "weight_prefetch_config 下的嵌套 dict，按 attn/moe/mlp 三组、五个权重分别指定「预取权重的前百分之几」；v0.23.0 维护分支上可用，v0.24.0rc 起随整个 weight prefetch 特性一起删除，v0.26 上被静默忽略、main 上直接报错，没有替代键。",
       "aliases": [
         "权重预取比例",
         "weight prefetch ratio"
@@ -5787,11 +5834,14 @@
         "vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L709",
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
-        "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541"
+        "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "vllm-ascend@2ed6cbba:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L76-L76"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -5812,7 +5862,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/prefetch-ratio.md",
       "backlinks": []
     },
@@ -6104,11 +6154,15 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L139-L160",
         "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L24-L46",
         "vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153",
-        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130"
+        "vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L721-L743",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L667-L671",
+        "vllm-ascend@b255ab59:vllm_ascend/platform.py#L967-L971"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "S",
       "rawSources": [
@@ -6119,7 +6173,7 @@
         {
           "to": "ascend-config-system",
           "kind": "builds-on",
-          "note": "它是 additional_config 下的一个嵌套 dict，顶层写法在 main 上被降级成弃用告警的那套解析规则就在那一页"
+          "note": "它是 additional_config 下的一个嵌套 dict，顶层写法从 v0.26 起被降级成弃用告警的那套解析规则就在那一页"
         },
         {
           "to": "vllm-scheduler",
@@ -6129,7 +6183,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/profiling-chunk-config.md",
       "backlinks": [
         {
@@ -7873,7 +7927,7 @@
       "title": "weight_prefetch_config",
       "type": "param",
       "origin": "seed",
-      "summary": "v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。",
+      "summary": "v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main 上直接报错。",
       "aliases": [
         "权重预取配置",
         "weight prefetch",
@@ -7914,11 +7968,14 @@
         "vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62",
         "vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661",
         "vllm-ascend@b255ab59:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22",
-        "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541"
+        "vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
+        "vllm-ascend@2ed6cbba:docs/source/tutorials/models/Qwen3-Dense.md#L554-L554"
       ],
       "verified": [
         "main",
-        "releases/v0.23.0"
+        "releases/v0.23.0",
+        "releases/v0.26.0rc"
       ],
       "evidence": "C",
       "rawSources": [
@@ -7934,7 +7991,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-20",
+      "updated": "2026-09-21",
       "file": "params/weight-prefetch-config.md",
       "backlinks": [
         {

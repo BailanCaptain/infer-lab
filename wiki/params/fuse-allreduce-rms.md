@@ -3,8 +3,8 @@ id: fuse-allreduce-rms
 title: fuse_allreduce_rms
 type: param
 summary: >-
-  把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，main
-  上已整体删除。
+  把 Linear 的 matmul、TP AllReduce、残差加法与 RMSNorm 融成一个算子；因与序列并行争抢同一段子图而默认关闭，v0.25.1rc
+  起已整体删除，v0.26 上配了被静默吞掉、main 上直接报错。
 aliases:
   - Matmul AllReduce RMSNorm 融合
   - MatmulAllReduceAddRMSNormPass
@@ -38,7 +38,10 @@ sources:
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
   - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L607'
+  - >-
+    vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
   - to: enable-matmul-allreduce
@@ -48,7 +51,7 @@ relations:
       npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm
       一起吃掉；main 上两条一起被删
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-59a95308536d065059c9cc558e2d55136e4689c7d61259182be752ea3ba3e582.md
@@ -62,22 +65,24 @@ rawSources:
 
 官方默认 `False`，理由写在参数表里：与序列并行冲突 [S9]。但 v0.23.0 上真正决定这个 pass 要不要注册的那段代码读的是另一个值、缺省写成 `True`——这个坑单独说，见下文 [!]。
 
-**[那条请求](../concepts/one-request.md)用不到它。** 单卡 TP=1，子图里压根没有那次 TP AllReduce，pattern 无从匹配；就算有，37 个 token 也够不着 512 的门槛 [D]。要碰它得同时满足三件事：TP>1、走图模式、每步 token 数超过 512。而 main 开发主线（`b255ab59`）上这个开关、对应的 pass 文件、官方表里的那一行全都没了 [!]。
+**[那条请求](../concepts/one-request.md)用不到它。** 单卡 TP=1，子图里压根没有那次 TP AllReduce，pattern 无从匹配；就算有，37 个 token 也够不着 512 的门槛 [D]。要碰它得同时满足三件事：TP>1、走图模式、每步 token 数超过 512。
+
+**存在范围。** 它到 v0.24.0rc 为止还在，**v0.25.1rc 起**开关、`allreduce_rmsnorm_fusion_pass.py` 与官方表里的那一行一并删除，v0.26 分支（2026-09-17 的源码快照）和 main 上都没有，PR 号见下面「版本谱系」。**这个键是嵌套键，两边失效的方式不一样** [!]：v0.26 的 `AscendCompilationConfig.__init__` 仍带 `**kwargs`，`fuse_allreduce_rms` 被 kwargs 吞掉、没人再读 [C20]，配了不报错也不生效；main 的同一个类改成了 `extra="forbid"` 的类型化配置，同一份配置启动就被当拼写错误拒掉。
 
 ## 事实表
 
-| 项 | v0.23 维护分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|
-| 是否存在 | 有 | 已整体删除 | 升级到 main 时必须把这个键从配置里摘掉，见下节 |
-| 类型 / 官方默认值 | `bool` / `False` | —— | 官方表里写明「默认关是因为与 SP 冲突」 |
-| 实际注册用的默认值 | `True`（读原始 dict） | —— | 不写这个键时 pass 照样被注册，与文档的 `False` 对不上 [!] |
-| 配置路径 | `additional_config.ascend_compilation_config.fuse_allreduce_rms` | —— | 是嵌套键，写在 `additional_config` 顶层不生效 |
-| 替换成的算子 | `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm` | —— | 一次调用吃掉四步，AllReduce 在算子内部拆成 ReduceScatter+AllGather |
-| 生效门槛 | `compile_range.start > 512` | —— | decode 的小 batch 完全不走这条路径，只有长 prefill 有意义 |
-| tiling 块大小 | 512 token | —— | 不足一块就凑不出通信-计算流水，因此才有上面那道门槛 |
-| 注册的 pattern 数 | 2：中间层 / 末层 | —— | 末层少一路 residual 输出，需要单独写一个 pattern |
-| 与 SP 的关系 | 争抢同一子图，融合 pass 排在 SP 之前 | 冲突方已删，SP 仍在 | v0.23.0 上两个一起开会让 SP 静默失效 |
-| 开启的副作用 | 往 `compile_ranges_endpoints` 插入切分点 512 | —— | 编译区间在 512 处断开，上面那道门槛才能干净地按区间开关 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 是否存在 | 有 | 已整体删除，键被 `**kwargs` 吞掉 | 已整体删除，键被 `extra="forbid"` 拒掉 | 两边都得把这个键从配置里摘掉：v0.26 上不摘毫无提示，main 上不摘起不来 |
+| 类型 / 官方默认值 | `bool` / `False` | —— | —— | 官方表里写明「默认关是因为与 SP 冲突」 |
+| 实际注册用的默认值 | `True`（读原始 dict） | —— | —— | 不写这个键时 pass 照样被注册，与文档的 `False` 对不上 [!] |
+| 配置路径 | `additional_config.ascend_compilation_config.fuse_allreduce_rms` | —— | —— | 是嵌套键，写在 `additional_config` 顶层不生效 |
+| 替换成的算子 | `torch.ops._C_ascend.matmul_allreduce_add_rmsnorm` | —— | —— | 一次调用吃掉四步，AllReduce 在算子内部拆成 ReduceScatter+AllGather |
+| 生效门槛 | `compile_range.start > 512` | —— | —— | decode 的小 batch 完全不走这条路径，只有长 prefill 有意义 |
+| tiling 块大小 | 512 token | —— | —— | 不足一块就凑不出通信-计算流水，因此才有上面那道门槛 |
+| 注册的 pattern 数 | 2：中间层 / 末层 | —— | —— | 末层少一路 residual 输出，需要单独写一个 pattern |
+| 与 SP 的关系 | 争抢同一子图，融合 pass 排在 SP 之前 | 冲突方已删，SP 的两个 pass 仍在 manager 里注册 | 冲突方已删，SP 的注册也一并撤走 | v0.23.0 上两个一起开会让 SP 静默失效；到 v0.26 冲突消失、SP 还是昇腾侧这一对，到 main 才交回上游 |
+| 开启的副作用 | 往 `compile_ranges_endpoints` 插入切分点 512 | —— | —— | 编译区间在 512 处断开，上面那道门槛才能干净地按区间开关 |
 
 ## 为什么存在
 
@@ -111,13 +116,15 @@ vllm serve Qwen/Qwen3-0.6B \
 
 **代价二：多一次图编译切分。** 开启后 `compile_ranges_endpoints` 会被插入 512，编译区间在此断开，意味着同一段图在 512 上下各编译一份，编译耗时与缓存条目相应增加 [D]。
 
-**代价三（main）：配置通常会直接报错，不再是静默忽略。** main 上 `AscendCompilationConfig` 只剩 `enable_npugraph_ex` / `enable_static_kernel` / `enable_super_kernel` / `fuse_norm_quant` / `fuse_qknorm_rope` / `fuse_muls_add` 六个字段，没有 `fuse_allreduce_rms` [C12]；它作为 `AscendConfig` 的类型化嵌套字段由 pydantic 做 dict→dataclass 转换 [C13]，而 `@config` 装饰器统一设了 `extra="forbid"` [C14]。所以沿用旧配置继续传这个键，启动时会被当成拼写错误拒掉，而不是像 v0.23.0 那样默默无视 [D]。升级时直接删掉。
+**代价三（main）：配置通常会直接报错，不再是静默忽略。** main 上 `AscendCompilationConfig` 只剩 `enable_npugraph_ex` / `enable_static_kernel` / `enable_super_kernel` / `fuse_norm_quant` / `fuse_qknorm_rope` / `fuse_muls_add` 六个字段，没有 `fuse_allreduce_rms` [C12]；它作为 `AscendConfig` 的类型化嵌套字段由 pydantic 做 dict→dataclass 转换 [C13]，而 `@config` 装饰器统一设了 `extra="forbid"` [C14]。所以沿用旧配置继续传这个键，启动时会被当成拼写错误拒掉，而不是像 v0.23.0 那样默默无视。升级时直接删掉。
 
 唯一的例外在顶层那道检查：构造 `AscendConfig` 前算出的 `unknown_keys` 非空、且 `importlib.util.find_spec("vllm_omni")` 找得到时，只打一条 warning 再把它们剔掉 [C18]。不过这条豁免走的是顶层 `additional_config` 的名单，嵌套进 `ascend_compilation_config` 的键仍由子配置自己的 `extra="forbid"` 处理 [D]——别指望它替你兜底。
 
-**它去哪了：删掉的是冲突的融合方，不是 SP。** 上游发布说明把它和 eager 侧的 [enable_matmul_allreduce](enable-matmul-allreduce.md) 记成同一条移除项：「Removed matmul all-reduce and matmul all-reduce RMSNorm fusions. #12119」[S19]。`graph_fusion_pass_manager.configure` 在 main 上只剩 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条注册，`fuse_allreduce_rms` 分支与 `MatmulAllReduceAddRMSNormPass` 的 import 一并消失 [C11]；`vllm_ascend/compilation/passes/` 下也已不存在 `allreduce_rmsnorm_fusion_pass.py` 和 `sequence_parallelism.py` [D]。
+**v0.26 分支上这一条完全不成立**——那里的 `AscendCompilationConfig` 还是普通类，构造签名末尾留着 `**kwargs`（见上面「存在范围」），多传的键连一条 warning 都没有。也就是说从 v0.23.0 升到 v0.26，这个开关的行为从「默认被注册、可能在长 prefill 上改图」变成「彻底不存在」，而启动命令一字不改、日志一行不多——真要确认它有没有生效，只能看图里还有没有 `matmul_allreduce_add_rmsnorm`。
 
-同一个 manager 里连 SP 那两个 pass 的注册也撤了，但 `pass_config.enable_sp` 仍被 `enable_sp_by_pass` 读取 [C15]，而 `platform.py` 转去调上游的 `update_sizes_for_sequence_parallelism`。合起来看，序列并行改由上游 vLLM 的 pass 承担，不再是 vllm-ascend 自带的一对 [I]。官方参数表里这一行同步删除 [S16]。
+**它去哪了：删掉的是冲突的融合方，不是 SP。** 上游发布说明把它和 eager 侧的 [enable_matmul_allreduce](enable-matmul-allreduce.md) 记成同一条移除项：「Removed matmul all-reduce and matmul all-reduce RMSNorm fusions. #12119」[S19]。`graph_fusion_pass_manager.configure` 在 main 上只剩 `AddRMSNormQuantFusionPass`、`QKNormRopeFusionPass`、`MulsAddFusionPass` 三条注册，`fuse_allreduce_rms` 分支与 `MatmulAllReduceAddRMSNormPass` 的 import 一并消失 [C11]；`vllm_ascend/compilation/passes/` 下也已不存在 `allreduce_rmsnorm_fusion_pass.py` 和 `sequence_parallelism.py`。
+
+**这两件事不是同一版发生的。** v0.26 的 `configure` 在那三条之后还保留着一支 `if config.compilation_config.pass_config.enable_sp:`，照旧 append `SequenceParallelismPass` 与 `SequenceParallelismMoePass` [C21]；被删的只有融合这一方，所以 v0.26 恰好是「冲突消失、SP 还归昇腾侧管」的中间状态。到 main 才连 SP 那两个 pass 的注册也撤了，但 `pass_config.enable_sp` 仍被 `enable_sp_by_pass` 读取 [C15]，而 `platform.py` 转去调上游的 `update_sizes_for_sequence_parallelism`。合起来看，序列并行改由上游 vLLM 的 pass 承担是 main 才完成的一步 [I]。官方参数表里 `fuse_allreduce_rms` 这一行同步删除 [S16]。
 
 官方参数表见 <https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html>（v0.23.0），对应本地文件 `docs/source/user_guide/configuration/additional_config.md` 第 141 行。
 

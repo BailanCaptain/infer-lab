@@ -4,7 +4,7 @@ title: enable_sleep_mode_extra_cleanup
 type: param
 summary: >-
   sleep 时额外销毁 HCCL 通信域、清空 ACL 图工作区，把分配器池子之外的那两块显存也还给训练进程；默认关闭，因为唤醒要重建通信域并重新捕获图。v0.23
-  是顶层键，main 上已搬进 rl_config。
+  与 v0.26 都是顶层键，main 上才搬进 rl_config。
 aliases:
   - sleep 模式额外清理
   - rl_config.sleep_mode_extra_cleanup
@@ -46,7 +46,10 @@ sources:
   - >-
     vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186
   - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L280-L294'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L175-L175'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L228-L230'
+  - 'vllm-ascend@2ed6cbba:docs/source/user_guide/release_notes.md#L120-L120'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: S
 relations:
   - to: npu-worker-lifecycle
@@ -56,7 +59,7 @@ relations:
     kind: builds-on
     note: 这个键从顶层搬进 rl_config 子配置，旧写法在 main 上会撞上 extra="forbid"——搬家的机制在那一页
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-024d8bdfc8e0a81cafa0b07e205478201aefcd1adf86c717b31c22e7c02f74cf.md
@@ -68,23 +71,24 @@ rawSources:
 
 RL 后训练里推理引擎和训练进程抢同一张卡，`sleep()` 默认只退还 sleep-mode 分配器那个池子里的显存。打开这个开关，`sleep()` 会再多做两件事：销毁 HCCL 通信域，清空 ACL 图的 attention workspace 并作废已捕获的图——池子外压着的那两块也还给训练侧 [S8]。默认 `false`，该碰它的只有「同卡 RL、显存卡在最后一档、唤醒慢一点无所谓」的人 [S7]。
 
-配置写法两版不同：v0.23.0 是顶层键 `enable_sleep_mode_extra_cleanup`，main 上这个顶层键**已被移除**，功能搬进 `rl_config.sleep_mode_extra_cleanup`，还得和 `rl_config.enabled: true` 一起给 [C9] [C10]。搬家的只是开关——做清理的 `sleep_mem_optimized.py` 两版逐字相同。
+配置写法只在 main 上变了：**v0.23.0 与 v0.26 分支**（2026-09-17 的源码快照）都是顶层键 `enable_sleep_mode_extra_cleanup`，照旧 `additional_config.get(..., False)` 读取 [C24]，`sleep()` / `wake_up()` 里那对守卫也只是挪了行号、逻辑一字未改 [C25]；到 main 这个顶层键才**被移除**，功能搬进 `rl_config.sleep_mode_extra_cleanup`，还得和 `rl_config.enabled: true` 一起给 [C9] [C10]。搬家的只是开关——做清理的 `sleep_mem_optimized.py` 三版逐字相同。
 
 [那条请求](../concepts/one-request.md)走不到这里：单卡起 Qwen3-0.6B 答一个 37 token 的问题，既没给 `--enable-sleep-mode`，也没有训练进程来抢卡，这段代码一次都不会被调用。要它生效，得先有个 RL 训练循环和推理引擎在同一张卡上轮流上场。
 
 ## 事实表
 
-| 项 | v0.23.0 | main | 意味着什么 |
+| 项 | v0.23.0 与 v0.26.0rc | main | 意味着什么 |
 |---|---|---|---|
-| 配置键 | 顶层 `enable_sleep_mode_extra_cleanup` | `rl_config.sleep_mode_extra_cleanup` [C9] | 把 v0.23.0 的配置原样搬到 main，多半是**启动即报错**而不是被忽略 [!] |
+| 配置键 | 顶层 `enable_sleep_mode_extra_cleanup` | `rl_config.sleep_mode_extra_cleanup` [C9] | v0.23 → v0.26 升级这个键不用改；搬到 main 多半是**启动即报错**而不是被忽略 [!] |
 | 类型 / 默认值 | bool / `False` | bool / `false` | 不显式打开就永远不走这条路径 |
 | 生效条件 | 本开关为真 | `rl_config.enabled` **与**本开关同时为真 [C10] | main 上只写子键、漏掉 `enabled: true`，等于没开 |
-| 取值解析 | `additional_config.get` 取原值，字符串 `"false"` 也是真 | pydantic lax 强转，`"false"` → `False` [C19] | v0.23.0 上用字符串传 `"false"` 会**反向打开**开关 [D] |
+| 取值解析 | `additional_config.get` 取原值，字符串 `"false"` 也是真 | pydantic lax 强转，`"false"` → `False` [C19] | v0.23 与 v0.26 上用字符串传 `"false"` 都会**反向打开**开关 [D] |
 | 前置开关 | 必须同时 `--enable-sleep-mode` | 同左 | 不开 sleep mode 时这段代码根本不被调用 |
 | sleep 时释放 | HCCL 通信域 + ACL 图 workspace | 同左 | ACL 图那一半还要 `model_runner.use_aclgraph` 为真才执行 [C20] |
 | wake_up 时补偿 | 重建 HCCL + 刷新 MoE 通信域 + `capture_model()` | 同左 | 唤醒延迟上升，量级取决于图捕获耗时 |
 | 分标签唤醒 | 仅当 `tags` 为 `None` 或含 `"kv_cache"` 时重捕获图 | 同左 | `wake_up(tags=["weights"])` 不会触发重捕获 [C21] |
 | 适用部署 | 文档未限定 | 明确限「同卡（same-device）模式」[S13] | 跨卡 RL 走 pause/resume + HCCL 权重传输，不用这个开关 |
+| 已知缺陷 | v0.26 上 DeepSeek-V4 开了它可能唤醒不回来（#15648）[S26] | 未列入 | 在 v0.26 上跑 DeepSeek-V4 就别开这个开关 |
 
 官方参数表：[v0.23.0](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html) / [latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)。
 
@@ -110,7 +114,8 @@ main 把这个开关收进 `rl_config` 这个「RL 一键模式」子配置，�
 
 - **main 上必须写两个键。** `rl_config.enabled and rl_config.sleep_mode_extra_cleanup` 是与关系，只给子键不给 `enabled: true` 静默无效——上游单测里就专门造了这个组合来验证不走清理路径 [C16]。
 - **v0.23.0 上别用字符串传值。** 那一版直接 `additional_config.get(...)` 取原值再当布尔用，JSON 里写 `"false"`（带引号）在 Python 里是真值，结果是**想关反而开了**。main 的 `RlConfig` 是 pydantic 模型，`"false"` 会被强转成 `False`，不吃这个亏；顺带，写错子键名在 main 上直接 `ValueError` [C19]。
-- **旧写法在 main 上基本是硬错误。** 顶层未知键不在豁免名单里，会原样进入 `extra="forbid"` 的 `AscendConfig`，构造阶段就抛验证错误 [!]。唯一的例外是装了 `vllm_omni`：那种环境下未知键只打一条 warning 然后被悄悄丢掉，`enable_sleep_mode_extra_cleanup` 就成了真正的静默无效 [C12]。所以「起不来」反而是好消息，「起来了但没省显存」才要去查是不是撞上了这条豁免。
+- **v0.26 上跑 DeepSeek-V4 别开它。** v0.26.0rc 的 Known Issues 里明写着：DeepSeek-V4 的 sleep mode 配上 `sleep_mode_extra_cleanup` 可能唤醒后恢复不回来（issue #15648），并顺带提醒 sleep mode 主要面向训练场景 [S26]。这是本页唯一一条只在 v0.26 上成立的告警。
+- **旧写法在 main 上基本是硬错误（v0.26 上则不用改）。** 顶层未知键不在豁免名单里，会原样进入 `extra="forbid"` 的 `AscendConfig`，构造阶段就抛验证错误 [!]。唯一的例外是装了 `vllm_omni`：那种环境下未知键只打一条 warning 然后被悄悄丢掉，`enable_sleep_mode_extra_cleanup` 就成了真正的静默无效 [C12]。所以「起不来」反而是好消息，「起来了但没省显存」才要去查是不是撞上了这条豁免。
 - **分标签唤醒时重捕获只发生一次。** level 2 的两段式唤醒 `wake_up(tags=["weights"])` → 外部灌新权重 → `wake_up(tags=["kv_cache"])`，图只在第二次捕获 [C21]；顺序反过来会在权重还没就位时把图捕获掉。
 - **ACL 图没开时只省下 HCCL 那一半。** ACL 图清理受 `model_runner.use_aclgraph` 门控 [C20]，eager 模式下打开这个开关只释放通信域内存，唤醒代价也相应只剩重建 HCCL。
 
@@ -123,7 +128,7 @@ vllm serve Qwen/Qwen3-0.6B \
     --additional-config '{"rl_config": {"enabled": true, "sleep_mode_extra_cleanup": true}}'
 ```
 
-v0.23.0 上的等价写法是 `--additional-config '{"enable_sleep_mode_extra_cleanup": true}'`，其余不变。
+v0.23.0 与 v0.26 分支上的等价写法都是 `--additional-config '{"enable_sleep_mode_extra_cleanup": true}'`，其余不变。
 
 ## 版本谱系
 

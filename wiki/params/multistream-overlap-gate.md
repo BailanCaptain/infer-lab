@@ -4,7 +4,7 @@ title: multistream_overlap_gate
 type: param
 summary: >-
   v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare
-  里的动态量化 + all-gather 并行；main 上整套实现已删除，键留在启动命令里会让进程起不来。
+  里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 上会让进程起不来。
 aliases:
   - FlashComm3 多流重叠门控
   - 多流门控重叠
@@ -37,14 +37,16 @@ sources:
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140
   - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L153'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
   - to: ascend-config-system
     kind: builds-on
     note: 它是 additional_config 里的一个键，main 上让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra="forbid" 的模式校验
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md
@@ -58,22 +60,22 @@ rawSources:
 
 它挑食得厉害：模型得有共享专家、MoE 得是 W8A8-dynamic 或 MXFP8 量化的、FlashComm1 / 序列并行得开着——三条少一条，要么白开，要么第一次前向直接断言失败。[那条请求](../concepts/one-request.md)跑的是稠密的 Qwen3-0.6B、单卡、没有 EP，**三条一条都不沾，这一页对它完全用不上**。
 
-**main（`b255ab59`）上这个开关连同整套 FlashComm3 实现已经删干净了**，而且 `AscendConfig` 的 `extra="forbid"` 会把残留的这个键当错别字拒绝——升级前必须从启动命令里删掉，否则进程起不来（唯一的例外见「开了的代价」第 8 条）[C19] [!]。
+**存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起这个开关连同整套 FlashComm3 实现被删干净，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩一处引用，是哪个 PR 删的见下面「版本谱系」。**升级前都得从启动命令里删掉，但两边留着的后果不同** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C23]，服务照常起来、重叠一次都不会发生；main 的 `extra="forbid"` 则把它当错别字拒绝，进程直接起不来（唯一的例外见「开了的代价」第 8 条）。
 
 ## 事实表
 
-| 项 | v0.23.0 (`2c59ff10`) | main (`b255ab59`) | 意味着什么 |
-|---|---|---|---|
-| 配置键与默认值 | `additional_config.multistream_overlap_gate`，bool，`False` | 不存在，被当未知键拒掉 | 升级 main 前必须从启动命令删掉；只有装了 `vllm_omni` 才降级成一条 warning [C22] |
-| [那条请求](../concepts/one-request.md)上 | 用不上：稠密模型、单卡、无 EP、未量化 | 用不上 | 这一页讲的是 MoE 专属的重叠，和那条请求的 28 层稠密前向不沾边 |
-| 上游状态 | 发版时即列入 Ready to Deprecate | 已移除 | 不要往新部署里投入，v0.23.0 上也只当短期手段 |
-| 搬到副流的计算 | 共享专家前向（含 TP all-reduce）+ `select_experts` | 不存在 | 省的是这两段，**不是**路由专家的 GEMM |
-| 与之并行的主线 | `_prepare_with_ep_group` 的动态量化 + all-gather | 不存在 | 重叠窗口只有 `prepare()` 这一段，见「开了的代价」 |
-| 新建 NPU stream | 2 条：`gate_stream` + `quant_stream` | 不存在 | 每条流有独立内存池，显存会多占一块 [I] |
-| 新建 HCCL 通信组 | 1 个，`group_name="fc3_quant_x"` | 不存在 | 多一份通信域资源，启动时多一次建组 |
-| 能接住它的量化方法 | 只有 `w8a8_dynamic` 与 `w8a8_mxfp8` | 不存在 | 未量化（BF16）MoE 上没有接收端 [D] |
-| 有无共享专家时的降级 | 无：`self.multistream_overlap_gate` 直接取开关值，只有 `shared_multistream_overlap_gate` 与 `has_shared_experts` 做与 | 不存在 | 官方描述里的「只对带共享专家的 MoE 生效」不是静默降级 [!] |
-| 硬互斥 / 硬失效 | MoE LoRA v1 同开抛 `AssertionError`；310P 路径无条件置 `False` | 不存在 | 前者二选一无自动降级；后者在 Atlas 300I Duo / 200I Pro 上设了也白设 |
+| 项 | v0.23.0 | v0.26.0rc | main | 意味着什么 |
+|---|---|---|---|---|
+| 配置键与默认值 | `additional_config.multistream_overlap_gate`，bool，`False` | 不存在，未知键静默忽略 | 不存在，被当未知键拒掉 | 升级前两边都要删：v0.26 上留着是白留，main 上留着起不来（装了 `vllm_omni` 才降成 warning）[C22] |
+| [那条请求](../concepts/one-request.md)上 | 用不上：稠密模型、单卡、无 EP、未量化 | 用不上 | 用不上 | 这一页讲的是 MoE 专属的重叠，和那条请求的 28 层稠密前向不沾边 |
+| 上游状态 | 发版时即列入 Ready to Deprecate | 已移除 | 已移除 | 不要往新部署里投入，v0.23.0 上也只当短期手段 |
+| 搬到副流的计算 | 共享专家前向（含 TP all-reduce）+ `select_experts` | 不存在 | 不存在 | 省的是这两段，**不是**路由专家的 GEMM |
+| 与之并行的主线 | `_prepare_with_ep_group` 的动态量化 + all-gather | 不存在 | 不存在 | 重叠窗口只有 `prepare()` 这一段，见「开了的代价」 |
+| 新建 NPU stream | 2 条：`gate_stream` + `quant_stream` | 不存在 | 不存在 | 每条流有独立内存池，显存会多占一块 [I] |
+| 新建 HCCL 通信组 | 1 个，`group_name="fc3_quant_x"` | 不存在 | 不存在 | 多一份通信域资源，启动时多一次建组 |
+| 能接住它的量化方法 | 只有 `w8a8_dynamic` 与 `w8a8_mxfp8` | 不存在 | 不存在 | 未量化（BF16）MoE 上没有接收端 [D] |
+| 有无共享专家时的降级 | 无：`self.multistream_overlap_gate` 直接取开关值，只有 `shared_multistream_overlap_gate` 与 `has_shared_experts` 做与 | 不存在 | 不存在 | 官方描述里的「只对带共享专家的 MoE 生效」不是静默降级 [!] |
+| 硬互斥 / 硬失效 | MoE LoRA v1 同开抛 `AssertionError`；310P 路径无条件置 `False` | 不存在 | 不存在 | 前者二选一无自动降级；后者在 Atlas 300I Duo / 200I Pro 上设了也白设 |
 
 ## 为什么存在
 
@@ -113,11 +115,11 @@ v0.23.0 里 `AscendMoERunner`（新）和 `AscendFusedMoE`（legacy）两套实�
 
 **6. 额外资源：2 条 NPU stream + 1 个 HCCL 通信组。** 流是类级单例，不随层数增长，通信组在 `init_ascend_config` 之后建组时创建。多流各自持有内存池，显存开销会有可观察的增加 [I]。
 
-**7. 它和 `multistream_overlap_shared_expert` 是两个开关，共享专家只会被其中一个接管。** 后者把共享专家挪到 `shared_experts_calculation_stream()`；前者把共享专家挪到 `gate_stream` 并顺带把路由也带走，取结果时直接读 `fc3_context.shared_out`，完全不走 `_forward_shared_experts`。两个开关都开时共享专家由 gate 路径接管，`multistream_overlap_shared_expert` 那条分支变成死代码 [D]。注意 `multistream_overlap_shared_expert` 在 `b255ab59` 上仍然活着，参数表里还有它那一行 [S18]——被删的只是 gate 这一个，别把两个一起当成废弃项删掉。
+**7. 它和 `multistream_overlap_shared_expert` 是两个开关，共享专家只会被其中一个接管。** 后者把共享专家挪到 `shared_experts_calculation_stream()`；前者把共享专家挪到 `gate_stream` 并顺带把路由也带走，取结果时直接读 `fc3_context.shared_out`，完全不走 `_forward_shared_experts`。两个开关都开时共享专家由 gate 路径接管，`multistream_overlap_shared_expert` 那条分支变成死代码 [D]。注意 `multistream_overlap_shared_expert` 在 v0.26 分支 [C24] 和 `b255ab59` [S18] 上都仍然活着，参数表里还有它那一行——被删的只是 gate 这一个，别把两个一起当成废弃项删掉。
 
-**8. 去向：main 上整套删干净了，而且键留着会挡住启动。** v0.23.0 的 release notes 发版时就把 "The FlashComm3 multistream-overlap gate" 写进了 Ready to Deprecate [S17]；v0.26.0rc1 的「Deprecation and Breaking Changes」里兑现成一条 "Removed multistream overlap gate."，PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) [S21]。到 `b255ab59`，参数表里这一行没有了 [S18]，`flash_common3_context.py`、`fc3_quant_x` 通信组、`fc3_all_gather_and_maybe_unpad_impl` 也一并不在。
+**8. 去向：v0.24.0rc 起整套删干净了。** v0.23.0 的 release notes 发版时就把 "The FlashComm3 multistream-overlap gate" 写进了 Ready to Deprecate [S17]；v0.26.0rc1 的「Deprecation and Breaking Changes」里兑现成一条 "Removed multistream overlap gate."，PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) [S21]。v0.26 分支与 `b255ab59` 上参数表里这一行都没有了 [S18]，`flash_common3_context.py`、`fc3_quant_x` 通信组、`fc3_all_gather_and_maybe_unpad_impl` 也一并不在。
 
-**迁移时这是第一个要删的东西。** `AscendConfig` 是 pydantic 模型且 `model_config = ConfigDict(extra="forbid")` [C19]，留在 `--additional-config` 里的这个键不会被静默忽略，而是在构造配置时就报未知选项、让进程起不来 [!]。**只有一个例外**：进程里装了 `vllm_omni` 时，工厂会把所有未知键先打一条 warning 再从 kwargs 里剔掉，这时它才是「被忽略」而不是「起不来」[C22]。别指望这个例外——它是给 vLLM-Omni 共用这份配置留的口子，不是给废弃键兜底的。
+**迁移时这是第一个要删的东西，而且两个目标版本的报错方式不一样。** 到 main，`AscendConfig` 是 pydantic 模型且 `model_config = ConfigDict(extra="forbid")` [C19]，留在 `--additional-config` 里的这个键不会被静默忽略，而是在构造配置时就报未知选项、让进程起不来。**只有一个例外**：进程里装了 `vllm_omni` 时，工厂会把所有未知键先打一条 warning 再从 kwargs 里剔掉，这时它才是「被忽略」而不是「起不来」[C22]。别指望这个例外——它是给 vLLM-Omni 共用这份配置留的口子，不是给废弃键兜底的。到 v0.26 分支则根本没有这道校验，键安安静静地被跳过，启动日志里那条 `Multistream overlap gate is enabled.` 自然也不会再出现——想确认重叠有没有生效，就靠这条日志。
 
 ## 版本谱系
 

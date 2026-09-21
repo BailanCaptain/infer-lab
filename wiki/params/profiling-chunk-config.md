@@ -59,17 +59,20 @@ sources:
     vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L721-L743'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L667-L671'
+  - 'vllm-ascend@b255ab59:vllm_ascend/platform.py#L967-L971'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: S
 relations:
   - to: ascend-config-system
     kind: builds-on
-    note: 它是 additional_config 下的一个嵌套 dict，顶层写法在 main 上被降级成弃用告警的那套解析规则就在那一页
+    note: 它是 additional_config 下的一个嵌套 dict，顶层写法从 v0.26 起被降级成弃用告警的那套解析规则就在那一页
   - to: vllm-scheduler
     kind: builds-on
     note: 开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 origin: seed
 rawSources:
   - >-
@@ -84,7 +87,7 @@ rawSources:
 
 **它不是通用调优项。** 官方把它定位成 PD 分离部署里 **P（Prefiller）节点**上的长序列优化，D 节点不用配 [S13]；硬条件是 `pipeline_parallel_size > 1`、开着 chunked prefill、且不能与 balance scheduling 同开。[那条请求](../concepts/one-request.md)是单卡 Qwen3-0.6B、37 个 token 的问题——**连 PP > 1 这条门槛都够不到，也根本切不出第二块**，这一页对它完全用不上。
 
-两版的差别不在能力，在**配置写在哪**：main 开发主线（`b255ab59`）要你写进 `additional_config.scheduler_config`，顶层写法还认但会打弃用告警，两边都写以嵌套的为准 [C5]；v0.23 维护分支（`2c59ff10`）只有顶层写法。校验上只剩一处真分叉——`enabled=False` 却显式写 `need_timing=True` 时，main 告警并强制改回 `False`，v0.23 原样留着 `True` [!]。
+**三个版本上都有这个参数**，差别不在能力。**配置写在哪**从 v0.26 分支（2026-09-17 的源码快照）起变了：要写进 `additional_config.scheduler_config`，顶层写法还认但会打弃用告警，两边都写以嵌套的为准，main 沿用这一套——这段写法上的账在[动态切块配置的机制页](../concepts/dynamic-chunked-pp.md)，这页不重抄。参数本身的默认值与校验，v0.26 与 v0.23 逐条相同 [C26]；两处真分叉都只在 main 上：`enabled=False` 却显式写 `need_timing=True` 时 main 告警并强制改回 `False`，以及下面第 8 条那个与 ShortRequestFirst 的关系 [!]。
 
 ```wiki-diagram
 file: profiling-chunk-config
@@ -92,20 +95,20 @@ file: profiling-chunk-config
 
 ## 事实表
 
-下表左列依据 `2c59ff10` 的配置源码 [C7][C8]，中列依据 `b255ab59` [C3][C4]。
+下表左列依据 `2c59ff10` 的配置源码 [C7]，v0.26 列依据 `2ed6cbba` [C26]，main 列依据 `b255ab59` [C3]。
 
-| 项 | v0.23 维护分支 (`2c59ff10`) | main 开发主线 (`b255ab59`) | 意味着什么 |
-|---|---|---|---|
-| 配置路径 | 只有顶层 `additional_config.profiling_chunk_config` | 推荐写进 `additional_config.scheduler_config`，顶层仍认但打弃用告警 | 照老文档抄的命令在 main 上还能跑，日志里会多一行 deprecated |
-| `enabled` 默认 | `False` | 同左 | 不显式打开，下面这一整套都不跑 |
-| `enabled=False` 却写 `need_timing=True` | `_validate` 没有这条修正，值保持 `True` | 告警后强制改回 `False` | 两版唯一的行为分叉 [!] |
-| `smooth_factor` | `(0, 1]`，默认 1.0 | 同左 | 1.0 = 完全信预测；官方建议开着在线校准时别动它，关了校准再调到 0.5–0.8 [S14] |
-| `min_chunk` | `> 0`，默认 4096 | 同左 | 比 `max_num_batched_tokens` 大时被钳到后者，只有一条 warning |
-| `max_fit_chunk` | `<= 5` 报错，默认 30 | 同左 | 报错文案说「建议至少 30 个点」，硬阈值却是 6；设计文档说拟合用 5–30 个点，所以 6–29 能过并不是 bug |
-| PP > 1 要求 | 开启且 `pp <= 1` 直接 `ValueError` | 同左 | **两版都有**——旧版本页写「v0.23 材料未覆盖」是错的 [!] |
-| 与 balance scheduling | 同开 `ValueError`；还能用 `VLLM_ASCEND_BALANCE_SCHEDULING` 环境变量打开对方 | 同开 `ValueError`；环境变量兜底已删 | 二选一，没有自动降级 |
-| 实现形式 | 普通类，`__init__` 里 `get` 完再 `float()` / `int()`，最后 `_validate()` | pydantic `@config` dataclass，检查挪进 `mode="after"` 的 validator | main 上类型写错会在构造配置时就被拦下 |
-| 启动代价 | 约 64 次 forward，几十秒 | 同左 | 不是「顺手开开看」的参数 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 配置路径 | 只有顶层 `additional_config.profiling_chunk_config` | 推荐写进 `additional_config.scheduler_config`，顶层仍认但打弃用告警 | 同 v0.26 | 照老文档抄的命令在 v0.26 与 main 上还能跑，日志里会多一行 deprecated |
+| `enabled` 默认 | `False` | 同左 | 同左 | 不显式打开，下面这一整套都不跑 |
+| `enabled=False` 却写 `need_timing=True` | `_validate` 没有这条修正，值保持 `True` | 同左 | 告警后强制改回 `False` | 只有 main 修了；v0.23 与 v0.26 上这样写等于白白每步同步一次设备 |
+| `smooth_factor` | `(0, 1]`，默认 1.0 | 同左 | 同左 | 1.0 = 完全信预测；官方建议开着在线校准时别动它，关了校准再调到 0.5–0.8 [S14] |
+| `min_chunk` | `> 0`，默认 4096 | 同左 | 同左 | 比 `max_num_batched_tokens` 大时被钳到后者，只有一条 warning |
+| `max_fit_chunk` | `<= 5` 报错，默认 30 | 同左 | 同左 | 报错文案说「建议至少 30 个点」，硬阈值却是 6；设计文档说拟合用 5–30 个点，所以 6–29 能过并不是 bug |
+| PP > 1 要求 | 开启且 `pp <= 1` 直接 `ValueError` | 同左 | 同左 | **三版都有**——旧版本页写「v0.23 材料未覆盖」是错的 [!] |
+| 与 balance scheduling | 同开 `ValueError`；还能用 `VLLM_ASCEND_BALANCE_SCHEDULING` 环境变量打开对方 | 同左 | 同开 `ValueError`；环境变量兜底已删 | 二选一，没有自动降级；v0.26 上残留一个 `=1` 照样能把服务顶掉 |
+| 与 ShortRequestFirst | v0.23 没有这个调度器 | 同开**直接** `ValueError` | 可以同开，但必须关掉异步调度 | 只在 v0.26 上是硬互斥；见下面第 8 条 |
+| 实现形式 | 普通类，`__init__` 里 `get` 完再 `float()` / `int()`，最后 `_validate()` | 同左 | pydantic `@config` dataclass，检查挪进 `mode="after"` 的 validator | main 上类型写错会在构造配置时就被拦下 |
 
 ## 为什么存在
 
@@ -158,15 +161,15 @@ chunk_size = ceil(chunk_size / align) * align
 | DeepSeek-V3.1-W8A8 | 128k | TTFT 22.5s | TTFT 27.0s |
 | Qwen3-235B | 256k | TTFT 53.5s | TTFT 61.4s |
 
-变长请求、并发 4、前缀命中率 99% 的那组里，CPP2TP8 的输入吞吐是 22424 tps/卡，DP2TP8 是 16150、TP16 是 18875。两个分支的文档给的是同一组数 [S25]，所以这组数不区分版本。
+变长请求、并发 4、前缀命中率 99% 的那组里，CPP2TP8 的输入吞吐是 22424 tps/卡，DP2TP8 是 16150、TP16 是 18875。三个分支的文档给的是同一组数 [S25]，所以这组数不区分版本。
 
 开关本身不改模型输出：它只决定每一步喂进去多少 token，采样与数值路径都不动 [D]。
 
 ## 开了的代价
 
-**1. 部署形态被锁死。** `pipeline_parallel_size > 1` 是硬门槛，`pp <= 1` 时直接 `ValueError`，两个分支都一样 [C4]。加上官方明确说它是给 PD 分离的 P 节点用的，实际能用上的是「PD 分离 + P 节点开 PP」这一种形态。
+**1. 部署形态被锁死。** `pipeline_parallel_size > 1` 是硬门槛，`pp <= 1` 时直接 `ValueError`，三个分支都一样 [C4]。加上官方明确说它是给 PD 分离的 P 节点用的，实际能用上的是「PD 分离 + P 节点开 PP」这一种形态。
 
-**2. 与 balance scheduling 硬互斥。** 同开报 `ValueError`，只能关掉一个。注意 v0.23 上 balance scheduling 还有 `VLLM_ASCEND_BALANCE_SCHEDULING` 这个环境变量入口——环境里残留一个 `=1`，就够让开了 CPP 的服务起不来；main 把这个环境兜底删了。
+**2. 与 balance scheduling 硬互斥。** 同开报 `ValueError`，只能关掉一个。注意 v0.23 **与 v0.26** 上 balance scheduling 都还有 `VLLM_ASCEND_BALANCE_SCHEDULING` 这个环境变量入口——环境里残留一个 `=1`，就够让开了 CPP 的服务起不来；只有 main 把这个环境兜底删了。
 
 **3. 启动多付约 64 次 forward，几十秒。** 官方自己列在 Constraints 里 [S17]。profiling 复用现成的 dummy_run 机制，所以**运行期不额外占显存** [S24]——多付的是启动时间，不是内存。
 
@@ -178,7 +181,9 @@ chunk_size = ceil(chunk_size / align) * align
 
 **7. 调参顺序不能反。** 官方要求先调 `--max-num-batched-tokens` 再调 `smooth_factor`；开着在线校准时建议根本别动 `smooth_factor`，只有关了校准才把它调到 0.5–0.8 当替代。
 
-**8. 还没有依据的部分。** 这一页没有回答：不同 `smooth_factor` 对 TTFT 的量化影响、在线校准「按标准流程走完」的判定标准是什么、以及短序列为主的负载上开了会不会反而变慢——官方文档只给了长序列的数 [I]。
+**8. 与 ShortRequestFirst 的关系只在 v0.26 上是「不许同开」。** v0.26 分支里，`short_request_first_config.enabled` 为真时只要发现 `profiling_chunk_config.enabled` 也为真，就无条件抛 `ValueError`，让你关掉一个 [C27]。main 换了做法：两者可以同开，`ProfilingChunkScheduler` 会自己把短请求优先的等待队列装上去，但多了一条**必须同步调度**的限制——同开还开着 async scheduling 时才报错 [C28]。v0.23 上没有这个调度器，谈不上冲突。所以从 v0.26 升到 main，这一处是从「硬互斥」放宽成「可以同开但别用异步调度」。
+
+**9. 还没有依据的部分。** 这一页没有回答：不同 `smooth_factor` 对 TTFT 的量化影响、在线校准「按标准流程走完」的判定标准是什么、以及短序列为主的负载上开了会不会反而变慢——官方文档只给了长序列的数 [I]。
 
 ## 已废弃的说法
 

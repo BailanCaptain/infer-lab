@@ -3,8 +3,8 @@ id: enable-async-exponential
 title: enable_async_exponential
 type: param
 summary: >-
-  把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，main
-  上已整体删除，残留的这个键还会让启动直接失败。
+  把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，v0.25.1rc
+  起已整体删除，残留的这个键在 v0.26 上被静默忽略、在 main 上会让启动直接失败。
 aliases:
   - 异步指数分布重叠
   - Asynchronous exponential overlap
@@ -30,7 +30,9 @@ sources:
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669'
   - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/sample/sampler.py#L33-L44'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
   - to: ascend-config-system
@@ -40,7 +42,7 @@ relations:
     kind: builds-on
     note: 预填 q 的调用点就在 execute_model 里、跑 28 层之前那几行，副流能藏进 forward 全靠这个位置
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md
@@ -52,24 +54,24 @@ rawSources:
 
 `enable_async_exponential` 改的只是一个**时机**：随机采样要用的那批 `q ~ Exp(1)` 随机数，默认是在 softmax 算完之后才现填，开了就提前到 model forward 之前、在副流 `global_stream()` 上填，藏进 28 层前向里，采样时直接取 [C2]。v0.23.0 上默认 `False` [C1]，而且发版当天就被官方写进了待废弃清单 [S8]——**新部署别碰它**。
 
-到 main（`b255ab59`）这条路径整段没了：参数、`do_async_exponential`、`set_q_event` 和事件对象一并删除 [C11]，采样只剩同步的 `random_sample` [C10]。要紧的是残留的键不会被无视——`AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，启动命令里还留着 `enable_async_exponential`，**进程直接起不来**（唯一的例外见「开了的代价」第 6 条）[C15] [!]。
+**存在范围。** 它到 v0.24.0rc 为止还在，**v0.25.1rc 起**参数、`do_async_exponential`、`set_q_event` 和事件对象整段删除，v0.26 分支（2026-09-17 的源码快照）与 main 上都只剩同步的 `random_sample`，PR 号见下面「版本谱系」。**残留的键在两边下场不同** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C18]，服务起得来、重叠不再发生；main 的 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，同一条启动命令**进程直接起不来**（唯一的例外见「开了的代价」第 6 条）[C15]。
 
 名字是这个参数最大的坑：这里的 exponential 跟 softmax 里的 `exp` 无关，指数分布随机数是 softmax **之后**那一步才用的。
 
 ## 事实表
 
-| 项 | v0.23.0 | main | 意味着什么 |
-|---|---|---|---|
-| 默认值 | `False` | 参数不存在 | main 上写进 `additional_config` 会被 `extra="forbid"` 当错别字拒掉，启动即失败 [!] |
-| 类型与入口 | bool，`additional_config` | — | 只能在启动时定，不能按请求开关 |
-| `VLLM_BATCH_INVARIANT=1` 时 | 静默置回 `False` [C1] | — | 两者互斥，且没有任何告警；以为开了其实没开 |
-| 预生成的 `q` | `(logits_indices.shape[0], vocab_size)`，fp32 [C5] | — | 显存开销随 batch × 词表走，和模型多大无关 |
-| Qwen3-0.6B、batch 32 时 `q` | 18.55 MiB / 步 [D] | — | 小模型大词表时这块比 hidden state 还大 |
-| [那条请求](../concepts/one-request.md)上 | batch 1，`q` 593.5 KiB / 步；greedy 时压根不取用 [D] | — | 单请求要藏的只有一次 593.5 KiB 的填充，profile 上看不出区别 |
-| 取用前的同步方式 | `Event.synchronize()` | — | 阻塞的是 host 线程，比同步路径的 `wait_stream`（device 侧）代价更重 |
-| 与 `enable_reduce_sample` 同开 | `q` 照生成，但分支不取用 | — | 白付一次分配和一次副流计算，零收益 |
-| 采样公式 | `probs.div_(q).argmax(dim=-1)` | 同式 | 两条路径数学上同分布，开关本身不改采样语义 |
-| 官方状态 | Ready to Deprecate | 已删除 | 新部署不要依赖它 |
+| 项 | v0.23.0 | v0.26.0rc | main | 意味着什么 |
+|---|---|---|---|---|
+| 默认值 | `False` | 参数不存在，键被静默忽略 | 参数不存在，键被 `extra="forbid"` 拒掉 | v0.26 上写进 `additional_config` 起得来但毫无作用，main 上启动即失败 [!] |
+| 类型与入口 | bool，`additional_config` | — | — | 只能在启动时定，不能按请求开关 |
+| `VLLM_BATCH_INVARIANT=1` 时 | 静默置回 `False` [C1] | — | — | 两者互斥，且没有任何告警；以为开了其实没开 |
+| 预生成的 `q` | `(logits_indices.shape[0], vocab_size)`，fp32 [C5] | — | — | 显存开销随 batch × 词表走，和模型多大无关 |
+| Qwen3-0.6B、batch 32 时 `q` | 18.55 MiB / 步 [D] | — | — | 小模型大词表时这块比 hidden state 还大 |
+| [那条请求](../concepts/one-request.md)上 | batch 1，`q` 593.5 KiB / 步；greedy 时压根不取用 [D] | — | — | 单请求要藏的只有一次 593.5 KiB 的填充，profile 上看不出区别 |
+| 取用前的同步方式 | `Event.synchronize()` | — | — | 阻塞的是 host 线程，比同步路径的 `wait_stream`（device 侧）代价更重 |
+| 同步路径的 `record_stream` | 没有 | 已补上 | 已补上 | 跨流分配的 `q` 到 v0.26 才登记给消费流，v0.23 上是个潜在的提前复用风险 |
+| 采样公式 | `probs.div_(q).argmax(dim=-1)` | 同式 | 同式 | 三个版本数学上同分布，开关本身不改采样语义 |
+| 官方状态 | Ready to Deprecate | 已删除 | 已删除 | 新部署不要依赖它 |
 
 ## 为什么存在
 
@@ -113,11 +115,11 @@ llm = LLM(
 
 **4. 收尾是 host 侧阻塞。** 取用前那句 `self.async_event.synchronize()` 挡住的是调用它的 CPU 线程，而同步路径用的 `torch.npu.current_stream().wait_stream(global_stream())` 只在设备侧排序、不挡 host。在 async scheduling 场景下 host 线程本该提前去准备下一步，这里被拽回来等一下。注释只写了「Add synchronize to prevent synchronize error」，没说明为何不用 `wait_event`。
 
-**5. 跨 stream 分配的张量没有 `record_stream`。** `q` 在 `global_stream()` 上分配、在默认流上被 `div_` 消费，v0.23.0 的 `do_async_exponential` 没有对它调 `record_stream`；而 main 在同步路径的 `random_sample` 里**补上**了 `q.record_stream(torch.npu.current_stream())` [C10]。缓存分配器只按分配流的完成情况回收显存，跨流消费不登记就可能提前复用——源码里没有针对异步路径的直接断言，这是按 main 那条补丁的意图反推出来的 [D]。
+**5. 跨 stream 分配的张量没有 `record_stream`。** `q` 在 `global_stream()` 上分配、在默认流上被 `div_` 消费，v0.23.0 的 `do_async_exponential` 没有对它调 `record_stream`；而 **v0.26 分支起**同步路径的 `random_sample` 里**补上**了 `q.record_stream(torch.npu.current_stream())` [C19]，main 上也是同一句 [C10]。缓存分配器只按分配流的完成情况回收显存，跨流消费不登记就可能提前复用——源码里没有针对异步路径的直接断言，这是按那条补丁的意图反推出来的 [D]。
 
-**6. main 上已经没有它了，而且留着会让服务起不来。** v0.23.0 的 release notes 发版时就把 “Asynchronous exponential overlap” 写进了 Ready to Deprecate [S8]（[线上页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)），到 `b255ab59` 兑现得很彻底：`AscendSampler.__init__` 不再建 `async_exponential_event` [C11]，`set_q_event` / `do_async_exponential` 连同 `AscendTopKTopPSampler` 里的取用分支、`model_runner_v1` 的调用点一并删除，`additional_config` 文档表里也没有这一行 [!]。main 留下的是同步的 `random_sample`，并给它补了 `record_stream` [C10]。
+**6. v0.25.1rc 起已经没有它了，留在 main 上会让服务起不来。** v0.23.0 的 release notes 发版时就把 “Asynchronous exponential overlap” 写进了 Ready to Deprecate [S8]（[线上页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)），到 `b255ab59` 兑现得很彻底：`AscendSampler.__init__` 不再建 `async_exponential_event` [C11]，`set_q_event` / `do_async_exponential` 连同 `AscendTopKTopPSampler` 里的取用分支、`model_runner_v1` 的调用点一并删除，`additional_config` 文档表里也没有这一行。v0.26 分支上同样一处引用都不剩，留下的都是同步的 `random_sample`。
 
-**升级时必须把这个键从启动命令里删掉，没有替代参数要迁移。** 它不在 `_NON_USER_INPUT_KEYS` 的豁免名单里，会原样进到 `AscendConfig(**kwargs)`，被 `extra="forbid"` 当成错别字报出来 [C16]——唯一的例外是装了 `vllm_omni`，那种情况下它只打一条 warning 然后被丢掉。同批列进那张待废弃清单的还有 layer sharding、FlashComm2、**FlashComm3 的 multistream-overlap gate**（是 FlashComm3，不是 FlashComm2）、Hamming sparse、matmul all-reduce 系列融合、weight prefetch 与 dynamic-batch SLO。这张清单不是说说而已：v0.26.0rc1 的 release notes 里，除本项之外的大半已经逐条兑现了删除 [S17]。
+**升级时必须把这个键从启动命令里删掉，没有替代参数要迁移。** 到 main 它不在 `_NON_USER_INPUT_KEYS` 的豁免名单里，会原样进到 `AscendConfig(**kwargs)`，被 `extra="forbid"` 当成错别字报出来 [C16]——唯一的例外是装了 `vllm_omni`，那种情况下它只打一条 warning 然后被丢掉。到 v0.26 则没有这层校验，键被跳过、什么提示都没有，所以**唯一能察觉的信号是采样不再与 forward 重叠**，得靠 profiling 看 [!]。同批列进那张待废弃清单的还有 layer sharding、FlashComm2、**FlashComm3 的 multistream-overlap gate**（是 FlashComm3，不是 FlashComm2）、Hamming sparse、matmul all-reduce 系列融合、weight prefetch 与 dynamic-batch SLO。这张清单不是说说而已：v0.26.0rc1 的 release notes 里，除本项之外的大半已经逐条兑现了删除 [S17]。
 
 ## 版本谱系
 

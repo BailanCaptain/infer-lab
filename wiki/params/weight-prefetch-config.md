@@ -4,7 +4,7 @@ title: weight_prefetch_config
 type: param
 summary: >-
   v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating
-  / SwiGLU 这些 vector 计算背后；main 上整套机制已删除，传这个键会直接报错。
+  / SwiGLU 这些 vector 计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main 上直接报错。
 aliases:
   - 权重预取配置
   - weight prefetch
@@ -50,14 +50,16 @@ sources:
   - >-
     vllm-ascend@b255ab59:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22
   - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
+  - 'vllm-ascend@2ed6cbba:docs/source/tutorials/models/Qwen3-Dense.md#L554-L554'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
   - to: ascend-config-system
     kind: builds-on
     note: 它只是 additional_config 里的一个子配置对象；main 上被 extra="forbid" 当未知键拒收的机制在那一页
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md
@@ -69,24 +71,24 @@ rawSources:
 
 `weight_prefetch_config` 是 v0.23.0 的 `--additional-config` 子配置：开了之后 vllm-ascend 在一条独立的 NPU stream 上，把下一个 linear 层的权重提前从 HBM 搬进 **L2 cache**，让这段搬运藏在当前正在跑的 vector 算子（quantize、MoE gating top_k、RMSNorm、SwiGLU）背后，压低 linear 计算时的 MTE 占用 [S1]。默认 `{}`，等于关闭；该碰它的是高吞吐场景，低延迟优先的场景上游直接说别开。
 
-**两版行为完全分叉** [!]：v0.23.0 维护分支上它还能用；main 开发主线（`b255ab59`）把整套 `vllm_ascend/ops/weight_prefetch.py` 和配置字段一起删了，而顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型 [C23]，绝大多数环境下传这个键不是被忽略，是启动直接失败。它只有一个子键值得单独看：[prefetch_ratio](prefetch-ratio.md)。
+**存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起整套 `vllm_ascend/ops/weight_prefetch.py` 和配置字段已被删除，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都没有这个键——引入与移除的 PR 见下面「版本谱系」。**两边删得不一样** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C31]，照旧配置它服务起得来、只是什么都不会发生；main 的顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型 [C23]，同一条命令会在配置解析阶段直接失败。它只有一个子键值得单独看：[prefetch_ratio](prefetch-ratio.md)。
 
 [那条请求](../concepts/one-request.md)在 v0.23 上至少不会被门槛挡住：Qwen3-0.6B 是稠密模型，37 token 的 prefill 和之后的每一步 decode 都满足 `num_tokens < 500`，走的是 MLP 那条路。具体搬多少字节、哪几块搬不动，下面「开了的代价」里按这条请求算了一遍。
 
 ## 事实表
 
-| 项 | v0.23.0 | main | 意味着什么 |
-|---|---|---|---|
-| 字段本身 | `dict`，默认 `{}` | 已删除 | main 上传它会被 `extra="forbid"` 拒绝，不是静默忽略——升级时必须从启动命令里删掉 |
-| `enabled` | `bool`，默认 `False` [C7] | — | 只写 `"weight_prefetch_config": {}` 等于没开；必须显式 `{"enabled": true}` |
-| `prefetch_ratio` | 唯一子键，五个权重各一个比例，见 [prefetch_ratio](prefetch-ratio.md) | — | 默认那组值是按 Qwen3-235B-A22B-W8A8 / `--max-num-seqs 144` 调的，换模型换并发就不再是最优 |
-| 预取目的地 | L2 cache | — | 不额外占 HBM——`torch_npu.npu_prefetch` 只搬数据不分配张量 [D] |
-| 单次预取上限 | 18 MiB（`MAX_PREFETCH_WEIGHT_SIZE`）[C8] | — | 单层权重再大也只预取 18 MiB，ratio 调到 1.0 以上也没意义；代码里这个 clamp 只写在 MLP 两条路径上，attn/moe 靠后端截断 |
-| MoE `gate_up` 触发门槛 | 本次 forward `num_tokens >= 96` [C12] | — | 小 batch decode 下 MoE 预取整条路径被跳过，profiling 里看不到 CMO 就是这个原因 |
-| MLP 触发门槛 | 本次 forward `num_tokens < 500` | — | 方向与 MoE 相反：dense 模型的长 prefill 反而不预取 |
-| `attn` 的 qkv/o 路径 | 仅 `AscendW8A8LinearMethod.apply` 且 `x.dtype != torch.int8` [C19] | — | 非 W8A8 的模型即使 `enabled: true`，`attn` 那两个 ratio 也完全不起作用 |
-| `mlp` / `moe` 互斥 | `mlp` 只在非 MoE 模型开，`moe` 只在 MoE 模型开 | — | 一次运行里最多有一个生效，两组 ratio 不会同时被读 |
-| 越界 ratio | 落在 `[0, 1]` 外的值被静默丢弃 | — | 写 `1.5` 不报错也不 clamp，而是这一项消失；某模块 ratio 全丢光时该模块自动关闭 |
+| 项 | v0.23.0 | v0.26.0rc | main | 意味着什么 |
+|---|---|---|---|---|
+| 字段本身 | `dict`，默认 `{}` | 已删除，未知键被静默忽略 | 已删除，未知键被 `extra="forbid"` 拒绝 | 升级时两边都要从启动命令里删掉：v0.26 上留着是白传，main 上留着是起不来 |
+| `enabled` | `bool`，默认 `False` [C7] | — | — | 只写 `"weight_prefetch_config": {}` 等于没开；必须显式 `{"enabled": true}` |
+| `prefetch_ratio` | 唯一子键，五个权重各一个比例，见 [prefetch_ratio](prefetch-ratio.md) | — | — | 默认那组值是按 Qwen3-235B-A22B-W8A8 / `--max-num-seqs 144` 调的，换模型换并发就不再是最优 |
+| 预取目的地 | L2 cache | — | — | 不额外占 HBM——`torch_npu.npu_prefetch` 只搬数据不分配张量 [D] |
+| 单次预取上限 | 18 MiB（`MAX_PREFETCH_WEIGHT_SIZE`）[C8] | — | — | 单层权重再大也只预取 18 MiB，ratio 调到 1.0 以上也没意义；代码里这个 clamp 只写在 MLP 两条路径上，attn/moe 靠后端截断 |
+| MoE `gate_up` 触发门槛 | 本次 forward `num_tokens >= 96` [C12] | — | — | 小 batch decode 下 MoE 预取整条路径被跳过，profiling 里看不到 CMO 就是这个原因 |
+| MLP 触发门槛 | 本次 forward `num_tokens < 500` | — | — | 方向与 MoE 相反：dense 模型的长 prefill 反而不预取 |
+| `attn` 的 qkv/o 路径 | 仅 `AscendW8A8LinearMethod.apply` 且 `x.dtype != torch.int8` [C19] | — | — | 非 W8A8 的模型即使 `enabled: true`，`attn` 那两个 ratio 也完全不起作用 |
+| `mlp` / `moe` 互斥 | `mlp` 只在非 MoE 模型开，`moe` 只在 MoE 模型开 | — | — | 一次运行里最多有一个生效，两组 ratio 不会同时被读 |
+| 越界 ratio | 落在 `[0, 1]` 外的值被静默丢弃 | — | — | 写 `1.5` 不报错也不 clamp，而是这一项消失；某模块 ratio 全丢光时该模块自动关闭 |
 
 ## 为什么存在
 
@@ -121,9 +123,9 @@ Linear 层在昇腾上的瓶颈常常不在 Cube 而在 MTE——权重从 HBM �
 2. `prefetch_ratio` 是**整体替换**而非逐键合并；好在 `WeightPrefetchMethod` 会对缺失的模块用 `.get(..., {}) or {...}` 逐模块回填默认值 [C10]，所以只写 `{"mlp": {...}}` 实际仍然安全——但这层保护在配置对象里看不出来，别依赖它去推别的子配置。
 3. MLP `down` 的预取依赖 sequence parallel，要用就得同时开。
 
-**升级到 main 时必须动手删。** 因为 `extra="forbid"`，把 v0.23.0 的启动命令原样搬到 `b255ab59` 会在配置解析阶段就失败，而不是打一条 warning 继续跑。唯一的例外是装了 `vllm_omni` 的环境：那里未知键改成打 warning 再丢掉，于是它变成真正的静默无效——起得来但什么都没开 [C28]。
+**升级之后必须动手删，两个方向的坑不一样。** 升到 v0.26 分支时，`AscendConfig` 仍是逐个键 `.get()` 的普通类，这个键既没人读也没人拦，服务照常起来、预取一次都不发生——最难查的正是这种「配了等于没配」。升到 main 则因为 `extra="forbid"`，把 v0.23.0 的启动命令原样搬到 `b255ab59` 会在配置解析阶段就失败，而不是打一条 warning 继续跑。唯一的例外是装了 `vllm_omni` 的环境：那里未知键改成打 warning 再丢掉，于是它变成真正的静默无效——起得来但什么都没开 [C28]。
 
-**要删的不止你自己的脚本。** main 仓库里还留着两处过期示例：suffix speculative decoding 教程 [S25] 和 Qwen3 稠密模型教程 [S30]，都还写着 `weight_prefetch_config`。照抄会起不来。想在 main 上要同类收益，只能走别的路子（图模式、算子融合等），这个参数本身没有对应物。
+**要删的不止你自己的脚本。** 上游仓库里还留着过期示例：suffix speculative decoding 教程 [S25] 和 Qwen3 稠密模型教程 [S30] 都还写着 `weight_prefetch_config`，v0.26 分支上同一条命令也仍在 [S32]。照抄它们在 main 上会起不来，在 v0.26 上则是白配。想要同类收益只能走别的路子（图模式、算子融合等），这个参数本身没有对应物。
 
 ## 版本谱系
 

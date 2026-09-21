@@ -3,8 +3,8 @@ id: layer-sharding
 title: layer_sharding
 type: param
 summary: >-
-  点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，main
-  上已整体删除。
+  点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc
+  起已整体删除，v0.26 上照旧配置会被静默忽略、main 上直接报错。
 aliases:
   - Layer Sharding Linear
   - 层间权重分片
@@ -47,7 +47,11 @@ sources:
     vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L76
   - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
   - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
-verified: ["main", "releases/v0.23.0"]
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423'
+  - >-
+    vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
+verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
   - to: enable-matmul-allreduce
@@ -56,7 +60,7 @@ relations:
       同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
       的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
 contradicts: []
-updated: '2026-09-20'
+updated: '2026-09-21'
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -70,24 +74,26 @@ rawSources:
 
 该碰它的只有一种人：跑 DeepSeek-V3 这类深层模型、做了 PD 分离、而且 P 节点显存已经放不下的运维。别的场景要么根本起不来——`kv_role` 不是 `kv_producer` 就抛 `ValueError` [C2]——要么是净亏。
 
-**[那条请求](../concepts/one-request.md)用不到它。** Qwen3-0.6B 单卡、没有 `kv_transfer_config`，把这个键配上连启动都过不去。而且这一页讲的整套机制只活在 v0.23 维护分支上：它在那里就已被官方列入待废弃清单 [S18]，main 开发主线（`b255ab59`）上参数、实现文件、feature guide 全部删干净，发布说明里明写着「Removed layer sharding. #11953」[S29]。
+**存在范围。** 这一页讲的整套机制只活在 v0.23 维护分支上：它在那里就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 则因 `extra="forbid"` 在配置解析阶段就拒收。
+
+**[那条请求](../concepts/one-request.md)用不到它。** Qwen3-0.6B 单卡、没有 `kv_transfer_config`，在 v0.23 上把这个键配上连启动都过不去。
 
 官方文档对应页：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)（latest 版下前两者已不存在）。
 
 ## 事实表
 
-| 项 | v0.23 维护分支（`2c59ff10`） | main 开发主线（`b255ab59`） | 意味着什么 |
-|---|---|---|---|
-| 是否存在 | 有 | **已删除**：`vllm_ascend/` 下 `layer_sharding` 零命中，`ops/layer_shard_linear.py` 与 feature guide 均不存在 | 照 v0.23.0 的教程往新版上搬，通常是**启动直接报错**而不是被忽略；装了 vLLM-Omni 才降级成一条 warning [C25][C28] |
-| 实际类型 / 默认值 | `list[str]`，默认 `None` | — | 官方表写的 `dict` / `{}` 两项都是错的 [!]；写成 `{"o_proj": ...}` 不会报错，但 `"o_proj" in {...}` 的语义变成查键，行为不是你想要的 |
-| 取值 | 层名，取 `prefix` 最后一段，如 `["o_proj", "q_b_proj"]` | — | 名字拼错只有一条 `warning_once`，不报错、静默不切，得去日志里找 |
-| 子键 | **没有**，它是扁平列表 | — | 不存在「dict 里有哪些键」这回事；`prefetch_step` 在两个注册点都写死 1，用户无法调 |
-| 权重归属 | 第 `i` 层落在组内 rank `i % K` | — | K 是 `shard_weight` 组大小，不是 TP size；TP 切层内、它切层间，两者正交 |
-| 常驻缓冲 | `prefetch_step + 1 = 2` 份整权重 / 每个 series | — | 省下的不是 1/K 而是 `总量/K + 2×单层`，层数少时这 2 份能吃掉大半收益 |
-| 启用前提 | `kv_role` 必须是 `kv_producer`，否则启动抛 `ValueError` | — | 混部（无 `kv_transfer_config`）、`kv_both`、D 节点一律起不来 |
-| 配 FlashComm2 时取值 | 只能严格等于 `["o_proj"]`，否则 `ValueError` | FlashComm2 本身也已从 `vllm_ascend/` 删除 | 想同时切 `q_b_proj` 就不能开 FlashComm2，只能走 DSA-CP 那条路 |
-| 配 RFork 时 | 静默降级：RFork 被绕过，退回默认 loader | — | 只有一条 warning，模型加载变慢而不报错，容易被当成「RFork 没生效」排查半天 |
-| 官方状态 | 已列入 Ready to Deprecate，与 FlashComm2 同批 | 已执行 | 新部署不要引入；已有部署要准备迁移 |
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
+|---|---|---|---|---|
+| 是否存在 | 有 | **已删除**，未知键静默忽略 | **已删除**，未知键被 `extra="forbid"` 拒收 | 照 v0.23.0 的教程往新版上搬：v0.26 上起得来但什么都没切，main 上启动直接报错（装了 vLLM-Omni 才降级成 warning）[C28] |
+| 实际类型 / 默认值 | `list[str]`，默认 `None` | — | — | 官方表写的 `dict` / `{}` 两项都是错的 [!]；写成 `{"o_proj": ...}` 不会报错，但 `"o_proj" in {...}` 的语义变成查键，行为不是你想要的 |
+| 取值 | 层名，取 `prefix` 最后一段，如 `["o_proj", "q_b_proj"]` | — | — | 名字拼错只有一条 `warning_once`，不报错、静默不切，得去日志里找 |
+| 子键 | **没有**，它是扁平列表 | — | — | 不存在「dict 里有哪些键」这回事；`prefetch_step` 在两个注册点都写死 1，用户无法调 |
+| 权重归属 | 第 `i` 层落在组内 rank `i % K` | — | — | K 是 `shard_weight` 组大小，不是 TP size；TP 切层内、它切层间，两者正交 |
+| 常驻缓冲 | `prefetch_step + 1 = 2` 份整权重 / 每个 series | — | — | 省下的不是 1/K 而是 `总量/K + 2×单层`，层数少时这 2 份能吃掉大半收益 |
+| 启用前提 | `kv_role` 必须是 `kv_producer`，否则启动抛 `ValueError` | — | — | 混部（无 `kv_transfer_config`）、`kv_both`、D 节点一律起不来 |
+| 配 FlashComm2 时取值 | 只能严格等于 `["o_proj"]`，否则 `ValueError` | FlashComm2 本身也已从 `vllm_ascend/` 删除 | 同左 | 想同时切 `q_b_proj` 就不能开 FlashComm2，只能走 DSA-CP 那条路 |
+| 配 RFork 时 | 静默降级：RFork 被绕过，退回默认 loader | — | — | 只有一条 warning，模型加载变慢而不报错，容易被当成「RFork 没生效」排查半天 |
+| 官方状态 | 已列入 Ready to Deprecate，与 FlashComm2 同批 | 已执行 | 已执行 | 新部署不要引入；已有部署要准备迁移 |
 
 ## 为什么存在
 
@@ -113,17 +119,17 @@ file: layer-sharding
 
 **文档自相矛盾的一处，配之前务必确认。** feature guide 的 DSA-CP 示例是 `VLLM_ASCEND_ENABLE_FLASHCOMM1=1` 配 `["q_b_proj", "o_proj"]` [S16]，DeepSeek-V3.2 教程也给了同样的可复制启动行；但 GLM5 / GLM5.2 / InternVL3.5 三篇教程都写着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S19]。源码层面 DSA-CP + `o_proj` 的路径是存在且被专门分派的，所以这条限制更像是模型相关而非全局，但上游没有任何一处把话说圆 [!]。按模型选对应教程的说法，不要跨模型套用。
 
-**升到 main，旧启动命令通常起不来。** `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，未知 key 当拼写错误 fail fast [C25]；`_NON_USER_INPUT_KEYS` 的豁免名单里只放了同批下线的 `enable_flashcomm1`，没有放 `layer_sharding` [C26]。报错比静默忽略好，至少不会让人以为显存省下来了。
+**升到 main，旧启动命令通常起不来。** `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，未知 key 当拼写错误 fail fast [C25]；`_NON_USER_INPUT_KEYS` 的豁免名单里只放了同批下线的 `enable_flashcomm1`，没有放 `layer_sharding` [C26]。报错比静默忽略好，至少不会让人以为显存省下来了——**v0.26 分支上恰恰没有这道关**，同一份配置会安静地跑起来，那才是更难发现的那一种。
 
 **但有一个例外：装了 vLLM-Omni 就不报错。** 构造 `AscendConfig` 前先算出 `unknown_keys`，非空且 `importlib.util.find_spec("vllm_omni")` 找得到时，只打一条「这些键对 vLLM-Ascend 无效」的 warning 再把它们剔掉 [C28]。同一份旧配置，在纯 vllm-ascend 环境里启动失败，在装了 Omni 的环境里只留一行 warning 就跑起来——后者更坑，因为你会以为 `layer_sharding` 还在生效。
 
-**那件事 main 上由谁做。** 判定函数从 `enable_dsa_cp_with_layer_shard` 改名成 `enable_dsa_cp_full_o_proj`，判定条件一字未改（没配 KV 池化、或本实例是 kv_producer 含 `kv_both`），注释把新做法写明了：`o_proj` 权重常驻分片态，DSA-CP prefill 需要全量时由运行时**异步 gather 出一份临时全量权重**，用完即弃 [C21]。
+**那件事后来由谁做。** 判定函数三个版本三个名字、判定条件一字未改（没配 KV 池化、或本实例是 kv_producer 含 `kv_both`）：v0.23 叫 `enable_dsa_cp_with_layer_shard`，v0.26 叫 `enable_dsa_cp_with_o_proj_tp` [C30]，main 叫 `enable_dsa_cp_full_o_proj`。改的是承接方——`o_proj` 权重改为常驻 TP 分片态，DSA-CP prefill 需要全量时由运行时**异步 gather 出一份临时全量权重**，用完即弃 [C21]。要在新版上找这套机制，按新名字搜。
 
-承接这件事的代码也搬了家。`vllm_ascend/quantization/tp_weight_switch.py` 在 `78cd10de`（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814)）里被拆成 `vllm_ascend/weight_switch/linear.py` 和 `o_proj.py`：`TPWeightSwitchMixin` 改名 `WeightSwitchMixin`，统一开关位 `supports_tp_weight_switch` 改名 `supports_weight_switch`，适用范围从 TP 一个并行域扩到了多个 [C22]。要在 main 上找这套机制，别再照 `tp_weight_switch` 这个名字搜。
+承接这件事的代码在 main 上也搬了家。`vllm_ascend/quantization/tp_weight_switch.py` 在 `78cd10de`（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814)）里被拆成 `vllm_ascend/weight_switch/linear.py` 和 `o_proj.py`：`TPWeightSwitchMixin` 改名 `WeightSwitchMixin`，统一开关位 `supports_tp_weight_switch` 改名 `supports_weight_switch`，适用范围从 TP 一个并行域扩到了多个 [C22]。要在 main 上找这套机制，别再照 `tp_weight_switch` 这个名字搜。
 
-**真要用户点名的那个开关，main 上叫 `enable_pcp_o_proj_weight_sharding`。** `bool`、默认 `False`，让 SFA-PCP 在加载期把 `o_proj` 权重按 PCP 组切开、运行时在本地视图与 gather 视图之间切换；官方表明确写着它不影响 DSA-CP [S27]。和 `layer_sharding` 的差别在于用户说了算的范围小了一圈：切哪个权重、按哪个并行域切都定死了，你只能决定开不开。
+**真要用户点名的那个开关，只有 main 上才有，叫 `enable_pcp_o_proj_weight_sharding`。** `bool`、默认 `False`，让 SFA-PCP 在加载期把 `o_proj` 权重按 PCP 组切开、运行时在本地视图与 gather 视图之间切换；官方表明确写着它不影响 DSA-CP [S27]。和 `layer_sharding` 的差别在于用户说了算的范围小了一圈：切哪个权重、按哪个并行域切都定死了，你只能决定开不开。**v0.26 分支上连这个开关也没有**——从 v0.24.0rc 到 v0.26，关于 `o_proj` 权重怎么放，用户没有任何旋钮可拧。
 
-**main 上的过时文字还在，别当真。** GLM5.2、GLM5 两篇教程以及两份部署模板里都还留着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S23]。`vllm_ascend/` 里既没有 `layer_sharding` 也没有 FlashComm2，这句话现在两头都落空。
+**新版上的过时文字还在，别当真。** GLM5.2、GLM5 两篇教程以及两份部署模板里都还留着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S23]，v0.26 分支上这三篇教程同样原样留着，feature guide 的目录页甚至还挂着一条指向已删除文件的 `layer_sharding` 条目 [S31]。`vllm_ascend/` 里既没有 `layer_sharding` 也没有 FlashComm2，这句话现在两头都落空。
 
 ## 版本谱系
 

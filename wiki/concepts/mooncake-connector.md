@@ -16,8 +16,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1580-L1592
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L29-L55
   - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L89-L93
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L49-L59
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L247-L260
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L49-L59
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L247-L260
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L20
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L47-L54
@@ -33,7 +33,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1163-L1169
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L603-L607
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1551-L1558
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1632-L1639
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_hybrid_connector.py#L1716-L1723
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2057-L2062
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L213-L237
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1762-L1782
@@ -43,8 +43,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/utils/utils.py#L55-L61
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L221-L242
   - vllm@0fc695fc:vllm/envs.py#L222-L222
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L101-L101
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L186-L197
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L101-L101
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L189-L200
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.html
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2464-L2472
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
@@ -60,7 +60,7 @@ relations:
     kind: alternative-to
     note: 同样是按层搬 KV，那边搬进大家共用的 KV 池、按块哈希复用，这边点对点推给指定的那一个 D
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

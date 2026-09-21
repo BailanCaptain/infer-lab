@@ -26,10 +26,10 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1357
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1406
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L718
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1255-L1260
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1259
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L209-L218
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/ModelRunner_prepare_inputs.html
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L188
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L188
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L10-L11
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html
@@ -50,7 +50,7 @@ relations:
     kind: alternative-to
     note: 官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

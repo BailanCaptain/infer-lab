@@ -34,13 +34,13 @@ sources:
   - vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_attention_fa3.py#L112-L119
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L820-L821
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L1184-L1187
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L237-L246
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1358-L1383
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L773-L782
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L262-L292
-  - vllm-ascend@b255ab59:vllm_ascend/attention/fa3_v1.py#L15-L18
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/flash_attention.md#L58-L76
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/flash_attention.md#L139-L147
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L239-L248
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1357-L1382
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L775-L784
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292
+  - vllm-ascend@baa023ad:vllm_ascend/attention/fa3_v1.py#L15-L18
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/flash_attention.md#L58-L76
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/flash_attention.md#L139-L147
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/flash_attention.html
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -61,7 +61,7 @@ relations:
     kind: conflicts-with
     note: 这个算子的 tiling 在 host 侧做，和 FULL_DECODE_ONLY 图模式不能同时开，官方要求退到 PIECEWISE
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

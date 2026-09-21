@@ -6,24 +6,24 @@ summary: PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住�
 aliases: [Sparse KV Offload, 稀疏 KV 卸载, Sparse Decode Offload, Sparse KV Cache Offload, sparse_kv_offload_config]
 chapters: ["11"]
 sources:
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L211-L251
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L154-L192
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1457-L1476
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1488-L1523
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L858-L864
-  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_v1.py#L266-L302
-  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L192-L229
-  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L346-L394
-  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1134
-  - vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L7-L20
-  - vllm-ascend@b255ab59:vllm_ascend/device/device_op.py#L1367-L1380
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L107-L140
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L235-L295
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L316-L346
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L752-L768
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1307-L1333
-  - vllm-ascend@b255ab59:csrc/torch_binding.cpp#L2304-L2398
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5602-L5610
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L211-L251
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L154-L192
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1467-L1486
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1498-L1533
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L862-L868
+  - vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L280-L316
+  - vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L192-L229
+  - vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L346-L394
+  - vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1134
+  - vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L7-L20
+  - vllm-ascend@baa023ad:vllm_ascend/device/device_op.py#L1367-L1380
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L107-L140
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L235-L295
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L316-L346
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L752-L768
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1307-L1333
+  - vllm-ascend@baa023ad:csrc/torch_binding.cpp#L2304-L2398
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5882-L5890
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/index.md#L5-L37
   - vllm-ascend@2c59ff10:vllm_ascend/attention/sfa_v1.py#L1553-L1566
   - https://huggingface.co/deepseek-ai/DeepSeek-V3.2-Exp
@@ -69,7 +69,7 @@ relations:
     kind: conflicts-with
     note: enable_sparse_sfa_c8 与本特性互斥，主 KV 必须 BF16；只有 indexer 的 LI C8 还能开
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -136,7 +136,7 @@ MTP / 投机场景还多一道作废：`stable_prefix_len` 之后的 token 会�
 
 ## v0.26 分支与 main 的差异
 
-v0.23 上整个特性不存在，所以只摆这两列。main 指 2026-09-19 的源码快照 `b255ab59`。
+v0.23 上整个特性不存在，所以只摆这两列。main 指 2026-09-21 的源码快照 `baa023ad`。
 
 | 项 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|

@@ -33,8 +33,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L677-L680
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L716-L725
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L964-L971
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1472-L1489
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L966-L973
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1471-L1488
   - vllm@568afb3a:vllm/config/scheduler.py#L180-L198
   - vllm@568afb3a:vllm/config/vllm.py#L1028-L1058
   - vllm@568afb3a:vllm/v1/core/sched/async_scheduler.py#L19-L49
@@ -43,7 +43,7 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/feature_matrix.md#L12-L38
   - vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V4-Flash.md#L330-L330
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L100-L100
-  - vllm-ascend@b255ab59:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L129-L138
+  - vllm-ascend@baa023ad:docs/source/tutorials/features/dynamic_chunked_pipeline_parallel.md#L129-L138
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/support_matrix/supported_features.html
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/support_matrix/feature_matrix.html
   - https://docs.vllm.ai/projects/ascend/en/latest/tutorials/features/dynamic_chunked_pipeline_parallel.html
@@ -63,7 +63,7 @@ relations:
     kind: conflicts-with
     note: 只有 EAGLE / MTP / 草稿模型 / NGram GPU 这几种方法能和它同开，别的方法显式开异步直接 ValueError，而且同开会顺手关掉 cascade attention
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

@@ -36,9 +36,9 @@ sources:
   - vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1224-L1234
   - vllm@568afb3a:vllm/v1/request.py#L353-L359
   - vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_job_aware_scheduler_e2e.py#L47-L82
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1290-L1303
-  - vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L48
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1272-L1281
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1300-L1313
+  - vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L43-L48
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1271-L1280
 verified: ["releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -55,7 +55,7 @@ relations:
     kind: builds-on
     note: 「预留 2 块 = 28 MiB」用的是那一页算出的每块 14 MiB
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -67,7 +67,7 @@ origin: seed
 file: batch-job-aware-scheduler
 ```
 
-**它是新特性：v0.23 维护分支上没有。** `vllm-ascend@2c59ff10` 全仓 grep `batch_job` 零命中，`vllm_ascend/core/` 里没有这个文件，`feature_guide/` 里也没有这篇文档 [D]。v0.26 分支（`2ed6cbba`）起才有；main 开发主线（`b255ab59`）上 `batch_job_aware_scheduler.py` 与那篇文档**逐字节相同**（`git diff` 两个文件均无输出），差异只在它周围的配置系统，见下面的差异表。
+**它是新特性：v0.23 维护分支上没有。** `vllm-ascend@2c59ff10` 全仓 grep `batch_job` 零命中，`vllm_ascend/core/` 里没有这个文件，`feature_guide/` 里也没有这篇文档 [D]。v0.26 分支起才有；main 开发主线上 `batch_job_aware_scheduler.py` 与那篇文档跟 v0.26 **逐字节相同**（两个提交之间 `git diff` 这两个文件均无输出），差异只在它周围的配置系统，见下面的差异表。
 
 ## 那条请求用不到它
 

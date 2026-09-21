@@ -1,6 +1,6 @@
 layout: scene
 id: recompute-cpu-offload
-caption: 一次抢占的两条时间线：D2H 必须赶在 HBM 块被别人拿走之前（main 快照 b255ab59）
+caption: 一次抢占的两条时间线：D2H 必须赶在 HBM 块被别人拿走之前（main 快照 baa023ad）
 size: [900, 700]
 
 boundaries:
@@ -122,11 +122,11 @@ notes:
     width: 380
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L316-L373
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L316-L373
     symbols: [allocate_slots]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L284-L334
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L284-L334
     symbols: [update_state_before_preempt, get_num_new_matched_tokens, update_state_after_alloc, cpu_block_pool, world_size]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
     symbols: [handle_preemptions, start_load_kv, wait_for_layer_load, completed_store_events, load_stream, pin_memory]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2197-L2202
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2233-L2238
     symbols: [_update_states]

@@ -40,10 +40,10 @@ sources:
   - vllm@568afb3a:vllm/model_executor/layers/fused_moe/config.py#L1232-L1240
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L334-L342
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L488-L495
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_forward_context.py#L291-L309
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_forward_context.py#L360-L364
-  - vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L93-L99
-  - vllm-ascend@b255ab59:docs/source/user_guide/support_matrix/supported_features.md#L25-L25
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L297-L315
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L366-L370
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L176-L182
+  - vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_features.md#L25-L25
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -63,7 +63,7 @@ relations:
     kind: builds-on
     note: ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

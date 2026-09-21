@@ -15,44 +15,47 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: context-parallel
     kind: builds-on
     note: 它只在 prefill_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类接手，PCP 怎么切序列在那一页
   - to: layer-sharding
     kind: alternative-to
-    note: 两者都是为了不让每层都常驻一份全量 o_proj；layer_sharding 按层轮流放、v0.24 起已删，这个按 PCP 组切且只针对 o_proj
+    note: >-
+      两者都是为了不让每层都常驻一份全量 o_proj；layer_sharding 按层轮流放、v0.24 起已删，这个按 PCP 组切且只针对
+      o_proj
   - to: ascend-config-system
     kind: builds-on
     note: 读这个键的 utils 函数带 lru_cache(maxsize=1)，值在第一次读取后冻结，只有 clear_enable_sp() 能清
 contradicts: []
 sources:
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L468'
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L467
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L468
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1509-L1519'
   - >-
-    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L468
-  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L1445-L1455'
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L58-L91
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L58-L91
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L93-L110
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L93-L110
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L112-L158
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L112-L158
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1575-L1590
+  - 'vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L259-L296'
+  - 'vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L441-L456'
+  - 'vllm-ascend@baa023ad:vllm_ascend/weight_switch/o_proj.py#L28-L51'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L211-L215'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1571-L1586
-  - 'vllm-ascend@b255ab59:vllm_ascend/weight_switch/linear.py#L259-L296'
-  - 'vllm-ascend@b255ab59:vllm_ascend/weight_switch/linear.py#L441-L456'
-  - 'vllm-ascend@b255ab59:vllm_ascend/weight_switch/o_proj.py#L28-L51'
-  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L154-L158'
-  - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L76
-  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L1458-L1473'
-  - 'vllm-ascend@b255ab59:tests/ut/test_ascend_config.py#L1281-L1295'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454'
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L77
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1522-L1537'
+  - 'vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L1281-L1295'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38'
 rawSources:
+  - >-
+    raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -149,7 +152,7 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/ascend_config.py:468` [C2] |
-| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

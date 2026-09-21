@@ -52,7 +52,7 @@
 - [KV Cache Quantization：KV 存成 int8，两个分支的开关不在同一处](concepts/kv-cache-quantization.md) — 每层的 K、V 用离线标定的静态 per-channel scale 存成 int8，decode 时连 scale 一起交给算子就地反量化。两个发布分支只认 checkpoint 里的 kv_cache_type = C8，main 还要 --kv-cache-dtype 一起点头。 `11 17`
 - [Sparse KV Offload：主 KV 全在主机，每步只搬没命中的那几行](concepts/kv-cache-sparse-offload.md) — PD 分离的 D 节点不再分配 NPU 主 KV 缓存。全量主 KV 住在主机 pinned 内存，每个 decode 步由 indexer 选出 top-k，再由每层一张 LRU 表决定哪几行要搬回 NPU 热缓冲区。 `11`
 - [KV Cache Spec：每层自己报价，引擎才算得出能分几块](concepts/kv-cache-spec.md) — 每个注意力层向引擎报一份规格——块大小、KV 头数、头维、dtype。引擎只从里面取「一块多少字节」这一个数去做除法，块数算完再发回 Worker 分配。 `11`
-- [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md) — 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；调度器只拿得到一个整数，搬数据的那一侧直接读写 HBM 原始地址。 `11`
+- [KV Pool：命中的前缀不再只能来自本卡 HBM](concepts/kv-pool.md) — 挂在 vLLM KV Connector 接口上的外部 KV 存储。昇腾侧的实现叫 AscendStoreConnector，背后可换三种存储引擎；默认非 layerwise 路径经 worker 查询命中 token 数，搬数据时直接读写 HBM 原始地址。 `11`
 - [KVPP：KV 按层分给 TP 组里各张卡，算到哪层就把整层广播回来](concepts/kvpp.md) — MLA/SFA 的 KV 在 TP 组内本来是每卡一份复制品；KVPP 把层连续均分给组里各 rank，算到某层时由 owner 把整层广播给其他卡。省的是复制的份数，花的是每层一次全量广播。 `11 13`
 - [Large-Scale EP：一个 DP rank 一个 server，负载均衡搬到 vLLM 外面](concepts/large-scale-ep.md) — 几十上百张卡跑一个 MoE 模型时的部署形态——每个 DP rank 自己起一个完整的 API server 进程，rank 之间怎么分请求由 vLLM 外面的 proxy 决定，P 和 D 各用一套并行配置。 `14`
 - [LoRA 适配器：一份基座权重，按槽号给每一行加不同的小矩阵](concepts/lora.md) — 基座权重只装一份，一个适配器只是两个秩 r 的小矩阵；不同请求挂不同适配器，靠每 token 一个槽号拼在同一个 batch 里一次算完。 `17`
@@ -78,7 +78,7 @@
 - [Tensor Parallel：一层切两刀，通信就落在两刀之后](concepts/tensor-parallel.md) — 把一层里的四个大矩阵按列或按行切给多张卡；列切完各算各的，行切完每张卡只有一份部分和，必须 all-reduce 一次——一层两次，位置写死。 `13`
 
 ## 参数（param）
-- [c8_enable_reshape_optim](params/c8-enable-reshape-optim-8bd7e5f82c6c.md) — 让 LightningIndexer 的 C8 缓存写入改走 StoreKVBlock 算子，不再逐 token scatter。两个发布分支上是默认 false 的用户键、要配合 enable_sparse_li_c8；main 上被改成派生只读，并且只在 PD 分离的 P 节点才可能为真。 `17`
+- [c8_enable_reshape_optim](params/c8-enable-reshape-optim-8bd7e5f82c6c.md) — 让 LightningIndexer 的 C8 缓存写入改走 StoreKVBlock 算子，不再逐 token scatter。两个发布分支上是默认 false 的用户键、要配合 enable_sparse_li_c8；main 上默认 true，但还要 enable_sparse_li_c8 成立、且跑在 PD 分离的 P 节点上才算真开。 `17`
 - [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md) — MoE 的 MC2 combine 阶段（专家算完把结果收回来的那次 all-to-all）通信时用哪种量化：非 0 就强行覆盖模型自己推出来的模式，只认 0/2/3/4，默认 0 不干预。只在 main 开发主线上有，v0.23 与 v0.26 两个发布分支上配了会被静默忽略。 `14 17`
 - [enable_async_exponential](params/enable-async-exponential.md) — 把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，v0.25.1rc 起已整体删除，残留的这个键在 v0.26 上被静默忽略、在 main 上会让启动直接失败。 `19`
 - [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md) — 把 MoE 路由算出来的 topk_ids 整个丢掉，换成一张按 ep_size / ep_rank 算出来的轮转表，让每个专家、每张卡收到的 token 数完全相等——压测和算子调优用，开了输出就不对。默认 false，只在 main 开发主线上有。 `14`

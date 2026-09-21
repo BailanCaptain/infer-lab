@@ -23,8 +23,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1491-L1501
   - vllm-ascend@2c59ff10:vllm_ascend/ops/mm_encoder_attention.py#L89-L96
   - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3-Next.md#L249-L249
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L496-L497
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1304-L1311
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L537-L538
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L781-L788
   - https://arxiv.org/abs/2305.13245
   - https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json
   - https://www.hiascend.com/doc_center/source/zh/Pytorch/60RC2/apiref/apilist/ptaoplist_000787.html
@@ -46,7 +46,7 @@ relations:
     kind: alternative-to
     note: 同一个问题（KV 太占显存）的另一条路——GQA 减 K/V 的头数，MLA 换掉存进去的东西
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -120,7 +120,7 @@ QK 点乘：16 × S × 128 次乘加                    （和 n_kv 无关）
 
 ## 三个分支只在「8 个头摆在哪」上分叉
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`（2026-09-10），v0.26 分支指 `2ed6cbba`，完整提交号在来源里。v0.26 两行都站在 v0.23 这边：分组那两行一字不差 [C22]，块里的摆法也还是固定压平 [C23]，`_get_kv_cache_view` 在它的 `vllm_ascend` 里 grep 不到。
+下表的 main 指 2026-09-21 的源码快照 `baa023ad`，v0.23 维护分支指 `2c59ff10`（2026-09-10），v0.26 分支指 `2ed6cbba`，完整提交号在来源里。v0.26 两行都站在 v0.23 这边：分组那两行一字不差 [C22]，块里的摆法也还是固定压平 [C23]，`_get_kv_cache_view` 在它的 `vllm_ascend` 里 grep 不到。
 
 | 项 | v0.23 维护分支与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|

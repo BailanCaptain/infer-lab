@@ -139,17 +139,17 @@ notes:
     strong: true
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L499
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L499
     symbols: [_do_lb_allgather, all_gather, max_slots]
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L378-L391
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L378-L391
     symbols: [max_num_seqs, max_slots]
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L132-L138
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L132-L138
     symbols: [calc_bubble, threshold]
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L201-L238
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L201-L238
     symbols: [try_drop_for_throughput, STEP_LATENCY_PER_BLOCK]
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322
     symbols: [out_blk, in_blk, freeze]
-  - source: vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L382-L395
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L382-L395
     symbols: [_lb_pause_request, PREEMPTED]
-  - source: vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L291-L292
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L291-L292
     symbols: [_can_admit_waiting_request, _lb_admit_req_ids]

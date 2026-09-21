@@ -6,32 +6,32 @@ summary: PD 分离的 Decode 节点抢占一条请求时，先把它已算好的
 aliases: [Recompute CPU Offload, 重算 CPU 卸载, RecomputeCPUOffloadConnector, Preempt Offload, PreemptOffloadConnector, 抢占卸载, 抢占 KV 卸载]
 chapters: ["11", "12"]
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L316-L373
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L316-L373
   - vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L294-L349
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L103-L166
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L992-L1021
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L504-L521
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L90-L113
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L154-L188
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L211-L232
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L262-L334
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L103-L166
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L992-L1021
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L504-L521
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L90-L113
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L154-L188
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L211-L232
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L262-L334
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L251-L299
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L550-L586
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L44-L111
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L99-L134
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L146-L177
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2197-L2202
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1012-L1042
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L550-L586
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/preempt_offload_connector.py#L44-L111
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L99-L134
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L146-L177
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2233-L2238
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L689-L710
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1421-L1444
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1431-L1454
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L142
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L119-L123
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L40-L80
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L119-L123
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L40-L80
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/recompute_cpu_offload.md#L63-L74
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L262-L281
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L313-L317
-  - vllm-ascend@b255ab59:vllm_ascend/worker/v2/model_runner.py#L309-L314
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L262-L281
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/preempt_offload_connector.md#L313-L317
+  - vllm-ascend@baa023ad:vllm_ascend/worker/v2/model_runner.py#L320-L325
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/preempt_offload_connector.html
   - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L83-L87
   - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/recompute_cpu_offload_connector.py#L40-L71
@@ -55,7 +55,7 @@ relations:
     kind: alternative-to
     note: 两者都往主机内存搬 KV，但那条路搬的是块池 LRU 要淘汰的可复用前缀块，这条按请求点名、只保被抢占请求自己的活跃 KV
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -102,7 +102,7 @@ file: recompute-cpu-offload
 
 ## 两个分支在这一页上的差别
 
-main 开发主线（源码快照 `b255ab59`，2026-09-19）在 `9eb752ab`（PR #16510，2026-09-16）把这个特性整体改名搬家：目录从 `kv_pool/recompute_cpu_offload/` 挪到 `kv_pool/kv_offload/preempt_offload/`，和 [KV Cache CPU Offload](kv-cache-cpu-offload.md) 并进同一个 `kv_offload/` 下；所有 `RecomputeCPUOffload*` 标识符在 main 上已不存在。v0.23 维护分支（`2c59ff10`）与 v0.26 分支（`2ed6cbba`）仍是老名字、老路径，用户文档也还叫 `recompute_cpu_offload.md` [S23]。调度器那一侧的类名 `RecomputeScheduler` 三版都没变。
+main 开发主线（源码快照 `baa023ad`，2026-09-21）在 `9eb752ab`（PR #16510，2026-09-16）把这个特性整体改名搬家：目录从 `kv_pool/recompute_cpu_offload/` 挪到 `kv_pool/kv_offload/preempt_offload/`，和 [KV Cache CPU Offload](kv-cache-cpu-offload.md) 并进同一个 `kv_offload/` 下；所有 `RecomputeCPUOffload*` 标识符在 main 上已不存在。v0.23 维护分支（`2c59ff10`）与 v0.26 分支（`2ed6cbba`）仍是老名字、老路径，用户文档也还叫 `recompute_cpu_offload.md` [S23]。调度器那一侧的类名 `RecomputeScheduler` 三版都没变。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

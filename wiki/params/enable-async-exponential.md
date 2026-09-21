@@ -21,15 +21,15 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L76
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L122'
   - 'vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_sampler.py#L72-L96'
-  - 'vllm-ascend@b255ab59:vllm_ascend/sample/sampler.py#L21-L45'
-  - 'vllm-ascend@b255ab59:vllm_ascend/sample/sampler.py#L75-L86'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L1449'
+  - 'vllm-ascend@baa023ad:vllm_ascend/sample/sampler.py#L21-L45'
+  - 'vllm-ascend@baa023ad:vllm_ascend/sample/sampler.py#L75-L86'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L1449'
   - 'https://huggingface.co/Qwen/Qwen3-0.6B'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L262
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1679'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/sample/sampler.py#L33-L44'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -42,7 +42,7 @@ relations:
     kind: builds-on
     note: 预填 q 的调用点就在 execute_model 里、跑 28 层之前那几行，副流能藏进 forward 全靠这个位置
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md
@@ -117,7 +117,7 @@ llm = LLM(
 
 **5. 跨 stream 分配的张量没有 `record_stream`。** `q` 在 `global_stream()` 上分配、在默认流上被 `div_` 消费，v0.23.0 的 `do_async_exponential` 没有对它调 `record_stream`；而 **v0.26 分支起**同步路径的 `random_sample` 里**补上**了 `q.record_stream(torch.npu.current_stream())` [C19]，main 上也是同一句 [C10]。缓存分配器只按分配流的完成情况回收显存，跨流消费不登记就可能提前复用——源码里没有针对异步路径的直接断言，这是按那条补丁的意图反推出来的 [D]。
 
-**6. v0.25.1rc 起已经没有它了，留在 main 上会让服务起不来。** v0.23.0 的 release notes 发版时就把 “Asynchronous exponential overlap” 写进了 Ready to Deprecate [S8]（[线上页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)），到 `b255ab59` 兑现得很彻底：`AscendSampler.__init__` 不再建 `async_exponential_event` [C11]，`set_q_event` / `do_async_exponential` 连同 `AscendTopKTopPSampler` 里的取用分支、`model_runner_v1` 的调用点一并删除，`additional_config` 文档表里也没有这一行。v0.26 分支上同样一处引用都不剩，留下的都是同步的 `random_sample`。
+**6. v0.25.1rc 起已经没有它了，留在 main 上会让服务起不来。** v0.23.0 的 release notes 发版时就把 “Asynchronous exponential overlap” 写进了 Ready to Deprecate [S8]（[线上页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)），到 main 开发主线上兑现得很彻底：`AscendSampler.__init__` 不再建 `async_exponential_event` [C11]，`set_q_event` / `do_async_exponential` 连同 `AscendTopKTopPSampler` 里的取用分支、`model_runner_v1` 的调用点一并删除，`additional_config` 文档表里也没有这一行。v0.26 分支上同样一处引用都不剩，留下的都是同步的 `random_sample`。
 
 **升级时必须把这个键从启动命令里删掉，没有替代参数要迁移。** 到 main 它不在 `_NON_USER_INPUT_KEYS` 的豁免名单里，会原样进到 `AscendConfig(**kwargs)`，被 `extra="forbid"` 当成错别字报出来 [C16]——唯一的例外是装了 `vllm_omni`，那种情况下它只打一条 warning 然后被丢掉。到 v0.26 则没有这层校验，键被跳过、什么提示都没有，所以**唯一能察觉的信号是采样不再与 forward 重叠**，得靠 profiling 看 [!]。同批列进那张待废弃清单的还有 layer sharding、FlashComm2、**FlashComm3 的 multistream-overlap gate**（是 FlashComm3，不是 FlashComm2）、Hamming sparse、matmul all-reduce 系列融合、weight prefetch 与 dynamic-batch SLO。这张清单不是说说而已：v0.26.0rc1 的 release notes 里，除本项之外的大半已经逐条兑现了删除 [S17]。
 

@@ -3,8 +3,8 @@ id: kvpp-config-0445bd352140
 title: kvpp_config
 type: param
 summary: >-
-  AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进 additional_config
-  会被静默剔掉。只在 main 开发主线上有。
+  AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进
+  additional_config 会被静默剔掉。只在 main 开发主线上有。
 aliases:
   - additional_config.kvpp_config
   - KVPP 配置对象
@@ -16,7 +16,7 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: kvpp
     kind: builds-on
@@ -26,26 +26,28 @@ relations:
     note: 它是工厂注入的字段而不是用户输入，能不能写、写了会怎样，由 _NON_USER_INPUT_KEYS 那条构造链决定
 sources:
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L517
+    vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L518
   - >-
-    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L518
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L60-L77'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L79-L100'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1619-L1624'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1668'
-  - 'vllm-ascend@b255ab59:vllm_ascend/platform.py#L1501-L1503'
-  - 'vllm-ascend@b255ab59:vllm_ascend/distributed/parallel_state.py#L76-L89'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1103'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4541-L4543'
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L518
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L60-L77'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L79-L100'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1629-L1634'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1678'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1500-L1502'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L76-L89'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L215-L219
-  - 'vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L135-L159'
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L215-L219
+  - 'vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L135-L159'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L97-L104'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L62-L69
-  - 'https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html'
+    https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50'
 rawSources:
+  - >-
+    raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -140,7 +142,7 @@ vllm serve <非 hybrid 的 MLA 模型> --tensor-parallel-size 8 --enforce-eager 
 | 类型 | `KVPPConfig` |
 | 默认表达式 | `dataclasses.field(default_factory=KVPPConfig, kw_only=True)` |
 | 定义 | `vllm_ascend/ascend_config.py:518` [C2] |
-| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

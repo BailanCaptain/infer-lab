@@ -17,7 +17,7 @@ verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: kv-cache-layerwise-offload
     kind: builds-on
@@ -30,27 +30,27 @@ relations:
 contradicts: []
 sources:
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L101-L114
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L104-L115
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L92-L99
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L95-L102
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L28-L36
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L56
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L43-L71
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L52-L68
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L49
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L26-L49
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L80-L90
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L80-L93
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L691-L712
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L672-L693
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L33'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L1215'
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L33'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L1215'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L113
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/context_parallel.md#L113
   - >-
     vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L83-L92
   - >-
@@ -64,10 +64,14 @@ sources:
   - >-
     vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/connector.py#L69
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L192
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L195
   - >-
-    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py#L20
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L26
 rawSources:
+  - >-
+    raw/sha256-669514da04972a318ae33b644177e18d6c100c687828799c60d6aaf0457cc877.md
   - >-
     raw/sha256-d3d9a827c7c10514c64a59996d439dd3073b7e210488d124f267f418725693c2.md
 ---
@@ -98,7 +102,7 @@ rawSources:
 |---|---|---|---|---|
 | 配置路径 | `kv_connector_extra_config["use_layerwise"]` | 同左 | 同左 | 这是第 1 处、绝大多数人要配的那一处；文末生成区钉的是第 3 处 Yuanrong JSON，别把两者混成一个键 [!] |
 | 类型 / 默认 | `bool` / `false`，`.get()` 取原值 | 同左 | 同左 | 没有 pydantic 强转，JSON 里写 `"false"`（带引号）是真值 [D] |
-| 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改判 `mooncake`，函数改名 `is_block_key_layerwise` [C4] | 同一份配置在 main 上走的是另一套数据面；`use_gva_layerwise` 这个名字在 main 上已搜不到 [!] |
+| 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改由后端注册表查：`use_layerwise and layerwise_data_plane == "block_key"`，而 `mooncake` 的协议模块声明 `LAYERWISE_DATA_PLANE = "block_key"`、`memcache` 声明 `"gva"` [C4] [C21] | 同一份配置在 main 上走的是另一套数据面；`use_gva_layerwise` 和 `is_block_key_layerwise` 这两个名字在 main 上都已搜不到 [!] |
 | 额外校验 | 无 | 无 | mooncake + layerwise 时 PP / PCP / DCP 任一 > 1 直接 `ValueError` | main 上多一道启动期闸门，只允许纯 TP 拓扑 |
 | 对 `load_async` 的影响 | 开了就把 `load_async` 静默按成 false [C14] | 同左 | 同左 | 两个键同时配 `true` 不报错，异步加载那一半安静失效 [!] |
 | 对图模式的影响 | — | — | 连接器声明 `requires_piecewise_for_cudagraph` 返回本键的值 [C3] | main 上开它会把 ACLGraph 顶成 PIECEWISE 模式 |
@@ -115,9 +119,9 @@ rawSources:
 
 1. **查询起点变了。** 调度侧算「从第几个块开始查外部命中」时，非逐层模式从 `num_computed_tokens // block_size` 起步，逐层模式直接从 0 起步。
 2. **异步加载被关掉。** `return need_to_allocate, self.load_async and not self.use_layerwise`——逐层模式下加载必须跟着层走，不能再交给后台线程。
-3. **后端要有按层寻址的能力。** 一个块的 KV 被拆成每层一份对象，所以 key 的构造方式也得换：v0.23 / v0.26 用 `use_gva_layerwise` 把这条路绑在 `memcache` 上，main 改成 `is_block_key_layerwise` 绑在 `mooncake` 上，并在注释里说明 memcache 的逐层路径改由后端协议注册表选择、用 GVA 分配 [C7]。
+3. **后端要有按层寻址的能力。** 一个块的 KV 被拆成每层一份对象，所以 key 的构造方式也得换：v0.23 / v0.26 用 `use_gva_layerwise` 把这条路硬绑在 `memcache` 上；main 把这个判断挪进了后端协议注册表——`backend_map` 给每个后端登记一个 `layerwise_protocol` 模块，连接器拿 `get_layerwise_protocol` / `get_layerwise_data_plane` 查出数据面再判 `== "block_key"` [C4]。`mooncake` 的协议模块声明 `"block_key"` [C21]，`memcache` 声明 `"gva"` 并自己持有 `extract_layout_config` 那道 opt-in 闸门 [C7]，`yuanrong` 压根没登记 layerwise 协议 [C4]。
 
-main 上还多了一层保护：`validate_mooncake_layerwise_topology` 在连接器构造时就检查并行拓扑，PP / PCP / DCP 任一大于 1 就抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")` [C5]。原因写在函数文档里——当前的 block key 里没有这几个维度的坐标，多机多维并行会让不同 rank 算出同一个 key。
+main 上还多了一层保护，只是这一版已经不再由一个 mooncake 专用函数把关：连接器构造时调通用的 `validate_layerwise_topology`，它把 `parallel_config` 转交给后端协议自己的 `validate_topology` [C4]。mooncake 那一份检查 PP / PCP / DCP，任一大于 1 就抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")` [C5]。原因写在函数文档里——当前的 block key 里没有这几个维度的坐标，多机多维并行会让不同 rank 算出同一个 key。
 
 ## 开了的代价
 
@@ -170,7 +174,7 @@ main 上还多了一层保护：`validate_mooncake_layerwise_topology` 在连接
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py:20` [C20] |
-| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

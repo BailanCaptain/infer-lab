@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 b255ab59）">
-  <title>开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 b255ab59）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）">
+  <title>开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）</title>
   <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="26" width="860" height="170" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
   <rect x="36" y="40" width="132.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期 · 只做一次</text>

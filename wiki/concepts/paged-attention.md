@@ -7,30 +7,30 @@ aliases: [PagedAttention, 分页注意力, 分页 Attention, PA, PagedAttention 
 chapters: ["11"]
 order: 20
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L148
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L143
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L144
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5225-L5275
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1725-L1746
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5501-L5551
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1202-L1223
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1456-L1477
-  - vllm-ascend@b255ab59:vllm_ascend/attention/utils.py#L225-L241
+  - vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L177-L193
   - vllm-ascend@2c59ff10:vllm_ascend/attention/utils.py#L104-L120
-  - vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L137-L259
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1579-L1598
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1304-L1354
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L236-L245
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1274-L1300
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L474-L474
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L228-L351
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1056-L1075
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L781-L831
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L231-L240
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1338-L1364
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L475-L475
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L242-L246
-  - vllm-ascend@b255ab59:vllm_ascend/device/device_op.py#L40-L70
+  - vllm-ascend@baa023ad:vllm_ascend/device/device_op.py#L40-L70
   - vllm-ascend@2c59ff10:vllm_ascend/device/device_op.py#L47-L52
-  - vllm-ascend@b255ab59:vllm_ascend/attention/utils.py#L102-L157
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L824-L849
+  - vllm-ascend@baa023ad:vllm_ascend/compilation/updatable_graph.py#L120-L154
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L743-L779
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L463-L490
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L493-L494
-  - vllm-ascend@b255ab59:docs/source/faqs.md#L305-L307
-  - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L60-L62
-  - vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L526-L545
-  - vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L534-L535
+  - vllm-ascend@baa023ad:docs/source/faqs.md#L305-L307
+  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L60-L62
+  - vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3-Dense.md#L526-L545
+  - vllm-ascend@baa023ad:docs/source/tutorials/features/suffix_speculative_decoding.md#L85-L95
   - vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L55-L65
   - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L734-L759
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -43,7 +43,7 @@ relations:
     kind: builds-on
     note: PA 的硬门槛是 cudagraph_mode 必须为 FULL_DECODE_ONLY，两个算子唯一的实质分叉也只在图捕获里
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -105,12 +105,12 @@ vllm serve /path/to/Qwen3-0.6B \
 
 ## 三个分支的四处差异
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 2026-09-17 的 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。前两行 v0.26 已经跟上 main，后两行它还站在 v0.23 这边。
+下表的 main 指 2026-09-21 的源码快照 `baa023ad`，v0.26 分支指 2026-09-17 的 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。前两行 v0.26 已经跟上 main，后两行它还站在 v0.23 这边。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | KV 写入算子 | `torch_npu._npu_reshape_and_cache`，参数名 `slot_indices` [C16] | `torch_npu.npu_scatter_pa_kv_cache`，参数名 `slot_mapping` 加 `cache_mode="Norm"` [C25] | 同 v0.26，另多一条 `use_bnsd` 的 NHSD 分支 [C15] | 对使用者透明，但抓 profiling 时算子名对不上 `[!]` |
-| 图重放列表 | 存裸 9 元组，靠 `using_paged_attention` 一次性判定整张图走 PA 还是走 FIA [C19] | 存带类型的 `PagedAttentionGraphParam`（多一个 `layer_name`），重放时按 `isinstance` 逐个分流 [C26] | 同 v0.26 [C17] | v0.26 起 PA 层和 FIA 层才能共存在同一张重放图里 `[!]` |
+| 图重放列表 | 存裸 9 元组，靠 `using_paged_attention` 一次性判定整张图走 PA 还是走 FIA [C19] | 存带类型的 `PagedAttentionGraphParam`（多一个 `layer_name`），重放时按 `isinstance` 逐个分流 [C26] | 换成 `UpdatableGraph`：捕获时每个算子登记一条 `GraphUpdateTask` 并记下它的 `ParamProvider`，重放时各 provider 自己 `resolve` 出要替换的入参 [C17]；PA 这条由 `PAParamProvider` 交出 `context_lens` 与 `block_table` [C18] | 三种写法的效果一样：v0.26 起 PA 层和 FIA 层就能共存在同一张重放图里。但 main 上 `isinstance` 分流已经不在 `attention_v1.py` 里了，要读或改图更新逻辑得去 `compilation/updatable_graph.py` `[!]` |
 | KV 张量布局 | 只有 `(2, num_blocks, 128, n_kv, d_h)` 一种 | 同 v0.23，仍只有这一种 | 把 vLLM 的 `VLLM_KV_CACHE_LAYOUT` 设成 `HND` 或 `LBHNC` 时换成 `(2, num_blocks, n_kv, 128, d_h)` [C1] | 换了布局 FIA 不再压三维、写入改走 `scatter_mode="NHSD"` [C20]；v0.26 上 `VLLM_KV_CACHE_LAYOUT` 在 `vllm_ascend` 里 grep 不到，不用找这个开关 `[!]` |
 | PA 的硬件门 | 写死判一句「是不是 A5」 | 同 v0.23，逐字未变 | 查能力表里有没有 `PAGED_ATTENTION`；标准档的 A2、A3 有，A5 与 310P 没有 [C8] | A2、A3 的结果不变；判断依据从写死的型号换成了一张能力表 |
 

@@ -96,5 +96,5 @@ pins:
     symbols: [apply_grammar_bitmask]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/v2/structured_outputs.py#L34-L50
     symbols: [_apply_grammar_bitmask_kernel]
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/__init__.py#L712-L724
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/__init__.py#L774-L786
     symbols: [VLLM_USE_V2_MODEL_RUNNER]

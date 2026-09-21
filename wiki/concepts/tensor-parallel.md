@@ -39,10 +39,10 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L45-L52
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L91-L101
   - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L124-L131
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1136-L1164
-  - vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318
-  - vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L31-L48
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1140-L1168
+  - vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L299-L318
+  - vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L48
   - vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
@@ -57,7 +57,7 @@ relations:
     kind: builds-on
     note: TP 组由上游 initialize_model_parallel 建、昇腾只在其上另开几个细粒度组，这条归属线在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -132,7 +132,7 @@ file: tensor-parallel
 
 ## 三个分支在哪儿分的叉
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。标准 TP 的那套（列切/行切/两次 all-reduce/kv 头复制）**三边一字不差**，差异全在昇腾那一侧。
+下表的 main 指 2026-09-21 的源码快照，v0.26 分支指 2026-09-17 的那个快照；完整提交号在来源里。标准 TP 的那套（列切/行切/两次 all-reduce/kv 头复制）**三边一字不差**，差异全在昇腾那一侧。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

@@ -6,17 +6,17 @@ summary: NPU 上的 KV 块被淘汰之前先异步拷一份进主机内存；下
 aliases: [KV Cache CPU Offload, KV Cache CPU 卸载, KV 缓存 CPU 卸载, CPU Offload, NPUOffloadingSpec, CPUOffloadingSpec, TieringOffloadingSpec, OffloadingConnector, 多级 KV 卸载]
 chapters: ["11"]
 sources:
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L14
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L85-L93
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L133-L139
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L14
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L85-L93
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L133-L139
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L64-L71
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L101
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L39-L181
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L22-L102
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L65-L231
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L233-L329
-  - vllm-ascend@b255ab59:csrc/torch_binding.cpp#L167-L287
-  - vllm-ascend@b255ab59:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L115-L208
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L101
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L39-L181
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/npu.py#L22-L102
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L65-L231
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/cpu_npu.py#L233-L329
+  - vllm-ascend@baa023ad:csrc/torch_binding.cpp#L167-L287
+  - vllm-ascend@baa023ad:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L115-L208
   - vllm-ascend@2c59ff10:csrc/torch_binding.cpp#L149-L172
   - vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L16-L43
   - vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L54-L230
@@ -58,7 +58,7 @@ relations:
     kind: alternative-to
     note: 那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整格
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -120,7 +120,7 @@ kv_transfer_config = KVTransferConfig(
 
 ## 两个发布分支与 main：配置键换了一遍
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，两个发布分支指 `2c59ff10`（v0.23）与 `2ed6cbba`（v0.26），完整提交号在来源里。v0.26 与 v0.23 在下表每一行上都相同，所以并成一列。main 那一版的实现整个搬了家，住进 `vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/` 下；只有最底下那段 `swap_blocks_batch` 的 C++ 三版逐字相同。
+下表的 main 指 2026-09-21 的源码快照，两个发布分支指 v0.23 与 v0.26 各自钉住的那个提交，完整提交号在来源里。v0.26 与 v0.23 在下表每一行上都相同，所以并成一列。main 那一版的实现整个搬了家，住进 `vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/` 下；只有最底下那段 `swap_blocks_batch` 的 C++ 三版逐字相同。
 
 | 项 | v0.23 与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|

@@ -111,11 +111,11 @@ brackets:
     tone: muted
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L445-L458
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L445-L458
     symbols: [_init_device, MemorySnapshot, requested_memory, total_memory, gpu_memory_utilization]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L548-L600
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L548-L600
     symbols: [determine_available_memory]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4042-L4058
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4254-L4270
     symbols: [profile_run]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5801-L5811
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L6078-L6092
     symbols: [capture_model]

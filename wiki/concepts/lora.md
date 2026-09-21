@@ -8,7 +8,7 @@ chapters: ["17"]
 sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/lora.md#L9-L24
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/lora.md#L26-L30
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/lora.md#L30-L37
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/lora.md#L30-L37
   - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L13-L13
   - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L40-L40
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/lora.html
@@ -39,8 +39,8 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/lora/punica_npu.py#L52-L57
   - vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L329-L352
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L487-L496
-  - vllm-ascend@b255ab59:vllm_ascend/lora/punica_npu.py#L31-L33
-  - vllm-ascend@b255ab59:vllm_ascend/lora/quant_moe.py#L14-L19
+  - vllm-ascend@baa023ad:vllm_ascend/lora/punica_npu.py#L31-L33
+  - vllm-ascend@baa023ad:vllm_ascend/lora/quant_moe.py#L14-L19
   - vllm-ascend@2c59ff10:vllm_ascend/lora/punica_npu.py#L312-L322
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -61,7 +61,7 @@ relations:
     kind: builds-on
     note: 批描述符上多带一位 has_lora 参与图的分桶，带 LoRA 的批和不带的批不能共用一张捕获好的图
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

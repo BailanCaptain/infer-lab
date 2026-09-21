@@ -6,37 +6,37 @@ summary: "每层的 K、V 用离线标定的静态 per-channel scale 存成 int8
 aliases: [KV Cache Quantization, KV Cache 量化, KV 缓存量化, C8, C8 KV Cache, INT8 KV Cache, FAKQuant]
 chapters: ["11", "17"]
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L880-L898
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L928-L946
   - vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L934-L952
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
   - vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/kv_c8.py#L119-L139
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L388-L400
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L430-L442
   - vllm-ascend@2c59ff10:vllm_ascend/quantization/modelslim_config.py#L545-L558
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L559-L626
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1925-L1958
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2008-L2029
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2031-L2067
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L601-L674
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1400-L1433
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1483-L1504
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1506-L1542
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1756-L1792
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1920-L1923
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1960-L2006
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2195-L2208
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2086-L2144
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2246-L2261
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L967-L987
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L684-L697
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L866-L890
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1395-L1398
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1435-L1481
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1670-L1683
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1561-L1619
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1721-L1736
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L609-L629
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L732-L745
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L870-L894
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L367-L391
-  - vllm-ascend@b255ab59:vllm_ascend/models/minimax_m3/msa_m3.py#L680-L688
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L503-L517
+  - vllm-ascend@baa023ad:vllm_ascend/models/minimax_m3/msa_m3.py#L680-L688
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L544-L558
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L504-L505
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/quantization.md#L123-L125
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L123-L125
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L105-L107
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/quantization.md#L105-L121
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1348-L1390
-  - vllm-ascend@b255ab59:docs/source/tutorials/models/GLM5.2.md#L1668-L1669
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L105-L121
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1412-L1454
+  - vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.2.md#L1667-L1668
   - vllm@0fc695fc:vllm/utils/torch_utils.py#L396-L402
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L481-L482
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1856-L1884
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L483-L484
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1331-L1359
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1580-L1609
   - vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L455-L460
   - vllm-ascend@2ed6cbba:vllm_ascend/quantization/modelslim_config.py#L586-L596
@@ -62,7 +62,7 @@ relations:
     kind: alternative-to
     note: 两者都在压 NPU 上的 KV 显存，C8 把每 token 字节减半，offload 改把冷块搬去 host 再取回
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -123,7 +123,7 @@ prefill 分两种，代价差一整趟搬运：
 
 ## 三个分支在这一步的差别
 
-下表对照 **v0.23 维护分支**（`2c59ff10`）、**v0.26 分支**（`2ed6cbba`）与 **main 开发主线**（`b255ab59`）。v0.26 不是整齐地站在哪一边：开关和两处名单还是 v0.23 的样子，scale 映射和图捕获判断已经跟了 main。
+下表对照 **v0.23 维护分支**（`2c59ff10`）、**v0.26 分支**（`2ed6cbba`）与 **main 开发主线**（`baa023ad`）。v0.26 不是整齐地站在哪一边：开关和两处名单还是 v0.23 的样子，scale 映射和图捕获判断已经跟了 main。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

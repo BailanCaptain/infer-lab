@@ -1,21 +1,21 @@
 layout: scene
 id: kv-pool
-caption: 查表跨一次进程去问 worker，搬数据直接走 HBM 地址（vllm-ascend main 开发主线）
+caption: 非 layerwise 路径：查表经 worker，搬数据直接走 HBM 地址（main baa023ad）
 size: [900, 600]
 
 regions:
   - label: EngineCore 进程 · 调度器侧
-    note: 这里没有存储客户端，它问出来的只有一个整数：池里一共命中到第几个 token。
+    note: 默认非 layerwise 查询经 ZMQ 发给 worker，返回池里一共命中到第几个 token。
     at: [20, 34]
     size: [860, 152]
     tone: upstream
   - label: Worker 进程 · rank 0 那一个
-    note: 存储客户端只在这里。REP 后台线程替调度器查表，主线程在前向前后搬数据。
+    note: REP 后台线程替调度器查表；数据搬运由各 worker 执行。
     at: [20, 230]
     size: [860, 172]
     tone: ascend
   - label: 存储引擎
-    note: mooncake / memcache / yuanrong 三选一，接口只有四个动作。
+    note: mooncake / memcache / yuanrong 三选一，这里只画查表、注册与读写。
     at: [20, 442]
     size: [860, 132]
     tone: neutral
@@ -25,7 +25,7 @@ boundaries:
     from: 20
     to: 880
     vertical: false
-    label: 进程边界 · 调度器进程里没有存储客户端，只能走 ipc:// 去问 worker
+    label: 进程边界 · 默认非 layerwise 查询走 ipc://，逐层模式另有查询分支
   - at: 418
     from: 20
     to: 880
@@ -103,15 +103,15 @@ notes:
     width: 860
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L610-L645
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L591-L626
     symbols: [get_num_new_matched_tokens, LookupKeyClient, cache_transfer_granularity]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L399-L442
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L409-L452
     symbols: [LookupKeyServer]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L3036-L3046
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L3254-L3264
     symbols: [exists]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1077-L1165
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1085-L1173
     symbols: [start_load_kv]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L487-L515
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L436-L464
     symbols: [prepare_value, base_addr, block_id, block_stride]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L73-L158
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L73-L166
     symbols: [register_buffer, put, get]

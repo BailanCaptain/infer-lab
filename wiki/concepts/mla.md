@@ -28,9 +28,9 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L357-L368
   - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L960-L970
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L379-L384
-  - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L1396-L1425
-  - vllm-ascend@b255ab59:vllm_ascend/ops/mla.py#L207-L217
-  - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L82-L114
+  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L1405-L1434
+  - vllm-ascend@baa023ad:vllm_ascend/ops/mla.py#L207-L217
+  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L83-L115
   - https://arxiv.org/abs/2405.04434
   - https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json
   - vllm-ascend@2ed6cbba:vllm_ascend/ops/mla.py#L117-L129
@@ -51,7 +51,7 @@ relations:
     kind: builds-on
     note: 先看清普通模型缓存里躺的是 K 和 V 两份真向量，才看得出 MLA 换掉的到底是什么
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -127,7 +127,7 @@ file: mla
 
 ## 三个分支之间的三处差异
 
-下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，完整提交号在来源里。核心机制（压在哪、解压在哪、decode 怎么吸收 `W_UK`）三版逐字相同，差的是下面这三处。v0.26 在后两处上站在 v0.23 这边 [C28]，第一处它跟 main 一样有，只是开关的取值来路不同 [C27]。
+下表的 main 指 2026-09-21 的源码快照 `baa023ad`，v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，完整提交号在来源里。核心机制（压在哪、解压在哪、decode 怎么吸收 `W_UK`）三版逐字相同，差的是下面这三处。v0.26 在后两处上站在 v0.23 这边 [C28]，第一处它跟 main 一样有，只是开关的取值来路不同 [C27]。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

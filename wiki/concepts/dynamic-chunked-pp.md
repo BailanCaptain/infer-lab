@@ -40,10 +40,10 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L993-L997
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L9-L16
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L38-L41
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L967-L971
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1009-L1010
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1272-L1281
-  - vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L969-L973
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1011-L1012
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1271-L1280
+  - vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -69,7 +69,7 @@ relations:
     kind: conflicts-with
     note: main 开发主线上 DyntraLB 的校验里单列一条，同开 ValueError
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -77,7 +77,7 @@ origin: seed
 
 PP 配 chunked prefill 有个硬伤：块切得一样大，可注意力是 O(n²)，**前缀越长，同样大的一块算得越慢**，下一级流水线只能干等 [S24]。CPP（Dynamic Chunked Pipeline Parallel）把它反过来做——先真跑一遍量出「这台机器上一段长 `l` 的 prefill 要多久」，再让每块的**耗时**相等、token 数不等。开它不是打开一个分支：`scheduler_cls` 会被整个换成 `ProfilingChunkScheduler` [C3]。
 
-三个在册版本上都有：三处源码加三处文档，六个路径在 `2c59ff10`、`2ed6cbba`、`b255ab59` 上逐个 `git ls-tree` 都在。下面以 **v0.23 维护分支**为准写一遍，版本之间真正分叉的只有配置路径、和 ShortRequestFirst 的关系、以及官方对它的定位这三处。
+三个在册版本上都有：三处源码加三处文档，六个路径在三个钉住的提交上逐个 `git ls-tree` 都在。下面以 **v0.23 维护分支**为准写一遍，版本之间真正分叉的只有配置路径、和 ShortRequestFirst 的关系、以及官方对它的定位这三处。
 
 ```wiki-diagram
 file: dynamic-chunked-pp

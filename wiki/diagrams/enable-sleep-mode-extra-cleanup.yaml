@@ -82,7 +82,7 @@ notes:
     strong: true
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L252-L255
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L252-L255
     symbols: [rl_config, sleep_mode_extra_cleanup, CaMemAllocator, offload_tags]
-  - source: vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
+  - source: vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
     symbols: [use_aclgraph, reset_all_graph_params, destroy_hccl, restore_hccl, capture_model]

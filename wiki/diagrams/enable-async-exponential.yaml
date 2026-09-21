@@ -96,7 +96,7 @@ notes:
     size: 12.5
     width: 824
   - at: [20, 606]
-    text: main（b255ab59）上这条路径整段没了：do_async_exponential、set_q_event、事件对象和取用分支一并删除，采样只剩同步的 random_sample。
+    text: main（baa023ad）上这条路径整段没了：do_async_exponential、set_q_event、事件对象和取用分支一并删除，采样只剩同步的 random_sample。
     size: 12.5
     width: 860
     strong: true

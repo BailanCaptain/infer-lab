@@ -90,5 +90,5 @@ pins:
     symbols: [compute_slot_mapping, slot_mapping]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283
     symbols: [commit_block_table]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1665-L1680
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1142-L1157
     symbols: [reshape_and_cache]

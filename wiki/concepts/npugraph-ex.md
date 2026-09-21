@@ -41,10 +41,10 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L240-L245
   - vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
   - vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L122-L127
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L104-L160
-  - vllm-ascend@b255ab59:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
-  - vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L137-L158
-  - vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L195-L216
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L104-L160
+  - vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L228-L250
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L287-L308
   - vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L61-L90
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -65,7 +65,7 @@ relations:
     kind: builds-on
     note: v0.23 与 v0.26 上 SP 的两个 pass 和这几条融合 pass 挂在同一个 manager 里，按列表顺序改同一张图
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

@@ -30,19 +30,19 @@ sources:
   - >-
     vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/allreduce_rmsnorm_fusion_pass.py#L154-L159
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1764-L1779'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L311-L318'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L452-L458'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1547-L1553'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1601-L1621'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L311-L318'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L453-L459'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1557-L1563'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1611-L1631'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L7-L25
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L7-L25
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
+    vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
   - 'https://www.hiascend.com/developer/techArticles/20240729-1'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L167
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - >-
     vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
@@ -50,7 +50,7 @@ verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations: []
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md

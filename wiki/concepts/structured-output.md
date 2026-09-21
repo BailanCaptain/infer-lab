@@ -39,14 +39,14 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_structured_output.py#L46-L53
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_structured_output.py#L116-L128
   - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L374-L394
-  - vllm-ascend@b255ab59:vllm_ascend/patch/__init__.py#L712-L724
+  - vllm-ascend@baa023ad:vllm_ascend/patch/__init__.py#L774-L786
   - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_structured_output.py#L113-L118
-  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/v2/apply_grammar_bitmask.py#L84-L93
-  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/v2/docs/apply_grammar_bitmask.md#L5-L13
-  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/v2/docs/apply_grammar_bitmask.md#L115-L127
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_structured_output.py#L144-L156
-  - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L1220-L1224
-  - vllm-ascend@b255ab59:tests/e2e/weekly/single_node/features/structured_output/README.md#L6-L13
+  - vllm-ascend@baa023ad:vllm_ascend/ops/triton/v2/apply_grammar_bitmask.py#L84-L93
+  - vllm-ascend@baa023ad:vllm_ascend/ops/triton/v2/docs/apply_grammar_bitmask.md#L5-L13
+  - vllm-ascend@baa023ad:vllm_ascend/ops/triton/v2/docs/apply_grammar_bitmask.md#L115-L127
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_structured_output.py#L144-L156
+  - vllm-ascend@baa023ad:vllm_ascend/_310p/worker/v2/model_runner.py#L1220-L1224
+  - vllm-ascend@baa023ad:tests/e2e/weekly/single_node/features/structured_output/README.md#L6-L13
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -66,7 +66,7 @@ relations:
     kind: builds-on
     note: 位图按「1 + 草稿数」行分配，每个草稿位置各占一行；同开之后草稿 token 必须回 CPU 给文法校验
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

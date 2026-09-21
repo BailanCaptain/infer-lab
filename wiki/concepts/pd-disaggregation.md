@@ -11,12 +11,12 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/disaggregated_prefill.html
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L17-L23
   - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L107
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L103
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L103
   - vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13
   - vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L119
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L59
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L72-L79
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L45-L59
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L72-L79
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1882-L1928
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1712-L1735
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2066-L2085
@@ -32,7 +32,7 @@ sources:
   - vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L790-L806
   - vllm-ascend@2c59ff10:docs/source/tutorials/features/pd_disaggregation_mooncake_single_node.md#L161-L186
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L1111-L1119
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L695-L703
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L697-L705
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075
   - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L93
   - vllm-ascend@2ed6cbba:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L105
@@ -55,7 +55,7 @@ relations:
     kind: alternative-to
     note: 同样是把算好的 KV 给别的实例用，池按块哈希共享给所有人，PD 是点对点送给指定的那个 D
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

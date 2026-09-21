@@ -40,14 +40,14 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344
   - vllm-ascend@2ed6cbba:vllm_ascend/attention/utils.py#L189-L192
   - vllm-ascend@2ed6cbba:vllm_ascend/attention/context_parallel/attention_cp.py#L173-L174
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L52-L65
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L109-L123
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/context_parallel.md#L5-L7
-  - vllm-ascend@b255ab59:vllm_ascend/attention/utils.py#L244-L252
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1492-L1499
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1516-L1527
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/context_parallel.md#L52-L65
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/context_parallel.md#L109-L123
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/context_parallel.md#L5-L7
+  - vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L196-L204
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1491-L1498
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1515-L1526
   - vllm@568afb3a:vllm/config/parallel.py#L505-L520
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/context_parallel.md#L20-L25
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/context_parallel.md#L20-L25
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -70,7 +70,7 @@ relations:
     kind: conflicts-with
     note: main 的 PCP 兼容表把四个后端的 SP + PCP 全标成不兼容；v0.23 上同开则会悄悄改大 max_num_batched_tokens
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

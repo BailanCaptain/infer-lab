@@ -36,17 +36,17 @@ sources:
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128'
   - 'vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359'
   - 'vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486'
-  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L1458-L1473'
-  - 'vllm-ascend@b255ab59:vllm_ascend/weight_switch/linear.py#L146-L182'
-  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/GLM5.2.md#L1030'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1522-L1537'
+  - 'vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L146-L182'
+  - 'vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.2.md#L1029'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L105
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L438-L454'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1603-L1651'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L439-L455'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1661'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L76
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L77
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423'
   - >-
     vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27
@@ -60,7 +60,7 @@ relations:
       同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
       的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md

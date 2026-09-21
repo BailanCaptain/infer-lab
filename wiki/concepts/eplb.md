@@ -33,12 +33,12 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/expert_parallelism_load_balancer.html
   - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1193-L1212
   - vllm-ascend@2ed6cbba:vllm_ascend/eplb/core/eplb_utils.py#L46-L56
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L871-L920
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/model_runner_v2_eplb.md#L1-L30
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/model_runner_v1_eplb.md#L19-L40
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L37-L41
-  - vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L89-L105
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L561-L567
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L873-L922
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/model_runner_v2_eplb.md#L1-L30
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/model_runner_v1_eplb.md#L19-L40
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/expert_parallelism_load_balancer.md#L37-L41
+  - vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/force_eplb.py#L89-L105
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L564-L570
   - https://huggingface.co/Qwen/Qwen3-30B-A3B/blob/main/config.json
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -62,7 +62,7 @@ relations:
     kind: builds-on
     note: EPLB 重排的就是 EP 分到各卡上的那批专家；EP 怎么切、token 怎么跨卡，在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

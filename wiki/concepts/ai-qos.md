@@ -26,14 +26,14 @@ sources:
   - vllm-ascend@2c59ff10:tools/ai_qos/ai_qos.cpp#L121-L136
   - vllm-ascend@2c59ff10:tools/ai_qos/CMakeLists.txt#L10-L12
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L60-L63
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L44-L67
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L77-L86
-  - vllm-ascend@b255ab59:tools/ai_qos.py#L18-L21
-  - vllm-ascend@b255ab59:tools/ai_qos.py#L326-L331
-  - vllm-ascend@b255ab59:tools/ai_qos.py#L357-L373
-  - vllm-ascend@b255ab59:tools/ai_qos.py#L444-L449
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2185-L2189
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L44-L67
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L77-L86
+  - vllm-ascend@baa023ad:tools/ai_qos.py#L18-L21
+  - vllm-ascend@baa023ad:tools/ai_qos.py#L326-L331
+  - vllm-ascend@baa023ad:tools/ai_qos.py#L357-L373
+  - vllm-ascend@baa023ad:tools/ai_qos.py#L444-L449
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2185-L2189
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/Ai_QoS_introduction_en.html
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -51,7 +51,7 @@ relations:
     kind: builds-on
     note: main 上引擎内唯一能设 QoS 的口子 qos_priority 长在 KV 池的连接器配置里，取值范围和报错在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

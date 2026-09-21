@@ -27,17 +27,17 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L135-L142
   - 'vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1223-L1223'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L103-L118'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L501-L504'
-  - 'vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L50'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L789-L793'
+    vllm-ascend@baa023ad:vllm_ascend/compilation/graph_fusion_pass_manager.py#L51-L73
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L103-L118'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L502-L505'
+  - 'vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L43-L50'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L793-L797'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L104-L111
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L108-L115
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L508
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L607'
   - >-
     vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
@@ -51,7 +51,7 @@ relations:
       npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm
       一起吃掉；main 上两条一起被删
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-59a95308536d065059c9cc558e2d55136e4689c7d61259182be752ea3ba3e582.md

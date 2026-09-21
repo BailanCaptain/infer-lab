@@ -6,18 +6,18 @@ summary: 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请�
 aliases: [Block Table, 块表, 块映射表, BlockTable]
 chapters: ["11"]
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L36-L108
-  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L110-L148
-  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L150-L190
-  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L291-L296
-  - vllm-ascend@b255ab59:vllm_ascend/worker/block_table.py#L298-L313
-  - vllm-ascend@b255ab59:vllm_ascend/ops/triton/compute_slot_mapping.py#L12-L94
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L148
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1665-L1680
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1200-L1225
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1546-L1550
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5357-L5383
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1252-L1278
+  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L36-L109
+  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L111-L149
+  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L151-L194
+  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L298-L303
+  - vllm-ascend@baa023ad:vllm_ascend/worker/block_table.py#L305-L320
+  - vllm-ascend@baa023ad:vllm_ascend/ops/triton/compute_slot_mapping.py#L12-L94
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L143
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1142-L1157
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1228-L1253
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1576-L1580
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5635-L5661
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1316-L1342
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L1-L9
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L31-L48
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L92-L106
@@ -25,9 +25,9 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L195-L205
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L153-L196
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md#L49-L62
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L190-L200
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/block_table.py#L1-L290
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
@@ -45,7 +45,7 @@ relations:
     kind: builds-on
     note: 格子里填的物理块号是上游分出来的；谁分、什么时候分、什么时候还，在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -101,7 +101,7 @@ slot_ids      = block_numbers * block_size + pos % block_size
 
 ## 分支之间在这张表上的差别
 
-下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）与 **v0.26 分支起**（v0.26 的 2026-09-17 快照 `2ed6cbba`、main 的 `b255ab59`）。前三行 v0.26 与 main 的写法一致 [C23]；最后一行是 main 独有，`is_circular` 在 `2ed6cbba` 的 `vllm_ascend` 里 grep 不到。
+下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）与 **v0.26 分支起**（v0.26 的 2026-09-17 快照 `2ed6cbba`、main 的 2026-09-21 快照 `baa023ad`）。前三行 v0.26 与 main 的写法一致 [C23]；最后一行是 main 独有，`is_circular` 在 `2ed6cbba` 的 `vllm_ascend` 里 grep 不到。
 
 | 项 | v0.23 维护分支 | v0.26 分支起 | 意味着什么 |
 |---|---|---|---|

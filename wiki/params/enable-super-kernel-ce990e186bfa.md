@@ -3,8 +3,8 @@ id: enable-super-kernel-ce990e186bfa
 title: enable_super_kernel
 type: param
 summary: >-
-  ascend_compilation_config 里的第三级加码开关：把整网框进一个 super kernel scope 再融一次。v0.23 上没有这个键，v0.26
-  起有，不写就跟随 enable_static_kernel，开了必须静态内核也开。
+  ascend_compilation_config 里的第三级加码开关：把整网框进一个 super kernel scope 再融一次。v0.23
+  上没有这个键，v0.26 起有，不写就跟随 enable_static_kernel，开了必须静态内核也开。
 aliases:
   - ascend_compilation_config.enable_super_kernel
   - 超级内核开关
@@ -13,9 +13,12 @@ aliases:
 chapters:
   - '16'
 origin: seed
-verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
+verified:
+  - releases/v0.23.0
+  - releases/v0.26.0rc
+  - main
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: npugraph-ex
     kind: builds-on
@@ -25,32 +28,35 @@ relations:
     note: 第二个生效点在 ACL Graph 捕获期——整网框进一个 scope，录完再对图调一次 super_kernel_optimize
 sources:
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L115
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L113-L134'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L136-L160'
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L115
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L113-L134'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L136-L160'
+  - 'vllm-ascend@baa023ad:vllm_ascend/compilation/compiler_interface.py#L122-L135'
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1054-L1064'
+  - 'vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L246-L252'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1188-L1229'
+  - 'vllm-ascend@baa023ad:vllm_ascend/compilation/compiler_interface.py#L245-L255'
+  - 'vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L43-L48'
+  - 'vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L297-L308'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/compilation/compiler_interface.py#L122-L135
-  - 'vllm-ascend@b255ab59:vllm_ascend/compilation/acl_graph.py#L37-L47'
-  - 'vllm-ascend@b255ab59:vllm_ascend/compilation/acl_graph.py#L240-L245'
-  - 'vllm-ascend@b255ab59:vllm_ascend/platform.py#L1179-L1220'
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L108-L112
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/compilation/compiler_interface.py#L245-L255
-  - 'vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L48'
-  - 'vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L205-L216'
+    https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L104-L108
-  - 'https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html'
-  - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/graph_mode.md#L212-L217
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/graph_mode.md#L271-L276
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L661'
   - >-
     vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L124
-  - 'https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html'
+  - >-
+    https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L612'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L640-L659'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/graph_mode.md#L180-L186
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/graph_mode.md#L184-L186
+  - 'vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L210-L213'
 rawSources:
+  - >-
+    raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md
 ---
@@ -76,7 +82,7 @@ rawSources:
 
 ## 为什么存在
 
-它存在是因为 **super kernel 那一步只能由调用方划范围**。静态内核解决的是「形状定下来，算子编成定形二进制」，落在编译选项里；super kernel 要把一串已经排好的 kernel 融成一个，得先告诉运行时「这一段算一个整体」。vllm-ascend 给的范围是整个模型：捕获 ACL Graph 时用 `_super_kernel_scope("full_model", ...)` 把 `self.runnable(*args, **kwargs)` 整个框住 [C5]，这个上下文管理器在 `enabled` 为假时就是个空壳，直接 `yield` 过去。
+它存在是因为 **super kernel 那一步只能由调用方划范围**。静态内核解决的是「形状定下来，算子编成定形二进制」，落在编译选项里；super kernel 要把一串已经排好的 kernel 融成一个，得先告诉运行时「这一段算一个整体」。vllm-ascend 给的范围是整个模型：捕获 ACL Graph 时用 `super_kernel_scope("full_model", ...)` 把 `self.runnable(*args, **kwargs)` 整个框住 [C20]，这个上下文管理器住在 `vllm_ascend/utils.py`，在 `enabled` 为假时就是个空壳，直接 `yield` 过去 [C5]。
 
 值走的是两条并行的路，两条都只看这一个布尔值：
 
@@ -121,7 +127,7 @@ vllm serve Qwen/Qwen2-7B-Instruct \
 | releases/v0.26.0rc | 有（4 个文件） |
 | releases/v0.27.1rc | 无 |
 | releases/v0.28.0rc | 有（4 个文件） |
-| main | 有（4 个文件） |
+| main | 有（5 个文件） |
 
 - **引入**：2025-10-20 · 068ed706c8a4e6d2c35bc215b95d0ff0a76c5692 · PR [#3485](https://github.com/vllm-project/vllm-ascend/pull/3485) —— [feat][torchair] support super kernel feat for quantized dsr1 (#3485)
   包含该提交的 tag：v0.11.0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev
@@ -162,7 +168,7 @@ vllm serve Qwen/Qwen2-7B-Instruct \
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/ascend_config.py:115` [C1] |
-| 版本 | main · b255ab59662d8c665e5534e926f913b1c1179b1c |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

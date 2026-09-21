@@ -77,9 +77,9 @@ notes:
     width: 860
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/utils.py#L1280-L1300
+  - source: vllm-ascend@baa023ad:vllm_ascend/utils.py#L1344-L1364
     symbols: [refresh_block_size, enable_prefix_caching]
-  - source: vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L91-L121
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L82-L138
     symbols: [_ascend_resolve_kv_cache_block_sizes, resolve_kv_cache_block_sizes]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L151-L156
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L146-L151
     symbols: [AscendAttentionState, PrefillCacheHit]

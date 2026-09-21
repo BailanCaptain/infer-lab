@@ -16,7 +16,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: expert-parallel
     kind: builds-on
@@ -26,29 +26,32 @@ relations:
     note: 表必须在图捕获之前按每个 capture size 预先建好，预建那一步挂在 _dummy_run 上，跑的是非捕获那一趟
   - to: ascend-config-system
     kind: builds-on
-    note: 它是 main 上 pydantic AscendConfig 的顶层 bool 字段，互斥检查跑在 derive_and_validate 而不是 pydantic 校验里
+    note: >-
+      它是 main 上 pydantic AscendConfig 的顶层 bool 字段，互斥检查跑在 derive_and_validate 而不是
+      pydantic 校验里
 contradicts: []
 sources:
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L467'
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L466
-  - >-
-    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L467
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L559-L567'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/routed_experts.py#L594-L633'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L108-L142'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L89-L105'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L22-L56'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/force_eplb.py#L59-L86'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L3981-L3983'
-  - 'vllm-ascend@b255ab59:tests/ut/ops/test_force_eplb.py#L11-L33'
-  - 'vllm-ascend@b255ab59:tests/ut/ops/test_force_eplb.py#L36-L58'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ops/fused_moe/routed_experts.py#L649-L650'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L334'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L467
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L562-L570'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/routed_experts.py#L594-L633'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/force_eplb.py#L108-L142'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/force_eplb.py#L89-L105'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/force_eplb.py#L22-L56'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/force_eplb.py#L59-L86'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4193-L4195'
+  - 'vllm-ascend@baa023ad:tests/ut/ops/test_force_eplb.py#L11-L33'
+  - 'vllm-ascend@baa023ad:tests/ut/ops/test_force_eplb.py#L36-L58'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ops/fused_moe/routed_experts.py#L649-L650'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L316-L334'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38'
 rawSources:
+  - >-
+    raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -148,7 +151,7 @@ expert_ids = row + col * experts_per_rank
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/ascend_config.py:467` [C2] |
-| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

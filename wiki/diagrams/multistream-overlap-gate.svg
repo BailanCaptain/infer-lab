@@ -54,5 +54,5 @@
   <text x="36" y="120" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认流</text>
   <text x="36" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">gate_stream（类级单例）</text>
   <text x="36" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">quant_stream（类级单例）</text>
-  <text x="20" y="656" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（b255ab59）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。</text>
+  <text x="20" y="656" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（baa023ad）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。</text>
 </svg>

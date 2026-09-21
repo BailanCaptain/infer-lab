@@ -84,15 +84,15 @@ strips:
     label: "v_tensor：另一次 torch.zeros，地址和 k_tensor 毫无关系"
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1088-L1107
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1088-L1107
     symbols: [NPUWorker, get_kv_cache_spec]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5556-L5700
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5822-L5951
     symbols: [NPUModelRunner, KVCacheSpec]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4791-L4828
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5019-L5056
     symbols: [_allocate_kv_cache_tensors]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5225-L5269
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5501-L5545
     symbols: [_reshape_kv_cache_tensors]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4337-L4382
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4561-L4619
     symbols: [bind_kv_cache]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L116
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L111
     symbols: [get_kv_cache_shape]

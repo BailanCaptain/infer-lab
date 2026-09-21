@@ -6,31 +6,31 @@ summary: 两条请求开头一样，那段 KV 就不用重算——把算过的�
 aliases: [Prefix Caching, 前缀缓存, 自动前缀缓存, Automatic Prefix Caching, APC]
 chapters: ["11"]
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1280-L1300
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1344-L1364
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1386-L1406
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1245-L1249
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1244-L1248
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L669-L671
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1632-L1659
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1662-L1689
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1506
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L1245-L1254
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1273-L1282
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L151-L156
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1313-L1378
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L146-L151
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L790-L855
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1174-L1210
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L91-L121
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L96-L138
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L127-L147
-  - vllm-ascend@b255ab59:tests/ut/patch/platform/test_prefix_cache_cp_patches.py#L373-L397
-  - vllm-ascend@b255ab59:vllm_ascend/models/layer/attention/layer.py#L133-L139
+  - vllm-ascend@baa023ad:tests/ut/patch/platform/test_prefix_cache_cp_patches.py#L373-L397
+  - vllm-ascend@baa023ad:vllm_ascend/models/layer/attention/layer.py#L133-L139
   - vllm-ascend@2c59ff10:vllm_ascend/models/layer/attention/layer.py#L114-L120
-  - vllm-ascend@b255ab59:vllm_ascend/attention/dsa_v1.py#L276-L303
-  - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L173-L207
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_mamba_config.py#L182-L185
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L146-L148
-  - vllm-ascend@b255ab59:docs/source/user_guide/support_matrix/feature_matrix.md#L17-L18
-  - vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L2231-L2231
-  - vllm-ascend@b255ab59:tests/e2e/pull_request/two_card/test_prefix_caching.py#L63-L90
+  - vllm-ascend@baa023ad:vllm_ascend/attention/dsa_v1.py#L276-L303
+  - vllm-ascend@baa023ad:vllm_ascend/_310p/worker/v2/model_runner.py#L173-L207
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L182-L185
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L141-L143
+  - vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/feature_matrix.md#L17-L18
+  - vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L2231-L2231
+  - vllm-ascend@baa023ad:tests/e2e/pull_request/two_card/test_prefix_caching.py#L63-L90
   - https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/
-  - vllm-ascend@b255ab59:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420
+  - vllm-ascend@baa023ad:vllm_ascend/_310p/worker/v2/model_runner.py#L411-L420
   - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L28-L61
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
@@ -51,7 +51,7 @@ relations:
     kind: builds-on
     note: PrefillCacheHit 只是 AscendAttentionState 五个取值里的一个，整张枚举表在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
@@ -103,7 +103,7 @@ vllm-ascend 打了 `_ascend_resolve_kv_cache_block_sizes` 覆盖上游同名函�
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | CP 因子 | `lcm(...) × dcp × pcp`，`pcp ≠ 1` 单独就触发 [C13] | 同 main，`pcp` 在这个补丁里已经删干净 [C26] | `lcm(...) × dcp`，只有 `dcp ≠ 1` 触发 [C12] | [!] 同一套 PCP 配置，v0.23 与 v0.26 起算出的调度块大小不同 |
-| 多 group 时筛不筛组 | 不筛 | 同 v0.23 | 先用 `is_prefix_cacheable` 筛掉不可缓存的组；筛完只剩一组时改用该组自己的 `block_size` | main 上「固定尾块」这类私有组不再参与块大小计算 |
+| 多 group 时筛不筛组 | 不筛 | 同 v0.23 | 先用 `is_prefix_cacheable` 筛掉不可缓存的组（DeepSeek V4.1 的缓存例外，另走一条保留全部组、只把哈希块取 gcd 的分支）；筛完只剩一组时改用该组自己的 `block_size` [C12] | main 上「固定尾块」这类私有组不再参与块大小计算 |
 | `_get_fia_params` 取 KV 视图 | 分支里直接 `.view(...)` [C11] | 同 v0.23 | 抽成 `_get_kv_cache_view`，多一条 BNSD 布局分支 | 只是重构：命中后拿到的块表切片和全长 `seq_lens_list` 没变 |
 | 310P 的 model runner v2 | 该路径不存在 | 同 v0.23，仍只有 `worker_310p.py` | 支持 APC [C18] | [!] 「开 APC 直接 `NotImplementedError`」只在 main 上不成立；代价是开了 FULL 图时命中批次被强制退回 eager [C25] |
 

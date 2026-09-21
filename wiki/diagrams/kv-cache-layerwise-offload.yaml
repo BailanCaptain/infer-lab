@@ -1,6 +1,6 @@
 layout: scene
 id: kv-cache-layerwise-offload
-caption: 一层的一来一回：计算流上四个点，两个后台线程夹在中间（main 快照 b255ab59）
+caption: memcache gva 路径：计算流上四个点，两个后台线程夹在中间（main baa023ad）
 size: [900, 645]
 
 bands:
@@ -29,7 +29,7 @@ stops:
   - x: 150
     side: above
     title: 投递下 N 层的预取
-    detail: 第 0 层一次投 N 个，之后每层补一个
+    detail: 第 0 层最多投 N 个，之后最多补一个
     fn: _submit_ready_layer_loads
     icon: queue
     tone: neutral
@@ -50,7 +50,7 @@ stops:
   - x: 790
     side: below
     title: 交给发送线程
-    detail: 不等待，直接进第 i+1 层
+    detail: 中间层可重叠；末层等保存完成
     fn: save_kv_layer
     icon: plug
     tone: upstream
@@ -72,26 +72,26 @@ strips:
     label: "实心的 9 层共用同一份 buffer：第 L 层复用第 L−3 层的那一份"
 
 notes:
-  - { at: [20, 548], text: "main 才有的第二件事：28 层轮流用 4 份 HBM buffer", size: 13.5, strong: true }
+  - { at: [20, 548], text: "v0.26 与 main 的层复用算例：28 层轮流用 4 份 HBM buffer", size: 13.5, strong: true }
   - at: [20, 626]
     text: "左边那条虚线就是代价：第 L 层开始装之前，接收线程必须先确认第 L−3 层的 D2H 真的做完了。"
     size: 12.5
     width: 860
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2296-L2323
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2456-L2485
     symbols: [_submit_ready_layer_loads]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2325-L2358
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2487-L2539
     symbols: [wait_for_layer_load]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2366-L2401
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2547-L2587
     symbols: [save_kv_layer]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1556-L1560
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1604-L1608
     symbols: [KVCacheStoreLayerSendingThread]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1826-L1830
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1874-L1878
     symbols: [KVCacheStoreLayerRecvingThread, _handle_request]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1779-L1793
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1827-L1841
     symbols: [sync_save_events]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L86-L91
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L98-L103
     symbols: [record_attention_compute_start]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L2045-L2048
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2054-L2057
     symbols: [has_prefill]

@@ -51,11 +51,11 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1187-L1195
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L521-L526
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L164-L173
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1135-L1164
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1166-L1192
-  - vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L38-L48
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L680-L690
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1139-L1168
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1156-L1196
+  - vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L38-L48
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Fine_grained_TP.md#L54-L61
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L683-L693
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/Fine_grained_TP.html
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/Fine_grained_TP.html
   - https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/config.json
@@ -81,7 +81,7 @@ relations:
     kind: builds-on
     note: oproj 那项只允许在 kv_role=kv_consumer 的 D 节点上开，混部环境配了起不来
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

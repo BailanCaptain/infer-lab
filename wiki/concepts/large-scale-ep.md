@@ -19,7 +19,7 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L10-L13
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L241-L241
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/large_scale_ep.md#L492-L496
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/large_scale_ep.md#L151-L157
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/large_scale_ep.md#L151-L157
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/large_scale_ep.md#L17-L17
   - vllm@0fc695fc:vllm/config/parallel.py#L138-L144
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L1003-L1010
@@ -59,7 +59,7 @@ relations:
     kind: builds-on
     note: 大规模 EP 的每个「引擎」就是一个 DP rank；DP 复制什么、MoE 下各 rank 为什么必须齐步走，在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

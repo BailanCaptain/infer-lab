@@ -24,14 +24,14 @@
 | 2 | 24 个手写页绕过审阅 | **已关**（内容层面）。逐句对过源码，改正约 80 处（`b5bd499`、`e00ae72`、`dd3cc6a`）；09-21 又整体对了一遍 v0.26。流程层面的账见 §3 |
 | 3 | 理念里的操作没做到 | **未做，有意**。`wiki/sources/` 仍是空目录；问答不回填 `log.md`（会改知识快照的版本号、重置所有问答会话）；矛盾检测 `wiki:reconcile`、过期抽检 `wiki:drift` 是付费机制，`wiki/sync.config.json` 里 `reconcileBatches` / `driftSample` 仍是 0，建议页数再多一些再开。`maxTasks` 同是 0，但**开的时点 09-21 已定**：这个阶段做完、大规模导入之前（见 §6） |
 | 4 | 夜间维护空转 | **已关**。每晚上限 10、分批推进；09-21 03:00 正常跑完，并给 v0.26 建了参数基线。同步用的 Python 09-21 已结：**不建 conda 环境**，见 §6 |
-| 5 | 知识过期没人知道 | **机制在，是一笔单独的活**。09-20 全库重钉到 `b255ab59` 时 `wiki:stale` 报 0；上游每天在动，现在又报一批（现查 `pnpm wiki:stale --seeds wiki/seeds/vllm-ascend-code.yaml`，只读）。重钉见 HANDOFF §4.5 |
+| 5 | 知识过期没人知道 | **机制在，09-22 已完成本轮内容重钉**。main 已从 `b255ab59` 推进到 `baa023ad`，正文、图、参数生成区与 seeds 对齐；本轮只读 `wiki:stale` 归零，发布分支 pin 保持原值。以后状态仍现查 `pnpm wiki:stale --seeds wiki/seeds/vllm-ascend-code.yaml`。重钉见 HANDOFF §4.5 |
 | 6 | 未收录的回答没标出来 | **已关**。`ChatDrawer.tsx` 的「未收录」标记 + e2e |
 | 7 | 缺口发现靠回答模型自报 | **未做**。仍是回答模型在末尾自报 `satisfied`（`server/coverage.ts:5`，同文件 `:9` 的注释自己写明这不是 F004 AC3 要的独立判定）。独立评判是付费机制，等用户点头 |
 | 8 | 大量内容不在 git 里 | **已关** |
 
 ### P2（13 条）
 
-- **12 条已关**：状态真相源统一、AC11/mermaid、HANDBOOK 不自洽、规则三处定义、`related` 残留、F004 引用不存在的切片、成本数字、`wiki:audit` 默认 seeds、`wiki:gaps` 噪声、review 报告归档，以及「注意力后端四个还是五个」——已对源码查实：v0.23 是五个，v0.26 起六个；无入链页也处理了。
+- **12 条已关**：状态真相源统一、AC11/mermaid、HANDBOOK 不自洽、规则三处定义、`related` 残留、F004 引用不存在的切片、成本数字、`wiki:audit` 默认 seeds、`wiki:gaps` 噪声、review 报告归档，以及「注意力后端四个还是五个」——已对源码查实：v0.23 快照是五个，v0.26 快照是六个；这个计数不涵盖 main，09-22 已收紧页面表述。无入链页也处理了。
 - **1 条不做**：`CLAUDE.md` 与 `AGENTS.md` 逐字重复是有意保留（两个工具各读一份）。
 - **3 处只报告不处置**（不是 AI 写的文件，按「不动用户文件」的规矩放着）：过期草稿 `wiki/_drafts/profiling-chunk-config.md`、`wiki/_gaps.json` 里已补写但未标关闭的缺口、无人引用的 `scripts/wiki/eval-call.ts`（全仓库只有它自己的测试引用它）。
 

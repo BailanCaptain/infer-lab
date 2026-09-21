@@ -31,7 +31,7 @@ relations:
     kind: builds-on
     note: 那条请求走最左边那个后端，它的 KV 形状是五维的，算显存要乘 2
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -39,7 +39,7 @@ origin: seed
 
 `vllm_ascend/attention/` 下有五个后端类，都继承上游 `AttentionBackend`。选哪一个由 `NPUPlatform.get_attn_backend_cls` 在启动时查表定下 [C1]，后端自己不参与选择。这个函数实际能返回六个类路径：多出来的那个是 310p 专用的 `AscendAttentionBackend310`，它在 `_310p/` 下，不在 `attention/` 里 [C1]。
 
-**五个是 v0.23 上的数。** v0.26 分支起 `attention/` 多了一个 `indexer.py`，里面的 `AscendSFAIndexerBackend` 是第六个类，但它不由这张表选出来——它是 runner 给 SFA 的 indexer 缓存层单独挂的占位后端，只负责让那份缓存被初始化看见 [C8]。查表那两段本身两版一字不差 [C1]。
+**五个是 v0.23 快照上的数，六个是 v0.26 快照上的数。** v0.26 的 `attention/` 多了一个 `indexer.py`，里面的 `AscendSFAIndexerBackend` 是第六个类，但它不由这张表选出来——它是 runner 给 SFA 的 indexer 缓存层单独挂的占位后端，只负责让那份缓存被初始化看见 [C8]。查表那两段本身两版一字不差 [C1]。这一页的计数和下图都只覆盖这两个发布分支，不能拿来当 main 的后端总表。
 
 ```wiki-diagram
 file: attention-backend-choice

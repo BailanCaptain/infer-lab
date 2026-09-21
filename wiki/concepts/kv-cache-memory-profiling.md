@@ -18,33 +18,33 @@ aliases:
 chapters:
   - '11'
 sources:
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L445-L458'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L445-L458'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L464-L480'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L548-L619'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L621-L648'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L548-L619'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L621-L648'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L526-L574'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L576-L597'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L504-L538'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L877-L923'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L504-L538'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L877-L923'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L730-L771'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4042-L4058'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4254-L4270'
   - 'vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3684-L3697'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4165-L4168'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5801-L5811'
-  - 'vllm-ascend@b255ab59:vllm_ascend/_310p/worker_310p.py#L113-L137'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4377-L4380'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L6078-L6092'
+  - 'vllm-ascend@baa023ad:vllm_ascend/_310p/worker_310p.py#L113-L137'
   - 'vllm-ascend@2c59ff10:vllm_ascend/_310p/worker_310p.py#L103-L123'
-  - 'vllm-ascend@b255ab59:tests/ut/worker/test_worker_multi_instance.py#L171-L224'
-  - 'vllm-ascend@b255ab59:tests/ut/worker/test_worker_multi_instance.py#L147-L169'
-  - 'vllm-ascend@b255ab59:tests/ut/worker/test_worker_v1.py#L1302-L1309'
-  - 'vllm-ascend@b255ab59:docs/source/faqs.md#L139-L149'
-  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Dots3-Note.md#L398-L408'
+  - 'vllm-ascend@baa023ad:tests/ut/worker/test_worker_multi_instance.py#L171-L224'
+  - 'vllm-ascend@baa023ad:tests/ut/worker/test_worker_multi_instance.py#L147-L169'
+  - 'vllm-ascend@baa023ad:tests/ut/worker/test_worker_v1.py#L1318-L1325'
+  - 'vllm-ascend@baa023ad:docs/source/faqs.md#L139-L149'
+  - 'vllm-ascend@baa023ad:docs/source/tutorials/models/Dots3-Note.md#L398-L408'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L138-L138
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L138-L138
   - >-
     https://github.com/vllm-project/vllm/blob/0fc695fc6d1d82e9a5ac6835ac8e4e1c83703665/vllm/v1/worker/utils.py#L405-L425
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L650-L732'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1096-L1107'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L650-L732'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1107'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L511-L605'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L3714-L3730'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -57,7 +57,7 @@ relations:
     kind: builds-on
     note: 这一页算出的 3875 块里，那条请求只占 2 块；每块 14 MiB 这个除数也是从那条请求来的
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-28e0c42a4da3e1d1ae42ea272529d11b6a688cde2e0759b672471cc832358025.md
@@ -136,7 +136,7 @@ suggested_to_gpu_limit = 63.20 − 6.41 − 0.146 = 56.64 GiB
 
 v0.23 算完 `requested_memory − non_kv_cache_memory` 就 `return`。main 不是，返回值还要再过四层，每层都可能改写它 [C4]；v0.26 只接了其中第 2、3 两层：
 
-1. **多组缩放**——模型有多个 KV cache group（注意力 + Mamba 这类混合架构）时，按「最大一组的每块字节 ÷ 所有组的每块字节之和」把预算缩小，因为昇腾按层建连续缓冲，不缩会超 [C23]。单组模型两个数相等，原样返回——那条请求就是单组 [D]。
+1. **多组缩放**——需要为各组分别保留连续缓冲时，按「最大一组的每块字节 ÷ 所有组的每块字节之和」把预算缩小。但多组不一定要缩：`deepseek_v4` / `deepseek_v41` 走共享布局，直接跳过；attention + Mamba 混合模型在布局紧凑、runner 支持共享 backing 及 KV 传输兼容、且没有 sparse / compress 时也跳过 [C23]。单组模型两个数相等，原样返回——那条请求就是单组 [D]。
 2. **层复用缩放**——[Layerwise Offload](kv-cache-layerwise-offload.md) 开启且存在层复用时，预算乘上「层数 ÷ 缓冲区个数」。
 3. **稀疏重规划**——[Sparse KV Offload](kv-cache-sparse-offload.md) 开启时，整个数字交给 `plan_sparse_kv_offload_memory` 按 NPU、DRAM、workload 三个上限重排，返回 `final_planner_bytes`。
 4. **KV 流水并行预算**——`_apply_kvpp_memory_budget` 把字节数换算成块数再乘回每块字节；只有 `kvpp_config.size > 1` 时才建这个计划，否则原样透传 [C25]。
@@ -151,7 +151,7 @@ Atlas 300I Duo（310P）走的是另一条路：整个方法被覆盖，预算**
 
 ## 三个分支在这一步的差别
 
-下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）、**v0.26 分支**（2026-09-17 的 `2ed6cbba`）与 **main 开发主线**（源码快照 `b255ab59`）。
+下表对照 **v0.23 维护分支**（2026-09-10 的源码快照 `2c59ff10`）、**v0.26 分支**（2026-09-17 的 `2ed6cbba`）与 **main 开发主线**（2026-09-21 的源码快照 `baa023ad`）。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

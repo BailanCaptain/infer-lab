@@ -29,14 +29,14 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L82-L87'
   - 'vllm-ascend@2c59ff10:vllm_ascend/_310p/fused_moe/fused_moe.py#L182-L184'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L235-L241'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L235-L241'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L59-L61
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L59-L61
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L64'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1669'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1679'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L153'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -46,7 +46,7 @@ relations:
     kind: builds-on
     note: 它是 additional_config 里的一个键，main 上让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra="forbid" 的模式校验
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md
@@ -115,9 +115,9 @@ v0.23.0 里 `AscendMoERunner`（新）和 `AscendFusedMoE`（legacy）两套实�
 
 **6. 额外资源：2 条 NPU stream + 1 个 HCCL 通信组。** 流是类级单例，不随层数增长，通信组在 `init_ascend_config` 之后建组时创建。多流各自持有内存池，显存开销会有可观察的增加 [I]。
 
-**7. 它和 `multistream_overlap_shared_expert` 是两个开关，共享专家只会被其中一个接管。** 后者把共享专家挪到 `shared_experts_calculation_stream()`；前者把共享专家挪到 `gate_stream` 并顺带把路由也带走，取结果时直接读 `fc3_context.shared_out`，完全不走 `_forward_shared_experts`。两个开关都开时共享专家由 gate 路径接管，`multistream_overlap_shared_expert` 那条分支变成死代码 [D]。注意 `multistream_overlap_shared_expert` 在 v0.26 分支 [C24] 和 `b255ab59` [S18] 上都仍然活着，参数表里还有它那一行——被删的只是 gate 这一个，别把两个一起当成废弃项删掉。
+**7. 它和 `multistream_overlap_shared_expert` 是两个开关，共享专家只会被其中一个接管。** 后者把共享专家挪到 `shared_experts_calculation_stream()`；前者把共享专家挪到 `gate_stream` 并顺带把路由也带走，取结果时直接读 `fc3_context.shared_out`，完全不走 `_forward_shared_experts`。两个开关都开时共享专家由 gate 路径接管，`multistream_overlap_shared_expert` 那条分支变成死代码 [D]。注意 `multistream_overlap_shared_expert` 在 v0.26 分支 [C24] 和 main 开发主线 [S18] 上都仍然活着，参数表里还有它那一行——被删的只是 gate 这一个，别把两个一起当成废弃项删掉。
 
-**8. 去向：v0.24.0rc 起整套删干净了。** v0.23.0 的 release notes 发版时就把 "The FlashComm3 multistream-overlap gate" 写进了 Ready to Deprecate [S17]；v0.26.0rc1 的「Deprecation and Breaking Changes」里兑现成一条 "Removed multistream overlap gate."，PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) [S21]。v0.26 分支与 `b255ab59` 上参数表里这一行都没有了 [S18]，`flash_common3_context.py`、`fc3_quant_x` 通信组、`fc3_all_gather_and_maybe_unpad_impl` 也一并不在。
+**8. 去向：v0.24.0rc 起整套删干净了。** v0.23.0 的 release notes 发版时就把 "The FlashComm3 multistream-overlap gate" 写进了 Ready to Deprecate [S17]；v0.26.0rc1 的「Deprecation and Breaking Changes」里兑现成一条 "Removed multistream overlap gate."，PR [#11956](https://github.com/vllm-project/vllm-ascend/pull/11956) [S21]。v0.26 分支与 main 上参数表里这一行都没有了 [S18]，`flash_common3_context.py`、`fc3_quant_x` 通信组、`fc3_all_gather_and_maybe_unpad_impl` 也一并不在。
 
 **迁移时这是第一个要删的东西，而且两个目标版本的报错方式不一样。** 到 main，`AscendConfig` 是 pydantic 模型且 `model_config = ConfigDict(extra="forbid")` [C19]，留在 `--additional-config` 里的这个键不会被静默忽略，而是在构造配置时就报未知选项、让进程起不来。**只有一个例外**：进程里装了 `vllm_omni` 时，工厂会把所有未知键先打一条 warning 再从 kwargs 里剔掉，这时它才是「被忽略」而不是「起不来」[C22]。别指望这个例外——它是给 vLLM-Omni 共用这份配置留的口子，不是给废弃键兜底的。到 v0.26 分支则根本没有这道校验，键安安静静地被跳过，启动日志里那条 `Multistream overlap gate is enabled.` 自然也不会再出现——想确认重叠有没有生效，就靠这条日志。
 

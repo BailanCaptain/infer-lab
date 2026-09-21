@@ -34,11 +34,11 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L33-L40
   - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_features.md#L26-L28
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/quantization.md#L40-L57
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/methods/w4a8/w4a8.py#L40-L46
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L133-L142
-  - vllm-ascend@b255ab59:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L32-L40
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L92-L99
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/quantization.md#L105-L121
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w4a8/w4a8.py#L40-L46
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/fp8_block.py#L133-L142
+  - vllm-ascend@baa023ad:vllm_ascend/quantization/methods/w8a8/w8a8_pdmix.py#L32-L40
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L94-L101
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/quantization.md#L105-L121
   - vllm-ascend@2ed6cbba:vllm_ascend/quantization/quant_type.py#L26-L37
   - vllm-ascend@2c59ff10:vllm_ascend/quantization/quant_type.py#L26-L37
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/quantization.html
@@ -58,7 +58,7 @@ relations:
     kind: alternative-to
     note: 同一份描述文件、同一次 get_quant_method 分发，但它压的是缓存、这一页压的是权重，两者可以一起开
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

@@ -25,15 +25,15 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/core/recompute_scheduler.py#L598-L611
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1003-L1026
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L682-L710
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L85-L92
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L103-L166
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L344-L370
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L1024-L1036
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1472-L1483
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1012-L1042
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L488-L505
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1255-L1281
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1421-L1444
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L85-L92
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L103-L166
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L344-L370
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1024-L1036
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1471-L1482
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1014-L1044
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L490-L507
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1254-L1280
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1431-L1454
   - vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L80
   - vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.1.md#L997
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html
@@ -54,7 +54,7 @@ relations:
     kind: builds-on
     note: 换掉 scheduler_cls 的特性必须自备一个 Async 子类，它是 v0.23 上唯一备了的那个
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

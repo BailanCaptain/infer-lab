@@ -13,7 +13,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/__init__.py#L17-L43
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L17-L40
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L100
   - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L18-L53
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
   - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/__init__.py#L17-L50
@@ -32,7 +32,7 @@ relations:
     kind: builds-on
     note: 拿那条请求的三个具体问题各走一遍，是这三条路线最快的练法
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -82,9 +82,9 @@ file: locate-routes
 file: ref-diff
 ```
 
-**这张图画的是 `2c59ff10` ↔ `b255ab59` 这一对**，第三个 ref `2ed6cbba`（v0.26 分支）不在图上。目录层面只差 8 项：`2c59ff10` 独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。三个 ref 两两都得这么比一遍，v0.26 那边的目录清单在[目录地图](vllm-ascend-repo-map.md)。
+**这张图画的是 v0.23 维护分支 ↔ main 开发主线这一对**，第三个 ref（v0.26 分支）不在图上。目录层面只差 8 项：v0.23 独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；main 独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。三个 ref 两两都得这么比一遍，v0.26 那边的目录清单在[目录地图](vllm-ascend-repo-map.md)。
 
-但**同名不等于同内容**。最直接的例子：`class NPUPlatform` 在 `2c59ff10` 是 `platform.py` 第 128 行 [C6]，在 `b255ab59` 是第 80 行 [C7]，相差 48 行；而在 `2ed6cbba` 上是第 127 行 [C12]——**跟 v0.23 只差一行，文件内容却早已不同**，这正是不能按行号对照的理由。正确做法是按符号名：先 `grep -n "^class X"` 各自拿到行号，再比内容。
+但**同名不等于同内容**。最直接的例子：`class NPUPlatform` 在 v0.23 上是 `platform.py` 第 128 行 [C6]，在 main 上是第 82 行 [C7]，相差 46 行；而在 v0.26 上是第 127 行 [C12]——**跟 v0.23 只差一行，文件内容却早已不同**，这正是不能按行号对照的理由。正确做法是按符号名：先 `grep -n "^class X"` 各自拿到行号，再比内容。
 
 本库所有来源都写成 `repo@commit:path#L起-L止`，就是为了这件事——只记行号的笔记换个分支就会指到别的代码上。
 

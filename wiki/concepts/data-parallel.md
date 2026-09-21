@@ -44,7 +44,7 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L337-L344
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L729-L732
   - vllm-ascend@2ed6cbba:docs/source/user_guide/release_notes.md#L65-L66
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1492-L1499
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1491-L1498
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -58,7 +58,7 @@ relations:
     kind: alternative-to
     note: 同样是加一倍的卡，TP 切矩阵、单请求变快且单卡显存减半，DP 复制引擎、只加吞吐且单卡显存一点不省
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

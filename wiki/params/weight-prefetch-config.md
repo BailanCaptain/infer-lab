@@ -39,17 +39,17 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L153-L158'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/experts_selector.py#L71-L74'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L235-L249'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L235-L249'
   - >-
-    vllm-ascend@b255ab59:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95
+    vllm-ascend@baa023ad:docs/source/tutorials/features/suffix_speculative_decoding.md#L92-L95
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L52
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L62'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22
-  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
+    vllm-ascend@baa023ad:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22
+  - 'vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@2ed6cbba:docs/source/tutorials/models/Qwen3-Dense.md#L554-L554'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -59,7 +59,7 @@ relations:
     kind: builds-on
     note: 它只是 additional_config 里的一个子配置对象；main 上被 extra="forbid" 当未知键拒收的机制在那一页
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md
@@ -123,7 +123,7 @@ Linear 层在昇腾上的瓶颈常常不在 Cube 而在 MTE——权重从 HBM �
 2. `prefetch_ratio` 是**整体替换**而非逐键合并；好在 `WeightPrefetchMethod` 会对缺失的模块用 `.get(..., {}) or {...}` 逐模块回填默认值 [C10]，所以只写 `{"mlp": {...}}` 实际仍然安全——但这层保护在配置对象里看不出来，别依赖它去推别的子配置。
 3. MLP `down` 的预取依赖 sequence parallel，要用就得同时开。
 
-**升级之后必须动手删，两个方向的坑不一样。** 升到 v0.26 分支时，`AscendConfig` 仍是逐个键 `.get()` 的普通类，这个键既没人读也没人拦，服务照常起来、预取一次都不发生——最难查的正是这种「配了等于没配」。升到 main 则因为 `extra="forbid"`，把 v0.23.0 的启动命令原样搬到 `b255ab59` 会在配置解析阶段就失败，而不是打一条 warning 继续跑。唯一的例外是装了 `vllm_omni` 的环境：那里未知键改成打 warning 再丢掉，于是它变成真正的静默无效——起得来但什么都没开 [C28]。
+**升级之后必须动手删，两个方向的坑不一样。** 升到 v0.26 分支时，`AscendConfig` 仍是逐个键 `.get()` 的普通类，这个键既没人读也没人拦，服务照常起来、预取一次都不发生——最难查的正是这种「配了等于没配」。升到 main 则因为 `extra="forbid"`，把 v0.23.0 的启动命令原样搬过去会在配置解析阶段就失败，而不是打一条 warning 继续跑。唯一的例外是装了 `vllm_omni` 的环境：那里未知键改成打 warning 再丢掉，于是它变成真正的静默无效——起得来但什么都没开 [C28]。
 
 **要删的不止你自己的脚本。** 上游仓库里还留着过期示例：suffix speculative decoding 教程 [S25] 和 Qwen3 稠密模型教程 [S30] 都还写着 `weight_prefetch_config`，v0.26 分支上同一条命令也仍在 [S32]。照抄它们在 main 上会起不来，在 v0.26 上则是白配。想要同类收益只能走别的路子（图模式、算子融合等），这个参数本身没有对应物。
 

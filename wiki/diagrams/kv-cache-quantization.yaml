@@ -99,19 +99,19 @@ notes:
     strong: true
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L880-L898
+  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L928-L946
     symbols: [_add_kvcache_quant_metadata, kv_cache_type, c8_quant_layers]
-  - source: vllm-ascend@b255ab59:vllm_ascend/quantization/configs/modelslim_config.py#L595-L626
+  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L643-L674
     symbols: [get_quant_method, is_c8_quant_layer, AscendC8KVCacheAttentionMethod]
-  - source: vllm-ascend@b255ab59:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
+  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
     symbols: [create_weights, kv_cache_torch_dtype, AscendC8AttentionBackendImpl]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L503-L517
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L544-L558
     symbols: [enable_c8_quant]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2008-L2029
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1483-L1504
     symbols: [_quantize_kv_to_int8]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2246-L2261
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1721-L1736
     symbols: [npu_scatter_pa_kv_cache, slot_mapping]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2031-L2067
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1506-L1542
     symbols: [npu_fused_infer_attention_score, key_antiquant_scale]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L2086-L2144
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1561-L1619
     symbols: [_dequant_paged_kv_to_dense]

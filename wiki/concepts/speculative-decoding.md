@@ -8,7 +8,7 @@ chapters: ["17"]
 order: 30
 sources:
   - vllm-ascend@2c59ff10:vllm_ascend/spec_decode/__init__.py#L34-L55
-  - vllm-ascend@b255ab59:vllm_ascend/spec_decode/__init__.py#L37-L64
+  - vllm-ascend@baa023ad:vllm_ascend/spec_decode/__init__.py#L41-L70
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1525-L1543
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1664-L1683
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2457-L2500
@@ -29,9 +29,9 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L3-L24
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L62-L63
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/speculative_decoding.md#L147-L150
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/speculative_decoding.md#L63-L64
-  - vllm-ascend@b255ab59:vllm_ascend/spec_decode/llm_base_proposer.py#L414-L436
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1107-L1132
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/speculative_decoding.md#L63-L64
+  - vllm-ascend@baa023ad:vllm_ascend/spec_decode/llm_base_proposer.py#L424-L446
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1111-L1136
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/speculative_decoding.html
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/speculative_decoding.html
   - vllm-ascend@2ed6cbba:vllm_ascend/spec_decode/__init__.py#L35-L58
@@ -57,7 +57,7 @@ relations:
     kind: conflicts-with
     note: using_paged_attention 的第一道门就是「开了投机解码直接返回 False」，PA 算子在投机解码下永远不执行
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -132,12 +132,12 @@ vllm serve /path/to/Qwen3-0.6B \
 
 ## 三个分支在哪儿分的叉
 
-下表 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。核心那条「排 K+1 个位置 → 第一个不符截断 → 槽位原地覆盖」三版一字不差，`assert decode_threshold <= 16` 也一样。
+下表 main 指 2026-09-21 的源码快照 `baa023ad`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`；完整提交号在来源里。核心那条「排 K+1 个位置 → 第一个不符截断 → 槽位原地覆盖」三版一字不差，`assert decode_threshold <= 16` 也一样。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | 文档写的 K 上限 | 文档说 `(K+1)` 必须 ≤ 15 [S21]，代码 `assert <= 16` | 文档已改成 ≤ 16 [S31]，与代码一致 | 同 v0.26 | `[!]` 照 v0.23 文档配会白白少用一个草稿位；以代码为准 |
-| 草稿方法 | 九个 proposer 类，`mtp` 与 `eagle` 共用 `AscendEagleProposer` | 多出 `dspark` 一个，其余分流逐字同 v0.23 [C28] | 再多出两个：`dflash` 按草稿权重分流到 `AscendDflash2Proposer`，Gemma4 的 MTP 单走一个 proposer [C2] | 同一个 `method` 字符串在三版可能落到不同的类上 |
+| 草稿方法 | 九个 proposer 类，`mtp` 与 `eagle` 共用 `AscendEagleProposer` | 多出 `dspark` 一个，其余分流逐字同 v0.23 [C28] | 再多出三处分流：`dflash` 按草稿权重分流到 `AscendDflash2Proposer`，Gemma4 的 MTP 单走一个 proposer，`mtp` 碰上多 KV cache group 时走 `AscendMultiKVCacheGroupMTPProposer` [C2] | 同一个 `method` 字符串在三版可能落到不同的类上 |
 | 草稿侧滑动窗口 | 没有这个东西 | 有：`draft_window_size` 直接从 `additional_config` 读，只裁草稿模型的注意力；**没有任何方法级检查** [C29] | 搬进 `AscendConfig`，并对 `mtp` 打警告说窗口被忽略、对 DeepSeek-V4 上的 `dspark` 提示会掉接受率 [C24] | `[!]` v0.26 上给 `mtp` 配 `draft_window_size` 既不报错也不警告，而 MTP 复用的是目标模型自己的层——窗口会连目标模型一起裁掉 |
 | K 能不能动 | 只有固定的 `num_speculative_tokens` | 昇腾侧仍没有；但上游多了 `num_speculative_tokens_per_batch_size`，按 batch size 区间查一张表决定这一步猜几个 [C30] | 昇腾侧的 `dynamic_spec_config` 按草稿置信度调每条请求的验证长度，目前只认 `dspark` 和 `dflash` [C25] | 并发上来时 v0.26 能按批大小、main 能按置信度缩短验证长度，v0.23 只能重启改参数 |
 
@@ -145,5 +145,5 @@ vllm serve /path/to/Qwen3-0.6B \
 
 - **「被拒绝的草稿等于白算了」**——不全是。第一个不匹配位置上写下的，正是不开投机解码时这一步也会产出的那个 token；真正浪费掉的只是它**后面**那些位置的计算和 KV 写入。
 - **「投机解码会让输出变差」**——贪心路径上它是无损的：写进输出的永远是目标模型的 `argmax`，草稿只决定「能一次写几个」。会动判据的是昇腾额外提供的 block verify 与 entropy verify，而这两个默认都关着。
-- **「MTP 是一个独立的 proposer 实现」**——在 v0.23 和 v0.26 上都不是：`method` 为 `eagle`、`eagle3`、`mtp` 时落到的都是 `AscendEagleProposer`，只有 step3p5 那种特例才另行分流 [C1]；到 main 才多出一个 Gemma4 专用的 MTP proposer。
+- **「MTP 是一个独立的 proposer 实现」**——在 v0.23 和 v0.26 上都不是：`method` 为 `eagle`、`eagle3`、`mtp` 时落到的都是 `AscendEagleProposer`，只有 step3p5 那种特例才另行分流 [C1]；到 main 才分出 Gemma4 专用和多 KV cache group 专用这两个 MTP proposer [C2]。
 - **「草稿模型先跑，目标模型后跑」**——一步之内顺序是反的：草稿器挂在 `execute_model` 的尾巴上，用的是目标模型这一次的 hidden states，产出的是下一步要验的草稿。

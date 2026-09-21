@@ -15,47 +15,50 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: context-parallel
     kind: builds-on
     note: 只有 decode_context_parallel_size > 1 且模型走 SFA 稀疏注意力时才有实现类读它，DCP 怎么切 KV 在那一页
   - to: attention-backend-family
     kind: builds-on
-    note: 读它的是 SFA 后端的 DCP 子类 AscendSFADCPImpl，后端怎么按 (use_mla, use_sparse, use_compress) 选出来在那一页
+    note: >-
+      读它的是 SFA 后端的 DCP 子类 AscendSFADCPImpl，后端怎么按 (use_mla, use_sparse,
+      use_compress) 选出来在那一页
   - to: ascend-config-system
     kind: builds-on
     note: 与同批的 enable_dsa_cp 不同，这个读取函数没有 lru_cache，每次走到都现读一次配置单例
 contradicts: []
 sources:
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L466'
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L465
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L466
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L1500-L1506'
   - >-
-    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L466
-  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L1436-L1442'
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1428-L1438
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1424-L1434
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1145-L1157
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1145-L1157
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1264-L1305
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1264-L1305
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1366-L1412
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1362-L1408
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1307-L1320
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1307-L1320
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1159-L1172
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1159-L1172
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L375-L399
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L1468-L1470'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L375-L399
-  - 'vllm-ascend@b255ab59:vllm_ascend/attention/sfa_v1.py#L1454-L1456'
-  - >-
-    vllm-ascend@b255ab59:vllm_ascend/attention/context_parallel/sfa_cp.py#L1571-L1586
-  - 'vllm-ascend@b255ab59:vllm_ascend/utils.py#L144-L151'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L334'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454'
+    vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1575-L1590
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L201-L208'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L316-L334'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38'
 rawSources:
+  - >-
+    raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -152,7 +155,7 @@ return torch.split(gathered, context.split_sizes, dim=-1)
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/ascend_config.py:466` [C2] |
-| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

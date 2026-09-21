@@ -32,13 +32,13 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L946-L959
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L979-L985
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L115-L119
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1440-L1446
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_balance_schedule.py#L104-L104
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_balance_schedule.py#L894-L903
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L990-L992
-  - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L145-L145
-  - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L19-L19
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1450-L1456
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L104-L104
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_balance_schedule.py#L894-L903
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L992-L994
+  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L149-L149
+  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L19-L19
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -59,7 +59,7 @@ relations:
     kind: builds-on
     note: 它 all_gather 的就是各 DP rank 在跑的请求数；DP rank 是什么、请求怎么落到某个 rank，在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

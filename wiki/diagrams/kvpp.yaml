@@ -158,13 +158,13 @@ notes:
     strong: true
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L128-L159
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L128-L159
     symbols: [map_kvpp_layers_to_owners, kvpp_size, divmod, layer_owner_ranks]
-  - source: vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L18-L44
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L44
     symbols: [KVPP_SCRATCH_BUFFER_COUNT, get_num_blocks, persistent_bytes, scratch_bytes]
-  - source: vllm-ascend@b255ab59:vllm_ascend/worker/v2/kvpp.py#L87-L110
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L87-L110
     symbols: [schedule_forward, start_layer_prefetch, wait_for_layer]
-  - source: vllm-ascend@b255ab59:vllm_ascend/distributed/kvpp.py#L22-L36
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L22-L36
     symbols: [prefetch, broadcast, transfer_stream]
-  - source: vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L60-L77
+  - source: vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L60-L77
     symbols: [KVPPConfig, enable_kvpp, tensor_parallel_size]

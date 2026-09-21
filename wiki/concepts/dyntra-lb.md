@@ -7,40 +7,40 @@ aliases: [DyntraLB, Dynamic Intra-Decoder Data-Parallel Load Balancing, 解码�
 chapters: ["12"]
 order: 70
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L41-L52
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L238-L248
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L250-L289
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L291-L292
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L364-L395
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L171-L176
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L442-L443
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L701-L705
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L421-L424
-  - vllm-ascend@b255ab59:vllm_ascend/core/dyntra_lb_scheduler.py#L1217-L1220
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L132-L138
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L164-L173
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L201-L238
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L378-L391
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L393-L399
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L401-L452
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L454-L470
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L499
-  - vllm-ascend@b255ab59:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1352-L1388
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L447-L454
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1440-L1453
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L982-L1010
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1256-L1260
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1472-L1489
-  - vllm-ascend@b255ab59:vllm_ascend/core/recompute_scheduler.py#L1028-L1036
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L41-L52
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L238-L248
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L250-L289
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L291-L292
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L364-L395
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L171-L176
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L442-L443
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L701-L705
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L421-L424
+  - vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L1217-L1220
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L132-L138
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L164-L173
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L201-L238
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L378-L391
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L393-L399
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L401-L452
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L454-L470
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L499
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L32-L42
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1362-L1398
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L448-L455
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1450-L1463
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L984-L1012
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1255-L1259
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1471-L1488
+  - vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L1028-L1036
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L709-L725
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L3-L12
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L75-L86
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L106-L110
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L136-L153
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dyntra_lb.md#L198-L207
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L3-L12
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L75-L86
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L106-L110
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L136-L153
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L198-L207
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/dyntra_lb.html
   - vllm@568afb3a:vllm/v1/engine/core.py#L2083-L2092
 verified: ["main"]
@@ -62,7 +62,7 @@ relations:
     kind: builds-on
     note: 它换了 scheduler_cls，所以得自备一个 Async 版；异步调度改了什么、为什么不能混用同步类在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

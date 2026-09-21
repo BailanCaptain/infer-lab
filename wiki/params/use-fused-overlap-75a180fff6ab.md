@@ -17,42 +17,44 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: '2026-09-21'
+updated: "2026-09-22"
 relations:
   - to: kv-cache-sparse-offload
     kind: builds-on
     note: 它是那套卸载在 decode 上的第二条路径开关，只有 sparse_kv_offload_config.enabled 为真时才有人读它
 sources:
   - >-
-    vllm-ascend@b255ab59662d8c665e5534e926f913b1c1179b1c:vllm_ascend/ascend_config.py#L1468
+    vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1478
   - >-
-    vllm-ascend@c173a64a44dec4ba97aaba6277b1dfc1562eda19:vllm_ascend/ascend_config.py#L1478
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1457-L1476'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1478-L1486'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1595-L1597'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1668'
-  - 'vllm-ascend@b255ab59:vllm_ascend/config_utils.py#L43-L48'
-  - 'vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L13-L19'
-  - 'vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L202-L205'
-  - 'vllm-ascend@b255ab59:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1047'
+    vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L1478
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1467-L1486'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1488-L1496'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1605-L1607'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1678'
+  - 'vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L43-L48'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L13-L19'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L202-L205'
+  - 'vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1047'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L650-L657
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L650-L657
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L714-L717
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L714-L717
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L556-L559
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L556-L559
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L778-L788
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L778-L788
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L851-L855
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L851-L855
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1090-L1093
+    vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1090-L1093
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L219-L238
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L219-L238
   - >-
     https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054'
 rawSources:
+  - >-
+    raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -145,7 +147,7 @@ rawSources:
 | 类型 | `bool` |
 | 默认表达式 | `False` |
 | 定义 | `vllm_ascend/ascend_config.py:1478` [C2] |
-| 版本 | main · c173a64a44dec4ba97aaba6277b1dfc1562eda19 |
+| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
 
 字段注释：
 

@@ -7,31 +7,32 @@ aliases: [KVPP, KV Pipeline Parallelism, KV 流水并行, KV 层并行, KV 按�
 chapters: ["11", "13"]
 order: 60
 sources:
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L5-L9
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L1-L9
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L60-L77
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L79-L100
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/parallel_state.py#L76-L89
-  - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L128-L159
-  - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L107-L125
-  - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L18-L44
-  - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_placement.py#L162-L173
-  - vllm-ascend@b255ab59:vllm_ascend/worker/kvpp_cache.py#L30-L57
-  - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L540-L546
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kvpp.py#L22-L36
-  - vllm-ascend@b255ab59:vllm_ascend/worker/v2/kvpp.py#L87-L110
-  - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L2047-L2052
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2445-L2446
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1501-L1503
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L62-L82
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L128-L137
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L139-L163
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kvpp.md#L165-L183
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/kvpp.md#L23-L52
-  - vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/kvpp.md#L54-L63
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L60-L77
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L79-L100
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L76-L89
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L128-L159
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L107-L125
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L44
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L162-L173
+  - vllm-ascend@baa023ad:vllm_ascend/worker/kvpp_cache.py#L30-L57
+  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L22-L36
+  - vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L87-L110
+  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2056-L2061
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2486-L2487
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1500-L1502
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L97-L104
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L154-L163
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L165-L192
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L11-L16
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/kvpp.md#L23-L52
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/kvpp.md#L54-L63
   - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/kvpp.html
-  - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L329-L340
-  - vllm-ascend@b255ab59:docs/source/user_guide/support_matrix/supported_features.md#L9-L32
+  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L333-L344
+  - vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_features.md#L9-L36
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L30-L55
 verified: ["main"]
 evidence: "C"
 relations:
@@ -57,7 +58,7 @@ relations:
     kind: alternative-to
     note: 同样按层处理 KV 来腾 HBM，那边把层搬去 CPU/池再搬回来，这边把层留在组内别的卡上广播回来
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -65,7 +66,7 @@ origin: seed
 
 MLA/SFA 模型的 KV 在一个 TP 组里是**每卡一份完整复制品**——TP 切的是权重和计算，KV 没跟着切。KVPP 把这些层连续均分给组内各 rank，每卡只常驻自己那几层；**算到第 i 层时，由这一层的 owner 把整层广播给组里其他卡** [S1]。省的是复制的份数，花的是每层一次全量广播。
 
-这个特性**只在 main 开发主线上有**。在 v0.23 维护分支（`2c59ff10`）与 v0.26 分支（2026-09-17 源码快照 `2ed6cbba`）上，`git grep -i kvpp -- vllm_ascend docs/source` 一条都不返回；main（`b255ab59`）上命中 20 个文件 [D]。它是 2026-09-11 随 PR [#16094](https://github.com/vllm-project/vllm-ascend/pull/16094) 进来的，两个发布分支都没有回合。
+这个特性**只在 main 开发主线上有**。在 v0.23 维护分支（`2c59ff10`）与 v0.26 分支（2026-09-17 源码快照 `2ed6cbba`）上，`git grep -i kvpp -- vllm_ascend docs/source` 一条都不返回；main（`baa023ad`）上命中 22 个文件 [D]。它是 2026-09-11 随 PR [#16094](https://github.com/vllm-project/vllm-ascend/pull/16094) 进来的，两个发布分支都没有回合。
 
 ```wiki-diagram
 file: kvpp
@@ -161,7 +162,7 @@ vllm serve <非 hybrid 的 MLA/SFA 模型> \
 
 **以代码为准：用户指南是对的。** 组大小公式里明摆着乘了 `prefill_context_parallel_size`，通信组初始化处断言 `kvpp_size == global_pcp_size * global_tp_size` [C5]，而 `validate` 只拦 DCP 和「不是这两个连接器」。
 
-还有一件和传闻对不上的事：截至 `b255ab59`，支持矩阵 `supported_features.md` 里**没有 KVPP 这一行** [S25]，官方也没在任何一处把它标成 Experimental。它的实验性只体现在代码里那一串 `"KVPP currently supports ... only"` 的报错文案上。
+**这个快照已明确标成实验特性。** `baa023ad` 的支持矩阵新增了 KVPP，并标为 **Experimental**，范围限定在 eager 模式下的非 hybrid MLA/SFA 模型 [S25]；用户指南标题也带着同一标记 [S1]。这意味着接口和功能仍可能变化，部署组合应逐项核对，不能把「代码接受配置」当成性能与稳定性保证。
 
 ## 常见误解
 

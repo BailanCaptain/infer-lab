@@ -64,5 +64,5 @@
   <text x="36" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认流：这一步的主线</text>
   <text x="36" y="462" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">global_stream：进程级的那条副流，不是本特性独占</text>
   <text x="36" y="572" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开了之后主流少停一次，代价是这块 float32 从 forward 开头一直占到采样结束。</text>
-  <text x="20" y="606" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（b255ab59）上这条路径整段没了：do_async_exponential、set_q_event、事件对象和取用分支一并删除，采样只剩同步的 random_sample。</text>
+  <text x="20" y="606" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（baa023ad）上这条路径整段没了：do_async_exponential、set_q_event、事件对象和取用分支一并删除，采样只剩同步的 random_sample。</text>
 </svg>

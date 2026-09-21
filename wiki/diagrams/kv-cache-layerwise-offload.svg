@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 645" width="900" height="645" role="img" aria-label="一层的一来一回：计算流上四个点，两个后台线程夹在中间（main 快照 b255ab59）">
-  <title>一层的一来一回：计算流上四个点，两个后台线程夹在中间（main 快照 b255ab59）</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 645" width="900" height="645" role="img" aria-label="memcache gva 路径：计算流上四个点，两个后台线程夹在中间（main baa023ad）">
+  <title>memcache gva 路径：计算流上四个点，两个后台线程夹在中间（main baa023ad）</title>
   <rect width="900" height="645" fill="var(--color-surface, #fbfaf6)"/>
   <rect x="20" y="60" width="860" height="72" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
   <rect x="20" y="60" width="5" height="72" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
@@ -50,7 +50,7 @@
   <rect x="130" y="231" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
   <g transform="translate(138 239) scale(1)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
   <text x="150" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">投递下 N 层的预取</text>
-  <text x="150" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">第 0 层一次投 N 个，之后每层补一个</text>
+  <text x="150" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">第 0 层最多投 N 个，之后最多补一个</text>
   <rect x="47.3" y="161.5" width="205.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="150" y="179" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">_submit_ready_layer_loads</text>
   <line x1="390" y1="300" x2="390" y2="272" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5" opacity="0.5"/>
   <circle cx="390" cy="300" r="9" fill="var(--color-surface, #fbfaf6)"/>
@@ -74,7 +74,7 @@
   <rect x="770" y="329" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
   <g transform="translate(778 337) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
   <text x="790" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">交给发送线程</text>
-  <text x="790" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">不等待，直接进第 i+1 层</text>
+  <text x="790" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">中间层可重叠；末层等保存完成</text>
   <rect x="732.3" y="409.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="790" y="427" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">save_kv_layer</text>
   <path d="M150 158 L150 136" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
   <path d="M150 136 l-5.5 11 l11 0 z" fill="var(--color-kv, #4c65b6)"/>
@@ -87,6 +87,6 @@
   <path d="M36 448 L36 138" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8" stroke-dasharray="6 4"/>
   <path d="M36 138 l-5.5 11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
   <rect x="51.5" y="286.5" width="69.9" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="62.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">第 i 层</text>
-  <text x="20" y="548" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">main 才有的第二件事：28 层轮流用 4 份 HBM buffer</text>
+  <text x="20" y="548" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">v0.26 与 main 的层复用算例：28 层轮流用 4 份 HBM buffer</text>
   <text x="20" y="626" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">左边那条虚线就是代价：第 L 层开始装之前，接收线程必须先确认第 L−3 层的 D2H 真的做完了。</text>
 </svg>

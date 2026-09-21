@@ -12,7 +12,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42
   - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-  - vllm-ascend@b255ab59:setup.py#L518-L529
+  - vllm-ascend@baa023ad:setup.py#L506-L517
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
   - vllm-ascend@2ed6cbba:setup.py#L543-L551
   - vllm-ascend@2ed6cbba:vllm_ascend/__init__.py#L72-L85
@@ -26,7 +26,7 @@ relations:
     kind: builds-on
     note: 这五个口在那条请求发出之前就已经用完了，是它能被昇腾接住的前提
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

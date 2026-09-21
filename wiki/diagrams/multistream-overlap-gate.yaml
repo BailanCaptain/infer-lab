@@ -87,7 +87,7 @@ notes:
     text: quant_stream（类级单例）
     size: 12.5
   - at: [20, 656]
-    text: main（b255ab59）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。
+    text: main（baa023ad）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。
     size: 12.5
     width: 860
     strong: true

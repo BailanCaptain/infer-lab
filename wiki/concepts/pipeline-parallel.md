@@ -36,14 +36,14 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L430-L447
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L467-L470
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L69-L74
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L389-L433
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L470-L478
-  - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L755-L810
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L159-L181
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L186-L217
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L391-L435
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L472-L480
+  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L755-L810
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L159-L181
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L186-L217
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L311-L334
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374
   - vllm@568afb3a:vllm/distributed/parallel_state.py#L1787-L1801
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L423-L429
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -62,7 +62,7 @@ relations:
     kind: builds-on
     note: 跨段的 irecv / isend 就发生在 NPUWorker.execute_model 这一跳，整条链在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -141,7 +141,7 @@ PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，�
 
 ## 三个分支在哪儿分的叉
 
-PP 的主干——分层函数、`PPMissingLayer`、两条张量、只在末段采样、异步 isend/irecv——三个分支**一字不差**：`worker.py` 里那段收发到 main 上只是行号从 620 挪到了 755 [C32]。叉都分在外围的校验和文档上。下表的 main 指 2026-09-19 的源码快照 `b255ab59`，v0.26 分支指 `2ed6cbba`，v0.23 维护分支指 `2c59ff10`。
+PP 的主干——分层函数、`PPMissingLayer`、两条张量、只在末段采样、异步 isend/irecv——三个分支**一字不差**：`worker.py` 里那段收发到 main 上只是行号从 620 挪到了 755 [C32]。叉都分在外围的校验和文档上。下表的 main 指 2026-09-21 的源码快照，v0.26 分支指 2026-09-17 的那个快照；完整提交号在来源里。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

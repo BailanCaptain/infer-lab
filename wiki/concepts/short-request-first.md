@@ -30,11 +30,11 @@ sources:
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L82-L91
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L31-L49
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L952-L980
-  - vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1330-L1349
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1440-L1446
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L954-L982
+  - vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L91-L103
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/short_request_first.md#L103-L107
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1340-L1359
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1450-L1456
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/short_request_first.html
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -55,7 +55,7 @@ relations:
     kind: conflicts-with
     note: 两个都是换掉 waiting 队列的调度特性，源码里显式互斥——同时开直接 ValueError，只能二选一
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

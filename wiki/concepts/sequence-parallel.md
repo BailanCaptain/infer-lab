@@ -22,13 +22,13 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L291-L295
   - vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/sequence_parallelism.py#L13-L20
   - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L124-L138
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L888-L900
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L945-L957
   - vllm@0fc695fc:vllm/config/parallel.py#L618-L640
-  - vllm-ascend@b255ab59:vllm_ascend/ops/linear_op.py#L299-L318
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1547-L1553
-  - vllm-ascend@b255ab59:vllm_ascend/models/common/ops/sequence_parallel.py#L29-L49
-  - vllm-ascend@b255ab59:vllm_ascend/ops/register_custom_ops.py#L89-L98
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48
+  - vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L299-L318
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1557-L1563
+  - vllm-ascend@baa023ad:vllm_ascend/models/common/ops/sequence_parallel.py#L29-L49
+  - vllm-ascend@baa023ad:vllm_ascend/ops/register_custom_ops.py#L88-L97
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/sequence_parallelism.md#L5-L48
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sequence_parallelism.md#L14-L21
   - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L861-L888
   - vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L467-L521
@@ -48,7 +48,7 @@ relations:
     kind: conflicts-with
     note: 两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到；只在 v0.23 上撞得到，v0.26 起那个 pass 已删
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -118,7 +118,7 @@ vllm serve Qwen/Qwen3-VL-2B-Instruct --tensor-parallel-size 2 \
 
 ## 两个发布分支在一边，main 在另一边
 
-下表 v0.23 维护分支指 `2c59ff10`、v0.26 分支指 `2ed6cbba`，main 开发主线指 2026-09-19 的源码快照 `b255ab59`。**这六行上 v0.26 与 v0.23 完全同边**，所以只摆两列；这一页的差异比库里大多数页都大——**不是参数改名，是整套实现换了地方**；main 的官网页面是 [Sequence Parallelism（latest）](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/sequence_parallelism.html)。
+下表 v0.23 维护分支指 `2c59ff10`、v0.26 分支指 `2ed6cbba`，main 开发主线指 2026-09-21 的源码快照 `baa023ad`。**这六行上 v0.26 与 v0.23 完全同边**，所以只摆两列；这一页的差异比库里大多数页都大——**不是参数改名，是整套实现换了地方**；main 的官网页面是 [Sequence Parallelism（latest）](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/sequence_parallelism.html)。
 
 | 项 | v0.23 与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|

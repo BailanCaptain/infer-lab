@@ -69,13 +69,13 @@ notes:
     width: 860
 
 pins:
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L148
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L143
     symbols: [get_kv_cache_shape, get_supported_kernel_block_sizes]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1725-L1746
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1202-L1223
     symbols: [forward_impl, AscendAttentionState, using_paged_attention]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1304-L1354
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L781-L831
     symbols: [_get_kv_cache_view, npu_fused_infer_attention_score, PrefillNoCache]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1579-L1598
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1056-L1075
     symbols: [forward_paged_attention, _npu_paged_attention]
-  - source: vllm-ascend@b255ab59:vllm_ascend/attention/utils.py#L225-L241
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L177-L193
     symbols: [using_paged_attention, pa_shape_list, FULL_DECODE_ONLY]

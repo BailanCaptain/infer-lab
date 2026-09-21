@@ -6,46 +6,47 @@ summary: 把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬�
 aliases: [Layerwise KV Offload, 逐层 KV 卸载, 逐层 KV 传输, Layerwise KV Cache Offload, Layerwise KV Cache Offloading, Layerwise KV Pool, Layerwise Prefill Offload]
 chapters: ["11"]
 sources:
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/kv_pool.md#L26-L36
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_pool.md#L26-L36
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kv_pool.html
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L75-L84
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layerwise_kv_pool.html
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L145-L209
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L271-L282
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L145-L209
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L271-L282
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html
-  - vllm-ascend@b255ab59:vllm_ascend/attention/utils.py#L491-L519
-  - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L2045-L2048
-  - vllm-ascend@b255ab59:vllm_ascend/attention/mla_v1.py#L2164-L2168
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1728-L1736
-  - vllm-ascend@b255ab59:vllm_ascend/ops/gdn.py#L363-L369
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L27-L61
+  - vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L445-L473
+  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2054-L2057
+  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2173-L2177
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1202-L1212
+  - vllm-ascend@baa023ad:vllm_ascend/ops/gdn.py#L363-L369
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L29-L73
   - vllm-ascend@2c59ff10:vllm_ascend/memcache_comm_fence.py#L27-L61
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L93-L99
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L267-L282
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L96-L102
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L277-L292
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L243
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L57
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L199-L214
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L294-L299
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L509-L548
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2296-L2323
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2325-L2358
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2366-L2401
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L55
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L205-L221
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L301-L306
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L516-L555
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2456-L2485
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2487-L2539
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L2547-L2593
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1399
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1407-L1430
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1779-L1793
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2031-L2043
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2004-L2016
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L297-L381
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4254-L4263
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1556-L1560
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1826-L1830
-  - vllm-ascend@b255ab59:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L86-L91
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1827-L1841
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2082-L2094
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L2055-L2067
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L128-L192
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L297-L381
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4470-L4479
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1604-L1608
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/kv_transfer.py#L1874-L1878
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L98-L103
   - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L114-L178
   - vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1722-L1774
   - vllm-ascend@2ed6cbba:vllm_ascend/memcache_comm_fence.py#L27-L61
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/layerwise_kv_pool.md#L1-L16
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L1-L16
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/mooncake_layerwise_adaptation_and_optimization.md#L1-L17
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_layerwise.py#L52-L75
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -62,12 +63,12 @@ relations:
     kind: alternative-to
     note: 同样把 KV 挪出 HBM，但那边按请求整块搬到本机主存做前缀备份，这边按层搬进跨节点的 memcache 池
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话
 
-Layerwise KV Offload 把 KV 的存取粒度从「一次请求」降到「一层」：第 *i* 层算完立刻把它的 KV 发往 KV 池，第 *i+1* 层的计算与这次搬运并行；加载同理，算第 *i* 层之前只等第 *i* 层的 KV 到位。开关是 `AscendStoreConnector` 的 `use_layerwise`，默认关 [S1]。**v0.26 起**在此之上多做一件事：**让多层轮流复用同一份 HBM buffer**，把 Prefill 侧的 KV 显存压成常数份——v0.23 维护分支没有这一层 [!]。下面 v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，main 指 2026-09-19 的源码快照 `b255ab59`。
+Layerwise KV Offload 把 KV 的存取粒度从「一次请求」降到「一层」：第 *i* 层算完立刻把它的 KV 发往 KV 池，第 *i+1* 层的计算与这次搬运并行；加载同理，算第 *i* 层之前只等第 *i* 层的 KV 到位。开关是 `AscendStoreConnector` 的 `use_layerwise`，默认关 [S1]。**v0.26 起**在此之上多做一件事：**让多层轮流复用同一份 HBM buffer**，把 Prefill 侧的 KV 显存压成常数份——v0.23 维护分支没有这一层 [!]。下面 v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，main 指 2026-09-21 的源码快照 `baa023ad`。
 
 ```wiki-diagram
 file: kv-cache-layerwise-offload
@@ -75,7 +76,7 @@ file: kv-cache-layerwise-offload
 
 ## 那条请求用不到它
 
-[那条请求](one-request.md)单卡跑 Qwen3-0.6B，压根没有 KV 池，那两个挂钩点在 `has_kv_transfer_group()` 那一行就返回了。就算硬给它配上 `use_layerwise: true` 也没用：Qwen3 这类普通 GQA 模型走 `attention_v1.py`，那个文件只调了 `record_attention_compute_start()`，没有 wait / save 这对调用——**开关生效在 connector 层，但没有人去调它** [C11]。
+[那条请求](one-request.md)单卡跑 Qwen3-0.6B，压根没有 KV 池，那两个挂钩点在 `has_kv_transfer_group()` 那一行就返回了。就算硬给它配上 `use_layerwise: true` 也没用：Qwen3 这类普通 GQA 模型走 `attention_v1.py`，那个文件只在 `forward_impl` 外面套了一层记 attention-start 事件的壳（两个发布分支写成 `record_attention_compute_start()`，main 换成上下文管理器 `attention_transfer_window()`），没有 wait / save 这对调用——**开关生效在 connector 层，但没有人去调它** [C11]。
 
 要走到这一页，设定得换成官方那一套：专职 Prefill 节点、`kv_role: "kv_producer"`、memcache 后端、MLA / SFA / DSA 注意力后端、eager 执行 [S5]。也就是说它是 **P/D 分离里 P 那一侧**的特性；D 那一侧的对应物是[稀疏 KV 卸载](kv-cache-sparse-offload.md)，官方文档把两者写在同一篇里配成一对。池后端怎么装、key 怎么算、命中怎么判，都归 [KV Pool](kv-pool.md)，这一页只讲「按层」这一件事。
 
@@ -85,7 +86,9 @@ file: kv-cache-layerwise-offload
 
 按层切开之后，同样的字节数摊到 28（或 61）个层间隙里，每个间隙后面都跟着一层实打实的计算可以拿来遮盖。**省下的从来不是带宽，是等待。**
 
-挂钩点摆在哪儿有讲究。以 `AscendMLAImpl` 为例：等待放在 `mla_preprocess_*` 之前，而且**只在 `has_prefill` 为真时才等**——decode 步不进这条路 [C9]；保存放在本层 `o_proj` 之后、返回之前。重叠能有多深则由预取深度决定：`_submit_ready_layer_loads` 在第 0 层一次投 `num_prefetch_layers` 个加载任务，之后每层补一个，始终保持这么多层在飞。
+挂钩点摆在哪儿有讲究。以 `AscendMLAImpl` 为例：等待放在 `mla_preprocess_*` 之前，而且**只在 `has_prefill` 为真时才等**——decode 步不进这条路 [C9]；保存放在本层 `o_proj` 之后、返回之前。上图画的是 memcache 的 `gva` 数据面：`_submit_ready_layer_loads` 在第 0 层最多投 `num_prefetch_layers` 个加载任务，之后每层最多补一个，有任务或需要等复用源的层才计入提交数。main 的 mooncake hybrid 路径另按当前层和预取窗口补齐任务，不能套用这一固定节奏 [C22]。
+
+**交给后台线程也不等于每层都能立即返回。** main 的 `save_kv_layer` 到本 PP stage 的最后一层时，会调用 `_wait_for_final_layer_save` 等最后一次保存完成，确保源 buffer 在 PUT 完成前还活着；中间层才有机会把搬运与下一层计算重叠 [C24]。
 
 还有一件事值得先说破：**没有独立的传输 stream**。搬运由 Python 后台线程发起，它与前向的重叠靠线程并行加 Event 定序，不是同一进程里两条 NPU stream 互相 `wait_event` [D]。于是多个 TP rank 会一起抢总线，`h2d_stagger_us` 拿忙等把它们错开，错开量是 `(tp_rank + layer_id) % tp_size × h2d_stagger_us`——忙等，设大了直接烧 CPU [C29]。
 
@@ -106,7 +109,7 @@ file: kv-cache-layerwise-offload
 | 独占 buffer 的层 | `[0]`，也是缺省值；第 0 层最早被写、最晚才有机会被复用 |
 | 参与复用的层 | 1…27 共 27 层，`27 > 3` 所以复用生效 |
 | 谁复用谁 | `{4:1, 5:2, …, 27:24}` 共 24 条，规律是**第 L 层复用第 L−3 层的 buffer** |
-| 预取深度 | `min(3, 8) = 3`；不写 `layerwise_prefetch_layers` 时取 `min(num_shared_buffers, 8)` [C21]，**不是文档写的 1** [S3] |
+| 预取深度 | `min(3, 8) = 3`；走到这条数据面时 `layerwise_prefetch_layers` 不写就取 `min(num_shared_buffers, 8)` [C21]，**不是文档写的 1** [S3] |
 | 描述符合并成几个 | `1 + 3 = 4` |
 
 最后一行才是真正掏出显存的那一步：`apply_layerwise_kv_cache_plan` 在 `initialize_kv_cache` 里、KV cache 真正分配之前，把 28 个 `KVCacheTensor` 描述符合并成 4 个，并打出 `Layerwise KV cache reuse merged 28 descriptors into 4 descriptors` [C31]。本地 KV buffer 从 28 份降到 4 份，约 **1/7** [D]——这也是[显存探测](kv-cache-memory-profiling.md)的结果在这条路上对不上主公式的原因。
@@ -120,7 +123,7 @@ file: kv-cache-layerwise-offload
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | 共享 buffer 复用 | 没有：`wait_for_save_layer` 恒为 `None`，仓库里也没有 `layerwise_cache_layout.py` | 有，实现与 main 相同 | 有 | v0.23 只拿得到流水线收益，拿不到显存收益 |
-| 怎么挑数据面 | 写死 `use_layerwise and backend == "memcache"` | 同 v0.23 | 走后端注册表，只有 memcache 挂了 `layerwise_protocol` [C18] | 结论没变，但 main 给 mooncake 另开了一条 block-key 路径，见 [KV Pool](kv-pool.md) |
+| 怎么挑数据面 | 写死 `use_layerwise and backend == "memcache"` | 同 v0.23 | 走后端注册表：`get_layerwise_protocol` 取到模块，再按它自报的 `LAYERWISE_DATA_PLANE` 分流，memcache 报 `gva`、mooncake 报 `block_key` [C18] | 这一页讲的仍是 memcache 那条 `gva` 数据面；main 上 mooncake 也挂了协议，但走的是另一条 block-key 路径，见 [KV Pool](kv-pool.md) `[!]` |
 | 纯消费者的层号推进 | 只有 `save_kv_layer` 会 `current_layer += 1`，而 load-only 消费者根本不调它 [C17] | 同 v0.23 | `wait_for_layer_load` 在非保存角色上自己推进 | 两个发布分支上 `kv_consumer` 不回写时，逐层加载会停在第 0 层 [I] |
 | 哪些层挂了钩子 | MLA / SFA / DSA / DSA-CP | 同 v0.23 | GDN 线性注意力层也记上 attention-start 门 [C12]；`wait_for_layer_load` 还顺带给 mamba 状态拷贝定序 | 带 GDN 的混合模型只有 main 会给逐层加载让路 |
 | 栅栏所在模块 | `vllm_ascend/memcache_comm_fence.py` | 同 v0.23，类代码逐字相同 | `.../ascend_store/attention_fence.py` | 只是搬家，import 路径不同 |
@@ -131,5 +134,5 @@ file: kv-cache-layerwise-offload
 ## 常见误解
 
 - **「layerwise 对任何模型都能开。」**——不是。成对调用这两个挂钩点的只有 `mla_v1.py`、`sfa_v1.py`、`dsa_v1.py`、`dsa_cp.py`；`ops/gdn.py` 三版都只调了保存那一半（main 上多记一个 attention-start 门），普通 GQA 走的 `attention_v1.py` 只调了记 Event 那一个。
-- **「`layerwise_prefetch_layers` 默认是 1。」**——分路径看。memcache 这条数据面上缺省是 `min(num_shared_buffers, 8)`，而 `num_shared_buffers` 不填等于层数，于是实际默认是 8；只有走不到这条数据面时才退回文档写的 1。同一份配置从 v0.23 搬到 v0.26 或 main，预取深度会从 1 跳到 8，飞行中的临时 buffer 也跟着涨。
-- **「文档说 CP 和 hybrid 都不支持，那就是代码里拦住了。」**——`dsa_cp.py` 三版都调了这对挂钩点；main 的源码里与 layerwise 直接相关的硬报错只有两条：TP 不一致，以及 mooncake 后端加 hybrid KV cache。文档那句是「未验证」，不是「代码拦住了」，真要用请自己验 [D]。
+- **「`layerwise_prefetch_layers` 默认是 1。」**——分路径看。memcache 这条数据面上缺省是 `min(num_shared_buffers, 8)`，而 `num_shared_buffers` 不填等于层数，于是实际默认是 8；走不到这条数据面时才退回那个字面默认值，而它也只在两个发布分支上是 1——main 已经改成 2 [C21]。同一份配置从 v0.23 搬到 v0.26 或 main，预取深度会从 1 跳到 8，飞行中的临时 buffer 也跟着涨。
+- **「文档说 CP 和 hybrid 都不支持，那就是代码里拦住了。」**——`dsa_cp.py` 三版都调了这对挂钩点；main 的源码里与 layerwise 直接相关的硬报错只有两条：P/D 两侧 TP 不一致，以及 mooncake 的 block-key 路径碰上 Mamba 这类循环状态 [C41]——hybrid / 多组 KV cache 这一条 main 上已经不报错了，改由 mooncake 自己的 block-key 协议接住。文档那句是「未验证」，不是「代码拦住了」，真要用请自己验 [D]。

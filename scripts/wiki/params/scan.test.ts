@@ -181,7 +181,9 @@ it("字段注解写成 Any、靠工厂函数把子配置传进根配置时，子
 });
 
 it("被工厂从用户输入里剔掉、又没有任何一处从用户输入读它的键，不算用户参数；它下面的字段跟着不算", () => {
-  const rows = scanSources({ "vllm_ascend/ascend_config.py": MAIN_STYLE_ROOT }).filter((p) => p.form === "field");
+  const rows = scanSources({ "vllm_ascend/ascend_config.py": MAIN_STYLE_ROOT }).filter(
+    (p) => p.form === "field",
+  );
   const confidence = Object.fromEntries(rows.map((p) => [p.json_path, p.confidence]));
   expect(confidence).toMatchObject({
     // 在剔除名单里，但工厂自己从 additional_config 读它：仍是用户键

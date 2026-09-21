@@ -11,7 +11,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
   - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L100
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "D"
@@ -23,7 +23,7 @@ relations:
     kind: builds-on
     note: 跟完那条请求只需要读两个目录，其余 394 个文件它一个都不碰
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -79,7 +79,7 @@ file: vllm-ascend-repo-map
 
 ## 两个分支在目录层面差 8 项
 
-`2c59ff10` 上独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；`b255ab59` 上独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。其余 21 个子目录两边同名——**同名不等于同内容**，例如 `platform.py` 里 `class NPUPlatform` 在 `2c59ff10` 是第 128 行、在 `b255ab59` 是第 80 行 [C2][C5]。对照方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
+v0.23 维护分支上独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；main 开发主线上独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/` [D]。其余 21 个子目录两边同名——**同名不等于同内容**，例如 `platform.py` 里 `class NPUPlatform` 在 v0.23 上是第 128 行、在 main 上是第 82 行 [C2][C5]。对照方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
 
 **v0.26 分支在目录层面几乎没动。** `2ed6cbba` 与 `2c59ff10` 相比只差两项：`flash_common3_context.py` 没了，多出一个 `transformers_utils/`；v0.23 那 23 个子目录在 v0.26 上一个不少 [D]。可文件数和行数涨了一大截（442 → 500 个 `.py`、130661 → 150827 行），**涨的部分全在同名目录内部** [A]——所以「目录没变」千万别读成「代码没变」。同一个 `class NPUPlatform`，v0.26 上在第 127 行，只比 v0.23 差一行 [C6]。
 

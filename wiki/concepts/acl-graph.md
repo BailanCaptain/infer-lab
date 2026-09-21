@@ -48,10 +48,10 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L606
   - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L634-L635
   - vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L37-L47
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L113-L133
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1153-L1167
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L1205-L1207
-  - vllm-ascend@b255ab59:vllm_ascend/compilation/breakable_aclgraph.py#L38-L45
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L113-L133
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1162-L1176
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1214-L1216
+  - vllm-ascend@baa023ad:vllm_ascend/compilation/breakable_aclgraph.py#L38-L45
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L527-L531
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -69,7 +69,7 @@ relations:
     kind: builds-on
     note: FULL 回放前那次 current_stream().synchronize() 就是为异步调度加的，否则第 i 步的参数更新会被第 i−1 步的回放吃掉
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -158,7 +158,7 @@ FULL 模式下有一样东西录不进图：`seq_lens` 每步都变，而 worksp
 
 会真踩到的硬约束：
 
-- `ASCEND_LAUNCH_BLOCKING=1` 与图模式**互斥且不降级**，是启动时 `raise ValueError` [C18]。调试时顺手 export 过这个变量的人第一个撞上。
+- 两个发布分支上 `ASCEND_LAUNCH_BLOCKING=1` 与图模式**互斥且不降级**，是启动时 `raise ValueError` [C18]。调试时顺手 export 过这个变量的人第一个撞上；main 上这道闸已经拆了，见下表 `[!]`。
 - encoder-decoder 模型被强制收到 `PIECEWISE`，编译模式不是 `VLLM_COMPILE` 就收到 `NONE`；context parallel 下 `cudagraph_mode="FULL"` 官方自述「支持得还不够」；310P 与 Atlas 200I Pro 不支持 `enable_npugraph_ex`。
 - 捕获报 `207008` 或 `Stream resources are insufficient` 时，vllm-ascend 把它重抛成带处置建议的错误；piecewise 最容易撞上，因为它录的图最多 [S4]。
 
@@ -170,6 +170,7 @@ FULL 模式下有一样东西录不进图：`seq_lens` 每步都变，而 worksp
 | A5 砍 4 档的门禁 | `get_ascend_device_type() == AscendDeviceType.A5` | 同左 | 改判 `HardwareCapability.REDUCED_CUDAGRAPH_CAPTURE_SIZES` [C44] | 行为一样（都是 4 档），但按旧名字在 main 上 grep 不到 |
 | 捕获尺寸要对齐 TP 的触发条件 | 只有 `enable_sp` | 同左 | 还包括 shared-expert DP 与 DSA CP [C43] | [!] main 上更多配置会改写你手写的 `cudagraph_capture_sizes` |
 | 可打断的图包装器 | 无 | 无 | 多一个 `BreakableACLGraphWrapper` [C45] | main 上图模式多出一条路径 |
+| `ASCEND_LAUNCH_BLOCKING=1` 撞上图模式 | 启动 `raise ValueError` [C18] | 同左 | 检查已删，`vllm_ascend/` 里 grep 不到这个变量 | [!] 同一条命令在两个发布分支上起不来、在 main 上照常开图 |
 
 ## 常见误解
 

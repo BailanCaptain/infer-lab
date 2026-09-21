@@ -24,28 +24,28 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L82-L82
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/sleep_mode.md#L48-L58
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L261-L292'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L252-L255'
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L291-L294'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1603-L1661'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L261-L292'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L252-L255'
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L291-L294'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1671'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L241-L241
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L245-L245
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L288-L295
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L292-L299
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63
-  - 'vllm-ascend@b255ab59:tests/ut/worker/test_worker_v1.py#L598-L601'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/rl.md#L102-L116'
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/sleep_mode.md#L53-L63
+  - 'vllm-ascend@baa023ad:tests/ut/worker/test_worker_v1.py#L610-L613'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rl.md#L102-L116'
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L163
-  - 'vllm-ascend@b255ab59:tests/ut/test_ascend_config.py#L99-L107'
+  - 'vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L99-L107'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
+    vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L47-L64
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128
+    vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L116-L128
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186
-  - 'vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L280-L294'
+    vllm-ascend@baa023ad:vllm_ascend/device_allocator/sleep_mem_optimized.py#L146-L186
+  - 'vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L280-L294'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L175-L175'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L228-L230'
   - 'vllm-ascend@2ed6cbba:docs/source/user_guide/release_notes.md#L120-L120'
@@ -59,7 +59,7 @@ relations:
     kind: builds-on
     note: 这个键从顶层搬进 rl_config 子配置，旧写法在 main 上会撞上 extra="forbid"——搬家的机制在那一页
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-024d8bdfc8e0a81cafa0b07e205478201aefcd1adf86c717b31c22e7c02f74cf.md

@@ -18,7 +18,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L880-L896
-  - vllm-ascend@b255ab59:vllm_ascend/platform.py#L80-L98
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L100
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2332
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426
@@ -34,7 +34,7 @@ relations:
     kind: builds-on
     note: 那条请求的 block_size、注意力后端、token 预算档位，三个数都是这个类定的
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -98,14 +98,14 @@ file: platform-surface
 
 ## 第四组：把请求转给具体实现
 
-`get_attn_backend_cls` 在 `attention/` 下的注意力后端里选一个（v0.23 上那里五个类、v0.26 分支起六个，多出来的那个不由它选；310p 又走另一张表，选的是 `_310p/` 下的专用后端）[C10]，`get_device_communicator_cls` 给出通信器类路径，`get_compile_backend` [C2] 与 `get_static_graph_wrapper_cls` [C11] 各返回一个类路径字符串。这四个方法是从平台层跳进各子系统的跳板 [D]；顺着它们能一路走到 [注意力后端家族](attention-backend-family.md) 与 [图模式层](graph-mode-layer.md)。
+`get_attn_backend_cls` 在 `attention/` 下的注意力后端里选一个（v0.23 快照那里有五个类、v0.26 快照有六个，多出来的那个不由它选；这个计数不涵盖 main。310p 又走另一张表，选的是 `_310p/` 下的专用后端）[C10]，`get_device_communicator_cls` 给出通信器类路径，`get_compile_backend` [C2] 与 `get_static_graph_wrapper_cls` [C11] 各返回一个类路径字符串。这四个方法是从平台层跳进各子系统的跳板 [D]；顺着它们能一路走到 [注意力后端家族](attention-backend-family.md) 与 [图模式层](graph-mode-layer.md)。
 
 ## 行号会漂，引用必须带 commit
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 |
 |---|---|---|---|
-| `class NPUPlatform` 起始行 | 128 [C1] | 127 [C14] | 80 [C12] |
-| 与 v0.23 相差 | — | 1 行 | 48 行 [D] |
+| `class NPUPlatform` 起始行 | 128 [C1] | 127 [C14] | 82 [C12] |
+| 与 v0.23 相差 | — | 1 行 | 46 行 [D] |
 
 这就是本库所有来源都写成 `repo@commit:path#L起-L止` 的原因——只记行号的笔记在换分支之后会指到别的代码上。
 

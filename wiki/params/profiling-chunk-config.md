@@ -20,48 +20,48 @@ sources:
     raw:sha256-9e727546228dccd4202221fadbabf5e7327a90a2133453ec62eaae1cc2bb2e88.md#L1-L130
   - >-
     raw:sha256-2a352fc9453bfcd0bd297b7e521f82bf11365fda371d6e0ed69185712bcf375f.md#L1-L339
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1251-L1288'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L570-L595'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1430-L1451'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L389-L404'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1261-L1298'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L598'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1440-L1461'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L390-L405'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L723-L760'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L55-L93'
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/core/profiling_chunk_predictor.py#L288-L315
+    vllm-ascend@baa023ad:vllm_ascend/core/profiling_chunk_predictor.py#L288-L315
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L104-L120
+    vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L104-L120
   - >-
-    vllm-ascend@b255ab59:vllm_ascend/core/scheduler_profiling_chunk.py#L339-L351
-  - 'vllm-ascend@b255ab59:vllm_ascend/platform.py#L1262-L1270'
+    vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L339-L351
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L1261-L1269'
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L7-L22
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L7-L22
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L219
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L196-L219
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L229-L267
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L229-L267
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L269-L297
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L269-L297
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L299-L304
+    vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L299-L304
   - >-
-    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L7-L38
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L7-L38
   - >-
-    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L54-L63
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L54-L63
   - >-
-    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L65-L83
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L65-L83
   - >-
-    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L85-L95
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L85-L95
   - >-
-    vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L139-L160
+    vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L143-L164
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L24-L46
   - >-
-    vllm-ascend@b255ab59:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153
+    vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L146-L153
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/dynamic_chunk_pipeline_parallel.md#L110-L130
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L721-L743'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L667-L671'
-  - 'vllm-ascend@b255ab59:vllm_ascend/platform.py#L967-L971'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L969-L973'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: S
 relations:
@@ -72,7 +72,7 @@ relations:
     kind: builds-on
     note: 开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 origin: seed
 rawSources:
   - >-
@@ -95,7 +95,7 @@ file: profiling-chunk-config
 
 ## 事实表
 
-下表左列依据 `2c59ff10` 的配置源码 [C7]，v0.26 列依据 `2ed6cbba` [C26]，main 列依据 `b255ab59` [C3]。
+下表三列各依据对应分支的配置源码：v0.23 维护分支 [C7]、v0.26 分支 [C26]、main 开发主线 [C3]。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|

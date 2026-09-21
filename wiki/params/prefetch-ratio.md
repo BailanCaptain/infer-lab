@@ -28,16 +28,16 @@ sources:
     vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/weight_prefetch.md#L11-L32
   - >-
     vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L117-L122
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L316-L346'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L436-L454'
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L235-L249'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L316-L346'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L235-L249'
   - >-
-    vllm-ascend@b255ab59:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L72-L75
+    vllm-ascend@baa023ad:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L72-L75
   - >-
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L709
-  - 'vllm-ascend@b255ab59:docs/source/user_guide/release_notes.md#L56-L62'
-  - 'vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L1650-L1661'
-  - 'vllm-ascend@b255ab59:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
+  - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L62'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
+  - 'vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - >-
     vllm-ascend@2ed6cbba:tests/e2e/pull_request/two_card/test_qwen3_performance.py#L76-L76
@@ -51,7 +51,7 @@ relations:
     kind: builds-on
     note: 这个键只是 additional_config 里的一段嵌套 dict，main 上它被 extra="forbid" 拒收的机制在那一页
 contradicts: []
-updated: '2026-09-21'
+updated: "2026-09-22"
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -114,7 +114,7 @@ file: prefetch-ratio
 2. **想关掉一组，要把该组所有项都写成 0。** 全 0 时 `enable` 被置 False，这一组才真正不预取；写成空 dict 或整组不写，都会回退到该组的内建默认值。
 3. **越界值不报错。** `1.2`、`-0.5` 会被静默丢出字典（上游单测锁死了这个行为），随后落进第 1 条的全量分支。
 
-**去向：删了，没有替代开关。** v0.23.0 的发布说明先把 weight prefetch 列进待废弃清单 [S18]，随后 PR #11949 把它整体摘掉，v0.26.0rc1 的发布说明里记着这一笔 [S21]。v0.26 分支与 `b255ab59` 上 `WeightPrefetchConfig`、`prefetch_ratio`、`ops/weight_prefetch.py` 和 `prefetch_preprocess` 的算子注册都已不在，main 的 `AscendConfig` 自述的「全部受支持键」里也找不到 `weight_prefetch_config` [C16]。
+**去向：删了，没有替代开关。** v0.23.0 的发布说明先把 weight prefetch 列进待废弃清单 [S18]，随后 PR #11949 把它整体摘掉，v0.26.0rc1 的发布说明里记着这一笔 [S21]。v0.26 分支与 main 上 `WeightPrefetchConfig`、`prefetch_ratio`、`ops/weight_prefetch.py` 和 `prefetch_preprocess` 的算子注册都已不在，main 的 `AscendConfig` 自述的「全部受支持键」里也找不到 `weight_prefetch_config` [C16]。
 
 **而且上游仓库里还留着过期的启动命令**：two_card 的 Qwen3 性能 e2e 用例 [C19] 和 Qwen3 稠密模型教程 [S23] 都还写着 `"weight_prefetch_config":{"enabled":true}`，v0.26 分支上同一个用例也原样留着 [C25]。照抄它们在 main 上会撞上 `extra="forbid"` 起不来，在 v0.26 上则是起得来、比例一个都没读 [!]。main 的另一个例外是装了 `vllm_omni` 的环境——那里未知键只打一条 warning 然后被丢掉，于是配置也变成真正的静默无效 [C22]。
 

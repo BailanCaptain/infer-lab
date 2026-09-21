@@ -18,7 +18,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L79
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
   - vllm-ascend@2c59ff10:docs/source/index.md#L24-L26
-  - vllm-ascend@b255ab59:setup.py#L518-L529
+  - vllm-ascend@baa023ad:setup.py#L506-L517
   - https://docs.vllm.ai/projects/ascend/en/latest/index.html
   - vllm-ascend@2ed6cbba:setup.py#L543-L551
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144
@@ -35,7 +35,7 @@ relations:
     kind: builds-on
     note: 那条请求碰到的每一个昇腾对象，都是顺着这五个入口之一进来的
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 
@@ -76,8 +76,8 @@ file: ascend-vs-upstream
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | entry point 组数 | 2 组 / 5 个 [C1] | 2 组 / 5 个 [C14] | 3 组 / 6 个 [C12] | 多出来的那组只有 main 有：`ms_service_metric.providers` → `vllm_ascend.observability:get_metric_provider` |
-| `NPUPlatform` 所在行 | `platform.py` 第 128 行 [C5] | 第 127 行 [C15] | 第 80 行 [D] | 同一个类，三边行号各不相同；引用必须带 commit，不能只写行号 |
-| `patch/` 下的 `patch_*.py` | 59 个 | 64 个 [D] | 59 个 | v0.26 比另外两边多五个补丁文件，照文件名清点 patch 目录的笔记换分支就对不上 |
+| `NPUPlatform` 所在行 | `platform.py` 第 128 行 [C5] | 第 127 行 [C15] | 第 82 行 [D] | 同一个类，三边行号各不相同；引用必须带 commit，不能只写行号 |
+| `patch/` 下的 `patch_*.py` | 59 个 | 64 个 [D] | 60 个 [D] | 三边的补丁文件数都不一样，照文件名清点 patch 目录的笔记换分支就对不上 |
 
 这张表只列入口层面的差异。分支之间的目录层面差异在 [vllm_ascend 目录地图](vllm-ascend-repo-map.md)。
 

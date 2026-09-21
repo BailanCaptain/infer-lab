@@ -35,7 +35,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4919
   - vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L817-L820
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1892-L1900
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L2231-L2239
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2267-L2275
   - vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L89-L104
   - vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L111-L124
   - vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L135-L141
@@ -58,7 +58,7 @@ relations:
     kind: builds-on
     note: 「盘上命中的图不扣编码算力预算」发生在调度器挑编码输入那一段，每步怎么发名额由那一页讲
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

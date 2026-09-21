@@ -1,6 +1,6 @@
 # LLM WIKI 交接
 
-> 更新于 2026-09-21。这一页只写「现在在哪、接下来做什么、哪里会踩坑」。
+> 更新于 2026-09-22。这一页只写「现在在哪、接下来做什么、哪里会踩坑」。
 > 会变的数字（页数、预算、测试条数）不抄在这里——用 §2 的命令现查。2026-09-19 之前的逐轮流水账在 [归档](docs/plans/handoff-archive-2026-09-19.md)。
 
 ## 1. 从哪开始
@@ -66,7 +66,7 @@
 2. **课程术语页。** 30 个里 `kv-cache`、`rope`、`prefill` 三页试点已由用户批准、写法也认可；缺哪些词用 `pnpm wiki:lint --terms` 现查。**等模型计算层的章节在另一个会话定下来再做**（术语要跟着章节走）；三页试点还**没配图**，而 HANDBOOK 要求讲结构关系的页必须有图。**「把 `<Term>` 悬停卡接进课程正文」现在无处可接**：这个分支的 `src/app` 里没有地方渲染 `Step.terms`，等课程界面定下来再接，不算漏做。
 3. **硬件页**：留到硬件段最后接入，不要提前开。
 4. **LMCache / UCM 两篇**：官方特性主线就剩这两篇第三方存储部署指南，写法同三版本规则。
-5. **main 重钉**：库里 main 来源统一钉在 09-19 的 `b255ab59`，上游每天在动，`wiki:stale` 已经在报一批（预期内）。重钉是一次性的一笔活——`wiki:stale --fetch` 出清单 → 逐页核 → 统一改 seeds，挑一轮专门做，不要顺手做。
+5. ~~main 重钉~~ —— **09-22 已重钉到 `baa023ad`（上游 09-21 快照）**：正文、图、参数生成区与 seeds 已对齐，两个发布分支保持原 pin。本轮只读 `wiki:stale` 已归零；以后上游变化仍按 `wiki:stale --fetch` 出清单 → 逐页核 → 统一改 seeds，单独做一轮。
 6. **新页作者们反复建议补的地基页——是建议，不是已定**：被点名最多的是 `hardware-profile`（设备类型）、`model-runner-v2`、`mooncake-connector-v2`、`fused-moe-layer`。开写前先问用户。
 7. **明确挂起、等用户说开始**：三项大批量导入（F001 AC5 全量灌种、F002 AC4 全量参数页、F003 AC1 GitHub 全库初拉）**仍放在最后一步，必须用户点头**。
 8. **两件已定、不必再问的事**：① **conda 环境不用建**（用户 09-21 定）——参数扫描脚本 `scripts/wiki/params/scan.py` 只 import `ast` / `json` / `re` / `sys`，全是标准库，任何 3.11+ 的解释器都跑得了（3.11 是硬下限：钉住的 main 快照里有两处 `typing.Literal[*args]` 这种 PEP 646 星号下标，3.10 及以下 `ast.parse` 直接语法错、整轮扫描退出）。开源用户 PATH 上有 Python 3.11+ 就行，不合适再写一行 `wiki/sync.config.local.json`（gitignore，`{"python": "<路径>"}`）。这台机器现在借的是 Codex 私有缓存里的那份，哪天它没了，夜间任务会**当场报错**并在错误信息里写明「解释器 X；当前上游需要 3.11+，可用 `WIKI_PYTHON` 或同步配置 `python` 指定」（`scripts/wiki/params/scan.ts:17`），不会悄悄坏掉，所以不值得为它装一套 conda；② **`maxTasks` 什么时候开**——用户 09-21 定：**等这个阶段做完、大规模导入之前再开**。它一开，新内容自然走「agent 写草稿 → 人在面板上审」，上面那笔欠账也就一并还了。另外两个付费开关（`reconcileBatches` / `driftSample`，各是什么见状态文档 §6）照旧建议先不开；F004 AC3 的「够不够」仍是回答模型自报。
@@ -88,7 +88,7 @@
 
 - **加一页的路**（不花钱）：读 `tools/repos/` 里钉住的源码 → 按 HANDBOOK 写页 → 过下面那条校验 → 直接提交。需要用户过目时才改走 `pnpm wiki:stage --ids a,b [--touch concepts/邻居.md]` 产待审包（`--touch` 用来把「给邻居页补一条 relations」放进同一个包）。
 - **提交前**：内容改动跑 `pnpm wiki:build`（必跑，刷 `registry.json` 与 `index.md`，不刷 `server/reader-build.test.ts` 就会红）→ `pnpm wiki:lint` → `pnpm wiki:audit` → `pnpm wiki:diagrams --check`；动了代码再加 `pnpm check`（= typecheck + lint + test + 依赖/内容检查 + 图检查 + wiki:lint，记得带 `WIKI_PYTHON`），前端改动另跑 `pnpm test:e2e`。
-- 写的行号必须是实际打开读过的行。证据用钉住的源码：vllm-ascend main 全库统一钉在 `b255ab59`，发布分支两个——v0.23.0（配套 `vllm@0fc695fc`）与 v0.26.0rc = `2ed6cbba`（配套 `vllm@568afb3a`）；另可用论文、官方模型卡。
+- 写的行号必须是实际打开读过的行。证据用钉住的源码：vllm-ascend main 全库统一钉在 `baa023ad`，发布分支两个——v0.23.0（配套 `vllm@0fc695fc`）与 v0.26.0rc = `2ed6cbba`（配套 `vllm@568afb3a`）；另可用论文、官方模型卡。
 - **往文件里写带反斜杠或反引号的内容，不要用 heredoc 或 `python -c`**，会被转义吃掉（这轮又踩了一次）；整文件直接用 Write 工具写。
 - HANDBOOK 写了可引 `infer-lab@commit`，但**代码里没实现这种来源**，引了过不了校验。
 - 全库共用一条请求（`concepts/one-request.md`：37 token 问题、200 token 回答），能落到它上面的页都要写「这条请求走到这里时发生了什么」。
@@ -100,7 +100,15 @@
 - 问答侧：「声明未收录」的回答判 `cited: true` 是复测验收（`scripts/wiki/retest.ts:244`）依赖的语义，**看着像 bug 也不要改成 false**——试过，`worker.test.ts` 会红，「结论带引用 + 其他版本尚未收录」这种好回答会永远验收不了。前端该显示的中性「未收录」标记已经补上（`ChatDrawer.tsx`，`data-testid="chat-uncovered"`）。
 - 用户对视觉要求高，前端改动必须截图验收。应用内浏览器面板截图经常超时，用仓库自带 Playwright 写临时脚本截（放 `test-results/`，已 gitignore）。
 
-## 6. 2026-09-21 这轮做了什么
+## 6. 最近两轮做了什么
+
+### 2026-09-22：main 重钉
+
+- **事实快照推进到 `baa023ad`**：修正 C8 用户开关已恢复、KVPool 查询的数据面边界、逐层保存的末层等待、KVPP 已标 Experimental 等结论；参数定义用现有生成器重算，谱系只推进 main，历史事件与发布分支引用保留。下面 09-21 记录里的 `b255ab59` 是当时快照，不代表当前内容。
+- **写作例外仅限本轮收尾**：正文先由 Opus 5 核对；周额度耗尽后，用户 09-22 明确允许当前模型完成剩余正文、配图与交接记录。此授权不改变后续写作约定。
+- **本轮验证**：全量单测、代码 lint、知识库 lint、行号审计、图一致性、类型检查、生产构建通过；来源变动检查归零。生产预览跑完既有 Wiki 浏览器用例，并另查 KVPool、逐层卸载、C8、KVPP 的正文、版本标记、来源链接与刷新。默认运行环境曾出现 Windows 进程崩溃及 worker 超时，单测最终使用本机随附 Node 24.19、threads 单 worker、独立缓存完成；代码 lint 整理了一处既有测试文件换行，保留原有 specificity 警告。站外 URL 和昇腾设备运行未在本轮重测。
+
+### 2026-09-21
 
 - **加了 v0.26，不是换版本**（用户 09-21 定）：v0.23 维护分支、v0.26、main 三个在册版本长期并存。seeds 登记 `releases/v0.26.0rc` = `vllm-ascend@2ed6cbba`（分支 tip，还在 rc），配套上游 vLLM v0.26.0 = `vllm@568afb3a`（`74b053a`）。
 - **`pnpm wiki:versions`**（只读，不调模型不花钱）：对钉在 `--from` 上的每条来源，查所引的那几行在 `--to` 上是不是原样（same / moved / changed / gone）；`--init` 建字段，`--mark` 记核对结果，已对过目标版本的页不再列出（`8aa80cc`）。

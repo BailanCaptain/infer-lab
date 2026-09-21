@@ -6,35 +6,35 @@ summary: 每个注意力层向引擎报一份规格——块大小、KV 头数�
 aliases: [KV Cache Spec, KV 缓存规格, KV Cache 规格, KV Cache 声明, KVCacheSpec, 按层 KV 规格声明]
 chapters: ["11"]
 sources:
-  - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1088-L1107
+  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1088-L1107
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L891-L892
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5556-L5700
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5822-L5981
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4946
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5645-L5671
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5925-L5951
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L5005-L5011
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5702-L5715
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L106-L116
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5982-L5995
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L111
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L104-L112
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L146-L148
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L141-L143
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
-  - vllm-ascend@b255ab59:docs/source/user_guide/configuration/additional_config.md#L176-L176
-  - vllm-ascend@b255ab59:vllm_ascend/worker/worker.py#L1122-L1138
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4241-L4278
+  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L180-L180
+  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1122-L1138
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4457-L4494
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L3843-L3865
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4337-L4382
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4791-L4828
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4846-L4864
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4561-L4606
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5019-L5056
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5074-L5092
   - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4212-L4232
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1516-L1518
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4422-L4441
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5225-L5269
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L5143-L5153
-  - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L112-L133
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1580-L1582
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4653-L4672
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5501-L5545
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5419-L5429
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_interface.py#L115-L136
   - vllm-ascend@2c59ff10:vllm_ascend/core/kv_cache_interface.py#L66-L121
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L167-L200
-  - vllm-ascend@b255ab59:vllm_ascend/worker/model_runner_v1.py#L4447-L4468
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4678-L4699
   - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
-  - vllm-ascend@b255ab59:vllm_ascend/core/kv_cache_interface.py#L32-L46
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_interface.py#L33-L47
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
   - vllm-ascend@2ed6cbba:vllm_ascend/core/kv_cache_interface.py#L19-L129
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
@@ -47,7 +47,7 @@ relations:
     kind: builds-on
     note: spec 描述的是「缓存的一块长什么样、多大」；缓存本身为什么存在、存的是什么，在那一页
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 ---
 
 ## 一句话

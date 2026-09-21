@@ -41,10 +41,10 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/developer_guide/Design_Documents/cpu_binding.html
   - vllm-ascend@2ed6cbba:vllm_ascend/cpu_binding.py#L798-L803
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L827-L834
-  - vllm-ascend@b255ab59:vllm_ascend/cpu_binding.py#L517-L527
-  - vllm-ascend@b255ab59:vllm_ascend/device/hardware_profile.py#L166-L194
-  - vllm-ascend@b255ab59:vllm_ascend/cpu_binding.py#L697-L705
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L454-L458
+  - vllm-ascend@baa023ad:vllm_ascend/cpu_binding.py#L517-L527
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L258-L286
+  - vllm-ascend@baa023ad:vllm_ascend/cpu_binding.py#L697-L705
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455-L459
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -64,7 +64,7 @@ relations:
     kind: alternative-to
     note: 两者从两头削同一笔 host 下发开销——图模式减少下发次数，绑核稳住做下发的那条线程，开了图也仍然要绑
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

@@ -36,16 +36,16 @@ sources:
   - https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/batch_invariance.html
   - vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L1121-L1121
   - vllm-ascend@2ed6cbba:vllm_ascend/batch_invariant.py#L76-L92
-  - vllm-ascend@b255ab59:vllm_ascend/attention/attention_v1.py#L1450-L1470
+  - vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L927-L947
   - vllm-ascend@2ed6cbba:tests/e2e/pull_request/one_card/test_batch_invariant.py#L149-L200
-  - vllm-ascend@b255ab59:vllm_ascend/batch_invariant.py#L68-L83
-  - vllm-ascend@b255ab59:vllm_ascend/batch_invariant.py#L124-L137
-  - vllm-ascend@b255ab59:vllm_ascend/ascend_config.py#L262-L292
-  - vllm-ascend@b255ab59:vllm_ascend/utils.py#L1296-L1300
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L24-L26
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L110-L119
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L196
-  - vllm-ascend@b255ab59:docs/source/user_guide/feature_guide/batch_invariance.md#L207-L226
+  - vllm-ascend@baa023ad:vllm_ascend/batch_invariant.py#L68-L83
+  - vllm-ascend@baa023ad:vllm_ascend/batch_invariant.py#L124-L137
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L262-L292
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1360-L1364
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L24-L26
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L110-L119
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L184-L196
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/batch_invariance.md#L207-L226
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/batch_invariance.html
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
@@ -69,7 +69,7 @@ relations:
     kind: builds-on
     note: 多卡时 all-reduce 的加法顺序也得钉死，靠 HCCL_DETERMINISTIC=strict 和 LCCL_DETERMINISTIC=1
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-22"
 origin: seed
 ---
 

@@ -2,7 +2,6 @@
   "seeds": "wiki/seeds/vllm-ascend.yaml",
   "fetch": true,
   "parameters": true,
-  "python": "C:/Users/-/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
   "maxNewParamPages": 10,
   "github": true,
   "githubRepo": "vllm-project/vllm-ascend",

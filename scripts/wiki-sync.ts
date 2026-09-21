@@ -1,10 +1,9 @@
-import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { syncConfigSchema, syncWiki } from "./wiki/sync";
+import { readSyncConfig, syncConfigSchema, syncWiki } from "./wiki/sync";
 
 try {
   const { values } = parseArgs({ options: { config: { type: "string" }, plan: { type: "boolean" } } });
-  const config = syncConfigSchema.parse(values.config ? JSON.parse(readFileSync(values.config, "utf8")) : {});
+  const config = values.config ? readSyncConfig(values.config) : syncConfigSchema.parse({});
   if (values.plan)
     console.log(
       JSON.stringify(

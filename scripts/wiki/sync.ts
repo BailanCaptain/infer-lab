@@ -37,6 +37,19 @@ export const syncConfigSchema = z
     driftSample: z.number().int().min(0).max(10).default(0),
   })
   .strict();
+
+/**
+ * 读同步配置：共享的那份进仓库，旁边同名的 `*.local.json` 是本机覆盖（不进仓库）。
+ *
+ * 本机才有的东西只有一样值得覆盖——参数扫描用的 Python 解释器路径。它原先写死在共享配置里，
+ * 指向这台机器上另一个工具的私有目录；别人克隆下来一跑就是「找不到解释器」。不写 `python` 时
+ * 扫描器退回环境变量 `WIKI_PYTHON`，再退回 PATH 上的 `python`（上游源码要 3.12+ 才解析得了）。
+ */
+export function readSyncConfig(path: string): z.output<typeof syncConfigSchema> {
+  const read = (file: string) => (existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {});
+  return syncConfigSchema.parse({ ...read(path), ...read(path.replace(/\.json$/, ".local.json")) });
+}
+
 async function runSync(
   root: string,
   input: z.input<typeof syncConfigSchema>,

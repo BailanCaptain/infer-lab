@@ -6,7 +6,7 @@ import { listGaps } from "../scripts/wiki/gap-ledger";
 import { collectStepTerms } from "../scripts/wiki/lint";
 import { listTasks } from "../scripts/wiki/queue";
 import { listReviews } from "../scripts/wiki/review";
-import { syncConfigSchema } from "../scripts/wiki/sync";
+import { readSyncConfig } from "../scripts/wiki/sync";
 import { send } from "./http";
 
 const json = (path: string): unknown => (existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined);
@@ -41,8 +41,7 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     budget = undefined; // 没建账本
   }
 
-  const rawConfig = json(syncConfigPath);
-  const config = rawConfig ? syncConfigSchema.parse(rawConfig) : undefined;
+  const config = existsSync(syncConfigPath) ? readSyncConfig(syncConfigPath) : undefined;
   const lastRun = json(join(root, "wiki/_jobs/sync/last-run.json")) as
     | { startedAt?: string; finishedAt?: string; status?: string }
     | undefined;

@@ -409,3 +409,19 @@ vllm-ascend@main c173a64a44dec4ba97aaba6277b1dfc1562eda19 → baa023ada41a5b889c
 ## [2026-09-23] review | RFork 总览加社区版对照表
 
 用户同意在 RFork 总览加一张表，说明社区三个版本合进了工作版七个补丁里的哪几个。逐个补丁与社区提交比对内容并做祖先检查：0001 = PR #12995，0002 与 0003 被合成 PR #15439，逐行一致，只在 main；0004–0007 新建或改动的文件在社区三个版本里都不存在。v0.23 / v0.26 的结论来自祖先检查与 grep，标 [D]；页面 `verified` 仍只有 rfork:main。`rfork:evidence` 改为只给工作版来源生成材料，社区来源与 PR 链接交给 wiki:audit / wiki:urls。验证：wiki:build、wiki:lint、wiki:audit、diagrams --check、22 项浏览器测试通过，表格实际渲染看过。
+
+## [2026-09-22] ingest | 参数增量
+
+vllm-ascend@main baa023ada41a5b889cac6249845a688aab130892 → a71b766ce6fc0a9669a412e15a5cf53f7f827093；新增 40 / 删除 1 / 变更 0。
+
+## [2026-09-22] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 2c59ff1047573f40a471cf7535f01a8877344415 → 1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8；新增 0 / 删除 0 / 变更 0。
+
+## [2026-09-22] ingest | 参数增量
+
+vllm-ascend@releases/v0.26.0rc 2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f → 16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2；新增 0 / 删除 0 / 变更 0。
+
+## [2026-09-22] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

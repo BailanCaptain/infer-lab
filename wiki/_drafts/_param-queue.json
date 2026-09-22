@@ -10072,5 +10072,1732 @@
       }
     ],
     "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "baa023ada41a5b889cac6249845a688aab130892",
+    "after": "a71b766ce6fc0a9669a412e15a5cf53f7f827093",
+    "added": [
+      {
+        "name": "remote_block_ids",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"remote_block_ids\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 875,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 126
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 157
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 539
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 637
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py",
+            "line": 603
+          }
+        ],
+        "occurrenceCount": 136
+      },
+      {
+        "name": "d2rh_block_hashes",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"d2rh_block_hashes\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 876,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 876
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1999
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2192
+          }
+        ],
+        "occurrenceCount": 3
+      },
+      {
+        "name": "group_pulls_by_port",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "params[\"group_pulls_by_port\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 894,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 605
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 609
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 894
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 915
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1019
+          }
+        ],
+        "occurrenceCount": 8
+      },
+      {
+        "name": "remote_request_id",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"remote_request_id\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 901,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 130
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 161
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 544
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 550
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 640
+          }
+        ],
+        "occurrenceCount": 91
+      },
+      {
+        "name": "remote_host",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "params[\"remote_host\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 909,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 127
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 158
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 385
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 386
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 404
+          }
+        ],
+        "occurrenceCount": 182
+      },
+      {
+        "name": "remote_engine_id",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "params[\"remote_engine_id\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 910,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 129
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 160
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 541
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 639
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py",
+            "line": 145
+          }
+        ],
+        "occurrenceCount": 113
+      },
+      {
+        "name": "remote_port",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "params[\"remote_port\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 911,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 128
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 159
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 385
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 386
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 404
+          }
+        ],
+        "occurrenceCount": 114
+      },
+      {
+        "name": "remote_multi_nodes_meta_mapping",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"remote_multi_nodes_meta_mapping\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 912,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 134
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 1600
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 2058
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 3187
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 3200
+          }
+        ],
+        "occurrenceCount": 26
+      },
+      {
+        "name": "remote_handshake_ports",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "params[\"remote_handshake_ports\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 914,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 914
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1018
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1036
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1078
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2036
+          }
+        ],
+        "occurrenceCount": 12
+      },
+      {
+        "name": "remote_port_send_num",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"remote_port_send_num\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 916,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 376
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 377
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 383
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 579
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 587
+          }
+        ],
+        "occurrenceCount": 54
+      },
+      {
+        "name": "num_computed_tokens",
+        "type": "unknown",
+        "default": "0",
+        "class": "",
+        "json_path": "params[\"num_computed_tokens\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 917,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/_310p/model_runner_310p.py",
+            "line": 321
+          },
+          {
+            "file": "vllm_ascend/_310p/model_runner_310p.py",
+            "line": 330
+          },
+          {
+            "file": "vllm_ascend/_310p/model_runner_310p.py",
+            "line": 333
+          },
+          {
+            "file": "vllm_ascend/_310p/model_runner_310p.py",
+            "line": 488
+          },
+          {
+            "file": "vllm_ascend/_310p/worker/v2/model_runner.py",
+            "line": 95
+          }
+        ],
+        "occurrenceCount": 362
+      },
+      {
+        "name": "tp_size",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "prefill_parallel_config[\"tp_size\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 1750,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 631
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 637
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 640
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 678
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 736
+          }
+        ],
+        "occurrenceCount": 534
+      },
+      {
+        "name": "pp_size",
+        "type": "unknown",
+        "default": "1",
+        "class": "",
+        "json_path": "prefill_parallel_config[\"pp_size\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 1751,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/core/dyntra_lb_scheduler.py",
+            "line": 493
+          },
+          {
+            "file": "vllm_ascend/core/recompute_scheduler.py",
+            "line": 244
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py",
+            "line": 64
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py",
+            "line": 77
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py",
+            "line": 93
+          }
+        ],
+        "occurrenceCount": 107
+      },
+      {
+        "name": "tp_size",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "decode_parallel_config[\"tp_size\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 1752,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 631
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 637
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 640
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 678
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 736
+          }
+        ],
+        "occurrenceCount": 534
+      },
+      {
+        "name": "remote_ptp_size",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"remote_ptp_size\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2084,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 133
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 1599
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 2056
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 3036
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 3512
+          }
+        ],
+        "occurrenceCount": 11
+      },
+      {
+        "name": "remote_host",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "pull_params[\"remote_host\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2106,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 127
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 158
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 385
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 386
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 404
+          }
+        ],
+        "occurrenceCount": 182
+      },
+      {
+        "name": "remote_engine_id",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "pull_params[\"remote_engine_id\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2107,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 129
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/metadata.py",
+            "line": 160
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 541
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 639
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_worker.py",
+            "line": 145
+          }
+        ],
+        "occurrenceCount": 113
+      },
+      {
+        "name": "remote_handshake_ports",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "pull_params[\"remote_handshake_ports\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2108,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 914
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1018
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1036
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1078
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2036
+          }
+        ],
+        "occurrenceCount": 12
+      },
+      {
+        "name": "group_pulls_by_port",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "pull_params[\"group_pulls_by_port\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2109,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 605
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 609
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 894
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 915
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1019
+          }
+        ],
+        "occurrenceCount": 8
+      },
+      {
+        "name": "decode_tp_rank",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "pull_params[\"decode_tp_rank\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2115,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2039
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2083
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2095
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2113
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2115
+          }
+        ],
+        "occurrenceCount": 8
+      },
+      {
+        "name": "do_remote_prefill",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"do_remote_prefill\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2164,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 507
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 533
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 536
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 570
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 635
+          }
+        ],
+        "occurrenceCount": 26
+      },
+      {
+        "name": "d2rh_block_hashes",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "pull_params[\"d2rh_block_hashes\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2192,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 876
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 1999
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+            "line": 2192
+          }
+        ],
+        "occurrenceCount": 3
+      },
+      {
+        "name": "do_remote_decode",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"do_remote_decode\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "line": 2215,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 515
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 533
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 609
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 636
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 1935
+          }
+        ],
+        "occurrenceCount": 21
+      },
+      {
+        "name": "model_url",
+        "type": "str",
+        "default": "<required>",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"model_url\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 55,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 55
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 97
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/identity.py",
+            "line": 223
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/identity.py",
+            "line": 235
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/identity.py",
+            "line": 298
+          }
+        ],
+        "occurrenceCount": 14
+      },
+      {
+        "name": "model_deploy_strategy_name",
+        "type": "str",
+        "default": "<required>",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"model_deploy_strategy_name\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 56,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 56
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 98
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 101
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/identity.py",
+            "line": 224
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/identity.py",
+            "line": 236
+          }
+        ],
+        "occurrenceCount": 15
+      },
+      {
+        "name": "planner_url",
+        "type": "str",
+        "default": "<required>",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"planner_url\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 57,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 57
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 107
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 49
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 112
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 121
+          }
+        ],
+        "occurrenceCount": 12
+      },
+      {
+        "name": "seed_timeout_sec",
+        "type": "float",
+        "default": "DEFAULT_RFORK_SEED_TIMEOUT_SEC",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"seed_timeout_sec\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 58,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 58
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 108
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/rfork_loader.py",
+            "line": 486
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 550
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 686
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "request_timeout_sec",
+        "type": "float",
+        "default": "DEFAULT_RFORK_REQUEST_TIMEOUT_SEC",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"request_timeout_sec\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 59,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 59
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 114
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 43
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 44
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 45
+          }
+        ],
+        "occurrenceCount": 18
+      },
+      {
+        "name": "seed_bind_host",
+        "type": "str",
+        "default": "'0.0.0.0'",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"seed_bind_host\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 60,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 60
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 120
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/rfork_loader.py",
+            "line": 488
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 551
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "seed_port_base",
+        "type": "int",
+        "default": "0",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"seed_port_base\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 61,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 61
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 76
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 129
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 48
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 51
+          }
+        ],
+        "occurrenceCount": 6
+      },
+      {
+        "name": "seed_advertise_host",
+        "type": "str | None",
+        "default": "None",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"seed_advertise_host\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 62,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 62
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 130
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/rfork_loader.py",
+            "line": 489
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 561
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 617
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "heartbeat_interval_sec",
+        "type": "float",
+        "default": "DEFAULT_RFORK_HEARTBEAT_INTERVAL_SEC",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"heartbeat_interval_sec\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 63,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 63
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 69
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 90
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/planner_client.py",
+            "line": 332
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 612
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "lease_release_max_attempts",
+        "type": "int",
+        "default": "DEFAULT_RFORK_LEASE_RELEASE_MAX_ATTEMPTS",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"lease_release_max_attempts\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 64,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 64
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 73
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 91
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 287
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 322
+          }
+        ],
+        "occurrenceCount": 8
+      },
+      {
+        "name": "lease_release_retry_interval_sec",
+        "type": "float",
+        "default": "DEFAULT_RFORK_LEASE_RELEASE_RETRY_INTERVAL_SEC",
+        "class": "RForkConfig",
+        "json_path": "RForkConfig[\"lease_release_retry_interval_sec\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 65,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 65
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 69
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 94
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/session.py",
+            "line": 286
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "rfork_heartbeat_interval_sec",
+        "type": "unknown",
+        "default": "DEFAULT_RFORK_HEARTBEAT_INTERVAL_SEC",
+        "class": "",
+        "json_path": "config[\"rfork_heartbeat_interval_sec\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 90,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 90
+          }
+        ],
+        "occurrenceCount": 1
+      },
+      {
+        "name": "rfork_lease_release_max_attempts",
+        "type": "unknown",
+        "default": "DEFAULT_RFORK_LEASE_RELEASE_MAX_ATTEMPTS",
+        "class": "",
+        "json_path": "config[\"rfork_lease_release_max_attempts\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 91,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 75
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 92
+          }
+        ],
+        "occurrenceCount": 2
+      },
+      {
+        "name": "rfork_lease_release_retry_interval_sec",
+        "type": "unknown",
+        "default": "DEFAULT_RFORK_LEASE_RELEASE_RETRY_INTERVAL_SEC",
+        "class": "",
+        "json_path": "config[\"rfork_lease_release_retry_interval_sec\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 94,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 95
+          }
+        ],
+        "occurrenceCount": 1
+      },
+      {
+        "name": "rfork_seed_port_base",
+        "type": "unknown",
+        "default": "0",
+        "class": "",
+        "json_path": "config[\"rfork_seed_port_base\"]",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "line": 129,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 78
+          },
+          {
+            "file": "vllm_ascend/model_loader/rfork/config.py",
+            "line": 129
+          }
+        ],
+        "occurrenceCount": 2
+      },
+      {
+        "name": "dp_shared_memory",
+        "type": "bool",
+        "default": "False",
+        "class": "AscendEngramConfig",
+        "json_path": "AscendEngramConfig[\"dp_shared_memory\"]",
+        "file": "vllm_ascend/patch/platform/patch_engram_config.py",
+        "line": 39,
+        "comment": "",
+        "constraints": [
+          "if self.dp_shared_memory and (not self.cpu_offload):\n    raise ValueError('dp_shared_memory requires cpu_offload=True')",
+          "if self.dp_shared_memory and self.embedding_across_dp:\n    raise ValueError('dp_shared_memory cannot be combined with embedding_across_dp')",
+          "if self.dp_shared_memory and parallel_config.data_parallel_size <= 1:\n    raise ValueError('dp_shared_memory requires data_parallel_size > 1')",
+          "if self.dp_shared_memory and load_config.load_format not in ('auto', 'safetensors'):\n    raise ValueError('dp_shared_memory requires load_format auto or safetensors')"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/models/deepseek_v41/engram/embedding.py",
+            "line": 59
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v41/engram/embedding.py",
+            "line": 64
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v41/engram/embedding.py",
+            "line": 67
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v41/engram/embedding.py",
+            "line": 91
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v41/engram/embedding.py",
+            "line": 300
+          }
+        ],
+        "occurrenceCount": 22
+      },
+      {
+        "name": "type",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "kwargs['engram_config'][\"type\"]",
+        "file": "vllm_ascend/patch/platform/patch_engram_config.py",
+        "line": 102,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/_310p/attention/attention_v1.py",
+            "line": 22
+          },
+          {
+            "file": "vllm_ascend/_310p/attention/attention_v1.py",
+            "line": 91
+          },
+          {
+            "file": "vllm_ascend/_310p/attention/metadata_builder.py",
+            "line": 84
+          },
+          {
+            "file": "vllm_ascend/_310p/block_table.py",
+            "line": 79
+          },
+          {
+            "file": "vllm_ascend/_310p/model_runner_310p.py",
+            "line": 82
+          }
+        ],
+        "occurrenceCount": 949
+      }
+    ],
+    "removed": [
+      {
+        "name": "rope_theta",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "config.rope_parameters[\"rope_theta\"]",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "line": 548,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/models/deepseek_v4/model.py",
+            "line": 548
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v4/model.py",
+            "line": 551
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v4/model.py",
+            "line": 561
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v4/vision.py",
+            "line": 102
+          },
+          {
+            "file": "vllm_ascend/models/deepseek_v4/vision.py",
+            "line": 109
+          }
+        ],
+        "occurrenceCount": 20
+      }
+    ],
+    "changed": [],
+    "skipped": [
+      {
+        "name": "remote_block_ids",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "d2rh_block_hashes",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "group_pulls_by_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_request_id",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_host",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_engine_id",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_multi_nodes_meta_mapping",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_handshake_ports",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_port_send_num",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "num_computed_tokens",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_ptp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_host",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_engine_id",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_handshake_ports",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "group_pulls_by_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "decode_tp_rank",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_prefill",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "d2rh_block_hashes",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_decode",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_d2rh_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "model_url",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "model_deploy_strategy_name",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "planner_url",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "seed_timeout_sec",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "request_timeout_sec",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "seed_bind_host",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "seed_port_base",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "seed_advertise_host",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "heartbeat_interval_sec",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lease_release_max_attempts",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lease_release_retry_interval_sec",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rfork_heartbeat_interval_sec",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rfork_lease_release_max_attempts",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rfork_lease_release_retry_interval_sec",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rfork_seed_port_base",
+        "file": "vllm_ascend/model_loader/rfork/config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dp_shared_memory",
+        "file": "vllm_ascend/patch/platform/patch_engram_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "type",
+        "file": "vllm_ascend/patch/platform/patch_engram_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "refresh",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_blocks",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lookup_rpc_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mooncake_rpc_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "load_async",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "consumer_is_to_put",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "backend",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "h2d_stagger_us",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_blocks",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_bytes",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "prefill_pp_layer_partition",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "prefill_pp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_prefetch_layers",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "factor",
+        "file": "vllm_ascend/models/deepseek_v41/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "beta_fast",
+        "file": "vllm_ascend/models/deepseek_v41/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "beta_slow",
+        "file": "vllm_ascend/models/deepseek_v41/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "original_max_position_embeddings",
+        "file": "vllm_ascend/models/deepseek_v41/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "use_aux_hidden_state",
+        "file": "vllm_ascend/worker/model_runner_v1.py",
+        "reason": "unreviewed-or-no-existing-page"
+      }
+    ],
+    "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "releases/v0.23.0",
+    "before": "2c59ff1047573f40a471cf7535f01a8877344415",
+    "after": "1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "skipped": [],
+    "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "releases/v0.26.0rc",
+    "before": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+    "after": "16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "skipped": [],
+    "state": "no-existing-page-updated"
   }
 ]

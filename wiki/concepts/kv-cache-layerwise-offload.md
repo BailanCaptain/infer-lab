@@ -20,10 +20,10 @@ sources:
   - vllm-ascend@baa023ad:vllm_ascend/ops/gdn.py#L363-L369
   - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/attention_fence.py#L29-L73
   - vllm-ascend@2c59ff10:vllm_ascend/memcache_comm_fence.py#L27-L61
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L96-L102
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L96-L115
   - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L277-L292
   - vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L229-L243
-  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L55
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/__init__.py#L22-L64
   - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L205-L221
   - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L301-L306
   - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L516-L555
@@ -63,12 +63,12 @@ relations:
     kind: alternative-to
     note: 同样把 KV 挪出 HBM，但那边按请求整块搬到本机主存做前缀备份，这边按层搬进跨节点的 memcache 池
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-23"
 ---
 
 ## 一句话
 
-Layerwise KV Offload 把 KV 的存取粒度从「一次请求」降到「一层」：第 *i* 层算完立刻把它的 KV 发往 KV 池，第 *i+1* 层的计算与这次搬运并行；加载同理，算第 *i* 层之前只等第 *i* 层的 KV 到位。开关是 `AscendStoreConnector` 的 `use_layerwise`，默认关 [S1]。**v0.26 起**在此之上多做一件事：**让多层轮流复用同一份 HBM buffer**，把 Prefill 侧的 KV 显存压成常数份——v0.23 维护分支没有这一层 [!]。下面 v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，main 指 2026-09-21 的源码快照 `baa023ad`。
+Layerwise KV Offload 把 KV 的存取粒度从「一次请求」降到「一层」：第 *i* 层算完立刻把它的 KV 发往 KV 池，第 *i+1* 层的计算与这次搬运并行；加载同理，算第 *i* 层之前只等第 *i* 层的 KV 到位。开关是 `AscendStoreConnector` 从 `kv_connector_extra_config` 里读的 `use_layerwise`，默认关 [S1]；[UCM](ucm.md) 的 yaml 顶层另有一个同名 `use_layerwise`，那一个由外部 `ucm` 包自己读，和这一页讲的不是同一个东西。**v0.26 起**在此之上多做一件事：**让多层轮流复用同一份 HBM buffer**，把 Prefill 侧的 KV 显存压成常数份——v0.23 维护分支没有这一层 [!]。下面 v0.23 维护分支指 `2c59ff10`，v0.26 分支指 `2ed6cbba`，main 指 2026-09-21 的源码快照 `baa023ad`。
 
 ```wiki-diagram
 file: kv-cache-layerwise-offload
@@ -86,19 +86,19 @@ file: kv-cache-layerwise-offload
 
 按层切开之后，同样的字节数摊到 28（或 61）个层间隙里，每个间隙后面都跟着一层实打实的计算可以拿来遮盖。**省下的从来不是带宽，是等待。**
 
-挂钩点摆在哪儿有讲究。以 `AscendMLAImpl` 为例：等待放在 `mla_preprocess_*` 之前，而且**只在 `has_prefill` 为真时才等**——decode 步不进这条路 [C9]；保存放在本层 `o_proj` 之后、返回之前。上图画的是 memcache 的 `gva` 数据面：`_submit_ready_layer_loads` 在第 0 层最多投 `num_prefetch_layers` 个加载任务，之后每层最多补一个，有任务或需要等复用源的层才计入提交数。main 的 mooncake hybrid 路径另按当前层和预取窗口补齐任务，不能套用这一固定节奏 [C22]。
+挂钩点摆在哪儿有讲究。以 `AscendMLAImpl` 为例：等待放在 `mla_preprocess_*` 之前，而且**只在 `has_prefill` 为真时才等**——decode 步不进这条路；保存放在本层 `o_proj` 之后、返回之前。上图画的是 memcache 的 `gva` 数据面：`_submit_ready_layer_loads` 在第 0 层最多投 `num_prefetch_layers` 个加载任务，之后每层最多补一个，有任务或需要等复用源的层才计入提交数。main 的 mooncake hybrid 路径另按当前层和预取窗口补齐任务，不能套用这一固定节奏。
 
-**交给后台线程也不等于每层都能立即返回。** main 的 `save_kv_layer` 到本 PP stage 的最后一层时，会调用 `_wait_for_final_layer_save` 等最后一次保存完成，确保源 buffer 在 PUT 完成前还活着；中间层才有机会把搬运与下一层计算重叠 [C24]。
+**交给后台线程也不等于每层都能立即返回。** `save_kv_layer` 走到最后一层时会停下来，等这一层的保存真的完成再往下走——**三个版本都这么做**，为的是让源 buffer 活到 PUT 提交之后 [C26][C37][C24]。所以「每层都能立刻返回」只对中间层成立，它们才有下一层的计算可以拿来遮盖。main 在这上面加了两件事：`pp_size > 1` 时「最后一层」按本 PP stage 的本地层数算，不是全局层数；清理保存事件时跳过被别的层当复用源的那几层——后一件 v0.26 也有。
 
 还有一件事值得先说破：**没有独立的传输 stream**。搬运由 Python 后台线程发起，它与前向的重叠靠线程并行加 Event 定序，不是同一进程里两条 NPU stream 互相 `wait_event` [D]。于是多个 TP rank 会一起抢总线，`h2d_stagger_us` 拿忙等把它们错开，错开量是 `(tp_rank + layer_id) % tp_size × h2d_stagger_us`——忙等，设大了直接烧 CPU [C29]。
 
 ## 三类同步点，少一个就读到半截 KV
 
-- **`sync_save_events[i]`（`torch.npu.Event`）**：前向线程在 `save_kv_layer` 里 `record()`，发送线程在真正发数据之前 `synchronize()` [C27]。它保证「KV 已经写进 paged cache」这件事在设备上真的完成了，而不只是 Python 调用返回了。
+- **`sync_save_events[i]`（`torch.npu.Event`）**：前向线程在 `save_kv_layer` 里 `record()`，发送线程在真正发数据之前 `synchronize()`。它保证「KV 已经写进 paged cache」这件事在设备上真的完成了，而不只是 Python 调用返回了。
 - **`layer_load_finished_events[i]` / `layer_save_finished_events[i]`（`threading.Event`）**：前向线程与两个传输线程之间的 CPU 握手。
-- **`AttentionComputeStartGate`**：跨线程又跨流。前向线程在 attention 算子下发前 `record()` 一个 NPU Event，传输线程 `wait()` 时对它 `synchronize()` [C13]。它只对**预取**的层生效——当前层本来就要马上用，不需要给谁让路。
+- **`AttentionComputeStartGate`**：跨线程又跨流。前向线程在 attention 算子下发前 `record()` 一个 NPU Event，传输线程 `wait()` 时对它 `synchronize()`。它只对**预取**的层生效——当前层本来就要马上用，不需要给谁让路。
 
-超时怎么处理 v0.23 和后面两个版本不一样，这是本页最该记住的一条：v0.23 上 `wait(timeout=10)` 超时只打一行日志就继续往下算 [C25]，症状是精度异常而不是报错 [!]；**v0.26 起**改成 `while not ...wait(timeout=10)` 续等，并每轮 `raise_if_failed()` 把后台线程的异常抬回前向线程 [C37][C23]。
+超时怎么处理 v0.23 和后面两个版本不一样，这是本页最该记住的一条：v0.23 上 `wait(timeout=10)` 超时只打一行日志就继续往下算 [C25]，症状是精度异常而不是报错 [!]；**v0.26 起**改成 `while not ...wait(timeout=10)` 续等，并每轮 `raise_if_failed()` 把后台线程的异常抬回前向线程 [C37]。
 
 ## v0.26 起才有的第二件事：28 层共用 4 份 buffer
 
@@ -109,12 +109,12 @@ file: kv-cache-layerwise-offload
 | 独占 buffer 的层 | `[0]`，也是缺省值；第 0 层最早被写、最晚才有机会被复用 |
 | 参与复用的层 | 1…27 共 27 层，`27 > 3` 所以复用生效 |
 | 谁复用谁 | `{4:1, 5:2, …, 27:24}` 共 24 条，规律是**第 L 层复用第 L−3 层的 buffer** |
-| 预取深度 | `min(3, 8) = 3`；走到这条数据面时 `layerwise_prefetch_layers` 不写就取 `min(num_shared_buffers, 8)` [C21]，**不是文档写的 1** [S3] |
+| 预取深度 | `min(3, 8) = 3`；走到这条数据面时 `layerwise_prefetch_layers` 不写就取 `min(num_shared_buffers, 8)` [C30]，**不是文档写的 1** [S3] |
 | 描述符合并成几个 | `1 + 3 = 4` |
 
 最后一行才是真正掏出显存的那一步：`apply_layerwise_kv_cache_plan` 在 `initialize_kv_cache` 里、KV cache 真正分配之前，把 28 个 `KVCacheTensor` 描述符合并成 4 个，并打出 `Layerwise KV cache reuse merged 28 descriptors into 4 descriptors` [C31]。本地 KV buffer 从 28 份降到 4 份，约 **1/7** [D]——这也是[显存探测](kv-cache-memory-profiling.md)的结果在这条路上对不上主公式的原因。
 
-代价就在同一张表里：第 4 层开始装之前，接收线程必须先确认第 1 层的 D2H 真的做完了 [C28]。`layerwise_num_shared_buffers` 越小越省显存，也越容易卡在这个等待上，官方建议从 2~4 起步。它还要求 Memcache 后端与 eager 模式，并且暂时不能与 `MooncakeLayerwiseConnector` 同时使用——按 buffer 粒度的传输完成门控还没实现 [S6]。
+代价就在同一张表里：第 4 层开始装之前，接收线程必须先确认第 1 层的 D2H 真的做完了。`layerwise_num_shared_buffers` 越小越省显存，也越容易卡在这个等待上，官方建议从 2~4 起步。它还要求 Memcache 后端与 eager 模式，并且暂时不能与 `MooncakeLayerwiseConnector` 同时使用——按 buffer 粒度的传输完成门控还没实现 [S6]。
 
 ## 三个分支还差在哪
 
@@ -123,16 +123,18 @@ file: kv-cache-layerwise-offload
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | 共享 buffer 复用 | 没有：`wait_for_save_layer` 恒为 `None`，仓库里也没有 `layerwise_cache_layout.py` | 有，实现与 main 相同 | 有 | v0.23 只拿得到流水线收益，拿不到显存收益 |
-| 怎么挑数据面 | 写死 `use_layerwise and backend == "memcache"` | 同 v0.23 | 走后端注册表：`get_layerwise_protocol` 取到模块，再按它自报的 `LAYERWISE_DATA_PLANE` 分流，memcache 报 `gva`、mooncake 报 `block_key` [C18] | 这一页讲的仍是 memcache 那条 `gva` 数据面；main 上 mooncake 也挂了协议，但走的是另一条 block-key 路径，见 [KV Pool](kv-pool.md) `[!]` |
+| 怎么挑数据面 | 写死 `use_layerwise and backend == "memcache"` | 同 v0.23 | 走后端注册表：`get_layerwise_protocol` 取到模块，再按它自报的 `LAYERWISE_DATA_PLANE` 分流，memcache 报 `gva`、mooncake 报 `block_key` | 这一页讲的仍是 memcache 那条 `gva` 数据面；main 上 mooncake 也挂了协议，但走的是另一条 block-key 路径，见 [KV Pool](kv-pool.md) `[!]` |
 | 纯消费者的层号推进 | 只有 `save_kv_layer` 会 `current_layer += 1`，而 load-only 消费者根本不调它 [C17] | 同 v0.23 | `wait_for_layer_load` 在非保存角色上自己推进 | 两个发布分支上 `kv_consumer` 不回写时，逐层加载会停在第 0 层 [I] |
-| 哪些层挂了钩子 | MLA / SFA / DSA / DSA-CP | 同 v0.23 | GDN 线性注意力层也记上 attention-start 门 [C12]；`wait_for_layer_load` 还顺带给 mamba 状态拷贝定序 | 带 GDN 的混合模型只有 main 会给逐层加载让路 |
+| 哪些层挂了钩子 | MLA / SFA / DSA / DSA-CP | 同 v0.23 | GDN 线性注意力层也记上 attention-start 门；`wait_for_layer_load` 还顺带给 mamba 状态拷贝定序 | 带 GDN 的混合模型只有 main 会给逐层加载让路 |
 | 栅栏所在模块 | `vllm_ascend/memcache_comm_fence.py` | 同 v0.23，类代码逐字相同 | `.../ascend_store/attention_fence.py` | 只是搬家，import 路径不同 |
 | 用户文档 | 有专页 Layerwise KV Pool | 专页还在，另有 Layerwise and Sparse 那一篇 | 专页已删；多出一篇只有 main 有的 mooncake 逐层适配分析，见 [Mooncake Connector](mooncake-connector.md) | 「PD-Mixed 也能开 layerwise」这句话在 main 的文档里已经没了 [!] |
 
 三版共同的硬约束有两条：P/D 两侧 TP 不一致直接 `ValueError`，传输线程没实现重切分 [C20]；开了 layerwise 就强制 PIECEWISE 图模式，`requires_piecewise_for_cudagraph` 直接返回 `use_layerwise` [C15]。
 
+**main 在这之上多一道拓扑闸门，而且它只守一条路。** 构造 `AscendStoreConnector` 时先按 `backend` 取到该后端的 layerwise 协议模块，开了 layerwise 就调它的 `validate_topology`——和上面那条 PIECEWISE 约束同在 `AscendStoreConnector` 里，相隔十几行。挂了这个钩子的只有 mooncake 的 block-key 协议：它对 `pipeline_parallel_size`、`prefill_context_parallel_size`、`decode_context_parallel_size` 任一大于 1 直接 `ValueError`，理由写在报错里——block key 里没有这几个坐标的位置。memcache 那条 `gva` 数据面没有这个函数，两个发布分支连 `mooncake_layerwise.py` 这个模块都不存在。于是同一份开了 CP 的配置，在 mooncake 后端的 main 上起不来，在 memcache 后端或发布分支上照跑 [C41][!]。
+
 ## 常见误解
 
 - **「layerwise 对任何模型都能开。」**——不是。成对调用这两个挂钩点的只有 `mla_v1.py`、`sfa_v1.py`、`dsa_v1.py`、`dsa_cp.py`；`ops/gdn.py` 三版都只调了保存那一半（main 上多记一个 attention-start 门），普通 GQA 走的 `attention_v1.py` 只调了记 Event 那一个。
 - **「`layerwise_prefetch_layers` 默认是 1。」**——分路径看。memcache 这条数据面上缺省是 `min(num_shared_buffers, 8)`，而 `num_shared_buffers` 不填等于层数，于是实际默认是 8；走不到这条数据面时才退回那个字面默认值，而它也只在两个发布分支上是 1——main 已经改成 2 [C21]。同一份配置从 v0.23 搬到 v0.26 或 main，预取深度会从 1 跳到 8，飞行中的临时 buffer 也跟着涨。
-- **「文档说 CP 和 hybrid 都不支持，那就是代码里拦住了。」**——`dsa_cp.py` 三版都调了这对挂钩点；main 的源码里与 layerwise 直接相关的硬报错只有两条：P/D 两侧 TP 不一致，以及 mooncake 的 block-key 路径碰上 Mamba 这类循环状态 [C41]——hybrid / 多组 KV cache 这一条 main 上已经不报错了，改由 mooncake 自己的 block-key 协议接住。文档那句是「未验证」，不是「代码拦住了」，真要用请自己验 [D]。
+- **「文档说 CP 和 hybrid 都不支持，那就是代码里拦住了。」**——这两半都不能当通用结论。CP 那半：`dsa_cp.py` 三版都成对调了这对挂钩点，源码里没有「见到 CP 就拒绝 layerwise」这回事，真正报错的是 mooncake block-key 协议的 `validate_topology`（见上一节），换成 memcache 后端或退回发布分支就没人拦。hybrid 那半正相反：main 上已经不整体报错，只在 block-key 路径碰上 Mamba 这类循环状态时才报。文档那句记的是「未验证」，和「代码一律拦住」是两件事——想在没被拦的那条路上用 CP，得自己验 [D]。

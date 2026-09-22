@@ -30,11 +30,17 @@ sources:
     https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/lmcache_ascend_deployment.html
   - >-
     https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/lmcache_ascend_deployment.html
+  - 'vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/base.py#L3-L41'
+  - 'vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L89'
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L269-L286
+  - >-
+    vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/multi_process_adapter.py#L169-L174
 verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
   - main
-evidence: "S"
+evidence: "C"
 relations:
   - to: prefix-caching
     kind: builds-on
@@ -43,7 +49,7 @@ relations:
     kind: alternative-to
     note: AscendStoreConnector 与 LMCache 是两条独立的外部 KV 接入路线，配置名和依赖不能混用
 contradicts: []
-updated: '2026-09-22'
+updated: '2026-09-23'
 rawSources:
   - >-
     raw/sha256-270dff2763ab31da099d3b705abb5a04988fb56717bd6319f797153dc2cb61ef.md
@@ -51,9 +57,9 @@ rawSources:
 
 ## 一句话
 
-LMCache-Ascend 是让 LMCache 在昇腾 NPU 上工作的社区插件。读它的部署配置时，最先要确认的是**连接器由谁注册、实现从哪个包加载**；配置里写了一个名字，不代表外部存储已经就绪。
+LMCache 是挂在 vLLM **KV Connector 接口**上的一份外部 KV 缓存：算过的 KV 收在本卡显存之外，下一条请求对上同一段前缀就取回来，不用重算 [C10]。LMCache-Ascend 是让它在昇腾 NPU 上跑起来的社区插件 [S5]。读部署配置时，最先要确认的是**连接器由谁注册、实现从哪个包加载**；配置里写了一个名字，不代表外部存储已经就绪。
 
-v0.23 维护分支和 v0.26 分支（2026-09-17 的 rc 源码快照）都注册 `LMCacheAscendConnector` [C1][C6]；main 开发主线在当前快照里已取消这个注册，官方文档要求改用 LMCache-Ascend 包提供的注册与运行配置 [S7]。这是接入责任变化，不能解释成 LMCache 不再支持昇腾。
+v0.23 维护分支和 v0.26 分支（2026-09-17 的 rc 源码快照）都注册 `LMCacheAscendConnector` [C1][C6]；main 开发主线在当前快照里已取消这个注册：`register_connector()` 的名单上没有它 [C11]，在 `baa023ad` 上对 `vllm_ascend/` 整目录不分大小写 grep `lmcache` 也是零命中 [D]，官方文档要求改用 LMCache-Ascend 包提供的注册与运行配置 [S7]。这是接入责任变化，不能解释成 LMCache 不再支持昇腾。
 
 ```wiki-diagram
 file: lmcache
@@ -63,9 +69,11 @@ file: lmcache
 
 [那条请求](one-request.md)只有 37 token 的问题、200 token 的回答，而且没有配置外部连接器，因此不会走 LMCache。若要观察外部 KV 复用，可以保持模型不变，另做“两次请求共享一段长前缀”的实验 [A]；先确认第一次确实保存、第二次确实命中，再比较 prefill 耗时。
 
-这里不能直接套 [KV Pool](kv-pool.md) 的块对齐公式：那是另一套连接器的实现。LMCache 的 chunk、部分前缀处理和落盘策略要跟实际安装的插件配置一起核对，本页所引昇腾包装层没有定义这些规则 [C2]。
+顺手说清一个容易混的单位。[KV Pool](kv-pool.md) 那页算「37 个 token 凑不满一块、池根本不会被问到」，用的是 **vLLM 的块**——那条请求上 `block_size = 128`。LMCache 这边的切分单位叫 **chunk**，是另一个数：vLLM 仓库自带的那份集成（`use_native` 为真时才走它）里 chunk 默认 256 个 token、不满一个 chunk 的尾巴默认丢掉 [C12]，并且断言 chunk 必须是 vLLM `block_size` 的整数倍 [C13]。两页的取整公式因此不能互换。默认路径加载的还不是这份自带集成，而是外部 `lmcache` 包里的同名 adapter [C3]，具体数值要按装的那一版核对；昇腾包装层本身一条粒度规则都没定义 [C2]。
 
 ## 昇腾包装层只有五行，真正实现来自依赖包
+
+接口这一侧的责任是写死的：调度侧用 `get_num_new_matched_tokens()` 问「远端缓存里已经有这条请求的多少个 token」，worker 侧用 `start_load_kv()` 把命中的读进来、用 `save_kv_layer()` 把新算的写出去 [C10]。这几件事全由 LMCache 完成，vllm-ascend 一件都不实现。
 
 两个发布分支把配置名 `LMCacheAscendConnector` 映射到昇腾模块里的 `LMCacheConnectorV1`。打开这个模块，只做了两件事：导入 `lmcache_ascend`，再从上游 vLLM 导入 `LMCacheConnectorV1` [C2]。
 

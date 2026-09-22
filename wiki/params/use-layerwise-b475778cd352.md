@@ -17,7 +17,7 @@ verified:
   - releases/v0.23.0
   - releases/v0.26.0rc
 evidence: C
-updated: "2026-09-22"
+updated: "2026-09-23"
 relations:
   - to: kv-cache-layerwise-offload
     kind: builds-on
@@ -86,13 +86,14 @@ rawSources:
 
 它是 [Layerwise KV Offload](../concepts/kv-cache-layerwise-offload.md) 的总开关：把 KV 的存取粒度从「整趟前向结束后搬一次」降到「一层算完搬一层」，让搬运与下一层的计算重叠。机制在那一页，这里只讲这个键本身。
 
-**同名的地方有三处，别配串了。** 三处都叫 `use_layerwise`，但归属和默认值不同：
+**同名的地方有四处，别配串了。** 四处都叫 `use_layerwise`，但归属和默认值不同：
 
 1. `AscendStoreConnector` 的 `kv_connector_extra_config`，默认 `false`——绝大多数人要配的就是这一处 [C2]；
 2. P2P 连接器 `kv_p2p/sfa_pd_rd2h` 的 `kv_connector_extra_config`，默认 **`true`**（v0.26 起才有这个连接器）[C9]；
-3. Yuanrong 后端自己的 JSON 配置文件（路径由环境变量 `YR_CONFIG_PATH` 给），默认 `false` [C1]——**文末自动生成区钉的是这一处**，所以那里的标识写成 `YuanrongConfig["use_layerwise"]`，指的是那份 JSON 的字段而不是 `additional_config`；官方要求它必须与第 1 处取值一致 [S11]。
+3. Yuanrong 后端自己的 JSON 配置文件（路径由环境变量 `YR_CONFIG_PATH` 给），默认 `false` [C1]——**文末自动生成区钉的是这一处**，所以那里的标识写成 `YuanrongConfig["use_layerwise"]`，指的是那份 JSON 的字段而不是 `additional_config`；官方要求它必须与第 1 处取值一致 [S11]；
+4. UCM 自己那份 yaml 配置文件（路径由环境变量 `UCM_CONFIG_FILE` 给）的顶层键，由外部 `ucm` 包读取，不走 `kv_connector_extra_config`——部署示例里集中式配 `false`、P2P 与混部配 `true`，出处与读法见 [UCM](../concepts/ucm.md)。
 
-**存在范围。** 第 1 处三个版本都有、默认值和读法一字未变 [C13] [C17]；第 2、3 处分别是 v0.26 与 main 才出现的。三个版本上都没有校验去比对这几处是否一致。
+**存在范围。** 第 1 处三个版本都有、默认值和读法一字未变 [C13] [C17]；第 2、3 处分别是 v0.26 与 main 才出现的；第 4 处由外部 `ucm` 包定义，本仓库三个版本的 UCM 包装层都只转发、不读取它。三个版本上都没有校验去比对这几处是否一致。
 
 [那条请求](../concepts/one-request.md)用不到它：Qwen3-0.6B 单卡、没有 `--kv-transfer-config`，连接器根本不会被构造。
 

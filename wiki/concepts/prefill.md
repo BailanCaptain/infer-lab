@@ -2,7 +2,7 @@
 id: prefill
 title: Prefill
 type: concept
-summary: 生成第一个字之前，把整段问题一次过完模型、把每个 token 的 K 和 V 写进缓存的那一步。它算得多、只做一次，决定了「多久出第一个字」。
+summary: 生成第一个字之前，把问题里每个 token 的 K 和 V 算出来写进缓存的那一步。它算得多，短问题一步做完、长问题切成几步，决定了「多久出第一个字」。
 aliases: [预填充, 首 token 阶段, prompt 阶段, prefill 阶段, TTFT]
 chapters: ["05"]
 order: 10
@@ -10,6 +10,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L147-L152
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1296-L1310
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -17,13 +18,13 @@ relations:
     kind: builds-on
     note: 这一页所有的数（37 个 token 一步算完、之后 199 步每步 1 个）都是那条请求的数
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-23"
 origin: seed
 ---
 
 ## 一句话
 
-生成第一个回答 token 前，模型先处理问题里已知的 token，这个计算阶段叫 prefill。**每层计算输入 token 的 K 和 V 并写进 [KV Cache](kv-cache.md)，处理完最后一个输入位置后，采样第一个回答 token。** 本页的 37 token 短问题一次完成；长问题可以分块。随后逐个生成的阶段叫 decode。首 token 延迟还包含排队等开销，不能全算成 prefill 计算时间。
+生成第一个回答 token 前，模型先把问题里已知的 token 过一遍，这个计算阶段叫 prefill。**这些位置是并行算完的，不分先后；每层顺手把它们的 K 和 V 写进 [KV Cache](kv-cache.md)。采样只取最后一个位置的输出，得到回答的第 1 个 token** [C4]。随后逐个往下生成的阶段叫 decode。
 
 ```wiki-diagram
 file: prefill
@@ -35,8 +36,8 @@ prefill 和 decode 跑的是同一套权重、同一段代码，但对硬件来�
 
 | | prefill | decode |
 |---|---|---|
-| 一步送进去几个 token | 本例是整段 37 个；长问题可分块 | 本例每步 1 个 |
-| 一条请求做几次 | 本例 1 次 | 本例剩余 199 次，首个回答已由 prefill 产生 |
+| 一步送进去几个 token | 这一步的 token 名额吃得下就是整段问题，吃不下就切成几步（本例 37 个，一步做完） | 每步 1 个（本例也是 1 个） |
+| 一条请求做几次 | 没切块就 1 次，切了就是块数（本例 1 次） | 回答长度减 1 次——第 1 个回答 token 由 prefill 产出（本例 199 次） |
 | 对 KV Cache | 一次写很多格 | 每步写 1 格、读前面全部 |
 | 硬件在忙什么 | **算**：大矩阵乘，算力吃满 | **搬**：每步都要把全部权重和缓存读一遍，只为算 1 个 token |
 | 用户感受到的 | 多久出第一个字（TTFT） | 出字的速度（每个字间隔多久） |
@@ -63,7 +64,7 @@ prefill 和 decode 跑的是同一套权重、同一段代码，但对硬件来�
 这个设计带来两个直接后果：
 
 - **同一批里可以既有 prefill 又有 decode。** 别人的 decode 不用等你的 prefill 做完。
-- **长问题的 prefill 可以切成几步做**（chunked prefill）：一步的 token 名额有上限，超长的问题这一步分一部分、下一步接着分，免得它一个人占满一整步、让所有正在 decode 的请求卡住。那条请求只有 37 个 token，远小于一步的名额，所以一步就做完了。
+- **长问题的 prefill 可以切成几步做**，这就是[分块 prefill](chunked-prefill.md)：一步的 token 名额有上限，超长的问题这一步分一部分、下一步接着分，免得它一个人占满一整步、让所有正在 decode 的请求卡住。那条请求只有 37 个 token，远小于一步的名额，所以一步就做完了。
 
 ## 到了注意力算子，区别又回来了
 
@@ -82,5 +83,5 @@ prefill 和 decode 跑的是同一套权重、同一段代码，但对硬件来�
 ## 常见误解
 
 - **「prefill 是预处理，不算真正的推理」。** 它就是完整的 28 层前向，而且是整条请求里单步计算量最大的一步。
-- **「prefill 阶段不产出 token」。** 它产出回答的第 1 个 token。「首 token 延迟」量的就是 prefill 的耗时（加上排队）。
+- **「prefill 阶段不产出 token」。** 它产出回答的第 1 个 token。顺带一提，TTFT 量的是用户看见第 1 个字的时间：排队、调度、采样都在里面，prefill 的计算只是其中一段，不能把 TTFT 整个记到算力账上 [I]。
 - **「问题有 37 个 token，所以 prefill 要采样 37 次」。** 只采样 1 次。前 36 个位置的输出算出来就丢了——需要的只是它们留在缓存里的 K 和 V。

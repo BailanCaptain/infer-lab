@@ -11,7 +11,7 @@
 - [MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE](concepts/mla.md) — 每层每个 token 只存一条 512 维潜向量加 64 维 RoPE 段；prefill 把它展开回每个头的 K 和 V，decode 干脆不展开，改把展开矩阵乘到 Q 上。 `04`
 - [贯穿全书的那条请求](concepts/one-request.md) — 全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。 `00`
 - [一个算子从 Python 走到 AI Core](concepts/op-to-ai-core.md) — 拿 RMSNorm 走一遍四层。最关键的一段是 ops/layernorm.py 里的一个 if——它两边一边是自己编的融合算子，一边是 CANN 现成的算子加一次额外的逐元素加法。 `16`
-- [Prefill](concepts/prefill.md) — 生成第一个字之前，把整段问题一次过完模型、把每个 token 的 K 和 V 写进缓存的那一步。它算得多、只做一次，决定了「多久出第一个字」。 `05`
+- [Prefill](concepts/prefill.md) — 生成第一个字之前，把问题里每个 token 的 K 和 V 算出来写进缓存的那一步。它算得多，短问题一步做完、长问题切成几步，决定了「多久出第一个字」。 `05`
 - [怎么读这个仓库](concepts/reading-vllm-ascend.md) — 三条定位路线：手上有 traceback、有特性名、有上游类名各走一条；两个 ref 的对照法与三个会得出错结论的查法。 `20`
 - [一次请求的调用链](concepts/request-call-chain.md) — 从 HTTP 到 token 一共七跳。前两跳是上游 vLLM 的调度逻辑，进程边界在第二跳与第三跳之间，之后全在昇腾侧。 `09`
 - [RFork 术语：把模型、内存和调度的名词分开](concepts/rfork-terms.md) — 解释 RFork 里的实例、Worker、分片、张量布局、内存注册、元数据、租约和清理。每个词说明它指的对象、与相近词的区别以及排错时的作用。

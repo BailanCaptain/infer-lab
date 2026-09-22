@@ -1,6 +1,6 @@
 {
   "id": "c95be1987f15bf3a9dd302c0089aeed969193d8d381f78bda4bb5aa1f878d120",
-  "state": "pending",
+  "state": "rejected",
   "payload": {
     "base": {
       "src/content/wiki/registry.json": "9a56435c9f7bf776122bb92f67b2a2db734cee1f294980213e0b9d6aecd6b46a",
@@ -442,5 +442,6 @@
       "rfork": "C:\\Users\\-\\Desktop\\infra-view-new-llm-wiki\\tools\\repos\\rfork",
       "vllm": "C:\\Users\\-\\Desktop\\infra-view-new-llm-wiki\\tools\\repos\\vllm"
     }
-  }
+  },
+  "reason": "用户 2026-09-23 决定驳回。整合一步是写死的常量（promoted 固定为 pr-11953，merged / contradictions / revisions 全空），没有读输入页；草稿 relations 为空，结论弱于库内 layer-sharding、ascend-config-system 已写明的删除版本。需要重做一次真实整合。"
 }

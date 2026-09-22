@@ -1,6 +1,6 @@
 # LLM WIKI 交接
 
-> 更新于 2026-09-22。这一页只写「现在在哪、接下来做什么、哪里会踩坑」。
+> 更新于 2026-09-23。这一页只写「现在在哪、接下来做什么、哪里会踩坑」。
 > 会变的数字（页数、预算、测试条数）不抄在这里——用 §2 的命令现查。2026-09-19 之前的逐轮流水账在 [归档](docs/plans/handoff-archive-2026-09-19.md)。
 
 ## 1. 从哪开始
@@ -8,7 +8,7 @@
 - **RFork 独立工作版（09-22）**：用户另行要求的专章，入口 `wiki/concepts/rfork.md`，排错入口 `rfork-troubleshooting.md`，代码/补丁规程 `rfork/README.md`。指定 latest 官网全文、原图与工作版差异的核读记录在 `wiki/sources/rfork-official-guide.md`。版本 pin 只看 `wiki/seeds/rfork.yaml`，独立于社区三版本，不随社区 main 重钉。原 patch1–6 与 patch7 分叉，用户已确认用 patch7 所在完整实现；原件与衔接差异均保存，可 `pnpm rfork:verify --git` 核验。RFork 是用户工作的一部分：社区代码跟得慢，所以单独维护一份演进的工作版；代码来源 `yangsonglin13/vllm-ascend` 是**同事的仓库，不是用户本人的**。09-22 由 Codex 会话写成（用户当时允许那个会话的模型写正文，仅限那一次）；09-23 由 Opus 5.5 逐页对源码核查修订，总览加了「社区版合进了哪些补丁」对照表。补丁原件的邮件头带着同事的邮箱（来自他的公开仓库）；以后若把本仓库推到公开地址，先问同事。
 
 - **目录**：`C:/Users/-/Desktop/infra-view-new-llm-wiki`，分支 `feat/llm-wiki`，只在本地，未推送未合并。用户默认打开的 `infra-view-new` 是 `main`，**不是 Wiki 的现状，不要在那边重做**。
-- **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源；F003 于 2026-09-22 按在线查证方向更新）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
+- **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源；F003 于 2026-09-22 转向在线查证，09-23 按用户决定恢复被改写的原条文并重评）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
 - **东西在哪**：内容 `wiki/`（`concepts/` 教学页、`params/` 参数页、`diagrams/` 图 spec、`seeds/` 源码钉点）；命令 `scripts/wiki*.ts` + `scripts/wiki/`；后端 `server/`；阅读页 `src/app/wiki/`。`src/sim/`、`src/timeline/` 是同仓库里 infer-lab 的东西，与 Wiki 无关，**别去读**。
 - 仓库根的 `CLAUDE.md` 与 `AGENTS.md` 逐字重复是**有意保留**（两个工具各读一份），不要合并。
 - **本机数据不在 git 里**：`tools/repos/`（源码语料）、`tools/corpus/`、`tools/wiki-runtime/`、`wiki/_jobs/budget/`、`wiki/_jobs/sync/`。换机器要 `pnpm wiki:clone` 重建，账本和回执带不走。
@@ -41,7 +41,7 @@
 
 **机制过度建设，内容停在试点**（2026-09-19 审视，明细见 [wiki-audit-2026-09-19](docs/plans/wiki-audit-2026-09-19.md)）：四天里验收条件从 8 条涨到 34 条，代码两万多行，服务的却是四十多页。所以：**不再加机制、不再加验收条件、不再写逐轮 review 报告。** 新工作先问一句「这让用户读到的内容变多变好了吗」。
 
-那份审视写完即定稿、不更新；**它每一条结论现在到哪了、哪里是用户同意的暂时偏离（要做回来）、还有哪些更早提过的要求没做**，看 [wiki-audit-status-2026-09-21](docs/plans/wiki-audit-status-2026-09-21.md)（接手时读它一遍，再看下面 §4 的优先级）。**09-23 又对 09-21 之后别的会话落下的四批改动（RFork、main 重钉、LMCache/UCM、F003 在线查证）做了增量审视**，结论与五件待用户拍板的事见 [wiki-audit-2026-09-23](docs/plans/wiki-audit-2026-09-23.md)。
+那份审视写完即定稿、不更新；**它每一条结论现在到哪了、哪里是用户同意的暂时偏离（要做回来）、还有哪些更早提过的要求没做**，看 [wiki-audit-status-2026-09-21](docs/plans/wiki-audit-status-2026-09-21.md)（接手时读它一遍，再看下面 §4 的优先级）。**09-23 又对 09-21 之后别的会话落下的四批改动（RFork、main 重钉、LMCache/UCM、F003 在线查证）做了增量审视**，结论与用户当天的五条决定见 [wiki-audit-2026-09-23](docs/plans/wiki-audit-2026-09-23.md)。
 
 **用户 2026-09-20 定的做事方式——接手的人最容易做错的就是这一段：**
 
@@ -62,7 +62,9 @@
 
 **先记一笔欠账：恢复「agent 写、人只审」。** 现在「不走待审、Opus 直接写进知识库」是**过渡办法**，不是长期约定——用户 09-21 原话「这里我的意思只是暂时这样 要做」。要还的两笔（补这批页的 raw / log 或给它们如实的 `origin`；把 `wiki:ingest` → `_drafts/` → `wiki:review` 真跑通，它等同于打开 `maxTasks`）写在 [wiki-audit-status-2026-09-21](docs/plans/wiki-audit-status-2026-09-21.md) §3。**还账的时点用户 09-21 已经定了：这个阶段做完、大规模导入之前开 `maxTasks`**（见下面第 8 条）。在那之前照旧写页，但别把现状当终态。
 
-**09-23 增量审视留下五件等用户拍板的事**（F003 验收改写接不接受、网页聊天算不算验收、PR 11953 草稿驳回重做还是批准、在线排错要不要写回知识库、五页内容的 P1/P2 现在改不改），见 [wiki-audit-2026-09-23](docs/plans/wiki-audit-2026-09-23.md) §五。其中逐层卸载页有一处 P1 事实错误（`kv-cache-layerwise-offload.md:138`），用户点头后先改它。
+**09-23 增量审视的五件事用户已拍板并处理完**（「1 恢复 2、算 3、驳回 4、不需要 排错只是我们的一个功能 5、改」，结果见 [wiki-audit-2026-09-23](docs/plans/wiki-audit-2026-09-23.md) §六）。F003 由此留下的尚未满足项，状态以 F003 验收表为准：AC4 的「调参样本另取」未证实、无匹配对照要换成贴近真实的报错；AC6 的真实草稿要等开 `maxTasks`；AC7 的文档映射还没接进在线与聊天路径；What 里「问某个特性时带上相关讨论」没有专门入口。另有一处隐患未处理：seeds 里不加引号的短提交号，碰上 `12345678`、`4e123456` 这种形状会被 YAML 读成数字，钉点解析直接失败——以后改钉点时给提交号加引号。
+
+**下次重钉 main 时要重核 RFork 总览的对照表**：09-23 夜间任务看到社区 main 已走到 `a71b766c`（09-23 00:20），其间合入 PR #15935「[Refactor][RFork] Harden session-managed weight transfer lifecycle」，社区 RFork 目录也变成 13 个文件（多了 session / identity / manifest / config 等，另有工作版没有的 `safety.py`）。标题看像是工作版补丁 0004，但没逐行比对；对照表现在按钉住的 `baa023ad` 写，那时这些都还不存在。
 
 **特性页主线已补齐、v0.26 已对完**（§6），所以剩下的是：
 
@@ -113,6 +115,7 @@
 - **迁移方法（以后改扫描规则照做）**：在每个基线自己的 commit 上重扫，先证明新行恰好等于旧行减去被排除的那几类、其余一个字段都不差，再写入；队列按同一对 commit 用新扫描器重新表达，09-21 前旧路径的历史条目原样保留（只截位置）；夜间报告只截位置不删行。结果：三个基线合计 12 MB → 0.8 MB，队列 22.1 万行 → 1.0 万行，三份报告 13.4 MB → 1.2 MB。
 - **增量审视**：见 [wiki-audit-2026-09-23](docs/plans/wiki-audit-2026-09-23.md)。main 重钉是真核过；LMCache/UCM 事实干净；F003 方向是用户定的、安全无虞，但七条验收按做出来的东西改写、AC6 整合写死、在线查证不写回知识库。
 - 写作规则按用户 09-23 原话恢复为「用 Opus 5.5，不用 Opus 5」（§3）。
+- **用户拍板后（同日）**：F003 被改写的验收条文恢复、状态重评；**网页聊天接入在线排错**——贴报错时服务端先在线搜 GitHub、追第一个 issue 的关联 PR（主动引用它的排前）、用本地克隆核对合并提交进了哪些钉点与 tag（main 上没有就查发布分支），作为社区线索交给问答模型并显示在回答上方（`scripts/wiki/chat-trace.ts`）；只在问题里有异常类名或 traceback 时触发。在线命令失败改为非零退出。PR 11953 草稿已驳回。五页内容（逐层卸载的 P1、UCM、LMCache、Prefill、RoPE）按审视改完，`use_layerwise` 参数页补上 UCM 这第四处同名开关。
 
 ### 2026-09-22：补内容与在线报错溯源
 

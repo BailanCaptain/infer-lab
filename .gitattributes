@@ -1,6 +1,10 @@
 * text=auto eol=lf
 # Content-addressed excerpts must retain their exact bytes through git.
 wiki/raw/sha256-*.md -text
+# Preserve imported patch/source bytes for RFork provenance checks.
+rfork/patches/* -text
+rfork/reconciliation/* -text
+rfork/source/** -text
 *.png binary
 *.woff binary
 *.ttf binary

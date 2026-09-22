@@ -1,0 +1,29 @@
+layout: scene
+id: rfork-startup
+caption: 工作版晚申请租约：本地准备先完成；未命中或失败需要清理后重新加载
+size: [900, 620]
+regions:
+  - { label: 还没有借用 seed, note: 初始化和必要的布局转换不占用 source lease, at: [20, 35], size: [360, 240], tone: neutral }
+  - { label: 持有 source lease, note: 注册、metadata、读取，然后异步释放, at: [405, 35], size: [475, 240], tone: ascend }
+boxes:
+  - { at: [45, 112], size: [310, 58], title: 构建本地模型, sub: 全共享 draft 可在此直接返回, icon: layers, tone: neutral }
+  - { at: [45, 200], size: [310, 58], title: 必要的布局转换与同步, sub: processed 路径在申请 lease 之前, icon: gear, tone: neutral }
+  - { at: [430, 112], size: [425, 58], title: 向 Planner 申请匹配来源, fn: acquire_seed, icon: pick, tone: ascend }
+  - { at: [430, 200], size: [425, 58], title: 注册本地内存，验收并读取, fn: transfer_from_seed, icon: chip, tone: ascend }
+  - { at: [430, 338], size: [425, 70], title: 剩余后处理与 eval，返回模型, sub: 租约未释放时可延期发布 seed, icon: bolt, tone: neutral }
+arrows:
+  - { from: [200, 170], to: [200, 200], tone: neutral }
+  - { from: [355, 228], to: [430, 141], tone: ascend }
+  - { from: [642, 170], to: [642, 200], tone: ascend }
+  - { from: [642, 258], to: [642, 338], tone: neutral }
+  - { from: [430, 229], to: [390, 486], via: [[390, 229], [390, 452]], style: dashed, tone: accent }
+bands:
+  - { at: [20, 486], size: [860, 72], label: 未命中 / 失败分支：先确认旧服务和注册内存清理成功，再用默认 loader 重建, sub: 清理失败就终止，不能带着 pinned 旧权重再分配第二份模型, icon: patch, tone: accent }
+notes:
+  - { at: [40, 348], text: 命中主路径向下继续。, width: 320, size: 13 }
+  - { at: [40, 382], text: 申请或传输失败进入底部回退路径。, width: 320, size: 13 }
+  - { at: [560, 455], text: 虚线概括失败时的清理分支, width: 285, size: 13 }
+  - { at: [25, 594], text: seed 服务单独启动失败会保留有效模型；动态 EPLB 在这张图之前就绕过 RFork。, width: 850, size: 13 }
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L644
+    symbols: [acquire_seed, transfer_from_seed]

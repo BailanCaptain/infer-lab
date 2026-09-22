@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 92 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 104 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -14,6 +14,7 @@
 - [Prefill](concepts/prefill.md) — 生成第一个字之前，把整段问题一次过完模型、把每个 token 的 K 和 V 写进缓存的那一步。它算得多、只做一次，决定了「多久出第一个字」。 `05`
 - [怎么读这个仓库](concepts/reading-vllm-ascend.md) — 三条定位路线：手上有 traceback、有特性名、有上游类名各走一条；两个 ref 的对照法与三个会得出错结论的查法。 `20`
 - [一次请求的调用链](concepts/request-call-chain.md) — 从 HTTP 到 token 一共七跳。前两跳是上游 vLLM 的调度逻辑，进程边界在第二跳与第三跳之间，之后全在昇腾侧。 `09`
+- [RFork 术语：把模型、内存和调度的名词分开](concepts/rfork-terms.md) — 解释 RFork 里的实例、Worker、分片、张量布局、内存注册、元数据、租约和清理。每个词说明它指的对象、与相近词的区别以及排错时的作用。
 - [RoPE (Rotary Position Embedding)](concepts/rope.md) — 把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。 `04`
 - [vLLM-Ascend 是什么](concepts/vllm-ascend-overview.md) — 一个装在 vLLM 旁边的硬件插件：自己是独立的 Python 包，靠 entry point 把昇腾实现挂进 vLLM 的各层，不改上游一行代码。 `10`
 - [vllm_ascend 目录地图](concepts/vllm-ascend-repo-map.md) — 23 个子目录、442 个 .py、130661 行（v0.26 上 24 / 500 / 150827）。按职责分成六组，主干只有 worker、attention、ops 三个。 `20`
@@ -72,6 +73,16 @@
 - [Quantization：省的是权重显存，开关在模型目录里那份 json](concepts/quantization.md) — vllm-ascend 自己不量化，只负责加载和执行 ModelSlim / LLM-Compressor 产出的低精度权重；哪一层用哪种量化写在 quant_model_description.json 里，引擎按 (量化类型, 层类型) 这一对去注册表找实现。 `17`
 - [Recompute CPU Offload / Preempt Offload：被抢占的请求不回炉重算](concepts/recompute-cpu-offload.md) — PD 分离的 Decode 节点抢占一条请求时，先把它已算好的 KV 块同步拷进锁页主机内存，重新排上再拷回来，省掉一整轮 prefill。main 开发主线已把它改名成 PreemptOffloadConnector。 `11 12`
 - [RecomputeScheduler：D 节点抢不到块，就把请求退回 P 节点](concepts/recompute-scheduler.md) — PD 分离的 Decode 节点上 KV 块不够要抢占时，这个调度器不让请求退回 waiting 重算，而是当场终止它，用 stop_reason="recomputed" 让 PD proxy 把它重投给 Prefill 节点。 `12 18`
+- [RFork：工作版机制与排错总览](concepts/rfork.md) — 从已有实例的 NPU 内存加载权重，让新实例完成暖启动。本章只讲用户指定的独立工作版，串起布局、身份、传输、租约与回退，供阅读和报错定位使用。
+- [RFork 配置：四类端口、各项超时与可复制的启动示例](concepts/rfork-config.md) — 工作版 RFork 参数完整参考与启动说明，区分 model-loader-extra-config、环境变量、Planner 参数和网络端点；解释 patch7 固定端口、动态 EPLB、混合设备限制与验收方法。
+- [RFork 身份匹配：同模型、同布局，还要同一份分片](concepts/rfork-identity.md) — 两层 SHA256 分别表达配置兼容性和分片身份。说明指纹包含哪些字段、不包含什么，为什么同名模型仍找不到 seed，以及为什么不能把匹配当成权重内容验证。
+- [RFork 张量布局：先对齐算子要的形状，再决定搬什么](concepts/rfork-layout.md) — 区分 checkpoint 与 processed 两条加载路径，解释量化、NZ、impl 派生权重、MoE 后处理和 patch7 的 topk 工作区排除。说明张量采集与同名冲突的处理边界。
+- [RFork 生命周期：模型可用、租约归还、成为 seed 是三件事](concepts/rfork-lifecycle.md) — 按工作版 Session 状态解释异步有界释放、延期发布、心跳与租约 TTL、回退和 shutdown。区分 HTTP 400/404、重试耗尽与真实模型失败，并标出未实现的续租。
+- [RFork 版本维护：保留原补丁，钉住真正运行的完整代码](concepts/rfork-maintenance.md) — 记录工作版与社区版本的边界、patch1–6 和 patch7 的分叉、当前代码存放与核验入口，以及新补丁到来后需要同步的知识页和运行验证。
+- [RFork 内存：地址、底层存储与 main/draft 共享](concepts/rfork-memory.md) — 解释逻辑张量范围与分配块的区别、四元组 Ex 注册、Tensor 和原 storage 的保活、共享 draft 排除，以及失败注销为何必须保留状态。
+- [RFork 启动：准备模型以后才借 seed，失败后先清理再重建](concepts/rfork-startup.md) — 沿 RForkModelLoader.load_model 走一遍 seed 命中、未命中、共享 draft、EPLB 绕过与失败回退。解释模型初始化、布局处理、租约和发布的先后关系。
+- [RFork 传输：先验整张清单，再按地址读字节](concepts/rfork-transfer.md) — 追踪 seed HTTP 元数据、manifest 验证、shape 对齐与 TransferEngine 分块同步读取。解释元数据成功、字节传完和模型正确之间的边界，并给出字节计算例子。
+- [RFork 排错：从第一条异常还原版本、阶段与资源状态](concepts/rfork-troubleshooting.md) — 给用户和 Agent 的 RFork 工作版排错入口。按真实日志定位配置、匹配、注册、metadata、读取、租约、发布和回退，列出可证结论、候选原因及要补的证据，避免凭单行错误定因。
 - [Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather](concepts/sequence-parallel.md) — 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。 `15`
 - [ShortRequestFirst：把等待队列切成三条车道](concepts/short-request-first.md) — 把上游那条单一的 waiting 队列换成 immediate / short / long 三条，短 prompt 先被挑走，长 prompt 不再堵住别人的首 token。 `12`
 - [Speculative Decoding：一步算 K+1 个位置，第一个对不上的地方截断](concepts/speculative-decoding.md) — 先让一个便宜的草稿器猜 K 个 token，目标模型在同一次 forward 里给这 K+1 个位置各出一个分布，逐位比对，接受多少算多少。 `17`
@@ -99,6 +110,9 @@
 - [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md) — Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config 这个嵌套块里（不是顶层），bool、默认 false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬 miss 再算」。只在 main 开发主线上有。 `11`
 - [use_layerwise](params/use-layerwise-b475778cd352.md) — KV 池连接器的逐层开关：把 KV 的存取粒度从「整趟前向搬一次」降到「一层搬一次」。它不在 additional_config 里，真正的入口是 --kv-transfer-config 的 kv_connector_extra_config；三个版本都有，默认 false。 `11`
 - [weight_prefetch_config](params/weight-prefetch-config.md) — v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 quantize / gating / SwiGLU 这些 vector 计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main 上直接报错。 `19`
+
+## 来源（source）
+- [RFork 官网核读：原图、全部章节与工作版差异](sources/rfork-official-guide.md) — 按用户指定的英文 latest RFork Guide 核读全文与架构图，对照独立工作版，区分官方使用说明、工作版实际调用路径和仍需现场验收的内容。
 
 ## 按章节
 

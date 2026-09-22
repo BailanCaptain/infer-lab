@@ -1,7 +1,7 @@
 /**
  * 阅读页左侧目录的章法，唯一定义处（用户 2026-09-20 定）：
  *
- *   一 推理基础知识 → 二 代码全流程 → 三 特性 → 四 参数
+ *   推理基础知识 → 代码全流程 → 特性 → RFork 工作版 → 参数
  *
  * 之前目录按课程 22 章的章号分组：多数章是空的，读者看到的是「未归章 → 00 → 04 → 05 → 09…」的跳号，
  * 没章号的参数页全堆在最顶上。章号（frontmatter 的 `chapters`）仍然保留，但只回答「这页对应课程哪一章」，
@@ -26,7 +26,7 @@ export interface TocSection<P> {
   pages: P[];
 }
 export interface TocPart<P> {
-  id: "basics" | "flow" | "features" | "params";
+  id: "basics" | "flow" | "features" | "rfork" | "params";
   title: string;
   blurb: string;
   sections: TocSection<P>[];
@@ -36,6 +36,7 @@ const PARTS: Pick<TocPart<never>, "id" | "title" | "blurb">[] = [
   { id: "basics", title: "推理基础知识", blurb: "读代码之前要懂的词" },
   { id: "flow", title: "代码全流程", blurb: "跟着一条请求，从 vLLM 走到昇腾算子" },
   { id: "features", title: "特性", blurb: "vLLM 与 vLLM-Ascend 的各项特性" },
+  { id: "rfork", title: "RFork 工作版", blurb: "独立演进的权重加载实现：机制、术语与故障定位" },
   { id: "params", title: "参数", blurb: "每个配置参数的定义、默认值与版本谱系" },
 ];
 
@@ -98,6 +99,9 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
 
   const basics = curated("basics");
   const flow = curated("flow");
+  // RFork 工作版独立成章，不借用社区特性章号；后续子页也按 order 自动归入。
+  const rforkPages = pages.filter((p) => p.id === "rfork" || p.id.startsWith("rfork-")).sort(byOrder);
+  for (const p of rforkPages) placed.add(p.id);
   const rest = pages.filter((p) => !placed.has(p.id));
 
   const isBasic = (p: P) => p.chapters.length > 0 && p.chapters.every((c) => c <= BASICS_LAST_CHAPTER);
@@ -123,7 +127,13 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
 
   const params = rest.filter((p) => p.type === "param").sort((a, b) => a.title.localeCompare(b.title, "en"));
 
-  const sections = { basics, flow, features, params: params.length ? [{ title: "", pages: params }] : [] };
+  const sections = {
+    basics,
+    flow,
+    features,
+    rfork: rforkPages.length ? [{ title: "", pages: rforkPages }] : [],
+    params: params.length ? [{ title: "", pages: params }] : [],
+  };
   return PARTS.map((part) => ({ ...part, sections: sections[part.id] })).filter(
     (part) => part.sections.length > 0,
   );

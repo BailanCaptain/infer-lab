@@ -65,6 +65,13 @@ describe("读取器", () => {
     expect(sourceUrl(ref!)).toBeNull();
   });
 
+  it("RFork 工作版引用指向同事仓库，与社区仓库分开", () => {
+    const ref = parseRepoRef("rfork@3284850:vllm_ascend/model_loader/rfork/session.py#L103-L148");
+    expect(sourceUrl(ref!)).toBe(
+      "https://github.com/yangsonglin13/vllm-ascend/blob/3284850/vllm_ascend/model_loader/rfork/session.py#L103-L148",
+    );
+  });
+
   it("rewriteRelativeLink 把页面间相对链接改写成 hash 路由", () => {
     expect(rewriteRelativeLink("paged-attention.md")).toBe("#/wiki/paged-attention");
     expect(rewriteRelativeLink("../sources/some-doc.md")).toBe("#/wiki/some-doc");

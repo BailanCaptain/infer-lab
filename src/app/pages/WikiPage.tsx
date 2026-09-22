@@ -25,7 +25,8 @@ import "../../design/wiki.css";
 
 /** 与 scripts/wiki/build.ts 的显示名保持一致；漏一个页型会把原始字符串印在页面上 */
 /** seeds 里的分支名 → 页头上给读者看的版本名：`releases/v0.26.0rc` → `v0.26.0rc` */
-const versionLabel = (ref: string) => ref.replace(/^releases\//, "");
+const versionLabel = (ref: string) =>
+  ref === "rfork:main" ? "RFork 工作版" : ref.replace(/^releases\//, "");
 /** 发布分支按版本号从旧到新，开发主线 main 放最后 */
 const versionOrder = (refs: string[]) =>
   [...refs].sort(
@@ -127,7 +128,7 @@ export function WikiPage() {
           ));
           const head = (
             <>
-              <span className="wiki-toc-chapter">{"一二三四"[i]}</span>
+              <span className="wiki-toc-chapter">{"一二三四五"[i]}</span>
               {part.title}
               <small className="wiki-toc-count">{count}</small>
             </>

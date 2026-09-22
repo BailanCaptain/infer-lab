@@ -16,6 +16,7 @@ export type { WikiPage } from "./reader-store";
 const REPO_GITHUB: Record<string, string> = {
   "vllm-ascend": "vllm-project/vllm-ascend",
   vllm: "vllm-project/vllm",
+  rfork: "yangsonglin13/vllm-ascend",
 };
 
 export function listPages(): RegistryEntry[] {

@@ -11,6 +11,24 @@ const page = (id: string, type: string, chapters: string[] = [], order = 500): T
 });
 
 describe("buildToc", () => {
+  it("RFork 工作版独立成章，新增 rfork 子页自动按顺序归入且不重复", () => {
+    const toc = buildToc([
+      page("rfork-troubleshooting", "feature", [], 90),
+      page("rfork", "feature", [], 10),
+      page("rfork-terms", "concept", [], 20),
+      page("rfork-new-topic", "feature", [], 80),
+      page("some-param", "param"),
+      page("kv-pool", "feature", ["11"]),
+    ]);
+    expect(toc.map((p) => p.id)).toEqual(["features", "rfork", "params"]);
+    expect(toc.find((p) => p.id === "rfork")?.sections.flatMap((s) => s.pages.map((p) => p.id))).toEqual([
+      "rfork",
+      "rfork-terms",
+      "rfork-new-topic",
+      "rfork-troubleshooting",
+    ]);
+    expect(toc.flatMap((p) => p.sections.flatMap((s) => s.pages))).toHaveLength(6);
+  });
   it("四部分按「基础 → 全流程 → 特性 → 参数」排，人排的顺序原样保留", () => {
     const toc = buildToc([
       page("some-param", "param"),

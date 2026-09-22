@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="模型路径与 lease 记账分开：释放未确认只阻止 seed 发布，不撤销成功的模型">
+  <title>模型路径与 lease 记账分开：释放未确认只阻止 seed 发布，不撤销成功的模型</title>
+  <rect width="900" height="540" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="40" width="860" height="150" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="36" y="54" width="119.2" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">模型 / 内存路径</text>
+  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先有有效模型，才能讨论成为 seed</text>
+  <rect x="20" y="245" width="860" height="155" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="259" width="155.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="277.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">后台 lease 释放路径</text>
+  <text x="38" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">有界重试；释放 HTTP 在 session 锁外</text>
+  <rect x="45" y="109" width="260" height="60" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="57" y="123" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(63.4 129.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="97" y="135.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">TRANSFERRED</text>
+  <text x="97" y="153.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">本次全部同步读取成功</text>
+  <rect x="320" y="109" width="260" height="60" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="332" y="123" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(338.4 129.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="372" y="135.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">READY</text>
+  <text x="372" y="153.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">模型与 seed 注册准备完成</text>
+  <rect x="595" y="109" width="260" height="60" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="607" y="123" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(613.4 129.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
+  <text x="647" y="135.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SERVING</text>
+  <text x="647" y="153.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">需释放确认，且服务与初报成功</text>
+  <rect x="45" y="317" width="260" height="60" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="57" y="331" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(63.4 337.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></g>
+  <text x="97" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">一次 HTTP 释放请求</text>
+  <text x="97" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">使用这次借用的身份</text>
+  <rect x="320" y="317" width="260" height="60" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="332" y="331" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(338.4 337.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
+  <text x="372" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">RETRYABLE / REJECTED</text>
+  <text x="372" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">等待再试 / 保留未决 lease</text>
+  <rect x="595" y="317" width="260" height="60" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="607" y="331" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(613.4 337.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
+  <text x="647" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">RELEASED</text>
+  <text x="647" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">200 / 404 是当前客户端认可结果</text>
+  <path d="M305 140 L320 140" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
+  <path d="M320 140 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
+  <path d="M580 140 L595 140" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
+  <path d="M595 140 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
+  <path d="M170 190 L170 245" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path d="M170 245 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M720 245 L720 190" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path d="M720 190 l-5.5 11 l11 0 z" fill="var(--color-control, #5b6763)"/>
+  <text x="240" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">read 后安排异步释放；模型线程继续后处理</text>
+  <text x="35" y="442" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="600" fill="var(--color-ink, #17211f)">DEFERRED 是发布结果：READY 的模型可以先返回，待 lease 确认后再尝试成为 seed。</text>
+  <text x="35" y="489" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">retry 耗尽或永久拒绝：不发布 seed、不伪造释放成功。cleanup 失败时也不能随意释放内存。</text>
+</svg>

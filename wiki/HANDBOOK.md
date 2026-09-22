@@ -136,7 +136,7 @@ file: <id>
 
 ### 目录的章法、章号、阅读顺序
 
-读者看到的目录固定分四部分：**一 推理基础知识 → 二 代码全流程 → 三 特性 → 四 参数**（用户 2026-09-20 定）。唯一定义处是 `src/content/wiki/toc.ts`。
+读者看到的目录为：**推理基础知识 → 代码全流程 → 特性 → RFork 工作版 → 参数**。前四类通用知识的顺序沿用 2026-09-20 约定；用户 2026-09-21 要求 RFork 独立成章，放在特性之后。唯一定义处是 `src/content/wiki/toc.ts`，`rfork` 与 `rfork-*` 页按 `order` 归入工作版专章，不借用课程章号。
 
 - 「基础」和「全流程」要循序渐进读，**顺序由人排**，写在 `toc.ts` 的 `CURATED` 里。往这两部分加一页入门或主干页时，把它的 id 插到该读的位置。
 - 没被点名的页自动归位：`param` → 参数；`feature` → 特性，按第一个章号的章名分组；`concept` → 章号全在 00–06 的进「基础」，其余落到「全流程 · 其他」。**「其他」里出现页，就是该去 `CURATED` 里给它排位置了。**
@@ -168,7 +168,9 @@ file: <id>
 
 #### `verified`：这页有人对过哪几个版本
 
-frontmatter 的 `verified` 是一个 ref 名数组，取值只能是 seeds 里登记过的那几个（`"releases/v0.23.0"`、`"releases/v0.26.0rc"`、`"main"`），写错了 lint 的 `unknown-verified-ref` 会拦。阅读页页头照它显示「已核对 v0.23.0 · v0.26.0rc · main」。
+frontmatter 的 `verified` 是一个 ref 名数组，必须在 seeds 里登记。社区页面用 `"releases/v0.23.0"`、`"releases/v0.26.0rc"`、`"main"`，独立仓库使用下面的限定形式；写错了 lint 的 `unknown-verified-ref` 会拦。阅读页页头显示对应的版本名。
+
+独立仓库可以写带仓库限定的 `repo:ref`，必须在 seeds 中真实存在。RFork 工作版用 `rfork:main`；这里的 `main` 只是克隆工具的默认键，表示钉住的用户工作版，绝不是社区 main。不要给工作版页补社区 `main` / `releases/...` 标记。`wiki:versions` 默认比较的是社区版本，不能用它的 `--mark main` 给 RFork 认证。
 
 **它的意思是「有人真对着这个版本的源码核过，差异已经写进正文了」**，不是「这页引过这个版本的代码」。没有这个字段，读者分不清一页是「在 v0.26 上也成立」还是「还没人对过 v0.26」——后者才是现在大多数页的真实状态，不写就是在骗人。
 
@@ -214,9 +216,11 @@ pnpm wiki:versions [--from <ref>] [--to <ref>] [--mark <id,id>] [--init] [--out 
 
 `rawSources` 仅关联保存的摘录，不替代下面的 `sources`，不提升证据等级，也不证明摘录与上游原文一致。旧页没有此字段时仍读取 `raw/<id>.md`，无需批量迁移。快照格式的机器契约由 `src/content/wiki/schema.ts` 承接，存取和完整性校验共用 `scripts/wiki/raw.ts`；`.gitattributes` 对快照禁用换行转换，保留 hash 所对应的字节。
 
+RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.yaml`，不得用社区版本覆盖。正文首次说明工作版边界；需要展开的内容拆成多篇互链的教学页，术语、排错和维护参考可以按实际需要超过推荐行数。`rfork/source/` 保存入库源码、测试与许可证；原始补丁、历史衔接差异与核验方法见仓库根 `rfork/README.md`。这次内容由当前模型编写，用户已明确允许，不冒称 Opus 或付费 ingest 产物。
+
 `sources` 每项四种写法：
 
-- `repo@commit:path#L起-L止` —— 源码。repo 只能是 `vllm-ascend` 或 `vllm`——只有这两个在 `seeds/*.yaml` 里有工作树、在 `src/content/wiki/index.ts` 的 `REPO_GITHUB` 里有 blob 链接。引本仓库自己的代码（`infer-lab@…`）**尚未支持**：审计找不到工作树，角标也点不开。commit 是钉住的短 hash。
+- `repo@commit:path#L起-L止` —— 源码。已注册 repo 为 `vllm-ascend`、`vllm`、`rfork`，工作树在 `seeds/*.yaml`、blob 链接在 `src/content/wiki/index.ts` 的 `REPO_GITHUB`。`rfork` 指同事仓库 `yangsonglin13/vllm-ascend`（不是用户本人的仓库），源码支持 C，不代表社区官方认可，也不把其 `docs/` 冒标为 S。引本仓库自己的代码（`infer-lab@…`）**尚未支持**。commit 是钉住的短 hash。
 - `repo@commit:docs/source/<路径>.md#L起-L止` —— **官方文档的本地副本**。官网 <https://docs.vllm.ai/projects/ascend/> 就是这个目录渲染出来的，读本地文件与读官网内容同源，且能给出行号。
 - `https://docs.vllm.ai/projects/ascend/en/<版本>/<路径>.html` —— 官方文档的线上地址。
 - `raw:sha256-<64 位小写 hash>.md#L起-L止` —— 已归档的本地材料，行号必填且从 1 开始，单行可省略止行。只接受不可变快照，不接受任意路径或旧文件别名。parser 只在 schema 定义，lint / audit 按快照原文的实际行数核对；末尾换行不另算一行。本地问答服务开启时，读者点击引用可查看原文和定位行号，HTML 作为纯文本显示。

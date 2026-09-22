@@ -1,0 +1,30 @@
+layout: scene
+id: rfork-architecture
+caption: RFork 工作版：协调、元数据、权重字节走三条不同的通道
+size: [900, 580]
+regions:
+  - { label: Planner, note: 只管来源与借用名额，不搬权重, at: [245, 35], size: [410, 125], tone: upstream }
+  - { label: 来源 Worker A, note: 已加载的模型，也可以继续推理, at: [25, 255], size: [365, 275], tone: ascend }
+  - { label: 接收 Worker B, note: 自己构建模型，自己分配 NPU 内存, at: [510, 255], size: [365, 275], tone: neutral }
+boxes:
+  - { at: [275, 96], size: [350, 48], title: 按 key 选 seed，发放 / 回收 lease, icon: pick, tone: upstream }
+  - { at: [50, 330], size: [315, 64], title: seed HTTP 元数据, sub: 名称、shape、dtype、源地址、端点, icon: text, tone: ascend }
+  - { at: [535, 330], size: [315, 64], title: 验收元数据, sub: 先整体验证，再形成读取列表, icon: search, tone: neutral }
+  - { at: [50, 438], size: [315, 64], title: 已注册的来源 NPU 权重, sub: 保留 Tensor 与原始 storage, icon: chip, tone: ascend }
+  - { at: [535, 438], size: [315, 64], title: 已注册的本地 NPU 缓冲区, sub: 接收端主动发起同步批量读取, icon: chip, tone: neutral }
+arrows:
+  - { from: [170, 255], to: [305, 160], style: dashed, tone: upstream }
+  - { from: [595, 160], to: [730, 255], style: dashed, tone: upstream }
+  - { from: [365, 360], to: [535, 360], tone: muted }
+  - { from: [365, 470], to: [535, 470], tone: accent }
+notes:
+  - { at: [65, 216], text: 发布 / 心跳, width: 170, size: 13 }
+  - { at: [666, 216], text: 借用 / 归还, width: 170, size: 13 }
+  - { at: [397, 342], text: HTTP, width: 95, size: 13 }
+  - { at: [397, 450], text: 权重字节, width: 95, size: 13, strong: true }
+  - { at: [30, 563], text: 两端都有独立模型内存。权重读完以后，B 的模型就绪与 B 成为新 seed 仍需分别判断。, width: 840, size: 13 }
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148
+    symbols: [transfer_from_seed, fetch_seed_transfer_info]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L758-L793
+    symbols: [batch_transfer_sync_read]

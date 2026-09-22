@@ -39,12 +39,22 @@ pnpm wiki:mcp     # stdio 上的 JSON-RPC，三个工具：wiki_search / wiki_ge
 - `sources` 是钉住 commit 的来源，形如 `vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472`。
 - 正文里 `[C3]` / `[S1]` 指 `sources` 的第 3 / 第 1 条（从 1 数起）：`C` 源码，`S` 官方文档或论文。
 - 不带编号的 `[D]` 推导、`[I]` 推断、`[A]` 教学假设、`[!]` 矛盾或会踩的坑——**这四种最该警惕，转述时把等级带上**。
-- `verified` 是有人逐条对过的版本（只有 `releases/v0.23.0`、`releases/v0.26.0rc`、`main` 三个取值）。
+- `verified` 是有人逐条对过的版本；社区页用 `releases/v0.23.0`、`releases/v0.26.0rc`、`main`，独立工作版使用下述 `rfork:main`，完整规则见 HANDBOOK 的「版本」。
   **没列出的版本 = 没人对过，不等于在那个版本上不成立。**
 - 版本之间真有差异时，页内有一张差异表，末列写「这对使用者意味着什么」。版本相关的问题先看它。
 - `--neighbors` 给出的每条边都带理由，回答里说明几页之间的关系时照它写，不要自己编。
 
 ## 三条规矩
+
+### RFork 工作版的特别入口
+
+涉及用户 RFork 的报错，先 `pnpm -s wiki:find --page rfork-troubleshooting`，再按它链接的机制页查。整章入口为 [rfork](concepts/rfork.md)。当前版本唯一钉点在 `seeds/rfork.yaml`，`verified: ["rfork:main"]` 表示用户独立工作版，不是社区 main。
+
+先向日志确认实际代码提交、main/draft 角色、rank、两端参数及 Planner 版本。先说已证实的阶段与影响，再列候选原因和需要补的现场证据；不能把 400 自动解释成 TTL 过期，也不能把 seed 发布失败自动解释成模型加载失败。
+
+**RFork 排错允许按页面定位读取入库源码**：项目根 `rfork/source/` 保存当前实现、测试与示例 Planner，按报错函数/文件读取即可，不必扫完整上游仓库。完整代码维护与补丁更新规程在 `../rfork/README.md`；只分析报错时不修改源码或 Wiki。源码 C 级证据不等于真实 NPU 实测。
+
+下面三条仍适用于一般查询；RFork 的精确源码追踪使用上述入库目录。
 
 1. **结论带页面链接，版本说清楚。** 让人能顺着来源行号去核对；引用版本相关的结论时说明是哪个版本、`verified` 里有没有它。
 2. **没收录就说没收录。** 不要拿模型自己的知识冒充知识库结论。换别名 / 英文名 / 参数名再查一次仍然没有，就如实说，并把缺口记下来（现成的清单命令是 `pnpm wiki:gaps`）。

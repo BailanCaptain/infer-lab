@@ -1,0 +1,9 @@
+# 用户工作版；独立于 vllm-project 的三个在册版本。只随用户提供的补丁更新。
+# main 是克隆工具的默认键，不代表社区 main，也不跟随远端分支移动。
+repos:
+  rfork:
+    url: https://github.com/yangsonglin13/vllm-ascend
+    path: tools/repos/rfork
+    refs:
+      main: 3284850b42f94934dfe6909ed6f1c4c145a7f69c
+features: []

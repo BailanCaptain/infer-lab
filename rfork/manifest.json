@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "seedFile": "wiki/seeds/rfork.yaml",
+  "repo": "rfork",
+  "ref": "main",
+  "label": "RFork 工作版（patch7 完整历史）",
+  "baseCommit": "f2f74a16c3c50a76f4349d807918e83edec1e35c",
+  "patches": [
+    {
+      "file": "0001-BugFix-RFork-Consolidate-transfer-layout-and-fallbac.patch",
+      "sourceCommit": "2db39b67174fb430210f9774ddaa60772b3d6780",
+      "sourcePath": "0001-BugFix-RFork-Consolidate-transfer-layout-and-fallbac.patch",
+      "patchCommit": "b5445840d65245660942ba10dbb734f9fddee5e4",
+      "sha256": "6e5d6bb473e47887f20dbb2948c4ca2c05e7512062d9434dd66cc60da61ca849"
+    },
+    {
+      "file": "0002-fix-rfork-retain-registered-tensor-owners.patch",
+      "sourceCommit": "2db39b67174fb430210f9774ddaa60772b3d6780",
+      "sourcePath": "0002-fix-rfork-retain-registered-tensor-owners.patch",
+      "patchCommit": "54081fd7dc372974b4d13a7b6a3431495c327c75",
+      "sha256": "206c63d8b8a85038582e3d5d1a18170f39a77f2270065d877213d7e888e76414"
+    },
+    {
+      "file": "0003-fix-rfork-avoid-overlapping-draft-memory-registratio.patch",
+      "sourceCommit": "2db39b67174fb430210f9774ddaa60772b3d6780",
+      "sourcePath": "0003-fix-rfork-avoid-overlapping-draft-memory-registratio.patch",
+      "patchCommit": "395a59cba61377e40327bee2a2ce5a605f306500",
+      "sha256": "d0fc47c953f3a70a8680a28d98ad70d99afa099fd978a63ecdd6b1ab346198b8"
+    },
+    {
+      "file": "0004-refactor-rfork-harden-weight-transfer-and-session-li.patch",
+      "sourceCommit": "2db39b67174fb430210f9774ddaa60772b3d6780",
+      "sourcePath": "0004-refactor-rfork-harden-weight-transfer-and-session-li.patch",
+      "patchCommit": "3aa0ee8f92dd7dd372c3d6d1e56cf914626f6068",
+      "sha256": "1323f2a635754cf7ffa0f9afeba29105d4051874676ba44a5d0dc83fbec340bb"
+    },
+    {
+      "file": "0005-fix-rfork-adapt-v0.26.0rc1-APIs.patch",
+      "sourceCommit": "2db39b67174fb430210f9774ddaa60772b3d6780",
+      "sourcePath": "0005-fix-rfork-adapt-v0.26.0rc1-APIs.patch",
+      "patchCommit": "ac2be61b3aae1ccda3e5cb2b22acf6374de13e81",
+      "sha256": "69e01649d81291a5ead8f13553b18616a9c5a49d8902393e17d11ce766617e7a"
+    },
+    {
+      "file": "0006-fix-rfork-harden-cleanup-and-planner-concurrency.patch",
+      "sourceCommit": "2db39b67174fb430210f9774ddaa60772b3d6780",
+      "sourcePath": "0006-fix-rfork-harden-cleanup-and-planner-concurrency.patch",
+      "patchCommit": "7ddcfca9291fe9336a1ab8f9064d0dd819ddb2a4",
+      "sha256": "79fa6ea313a47a92682bb2dee7dd5e951de077b03e716c8e04c313c0fa0b391d"
+    },
+    {
+      "file": "0007-fix-rfork-stabilize-seed-transfer-across-instances.patch",
+      "sourceCommit": "7b1a690b359197c9a3462cae2411bfbfe1ec349a",
+      "sourcePath": "0001-fix-rfork-stabilize-seed-transfer-across-instances.patch",
+      "patchCommit": "3284850b42f94934dfe6909ed6f1c4c145a7f69c",
+      "sha256": "d78c8d09dbf63f22db906f546b6ea716762995aaced043a6d01c4a8506b20ddc"
+    }
+  ],
+  "reconciliation": {
+    "file": "patch6-to-patch7-base.diff",
+    "from": "7ddcfca9291fe9336a1ab8f9064d0dd819ddb2a4",
+    "to": "09b8eeae734ae1757a26fcd4f0ef4c1afb605999",
+    "sha256": "bf39d3cb8775999b898cedceef5521b3a08d86bb6b06cc9cf5ed47b95cd289fb",
+    "provenance": "git diff --binary --full-index; generated history reconciliation, NOT an original user patch"
+  },
+  "sourceScope": [
+    "vllm_ascend/model_loader/rfork",
+    "tests/ut/model_loader/rfork",
+    "examples/rfork/rfork_planner.py",
+    "docs/source/user_guide/feature_guide/rfork.md",
+    "docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md",
+    "vllm_ascend/model_loader/__init__.py",
+    "vllm_ascend/__init__.py",
+    "LICENSE"
+  ],
+  "sourceFiles": {
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "docs/source/developer_guide/Design_Documents/rfork_lease_lifecycle.md": "d85827739af18ec3c24116cca59ca4da83506505eab446fb7b2f9889474f15fc",
+    "docs/source/user_guide/feature_guide/rfork.md": "2d5cdd95835a4a48f5e4c17f6670e3dfa3ef0b60699667e734d8e93aa0ac0934",
+    "examples/rfork/rfork_planner.py": "b40a142ea9deb9dd86631161693bfd5c018d4572576a38a0714bf2cb24388bb4",
+    "tests/ut/model_loader/rfork/test_compat_isolated.py": "2f77023ca1457884bb967237083e386b1e114d6d7371611f63970041e72a5d72",
+    "tests/ut/model_loader/rfork/test_identity_validation.py": "ba8866e5ce26663e12a5d7bd169d047a3522a9f9fb2fa510db808aa841f76231",
+    "tests/ut/model_loader/rfork/test_late_lease_isolated.py": "c1b86c556f1bd7d6d2fed03aa0bb38de77579ab9ef47f74d74245b04cad4a43b",
+    "tests/ut/model_loader/rfork/test_lease_release.py": "7eb4a3e69a868d9478d2ca13454a84403caf9e85f40cd0466845cabef264a0f5",
+    "tests/ut/model_loader/rfork/test_ops_config.py": "bc6678ca9c673152a0e23a91e08406827012f9c22d3eb2cd090e189862f6510e",
+    "tests/ut/model_loader/rfork/test_rfork_loader.py": "ef2659bcd1a591649ea357f3faad35a598149c0446302a8d921e0107a65f707f",
+    "tests/ut/model_loader/rfork/test_rfork_planner.py": "196a01867f30281fd4a5aa583b3532e41bc282212098e85e5cca6a0e34f313ef",
+    "tests/ut/model_loader/rfork/test_seed_server_cleanup_isolated.py": "71ca77258d038f5210d244e76b809c0b7aba98d04388ed318c4b637d9210ac45",
+    "tests/ut/model_loader/rfork/test_tensor_safety_isolated.py": "b716d6409987612b2cceab547659c3bc2aa2508a226aae9ebddeda26fb3d123d",
+    "tests/ut/model_loader/rfork/test_transfer_backend.py": "a05b2dd1298af5088b31a64555d58e7092b2dba45df3c4f452eb218a00d57ab9",
+    "vllm_ascend/__init__.py": "7d7dcd7a3c741e72c27a6580d4e6040557f192c0d68c3548b0400c1d5dfef817",
+    "vllm_ascend/model_loader/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vllm_ascend/model_loader/rfork/__init__.py": "9c81d6f676ec418cab38d0966c9b87041ecfb99ce47e00c4d4d544ad5031bd9d",
+    "vllm_ascend/model_loader/rfork/compat.py": "565992455792d7fdc34a8867a050c031c71504108787daba9dbb171fb61fcbe6",
+    "vllm_ascend/model_loader/rfork/config.py": "d6bb5e902618ce6cde6a895da9a5eff160f533bcda6dcc2411281a26f5d1ea8b",
+    "vllm_ascend/model_loader/rfork/identity.py": "fa826f9d9856315ce9543dfee33a45498a07705fffcc7986420cefa36a7b6f2a",
+    "vllm_ascend/model_loader/rfork/manifest.py": "97c0fb8f3959d34844f5dfc202c9fa491faaa43a20888b686835ab0b809c62fb",
+    "vllm_ascend/model_loader/rfork/planner_client.py": "f72e41cd10364e5fe6139d2ac939209d63278d2c588548d8a4ecb02c00bd7e10",
+    "vllm_ascend/model_loader/rfork/rfork_loader.py": "5bfed491f7f1fb58472b172efce9b0d4b4e760a82f88a9c3d5b0c34282b738ff",
+    "vllm_ascend/model_loader/rfork/seed_client.py": "7f82fa9bd4c13165e3ca5c61c63794f0b09b8560f0bd3c02cbafe87b80d04d4b",
+    "vllm_ascend/model_loader/rfork/seed_server.py": "3efb70407c755d5740db037fa4aeb0b86467e75ecafb402304e44d34ec5a02c8",
+    "vllm_ascend/model_loader/rfork/session.py": "5bef3aa4b0318294b211876ec5662ab24a8d0ea8e2ce772ee614cfbcd8d5e2cd",
+    "vllm_ascend/model_loader/rfork/tensor_layout.py": "5e3c2393baf54dcb17ef305a7e31a8ab7b9c009f3e0f9858e7bed3856bf03c3a",
+    "vllm_ascend/model_loader/rfork/transfer_backend.py": "cd2917083f307a525f4fff9c2d71098dbaafd8b18e3965dbe7750c43713eb78c",
+    "vllm_ascend/model_loader/rfork/types.py": "34448a63d7954fb9b1f8c316207f536ed950a7dca260fe78dedee0c924714580"
+  }
+}

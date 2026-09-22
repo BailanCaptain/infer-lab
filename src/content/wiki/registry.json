@@ -5229,6 +5229,11 @@
           "from": "request-call-chain",
           "kind": "enables",
           "note": "这条链路每一跳都假定 worker 已经走完六步启动，KV 张量和图都就位了"
+        },
+        {
+          "from": "rfork",
+          "kind": "enables",
+          "note": "RFork 在 Worker 加载模型时运行，推理请求开始前就要把权重准备好"
         }
       ]
     },
@@ -7008,6 +7013,839 @@
       ]
     },
     {
+      "id": "rfork",
+      "title": "RFork：工作版机制与排错总览",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "从已有实例的 NPU 内存加载权重，让新实例完成暖启动。本章只讲用户指定的独立工作版，串起布局、身份、传输、租约与回退，供阅读和报错定位使用。",
+      "aliases": [
+        "RFork",
+        "rfork",
+        "R-Fork",
+        "Tensor Remote Fork",
+        "Tensor R-Fork",
+        "RFork 工作版",
+        "rfork_loader"
+      ],
+      "chapters": [],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L521-L644",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L732-L793",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L645-L710",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L81-L109",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L198-L252",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L35"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-83e2a01865a32aa947474f37b05149cfa00df90169b1014f4d2301934a03afb6.md",
+        "raw/sha256-b497eef4c4973a8d3ffb141a76c2caf3aa52fc165c864cd90016ccf7555c796c.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md"
+      ],
+      "relations": [
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "RFork 在 Worker 加载模型时运行，推理请求开始前就要把权重准备好"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork.md",
+      "backlinks": [
+        {
+          "from": "rfork-maintenance",
+          "kind": "enables",
+          "note": "本章全部机制都属于这套独立工作版，更新补丁时要保持整章与代码一起演进"
+        },
+        {
+          "from": "rfork-official-guide",
+          "kind": "enables",
+          "note": "官方指南是概览；独立工作版章节用实际源码展开并修正文档与代码的差异"
+        },
+        {
+          "from": "rfork-startup",
+          "kind": "enables",
+          "note": "总览先分清 Planner、元数据 HTTP 与字节传输，这里按真实调用顺序串起来"
+        },
+        {
+          "from": "rfork-terms",
+          "kind": "enables",
+          "note": "先看三个参与方的位置，再把这些词放回它们负责的通道"
+        }
+      ]
+    },
+    {
+      "id": "rfork-config",
+      "title": "RFork 配置：四类端口、各项超时与可复制的启动示例",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "工作版 RFork 参数完整参考与启动说明，区分 model-loader-extra-config、环境变量、Planner 参数和网络端点；解释 patch7 固定端口、动态 EPLB、混合设备限制与验收方法。",
+      "aliases": [
+        "RFork 配置",
+        "rfork_scheduler_url",
+        "rfork_seed_port_base",
+        "rfork_seed_advertise_host",
+        "rfork_request_timeout_sec",
+        "rfork_heartbeat_interval_sec",
+        "rfork_lease_release_max_attempts",
+        "rfork_seed_timeout_sec"
+      ],
+      "chapters": [],
+      "order": 90,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L139",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L35-L49",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L349-L413",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L233",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L289-L295",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L382",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L539-L561",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L39-L75",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L213-L267",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L395-L614",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py#L127-L377",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L414-L419",
+        "rfork@3284850b:docs/source/user_guide/feature_guide/rfork.md#L160-L165",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L542-L582"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-1ae36dd2945d6704b17e8d8c2d24f1e68a61a92f72ed3f18b9ba0c7dfcc97db3.md",
+        "raw/sha256-22f6d04426e0defa217c4f60bcb3fba3c71e2a966e4f415864440ec682d871d3.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md",
+        "raw/sha256-5bad70ef874cd30dbb1c42ecd2370b814b3bafa2c63fceb2ab55f1da7f506deb.md",
+        "raw/sha256-7c1cf46ed24557ae509144bda485106fc93a596c0e8a111ed26f83c3491c0981.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-identity",
+          "kind": "builds-on",
+          "note": "model_url 与部署策略是匹配标识，必须先理解它们不等于 served-model-name"
+        },
+        {
+          "to": "rfork-lifecycle",
+          "kind": "builds-on",
+          "note": "lease 重试、心跳与 seed 启动超时分别作用于不同生命周期"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-config.md",
+      "backlinks": [
+        {
+          "from": "rfork-official-guide",
+          "kind": "enables",
+          "note": "官网最小命令没有覆盖工作版的全部参数和依赖契约"
+        },
+        {
+          "from": "rfork-troubleshooting",
+          "kind": "enables",
+          "note": "多数定位需要同时拿到两端参数、端口与 Planner 配置，不能只看 receiver"
+        }
+      ]
+    },
+    {
+      "id": "rfork-identity",
+      "title": "RFork 身份匹配：同模型、同布局，还要同一份分片",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "两层 SHA256 分别表达配置兼容性和分片身份。说明指纹包含哪些字段、不包含什么，为什么同名模型仍找不到 seed，以及为什么不能把匹配当成权重内容验证。",
+      "aliases": [
+        "RFork fingerprint",
+        "RFork seed key",
+        "RFork 身份匹配",
+        "build_compatibility_fingerprint",
+        "build_seed_key",
+        "planner returned no compatible seed"
+      ],
+      "chapters": [],
+      "order": 40,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L32-L104",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L107-L157",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L170-L251",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L254-L287",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L113-L176",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L501",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L192-L213"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md",
+        "raw/sha256-5bad70ef874cd30dbb1c42ecd2370b814b3bafa2c63fceb2ab55f1da7f506deb.md",
+        "raw/sha256-b497eef4c4973a8d3ffb141a76c2caf3aa52fc165c864cd90016ccf7555c796c.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-terms",
+          "kind": "builds-on",
+          "note": "必须先区分组内 rank、global rank、world size 与模型角色，才能理解 key 的组成"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-identity.md",
+      "backlinks": [
+        {
+          "from": "rfork-config",
+          "kind": "enables",
+          "note": "model_url 与部署策略是匹配标识，必须先理解它们不等于 served-model-name"
+        },
+        {
+          "from": "rfork-layout",
+          "kind": "enables",
+          "note": "dtype、量化与 NZ 策略先进入兼容性指纹，再对齐具体张量清单"
+        },
+        {
+          "from": "rfork-transfer",
+          "kind": "enables",
+          "note": "key 匹配只负责挑候选来源，选中以后仍必须核验逐张量元数据"
+        }
+      ]
+    },
+    {
+      "id": "rfork-layout",
+      "title": "RFork 张量布局：先对齐算子要的形状，再决定搬什么",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "区分 checkpoint 与 processed 两条加载路径，解释量化、NZ、impl 派生权重、MoE 后处理和 patch7 的 topk 工作区排除。说明张量采集与同名冲突的处理边界。",
+      "aliases": [
+        "RFork processed layout",
+        "RFork checkpoint layout",
+        "RFork NZ",
+        "RFork topk_indices_buffer",
+        "RFork conflicting tensor entries",
+        "collect_transferable_tensors"
+      ],
+      "chapters": [],
+      "order": 50,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L503-L519",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L335-L411",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L644",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L55",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L58-L152",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L155-L208",
+        "rfork@3284850b:tests/ut/model_loader/rfork/test_tensor_safety_isolated.py#L143-L170",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L317-L345"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-5f3e3227968d32d9fcc21a566c964c88b54df66a96481747265dad39632dbe25.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md",
+        "raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-startup",
+          "kind": "builds-on",
+          "note": "processed 路径把后处理挪到申请租约前，改变整条启动路径的顺序"
+        },
+        {
+          "to": "rfork-identity",
+          "kind": "builds-on",
+          "note": "dtype、量化与 NZ 策略先进入兼容性指纹，再对齐具体张量清单"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-layout.md",
+      "backlinks": [
+        {
+          "from": "rfork-memory",
+          "kind": "enables",
+          "note": "必须先确定最终可传张量，才能登记它们此刻对应的内存范围"
+        }
+      ]
+    },
+    {
+      "id": "rfork-lifecycle",
+      "title": "RFork 生命周期：模型可用、租约归还、成为 seed 是三件事",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "按工作版 Session 状态解释异步有界释放、延期发布、心跳与租约 TTL、回退和 shutdown。区分 HTTP 400/404、重试耗尽与真实模型失败，并标出未实现的续租。",
+      "aliases": [
+        "RFork 生命周期",
+        "RFork DEFERRED",
+        "RFork lease release rejected",
+        "RFork lease remains unresolved",
+        "RFork seed promotion",
+        "RFork put_seed",
+        "RFork TTL"
+      ],
+      "chapters": [],
+      "order": 80,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L52",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L148",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L253",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L425",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L427-L501",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L111-L167",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L169-L267",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L39-L75",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L127-L190",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L192-L286",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L431-L484",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L15"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md",
+        "raw/sha256-5bad70ef874cd30dbb1c42ecd2370b814b3bafa2c63fceb2ab55f1da7f506deb.md",
+        "raw/sha256-629e6f8b0215485342250f376eedf494ef1b55f5de26f189da5f5a615659eba1.md",
+        "raw/sha256-7c1cf46ed24557ae509144bda485106fc93a596c0e8a111ed26f83c3491c0981.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-transfer",
+          "kind": "builds-on",
+          "note": "最后一次同步读成功后才进入 TRANSFERRED，此后释放租约与发布 seed 可异步推进"
+        },
+        {
+          "to": "rfork-memory",
+          "kind": "builds-on",
+          "note": "会话结束不能只清掉 Python 状态；还要确认服务与传输内存的清理条件"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-lifecycle.md",
+      "backlinks": [
+        {
+          "from": "rfork-config",
+          "kind": "enables",
+          "note": "lease 重试、心跳与 seed 启动超时分别作用于不同生命周期"
+        },
+        {
+          "from": "rfork-troubleshooting",
+          "kind": "enables",
+          "note": "lease 未释放、模型加载失败和 seed 未发布是不同状态，恢复措施也不同"
+        }
+      ]
+    },
+    {
+      "id": "rfork-maintenance",
+      "title": "RFork 版本维护：保留原补丁，钉住真正运行的完整代码",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "记录工作版与社区版本的边界、patch1–6 和 patch7 的分叉、当前代码存放与核验入口，以及新补丁到来后需要同步的知识页和运行验证。",
+      "aliases": [
+        "RFork 版本",
+        "RFork patch7",
+        "RFork patch1-6",
+        "RFork 补丁维护",
+        "RFork 代码位置",
+        "3284850",
+        "2db39b6",
+        "7b1a690"
+      ],
+      "chapters": [],
+      "order": 110,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L710",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L225",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L363-L386",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L25",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/compat.py#L1-L23"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-53eef0148da8e153b65a9775a7950f4593f691b77b1f6a98c26dfa63bf9cdb3d.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md",
+        "raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork",
+          "kind": "builds-on",
+          "note": "本章全部机制都属于这套独立工作版，更新补丁时要保持整章与代码一起演进"
+        },
+        {
+          "to": "rfork-troubleshooting",
+          "kind": "builds-on",
+          "note": "排错前先识别实际运行版本，旧报错不能直接套用后来补丁的行为"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-maintenance.md",
+      "backlinks": [
+        {
+          "from": "rfork-official-guide",
+          "kind": "enables",
+          "note": "官网 latest 会变化，不能因此自动升级用户工作版"
+        }
+      ]
+    },
+    {
+      "id": "rfork-memory",
+      "title": "RFork 内存：地址、底层存储与 main/draft 共享",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "解释逻辑张量范围与分配块的区别、四元组 Ex 注册、Tensor 和原 storage 的保活、共享 draft 排除，以及失败注销为何必须保留状态。",
+      "aliases": [
+        "RFork 内存注册",
+        "RFork storage owner",
+        "RFork shared draft",
+        "batch_register_memory_ex",
+        "RFork registration rollback",
+        "RFork tensor range"
+      ],
+      "chapters": [],
+      "order": 60,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L40-L118",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L155-L175",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L271-L354",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L356-L461",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L463-L561",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L563-L614",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L492-L501",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L591",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L255-L286",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L37"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-layout",
+          "kind": "builds-on",
+          "note": "必须先确定最终可传张量，才能登记它们此刻对应的内存范围"
+        },
+        {
+          "to": "rfork-terms",
+          "kind": "builds-on",
+          "note": "Tensor、storage、view、MR 与 allocator block 分属不同层，不能当作同一对象"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-memory.md",
+      "backlinks": [
+        {
+          "from": "rfork-lifecycle",
+          "kind": "enables",
+          "note": "会话结束不能只清掉 Python 状态；还要确认服务与传输内存的清理条件"
+        },
+        {
+          "from": "rfork-transfer",
+          "kind": "enables",
+          "note": "所有本地接收地址必须先有有效注册与保活，元数据校验不能替代内存安全"
+        }
+      ]
+    },
+    {
+      "id": "rfork-official-guide",
+      "title": "RFork 官网核读：原图、全部章节与工作版差异",
+      "type": "source",
+      "origin": "seed",
+      "summary": "按用户指定的英文 latest RFork Guide 核读全文与架构图，对照独立工作版，区分官方使用说明、工作版实际调用路径和仍需现场验收的内容。",
+      "aliases": [
+        "RFork 官网",
+        "RFork 官方文档",
+        "RFork 官方图",
+        "RFork 官方已测模型"
+      ],
+      "chapters": [],
+      "order": 120,
+      "prerequisites": [],
+      "sources": [
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/rfork.html",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L710",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/config.py#L11-L139",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L233",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L395-L461",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L563-L614",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py#L127-L195",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L335-L425",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L503-L561",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L414-L419",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L753-L793",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L289-L295",
+        "rfork@3284850b:vllm_ascend/attention/sfa_v1.py#L697-L735",
+        "rfork@3284850b:docs/source/user_guide/feature_guide/rfork.md#L320-L325",
+        "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/rfork.md#L1-L155"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-1ae36dd2945d6704b17e8d8c2d24f1e68a61a92f72ed3f18b9ba0c7dfcc97db3.md",
+        "raw/sha256-22f6d04426e0defa217c4f60bcb3fba3c71e2a966e4f415864440ec682d871d3.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-5a3d1509370c0488f838bfde17afe07b9813ab965e64c2d95ea3297c6ce033b6.md",
+        "raw/sha256-7c1cf46ed24557ae509144bda485106fc93a596c0e8a111ed26f83c3491c0981.md",
+        "raw/sha256-9e8373b3419105ced3731c25c5fff3faf0ca76ce35239c4fb1f6b7f51619847f.md",
+        "raw/sha256-b497eef4c4973a8d3ffb141a76c2caf3aa52fc165c864cd90016ccf7555c796c.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork",
+          "kind": "builds-on",
+          "note": "官方指南是概览；独立工作版章节用实际源码展开并修正文档与代码的差异"
+        },
+        {
+          "to": "rfork-config",
+          "kind": "builds-on",
+          "note": "官网最小命令没有覆盖工作版的全部参数和依赖契约"
+        },
+        {
+          "to": "rfork-maintenance",
+          "kind": "builds-on",
+          "note": "官网 latest 会变化，不能因此自动升级用户工作版"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "sources/rfork-official-guide.md",
+      "backlinks": []
+    },
+    {
+      "id": "rfork-startup",
+      "title": "RFork 启动：准备模型以后才借 seed，失败后先清理再重建",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "沿 RForkModelLoader.load_model 走一遍 seed 命中、未命中、共享 draft、EPLB 绕过与失败回退。解释模型初始化、布局处理、租约和发布的先后关系。",
+      "aliases": [
+        "RFork 启动",
+        "RFork load_model",
+        "RFork fallback",
+        "RFork late acquisition",
+        "RFork has no available",
+        "RFork fallback aborted"
+      ],
+      "chapters": [],
+      "order": 30,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L414-L418",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L519",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L521-L620",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L622-L710",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L174-L333",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L81-L109",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L274-L286",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L40-L52",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L382",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L80"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-629e6f8b0215485342250f376eedf494ef1b55f5de26f189da5f5a615659eba1.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork",
+          "kind": "builds-on",
+          "note": "总览先分清 Planner、元数据 HTTP 与字节传输，这里按真实调用顺序串起来"
+        },
+        {
+          "to": "rfork-terms",
+          "kind": "builds-on",
+          "note": "初始化、processed layout、draft 和 lease 是这条启动路径的几个关键对象"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-startup.md",
+      "backlinks": [
+        {
+          "from": "rfork-layout",
+          "kind": "enables",
+          "note": "processed 路径把后处理挪到申请租约前，改变整条启动路径的顺序"
+        },
+        {
+          "from": "rfork-troubleshooting",
+          "kind": "enables",
+          "note": "报错必须落在真实启动阶段上，后续 fallback 可能掩盖了最初失败"
+        }
+      ]
+    },
+    {
+      "id": "rfork-terms",
+      "title": "RFork 术语：把模型、内存和调度的名词分开",
+      "type": "concept",
+      "origin": "seed",
+      "summary": "解释 RFork 里的实例、Worker、分片、张量布局、内存注册、元数据、租约和清理。每个词说明它指的对象、与相近词的区别以及排错时的作用。",
+      "aliases": [
+        "RFork 术语",
+        "RFork 名词",
+        "RFork glossary",
+        "RFork MR",
+        "RFork lease"
+      ],
+      "chapters": [],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L82",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L55",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L155-L175",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L330-L422",
+        "rfork@3284850b:examples/rfork/rfork_planner.py#L79-L145",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L225",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L35",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L152",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L194-L208",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L233"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-5bad70ef874cd30dbb1c42ecd2370b814b3bafa2c63fceb2ab55f1da7f506deb.md",
+        "raw/sha256-629e6f8b0215485342250f376eedf494ef1b55f5de26f189da5f5a615659eba1.md",
+        "raw/sha256-b497eef4c4973a8d3ffb141a76c2caf3aa52fc165c864cd90016ccf7555c796c.md",
+        "raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork",
+          "kind": "builds-on",
+          "note": "先看三个参与方的位置，再把这些词放回它们负责的通道"
+        },
+        {
+          "to": "speculative-decoding",
+          "kind": "builds-on",
+          "note": "target 与 draft 在投机解码中的计算职责由投机解码页解释，本章只讲它们的权重共享"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-terms.md",
+      "backlinks": [
+        {
+          "from": "rfork-identity",
+          "kind": "enables",
+          "note": "必须先区分组内 rank、global rank、world size 与模型角色，才能理解 key 的组成"
+        },
+        {
+          "from": "rfork-memory",
+          "kind": "enables",
+          "note": "Tensor、storage、view、MR 与 allocator block 分属不同层，不能当作同一对象"
+        },
+        {
+          "from": "rfork-startup",
+          "kind": "enables",
+          "note": "初始化、processed layout、draft 和 lease 是这条启动路径的几个关键对象"
+        }
+      ]
+    },
+    {
+      "id": "rfork-transfer",
+      "title": "RFork 传输：先验整张清单，再按地址读字节",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "追踪 seed HTTP 元数据、manifest 验证、shape 对齐与 TransferEngine 分块同步读取。解释元数据成功、字节传完和模型正确之间的边界，并给出字节计算例子。",
+      "aliases": [
+        "RFork manifest",
+        "RFork shape mismatch",
+        "RFork dtype mismatch",
+        "RFork weight transfer completed",
+        "Failed to transfer weights chunk",
+        "get_rfork_transfer_engine_info"
+      ],
+      "chapters": [],
+      "order": 70,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L89-L153",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L50-L111",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L164-L252",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L633-L730",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L121-L152",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L732-L793",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L28-L47",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py#L165-L193",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L37"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-08e247f5a691a563c2eff1e3b7b7835da4aa7a60b5f12a5627edb5077776702d.md",
+        "raw/sha256-1ae36dd2945d6704b17e8d8c2d24f1e68a61a92f72ed3f18b9ba0c7dfcc97db3.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-83e2a01865a32aa947474f37b05149cfa00df90169b1014f4d2301934a03afb6.md",
+        "raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-memory",
+          "kind": "builds-on",
+          "note": "所有本地接收地址必须先有有效注册与保活，元数据校验不能替代内存安全"
+        },
+        {
+          "to": "rfork-identity",
+          "kind": "builds-on",
+          "note": "key 匹配只负责挑候选来源，选中以后仍必须核验逐张量元数据"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-transfer.md",
+      "backlinks": [
+        {
+          "from": "rfork-lifecycle",
+          "kind": "enables",
+          "note": "最后一次同步读成功后才进入 TRANSFERRED，此后释放租约与发布 seed 可异步推进"
+        }
+      ]
+    },
+    {
+      "id": "rfork-troubleshooting",
+      "title": "RFork 排错：从第一条异常还原版本、阶段与资源状态",
+      "type": "feature",
+      "origin": "seed",
+      "summary": "给用户和 Agent 的 RFork 工作版排错入口。按真实日志定位配置、匹配、注册、metadata、读取、租约、发布和回退，列出可证结论、候选原因及要补的证据，避免凭单行错误定因。",
+      "aliases": [
+        "RFork 排错",
+        "RFork 报错",
+        "RFork troubleshooting",
+        "RFork transfer failed",
+        "RFork startup failed",
+        "RFork cleanup failed",
+        "RFork 卡住",
+        "RFork OOM",
+        "RFork 400",
+        "RFork 404"
+      ],
+      "chapters": [],
+      "order": 100,
+      "prerequisites": [],
+      "sources": [
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L155",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L207-L461",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L463-L614",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L633-L793",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/seed_client.py#L89-L153",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L150-L253",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L335-L501",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L710",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L164-L252",
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L25"
+      ],
+      "verified": [
+        "rfork:main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md",
+        "raw/sha256-08e247f5a691a563c2eff1e3b7b7835da4aa7a60b5f12a5627edb5077776702d.md",
+        "raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md",
+        "raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md",
+        "raw/sha256-83e2a01865a32aa947474f37b05149cfa00df90169b1014f4d2301934a03afb6.md",
+        "raw/sha256-be7651d21c2f6c44f19cb939989ef0d4119a8cdfdaf2f59003e14ee2166cd069.md",
+        "raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md"
+      ],
+      "relations": [
+        {
+          "to": "rfork-startup",
+          "kind": "builds-on",
+          "note": "报错必须落在真实启动阶段上，后续 fallback 可能掩盖了最初失败"
+        },
+        {
+          "to": "rfork-lifecycle",
+          "kind": "builds-on",
+          "note": "lease 未释放、模型加载失败和 seed 未发布是不同状态，恢复措施也不同"
+        },
+        {
+          "to": "rfork-config",
+          "kind": "builds-on",
+          "note": "多数定位需要同时拿到两端参数、端口与 Planner 配置，不能只看 receiver"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/rfork-troubleshooting.md",
+      "backlinks": [
+        {
+          "from": "rfork-maintenance",
+          "kind": "enables",
+          "note": "排错前先识别实际运行版本，旧报错不能直接套用后来补丁的行为"
+        }
+      ]
+    },
+    {
       "id": "rope",
       "title": "RoPE (Rotary Position Embedding)",
       "type": "concept",
@@ -7463,6 +8301,11 @@
           "from": "async-scheduling",
           "kind": "conflicts-with",
           "note": "只有 EAGLE / MTP / 草稿模型 / NGram GPU 这几种方法能和它同开，别的方法显式开异步直接 ValueError，而且同开会顺手关掉 cascade attention"
+        },
+        {
+          "from": "rfork-terms",
+          "kind": "enables",
+          "note": "target 与 draft 在投机解码中的计算职责由投机解码页解释，本章只讲它们的权重共享"
         },
         {
           "from": "structured-output",

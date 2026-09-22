@@ -1,0 +1,26 @@
+layout: scene
+id: rfork-layout
+caption: 两种布局路径：橙色阶段在读取前，蓝色阶段在读取后
+size: [900, 472]
+regions:
+  - { label: processed layout：量化 / NZ 等路径, at: [20, 45], size: [860, 152], tone: ascend }
+  - { label: checkpoint layout：其余路径, at: [20, 250], size: [860, 152], tone: neutral }
+boxes:
+  - { at: [45, 110], size: [260, 64], title: 布局准备 + NPU 同步, sub: 此时还没有申请 source lease, icon: gear, tone: ascend }
+  - { at: [320, 110], size: [260, 64], title: 申请、注册、验收、读取, sub: 填入 seed 的已处理权重, icon: chip, tone: ascend }
+  - { at: [595, 110], size: [260, 64], title: eval 与 seed 发布判断, sub: 不重复一般布局后处理, icon: bolt, tone: ascend }
+  - { at: [45, 315], size: [260, 64], title: 申请、注册、验收、读取, sub: 本地已构建模型骨架, icon: chip, tone: neutral }
+  - { at: [320, 315], size: [260, 64], title: 加载后处理, sub: 未量化 MoE 有专门跳过逻辑, icon: gear, tone: neutral }
+  - { at: [595, 315], size: [260, 64], title: eval，刷新注册再发布, sub: 后处理可能替换底层 storage, icon: bolt, tone: neutral }
+arrows:
+  - { from: [305, 142], to: [320, 142], tone: ascend }
+  - { from: [580, 142], to: [595, 142], tone: ascend }
+  - { from: [305, 347], to: [320, 347], tone: neutral }
+  - { from: [580, 347], to: [595, 347], tone: neutral }
+notes:
+  - { at: [35, 442], text: 两条路都排除 topk_indices_buffer；它是接收实例自己的工作区，不是要继承的权重。, width: 830, size: 13 }
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L593-L643
+    symbols: [process_weights_after_loading, synchronize]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/tensor_layout.py#L18-L25
+    symbols: [topk_indices_buffer]

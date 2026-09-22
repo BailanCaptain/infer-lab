@@ -323,6 +323,28 @@ vllm-ascend@main b255ab59662d8c665e5534e926f913b1c1179b1c → c173a64a44dec4ba97
 
 确定性更新 24 页；教学正文保留。
 
+## [2026-09-22] ingest | RFork 用户工作版独立成章
+
+按用户要求新增总览、术语、启动、身份、布局、内存、传输、生命周期、配置、排错、维护共 11 篇及 6 张机制图；目录单列 RFork 工作版，版本标记使用 rfork:main，与社区版本隔离。本次用户明确允许当前模型撰写并核对源码。
+
+原 patch1–6 与 patch7 在 patch3 后分叉，用户确认以 patch7 所在完整实现为基线。独立代码工作树在 tools/repos/rfork，pin 的唯一配置为 seeds/rfork.yaml；rfork/ 保存 29 份源码/测试/文档/许可快照、7 份原补丁、明确标识的历史衔接 diff、来源与哈希清单。pnpm rfork:verify --git 已重建完整 tree 并与 pin 完全匹配。后续补丁规程见 rfork/README.md。
+
+pnpm rfork:evidence 从核验后的源码生成 14 份不可变 raw 材料，11 页通过 rawSources 绑定；已实际 materialize 问答冻结快照并逐字节核对，站内 Agent 可读取对应源码，而不依赖访问外部工作树。91 条 RFork 引用经 Git blob 行号审计；全库 wiki:build、wiki:lint、wiki:audit、diagrams --check 通过，RFork 有 6 项源码证据标记占比高的非阻断提醒，保留关键语义的可点击来源。
+
+验证：RFork 原件/树一致性通过；26 个 Python 文件 AST 语法通过；相关 52 个单测通过；全量 Vitest 首轮 735/736 通过，唯一失败为编辑期间 reader-build 的知识版本变化，内容稳定后连同快照与读取器测试复测 19 项通过。浏览器既有 20 项阅读/问答场景通过，RFork 两项场景在改正截图过程中元素替换的测试竞态后通过，6 张图已逐张目视核验。构建、依赖方向、内容校验和本次代码 Biome 检查通过。全库 Biome 仍有 HEAD 原有的 scripts/wiki/params/scan.test.ts:184 排版错误（文件 blob 与 HEAD 相同）及既有 CSS 警告，未修改无关代码。
+
+边界：本机无 NPU/CANN/YuanRong、torch/pytest 运行环境，未运行 RFork Python 单测、真实传输或性能测试；构建与源码核验不替代设备验收。工作树同期存在另一批社区 main 重钉改动，本轮保留其内容，未作混合提交。
+
+## [2026-09-22] review | RFork 官网全文、原图与工作版复核
+
+按用户指定的 https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/rfork.html 核读全部小节、模型表、命令与图示入口。在线图片截图初次超时后恢复，已直接打开 latest 官网原图并目视核读，且与官方仓库同路径 JPG 的标签、箭头对照；未声称图片字节已比对。新增 sources/rfork-official-guide.md，逐节列出阅读落点，区分官网与工作版的晚申请 lease、哈希 key、固定 HTTP 端口、回退安全门、延期发布及依赖 API。原图的 NIC/RDMA/RoCE/HBM、量化派生 W_UV/W_UK_T、官方已测模型与本版现场验收边界均补充说明。
+
+更新总览、术语、布局、生命周期、配置、排错和维护页：补完整 Planner 请求头协议、向外借用与入站 reader 的区别、健康检查与 advertise 的区别、Requests 超时/重试总耗时、配置解析早于 fallback，以及只读依赖 API 检查。没有修改工作版实现或切换 pin。
+
+代码核验 pnpm rfork:verify --git 通过（29 份快照、7 份原补丁和衔接 diff，重建 tree 与基线一致）；wiki:build 102 页、wiki:lint、wiki:audit 通过，后者仅验证本地引用/行号，15 项证据密度提醒非阻断。固定官方指南与 SFA 源码摘录进入不可变 raw 材料；实际 materialize 12 篇相关页面的问答快照，17 份关联原文逐字节一致。此前日志的 11 页/14 材料是上一轮的验证记录，现状应使用命令查询。本轮不具备真实 NPU 运行条件。
+
+回归先发现新来源页进入全流程“其他”，已按 RFork 统一命名归入专章；源码材料导出限定 concepts 机制页，保留来源对照页自己的混合材料。修正后目录/索引/raw/快照/阅读构建共 22 项测试通过，应用构建通过，改动脚本与测试 Biome 检查通过。浏览器实际确认专章 12 项、总览跳转到官网对照页、正文和正确的 latest 官网链接；本轮没有重跑全部设备测试或全部浏览器套件。
+
 
 ## [2026-09-22] review | LMCache、UCM 与在线报错溯源
 
@@ -333,3 +355,11 @@ vllm-ascend@main b255ab59662d8c665e5534e926f913b1c1179b1c → c173a64a44dec4ba97
 真实 PR #11953 经当前会话作者、原清洗/编译/整合校验生成待审草稿，尚未正式发布；原 Claude 限额失败回执保留，交互会话额度不伪装为项目美元计费。修复 provider 错误信息丢失、队列成功重试仍显示旧错误两处问题，均先用失败测试复现。
 
 验证：106 个文件 751 项单测通过；类型、代码 lint、内容/依赖检查、生产构建、Wiki lint、行号审计、图一致性通过；20 项阅读页浏览器回归及五页正文/版本/来源/配图实测通过。代码 lint 保留既有 CSS 警告，Wiki 保留证据密度提醒。未做设备运行与性能验证；大规模导入和夜间付费开关均未启动。
+
+## [2026-09-23] review | RFork 12 页逐条对源码核查与修订
+
+用户要求审看 09-22 的 RFork 专章。三路只读核查（Opus 5.5）逐页对照 rfork/source 与社区官方文档：未发现事实错误，指出 P2 级 16 条（其中 2 条在修订时新发现）、P3 若干。按用户「改」修订：启动页补全三种会绕过 RFork 的 EPLB 配置；官网对照页改正为起始日志仍打印 transfer weights starts、只有结束日志换名；配置页改正为只有 request timeout、bind host、advertise host 三个字段认别名；传输页区分 shape 请求抛异常与返回非 200；启动页改正为后台释放租约只在传输成功后启动；约十处引用行号扩到覆盖常量与日志串；标记密度收进 lint 阈值；删去页面里写给评审的过程声明；配置页标题不再写「三个时钟」。
+
+另按用户要求：12 页不再挂课程第 10 章（chapters 置空，目录仍按 rfork 前缀归入专章）；rfork 仓库改称同事仓库 yangsonglin13/vllm-ascend，不是用户本人的仓库。
+
+验证：rfork:evidence 重新绑定 15 份源码材料；wiki:build 104 页、wiki:lint（RFork 页无提醒）、wiki:audit、wiki:diagrams --check、511 项知识库单测、22 项浏览器测试通过。未在真实 NPU 上运行。

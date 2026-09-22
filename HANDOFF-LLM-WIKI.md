@@ -5,6 +5,8 @@
 
 ## 1. 从哪开始
 
+- **RFork 独立工作版（09-22）**：用户另行要求的专章，入口 `wiki/concepts/rfork.md`，排错入口 `rfork-troubleshooting.md`，代码/补丁规程 `rfork/README.md`。指定 latest 官网全文、原图与工作版差异的核读记录在 `wiki/sources/rfork-official-guide.md`。版本 pin 只看 `wiki/seeds/rfork.yaml`，独立于社区三版本，不随社区 main 重钉。原 patch1–6 与 patch7 分叉，用户已确认用 patch7 所在完整实现；原件与衔接差异均保存，可 `pnpm rfork:verify --git` 核验。此任务用户明确允许当前模型写正文，覆盖交接页原先的 Opus-only 约定，仅限本次。
+
 - **目录**：`C:/Users/-/Desktop/infra-view-new-llm-wiki`，分支 `feat/llm-wiki`，只在本地，未推送未合并。用户默认打开的 `infra-view-new` 是 `main`，**不是 Wiki 的现状，不要在那边重做**。
 - **先读**：规则的唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)（六个 H2；动笔写页之前至少完整读「页面格式」一节）；验收状态看 `docs/features/F001`–`F004` 的验收表（唯一真相源；F003 于 2026-09-22 按在线查证方向更新）；`C:/Users/-/Desktop/infra-view-new/llm-wiki.md` 是用户拿来的原始理念，只读。
 - **东西在哪**：内容 `wiki/`（`concepts/` 教学页、`params/` 参数页、`diagrams/` 图 spec、`seeds/` 源码钉点）；命令 `scripts/wiki*.ts` + `scripts/wiki/`；后端 `server/`；阅读页 `src/app/wiki/`。`src/sim/`、`src/timeline/` 是同仓库里 infer-lab 的东西，与 Wiki 无关，**别去读**。

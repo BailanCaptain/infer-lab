@@ -615,8 +615,12 @@ export function runLint(
     }
   }
   const opts: LintOptions = { chapterIds: CHAPTER_IDS, existsFile: (rel) => existsSync(join(wikiRoot, rel)) };
-  // 版本标记只认 vllm-ascend 的分支名：上游 vLLM 在 seeds 里的键名是克隆工具要求的，不是给读者看的版本
-  const knownRefs = Object.keys(configuredRefs(rootDir)[PRIMARY_REPO] ?? {});
+  // 不带仓库前缀的版本沿用社区分支名；独立工作版用 repo:ref，避免混淆两个 main。
+  const refsByRepo = configuredRefs(rootDir);
+  const knownRefs = [
+    ...Object.keys(refsByRepo[PRIMARY_REPO] ?? {}),
+    ...Object.entries(refsByRepo).flatMap(([repo, refs]) => Object.keys(refs).map((ref) => `${repo}:${ref}`)),
+  ];
   if (knownRefs.length > 0) opts.knownRefs = knownRefs;
   if (flags.terms) opts.requiredTerms = collectStepTerms();
   const logPath = join(wikiRoot, "log.md");

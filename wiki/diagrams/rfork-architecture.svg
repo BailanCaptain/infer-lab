@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="RFork 工作版：协调、元数据、权重字节走三条不同的通道">
+  <title>RFork 工作版：协调、元数据、权重字节走三条不同的通道</title>
+  <rect width="900" height="580" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="245" y="35" width="410" height="125" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="261" y="49" width="80.6" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="272" y="67.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Planner</text>
+  <text x="263" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">只管来源与借用名额，不搬权重</text>
+  <rect x="25" y="255" width="365" height="275" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="41" y="269" width="118.4" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="52" y="287.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">来源 Worker A</text>
+  <text x="43" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">已加载的模型，也可以继续推理</text>
+  <rect x="510" y="255" width="365" height="275" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
+  <rect x="526" y="269" width="118.4" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="537" y="287.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">接收 Worker B</text>
+  <text x="528" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">自己构建模型，自己分配 NPU 内存</text>
+  <rect x="275" y="96" width="350" height="48" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <rect x="287" y="104" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(293.4 110.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
+  <text x="327" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">按 key 选 seed，发放 / 回收 lease</text>
+  <rect x="50" y="330" width="315" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="62" y="346" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(68.4 352.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></g>
+  <text x="102" y="358.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">seed HTTP 元数据</text>
+  <text x="102" y="376.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">名称、shape、dtype、源地址、端点</text>
+  <rect x="535" y="330" width="315" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="547" y="346" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(553.4 352.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5"/></g>
+  <text x="587" y="358.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">验收元数据</text>
+  <text x="587" y="376.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先整体验证，再形成读取列表</text>
+  <rect x="50" y="438" width="315" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="62" y="454" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(68.4 460.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="102" y="466.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">已注册的来源 NPU 权重</text>
+  <text x="102" y="484.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">保留 Tensor 与原始 storage</text>
+  <rect x="535" y="438" width="315" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <rect x="547" y="454" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(553.4 460.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
+  <text x="587" y="466.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">已注册的本地 NPU 缓冲区</text>
+  <text x="587" y="484.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">接收端主动发起同步批量读取</text>
+  <path d="M170 255 L305 160" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path d="M305 160 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M595 160 L730 255" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path d="M730 255 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M365 360 L535 360" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
+  <path d="M535 360 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
+  <path d="M365 470 L535 470" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M535 470 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <text x="65" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">发布 / 心跳</text>
+  <text x="666" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">借用 / 归还</text>
+  <text x="397" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">HTTP</text>
+  <text x="397" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)">权重字节</text>
+  <text x="30" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两端都有独立模型内存。权重读完以后，B 的模型就绪与 B 成为新 seed 仍需分别判断。</text>
+</svg>

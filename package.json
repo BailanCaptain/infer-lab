@@ -34,6 +34,8 @@
     "wiki:urls": "tsx scripts/wiki-urls.ts",
     "wiki:find": "tsx scripts/wiki-find.ts",
     "wiki:mcp": "tsx scripts/wiki-mcp.ts",
+    "rfork:verify": "node rfork/verify.mjs",
+    "rfork:evidence": "tsx scripts/wiki-rfork-evidence.ts",
     "wiki:lineage": "tsx scripts/wiki-lineage.ts",
     "wiki:lineage:apply": "tsx scripts/wiki-lineage-apply.ts",
     "wiki:ingest": "tsx scripts/wiki-ingest.ts",

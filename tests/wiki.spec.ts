@@ -203,6 +203,111 @@ test.describe("问答抽屉", () => {
     await page.screenshot({ path: info.outputPath("honest-abstention-mobile.png"), fullPage: true });
   });
 
+  test("贴报错时显示 GitHub 在线候选与本地版本核对；搜索失败时如实说失败（F003 AC4 聊天层接入）", async ({
+    page,
+  }, info) => {
+    const REPO = "vllm-project/vllm-ascend";
+    const trace = {
+      status: "done",
+      scope: {
+        repos: [REPO, "vllm-project/vllm"],
+        since: "2025-09-23",
+        terms: ["RuntimeError collective failed"],
+      },
+      candidates: [
+        {
+          repo: REPO,
+          number: 15815,
+          kind: "issue",
+          url: `https://github.com/${REPO}/issues/15815`,
+          title: "RuntimeError: collective failed on 8 cards",
+          state: "closed",
+          updatedAt: "2026-09-12T00:00:00Z",
+          matchedQueries: 2,
+          linkedPrs: [
+            {
+              number: 15981,
+              url: `https://github.com/${REPO}/pull/15981`,
+              basis: "GitHub cross-referenced 事件；不是修复证明",
+              versions: {
+                status: "found",
+                commit: "a".repeat(40),
+                pins: [
+                  { ref: "main", commit: "b".repeat(40), contains: true },
+                  {
+                    ref: "releases/v0.23.0",
+                    commit: "c".repeat(40),
+                    contains: false,
+                    sameNumberCommit: "d".repeat(40),
+                  },
+                  { ref: "releases/v0.26.0rc", commit: "e".repeat(40), contains: false },
+                ],
+                tags: ["v0.27.0rc1"],
+                moreTags: 0,
+              },
+            },
+          ],
+        },
+      ],
+      omitted: 0,
+      complete: true,
+      problems: [],
+      requests: 4,
+      cacheHits: 0,
+    };
+    let failed = false;
+    await page.route("**/api/wiki/chat", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: sse(
+          failed
+            ? [
+                ["trace", { status: "searching" }],
+                ["trace", { status: "failed", reason: "GitHub rate-limit (403)" }],
+                ["text", { text: "在线搜索暂时失败。" }],
+                ["cite", { cited: false, selfDeclaredUncovered: true }],
+                ["done", {}],
+              ]
+            : [
+                ["trace", { status: "searching" }],
+                ["trace", trace],
+                ["text", { text: "社区里有人报过同样的错。" }],
+                ["cite", { cited: false, selfDeclaredUncovered: true }],
+                ["done", {}],
+              ],
+        ),
+      }),
+    );
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    await page.getByTestId("chat-input").fill("RuntimeError: collective failed on 8 cards");
+    await page.getByTestId("chat-send").click();
+
+    const found = page.getByTestId("chat-trace");
+    await expect(found).toContainText("GitHub 上的相关讨论");
+    await expect(found).toContainText("不是已确认的修复");
+    await expect(found.getByRole("link", { name: /vllm-ascend issue #15815/ })).toHaveAttribute(
+      "href",
+      `https://github.com/${REPO}/issues/15815`,
+    );
+    await expect(found.getByRole("link", { name: /PR #15981/ })).toHaveAttribute(
+      "href",
+      `https://github.com/${REPO}/pull/15981`,
+    );
+    await expect(found).toContainText("main 含");
+    await expect(found).toContainText("v0.23.0 不含原提交，有同号提交");
+    await expect(found).toContainText("v0.26.0rc 不含");
+    await expect(found).toContainText("v0.27.0rc1");
+    await page.getByTestId("chat-log").screenshot({ path: info.outputPath("github-trace.png") });
+
+    failed = true;
+    await page.getByTestId("chat-input").fill("RuntimeError: collective failed");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-trace-status").last()).toContainText("在线搜索失败");
+    await expect(page.getByTestId("chat-trace-status").last()).toContainText("rate-limit");
+  });
+
   test("声明未收录后接着讲模型自己的知识：标成未收录，不伪装成知识库结论", async ({ page }) => {
     const answer = "知识库里还没有 X 的页面。不过 X 默认开启，阈值是 0.9。";
     await page.route("**/api/wiki/chat", (route) =>

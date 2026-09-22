@@ -1958,3 +1958,30 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   font-size: 0.85rem;
   color: var(--color-ink-muted, #5b6763);
 }
+
+/* 贴报错时的 GitHub 在线候选（F003 AC4）：放在回答上面，先让读者看到查了什么；它只是社区线索。
+   只用专用类名，不用 small / li / ul 这类元素选择器：noDescendingSpecificity 会把全文件以同一元素结尾的规则放在一起比。
+   列表要盖过 .wiki-chat-msg.is-agent :where(ul, ol) 的 (0,2,0)，所以写成两个类名。 */
+.wiki-chat-trace {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-sunken);
+  font-size: 13px;
+}
+
+.wiki-chat-trace-note,
+.wiki-chat-trace-meta {
+  display: block;
+  color: var(--color-ink-muted);
+}
+
+.wiki-chat-trace-item + .wiki-chat-trace-item {
+  margin-top: 6px;
+}
+
+.wiki-chat-trace .wiki-chat-trace-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}

@@ -7,6 +7,7 @@ import {
   searchErrors,
   searchPlan,
   TraceSession,
+  traceFailures,
   verifyFix,
 } from "./wiki/github-trace";
 
@@ -78,6 +79,11 @@ async function main() {
     writeFileSync(file, `${json}\n`);
   }
   console.log(json);
+  const failures = traceFailures(command, result);
+  if (failures.length) {
+    console.error(`GitHub 查询失败（结果不完整，不能当作零命中）：${failures.join("；")}`);
+    process.exitCode = 1;
+  }
 }
 main().catch((error) => {
   console.error(String(error));

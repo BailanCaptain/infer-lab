@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
 import { withBudget } from "../scripts/wiki/budget";
+import { type ChatTrace, looksLikeError, publicTrace, traceChat } from "../scripts/wiki/chat-trace";
 import { attachCorpusProvenance, corpusDocuments } from "../scripts/wiki/corpus-trace";
 import { recordGapObservation } from "../scripts/wiki/gap-ledger";
 import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
@@ -57,7 +58,7 @@ export async function handleChat(
   req: IncomingMessage,
   res: ServerResponse,
   root: string,
-  deps: { runChat?: typeof runChat } = {},
+  deps: { runChat?: typeof runChat; traceChat?: typeof traceChat } = {},
 ): Promise<boolean> {
   if (new URL(req.url ?? "/", "http://localhost").pathname !== "/api/wiki/chat") return false;
   let lease: ChatLease | undefined;
@@ -87,6 +88,17 @@ export async function handleChat(
     });
     emit("knowledge", { revision: lease.revision, sessionId: lease.id, resetReason: lease.resetReason });
     emit("hits", { hits });
+    // 贴的是报错才在线查 GitHub（F003 AC4 聊天层接入）；普通提问一个网络请求都不发
+    let github: ChatTrace | undefined;
+    if (looksLikeError(message)) {
+      emit("trace", { status: "searching" });
+      try {
+        github = await (deps.traceChat ?? traceChat)(root, message);
+      } catch (error) {
+        github = { status: "failed", reason: error instanceof Error ? error.message : String(error) };
+      }
+      emit("trace", publicTrace(github));
+    }
     const request = buildChatRequest(
       {
         message,
@@ -95,6 +107,7 @@ export async function handleChat(
         hits,
         graph,
         citationGuide: context.citationGuide,
+        ...(github && github.status !== "skipped" ? { github } : {}),
       },
       snapshot.handbook,
       { wikiRoot: location, indexMd: snapshot.indexMd, revision: snapshot.revision, timeoutMs: 5 * 60_000 },

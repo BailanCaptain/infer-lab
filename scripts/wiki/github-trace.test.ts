@@ -12,6 +12,7 @@ import {
   searchPlan,
   TraceSession,
   traceConfigSchema,
+  traceFailures,
   traceSince,
   verifyFix,
 } from "./github-trace";
@@ -216,4 +217,24 @@ it("reports unresolved versions as unknown", async () => {
     new GithubClient(undefined, async () => new Response(null, { status: 404 })),
   );
   expect((await verifyFix(session, repo, "a".repeat(40), "missing-tag")).status).toBe("unknown");
+});
+
+it("失败要非零退出：搜索报错、读帖遇到 GitHub 报错、版本无法确认都算失败；分页上限只是没读完，不算失败（F003 AC3）", () => {
+  // 用户 2026-09-23 决定恢复 AC3 原文里被删掉的「非零退出」；此前在线命令失败时退出码仍是 0
+  expect(
+    traceFailures("search", {
+      searches: [{ query: "a" }, { query: "b", error: "Error: GitHub rate-limit (403)" }],
+    }),
+  ).toEqual(["b: Error: GitHub rate-limit (403)"]);
+  expect(traceFailures("search", { searches: [{ query: "a", total: 0 }] })).toEqual([]);
+  expect(
+    traceFailures("inspect", {
+      problems: ["/issues/1/comments 达到分页上限；尚未读完", "Error: GitHub auth (401)"],
+    }),
+  ).toEqual(["Error: GitHub auth (401)"]);
+  expect(traceFailures("verify", { status: "unknown", reason: "Error: GitHub not-found (404)" })).toEqual([
+    "Error: GitHub not-found (404)",
+  ]);
+  expect(traceFailures("verify", { status: "not-ancestor" })).toEqual([]);
+  expect(traceFailures("plan", { terms: [] })).toEqual([]);
 });

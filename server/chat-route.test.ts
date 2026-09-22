@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
+import type { ChatTrace, traceChat } from "../scripts/wiki/chat-trace";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
@@ -17,7 +18,7 @@ afterEach(async () => {
 });
 const original =
   "---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n";
-async function setup(run: typeof runChat) {
+async function setup(run: typeof runChat, extra: { traceChat?: typeof traceChat } = {}) {
   const f = wikiFixture();
   fixtures.push(f);
   f.write(
@@ -28,7 +29,7 @@ async function setup(run: typeof runChat) {
   );
   f.write("wiki/sources/a.md", original);
   const server = createServer((req, res) => {
-    void handleChat(req, res, f.root, { runChat: run });
+    void handleChat(req, res, f.root, { runChat: run, ...extra });
   });
   servers.push(server);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -49,6 +50,107 @@ const frame = (body: string, event: string) => {
     ?.split("\ndata: ")[1];
   return value ? JSON.parse(value) : undefined;
 };
+
+const traceFrames = (body: string) =>
+  body
+    .split("\n\n")
+    .filter((part) => part.startsWith("event: trace\n"))
+    .map((part) => JSON.parse(part.split("\ndata: ")[1]!));
+
+it("贴报错时把 GitHub 在线候选推给界面、交给问答模型；普通提问不去查（F003 AC4 聊天层接入）", async () => {
+  const REPO = "vllm-project/vllm-ascend";
+  const trace: ChatTrace = {
+    status: "done",
+    scope: { repos: [REPO], since: "2025-09-23", terms: ["RuntimeError collective failed"] },
+    candidates: [
+      {
+        repo: REPO,
+        number: 15815,
+        kind: "issue",
+        url: `https://github.com/${REPO}/issues/15815`,
+        title: "RuntimeError: collective failed on 8 cards",
+        state: "closed",
+        updatedAt: "2026-09-12T00:00:00Z",
+        matchedQueries: 1,
+        excerpt: "8 卡跑起来就崩",
+        linkedPrs: [
+          {
+            number: 15981,
+            url: `https://github.com/${REPO}/pull/15981`,
+            basis: "GitHub cross-referenced 事件；不是修复证明",
+            versions: {
+              status: "found",
+              commit: "a".repeat(40),
+              pins: [
+                { ref: "releases/v0.26.0rc", commit: "b".repeat(40), contains: true },
+                { ref: "releases/v0.23.0", commit: "c".repeat(40), contains: false, sameNumberCommit: "d".repeat(40) },
+              ],
+              tags: ["v0.26.0rc2"],
+              moreTags: 0,
+            },
+          },
+        ],
+      },
+    ],
+    omitted: 0,
+    complete: true,
+    problems: [],
+    requests: 4,
+    cacheHits: 0,
+  };
+  let stdin = "";
+  const traced: string[] = [];
+  const f = await setup(
+    async (req, on) => {
+      stdin = req.stdin;
+      on.text("社区里有人报过，见 issue。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      traceChat: async (_root, message) => {
+        traced.push(message);
+        return trace;
+      },
+    },
+  );
+  const body = await (await f.request({ message: "RuntimeError: collective failed on 8 cards" })).text();
+  const frames = traceFrames(body);
+  expect(frames[0]).toEqual({ status: "searching" });
+  expect(frames.at(-1)).toMatchObject({ status: "done", candidates: [{ number: 15815 }] });
+  // 界面拿到的是能点开核对的东西；社区正文摘录只给问答模型
+  expect(frames.at(-1).candidates[0]).not.toHaveProperty("excerpt");
+  expect(stdin).toContain(`https://github.com/${REPO}/issues/15815`);
+  expect(stdin).toContain("不是已确认的根因或修复");
+  expect(stdin).toContain("releases/v0.26.0rc 钉点 bbbbbbbb 包含");
+  expect(stdin).toContain("同号提交 dddddddd");
+  expect(stdin).toContain("尚未收录为 Wiki 结论");
+
+  const plain = await (await f.request({ message: "KV Cache 是什么" })).text();
+  expect(traceFrames(plain)).toEqual([]);
+  expect(traced).toEqual(["RuntimeError: collective failed on 8 cards"]);
+});
+
+it("在线搜索失败时告诉问答模型「失败」而不是「没有相关 issue」", async () => {
+  let stdin = "";
+  const f = await setup(
+    async (req, on) => {
+      stdin = req.stdin;
+      on.text("在线搜索暂时失败。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      traceChat: async () => ({
+        status: "failed",
+        reason: "GitHub rate-limit (403)",
+        scope: { repos: ["vllm-project/vllm-ascend"], since: "2025-09-23", terms: ["RuntimeError"] },
+      }),
+    },
+  );
+  const body = await (await f.request({ message: "RuntimeError: collective failed" })).text();
+  expect(traceFrames(body).at(-1)).toMatchObject({ status: "failed", reason: "GitHub rate-limit (403)" });
+  expect(stdin).toContain("搜索失败：GitHub rate-limit (403)");
+  expect(stdin).toContain("不要据此说社区没有相关 issue");
+});
 
 it("records repeated uncovered answers and returns an honest assessment status without extra model calls", async () => {
   let calls = 0;

@@ -258,6 +258,13 @@ export async function searchErrors(session: TraceSession, plan: ReturnType<typeo
   };
 }
 
+/** 关联引用的三种来源；问答按它排优先级（chat-trace.ts），措辞只在这里定义 */
+export const REF_BASIS = {
+  body: "正文提及；尚未验证是否修复",
+  comment: "评论提及；尚未验证是否修复",
+  crossReference: "GitHub cross-referenced 事件；不是修复证明",
+} as const;
+
 export async function inspectThread(session: TraceSession, url: string) {
   const { repo, number } = parseTraceUrl(session.config, url);
   const row = githubItemSchema.parse(await session.get(repo, `/issues/${number}`));
@@ -279,16 +286,16 @@ export async function inspectThread(session: TraceSession, url: string) {
     for (const match of text.matchAll(/(?:^|[\s(])#([1-9]\d*)\b/g))
       addRef(`https://github.com/${repo}/issues/${match[1]}`, basis);
   };
-  scanRefs(body.text, "正文提及；尚未验证是否修复");
+  scanRefs(body.text, REF_BASIS.body);
   const discussion = comments.rows.map((c) => {
     const text = screenedText(c.body, session.config.textLimit);
-    scanRefs(text.text, "评论提及；尚未验证是否修复");
+    scanRefs(text.text, REF_BASIS.comment);
     return { url: c.html_url, updatedAt: c.updated_at, ...text };
   });
   for (const event of timeline.rows) {
     const source = event.source as { issue?: { html_url?: unknown } } | undefined;
     if (event.event === "cross-referenced" && typeof source?.issue?.html_url === "string")
-      addRef(source.issue.html_url, "GitHub cross-referenced 事件；不是修复证明");
+      addRef(source.issue.html_url, REF_BASIS.crossReference);
   }
   let pull: unknown;
   const problems = [...comments.problems, ...timeline.problems];
@@ -396,4 +403,22 @@ export async function verifyFix(session: TraceSession, repo: string, fix: string
   } catch (error) {
     return { repo, fix, target, status: "unknown", reason: String(error) };
   }
+}
+
+/**
+ * 一次命令里哪些算失败（F003 AC3「失败可见……非零退出」）：搜索有查询报错、读帖遇到 GitHub
+ * 报错或请求上限、版本无法确认。分页上限只是没读完、结果里已标 complete=false，不算失败。
+ */
+export function traceFailures(command: string, result: unknown): string[] {
+  const r = (result ?? {}) as {
+    searches?: { query: string; error?: string }[];
+    problems?: string[];
+    status?: string;
+    reason?: string;
+  };
+  if (command === "search")
+    return (r.searches ?? []).flatMap((s) => (s.error ? [`${s.query}: ${s.error}`] : []));
+  if (command === "inspect") return (r.problems ?? []).filter((p) => /GitHub |请求上限已到/.test(p));
+  if (command === "verify") return r.status === "unknown" ? [r.reason ?? "无法确认"] : [];
+  return [];
 }

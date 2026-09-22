@@ -5,6 +5,105 @@ import remarkGfm from "remark-gfm";
 import { rewriteRelativeLink } from "../../content/wiki/index";
 import { AnswerSave } from "./AnswerSave";
 
+/** 服务端贴报错时的在线 GitHub 搜索（F003 AC4）；形状见 scripts/wiki/chat-trace.ts 的 publicTrace */
+type TraceVersions =
+  | {
+      status: "found";
+      commit: string;
+      pins: { ref: string; contains: boolean; sameNumberCommit?: string }[];
+      tags: string[];
+      moreTags: number;
+    }
+  | { status: "no-local-clone" | "no-local-commit" | "error"; reason: string };
+type TraceView =
+  | { status: "searching" }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; reason: string }
+  | {
+      status: "done";
+      scope: { repos: string[]; since: string };
+      complete: boolean;
+      candidates: {
+        repo: string;
+        number: number;
+        kind: "issue" | "pr";
+        url: string;
+        title: string;
+        state: string;
+        versions?: TraceVersions;
+        linkedPrs?: { number: number; url: string; basis: string; versions: TraceVersions }[];
+      }[];
+    };
+
+const repoName = (repo: string) => repo.split("/").pop() ?? repo;
+const refName = (ref: string) => ref.replace(/^releases\//, "");
+/** 「main 含 · v0.23.0 不含原提交，有同号提交」：一眼看出修复进了哪些钉住的版本 */
+function versionText(v: TraceVersions): string {
+  if (v.status !== "found") return `本地核对：${v.reason}`;
+  const pins = v.pins.map(
+    (p) => `${refName(p.ref)} ${p.contains ? "含" : p.sameNumberCommit ? "不含原提交，有同号提交" : "不含"}`,
+  );
+  const tags = v.tags.length
+    ? [`tag：${v.tags.join("、")}${v.moreTags ? ` 等 ${v.tags.length + v.moreTags} 个` : ""}`]
+    : [];
+  return `本地核对：${[...pins, ...tags].join(" · ")}`;
+}
+
+function TraceResult({ trace }: { trace: TraceView }) {
+  if (trace.status === "searching")
+    return (
+      <p role="status" className="wiki-chat-reading" data-testid="chat-trace-status">
+        正在 GitHub 上搜这段报错…
+      </p>
+    );
+  if (trace.status === "failed")
+    return (
+      <p role="status" className="wiki-chat-uncited" data-testid="chat-trace-status">
+        GitHub 在线搜索失败：{trace.reason}。回答不会把它说成「没有相关 issue」。
+      </p>
+    );
+  if (trace.status === "skipped")
+    return (
+      <p className="wiki-chat-reading" data-testid="chat-trace-status">
+        没有在线搜索：{trace.reason}
+      </p>
+    );
+  const where = `${trace.scope.repos.map(repoName).join("、")}，${trace.scope.since} 以来`;
+  return (
+    <nav className="wiki-chat-trace" data-testid="chat-trace" aria-label="GitHub 上的相关讨论">
+      <strong>GitHub 上的相关讨论</strong>
+      <small className="wiki-chat-trace-note">
+        在线搜索候选（{where}），不是已确认的修复{trace.complete ? "" : "；本轮搜索不完整"}
+      </small>
+      {trace.candidates.length === 0 ? (
+        <p>没有搜到匹配的讨论。零命中不代表社区里没有。</p>
+      ) : (
+        <ul className="wiki-chat-trace-list">
+          {trace.candidates.map((c) => (
+            <li key={c.url} className="wiki-chat-trace-item">
+              <a href={c.url} target="_blank" rel="noreferrer">
+                {repoName(c.repo)} {c.kind === "pr" ? "PR" : "issue"} #{c.number}
+              </a>{" "}
+              {c.title}
+              <span> · {c.state === "closed" ? "已关闭" : c.state === "open" ? "未关闭" : c.state}</span>
+              {c.versions && <small className="wiki-chat-trace-meta">{versionText(c.versions)}</small>}
+              {c.linkedPrs?.map((l) => (
+                <small key={l.url} className="wiki-chat-trace-meta">
+                  关联{" "}
+                  <a href={l.url} target="_blank" rel="noreferrer">
+                    PR #{l.number}
+                  </a>
+                  ：{versionText(l.versions)}
+                </small>
+              ))}
+            </li>
+          ))}
+        </ul>
+      )}
+    </nav>
+  );
+}
+
 interface Msg {
   /** 稳定 key：消息会边流边改，用数组下标当 key 会让 React 复用错行 */
   key: string;
@@ -21,6 +120,7 @@ interface Msg {
   versionNotice?: string;
   gapNotice?: string;
   related?: { id: string; title: string; href: string; note: string }[];
+  trace?: TraceView;
 }
 
 /** 一次 SSE 请求。把帧回调出去，UI 只管渲染。 */
@@ -32,6 +132,7 @@ async function streamChat(
     cite: (v: { cited: boolean; selfDeclaredUncovered: boolean; reason?: string }) => void;
     done: (sessionId?: string, answerId?: string) => void;
     related: (pages: NonNullable<Msg["related"]>) => void;
+    trace: (v: TraceView) => void;
     error: (m: string) => void;
     knowledge: (v: { revision: string; sessionId: string; resetReason?: string }) => void;
     gap: (v: {
@@ -77,6 +178,7 @@ async function streamChat(
       else if (ev === "error") on.error(String(data.message ?? "未知错误"));
       else if (ev === "knowledge") on.knowledge(data as never);
       else if (ev === "gap") on.gap(data as never);
+      else if (ev === "trace" && typeof data.status === "string") on.trace(data as TraceView);
       else if (ev === "related" && Array.isArray(data.pages))
         on.related(data.pages as NonNullable<Msg["related"]>);
       else if (ev === "done")
@@ -119,6 +221,7 @@ export function useChat() {
           {
             text: (t) => patch((l) => ({ ...l, text: l.text + t })),
             related: (pages) => patch((l) => ({ ...l, related: pages })),
+            trace: (v) => patch((l) => ({ ...l, trace: v })),
             tool: (target) =>
               patch((l) => {
                 if (!target) return l;
@@ -229,6 +332,7 @@ export function ChatPane({
                 {m.versionNotice}
               </p>
             )}
+            {m.trace && <TraceResult trace={m.trace} />}
             {m.role === "agent" ? (
               m.text ? (
                 <ReactMarkdown

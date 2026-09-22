@@ -216,7 +216,9 @@ it("同一个取值写法在一个文件里出现多次只算一条（取最靠�
         x = config.get("dynamic_eplb")
 `,
   }).filter((p) => p.name === "dynamic_eplb");
-  expect(rows.map((p) => [p.json_path, p.line, p.default])).toEqual([['config["dynamic_eplb"]', 3, "<unknown>"]]);
+  expect(rows.map((p) => [p.json_path, p.line, p.default])).toEqual([
+    ['config["dynamic_eplb"]', 3, "<unknown>"],
+  ]);
 });
 
 it("出现位置只留前 5 处、另记总数：一个名字全库出现几千次时，队列与基线不再被位置清单撑大", () => {

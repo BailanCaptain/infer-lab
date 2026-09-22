@@ -22,9 +22,12 @@ const changes = pages
   // Source review pages have their own mixed-source snapshots; only regenerate mechanism pages.
   .filter((p) => p.file.startsWith("concepts/") && (p.fm.id === "rfork" || p.fm.id.startsWith("rfork-")))
   .map((page) => {
-    const materials = page.fm.sources.map((source) => {
+    // Only working-version sources become materials. Community refs and URLs (e.g. the table of
+    // which community versions carry which patches) are checked by wiki:audit / wiki:urls instead.
+    const own = page.fm.sources.filter((source) => parseRepoRef(source)?.repo === manifest.repo);
+    const materials = own.map((source) => {
       const ref = parseRepoRef(source);
-      if (!ref || ref.repo !== manifest.repo || !pin.startsWith(ref.commit)) {
+      if (!ref || !pin.startsWith(ref.commit)) {
         throw new Error(`来源不是当前 RFork pin：${source}`);
       }
       if (!Object.hasOwn(manifest.sourceFiles, ref.path)) {

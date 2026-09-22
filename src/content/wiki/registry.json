@@ -7039,7 +7039,11 @@
         "rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287",
         "rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L81-L109",
         "rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L198-L252",
-        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L35"
+        "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L35",
+        "https://github.com/vllm-project/vllm-ascend/pull/12995",
+        "https://github.com/vllm-project/vllm-ascend/pull/15439",
+        "vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L258-L300",
+        "vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L167-L202"
       ],
       "verified": [
         "rfork:main"

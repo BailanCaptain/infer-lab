@@ -23,6 +23,12 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L81-L109'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/manifest.py#L198-L252'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L35'
+  - 'https://github.com/vllm-project/vllm-ascend/pull/12995'
+  - 'https://github.com/vllm-project/vllm-ascend/pull/15439'
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L258-L300
+  - >-
+    vllm-ascend@baa023ad:vllm_ascend/model_loader/rfork/transfer_backend.py#L167-L202
 verified:
   - 'rfork:main'
 evidence: C
@@ -54,6 +60,27 @@ RFork（Tensor Remote Fork）让新实例向已有实例借一份**权重数据�
 ```wiki-diagram
 file: rfork-architecture
 ```
+
+## 社区版也有 RFork：七个补丁合进去三个，而且只在 main
+
+社区三个在册版本都带一份 RFork（最早由 PR #7392 引入），所以在社区版上查 RFork 报错的人也会翻到这一章，然后发现代码对不上。下表按补丁说明社区各版本到底拿到了什么。v0.26 分支这里指 `2ed6cbba`，2026-09-17 的源码快照。
+
+| 补丁 | 它改了什么 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 对用社区版的人意味着什么 |
+|---|---|---|---|---|---|
+| 0001 | 等异步布局转换做完，再注册和传「处理后布局」的缓冲区；回退时只摘掉自己那份进程级注册 | 未合入 | 未合入 | 已合入（PR #12995） | 三个已合入补丁里最该在意的一个。量化模型和 MoE 模型在 v0.23、v0.26 上可能传到还没转完的布局，输出是坏的，回退也可能连带失败 |
+| 0002 | 注册期间一直持有张量 owner，收完一轮不再清掉缓存的引用 | 未合入 | 未合入 | 已合入（PR #15439） | v0.23、v0.26 上「地址还注册着、张量已经被回收」是可能发生的。它表现为传输阶段的地址类报错，查配置查不出来 |
+| 0003 | draft 模型注册时减掉与 target 重叠的地址区间，seed manifest 和接收端跟着对齐 | 未合入 | 未合入 | 已合入（PR #15439） | 只影响开了投机解码的部署：v0.23、v0.26 上 draft 模型会撞上 HCCL 拒绝重叠注册。不开投机解码的不受影响 |
+| 0004 | 把租约、注册存储、seed 服务、回退与关停收进 `RForkSession`，补上兼容性指纹与 manifest 校验，另拆出八个模块 | 未合入 | 未合入 | 未合入 | 本章的主干在社区版里没有对应代码。[身份匹配](rfork-identity.md)、[元数据与传输](rfork-transfer.md)、[租约与生命周期](rfork-lifecycle.md) 这几页只能当背景读，不能照着在社区版上排错 |
+| 0005 | 懒解析硬件 profile，改用 v0.26 里 `AscendUnquantizedFusedMoEMethod` 的新位置 | 未合入 | 未合入 | 未合入 | 它新建的 `compat.py` 依附于 0004 的结构，社区版没有这个文件，也用不上 |
+| 0006 | 关停防重入、seed 广播串行化、收窄异常捕获、张量别名去重、planner 404 当幂等 | 未合入 | 未合入 | 未合入 | 它改的 `session.py`、`planner_client.py`、`tensor_layout.py` 社区版一个都没有 |
+| 0007 | seed 端口可按 rank 偏移；`topk_indices_buffer` 这类运行期 scratch 不跨实例传 | 未合入 | 未合入 | 未合入 | 两条都落在社区版身上：社区 seed 服务只有动态端口，固定不了端口段；而且三个版本都会把挂在模块上的普通张量属性一起收走、没有 scratch 排除名单 [C13]，两个实例的 `max_num_batched_tokens` 不一样，DeepSeek-V4 这类模型就会在接收端撞形状不符 |
+| 衔接差异 | patch6 与 patch7 基线之间的实现差异：租约设计文档、回退清理、隔离测试 | 未合入 | 未合入 | 未合入 | 它同样建在 0004 的模块结构上，社区版没有落脚点；这份差异是怎么来的见[版本维护](rfork-maintenance.md) |
+
+三列的判定依据统一写在这里，不逐格挂标记。0001 对应社区提交 `bc5a79ede`，0002 与 0003 被合成一个社区提交 `a59dea592`；把补丁里的源码 hunk 和这两个提交逐行比过，除 blob hash 与行偏移之外完全一致。这两个提交对 main 做祖先检查都返回 yes，对 v0.23、v0.26 两个钉点都返回 no，再按 PR 号和标题文本在那两个分支上搜一遍，也没有 cherry-pick 的痕迹 [D]。0004–0007 的判定更直接：它们新建或改动的 `session.py`、`identity.py`、`manifest.py`、`config.py`、`tensor_layout.py`、`planner_client.py`、`seed_client.py`、`types.py`、`compat.py`，在三个社区钉点上一个都不存在。0003 的区间排除逻辑在 main 上确实读得到 [C12]。
+
+结构差异是这张表之外最要紧的一件事。社区版的 RFork 目录只有六个文件——`__init__`、`rfork_loader`、`rfork_worker`、`seed_protocol`、`seed_server`、`transfer_backend`；工作版是十三个 [D]。0004 删掉了 `rfork_worker.py` 和 `seed_protocol.py`，把它们的职责分给新建的 `session.py`、`planner_client.py`、`seed_client.py`，又补上 `identity.py`、`manifest.py`、`config.py`、`tensor_layout.py`、`types.py`，0005 再加 `compat.py`。所以社区版没有一个统一管租约和生命周期的对象，seed 元数据与 planner 调用都挤在 `seed_protocol.py` 里，也没有独立的身份指纹和 manifest 校验层。本章按模块分的那些页，在社区版上找不到对应文件，不是文件名不同，是那层代码没有。
+
+核对方法与范围：2026-09-23 在本地社区克隆上，对 `2c59ff10`（v0.23）、`2ed6cbba`（v0.26）、`baa023ad`（main）三个钉点分别跑了 RFork 目录的 `git log`、`merge-base --is-ancestor`、按 PR 号与标题的 `--grep`，再把补丁源码 hunk 与社区提交逐行 diff。**这张表只说明社区版合进了哪些补丁，不代表本章其余内容适用于社区版**——正文其他部分仍然只讲工作版，`verified` 也只有 `rfork:main` 一个。
 
 ## 那条请求还没进来，RFork 已经在准备它要用的模型
 

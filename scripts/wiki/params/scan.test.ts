@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { scanSources } from "./scan";
+import { withoutLocations } from "./sync";
 
 it("keeps equally named nested config classes in different modules separate", () => {
   const rows = scanSources({
@@ -178,6 +179,64 @@ it("字段注解写成 Any、靠工厂函数把子配置传进根配置时，子
   expect(rows.filter((p) => p.name === "size").map((p) => p.json_path)).toEqual([
     'additional_config["kvpp_config"]["size"]',
   ]);
+});
+
+it("普通函数转发的 **kwargs 不是配置：不当疑似参数；配置类自己的 **kwargs 仍是用户键", () => {
+  // 2026-09-22 实遇：`kwargs["vllm_config"]` 在 main 上出现 2396 次，一晚的队列多出 3.5 万行，
+  // 三个基线里约三分之一的条目都是这类函数传参。但 v0.23 / v0.26 的编译配置类在自己的
+  // __init__ 里写 `kwargs.get("fuse_muls_add", True)`，那是真的用户键（main 上已改成正式字段）。
+  const rows = scanSources({
+    "vllm_ascend/worker.py": `def forward(**kwargs):
+    a = kwargs["vllm_config"]
+    b = kwargs.get("prefix")
+    c = attn_metadata_extra_kwargs["num_actual_reqs"]
+    d = self.additional_config.get("real_key", 1)
+    e = method_params["min_verify_tokens"]
+`,
+    "vllm_ascend/ascend_config.py": `class AscendCompilationConfig:
+    def __init__(self, fuse_norm_quant: bool = True, **kwargs):
+        self.fuse_muls_add = kwargs.get("fuse_muls_add", True)
+`,
+  }).filter((p) => p.form === "string-lookup");
+  expect(rows.map((p) => [p.name, p.json_path])).toEqual([
+    ["fuse_muls_add", 'kwargs["fuse_muls_add"]'],
+    ["real_key", 'self.additional_config["real_key"]'],
+    ["min_verify_tokens", 'method_params["min_verify_tokens"]'],
+  ]);
+});
+
+it("同一个取值写法在一个文件里出现多次只算一条（取最靠前的一行）：夜间比对不会因取到不同的那一行而报假变更", () => {
+  // 2026-09-22 实遇：v0.26 基线里 53 个身份键各有多行（`self.config["dynamic_eplb"]` 在 915 / 927 / 935 行），
+  // 比对按身份键建表、同键只留最后一条，行号一挪就取到另一行，日志里 do_remote_prefill 的默认值来回翻了 14 次。
+  const rows = scanSources({
+    "vllm_ascend/ascend_config.py": `class AscendConfig:
+    def __init__(self, config):
+        if config["dynamic_eplb"]:
+            config["dynamic_eplb"] = True
+        x = config.get("dynamic_eplb")
+`,
+  }).filter((p) => p.name === "dynamic_eplb");
+  expect(rows.map((p) => [p.json_path, p.line, p.default])).toEqual([['config["dynamic_eplb"]', 3, "<unknown>"]]);
+});
+
+it("出现位置只留前 5 处、另记总数：一个名字全库出现几千次时，队列与基线不再被位置清单撑大", () => {
+  const text = `class EngineConfig:\n    batch_size: int = 4\n${Array.from({ length: 8 }, (_, i) => `x${i} = batch_size\n`).join("")}`;
+  const row = scanSources({ "config.py": text }).find((p) => p.name === "batch_size");
+  expect(row?.occurrences).toEqual([
+    { file: "config.py", line: 2 },
+    { file: "config.py", line: 3 },
+    { file: "config.py", line: 4 },
+    { file: "config.py", line: 5 },
+    { file: "config.py", line: 6 },
+  ]);
+  expect(row?.occurrenceCount).toBe(9); // 定义那一行 + 8 次引用
+  // 旧记录（位置全量、没有总数）与新扫描比对时仍是同一条：复核 / 生成页前的「与源码一致」检查不能因此失败
+  const legacy = {
+    ...row!,
+    occurrences: Array.from({ length: 9 }, (_, i) => ({ file: "config.py", line: i + 2 })),
+  };
+  delete (legacy as { occurrenceCount?: number }).occurrenceCount;
+  expect(JSON.stringify(withoutLocations(legacy))).toBe(JSON.stringify(withoutLocations(row!)));
 });
 
 it("被工厂从用户输入里剔掉、又没有任何一处从用户输入读它的键，不算用户参数；它下面的字段跟着不算", () => {

@@ -8,7 +8,8 @@ it.each(["not-param", "undetermined"] as const)(
   async (verdict) => {
     const f = wikiFixture();
     try {
-      const source = 'value = kwargs.get("internal_cache", None)';
+      // 需要一条「疑似」的字符串取值：函数转发的 kwargs 已不算候选（见 scan.test），这里用配置字典
+      const source = 'value = extra_config.get("internal_cache", None)';
       const row = scanSources({ "state.py": source })[0]!;
       const result = await reviewParam(
         f.root,

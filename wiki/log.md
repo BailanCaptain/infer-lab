@@ -356,6 +356,42 @@ pnpm rfork:evidence 从核验后的源码生成 14 份不可变 raw 材料，11 
 
 验证：106 个文件 751 项单测通过；类型、代码 lint、内容/依赖检查、生产构建、Wiki lint、行号审计、图一致性通过；20 项阅读页浏览器回归及五页正文/版本/来源/配图实测通过。代码 lint 保留既有 CSS 警告，Wiki 保留证据密度提醒。未做设备运行与性能验证；大规模导入和夜间付费开关均未启动。
 
+## [2026-09-21] ingest | 参数增量
+
+vllm-ascend@main c173a64a44dec4ba97aaba6277b1dfc1562eda19 → baa023ada41a5b889cac6249845a688aab130892；新增 37 / 删除 0 / 变更 27。
+
+- seqused_ori_kv: 默认表达式 "<unknown>" → "None"
+- max_seqlen_cmp_kv: 默认表达式 "<unknown>" → "None"
+- max_seqlen_ori_kv: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_decode: 默认表达式 "None" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "False"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- do_remote_prefill: 默认表达式 "<unknown>" → "None"
+- store: 默认表达式 "{}" → "None"
+- comm_resource_config: 默认表达式 "{}" → "None"
+- qos: 默认表达式 "<unknown>" → "None"
+- merge_size: 默认表达式 "None" → "self.merge_size"
+- num_heads: 默认表达式 "<unknown>" → "None"
+- architectures: 默认表达式 "<unknown>" → "None"
+- factor: 默认表达式 "1.0" → "<unknown>"
+
+## [2026-09-21] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
 ## [2026-09-23] review | RFork 12 页逐条对源码核查与修订
 
 用户要求审看 09-22 的 RFork 专章。三路只读核查（Opus 5.5）逐页对照 rfork/source 与社区官方文档：未发现事实错误，指出 P2 级 16 条（其中 2 条在修订时新发现）、P3 若干。按用户「改」修订：启动页补全三种会绕过 RFork 的 EPLB 配置；官网对照页改正为起始日志仍打印 transfer weights starts、只有结束日志换名；配置页改正为只有 request timeout、bind host、advertise host 三个字段认别名；传输页区分 shape 请求抛异常与返回非 200；启动页改正为后台释放租约只在传输成功后启动；约十处引用行号扩到覆盖常量与日志串；标记密度收进 lint 阈值；删去页面里写给评审的过程声明；配置页标题不再写「三个时钟」。
@@ -363,3 +399,9 @@ pnpm rfork:evidence 从核验后的源码生成 14 份不可变 raw 材料，11 
 另按用户要求：12 页不再挂课程第 10 章（chapters 置空，目录仍按 rfork 前缀归入专章）；rfork 仓库改称同事仓库 yangsonglin13/vllm-ascend，不是用户本人的仓库。
 
 验证：rfork:evidence 重新绑定 15 份源码材料；wiki:build 104 页、wiki:lint（RFork 页无提醒）、wiki:audit、wiki:diagrams --check、511 项知识库单测、22 项浏览器测试通过。未在真实 NPU 上运行。
+
+## [2026-09-23] build | 参数扫描降噪与基线迁移
+
+用户问 09-22 那晚参数队列为什么多出 3.5 万行，同意改。原因三条：出现位置是全量清单（`vllm_config` 一个名字在 main 上 2396 处），函数转发的 `kwargs[...]` 被当成疑似参数（三个基线里约三分之一的行），同一取值写法在一个文件里出现多次时共用一个身份键、夜间比对取到不同的那一行就报假变更（上面 09-21 那条「参数增量」里的 27 条变更全是这种）。改法：出现位置只留前 5 处另记总数；`kwargs[...]` 只在配置类内部才算（v0.23 / v0.26 的 `fuse_muls_add` 是真参数，照旧保留）；一个身份键只留最靠前的一行。
+
+迁移：三个基线各在自己的 commit 上重扫，先证明新行恰好等于旧行减去被排除的两类、其余字段一个不差再写入（v0.23 529→326、v0.26 602→357、main 726→431 行，合计 12 MB→0.8 MB）；队列按同一对 commit 用新扫描器重新表达，22.1 万行→1.0 万行；三份夜间报告只截位置不删行，13.4 MB→1.2 MB。参数页一页未动。验证：参数与同步相关 30 项单测、类型检查、Biome 通过。

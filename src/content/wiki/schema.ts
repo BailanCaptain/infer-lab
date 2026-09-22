@@ -17,7 +17,9 @@ export const paramEntrySchema = z.object({
   constraints: z.array(z.string()),
   confidence: z.enum(["certain", "suspect"]),
   form: z.enum(["field", "dict-key", "string-lookup"]),
+  /** 前几处出现位置（审阅线索）；全库一共出现几次看 occurrenceCount。2026-09-23 前的旧记录是全量清单、没有总数 */
   occurrences: z.array(z.object({ file: z.string(), line: z.number().int().positive() })).optional(),
+  occurrenceCount: z.number().int().nonnegative().optional(),
   review: z
     .object({ verdict: z.enum(["param", "not-param", "undetermined"]), reason: z.string().min(1) })
     .optional(),

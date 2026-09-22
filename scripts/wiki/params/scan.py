@@ -140,6 +140,13 @@ def scan(files):
                     for key in sorted(set(re.findall(r"\b[a-z][a-z0-9]*_[a-z0-9_]+\b", row["comment"])) - {label}):
                         rows.append(dict(row, name=key, type="unknown", default="<unknown>", json_path=row["json_path"] + "[" + json.dumps(key) + "]", confidence="suspect", form="dict-key", constraints=[]))
     known = {r["name"] for r in rows}
+    # `**kwargs` is plain argument forwarding almost everywhere: `kwargs["vllm_config"]` alone appeared
+    # 2396 times on main and a third of every baseline was such rows. Inside a config class it does
+    # carry user keys (v0.23 / v0.26 AscendCompilationConfig.__init__ reads kwargs.get("fuse_muls_add")),
+    # so a kwargs lookup only counts there.
+    in_config = {path: set() for path in trees}
+    for (path, _), cls in classes.items():
+        in_config[path].update(id(n) for n in ast.walk(cls))
     for path, tree in trees.items():
         for node in ast.walk(tree):
             key, owner, fallback = None, None, "<unknown>"
@@ -154,10 +161,20 @@ def scan(files):
             if not isinstance(key, ast.Constant) or not isinstance(key.value, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", key.value):
                 continue
             base = ast.unparse(owner)
-            if key.value in known or not re.search(r"config|params|kwargs", base, re.I):
+            if key.value in known:
+                continue
+            if not re.search(r"config|params", base, re.I) and not (
+                re.search(r"kwargs", base, re.I) and id(node) in in_config[path]
+            ):
                 continue
             rows.append(dict(name=key.value, type="unknown", default=fallback, **{"class": ""}, json_path=base + "[" + json.dumps(key.value) + "]", file=path, line=node.lineno, comment="", constraints=[], confidence="suspect", form="string-lookup"))
-    unique = {(r["file"], r["class"], r["json_path"], r["line"]): r for r in rows}
+    # One row per identity (file, class, json_path) — the same key the nightly diff joins on. The same
+    # lookup written on several lines used to yield several rows sharing one identity; the diff kept
+    # whichever came last, so a line shift flipped defaults back and forth as fake "changes". Keep the
+    # first line; the other places are already in the name's occurrences.
+    unique = {}
+    for r in sorted(rows, key=lambda r: (r["file"], r["line"], r["json_path"])):
+        unique.setdefault((r["file"], r["class"], r["json_path"]), r)
     return sorted(unique.values(), key=lambda r: (r["file"], r["line"], r["json_path"]))
 
 

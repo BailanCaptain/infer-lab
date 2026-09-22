@@ -8,6 +8,7 @@ import { parseSeeds } from "./wiki/ingest";
 import { paramId } from "./wiki/params/pages";
 import { reviewParam } from "./wiki/params/review";
 import { scanRepo } from "./wiki/params/scan";
+import { withoutLocations } from "./wiki/params/sync";
 import { atomicText } from "./wiki/workflow";
 import { workflowPolicySchema } from "./wiki/workflow-policy";
 
@@ -43,11 +44,7 @@ try {
   const repo = parseSeeds(readFileSync(values.seeds, "utf8")).repos[data.repo];
   if (!repo) throw new Error("未知源码仓库");
   const actual = scanRepo(resolve(repo.path), data.commit).entries.find((p) => paramId(p) === paramId(entry));
-  if (
-    !actual ||
-    JSON.stringify({ ...actual, occurrences: undefined }) !==
-      JSON.stringify({ ...entry, occurrences: undefined })
-  )
+  if (!actual || JSON.stringify(withoutLocations(actual)) !== JSON.stringify(withoutLocations(entry)))
     throw new Error("参数候选与钉定源码不符");
   const source = gitText(resolve(repo.path), ["show", `${data.commit}:${entry.file}`]);
   const policy = workflowPolicySchema.parse({

@@ -3,6 +3,12 @@ import { fileURLToPath } from "node:url";
 import { paramEntrySchema } from "../../../src/content/wiki/schema";
 import { gitText } from "../git";
 
+/**
+ * 出现位置只留前几处给审阅者当线索，另记总数。位置清单原来是全量：`vllm_config` 一个名字在 main 上
+ * 出现 2396 次，队列、基线、夜间报告 95% 以上的体积都是它（2026-09-22 一晚的队列多出 3.5 万行）。
+ */
+export const OCCURRENCE_SAMPLE = 5;
+
 export function scanSources(files: Record<string, string>, python = process.env.WIKI_PYTHON ?? "python") {
   const result = spawnSync(python, [fileURLToPath(new URL("./scan.py", import.meta.url))], {
     input: JSON.stringify(files),
@@ -27,7 +33,10 @@ export function scanSources(files: Record<string, string>, python = process.env.
       }
     }
   }
-  return rows.map((row) => ({ ...row, occurrences: occurrences.get(row.name) ?? [] }));
+  return rows.map((row) => {
+    const found = occurrences.get(row.name) ?? [];
+    return { ...row, occurrences: found.slice(0, OCCURRENCE_SAMPLE), occurrenceCount: found.length };
+  });
 }
 
 export function scanRepo(repo: string, revision: string, python?: string) {

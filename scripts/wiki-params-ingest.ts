@@ -8,6 +8,7 @@ import { parseSeeds } from "./wiki/ingest";
 import { ingestParam } from "./wiki/params/ingest";
 import { paramId } from "./wiki/params/pages";
 import { scanRepo } from "./wiki/params/scan";
+import { withoutLocations } from "./wiki/params/sync";
 import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 export async function paramIngestCli(args: string[]) {
@@ -56,8 +57,8 @@ export async function paramIngestCli(args: string[]) {
     const original = actual.find((p) => paramId(p) === paramId(entry));
     if (
       !original ||
-      JSON.stringify({ ...original, review: undefined, occurrences: undefined }) !==
-        JSON.stringify({ ...entry, review: undefined, occurrences: undefined })
+      JSON.stringify(withoutLocations({ ...original, review: undefined })) !==
+        JSON.stringify(withoutLocations({ ...entry, review: undefined }))
     )
       throw new Error(`参数记录与源码不符：${entry.name}`);
     const source = gitText(resolve(repo.path), ["show", `${data.commit}:${entry.file}`]);

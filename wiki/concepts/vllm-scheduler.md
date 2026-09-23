@@ -31,7 +31,7 @@ relations:
     kind: builds-on
     note: 先知道人们说的 prefill 和 decode 各指什么，才看得懂「调度器里没有这两个阶段」这句话在否定什么
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -75,7 +75,7 @@ file: token-budget
 
 ## 长 prompt 会被切开
 
-如果那条请求的 prompt 不是 37 而是 4096，减法得 4096，`min(4096, 2048)` 只给 2048 [C11]。剩下的 2048 留到下一步——**这就是 chunked prefill：默认开着，开着的时候切不切就是这行 `min` 的自然结果**。它仍然是个开关：`enable_chunked_prefill` 关掉之后，预算装不下的请求这一步是直接不排，而不是被切开 [C11][!]。
+如果那条请求的 prompt 不是 37 而是 4096，减法得 4096，`min(4096, 2048)` 只给 2048 [C11]。剩下的 2048 留到下一步——**这就是 chunked prefill：Qwen3 这类生成式 decoder 模型上默认开着，开着的时候切不切就是这行 `min` 的自然结果**。它仍然是个开关：`enable_chunked_prefill` 关掉之后，预算装不下的请求这一步是直接不排，而不是被切开 [C11][!]。
 
 还有一道额外的闸：`long_prefill_token_threshold` 大于 0 时，单条请求一步最多给这么多 token [C4]。它的用途是防止一条超长 prompt 把整条预算吃光、让别的请求一步都走不了。
 
@@ -84,6 +84,6 @@ file: token-budget
 ## 常见误解
 
 - **「prefill 和 decode 是两条代码路径」**——不是。上游在 `schedule()` 的注释里明确否掉了这个说法 [C1]；它们是同一道减法的两个结果。
-- **「chunked prefill 要手动开」**——不用，`enable_chunked_prefill` 默认就是 `True` [C8]；要当心的是反过来：手动关掉它，长 prompt 不是被切开，而是排不进这一步。
+- **「chunked prefill 要手动开」**——不用。`SchedulerConfig` 的字段兜底值是 `True` [C8]，但真正生效的默认由 `EngineArgs` 按模型能力算：生成式 decoder 模型（那条请求的 Qwen3 就是）恒为开，encoder-decoder 与部分 pooling 模型会被关掉。要当心的是反过来：手动关掉它，长 prompt 不是被切开，而是排不进这一步。
 - **「`max_num_batched_tokens` 是最大并发请求数」**——它数的是 token，不是请求。数请求的是 `max_num_seqs` [C8]。
 - **「调度器决定用哪个算子」**——不决定。它产出的 `SchedulerOutput` 里只有 id、整数和采样参数；选算子在进程的另一边。

@@ -43,12 +43,12 @@ relations:
     kind: builds-on
     note: PA 的硬门槛是 cudagraph_mode 必须为 FULL_DECODE_ONLY，两个算子唯一的实质分叉也只在图捕获里
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 ---
 
 ## 一句话
 
-昇腾把每层的 K、V 各存成一个大张量，一块固定装 128 个 token，decode 时算子拿着[块表](block-table.md)逐行跳读，不要求一条序列的 KV 在显存里连续。**名字最误导的一点是：这套分块布局一直生效，叫 `_npu_paged_attention` 的那个算子却默认不执行**——默认按块读 KV 的是 FIA（`npu_fused_infer_attention_score`），它同样吃块表。官方把 PA 定位成 FIA 在某些 batch 上表现不佳时的临时调优口子，将来 FIA 优化完这个参数就会作废 [S21]（<https://docs.vllm.ai/projects/ascend/en/latest/faqs.html>）。
+昇腾普通注意力（GQA）后端把每层的 K、V 各存成一个大张量（MLA 系存的是潜向量与 RoPE 段两条张量，见 [MLA](mla.md)），一块装 128 个 token，decode 时算子拿着[块表](block-table.md)逐行跳读，不要求一条序列的 KV 在显存里连续。**名字最误导的一点是：这套分块布局一直生效，叫 `_npu_paged_attention` 的那个算子却默认不执行**——默认按块读 KV 的是 FIA（`npu_fused_infer_attention_score`），它同样吃块表。官方把 PA 定位成 FIA 在某些 batch 上表现不佳时的临时调优口子，将来 FIA 优化完这个参数就会作废 [S21]（<https://docs.vllm.ai/projects/ascend/en/latest/faqs.html>）。
 
 ```wiki-diagram
 file: paged-attention
@@ -71,7 +71,7 @@ file: paged-attention
 
 不分块就得按 `max_model_len` 给每条序列预留一段连续显存。那条请求只要 237 个 token 的位置，却要按上限占满；并发一上来，显存全被没写过的空洞吃掉。分块把预留的粒度从「一条序列」降到「128 个 token」，浪费上限从 `max_model_len − 实际长度` 降到不足一块——就是那条请求第 1 块尾巴上空着的 19 格 [D]。
 
-代价是地址不再连续：第 300 个 token 在哪，得查表。所以**分块必须由 attention 算子本身支持**——不能在算子外面先把 KV 拼回连续的再算，那样等于白分。昇腾上块大小实际也只有 128：不写就由配置检查里的 `refresh_block_size` 填上（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），而后端报的 kernel 块大小同样是 `[128]` [C2]——两者对上了，但定这个值的是前者。
+代价是地址不再连续：第 300 个 token 在哪，得查表。所以**分块必须由 attention 算子本身支持**——不能在算子外面先把 KV 拼回连续的再算，那样等于白分。昇腾上普通注意力模型的块大小实际也只有 128：不写就由配置检查里的 `refresh_block_size` 填上（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），而后端报的 kernel 块大小同样是 `[128]` [C2]——两者对上了，但定这个值的是前者。`deepseek_v4` 与混合结构（attention+mamba）模型在同一个函数里更早的特判分支分流，不受这条约束：前者显式给 32/64 会保留，后者沿用模型自己的定法。
 
 昇腾侧比上游多出来的那件事是：有两个算子都能按块读。v0.23 维护分支的源码注释写明了引入 PA 的理由——在某些场景下 `_npu_paged_attention` 仍比 `npu_fused_infer_attention_score` 快，等 FIA 在所有场景都更好时这条路就该删掉 [C14]。
 

@@ -2,7 +2,7 @@
 id: dyntra-lb
 title: "DyntraLB：跨 rank 传的只有块数，没有请求 id"
 type: feature
-summary: PD 分离的 D 节点上，各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。
+summary: PD 分离的 D 节点上（MoE 模型的多 DP 部署），各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。
 aliases: [DyntraLB, Dynamic Intra-Decoder Data-Parallel Load Balancing, 解码器内部数据并行动态负载均衡, D 节点负载均衡, 负载感知调度器, dyntra_lb_config, DyntraLBScheduler, AsyncDyntraLBScheduler, DyntraLBDPEngineCoreProc, DyntraLBPolicyMixin, bubble_threshold, long_req_block_threshold, dynamic_max_step]
 chapters: ["12"]
 order: 70
@@ -43,6 +43,8 @@ sources:
   - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L198-L207
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/dyntra_lb.html
   - vllm@568afb3a:vllm/v1/engine/core.py#L2083-L2092
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L33-L41
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1156
 verified: ["main"]
 evidence: "C"
 relations:
@@ -62,7 +64,7 @@ relations:
     kind: builds-on
     note: 它换了 scheduler_cls，所以得自备一个 Async 版；异步调度改了什么、为什么不能混用同步类在那一页
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -80,7 +82,9 @@ file: dyntra-lb
 
 [那条请求](one-request.md)跑在单卡、PD 混部上，而 DyntraLB 在启动校验里连设三道门：`kv_transfer_config` 为空或 `kv_role` 不是 `kv_consumer`、`data_parallel_size <= 1`、`nnodes_within_dp > 1`，每一条都是直接 `ValueError` [C24]。**把它写进那条请求的启动命令，服务根本起不来。**
 
-改成能走到这里的最小设定：一套 1P1D，D 节点单机、`--data-parallel-size 2`、`kv_role='kv_consumer'`。这时那条请求在它眼里是这么大（默认值全部来自 `DyntraLBConfig` [C21]）：
+三道明门之外还有一道暗门：它的进场方式是把上游 `DPEngineCoreProc` 这个名字换成自己的子类 [C37]，而上游只在模型是 MoE 时才解析这个名字构造 DP 引擎进程 [C38]——**dense 模型上三道校验全过、启动也不报错，但负载均衡循环根本不会跑**。
+
+改成能走到这里的最小设定：一套 1P1D，D 节点单机、MoE 模型、`--data-parallel-size 2`、`kv_role='kv_consumer'`。这时那条请求在它眼里是这么大（默认值全部来自 `DyntraLBConfig` [C21]）：
 
 | 这一页的东西 | 那条请求上是多少 |
 |---|---|
@@ -95,7 +99,7 @@ file: dyntra-lb
 
 `get_dyntra_lb_request_block_num` 就一行——`(len(request.all_token_ids) + block_size - 1) // block_size`，`block_size` 直接取 `cache_config.block_size`，拿不到正整数就 `RuntimeError` [C1]。**这是它和[均衡调度](balance-scheduling.md)最根本的分水岭**：那一页数的是 `len(self.running)`，一条 37 token 的请求和一条 9 万 token 的请求算同一条；在这里它们是 1 块和 700 块。
 
-两个阈值都以块计、不以 token 计，官方参数表专门补了一句「它们的 token 等价值取决于配置的 block size」[S31]。昇腾上 `block_size` 实际固定 128（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），换算是一次乘法。
+两个阈值都以块计、不以 token 计，官方参数表专门补了一句「它们的 token 等价值取决于配置的 block size」[S31]。普通注意力模型在昇腾上 `block_size` 实际固定 128（见 [block 是怎么分出来的](vllm-kv-block-allocation.md)），按 128 换算是一次乘法；但 D 节点常跑的正是例外——`deepseek_v4` 允许 32/64，块小了这两个阈值的 token 等价值就跟着缩，700 块在 block_size=32 时只有 22 400 个 token [D]。
 
 `all_token_ids` 是 prompt 加已生成的全部 token，所以**同一条请求的「重量」随 decode 一步步变大**，planner 每步重算，不缓存 [D]。
 

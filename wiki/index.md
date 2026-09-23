@@ -3,12 +3,12 @@
 派生文件，由 `pnpm wiki:build` 生成，勿手改。共 107 页。
 
 ## 概念（concept）
-- [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
+- [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，Qwen3-0.6B 的 GQA 要 4096 字节，DeepSeek 系的 MLA 只要 1152。数字各挂各的模型——头数、维度一变就变——但差别的来源是存的东西根本不一样。 `04`
 - [Block Table：逻辑块号到物理块号的唯一翻译层](concepts/block-table.md) — 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请求在这一批里的座位号，列是它自己数出来的第几个块，格子里填的是显存里的物理块号。 `11`
-- [三个进程与 patch 注入点](concepts/engine-processes.md) — V1 引擎跑起来是 Main、EngineCore、Worker 三类进程；昇腾的 patch 要分别进这三处，用的是三条不同的路。 `10`
+- [引擎的三类角色与 patch 注入点](concepts/engine-processes.md) — V1 引擎有 Main、EngineCore、Worker 三类角色；多卡时 Worker 每张卡一个进程，单卡默认配置下它住在 EngineCore 进程里。昇腾的 patch 要分别进这三处，用的是三条不同的路。 `10`
 - [HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options](concepts/gap-a5164fe10fa9184412f8.md) — get_hccl_config_for_pg_options 按通信组名分派 hccl_buffer_size：dp 组按 dp_size 算、dynamic_eplb 组固定 100、其余走默认 200，而含 "mc2" 的组直接返回 None。 `13 14`
-- [GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加](concepts/gqa.md) — Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 因此正好减半，而注意力本身一次乘加都没少。 `04`
-- [KV Cache](concepts/kv-cache.md) — 把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。 `05 11`
+- [GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加](concepts/gqa.md) — Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 按 KV 头数占 Q 头数的比例缩——Qwen3-0.6B 是 8/16 正好减半，MQA 只留 1 个头就是 1/16——而注意力本身一次乘加都没少。 `04`
+- [KV Cache](concepts/kv-cache.md) — 把已经算过的 token 的注意力中间量留在显存里，下一步生成新 token 时只算新的那一个，旧的直接读。MHA/GQA 模型存的是每层的 K 和 V；MLA 存的是压缩后的 latent，不是 K、V 本身。 `05 11`
 - [MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE](concepts/mla.md) — 每层每个 token 只存一条 512 维潜向量加 64 维 RoPE 段；prefill 把它展开回每个头的 K 和 V，decode 干脆不展开，改把展开矩阵乘到 Q 上。 `04`
 - [贯穿全书的那条请求](concepts/one-request.md) — 全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。 `00`
 - [一个算子从 Python 走到 AI Core](concepts/op-to-ai-core.md) — 拿 RMSNorm 走一遍四层。最关键的一段是 ops/layernorm.py 里的一个 if——它两边一边是自己编的融合算子，一边是 CANN 现成的算子加一次额外的逐元素加法。 `16`
@@ -16,14 +16,14 @@
 - [怎么读这个仓库](concepts/reading-vllm-ascend.md) — 三条定位路线：手上有 traceback、有特性名、有上游类名各走一条；两个 ref 的对照法与三个会得出错结论的查法。 `20`
 - [一次请求的调用链](concepts/request-call-chain.md) — 从 HTTP 到 token 一共七跳。前两跳是上游 vLLM 的调度逻辑，进程边界在第二跳与第三跳之间，之后全在昇腾侧。 `09`
 - [RFork 术语：把模型、内存和调度的名词分开](concepts/rfork-terms.md) — 解释 RFork 里的实例、Worker、分片、张量布局、内存注册、元数据、租约和清理。每个词说明它指的对象、与相近词的区别以及排错时的作用。
-- [RoPE (Rotary Position Embedding)](concepts/rope.md) — 把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。 `04`
+- [RoPE (Rotary Position Embedding)](concepts/rope.md) — 把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转（转多少维由模型定，有的只转每头前面一段）。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。 `04`
 - [vLLM-Ascend 是什么](concepts/vllm-ascend-overview.md) — 一个装在 vLLM 旁边的硬件插件：自己是独立的 Python 包，靠 entry point 把昇腾实现挂进 vLLM 的各层，不改上游一行代码。 `10`
 - [vllm_ascend 目录地图](concepts/vllm-ascend-repo-map.md) — 23 个子目录、442 个 .py、130661 行（v0.26 上 24 / 500 / 150827）。按职责分成六组，主干只有 worker、attention、ops 三个。 `20`
 - [EngineCore：那个 while 循环](concepts/vllm-engine-core.md) — 整个推理引擎的心脏是一个不到十行的 while 循环。那条请求的 200 步，就是它转了 200 圈。 `10`
 - [block 是怎么分出来的](concepts/vllm-kv-block-allocation.md) — 那条请求一共要了两次块：第 1 步要了一块，第 92 步 decode 又要了一块。要块、给块、还块，全在上游的 EngineCore 进程里。 `11`
 - [Platform：上游留给硬件的那张问卷](concepts/vllm-platform-interface.md) — 上游把「凡是跟硬件有关的事」收成一个 Platform 类，v0.23 上 78 个口子、`vllm/` 包里 873 处在问它。昇腾插件要做的就是把这张问卷答上。 `10`
 - [调度器：没有 prefill 和 decode 之分](concepts/vllm-scheduler.md) — 调度器只做一道减法——每条请求还差多少 token 没算——再拿 token 预算去填。prefill 和 decode 是这道减法的两个结果，不是两条代码路径。 `12`
-- [vLLM 的形状：三个进程，两道边界](concepts/vllm-v1-shape.md) — 那条请求要下去两层再上来两层。每跨一道边界，它携带的东西就换一种：字 → 整数 → 张量。 `10`
+- [vLLM 的形状：三类角色，两道边界](concepts/vllm-v1-shape.md) — 那条请求要下去两层再上来两层。每跨一道边界，它携带的东西就换一种：字 → 整数 → 张量。 `10`
 - [vLLM 与昇腾各管什么](concepts/who-owns-what.md) — vLLM 决定这一步算哪些 token，昇腾决定这些 token 怎么算出来。分界线落在调度交出 SchedulerOutput 的那一刻，也正好是进程边界。 `10`
 
 ## 特性（feature）
@@ -33,18 +33,18 @@
 - [Patch 机制](concepts/ascend-patch-system.md) — 上游没留口子的地方，昇腾在运行时把上游的类和函数换掉。两个目录对应两个时机，靠 import 副作用生效。 `10`
 - [异步调度：下一步的调度压在上一步的执行底下](concepts/async-scheduling.md) — EngineCore 把这一步送下去之后不等结果，直接调度下一步；调度器靠给「还没产出」的 token 记一个占位，让那道减法照样算得出来。 `12`
 - [注意力后端家族](concepts/attention-backend-family.md) — attention/ 下五个后端类，其中四个按 (use_mla, use_sparse, use_compress) 三元组查表选出，FA3 那个靠显式指定；普通后端的 KV 形状是五维，MLA 系是四维。 `04`
-- [Balance Scheduling：一个 rank 顶满，所有 rank 一起停收](concepts/balance-scheduling.md) — 每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再从 waiting 队列放新请求进来。 `12`
-- [Batch Invariance：同一条请求，跟谁拼一批都算出同一个末位](concepts/batch-invariance.md) — 开了它，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。 `16`
+- [Balance Scheduling：一个 rank 顶满，所有 rank 一起停收](concepts/balance-scheduling.md) — MoE 模型的多 DP 部署里，每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再放新请求进来。dense 模型用不上——上游只为 MoE 构造 DP 引擎进程。 `12`
+- [Batch Invariance：同一条请求，跟谁拼一批都算出同一个末位](concepts/batch-invariance.md) — 开了它、并按 main 文档把默认开着的 chunked prefill 与前缀缓存关掉、不发生抢占，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。光设开关不够，见版本差异表。 `16`
 - [Batch-Job-Aware Scheduler：给离线批处理换掉的那条等待队列](concepts/batch-job-aware-scheduler.md) — 把上游调度器的 waiting 队列换成按「作业」分桶的队列，先给在跑的请求预留下一轮要的块，再从桶里挑一条塞得下的；为离线批处理而生，不做饥饿防护。 `12`
 - [Chunked Prefill：切开的是一条请求，填满的是一步的预算](concepts/chunked-prefill.md) — 长 prompt 不一次算完，按这一步的 token 预算切成几块依次做；它在调度器里不是一个模式，是「还差多少」减不完时留下的余数。 `12`
 - [Context Parallel：把序列维切到多张卡上，PCP 切算、DCP 切存](concepts/context-parallel.md) — 长序列放不进一张卡时沿序列维下刀；PCP 切 prefill 要算的 token 并为此加卡，DCP 把 KV Cache 交错分到 TP 组各卡、卡数不变。 `15`
 - [CPU 绑核：每个 Worker 钉死一段核，而且是 warmup 之后才钉](concepts/cpu-binding.md) — 把每张卡对应的 Worker 进程和它的 acl / release 线程钉到一段固定的 CPU 核上，ARM 昇腾服务器上默认就开着；核段按 NPU 拓扑亲和或全局逻辑 NPU id 切，切完进程之间互不重叠。 `16`
 - [Data Parallel：复制整个引擎，一根权重都不切](concepts/data-parallel.md) — 同一份模型起多个副本，每个副本一套 EngineCore、调度器和 KV 块池；请求由前端挑一个 rank 送进去。它加吞吐，不减单请求延迟，也不省单卡显存。 `13`
 - [动态分块流水线并行：让每块耗时相等，而不是 token 数相等](concepts/dynamic-chunked-pp.md) — PP 下固定大小的 chunk 越往后越慢，流水线就留气泡；它启动时真跑几十次 forward 量出延迟曲线，运行时反解出每一步该切多少 token，把各块耗时拉平。 `13 12`
-- [DyntraLB：跨 rank 传的只有块数，没有请求 id](concepts/dyntra-lb.md) — PD 分离的 D 节点上，各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。 `12`
+- [DyntraLB：跨 rank 传的只有块数，没有请求 id](concepts/dyntra-lb.md) — PD 分离的 D 节点上（MoE 模型的多 DP 部署），各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。 `12`
 - [EPD 分离：把视觉编码器也拆成一类实例](concepts/epd-disaggregation.md) — 多模态模型的视觉编码器单独起一个实例（E），算出的图像 embedding 经 EC 连接器交给 prefill/decode 那边，PD 上不再跑视觉塔。 `18`
 - [EPLB：把热门专家搬到闲着的卡上，但不改路由](concepts/eplb.md) — 开了 EP 之后哪张卡忙由数据决定，EPLB 数每个专家吃了多少 token，交给一个独立子进程算新摆法，再一层一层把专家权重 P2P 搬过去。 `14`
-- [Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑](concepts/expert-parallel.md) — MoE 层按专家切开，每张卡完整持有一批专家的权重；代价是每层多一次把 token 发出去、一次把结果收回来。 `14`
+- [Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑](concepts/expert-parallel.md) — MoE 层按专家切开，每张卡完整持有一批专家的权重。代价看选中的通信方案：MC2 与 all-to-all 路径每层把 token 发出去再收回来，ALLGATHER 路径一个 token 都不发——每卡拿全量 token，只算自己那段专家。 `14`
 - [Fine-Grained Tensor Parallelism：给个别大矩阵单独借几个 DP rank 来切](concepts/fine-grained-tp.md) — 全局 TP 之外，单独给 embedding、lm_head、o_proj、dense MLP 各设一个切分数；切的是 DP 轴——从同一份 DP 里借几个 rank 把这张表分掉，省的是重复的权重副本。 `13`
 - [Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉](concepts/flash-attention-3.md) — 昇腾 attention/ 下一个独立的注意力后端（v0.23 上那里五个后端类、v0.26 起六个），把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。 `16 04`
 - [图模式层](concepts/graph-mode-layer.md) — 昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。 `16`
@@ -67,7 +67,7 @@
 - [算子层与自定义算子](concepts/ops-and-kernels.md) — ops/ 用 CustomOp 注册把上游算子换成昇腾实现；再往下是 torch_npu，最底下是 csrc/ 编出来的自定义 aclnn 算子，绑在 torch.ops._C_ascend 上。 `16`
 - [PagedAttention：分块是布局，那个算子默认不跑](concepts/paged-attention.md) — 昇腾把每层 KV 切成 128 token 的定长块，算子拿块表跳着读。但叫 _npu_paged_attention 的那个算子默认永远不执行——默认按块读 KV 的是 FIA。 `11`
 - [PD 分离：P 算完就下班，D 的第一件事是重算](concepts/pd-disaggregation.md) — 把 prefill 和 decode 拆到两批实例上跑，P 节点算完整段 prompt 的 KV 就结束请求，D 节点把这些块整块拉过去再逐 token 生成。 `18`
-- [Pipeline Parallel：按层切开，界线上一步只过一份 hidden](concepts/pipeline-parallel.md) — 按层把模型切成几段、一段一组卡；段与段之间只传 hidden_states 和 residual 两条张量，一步一次。代价是一步之内各段串行，要靠同时在途的多步才填得满。 `13`
+- [Pipeline Parallel：按层切开，界线上一步只过一份 hidden](concepts/pipeline-parallel.md) — 按层把模型切成几段、一段一组卡；段与段之间只传中间张量，一步一次——Qwen2/Qwen3 这条线是 hidden_states 和 residual 两条，有的模型族只传 hidden_states 一条。代价是一步之内各段串行，要靠同时在途的多步才填得满。 `13`
 - [插件注册机制](concepts/platform-plugin-registration.md) — 装包时声明两组 entry point，vLLM 启动时扫出来：一个给平台类，四个给连接器、加载器、profiling 与模型注册。 `10`
 - [Prefix Caching：命中的是块，不是 token](concepts/prefix-caching.md) — 两条请求开头一样，那段 KV 就不用重算——把算过的块按内容哈希留着，下一条直接把块号填进块表，只对不同的尾巴做前向。 `11`
 - [prepare_inputs 数据流](concepts/prepare-inputs-flow.md) — 调度器给的请求集合，经 NPUInputBatch 与 BlockTable 变成算子要的四个张量；槽位由一个 Triton kernel 算出来。 `09`
@@ -84,7 +84,7 @@
 - [RFork 启动：准备模型以后才借 seed，失败后先清理再重建](concepts/rfork-startup.md) — 沿 RForkModelLoader.load_model 走一遍 seed 命中、未命中、共享 draft、EPLB 绕过与失败回退。解释模型初始化、布局处理、租约和发布的先后关系。
 - [RFork 传输：先验整张清单，再按地址读字节](concepts/rfork-transfer.md) — 追踪 seed HTTP 元数据、manifest 验证、shape 对齐与 TransferEngine 分块同步读取。解释元数据成功、字节传完和模型正确之间的边界，并给出字节计算例子。
 - [RFork 排错：从第一条异常还原版本、阶段与资源状态](concepts/rfork-troubleshooting.md) — 给用户和 Agent 的 RFork 工作版排错入口。按真实日志定位配置、匹配、注册、metadata、读取、租约、发布和回退，列出可证结论、候选原因及要补的证据，避免凭单行错误定因。
-- [Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather](concepts/sequence-parallel.md) — 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。 `15`
+- [Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather](concepts/sequence-parallel.md) — 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算。BF16 部署下线上的字节数一个没省；W8A8 部署下 Quant 挪到 all-gather 之前，搬 INT8，通信量确实减半。 `15`
 - [ShortRequestFirst：把等待队列切成三条车道](concepts/short-request-first.md) — 把上游那条单一的 waiting 队列换成 immediate / short / long 三条，短 prompt 先被挑走，长 prompt 不再堵住别人的首 token。 `12`
 - [Speculative Decoding：一步算 K+1 个位置，第一个对不上的地方截断](concepts/speculative-decoding.md) — 先让一个便宜的草稿器猜 K 个 token，目标模型在同一次 forward 里给这 K+1 个位置各出一个分布，逐位比对，接受多少算多少。 `17`
 - [结构化输出：采样前先算一张「这一步允许哪些 token」的位图](concepts/structured-output.md) — 把 JSON schema / 正则 / 文法编译成状态机，每步算出一张允许位图，把不允许的 token 的 logit 写成 -inf 再采样；昇腾默认把 logits 搬回 CPU 才贴这张位图。 `17`
@@ -124,14 +124,14 @@
 ### 10 引擎架构与插件机制
 - [AscendConfig 配置系统](concepts/ascend-config-system.md)
 - [Patch 机制](concepts/ascend-patch-system.md)
-- [三个进程与 patch 注入点](concepts/engine-processes.md)
+- [引擎的三类角色与 patch 注入点](concepts/engine-processes.md)
 - [NPUPlatform](concepts/npu-platform.md)
 - [NPUWorker 启动时序](concepts/npu-worker-lifecycle.md)
 - [插件注册机制](concepts/platform-plugin-registration.md)
 - [vLLM-Ascend 是什么](concepts/vllm-ascend-overview.md)
 - [EngineCore：那个 while 循环](concepts/vllm-engine-core.md)
 - [Platform：上游留给硬件的那张问卷](concepts/vllm-platform-interface.md)
-- [vLLM 的形状：三个进程，两道边界](concepts/vllm-v1-shape.md)
+- [vLLM 的形状：三类角色，两道边界](concepts/vllm-v1-shape.md)
 - [vLLM 与昇腾各管什么](concepts/who-owns-what.md)
 
 ### 11 KV Cache 内存系统

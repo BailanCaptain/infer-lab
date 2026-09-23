@@ -2,7 +2,7 @@
 id: rope
 title: RoPE (Rotary Position Embedding)
 type: concept
-summary: 把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。
+summary: 把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转（转多少维由模型定，有的只转每头前面一段）。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。
 aliases: [旋转位置编码, 旋转位置嵌入, rotary embedding, 位置编码]
 chapters: ["04"]
 order: 10
@@ -13,17 +13,18 @@ sources:
   - vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L33-L40
   - https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json
   - https://arxiv.org/abs/2104.09864
+  - vllm@0fc695fc:vllm/model_executor/models/gemma3.py#L161-L180
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations: []
 contradicts: []
-updated: "2026-09-23"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-RoPE 给注意力补位置信息的办法只有一句：**在算分数之前，把每个 token 的 Q 和 K 按它自己的位置转一个角度。** 两个转过的向量一点乘，位置带来的那一项只跟两个转角之差有关，也就是只跟相对距离有关 [S6]；内容向量照样参与，分数不是只由距离决定。
+RoPE 给注意力补位置信息的办法只有一句：**在算分数之前，把每个 token 的 Q 和 K 按它自己的位置转一个角度。** 转多少维由模型定：Qwen3 整个头 128 维都转，配置了 partial rotary 的模型只转每头前面 `rotary_dim` 维，[MLA](mla.md) 里只有单独那 64 维 RoPE 段参与、其余维度不带位置。两个转过的向量一点乘，位置带来的那一项只跟两个转角之差有关，也就是只跟相对距离有关 [S6]；内容向量照样参与，分数不是只由距离决定。
 
 ```wiki-diagram
 file: rope
@@ -81,7 +82,7 @@ o2 = x2·cos + x1·sin
 
 第三列是 `2π ÷ 第二列` [D]。最慢的那一对转满一圈要 506 万个 token，而 `max_position_embeddings` 只有 40960——它在整个窗口里只转了约 0.05 弧度，不到 3 度 [D]。**这就是这个数的意思：慢指针在窗口内远远转不满一圈，位置 40000 和位置 100 不会因为「转了整圈又回到同一角度」而撞在一起** [I]。快的那几对负责分辨挨着的 token，慢的那几对负责把远近拉开，一张表两头都占住了 [I]。不过「不套圈」只是必要条件，它不保证任意长上下文都分得开，也不能单凭配置反推训练者的设计动机。
 
-那张查表的大小：`40960 × 128` 个数，按 float32 算是 20 MiB [D]。全模型 28 层共用同一张，不是每层一份 [I]。
+那张查表的大小：`40960 × 128` 个数，按 float32 算是 20 MiB [D]。Qwen3-0.6B 的 28 层全用同一份 RoPE 配置，所以共用同一张表 [I]；层型交替的模型不是这样——Gemma3 的滑动窗口层用另一个 θ，按层型各建各的表 [C7]。
 
 ## 那条请求走到这里
 

@@ -2,7 +2,7 @@
 id: attention-cost
 title: 四种注意力的代价
 type: concept
-summary: 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。
+summary: 同样存一个 token 一层，Qwen3-0.6B 的 GQA 要 4096 字节，DeepSeek 系的 MLA 只要 1152。数字各挂各的模型——头数、维度一变就变——但差别的来源是存的东西根本不一样。
 aliases: [KV 占用, 每 token 字节数, MLA 省多少, page_size_bytes, 稀疏注意力代价, indexer]
 chapters: ["04"]
 order: 20
@@ -38,13 +38,13 @@ relations:
     kind: builds-on
     note: GQA 那一条的完整推导在那一页，这里只取结果拿来跟另外三条并排比
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-同样是"存一个 token 在一层里的 KV"，普通 GQA 要 **4096 字节**，MLA 只要 **1152 字节**。差的三倍半**不来自压缩算法，来自存的东西不一样**：前者存 K 和 V 两份真实向量，后者只存一份压缩过的潜向量，要用的时候再展开。
+同样是"存一个 token 在一层里的 KV"，Qwen3-0.6B 的普通 GQA 要 **4096 字节**，DeepSeek 系的 MLA 只要 **1152 字节**。这是两个不同模型的数——头数、维度换了就得重算，同结构自己跟自己比的干净算法在 [MLA](mla.md) 页。但量级差的来源**不是压缩算法，是存的东西不一样**：前者存 K 和 V 两份真实向量，后者只存一份压缩过的潜向量，要用的时候再展开。
 
 ```wiki-diagram
 file: attention-cost
@@ -56,7 +56,7 @@ file: attention-cost
 
 Qwen3-0.6B 是普通 GQA 模型，三个布尔量全是 `False`，查表查到 `AscendAttentionBackend` [C15]。它每个 token 每层要 4096 字节，28 层合起来 112 KiB [D]——这个数在全库反复出现，源头就在这条最长的条上。
 
-**它是四条里最贵的。** 同样 237 个 token，换成一个 MLA 模型，每层的 KV 会少掉七成以上 [D]。
+**它是四条里最贵的。** 同样 237 个 token，换成 DeepSeek 系的 MLA 模型，每层的 KV 会少掉七成以上 [D]——记住这是拿两个模型并排感受量级，不是「换 MLA 必省七成」的定律。
 
 ## 四个数并排
 

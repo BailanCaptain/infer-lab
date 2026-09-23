@@ -20,6 +20,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
   - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L58-L82
   - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L101-L101
+  - vllm@0fc695fc:vllm/config/parallel.py#L889-L890
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -33,13 +34,13 @@ relations:
     kind: builds-on
     note: 上图画的就是那条请求第 92 步的调用栈
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-一次请求从进来到产出 token，代码上是七跳。**分界线在第二跳和第三跳之间**：那里跨了进程，前面是上游 vLLM 的调度器，后面全是 `vllm_ascend` 的代码 [D]。
+一次请求从进来到产出 token，代码上是七跳。**分界线在第二跳和第三跳之间**：前面是上游 vLLM 的调度器，后面全是 `vllm_ascend` 的代码 [D]。多卡时那里还是一道进程边界；单卡默认配置（那条请求就是）下执行器是 `uni`，两边同住 EngineCore 进程，交接的对象一模一样 [C14]。
 
 ```wiki-diagram
 file: request-call-chain
@@ -49,13 +50,13 @@ file: request-call-chain
 
 上图画的就是那条请求的**第 92 步 decode**。这一步很典型：上游只给了 1 个 token 的名额和两个 block id，之后的七跳全是「怎么把这 1 个 token 算出来」。
 
-缩进表示调用深度：**越往下越靠近硬件，昇腾自己的代码也越多**。第二跳和第三跳之间那条线是进程边界，也是责任边界——线以上的两跳**调度逻辑是上游的**，但跑的类已经不是上游那个：昇腾的 platform patch 无条件把 `Scheduler` 这个名字换成了 `BalanceScheduler` [C10][C11]，它是上游 `schedule()` 的抄件加一道默认关着的闸门，见 [Balance Scheduling](balance-scheduling.md)。此外还能用 `scheduler_cls` 换成别的子类 [C8]。
+缩进表示调用深度：**越往下越靠近硬件，昇腾自己的代码也越多**。第二跳和第三跳之间那条线是责任边界（多卡时同时是进程边界）——线以上的两跳**调度逻辑是上游的**，但跑的类已经不是上游那个：昇腾的 platform patch 无条件把 `Scheduler` 这个名字换成了 `BalanceScheduler` [C10][C11]，它是上游 `schedule()` 的抄件加一道默认关着的闸门，见 [Balance Scheduling](balance-scheduling.md)。此外还能用 `scheduler_cls` 换成别的子类 [C8]。
 
 ## 七跳分别交接什么
 
 **一、HTTP 或 `LLM.generate`。** 上游 vLLM 的入口，请求进队列。
 
-**二、Scheduler。** 上游代码，决定这一步跑哪些请求、各自跑几个 token，产物是 `SchedulerOutput`。这一跳之后跨进程——`SchedulerOutput` 是跨进程传过来的那个对象 [D]，这解释了为什么昇腾要把一些跨进程状态挂在它身上（例子见 [NPUModelRunner 怎么读](npu-model-runner.md)）。
+**二、Scheduler。** 上游代码，决定这一步跑哪些请求、各自跑几个 token，产物是 `SchedulerOutput`。这一跳之后换边——`SchedulerOutput` 是为跨进程传输设计的交接对象（多卡时真跨进程，单卡 `uni` 执行器下是进程内的一次调用）[D]，这解释了为什么昇腾要把一些跨步状态挂在它身上（例子见 [NPUModelRunner 怎么读](npu-model-runner.md)）。
 
 **三、`NPUWorker.execute_model(scheduler_output)`。** 昇腾侧第一跳。它先记显存统计、按 msmonitor 配置推进 profiling 的步数，然后处理 PP 的跨 rank 收发：如果这一步有 token 要算、且不是 PP 的第一个 rank，就用 `get_pp_group().irecv_tensor_dict()` 收上一段的 `intermediate_tensors`，并按是否开 SP 决定 `all_gather_group` 传不传 [C1]。`forward_pass` 这个布尔量来自 `scheduler_output.total_num_scheduled_tokens > 0`，但在这一跳只用来决定收不收 `intermediate_tensors` [C1]——「这一步要不要真的跑 forward」是下一跳的 runner 判断的 [C9]。
 

@@ -51,7 +51,7 @@ relations:
     kind: builds-on
     note: 先看清普通模型缓存里躺的是 K 和 V 两份真向量，才看得出 MLA 换掉的到底是什么
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -123,7 +123,7 @@ file: mla
 | `kv_cache[0]` | 压过的潜向量 | `(num_blocks, 128, 1, 512)` | 1024 |
 | `kv_cache[1]` | RoPE 那一段 | `(num_blocks, 128, 1, 64)` | 128 |
 
-块大小仍是 128——照样由配置检查里的 `refresh_block_size` 填上，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)；`get_supported_kernel_block_sizes` 跟别的后端一样报 `[128]`，所以[块表](block-table.md)那一套完全照旧。开了稀疏或 LI C8 时这个元组会长到三、四项，多出来的是 indexer 的 key 和它的 scale——那部分归[四种注意力的代价](attention-cost.md)。
+块大小仍是 128——照样由配置检查里的 `refresh_block_size` 填上，见 [block 是怎么分出来的](vllm-kv-block-allocation.md)；`get_supported_kernel_block_sizes` 跟别的后端一样报 `[128]`，所以[块表](block-table.md)那一套在 v0.23 与 v0.26 上完全照旧。main 上多了一层换算：调度器仍按 `block_size` 记账，算子用的物理块是 `block_size // tokens_per_state`，见 [KV Cache Spec](kv-cache-spec.md) 的差异表 `[!]`。开了稀疏或 LI C8 时这个元组会长到三、四项，多出来的是 indexer 的 key 和它的 scale——那部分归[四种注意力的代价](attention-cost.md)。
 
 ## 三个分支之间的三处差异
 

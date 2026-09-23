@@ -2,7 +2,7 @@
 id: sequence-parallel
 title: "Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather"
 type: feature
-summary: 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。
+summary: 不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算。BF16 部署下线上的字节数一个没省；W8A8 部署下 Quant 挪到 all-gather 之前，搬 INT8，通信量确实减半。
 aliases: [Sequence Parallel, 序列并行, SP, FlashComm1, FlashComm V1, enable_flashcomm1, enable_sp, sp_min_token_num, maybe_pad_and_reduce, SequenceRowParallelOp, use_sequence_parallel_moe]
 chapters: ["15"]
 order: 10
@@ -48,7 +48,7 @@ relations:
     kind: conflicts-with
     note: 两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到；只在 v0.23 上撞得到，v0.26 起那个 pass 已删
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -131,6 +131,6 @@ vllm serve Qwen/Qwen3-VL-2B-Instruct --tensor-parallel-size 2 \
 
 ## 常见误解
 
-- **「all-reduce 拆成两半，通信量就减半了」**——没有。ring all-reduce 本来就是 reduce-scatter 加 all-gather 两段，SP 只是把中间那个接缝撬开塞进 norm。官方文档原话就是拆开本身不带来性能收益。
+- **「all-reduce 拆成两半，通信量就减半了」**——BF16 下没有：ring all-reduce 本来就是 reduce-scatter 加 all-gather 两段，SP 只是把中间那个接缝撬开塞进 norm，官方文档原话就是拆开本身不带来性能收益。W8A8 部署下通信量真的减半，但那一半是 Quant 挪到 all-gather 之前、数据类型从 BF16 变 INT8 省出来的，不是拆算子省出来的 [S2]。
 - **「`--compilation-config '{"pass_config":{"enable_sp":true}}'` 等于打开了 `enable_sp()`」**——两个开关。`enable_sp()` 只读 `enable_flashcomm1`，pass 那个由 `enable_sp_by_pass()` 读，且 eager 模式下恒假。
 - **「开了 SP，decode 也跟着省」**——dense 模型要 `num_tokens > 1000` 才生效，decode 每步那几个 token 差得远；而且在 v0.23 上，与它争抢同一段子图的 [fuse_allreduce_rms](../params/fuse-allreduce-rms.md) 还会让它静默失效、连告警都没有——v0.26 起 `allreduce_rmsnorm_fusion_pass.py` 整个文件已经删掉，这条冲突跟着消失。

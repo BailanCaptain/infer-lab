@@ -50,7 +50,7 @@ relations:
     kind: alternative-to
     note: 官方 PD 设计文档拿「prefill 插进 decode 造成延迟」当立项理由，两者解决的是同一个 TPOT 问题
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -64,7 +64,7 @@ file: chunked-prefill
 
 ## 那条请求用不到它
 
-[那条请求](one-request.md)的问题是 37 个 token，而昇腾上这一步的预算条是 2048（这个数怎么来的见[调度器](vllm-scheduler.md)）。减法一次就减完，它连一次切分都触发不了。
+[那条请求](one-request.md)的问题是 37 个 token，而昇腾上 `vllm serve` 不显式指定时这一步的预算条是 2048——离线 `LLM()` 那一档是 8192，这个数怎么来的见[调度器](vllm-scheduler.md)。减法一次就减完，它连一次切分都触发不了。
 
 要看到切分只改一件事：把问题从 37 个 token 换成 5000 个，`--max-model-len` 开到 5500，其余设定（单卡 Qwen3-0.6B、队列里仍然只有它这一条、`block_size` 128、预算 2048）不动 [A]。`enable_chunked_prefill` 不用写在命令行里，理由在下一节。
 
@@ -85,7 +85,7 @@ file: chunked-prefill
 
 它默认是开的。`SchedulerConfig` 里字段默认 `True`，真正生效的值由 `EngineArgs` 按模型算：`is_chunked_prefill_supported` 对生成类模型只要不是 encoder-decoder 就恒为真 [C10]。**在昇腾上跑 Qwen3 这类模型，它一直开着，你没写过任何相关参数。**
 
-手动关掉它也不是一个中性的保守选项，有两道拦：上游会对生成类模型打一条 warning，说这么做可能让引擎崩溃或产出错误结果 [C9]；配置校验更硬——关着它而 `max_num_batched_tokens < max_model_len` 直接 `ValueError` [C7]。换句话说，**关掉它等于要求预算条一口吞得下最长的序列**：上面那套设定的预算条就得从 2048 抬到至少 5500 [D]。
+手动关掉它也不是一个中性的保守选项，有两道拦：上游会对生成类模型打一条 warning，说这么做可能让引擎崩溃或产出错误结果 [C9]；配置校验更硬——关着它而**显式给的** `max_num_batched_tokens` 小于 `max_model_len` 直接 `ValueError` [C7]；没显式写时不会报错，`EngineArgs` 会先把预算条自动抬到 `max(max_model_len, 默认值)` 再校验。换句话说，**关掉它等于要求预算条一口吞得下最长的序列**：上面那套设定里显式写过 2048 的话，就得抬到至少 5500 [D]。
 
 ## 被切开的那几步照样采了样，结果当场扔掉
 
@@ -124,5 +124,5 @@ KV 是一路往后写的，没有任何「把上一块接起来」的代码。`_
 
 - **「chunked prefill 是一个要手动打开的优化」**——生成类模型上它默认就开着；配置项调的是预算条有多长、单条一步最多给多少，不是「要不要切」。反过来手动关掉，上游会警告可能崩溃或输出错误。
 - **「切开之后总计算量变少了」**——正相反。每一步声明的 KV 长度都是含前文的全长，切成三步就是三次全长声明；省下的是「一步之内塞多少 token」，不是总账。
-- **「关掉它，decode 就不会被 prefill 插队了」**——关掉之后校验会逼你把 `max_num_batched_tokens` 抬到 ≥ `max_model_len`，一步涌进来的 token 只会更多。真正让 prefill 不插进 decode 的做法是 [PD 分离](pd-disaggregation.md)，官方设计文档正是拿「没有 PD 分离时 prefill 被插进 decode，带来低效和延迟」当立项理由 [S25]。
-- **「`--block-size 64` 配 chunked prefill 能省点显存」**——开着它（或[前缀缓存](prefix-caching.md)）时 `refresh_block_size` 会把 `block_size` 静默改成 128，只留一条 info 日志 [C18]。
+- **「关掉它，decode 就不会被 prefill 插队了」**——关掉之后预算条反而 ≥ `max_model_len`（不写自动抬上去，显式写小了直接报错），一步涌进来的 token 只会更多。真正让 prefill 不插进 decode 的做法是 [PD 分离](pd-disaggregation.md)，官方设计文档正是拿「没有 PD 分离时 prefill 被插进 decode，带来低效和延迟」当立项理由 [S25]。
+- **「`--block-size 64` 配 chunked prefill 能省点显存」**——普通注意力模型上，开着它（或[前缀缓存](prefix-caching.md)）时 `refresh_block_size` 会把 `block_size` 静默改成 128，只留一条 info 日志 [C18]；`deepseek_v4` 与混合结构模型走同一函数里更早的特判分支，64 反而会保留。

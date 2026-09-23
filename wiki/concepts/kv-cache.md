@@ -2,7 +2,7 @@
 id: kv-cache
 title: KV Cache
 type: concept
-summary: 把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。
+summary: 把已经算过的 token 的注意力中间量留在显存里，下一步生成新 token 时只算新的那一个，旧的直接读。MHA/GQA 模型存的是每层的 K 和 V；MLA 存的是压缩后的 latent，不是 K、V 本身。
 aliases: [KV 缓存, 键值缓存, kv cache, KV 显存]
 chapters: ["05", "11"]
 order: 5
@@ -11,6 +11,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L182-L200
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
   - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4928-L4938
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -21,13 +22,15 @@ relations:
     kind: builds-on
     note: 存进缓存的 K 是已经按位置转过的 K，所以缓存内容跟位置绑定，不用每步重转
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-模型每生成一个 token，都要让它「看」一遍前面所有的 token。看的方式是拿新 token 的 Q 去和前面每个 token 的 K 点乘、再按分数取它们的 V。**前面那些 token 的 K 和 V 一旦算出来就再也不会变**，所以算一次、留在显存里，后面每一步直接读——这块显存就是 KV Cache。
+模型每生成一个 token，都要让它「看」一遍前面的 token。看的方式是拿新 token 的 Q 去和前面每个 token 的 K 点乘、再按分数取它们的 V。**前面那些 token 的 K 和 V 一旦算出来就再也不会变**，所以算一次、留在显存里，后面每一步直接读——这块显存就是 KV Cache。
+
+本页整段按全量注意力加 [GQA](gqa.md) 讲——示例模型 Qwen3-0.6B 就是这种。**存什么、读多少由注意力结构定**：[MLA](mla.md) 存的不是 K、V 本身而是压缩后的 latent；滑动窗口与稀疏注意力也不是每步读前面全部。换了结构，本页的「K 和 V」要按那一页的说法换算。
 
 ```wiki-diagram
 file: kv-cache
@@ -64,13 +67,13 @@ file: kv-cache
 
 - 存进去的 K 已经带着它自己的位置（转过了），读出来直接能用；
 - 存进去的 V 是没转过的原样——RoPE 本来就不碰 V；
-- **每一层各存各的**。第 3 层的 K 和第 4 层的 K 是两套完全不同的数，28 层就是 28 份。
+- **每一层各存各的**。第 3 层的 K 和第 4 层的 K 是两套完全不同的数，Qwen3-0.6B 的 28 层就是 28 份。少数模型声明跨层共享：声明了共享目标的层不建自己的缓存，直接读目标层那一份 [C5]。
 
 在昇腾上，写缓存这个动作是 `do_kv_cache_update`：拿到这一步新算出来的 `key`、`value` 和一个 `slot_mapping`，调一次 `reshape_and_cache`，把它们写进 `slot_mapping` 指定的格子里 [C4]。「哪一格」不是这一页的事，见 [Block Table](block-table.md)。
 
 ## 它长什么样、有多大
 
-昇腾后端给每一层声明的缓存张量形状是 [C3]：
+昇腾普通注意力（GQA）后端给每一层声明的缓存张量形状是 [C3]（MLA 系后端是另一套形状，见 [MLA](mla.md) 与[后端家族](attention-backend-family.md)）：
 
 ```
 (2, num_blocks, block_size, num_kv_heads, head_size)
@@ -85,7 +88,7 @@ file: kv-cache
 
 代入 Qwen3-0.6B，得到全库反复用的那两个数：**每个 token 112 KiB，每块 14 MiB**。推导写在 [KV Cache Spec](kv-cache-spec.md)，这里不重算。那条请求总共 237 个 token，占 2 块、28 MiB。
 
-值得停一下看这个量级：Qwen3-0.6B 的全部权重大约 1.2 GB [D]（0.6B 个参数 × 2 字节）。一条 1 万 token 的长对话，光 KV Cache 就是 `10000 × 112 KiB ≈ 1.07 GiB` [D]——**一条长请求的缓存就和整个模型差不多大**。推理服务的显存主要不是被模型吃掉的，是被缓存吃掉的；后面整个第 11 章都在处理这件事。
+值得停一下看这个量级：Qwen3-0.6B 的全部权重大约 1.2 GB [D]（0.6B 个参数 × 2 字节）。一条 1 万 token 的长对话，光 KV Cache 就是 `10000 × 112 KiB ≈ 1.07 GiB` [D]——**一条长请求的缓存就和整个模型差不多大**。所以在权重小、上下文长的场景里，推理服务的显存大头是缓存，不是模型；权重占掉整卡大半、对话又短时，天平会倒回去——缓存预算本来就是整卡减掉权重和激活之后剩下的部分（见 [KV Cache 显存预算](kv-cache-memory-profiling.md)）。后面整个第 11 章都在处理缓存这一侧。
 
 ## 那条请求走到这里
 
@@ -107,5 +110,5 @@ file: kv-cache
 ## 常见误解
 
 - **「KV Cache 是为了省显存」。** 反了。它是**拿显存换计算**：多占显存，换来每步只算一个 token。
-- **「缓存的是 token 或者 embedding」。** 缓存的是每一层注意力里的 K 和 V 两个张量，和输入的 token id、embedding 都不是一回事；同一个 token 在 28 层里有 28 对不同的 K、V。
+- **「缓存的是 token 或者 embedding」。** 缓存的是注意力算出来的中间量——GQA 是每层的 K、V 两个张量，MLA 是压缩后的 latent——和输入的 token id、embedding 都不是一回事；同一个 token 在 28 层里有 28 份互不相同的缓存。
 - **「开了缓存结果会有点不一样」。** 数学上完全等价——缓存里的就是不缓存时每步会重算出来的那些数，只是不重算了 [D]。

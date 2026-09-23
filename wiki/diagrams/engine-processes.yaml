@@ -1,6 +1,6 @@
 layout: scene
 id: engine-processes
-caption: 三类进程，三条各走各的 patch 注入路——主进程打过的不会被子进程继承
+caption: 三类角色，三条各走各的 patch 注入路——主进程打过的不会被子进程继承；单卡时 Worker 住在 EngineCore 进程里
 size: [900, 480]
 
 regions:
@@ -14,8 +14,8 @@ regions:
     at: [312, 76]
     size: [276, 330]
     tone: upstream
-  - label: Worker 进程
-    note: 每张卡一个 · 真正碰 NPU
+  - label: Worker
+    note: 真正碰 NPU · 多卡才每卡一进程
     at: [604, 76]
     size: [276, 330]
     tone: ascend

@@ -68,7 +68,8 @@
         "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1162-L1176",
         "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1214-L1216",
         "vllm-ascend@baa023ad:vllm_ascend/compilation/breakable_aclgraph.py#L38-L45",
-        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L527-L531"
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L527-L531",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2326-L2335"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -100,7 +101,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/acl-graph.md",
       "backlinks": [
         {
@@ -740,7 +741,7 @@
       "title": "四种注意力的代价",
       "type": "concept",
       "origin": "seed",
-      "summary": "同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。",
+      "summary": "同样存一个 token 一层，Qwen3-0.6B 的 GQA 要 4096 字节，DeepSeek 系的 MLA 只要 1152。数字各挂各的模型——头数、维度一变就变——但差别的来源是存的东西根本不一样。",
       "aliases": [
         "KV 占用",
         "每 token 字节数",
@@ -798,7 +799,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/attention-cost.md",
       "backlinks": [
         {
@@ -823,7 +824,7 @@
       "title": "Balance Scheduling：一个 rank 顶满，所有 rank 一起停收",
       "type": "feature",
       "origin": "seed",
-      "summary": "每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再从 waiting 队列放新请求进来。",
+      "summary": "MoE 模型的多 DP 部署里，每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再放新请求进来。dense 模型用不上——上游只为 MoE 构造 DP 引擎进程。",
       "aliases": [
         "Balance Scheduling",
         "均衡调度",
@@ -875,7 +876,11 @@
         "vllm-ascend@baa023ad:vllm_ascend/platform.py#L992-L994",
         "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L149-L149",
         "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L19-L19",
-        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html"
+        "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1156",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1715-L1717",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L715-L721",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L938-L956"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -912,7 +917,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/balance-scheduling.md",
       "backlinks": [
         {
@@ -937,7 +942,7 @@
       "title": "Batch Invariance：同一条请求，跟谁拼一批都算出同一个末位",
       "type": "feature",
       "origin": "seed",
-      "summary": "开了它，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。",
+      "summary": "开了它、并按 main 文档把默认开着的 chunked prefill 与前缀缓存关掉、不发生抢占，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。光设开关不够，见版本差异表。",
       "aliases": [
         "Batch Invariance",
         "批不变",
@@ -1039,7 +1044,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/batch-invariance.md",
       "backlinks": []
     },
@@ -1208,7 +1213,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/block-table.md",
       "backlinks": [
         {
@@ -1386,7 +1391,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/chunked-prefill.md",
       "backlinks": [
         {
@@ -1952,7 +1957,7 @@
       "title": "DyntraLB：跨 rank 传的只有块数，没有请求 id",
       "type": "feature",
       "origin": "seed",
-      "summary": "PD 分离的 D 节点上，各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。",
+      "summary": "PD 分离的 D 节点上（MoE 模型的多 DP 部署），各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。",
       "aliases": [
         "DyntraLB",
         "Dynamic Intra-Decoder Data-Parallel Load Balancing",
@@ -2009,7 +2014,9 @@
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L136-L153",
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/dyntra_lb.md#L198-L207",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/dyntra_lb.html",
-        "vllm@568afb3a:vllm/v1/engine/core.py#L2083-L2092"
+        "vllm@568afb3a:vllm/v1/engine/core.py#L2083-L2092",
+        "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_engine_core.py#L33-L41",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1156"
       ],
       "verified": [
         "main"
@@ -2044,7 +2051,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/dyntra-lb.md",
       "backlinks": [
         {
@@ -2470,10 +2477,10 @@
     },
     {
       "id": "engine-processes",
-      "title": "三个进程与 patch 注入点",
+      "title": "引擎的三类角色与 patch 注入点",
       "type": "concept",
       "origin": "seed",
-      "summary": "V1 引擎跑起来是 Main、EngineCore、Worker 三类进程；昇腾的 patch 要分别进这三处，用的是三条不同的路。",
+      "summary": "V1 引擎有 Main、EngineCore、Worker 三类角色；多卡时 Worker 每张卡一个进程，单卡默认配置下它住在 EngineCore 进程里。昇腾的 patch 要分别进这三处，用的是三条不同的路。",
       "aliases": [
         "EngineCore",
         "Main 进程",
@@ -2498,7 +2505,9 @@
         "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L340-L383",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L43-L48",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
-        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745"
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
+        "vllm@0fc695fc:vllm/config/parallel.py#L889-L890",
+        "vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -2514,12 +2523,12 @@
         {
           "to": "one-request",
           "kind": "builds-on",
-          "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
+          "note": "那条请求在三类角色里各是什么形态，决定了什么东西跨步活着"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/engine-processes.md",
       "backlinks": [
         {
@@ -2755,7 +2764,7 @@
       "title": "Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑",
       "type": "feature",
       "origin": "seed",
-      "summary": "MoE 层按专家切开，每张卡完整持有一批专家的权重；代价是每层多一次把 token 发出去、一次把结果收回来。",
+      "summary": "MoE 层按专家切开，每张卡完整持有一批专家的权重。代价看选中的通信方案：MC2 与 all-to-all 路径每层把 token 发出去再收回来，ALLGATHER 路径一个 token 都不发——每卡拿全量 token，只算自己那段专家。",
       "aliases": [
         "Expert Parallel",
         "专家并行",
@@ -2848,7 +2857,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/expert-parallel.md",
       "backlinks": [
         {
@@ -3214,7 +3223,7 @@
       "title": "GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加",
       "type": "concept",
       "origin": "seed",
-      "summary": "Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 因此正好减半，而注意力本身一次乘加都没少。",
+      "summary": "Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 按 KV 头数占 Q 头数的比例缩——Qwen3-0.6B 是 8/16 正好减半，MQA 只留 1 个头就是 1/16——而注意力本身一次乘加都没少。",
       "aliases": [
         "GQA",
         "Grouped-Query Attention",
@@ -3291,7 +3300,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/gqa.md",
       "backlinks": []
     },
@@ -3383,7 +3392,7 @@
       "title": "KV Cache",
       "type": "concept",
       "origin": "seed",
-      "summary": "把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。",
+      "summary": "把已经算过的 token 的注意力中间量留在显存里，下一步生成新 token 时只算新的那一个，旧的直接读。MHA/GQA 模型存的是每层的 K 和 V；MLA 存的是压缩后的 latent，不是 K、V 本身。",
       "aliases": [
         "KV 缓存",
         "键值缓存",
@@ -3400,7 +3409,8 @@
         "vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L145-L162",
         "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L182-L200",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112",
-        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428"
+        "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1408-L1428",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4928-L4938"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -3421,7 +3431,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/kv-cache.md",
       "backlinks": [
         {
@@ -4929,7 +4939,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/mla.md",
       "backlinks": [
         {
@@ -5231,7 +5241,8 @@
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L144",
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426",
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344",
-        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L903-L911"
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L903-L911",
+        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L224-L237"
       ],
       "verified": [
         "main",
@@ -5253,7 +5264,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/npu-platform.md",
       "backlinks": [
         {
@@ -5592,7 +5603,7 @@
         {
           "from": "engine-processes",
           "kind": "enables",
-          "note": "那条请求在三个进程里各是什么形态，决定了什么东西跨步活着"
+          "note": "那条请求在三类角色里各是什么形态，决定了什么东西跨步活着"
         },
         {
           "from": "epd-disaggregation",
@@ -5692,7 +5703,7 @@
         {
           "from": "vllm-v1-shape",
           "kind": "enables",
-          "note": "这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来"
+          "note": "这一页讲的是那条 37 token 的请求要走过的三类角色，数都从那一页来"
         },
         {
           "from": "who-owns-what",
@@ -5758,7 +5769,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/op-to-ai-core.md",
       "backlinks": []
     },
@@ -5927,7 +5938,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/paged-attention.md",
       "backlinks": [
         {
@@ -6125,7 +6136,7 @@
       "title": "Pipeline Parallel：按层切开，界线上一步只过一份 hidden",
       "type": "feature",
       "origin": "seed",
-      "summary": "按层把模型切成几段、一段一组卡；段与段之间只传 hidden_states 和 residual 两条张量，一步一次。代价是一步之内各段串行，要靠同时在途的多步才填得满。",
+      "summary": "按层把模型切成几段、一段一组卡；段与段之间只传中间张量，一步一次——Qwen2/Qwen3 这条线是 hidden_states 和 residual 两条，有的模型族只传 hidden_states 一条。代价是一步之内各段串行，要靠同时在途的多步才填得满。",
       "aliases": [
         "Pipeline Parallel",
         "流水线并行",
@@ -6184,7 +6195,9 @@
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L336-L350",
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374",
         "vllm@568afb3a:vllm/distributed/parallel_state.py#L1787-L1801",
-        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L423-L429"
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L423-L429",
+        "vllm@0fc695fc:vllm/model_executor/models/chatglm.py#L293-L295",
+        "vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L212-L214"
       ],
       "verified": [
         "main",
@@ -6216,7 +6229,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/pipeline-parallel.md",
       "backlinks": [
         {
@@ -6439,7 +6452,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-23",
+      "updated": "2026-09-24",
       "file": "concepts/prefill.md",
       "backlinks": [
         {
@@ -7149,7 +7162,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
         "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_kv_delivery_preemption.py#L58-L82",
-        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L101-L101"
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L101-L101",
+        "vllm@0fc695fc:vllm/config/parallel.py#L889-L890"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -7175,7 +7189,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/request-call-chain.md",
       "backlinks": [
         {
@@ -8027,7 +8041,7 @@
       "title": "RoPE (Rotary Position Embedding)",
       "type": "concept",
       "origin": "seed",
-      "summary": "把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。",
+      "summary": "把 Q 和 K 的每两个分量当成平面上的一个点，按「位置 × 频率」旋转（转多少维由模型定，有的只转每头前面一段）。点积中的位置因子由相对距离决定，内容向量仍影响注意力分数。",
       "aliases": [
         "旋转位置编码",
         "旋转位置嵌入",
@@ -8045,7 +8059,8 @@
         "vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/common.py#L164-L177",
         "vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/__init__.py#L33-L40",
         "https://huggingface.co/Qwen/Qwen3-0.6B/blob/main/config.json",
-        "https://arxiv.org/abs/2104.09864"
+        "https://arxiv.org/abs/2104.09864",
+        "vllm@0fc695fc:vllm/model_executor/models/gemma3.py#L161-L180"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -8055,7 +8070,7 @@
       "relations": [],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-23",
+      "updated": "2026-09-24",
       "file": "concepts/rope.md",
       "backlinks": [
         {
@@ -8075,7 +8090,7 @@
       "title": "Sequence Parallel：把那两次 all-reduce 拆成 reduce-scatter 和 all-gather",
       "type": "feature",
       "origin": "seed",
-      "summary": "不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算；线上的字节数一个没省。",
+      "summary": "不动 TP 的切法，只把一层里那两次 all-reduce 换成 reduce-scatter + all-gather，让 RMSNorm 这类逐 token 的算子只在 1/TP 的 token 上算。BF16 部署下线上的字节数一个没省；W8A8 部署下 Quant 挪到 all-gather 之前，搬 INT8，通信量确实减半。",
       "aliases": [
         "Sequence Parallel",
         "序列并行",
@@ -8151,7 +8166,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/sequence-parallel.md",
       "backlinks": [
         {
@@ -8654,7 +8669,9 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1140-L1168",
         "vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L299-L318",
         "vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L48",
-        "vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521"
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L367-L367",
+        "vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L440-L450"
       ],
       "verified": [
         "main",
@@ -8681,7 +8698,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "concepts/tensor-parallel.md",
       "backlinks": [
         {
@@ -9327,7 +9344,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
         {
@@ -9404,7 +9421,7 @@
     },
     {
       "id": "vllm-v1-shape",
-      "title": "vLLM 的形状：三个进程，两道边界",
+      "title": "vLLM 的形状：三类角色，两道边界",
       "type": "concept",
       "origin": "seed",
       "summary": "那条请求要下去两层再上来两层。每跨一道边界，它携带的东西就换一种：字 → 整数 → 张量。",
@@ -9435,7 +9452,9 @@
         "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269",
         "vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227",
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331",
-        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381"
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381",
+        "vllm@0fc695fc:vllm/config/parallel.py#L889-L890",
+        "vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -9446,12 +9465,12 @@
         {
           "to": "one-request",
           "kind": "builds-on",
-          "note": "这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来"
+          "note": "这一页讲的是那条 37 token 的请求要走过的三类角色，数都从那一页来"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/vllm-v1-shape.md",
       "backlinks": [
         {
@@ -9591,7 +9610,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L712-L725",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745",
-        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L677-L725"
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L677-L725",
+        "vllm@0fc695fc:vllm/config/parallel.py#L889-L890"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -9612,7 +9632,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-21",
+      "updated": "2026-09-24",
       "file": "concepts/who-owns-what.md",
       "backlinks": [
         {

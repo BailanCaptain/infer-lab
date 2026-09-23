@@ -2,7 +2,7 @@
 id: expert-parallel
 title: "Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑"
 type: feature
-summary: MoE 层按专家切开，每张卡完整持有一批专家的权重；代价是每层多一次把 token 发出去、一次把结果收回来。
+summary: MoE 层按专家切开，每张卡完整持有一批专家的权重。代价看选中的通信方案：MC2 与 all-to-all 路径每层把 token 发出去再收回来，ALLGATHER 路径一个 token 都不发——每卡拿全量 token，只算自己那段专家。
 aliases: [Expert Parallel, 专家并行, EP, ep_size, enable_expert_parallel, MoECommType, select_moe_comm_method, FusedMoEParallelConfig, MC2 通信, token dispatch, 专家切分]
 chapters: ["14"]
 order: 10
@@ -63,7 +63,7 @@ relations:
     kind: builds-on
     note: ep_size 有一半是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 

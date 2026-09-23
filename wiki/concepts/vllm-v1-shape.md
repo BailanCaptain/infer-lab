@@ -1,6 +1,6 @@
 ---
 id: vllm-v1-shape
-title: vLLM 的形状：三个进程，两道边界
+title: vLLM 的形状：三类角色，两道边界
 type: concept
 summary: 那条请求要下去两层再上来两层。每跨一道边界，它携带的东西就换一种：字 → 整数 → 张量。
 aliases: [vLLM 的形状, vLLM V1 架构, vLLM 进程结构, AsyncLLM, EngineCore 进程, 前端进程]
@@ -21,20 +21,22 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331
   - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
+  - vllm@0fc695fc:vllm/config/parallel.py#L889-L890
+  - vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: one-request
     kind: builds-on
-    note: 这一页讲的是那条 37 token 的请求要走过的三个进程，数都从那一页来
+    note: 这一页讲的是那条 37 token 的请求要走过的三类角色，数都从那一页来
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-一条请求在 vLLM 里要**下去两层再上来两层**。三个进程各管一种东西：前端只认字，EngineCore 只认整数，Worker 才认张量。跨一次边界就换一种东西——这是理解后面所有事情的地基。
+一条请求在 vLLM 里要**下去两层再上来两层**。三类角色各管一种东西：前端只认字，EngineCore 只认整数，Worker 才认张量。跨一次边界就换一种东西——这是理解后面所有事情的地基。角色不总是各占一个进程：多卡时 Worker 每张卡一个进程，单卡默认配置（那条请求就是）下它住在 EngineCore 进程里 [C15][C16]。
 
 ```wiki-diagram
 file: vllm-v1-shape
@@ -46,21 +48,21 @@ file: vllm-v1-shape
 
 | 在哪一层 | 它长什么样 |
 |---|---|
-| 前端进程 | 一段中文字符串；出来时是 37 个整数 |
-| EngineCore 进程 | 一条 `Request` 对象：37 这个数、两条队列里的一个位置、一张 block id 列表 |
-| Worker 进程 | 若干张张量：`input_ids` 形状 `(37,)`、`positions` 形状 `(37,)`、`slot_mapping` 形状 `(37,)` [D] |
+| 前端 | 一段中文字符串；出来时是 37 个整数 |
+| EngineCore | 一条 `Request` 对象：37 这个数、两条队列里的一个位置、一张 block id 列表 |
+| Worker | 若干张张量：`input_ids` 形状 `(37,)`、`positions` 形状 `(37,)`、`slot_mapping` 形状 `(37,)` [D] |
 
 **同一条请求，三种身份。** 读源码时最容易迷路的地方就在这里：在 EngineCore 里找不到任何张量，在 Worker 里找不到任何字符串，两边都对。
 
-## 为什么非要切成三个进程
+## 为什么非要切成三块
 
-因为这三件事的瓶颈完全不同，塞在一个 Python 进程里会互相拖死：
+因为这三件事的瓶颈完全不同，塞在一起会互相拖死：
 
 - **前端**要处理 HTTP 并发，是 IO 密集的 asyncio 循环；
 - **EngineCore** 要尽快把下一步排出来，怕被任何东西阻塞住；
 - **Worker** 大部分时间在等 NPU 算完，是 GIL 的重灾区。
 
-分开之后，前端接新请求的同时 EngineCore 可以在排下一步，Worker 可以在算上一步 [A]。代价是**每跨一次边界都要序列化**，这解释了后面很多看起来绕的设计——比如为什么 `SchedulerOutput` 里塞的全是 id、整数和可以序列化的参数，没有一条 `Request` 的引用。
+分开之后，前端接新请求的同时 EngineCore 可以在排下一步，Worker 可以在算上一步 [A]。代价是**跨边界的交接一律按「可序列化」设计**——多卡时真要序列化发到别的进程，单卡时同一个对象走进程内调用——这解释了后面很多看起来绕的设计，比如为什么 `SchedulerOutput` 里塞的全是 id、整数和可以序列化的参数，没有一条 `Request` 的引用。
 
 ## 两道边界上各传什么
 
@@ -70,7 +72,7 @@ file: vllm-v1-shape
 
 **边界 ②（EngineCore ↔ Worker）**
 
-下去的是 `SchedulerOutput`，上来的是 `ModelRunnerOutput` [C4][C8]。这道边界更值得注意：它不只是进程边界，还是**责任边界**——过了这道线，「算哪些 token」已成定局，剩下的全是「怎么算」。这正是 [vLLM 与昇腾各管什么](who-owns-what.md) 那一页讲的那条线。
+下去的是 `SchedulerOutput`，上来的是 `ModelRunnerOutput` [C4][C8]。这道边界更值得注意：它是**责任边界**（多卡时同时是进程边界；那条请求的单卡形态下两边在同一个 EngineCore 进程里）——过了这道线，「算哪些 token」已成定局，剩下的全是「怎么算」。这正是 [vLLM 与昇腾各管什么](who-owns-what.md) 那一页讲的那条线。
 
 ## 执行器只是个传声筒
 
@@ -84,6 +86,6 @@ file: vllm-v1-shape
 
 ## 常见误解
 
-- **「EngineCore 里能看到模型」**——看不到。模型只存在于 Worker 进程，EngineCore 手上只有配置和整数 [D]。
+- **「EngineCore 里能看到模型」**——调度代码看不到。模型只在 Worker 手上（单卡时它是 EngineCore 进程里的 worker 对象，调度器照样摸不到它），EngineCore 的调度一侧只有配置和整数 [D]。
 - **「Executor 在做调度」**——不做。它只转发，调度在 EngineCore 进程里、在 Executor 被调用之前就做完了 [D]。
 - **「异步是靠多线程」**——前端是 asyncio，跨进程靠 ZMQ；EngineCore 自己是个同步的 while 循环 [C5]。同名的[异步调度](async-scheduling.md)是第三件事：循环照样同步，只是不等上一步的结果就排下一步，它默认开着。

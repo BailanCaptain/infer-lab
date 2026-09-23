@@ -25,6 +25,7 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/__init__.py#L50-L50
   - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L744-L745
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L677-L725
+  - vllm@0fc695fc:vllm/config/parallel.py#L889-L890
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -35,7 +36,7 @@ relations:
     kind: builds-on
     note: 那条请求是这条界线两侧分工最具体的例子
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -54,7 +55,7 @@ file: ownership-boundary
 - 上游说「这一步算它 1 个 token」「它手上有 `[b0, b1]` 两块」——**选择与分配**；
 - 昇腾算出「这个 token 写进 `b1 × 128 + 0` 这一格」，再让算子真的把 K 和 V 写进去——**怎么算出来**。
 
-界线正好落在这两句话之间，而且这两句话分别发生在两个进程里 [D]。
+界线正好落在这两句话之间；多卡部署里这两句话还分别发生在两个进程里，单卡时同在 EngineCore 进程、仍隔着一次显式交接 [C19][D]。
 
 ## 分界线的准确位置
 
@@ -64,7 +65,7 @@ file: ownership-boundary
 
 在那之后，全部是「怎么执行」：用哪个注意力后端、每个 token 落进 KV 的哪个槽位 [C8]、算子在 AI Core 上怎么算、跨卡怎么通信。
 
-这个位置**同时是进程边界**——调度跑在 EngineCore 进程 [C6]，执行跑在 Worker 进程。所以它不只是职责划分，也是一道物理隔离：昇腾侧没法回头改上游已经做出的选择，只能执行。
+多卡时这个位置**同时是进程边界**——调度跑在 EngineCore 进程 [C6]，执行跑在每张卡自己的 Worker 进程；单卡默认配置下执行器是 `uni`，Worker 就在 EngineCore 进程里 [C19]，隔离只剩接口这一层。但不管哪种形态，昇腾侧都没法回头改上游已经做出的选择，只能执行。
 
 ## 为什么会觉得「关键东西都在 vLLM 里」
 

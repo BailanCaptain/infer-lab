@@ -2,7 +2,7 @@
 id: batch-invariance
 title: "Batch Invariance：同一条请求，跟谁拼一批都算出同一个末位"
 type: feature
-summary: 开了它，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。
+summary: 开了它、并按 main 文档把默认开着的 chunked prefill 与前缀缓存关掉、不发生抢占，一条请求不管单独跑还是混在上百条里跑，输出逐位相同——靠的是把矩阵乘、归约、softmax、注意力换成加法顺序与批形状无关的实现。光设开关不够，见版本差异表。
 aliases: [Batch Invariance, 批不变, 批不变性, 批次不变性, batch_invariant_ops, init_batch_invariance, enable_batch_invariant_mode, npu_mm_batch_invariant, npu_fused_infer_attention_score_batch_invariant, matmul_persistent, 逐位可复现, HCCL_DETERMINISTIC]
 chapters: ["16"]
 order: 60
@@ -69,7 +69,7 @@ relations:
     kind: builds-on
     note: 多卡时 all-reduce 的加法顺序也得钉死，靠 HCCL_DETERMINISTIC=strict 和 LCCL_DETERMINISTIC=1
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 

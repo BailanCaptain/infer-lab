@@ -2,7 +2,7 @@
 id: balance-scheduling
 title: "Balance Scheduling：一个 rank 顶满，所有 rank 一起停收"
 type: feature
-summary: 每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再从 waiting 队列放新请求进来。
+summary: MoE 模型的多 DP 部署里，每步 all_gather 各 DP rank 在跑的请求条数，只要有一个 rank 顶到 max_num_seqs，所有 rank 这一步都不再放新请求进来。dense 模型用不上——上游只为 MoE 构造 DP 引擎进程。
 aliases: [Balance Scheduling, 均衡调度, 均衡调度器, BalanceScheduler, enable_balance_scheduling, VLLM_ASCEND_BALANCE_SCHEDULING, balance_gather, balance_queue, BalanceDPEngineCoreProc, patch_balance_schedule, DP 准入闸]
 chapters: ["12"]
 order: 60
@@ -40,6 +40,10 @@ sources:
   - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L149-L149
   - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L19-L19
   - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1156
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L1715-L1717
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L715-L721
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L938-L956
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -59,7 +63,7 @@ relations:
     kind: builds-on
     note: 它 all_gather 的就是各 DP rank 在跑的请求数；DP rank 是什么、请求怎么落到某个 rank，在那一页
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -77,7 +81,7 @@ file: balance-scheduling
 
 [那条请求](one-request.md)跑在单卡上，`data_parallel_size` 就是 1。这时候连闸门的输入都不存在：DP 为 1 时引擎核心构造的是上游原版的 `EngineCoreProc`，不是带 gather 钩子的那个 DP 子类 [C6]，`balance_gather` 一次都不会执行；`balance_queue` 里那唯一一格保持着构造时填进去的 `0` [C2]。而闸门的判断是 `max(balance_queue) == max_num_running_reqs`，后者就是 `max_num_seqs` [C15]、取值下限是 1 [C16]——`0 == 1` 永远不成立 [D]。**开着它和不开，在单卡上产出的 `SchedulerOutput` 一模一样。**
 
-要看到它干活，至少得改成多 DP。下面这组数只动两处：`--data-parallel-size 4`、`--max-num-seqs 8`（真实场景这两个数大得多，缩小只是为了能手算）[A]。此刻四个 rank 分别在跑 8 / 3 / 5 / 2 条：
+要看到它干活，光改多 DP 还不够——**模型还得是 MoE**：上游只在 `data_parallel_size > 1` 且模型是 MoE 时才构造带 gather 钩子的 DP 引擎进程，dense 模型的各 DP rank 完全独立、被当成 DP=1 对待 [C34]，`DPEngineCoreProc` 的构造函数里就有一条 `assert is_moe` [C35]。v0.23 的补丁自己抄的启动函数没做这层判断，对任何 DP>1 都建 `BalanceDPEngineCoreProc` [C36]——**dense 模型多 DP 加这个开关，启动时直接撞断言、起不来** `[!]`；v0.26 起补丁改成条件换名，把「要不要 DP 进程」交回上游判断 [C37]。下面这组数把模型换成 MoE 的，再只动两处：`--data-parallel-size 4`、`--max-num-seqs 8`（真实场景这两个数大得多，缩小只是为了能手算）[A]。此刻四个 rank 分别在跑 8 / 3 / 5 / 2 条：
 
 | | 不开 | 开了均衡调度 |
 |---|---|---|
@@ -119,13 +123,13 @@ while (self.waiting or self.skipped_waiting) and token_budget > 0:
 v0.23 维护分支上的一段完整配置：
 
 ```bash
-vllm serve Qwen/Qwen3-0.6B \
+vllm serve Qwen/Qwen3-30B-A3B \
   --data-parallel-size 4 \
   --max-num-seqs 8 \
   --additional-config '{"enable_balance_scheduling": true}'
 ```
 
-三个值的来由：`enable_balance_scheduling` 默认 `false`，不写就整套不启用 [C10]；`--data-parallel-size` 必须大于 1，等于 1 就是上一节那种彻底空转；`--max-num-seqs` 直接就是闸门那个上限，**调它等于同时动两件事**——单 rank 的并发，和全局冻结的触发点。这些键怎么从 `additional_config` 走到 `AscendConfig`，见[配置系统](ascend-config-system.md)。
+四个值的来由：模型必须是 MoE（Qwen3-30B-A3B 是；换成 dense 的 Qwen3-0.6B，这条命令在 v0.23 上会撞断言起不来，见上）；`enable_balance_scheduling` 默认 `false`，不写就整套不启用 [C10]；`--data-parallel-size` 必须大于 1，等于 1 就是上一节那种彻底空转；`--max-num-seqs` 直接就是闸门那个上限，**调它等于同时动两件事**——单 rank 的并发，和全局冻结的触发点。这些键怎么从 `additional_config` 走到 `AscendConfig`，见[配置系统](ascend-config-system.md)。
 
 三道硬约束，不满足就是启动失败：和 `profiling_chunk_config` 同开直接 `ValueError` [C11]；只支持 PD 混部，配了 `kv_transfer_config` 而 `kv_role` 不是 `kv_both` 也 `ValueError` [C13]；main 开发主线上还多一条，和 DyntraLB 同开同样 `ValueError`。
 

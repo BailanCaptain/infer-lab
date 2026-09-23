@@ -2,7 +2,7 @@
 id: gqa
 title: "GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加"
 type: concept
-summary: Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 因此正好减半，而注意力本身一次乘加都没少。
+summary: Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 按 KV 头数占 Q 头数的比例缩——Qwen3-0.6B 是 8/16 正好减半，MQA 只留 1 个头就是 1/16——而注意力本身一次乘加都没少。
 aliases: [GQA, Grouped-Query Attention, 分组查询注意力, 分组查询, MQA, Multi-Query Attention, 多查询注意力, MHA, Multi-Head Attention, 多头注意力, num_key_value_heads, num_kv_heads, num_queries_per_kv, KV 头数]
 chapters: ["04"]
 order: 15
@@ -46,13 +46,13 @@ relations:
     kind: alternative-to
     note: 同一个问题（KV 太占显存）的另一条路——GQA 减 K/V 的头数，MLA 换掉存进去的东西
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-GQA 只改一个数：**Q 还是 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用同一组**。换来的是 KV Cache 正好减半；换不来算力——**16 个 Q 头照样一个不少地各算一遍全序列**。
+GQA 只改一个数：**Q 还是 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用同一组**。换来的是 KV Cache 按 KV 头数占 Q 头数的比例缩——Qwen3-0.6B 留 8/16 所以正好减半，头数比例不同的模型省的比例也不同（下面的表里有 1/16 的 MQA）；换不来算力——**16 个 Q 头照样一个不少地各算一遍全序列**。
 
 ```wiki-diagram
 file: gqa

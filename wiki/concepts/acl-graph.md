@@ -53,6 +53,7 @@ sources:
   - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1214-L1216
   - vllm-ascend@baa023ad:vllm_ascend/compilation/breakable_aclgraph.py#L38-L45
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L527-L531
+  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2326-L2335
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -69,13 +70,13 @@ relations:
     kind: builds-on
     note: FULL 回放前那次 current_stream().synchronize() 就是为异步调度加的，否则第 i 步的参数更新会被第 i−1 步的回放吃掉
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
 ## 一句话
 
-ACLGraph 把「整网的算子下发序列」在启动期录成图，运行期一次 `replay()` 放完——**省掉的是每个算子一次的 host 侧下发开销，一次计算都没省**。所以收益几乎全在 decode：那里一步只算 1 个 token，算子多、算得少、host 下发占比最高。
+ACLGraph 把「整网的算子下发序列」在启动期录成图，运行期一次 `replay()` 放完——**省掉的是每个算子一次的 host 侧下发开销，一次计算都没省**。所以收益几乎全在 decode：那里一步只算 1 个 token（无投机解码时；带投机是 1+k 个，见下），算子多、算得少、host 下发占比最高。
 
 三个在册版本上都有 `vllm_ascend/compilation/acl_graph.py`；官方文档把 ACLGraph 记在 v0.9.0rc1 起、把配套的编译期优化 Npugraph_ex 记在 v0.15.0rc1 起 [S1]（[线上同页](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/graph_mode.html)）。主干行为三版一致，差异集中在两个配置键和一处门禁函数改名。先破一个旧说法：讲昇腾图模式的旧文几乎都提 `update_aclgraph_sizes()`，这个函数在三个在册版本上都 grep 不到——设计文档写明这个本地启发式已被移除，现在保留上游的尺寸与分派逻辑，只在捕获失败时重写报错 [S9]。
 
@@ -85,12 +86,12 @@ file: acl-graph
 
 ## 那条请求走到这里
 
-[那条请求](one-request.md)什么都没配，于是三件事被默认决定：优化级是默认的 `-O2`，它的预设里 `cudagraph_mode = FULL_AND_PIECEWISE` [C32]，`max_num_seqs` 用上游默认的 128。昇腾的注意力后端把图支持等级声明成 `ALWAYS`，这个模式才在配置检查里原样保留下来 [D]。捕获尺寸就此算出来：
+[那条请求](one-request.md)什么都没配，于是三件事被默认决定：优化级是默认的 `-O2`，它的预设里 `cudagraph_mode = FULL_AND_PIECEWISE` [C32]，`max_num_seqs` 由 `EngineArgs` 按 usage context 定——昇腾在这一步拿不到显存数、走小档，`vllm serve` 下是 **256** [C47]（`SchedulerConfig` 字段上那个 128 只是没有 usage context 时的兜底值，实际启动用不到）。那条请求的 GQA 注意力后端把图支持等级声明成 `ALWAYS`（MLA / SFA / DSA 三个后端声明的是 `UNIFORM_BATCH`），`FULL_AND_PIECEWISE` 才在配置检查里原样保留下来 [D]。捕获尺寸就此算出来：
 
 ```
-昇腾注入的上限 = min(max_num_seqs × decode_query_len, 512) = min(128 × 1, 512) = 128   [C11]
-再与 max_num_batched_tokens（默认 2048）取小                                  → 128
-尺寸表 = [1, 2, 4] + range(8, 129, 8) = 1 2 4 8 16 24 … 112 120 128           → 19 档  [C31]
+昇腾注入的上限 = min(max_num_seqs × decode_query_len, 512) = min(256 × 1, 512) = 256   [C11]
+再与 max_num_batched_tokens（默认 2048）取小                                  → 256
+尺寸表 = [1, 2, 4] + range(8, 256, 8) + [256] = 1 2 4 8 16 … 240 248 256      → 35 档  [C31]
 ```
 
 200 步分成两类，分水岭是「这一批是不是整齐的 decode」：
@@ -102,18 +103,18 @@ file: acl-graph
 
 **37 为什么变成 40**：37 不在表里，向上取到 ≥ 37 的第一档 [C35]，白算 3 个位置。**为什么落不到 FULL**：FULL 的 key 只为整齐 decode 建，带着精确的 `num_reqs` 和 `uniform=True`，prefill 这一批不满足，才退到放宽了这两项的 PIECEWISE key。**decode 那 199 步的 key 一模一样**（`num_tokens=1`、`num_reqs=1`、`uniform=True`），回放同一张图，一个 padding token 都不用 [D]。
 
-启动代价同样能算：19 档 × 两套 key = 38 个 batch_descriptor 要在启动期各跑一遍假批录下来，piecewise 那一套每个 descriptor 还要按 `splitting_ops` 切成多段各录一张 [D]。开图模式启动慢，钱花在这里。
+启动代价同样能算：35 档 × 两套 key = 70 个 batch_descriptor 要在启动期各跑一遍假批录下来，piecewise 那一套每个 descriptor 还要按 `splitting_ops` 切成多段各录一张 [D]。开图模式启动慢，钱花在这里。
 
 ## 上限是 `max_num_seqs`，不是 CUDA 那边的两倍
 
-结论先说：**同样的 `max_num_seqs`，昇腾默认捕获的最大尺寸只有 CUDA 的一半。**
+结论先说：**同样的 `max_num_seqs`，在 512 封顶之前，昇腾默认捕获的最大尺寸只有 CUDA 的一半**——默认的 256 对 512 正是如此；`max_num_seqs × decode_query_len` 到了 512 及以上，两边同被 512 截断，一样大。
 
 上游 `_set_cudagraph_sizes()` 的默认上限是 `min(max_num_seqs × decode_query_len × 2, 512)` [C30]；昇腾在 `apply_config_platform_defaults()` 里抢先把 `max_cudagraph_capture_size` 填好，docstring 明说「与上游唯一有意为之的差别就是去掉那个 CUDA 取向的 ×2」[C12]。填过之后上游那段 `if max_cudagraph_capture_size is None` 不再进，尺寸表生成、token 上限截断、SP 过滤全照上游走。
 
 上限之外还有两道昇腾自己的剪刀：
 
 - **SP 对齐**：TP > 1 且开了 sequence parallel 时，不是 `tp_size` 倍数的尺寸被筛掉，`max_cudagraph_capture_size` 跟着改成筛完的最大值。
-- **A5 只留 4 档**：`AscendDeviceType.A5` 且走 piecewise 编译时，`prune_capture_sizes_for_950()` 在原表上等距采样，硬砍到 `MAX_CAPTURE_SIZES_FOR_950 = 4` 档（首尾必留），只打一条 warning [C14]。代到上面那 19 档：`step = (19−1)/(4−1) = 6`，取下标 0、6、12、18，也就是 **1、40、88、128** [D]。
+- **A5 只留 4 档**：`AscendDeviceType.A5` 且走 piecewise 编译时，`prune_capture_sizes_for_950()` 在原表上等距采样，硬砍到 `MAX_CAPTURE_SIZES_FOR_950 = 4` 档（首尾必留），只打一条 warning [C14]。代到上面那 35 档：`step = (35−1)/(4−1) ≈ 11.3`，四舍五入取下标 0、11、23、34，也就是 **1、72、168、256** [D]。
 
 要自己定就直接给列表，两个键都是上游的：
 

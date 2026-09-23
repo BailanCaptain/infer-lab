@@ -24,6 +24,7 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L336-L344
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L903-L911
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L224-L237
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -34,7 +35,7 @@ relations:
     kind: builds-on
     note: 那条请求的 block_size、注意力后端、token 预算档位，三个数都是这个类定的
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -56,7 +57,7 @@ file: platform-surface
 | 第 92 步写 KV 时调哪个算子 | `get_attn_backend_cls` 查表查出来的 [C10] |
 | 一步最多能拿多少 token 名额 | 间接由 `get_device_total_memory` 决定——见下 |
 
-**第三行是这一页最值得记的一条。** 上游算 `max_num_batched_tokens` 默认值时要先问卡有多大显存，而昇腾这个方法**直接抛 `NotImplementedError`** [C4]。上游那段查询包在 `try` 里，异常被吞掉之后把显存当成 0 [C13]。
+**第三行是这一页最值得记的一条。** 上游算 `max_num_batched_tokens` 默认值时要先问卡有多大显存，而昇腾这个方法在启动早期**抛 `NotImplementedError`** [C4]——v0.23 与 v0.26 上无条件抛；main 改成守卫式，torch_npu 初始化之后返回 `mem_get_info` 的真实显存，但没初始化照抛 [C18]。算默认值那一刻 torch_npu 还没起来，三个版本殊途同归。上游那段查询包在 `try` 里，异常被吞掉之后把显存当成 0 [C13]。
 
 后果是：**在昇腾上，那张「显存 ≥ 70 GiB 走大档」的表永远走不到大档**，跟卡上插了多少 HBM 无关。起 API server 时默认预算就是 2048，用 `LLM` 类是 8192。那条请求的 37 个 token 之所以一步算完，最终可以追到这个 `NotImplementedError` 上 [D]。
 
@@ -66,7 +67,7 @@ file: platform-surface
 
 类体顶部几行就定完了身份：`device_name` 与 `device_type` 都是 `"npu"`，`ray_device_key` 是 `"NPU"`，可见设备的环境变量是 `ASCEND_RT_VISIBLE_DEVICES`，PyTorch 侧的 `dispatch_key` 是 `"PrivateUse1"` [C1]。
 
-这一组里有一个反直觉的成员：`get_device_total_memory` **故意抛 `NotImplementedError`**，而不是返回显存大小 [C4]。源码里紧跟的注释写了原因——实现它会提前调用 `get_device_name()` 从而过早初始化 `torch_npu`，而 `torch_npu` 只允许全局初始化一次，重复初始化会报错。所以「问平台要总显存」这条路在昇腾上是走不通的，显存预算得靠别的办法算 [D]。
+这一组里有一个反直觉的成员：`get_device_total_memory` 在 v0.23 与 v0.26 上**故意抛 `NotImplementedError`**，而不是返回显存大小 [C4]。源码里紧跟的注释写了原因——实现它会提前调用 `get_device_name()` 从而过早初始化 `torch_npu`，而 `torch_npu` 只允许全局初始化一次，重复初始化会报错。main 上它改成了守卫式：torch_npu 已初始化就返回 `torch.npu.mem_get_info` 的真实值，只有启动早期照抛 [C18] `[!]`。所以「启动期问平台要总显存」这条路在三个版本上都走不通，显存预算得靠别的办法算 [D]；运行期这条路 main 已经放开。
 
 ## 第二组：启动时真的改配置
 
@@ -112,5 +113,5 @@ file: platform-surface
 ## 常见误解
 
 - **「平台类只是个属性表」**——它还改配置、还拦配置。`check_and_update_config` 会真的修改传进来的 `VllmConfig`，启动参数和实际生效的配置可能不是一回事。
-- **「`get_device_total_memory` 没实现是个 bug」**——是有意的，注释写明了是为了避免过早初始化 `torch_npu`。
+- **「`get_device_total_memory` 没实现是个 bug」**——是有意的，注释写明了是为了避免过早初始化 `torch_npu`；main 上已改成初始化之后可用，但启动早期（决定调度默认值的那一刻）仍然抛。
 - **「`simple_compile_backend = "eager"` 说明昇腾不支持图模式」**——只说明它不走上游那条 `torch.compile` 默认路径；昇腾自己那套在 `get_compile_backend` 与 `get_static_graph_wrapper_cls` 里。

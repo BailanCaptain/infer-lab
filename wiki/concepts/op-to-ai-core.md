@@ -30,7 +30,7 @@ relations:
     kind: builds-on
     note: 走的是那条请求每一步都要跑 56 次的那个算子，次数和收益都按它算
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -150,7 +150,7 @@ extern "C" __global__ __aicore__ void add_rms_norm_bias(...)
 }
 ```
 
-**tiling key 编码的是"数据类型 × 切法"**：个位是切法（0 不切、1 沿 D 切…），十位是 dtype（1=fp16、2=fp32、3=bf16）。那条请求用 bf16，所以它走的是 30 开头的那一族 [D]。
+**这个算子的 tiling key 编码的是"数据类型 × 切法"**：个位是切法（0 不切、1 沿 D 切…），十位是 dtype（1=fp16、2=fp32、3=bf16）。那条请求用 bf16，所以它走的是 30 开头的那一族 [D]。这套编码是各算子自己定的约定，不是 AscendC 的通例——同目录里 `inplace_partial_rotary_mul` 用 20010 这种五位数、`chunk_kda_fwd` 只用 1/2/3，读别的算子别拿这里的进位去套。
 
 `__global__ __aicore__` 就是"这个函数在 AI Core 上跑"的标记；`TPipe` 管片上缓存的分配。到这一层为止，不再有 Python，也不再有 PyTorch。
 

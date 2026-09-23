@@ -44,6 +44,8 @@ sources:
   - vllm-ascend@baa023ad:vllm_ascend/ops/linear_op.py#L299-L318
   - vllm-ascend@baa023ad:vllm_ascend/config_utils.py#L31-L48
   - vllm-ascend@2ed6cbba:vllm_ascend/ops/linear_op.py#L497-L521
+  - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L367-L367
+  - vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L440-L450
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -57,7 +59,7 @@ relations:
     kind: builds-on
     note: TP 组由上游 initialize_model_parallel 建、昇腾只在其上另开几个细粒度组，这条归属线在那一页
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -116,6 +118,8 @@ file: tensor-parallel
 
 最后一行才是要记住的：**TP 越过 kv 头数之后，加卡只摊薄权重和算力，不再摊薄 KV**，而且全场多存了一倍的 KV。GQA 模型的 kv 头数就是 TP 的一道软上限。
 
+这套「按 kv 头摊薄」的账**只适用于 MHA/GQA**。MLA 模型的注意力层把 `num_kv_heads` 写死成 1 [C38]，按这个数登记缓存 [C39]——每张 TP 卡各存一份完整的潜向量缓存，TP 多大都不摊薄；DeepSeek 配置里的 `num_key_value_heads=128` 进不了这笔账。要切那一份缓存得靠 DCP，见 [Context Parallel](context-parallel.md)。
+
 ## 昇腾把这五个 Linear 类整个换掉，只为了换掉那个通信组
 
 `REGISTERED_ASCEND_OPS` 把 `ColumnParallelLinear`、`RowParallelLinear`、`QKVParallelLinear`、`MergedColumnParallelLinear`、`ReplicatedLinear` 五个名字映射到各自的 `Ascend*` 版本；替换是怎么发生的见[算子层](ops-and-kernels.md)。`Ascend*` 的 `__init__` 不调用上游的 `__init__`，而是先问一句 `get_parallel_op(disable_tp, prefix, self, "row")`，拿回 `(custom_op, tp_rank, tp_size)` 再自己建权重；`forward` 只有一个 if——有 `custom_op` 就走它的 `apply`，没有就原样落回上游那段。
@@ -142,5 +146,5 @@ file: tensor-parallel
 
 ## 常见误解
 
-- **「TP 越大，KV Cache 每卡占用就越小」**——只在 TP ≤ kv 头数时成立。越过之后 `num_kv_heads` 被钉在 1、改由 `num_kv_head_replicas` 记复制了几份，每卡 KV 不再下降，全场总量反倒翻倍。
+- **「TP 越大，KV Cache 每卡占用就越小」**——MHA/GQA 上只在 TP ≤ kv 头数时成立：越过之后 `num_kv_heads` 被钉在 1、改由 `num_kv_head_replicas` 记复制了几份，每卡 KV 不再下降，全场总量反倒翻倍。MLA 模型则从头就不适用——每卡整份 latent，TP 再小也不摊薄（见上）。
 - **「`finegrained_tp_config` 是给某一层单独设一个更大的 TP，dense 模型也能开」**——两句都不成立：它切的是 DP 轴，而代码在配置加载期对非 MoE 模型直接抛 `AssertionError`。这两条连同其余门槛都在 [Fine-Grained Tensor Parallelism](fine-grained-tp.md) `[!]`。

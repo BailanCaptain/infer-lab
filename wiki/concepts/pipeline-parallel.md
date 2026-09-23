@@ -2,7 +2,7 @@
 id: pipeline-parallel
 title: "Pipeline Parallel：按层切开，界线上一步只过一份 hidden"
 type: feature
-summary: 按层把模型切成几段、一段一组卡；段与段之间只传 hidden_states 和 residual 两条张量，一步一次。代价是一步之内各段串行，要靠同时在途的多步才填得满。
+summary: 按层把模型切成几段、一段一组卡；段与段之间只传中间张量，一步一次——Qwen2/Qwen3 这条线是 hidden_states 和 residual 两条，有的模型族只传 hidden_states 一条。代价是一步之内各段串行，要靠同时在途的多步才填得满。
 aliases: [Pipeline Parallel, 流水线并行, 管线并行, PP, pipeline_parallel_size, PPMissingLayer, IntermediateTensors, get_pp_indices, make_layers, VLLM_PP_LAYER_PARTITION, PP stage, 流水线气泡]
 chapters: ["13"]
 order: 20
@@ -46,6 +46,8 @@ sources:
   - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/pipeline_parallel.md#L363-L374
   - vllm@568afb3a:vllm/distributed/parallel_state.py#L1787-L1801
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L423-L429
+  - vllm@0fc695fc:vllm/model_executor/models/chatglm.py#L293-L295
+  - vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L212-L214
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -62,7 +64,7 @@ relations:
     kind: builds-on
     note: 跨段的 irecv / isend 就发生在 NPUWorker.execute_model 这一跳，整条链在那一页
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-24"
 origin: seed
 ---
 
@@ -117,7 +119,7 @@ PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，�
 
 ## 中间只过两条张量；logits 和采样只在最后一段
 
-`IntermediateTensors` 就是一个 `dict[str, Tensor]` 的壳，Qwen2/Qwen3 这条线往里放的键固定是 `hidden_states` 和 `residual`，形状都是 `(num_tokens, hidden_size)` [C8]。**是两条不是一条**——`residual` 也得过界，否则下一段第一层的 RMSNorm 接不上。非首段 forward 的第一句就是 `assert intermediate_tensors is not None`。
+`IntermediateTensors` 就是一个 `dict[str, Tensor]` 的壳，Qwen2/Qwen3 这条线往里放的键固定是 `hidden_states` 和 `residual`，形状都是 `(num_tokens, hidden_size)` [C8]。**在这条线上是两条不是一条**——`residual` 也得过界，否则下一段第一层的 RMSNorm 接不上。往壳里放几条由各模型族自己登记：ChatGLM、GPT-2 这类老架构只放 `hidden_states` 一条 [C40][C41]。非首段 forward 的第一句就是 `assert intermediate_tensors is not None`。
 
 昇腾侧 `NPUModelRunner.execute_model` 走到末尾时分岔：不是最后一段就 `return hidden_states`（此时它是 `IntermediateTensors`），**不算 logits、不采样、不产出 `ModelRunnerOutput`**；是最后一段才 `compute_logits` [C22]。
 

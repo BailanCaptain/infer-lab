@@ -125,5 +125,5 @@
 
 **观察到但没下结论的**：问答模型对联网工具的说法不一致——同一问题有的轮次说「本轮没有联网工具」，有的轮次真的去 WebFetch 了上游源码；补写编译只带补料判定选中的那一份材料，另两份（forward_context 注释、官方调优页）没进页；问答默认模型一次 $0.6–0.9，比复测用的 Sonnet 贵 4–6 倍。
 
-**第三步（开 `maxTasks`）的前提**：HCCL 页批准、后测通过并验收；之后把 `wiki/sync.config.json` 的 `paid` 与 `maxTasks: 1` 配上。
+**第三步（开 `maxTasks`）**：HCCL 页已批准、后测 4 题用户判通过、任务已关闭；用户 09-23 定「先不开，最后所有的做好了再开」，届时把 `wiki/sync.config.json` 的 `paid`（建议 `{maxAttempts: 1, maxCostUsd: 4, reserveUsd: 2}`）与 `maxTasks: 1` 配上。
 

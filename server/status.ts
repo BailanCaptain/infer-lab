@@ -103,6 +103,8 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
       missingTerms: terms.filter((t) => !ids.has(t)),
       totalTerms: terms.length,
       gaps: listGaps(root).length,
+      /** 其中合并了不同说法的缺口（判为同一题的问法记成别名，可用 wiki:work split-gap 拆开） */
+      mergedGaps: listGaps(root).filter((g) => g.aliases?.length).length,
       queuedTasks: listTasks(root).filter((t) => t.state === "queued").length,
     },
   };

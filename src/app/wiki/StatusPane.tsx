@@ -33,6 +33,7 @@ interface WikiStatus {
     missingTerms: string[];
     totalTerms: number;
     gaps: number;
+    mergedGaps: number;
     queuedTasks: number;
   };
 }
@@ -195,7 +196,10 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
               <Row label="课程术语还没页的">
                 {t?.missingTerms.length} / {t?.totalTerms}
               </Row>
-              <Row label="问答记下的知识缺口">{t?.gaps}</Row>
+              <Row label="问答记下的知识缺口">
+                {t?.gaps}
+                {t?.mergedGaps ? `（其中 ${t.mergedGaps} 条合并了不同说法）` : ""}
+              </Row>
               <Row label="排队中的任务">{t?.queuedTasks}</Row>
             </dl>
             {!!t?.missingTerms.length && (

@@ -503,7 +503,14 @@ test.describe("状态页签", () => {
       },
     },
     pages: { concepts: 38, params: 19, sources: 0 },
-    todo: { pendingReviews: 0, missingTerms: ["token", "softmax"], totalTerms: 30, gaps: 1, queuedTasks: 0 },
+    todo: {
+      pendingReviews: 0,
+      missingTerms: ["token", "softmax"],
+      totalTerms: 30,
+      gaps: 2,
+      mergedGaps: 1,
+      queuedTasks: 0,
+    },
   });
 
   test("把预算、夜间维护和会不会自己花钱摆到明面上，且没有任何写操作", async ({ page }, info) => {
@@ -521,6 +528,7 @@ test.describe("状态页签", () => {
     await expect(pane).toContainText("48 / 2000");
     await expect(pane).toContainText("留到下一晚的");
     await expect(pane).toContainText("2 / 30");
+    await expect(pane).toContainText("其中 1 条合并了不同说法");
     // 2026-09-23：拒答换模型要在这里看得到，夜间无人值守的调用只能从这里查
     await expect(pane).toContainText("CLI 默认（没有固定）");
     await expect(pane).toContainText("claude-opus-5-5[1m]（固定）");

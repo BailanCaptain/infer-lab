@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withBudget } from "../scripts/wiki/budget";
 import { type ChatTrace, looksLikeError, publicTrace, traceChat } from "../scripts/wiki/chat-trace";
 import { attachCorpusProvenance, corpusDocuments } from "../scripts/wiki/corpus-trace";
+import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { recordGapObservation } from "../scripts/wiki/gap-ledger";
 import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
 import { readSyncConfig } from "../scripts/wiki/sync";
@@ -75,7 +76,7 @@ export async function handleChat(
   req: IncomingMessage,
   res: ServerResponse,
   root: string,
-  deps: { runChat?: typeof runChat; traceChat?: typeof traceChat } = {},
+  deps: { runChat?: typeof runChat; traceChat?: typeof traceChat; judgeGap?: typeof judgeGapIdentity } = {},
 ): Promise<boolean> {
   if (new URL(req.url ?? "/", "http://localhost").pathname !== "/api/wiki/chat") return false;
   let lease: ChatLease | undefined;
@@ -175,14 +176,21 @@ export async function handleChat(
       const signals = coverageSignals(answer, webTools);
       if (signals.length) {
         try {
-          const gap = await recordGapObservation(root, {
-            eventId: lease.token,
-            question: message,
-            contextQuestions: lease.contextQuestions,
-            revision: snapshot.revision,
-            candidates: hits.map((hit) => ({ id: hit.id, score: hit.score, how: hit.how })),
-            signals,
-          });
+          // 说法不同的同一问要归进已有缺口；判定失败（预算暂停、模型出错）就照旧新建一条，不丢这次记录
+          const question = { question: message, contextQuestions: lease.contextQuestions };
+          const sameAs = await (deps.judgeGap ?? judgeGapIdentity)(root, question).catch(() => undefined);
+          const gap = await recordGapObservation(
+            root,
+            {
+              eventId: lease.token,
+              ...question,
+              revision: snapshot.revision,
+              candidates: hits.map((hit) => ({ id: hit.id, score: hit.score, how: hit.how })),
+              signals,
+            },
+            undefined,
+            sameAs,
+          );
           emit("gap", { key: gap.key, count: gap.count, threshold: gap.threshold, state: gap.state });
         } catch (error) {
           emit("gap", { state: "record-failed", reason: String(error) });

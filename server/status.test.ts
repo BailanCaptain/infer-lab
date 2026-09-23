@@ -30,6 +30,7 @@ it("reports what used to need file spelunking: budget, nightly guard rails, and 
   expect(s.todo.missingTerms).not.toContain("kv-cache");
   expect(s.todo.missingTerms).toContain("rope");
   expect(s.todo.pendingReviews).toBe(0);
+  expect(s.todo.mergedGaps).toBe(0);
 });
 
 it("still answers when there is no ledger and no nightly config", () => {

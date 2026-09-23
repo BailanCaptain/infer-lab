@@ -56,6 +56,13 @@ export function listTasks(root: string) {
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
     : [];
 }
+/** 缺口拆分或合并后同步已关闭任务的关闭计数；调用方持有共享锁 */
+export function setClosureCountInLock(root: string, id: string, count: number) {
+  const task = readTask(root, id);
+  if (task.state !== "closed" || !Number.isInteger(count) || count < 0)
+    throw new Error("只能改已关闭任务的关闭计数");
+  save(root, { ...task, result: { ...task.result, closureObservationCount: count } });
+}
 /** Caller must hold the shared lock; used atomically with observations. Never starts a model. */
 export function enqueueInLock(root: string, input: z.infer<typeof taskInputSchema>) {
   const value = taskInputSchema.parse(input);

@@ -16,6 +16,6 @@
     "next": "请在审阅面板或 wiki:review show 700c047d058af6db74676719445e4874e908421240acdba6ee1453c10224f616 核对完整变更；批准后独立问题复测",
     "retestReviewHash": "e631c96856fb64e22ba97d992fdbe873312a56d720c443492d085dd925238d39",
     "closureBasis": "explicit-semantic-review",
-    "closureObservationCount": 3
+    "closureObservationCount": 5
   }
 }

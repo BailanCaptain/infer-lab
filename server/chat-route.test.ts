@@ -4,6 +4,7 @@ import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import type { ChatTrace, traceChat } from "../scripts/wiki/chat-trace";
+import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import type { runChat } from "./chat";
@@ -17,7 +18,10 @@ afterEach(async () => {
 });
 const original =
   "---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n";
-async function setup(run: typeof runChat, extra: { traceChat?: typeof traceChat } = {}) {
+async function setup(
+  run: typeof runChat,
+  extra: { traceChat?: typeof traceChat; judgeGap?: typeof judgeGapIdentity } = {},
+) {
   const f = wikiFixture();
   fixtures.push(f);
   f.write(
@@ -335,4 +339,31 @@ it("标出实际作答模型：换了模型要推给界面，也写进问答记�
   f.write("wiki/sync.config.local.json", JSON.stringify({ chatModel: "claude-fable-5-1" }));
   await (await f.request({ message: "A 的默认值？" })).text();
   expect(args[args.indexOf("--model") + 1]).toBe("claude-fable-5-1");
+});
+
+it("说法不同的缺口按判定归进已有那条；判定失败照旧新建一条，不丢记录", async () => {
+  // 用户 09-23 定「说法不同、问的是同一件事也算同一题」
+  let fail = false;
+  const f = await setup(
+    async (_req, on) => {
+      on.text("知识库里还没有这一条。");
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      judgeGap: async (root, input) => {
+        const gaps = listGaps(root);
+        if (!gaps.length || gaps.some((g) => g.question === input.question)) return undefined;
+        if (fail) throw new Error("共享预算已暂停");
+        return { entryKey: gaps[0]!.key, decision: "d".repeat(64) };
+      },
+    },
+  );
+  await (await f.request({ message: "chunk_config 在 main 上默认开启吗？" })).text();
+  const second = await (await f.request({ message: "main 分支里 chunk_config 是不是默认就打开的？" })).text();
+  expect(frame(second, "gap")).toMatchObject({ count: 2, state: "collecting" });
+  expect(listGaps(f.root)).toHaveLength(1);
+  fail = true;
+  const third = await (await f.request({ message: "KV_CACHE_DTYPE 默认是什么？" })).text();
+  expect(frame(third, "gap")).toMatchObject({ count: 1 });
+  expect(listGaps(f.root)).toHaveLength(2);
 });

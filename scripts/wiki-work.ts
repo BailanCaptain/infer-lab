@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { assessGap, listCoverageAssessments, prepareCoverageReview } from "../server/coverage-work";
-import { listGaps } from "./wiki/gap-ledger";
+import { listGaps, splitGapAlias } from "./wiki/gap-ledger";
 import { listTasks } from "./wiki/queue";
 import { workOne } from "./wiki/worker";
 import { workflowPolicySchema } from "./wiki/workflow-policy";
@@ -77,6 +77,12 @@ try {
         2,
       ),
     );
+  } else if (command === "split-gap") {
+    // 说法不同被判为同一题、其实不是：把那个问法拆回自己的缺口（不调模型）
+    const { values } = parseArgs({ args: process.argv.slice(3), options: { alias: { type: "string" } } });
+    if (!values.alias || !/^[a-f0-9]{64}$/.test(values.alias))
+      throw new Error("需要 --alias <别名 key>，见 list 输出里各缺口的 aliases");
+    console.log(JSON.stringify(await splitGapAlias(process.cwd(), values.alias), null, 2));
   } else if (command === "assess") {
     const { values } = parseArgs({
       args: process.argv.slice(3),
@@ -103,7 +109,7 @@ try {
     if (!result.ok) process.exitCode = 1;
   } else
     throw new Error(
-      "用法：pnpm wiki:work list | prepare --job <诊断 jobId> [--source <raw 行号引用> ...] [--page <已有页 id> ...] | assess --gap <key> | run --task <id>；收费命令需 --job-budget-usd N --attempt-budget-usd N --max-attempts N [--retry-failed]，产物停在待审。",
+      "用法：pnpm wiki:work list | split-gap --alias <key> | prepare --job <诊断 jobId> [--source <raw 行号引用> ...] [--page <已有页 id> ...] | assess --gap <key> | run --task <id>；收费命令需 --job-budget-usd N --attempt-budget-usd N --max-attempts N [--retry-failed]，产物停在待审。",
     );
 } catch (error) {
   console.error(String(error));

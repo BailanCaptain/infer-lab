@@ -1,8 +1,30 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { loadHandbook } from "../scripts/wiki/handbook";
 import { buildChatRequest, claimsOffline, parseChatLine, sseFrame } from "./chat";
 
-const hb = { pageFormat: "PF", query: "Q" };
+const hb = { reading: "READING-SLICE", citable: "CITABLE-SLICE", query: "QUERY-SLICE" };
 const ctx = { wikiRoot: "C:/w/wiki", timeoutMs: 60_000 };
+const systemOf = (req: { args: string[] }) => req.args[req.args.indexOf("--append-system-prompt") + 1]!;
+
+describe("问答拿到的手册", () => {
+  it("只带读页约定、可引来源与查询，不带写页规则与覆盖判定协议", () => {
+    const system = systemOf(buildChatRequest({ message: "x" }, loadHandbook(join(process.cwd(), "wiki")), ctx));
+    expect(system).toContain("### 读页约定");
+    expect(system).toContain("### 可引来源");
+    expect(system).toContain("## 查询");
+    // 写页规则（2026-09-23 前问答整片拿到约 1.55 万字）
+    expect(system).not.toContain("#### 教学页的推荐写法");
+    expect(system).not.toContain("### 图");
+    expect(system).not.toContain("coverage-assessment");
+    expect(system.length).toBeLessThan(6500);
+  });
+  it("长度以讲清为准，并照顾初学者", () => {
+    const system = systemOf(buildChatRequest({ message: "x" }, loadHandbook(join(process.cwd(), "wiki")), ctx));
+    expect(system).not.toContain("不超过 400 字");
+    expect(system).toContain("初学者");
+  });
+});
 
 describe("parseChatLine", () => {
   it("从 stream_event 的 text_delta 取增量", () => {
@@ -122,13 +144,14 @@ describe("buildChatRequest", () => {
     );
     expect(req.stdin).toContain("由 alpha 的关系扩展");
   });
-  it("cwd 是 wiki/，系统提示 = 页面格式 + 查询 + 去 index.md 里搜的说明，不再塞整份索引", () => {
+  it("cwd 是 wiki/，系统提示 = 读页约定 + 可引来源 + 查询 + 去 index.md 里搜的说明，不再塞整份索引", () => {
     // 2026-09-23：整份 index.md 每页约 228 字符，库越大系统提示越长；模型在快照里本来就能 Grep 它
     const req = buildChatRequest({ message: "KV Cache 是什么" }, hb, ctx);
     expect(req.cwd).toBe("C:/w/wiki");
     const sys = req.args[req.args.indexOf("--append-system-prompt") + 1] ?? "";
-    expect(sys).toContain("PF");
-    expect(sys).toContain("Q");
+    expect(sys.indexOf(hb.reading)).toBeLessThan(sys.indexOf(hb.citable));
+    expect(sys.indexOf(hb.citable)).toBeLessThan(sys.indexOf(hb.query));
+    expect(sys.startsWith(hb.reading)).toBe(true);
     expect(sys).toContain("用 Grep 在 index.md 里搜");
     expect(sys).not.toContain("列出了当前全部页面");
   });

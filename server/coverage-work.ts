@@ -284,7 +284,8 @@ export async function assessGap(
     throw new Error(`覆盖判定输入清洗阻塞：${screened.findings.map((f) => f.reason).join("、")}`);
   screened.findings.push(...fieldFindings);
   const clean = JSON.parse(screened.text) as typeof payload;
-  const rules = snapshot.handbook.query;
+  // 判定要读懂页面上的证据与版本记号，但不写回答：拿「读页约定 + 覆盖判定」，不拿问答规则
+  const rules = `${snapshot.handbook.reading.trim()}\n\n${snapshot.handbook.coverage.trim()}\n`;
   const stdin = JSON.stringify({ mode: "coverage-assessment", material: clean });
   const work = {
     origin: "gap" as const,

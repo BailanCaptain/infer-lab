@@ -30,8 +30,11 @@ describe("seed adapter with persistent jobs", () => {
         extract: "extract",
         integrate: "integrate",
         query: "query",
+        coverage: "coverage",
         lint: "lint",
         human: "human",
+        reading: "reading",
+        citable: "citable",
       },
     };
     const store = new WorkflowStore(f.root);

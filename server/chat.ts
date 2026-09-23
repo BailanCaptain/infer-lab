@@ -6,15 +6,14 @@
  * 学习者的提问不能改动知识库（要写只能走「存进 wiki」的草稿流程，AC8）。
  */
 import type { ChatTrace, VersionCheck } from "../scripts/wiki/chat-trace";
+import type { HandbookSlices } from "../scripts/wiki/handbook";
 import type { AgentRequest } from "../scripts/wiki/ingest";
 import type { Neighborhood } from "../src/content/wiki/relations";
 import type { Hit } from "../src/content/wiki/retrieve";
 import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
 
-export interface ChatHandbook {
-  pageFormat: string;
-  query: string;
-}
+/** 问答只读页、不写页：只拿记号含义、可引来源与查询规则，不拿整片写页规则（见 handbook.ts HANDBOOK_H3） */
+export type ChatHandbook = Pick<HandbookSlices, "reading" | "citable" | "query">;
 
 export interface ChatContext {
   wikiRoot: string;
@@ -178,7 +177,8 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
     ? `本轮工具：${LOCAL_TOOLS.join("、")} 只读当前快照；${WEB_TOOLS.join("、")} 可用——知识库没有时按手册查官方来源，并写明「知识库未收录，以下来自官方来源」。不要说本轮没有联网工具。`
     : `本轮工具：只有 ${LOCAL_TOOLS.join("、")}，不联网。`;
   const system = [
-    handbook.pageFormat.trim(),
+    handbook.reading.trim(),
+    handbook.citable.trim(),
     handbook.query.trim(),
     COVERAGE_REPORT_INSTRUCTION,
     toolsLine,

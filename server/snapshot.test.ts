@@ -4,11 +4,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { runBuild } from "../scripts/wiki/build";
-import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
 import { runStagedIntegration } from "../scripts/wiki/integration-run";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { approveReview } from "../scripts/wiki/review";
-import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { retrieve } from "../src/content/wiki/retrieve";
 import { readKnowledgeSnapshot } from "./snapshot";
 
@@ -30,9 +29,7 @@ it("the running server observes new publications without restart and refuses an 
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((heading) => `## ${heading}\n\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   const raw = saveRawSnapshot(join(f.root, "wiki"), "新增知识用于解释人工设置。\n");
   const source = `raw:${raw.slice(4)}#L1`;

@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { selectIngestFeatures, selectIntegrationDrafts } from "./ingest";
-import { wikiFixture } from "./test-fixture";
+import { handbookFixture, wikiFixture } from "./test-fixture";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 afterEach(() => {
@@ -63,10 +63,7 @@ describe("ingest selection boundary", () => {
       "seeds.yaml",
       "repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: 28bf3a2e}\nfeatures: []\n",
     );
-    f.write(
-      "wiki/HANDBOOK.md",
-      ["页面格式", "提取", "整合", "查询", "Lint", "人类须知"].map((h) => `## ${h}\nfixture\n`).join("\n"),
-    );
+    f.write("wiki/HANDBOOK.md", handbookFixture());
     const defaultDry = f.cli("wiki-ingest", ["--seeds", "seeds.yaml", "--dry-run"]);
     expect(defaultDry.status).toBe(0);
     expect(defaultDry.stdout).not.toContain("整合计划");

@@ -3,6 +3,20 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { HANDBOOK_H2, HANDBOOK_H3 } from "./handbook";
+
+/** 能切出全部切片的最小手册；H3 切片按真实位置放在「页面格式」下。 */
+export function handbookFixture(): string {
+  return Object.values(HANDBOOK_H2)
+    .map((h) =>
+      h === HANDBOOK_H2.pageFormat
+        ? `## ${h}\n\nfixture\n${Object.values(HANDBOOK_H3)
+            .map((sub) => `\n### ${sub}\n\nfixture\n`)
+            .join("")}`
+        : `## ${h}\n\nfixture\n`,
+    )
+    .join("\n");
+}
 
 /** Small local repositories only; tests never fetch the real upstream or invoke an agent. */
 export function wikiFixture() {

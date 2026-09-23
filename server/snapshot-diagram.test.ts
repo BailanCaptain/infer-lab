@@ -4,9 +4,8 @@ import { afterEach, expect, it } from "vitest";
 import { parse as parseYaml } from "yaml";
 import { runBuild } from "../scripts/wiki/build";
 import { diagramSpecSchema, renderDiagram } from "../scripts/wiki/diagrams";
-import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
-import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { readKnowledgeSnapshot } from "./snapshot";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
@@ -29,9 +28,7 @@ function fixtureWithDiagram() {
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((heading) => `## ${heading}\n\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   const raw = saveRawSnapshot(join(f.root, "wiki"), "图说明了入口在哪里。\n");
   f.write(

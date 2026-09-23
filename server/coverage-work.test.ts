@@ -78,6 +78,20 @@ it("classifies existing-page misses with exact quotes, reuses receipts, and neve
   expect(listGaps(f.root)[0]!.count).toBe(3);
   expect(existsSync(join(f.root, "wiki/_drafts"))).toBe(false);
 });
+it("覆盖判定只带读页约定与判定协议，不带问答规则", async () => {
+  const f = await setup();
+  let rules = "";
+  await assessGap(f.root, f.key, policy, {
+    runAgent: async (req) => {
+      rules = req.args[req.args.indexOf("--system-prompt") + 1]!;
+      return runner()(req);
+    },
+  });
+  expect(rules).toContain("## 覆盖判定");
+  expect(rules).toContain("coverage-assessment");
+  expect(rules).toContain("### 读页约定");
+  expect(rules).not.toContain("你是课程知识库的问答 agent");
+});
 it.each([
   { ...decision, satisfied: false },
   { ...decision, evidence: [{ pageId: "missing", quote: "默认值为 1。" }] },

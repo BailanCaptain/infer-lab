@@ -1,9 +1,8 @@
 import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
-import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
-import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { materializeSnapshot, readKnowledgeSnapshot } from "./snapshot";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
@@ -21,9 +20,7 @@ it("publishes a complete snapshot even when Windows refuses all directory rename
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((h) => `## ${h}\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   const snapshot = await readKnowledgeSnapshot(f.root);
   vi.mocked(renameSync).mockImplementation((from, to) => {
@@ -44,9 +41,7 @@ it("a failed ready pointer publishes nothing, and a tampered pointer is refused"
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((h) => `## ${h}\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   const snapshot = await readKnowledgeSnapshot(f.root);
   const pointer = join(f.root, "tools/wiki-runtime/knowledge", `${snapshot.revision}.json`);
@@ -66,9 +61,7 @@ it("uses one content revision for metadata, body, rules and archived evidence", 
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((h) => `## ${h}\n\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   const raw = saveRawSnapshot(join(f.root, "wiki"), "默认值为 1。\n");
   const page = `---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [raw:${raw.slice(4)}#L1]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n`;

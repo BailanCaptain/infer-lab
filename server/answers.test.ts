@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
 import { readReview } from "../scripts/wiki/review";
-import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { digest, WorkflowStore } from "../scripts/wiki/workflow";
 import { captureAnswer, saveAnswer } from "./answers";
 
@@ -18,9 +17,7 @@ async function setup(answer = "综合解释，见 [A](sources/a.md)。") {
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((h) => `## ${h}\n\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   f.write("wiki/sources/a.md", page);
   const id = await captureAnswer(f.root, "如何理解 A？", answer, [{ file: "sources/a.md", text: page }]);

@@ -5,8 +5,7 @@ import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import type { ChatTrace, traceChat } from "../scripts/wiki/chat-trace";
 import { listGaps } from "../scripts/wiki/gap-ledger";
-import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
-import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import type { runChat } from "./chat";
 import { handleChat } from "./chat-route";
 
@@ -23,9 +22,7 @@ async function setup(run: typeof runChat, extra: { traceChat?: typeof traceChat 
   fixtures.push(f);
   f.write(
     "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((h) => `## ${h}\n\nfixture\n`)
-      .join("\n"),
+    handbookFixture(),
   );
   f.write("wiki/sources/a.md", original);
   const server = createServer((req, res) => {

@@ -40,8 +40,11 @@ const hb: HandbookSlices = {
   extract: "EX",
   integrate: "IN",
   query: "Q",
+  coverage: "CO",
   lint: "L",
   human: "H",
+  reading: "R",
+  citable: "CI",
 };
 const ctx = {
   handbook: hb,

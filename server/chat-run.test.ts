@@ -9,7 +9,7 @@ vi.mock("../scripts/wiki/claude-cli", () => ({
 const request = () =>
   buildChatRequest(
     { message: "A？" },
-    { pageFormat: "PF", query: "Q" },
+    { reading: "R", citable: "CI", query: "Q" },
     { wikiRoot: "snapshot", timeoutMs: 1000 },
   );
 beforeEach(() => {

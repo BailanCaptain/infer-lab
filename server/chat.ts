@@ -26,6 +26,12 @@ export interface ChatContext {
 
 export type ChatHit = Hit;
 
+/**
+ * 一次问答（网页、复测、评测都是这种调用）的超时。账本里问答实测 16–83 秒（2026-09-16），
+ * 复测曾写死 60 秒：超时的调用记为费用未知，整个共享预算随之暂停。
+ */
+export const CHAT_TIMEOUT_MS = 5 * 60_000;
+
 export interface ChatInput {
   message: string;
   sessionId?: string;

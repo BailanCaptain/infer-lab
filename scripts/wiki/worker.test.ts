@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
+import { CHAT_TIMEOUT_MS } from "../../server/chat";
 import { readKnowledgeSnapshot } from "../../server/snapshot";
 import type { RunAgent } from "./batch";
 import { initBudget } from "./budget";
@@ -80,8 +81,10 @@ it("a budget admission failure does not permanently block an unstarted retest", 
     }));
     await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
     let calls = 0;
-    const chat: typeof import("../../server/chat").runChat = async (_req, on) => {
+    const timeouts: number[] = [];
+    const chat: typeof import("../../server/chat").runChat = async (req, on) => {
       calls++;
+      timeouts.push(req.timeoutMs);
       on.text("知识库里还没有这一条。");
       return { ok: true, costUsd: 0 };
     };
@@ -94,6 +97,9 @@ it("a budget admission failure does not permanently block an unstarted retest", 
     await initBudget(f.root, { limitUsd: 2, priorChargedUsd: 0, reserveUsd: 0.1, maxCalls: 4 });
     await runRetest(f.root, f.task.id, undefined, chat);
     expect(calls).toBe(4);
+    // 复测和网页问答是同一种调用：账本里问答实测 16–83 秒（2026-09-16），写死 60 秒会超时，
+    // 超时记为费用未知、整个共享预算随之暂停
+    expect(timeouts).toEqual(Array(4).fill(CHAT_TIMEOUT_MS));
   } finally {
     f.cleanup();
   }

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { z } from "zod";
-import { buildChatRequest, runChat } from "../../server/chat";
+import { buildChatRequest, CHAT_TIMEOUT_MS, runChat } from "../../server/chat";
 import { retrieveChatContext } from "../../server/chat-route";
 import { checkAnswerCitations } from "../../server/citations";
 import {
@@ -145,7 +145,7 @@ export async function runRetest(
       {
         wikiRoot: location,
         revision: snapshot.revision,
-        timeoutMs: 60_000,
+        timeoutMs: CHAT_TIMEOUT_MS,
         control: { model: plan.model, maxCostUsd: plan.reserveUsd },
       },
     );

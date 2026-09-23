@@ -8,7 +8,7 @@ import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
 import { neighborhood } from "../src/content/wiki/relations";
 import { type CitationVerdict, retrieve } from "../src/content/wiki/retrieve";
 import { captureAnswer } from "./answers";
-import { buildChatRequest, type ChatHit, runChat, sseFrame } from "./chat";
+import { buildChatRequest, CHAT_TIMEOUT_MS, type ChatHit, runChat, sseFrame } from "./chat";
 import { beginChat, type ChatLease, finishChat } from "./chat-session";
 import { answerCitationGuide, checkAnswerCitations } from "./citations";
 import { coverageSignals } from "./coverage";
@@ -110,7 +110,7 @@ export async function handleChat(
         ...(github && github.status !== "skipped" ? { github } : {}),
       },
       snapshot.handbook,
-      { wikiRoot: location, revision: snapshot.revision, timeoutMs: 5 * 60_000 },
+      { wikiRoot: location, revision: snapshot.revision, timeoutMs: CHAT_TIMEOUT_MS },
     );
     const execute: typeof runChat =
       deps.runChat ?? ((req, on) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on)));

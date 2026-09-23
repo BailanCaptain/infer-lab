@@ -177,11 +177,26 @@ it("交叉审视按真实输入大小分批：每批都不超过结构化判定�
   try {
     const body = "缓存块的分配与回收说明。".repeat(700);
     for (let i = 0; i < 8; i++) f.write(`wiki/sources/p${i}.md`, page(`p${i}`, body));
-    const all = loadPages(join(f.root, "wiki")).pages;
     const batches = reconcileBatches(f.root);
     for (const batch of batches)
-      expect(JSON.stringify(reconcileInput(all, batch)).length).toBeLessThanOrEqual(STRUCTURED_INPUT_LIMIT);
+      expect(JSON.stringify(reconcileInput(batch)).length).toBeLessThanOrEqual(STRUCTURED_INPUT_LIMIT);
     expect(new Set(batches.flat().map((p) => p.fm.id)).size).toBe(8);
+  } finally {
+    f.cleanup();
+  }
+});
+
+it("交叉审视一批的输入只有本批几页：库再大，同一批的输入长度不变", () => {
+  // 2026-09-23：原先每批带全库目录，库越大每批越长；而判定结果本来就只能落在本批页之间
+  const f = wikiFixture();
+  try {
+    f.write("wiki/sources/a.md", page("a", "A uses B for storage."));
+    f.write("wiki/sources/b.md", page("b", "B provides storage."));
+    const batch = () => loadPages(join(f.root, "wiki")).pages.filter((p) => ["a", "b"].includes(p.fm.id));
+    const small = JSON.stringify(reconcileInput(batch())).length;
+    for (let i = 0; i < 300; i++) f.write(`wiki/sources/filler-${i}.md`, page(`filler-${i}`, "无关页。"));
+    expect(JSON.stringify(reconcileInput(batch())).length).toBe(small);
+    expect(Object.keys(reconcileInput(batch()))).toEqual(["pages"]);
   } finally {
     f.cleanup();
   }

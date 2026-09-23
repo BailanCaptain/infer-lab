@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { compileRaw, planRawCompile } from "./compile-raw";
+import { CATALOG_MAX } from "./navigation";
 import { parsePage } from "./pages";
 import { saveRawSnapshot } from "./raw";
 import { wikiFixture } from "./test-fixture";
@@ -40,7 +41,7 @@ describe("restricted raw compilation", () => {
     expect(saved.costUsd).toBe(0.1);
   });
   it("provides existing navigation targets without leaking page bodies or permitting foreign evidence", async () => {
-    const f = setup();
+    const f = setup("Neighbor 的内容第一行\n<!-- hidden-command -->\n内容第三行\n");
     f.write(
       "wiki/sources/neighbor.md",
       f.page
@@ -53,6 +54,7 @@ describe("restricted raw compilation", () => {
     expect(data.navigation.pages).toEqual([
       { id: "neighbor", title: "Neighbor", file: "sources/neighbor.md" },
     ]);
+    expect(data.navigation.omitted).toBe(0);
     expect(data.navigation.chapterIds).toContain("11");
     expect(plan.stdin).not.toContain("PRIVATE_BODY_SENTINEL");
     const result = await compileRaw(f.store, f.input, policy, {
@@ -67,6 +69,18 @@ describe("restricted raw compilation", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.reason).toContain("未提供的来源");
+  });
+  it("lists only pages related to the material, however large the wiki grows", () => {
+    // 2026-09-23：原先列全库，104 页已占 10,660 字符，编译输入 64,000 字符的上限约在 600 页撑满
+    const f = setup("Block Table 的分配说明\n内容第二行\n");
+    const pageOf = (id: string, title: string) =>
+      f.page.replaceAll("id: a", `id: ${id}`).replace("title: A", `title: ${title}`);
+    f.write("wiki/sources/block-table.md", pageOf("block-table", "Block Table"));
+    for (let i = 0; i < 200; i++) f.write(`wiki/sources/filler-${i}.md`, pageOf(`filler-${i}`, `无关 ${i}`));
+    const { navigation } = JSON.parse(planRawCompile(f.root, f.input).stdin);
+    expect(navigation.pages.length).toBeLessThanOrEqual(CATALOG_MAX);
+    expect(navigation.pages.map((p: { id: string }) => p.id)).toContain("block-table");
+    expect(navigation.omitted).toBe(201 - navigation.pages.length);
   });
   it("requires explicit retry and retains unknown costs across reopened stores", async () => {
     const f = setup();

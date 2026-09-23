@@ -7,6 +7,7 @@ import { loadHandbook } from "./handbook";
 import { integrationSchema, localDate, selectRelevantPages } from "./ingest";
 import { validateIntegration } from "./integration-check";
 import { runStagedIntegration } from "./integration-run";
+import { relevantPageIds } from "./navigation";
 import { loadPages, parsePage } from "./pages";
 import { configuredRepoRoots } from "./repo-roots";
 import { listReviews } from "./review";
@@ -45,14 +46,20 @@ export async function prepareDraftReview(
       if (loaded.problems.length) throw new Error("现有页面无法解析");
       const toRef = (p: NonNullable<typeof parsed.page>) => ({ ...p.fm, file: p.file });
       const refs = selectRelevantPages([toRef(parsed.page!)], loaded.pages.map(toRef), { max: 6 });
-      const hits = retrieve(
-        `${parsed.page!.fm.title} ${parsed.page!.fm.summary}`,
-        buildIndex(loaded.pages.map((p) => ({ ...p.fm, text: p.body }))),
-      );
+      const query = `${parsed.page!.fm.title} ${parsed.page!.fm.summary}`;
+      const index = buildIndex(loaded.pages.map((p) => ({ ...p.fm, text: p.body })));
+      const hits = retrieve(query, index);
       let selected = loaded.pages
         .filter((p) => refs.some((r) => r.id === p.fm.id) || hits.slice(0, 3).some((h) => h.id === p.fm.id))
         .sort((a, b) => Number(b.fm.id === id) - Number(a.fm.id === id))
         .slice(0, 6);
+      // 目录只列相关页、仅供定位：带全库 id 与摘要时 104 页就占 13,838 字符（2026-09-23），库一大单它就超上限
+      const catalog = relevantPageIds(index, {
+        ids: selected.map((p) => p.fm.id),
+        nodes: [toRef(parsed.page!)],
+        query,
+      });
+      const byId = new Map(loaded.pages.map((p) => [p.fm.id, p.fm]));
       const handbook = loadHandbook(req.cwd);
       const schema = z
         .object({
@@ -68,7 +75,12 @@ export async function prepareDraftReview(
           path: p.file,
           text: readFileSync(join(req.cwd, p.file), "utf8"),
         })),
-        inventory: loaded.pages.map((p) => ({ id: p.fm.id, summary: p.fm.summary })),
+        catalog: catalog.ids.map((pid) => ({
+          id: pid,
+          title: byId.get(pid)!.title,
+          summary: byId.get(pid)!.summary,
+        })),
+        catalogOmitted: catalog.omitted,
       });
       while (
         JSON.stringify(packet()).length > STRUCTURED_INPUT_LIMIT &&
@@ -85,7 +97,7 @@ export async function prepareDraftReview(
           policy,
           data: packet(),
           timeoutMs: PAGE_TEXT_TIMEOUT_MS,
-          rules: `${handbook.pageFormat}\n${handbook.integrate}\n本次无文件工具，只返回严格 JSON {"pages":[{"path":"sources/id.md","text":"完整 Markdown"}],"decision":{"promoted":[],"merged":[],"rejected":[],"contradictions":[],"revisions":[]}}。按整合规则判断更新、合并、补关系与矛盾，decision 必须恰好处置本草稿。只可修改已提供全文的页或创建与草稿同 id 的页；材料不足时拒收并说明。来源必须来自草稿或提供的旧页，禁止凭索引补事实。`,
+          rules: `${handbook.pageFormat}\n${handbook.integrate}\n本次无文件工具，只返回严格 JSON {"pages":[{"path":"sources/id.md","text":"完整 Markdown"}],"decision":{"promoted":[],"merged":[],"rejected":[],"contradictions":[],"revisions":[]}}。按整合规则判断更新、合并、补关系与矛盾，decision 必须恰好处置本草稿。只可修改已提供全文的页或创建与草稿同 id 的页；材料不足时拒收并说明。来源必须来自草稿或提供的旧页。catalog 只列相关页、仅供定位（catalogOmitted 是没列出的页数），禁止凭它补事实。`,
           schema,
         },
         deps,

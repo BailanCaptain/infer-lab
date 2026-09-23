@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { prepareDraftReview } from "./draft-review";
+import { CATALOG_MAX } from "./navigation";
 import { approveReview, readReview } from "./review";
 import { wikiFixture } from "./test-fixture";
 
@@ -68,3 +69,35 @@ it.each([false, true])(
     }
   },
 );
+
+it("整合只带相关页的目录：库再大，目录也不超过上限", async () => {
+  // 2026-09-23：原先带全库 id 与摘要，104 页就占 13,838 字符，库到约 300 页单这一项就撑满输入上限
+  const f = wikiFixture();
+  try {
+    f.write("wiki/HANDBOOK.md", readFileSync(new URL("../../wiki/HANDBOOK.md", import.meta.url), "utf8"));
+    const pageText = (id: string, title: string, summary: string) =>
+      `---\nid: ${id}\ntitle: ${title}\ntype: source\nsummary: ${summary}\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-16'\n---\n## 一句话\n${summary}。[S1]\n`;
+    f.write("wiki/sources/a.md", pageText("a", "缓存", "缓存结构"));
+    for (let i = 0; i < 200; i++)
+      f.write(
+        `wiki/sources/filler-${i}.md`,
+        pageText(`filler-${i}`, `无关主题 ${i}`, `无关主题 ${i} 的说明`),
+      );
+    f.write("wiki/_drafts/b.md", pageText("b", "缓存补充", "缓存结构的补充"));
+    let data: { inventory?: unknown; catalog: { id: string }[]; catalogOmitted: number } | undefined;
+    await expect(
+      prepareDraftReview(f.root, "b", policy, {
+        runAgent: async (req) => {
+          data = JSON.parse(req.stdin);
+          return { id: req.id, ok: false, exitCode: 1, stderrTail: "测试到此为止", costUsd: 0 };
+        },
+      }),
+    ).rejects.toThrow();
+    expect(data?.inventory).toBeUndefined();
+    expect(data!.catalog.length).toBeLessThanOrEqual(CATALOG_MAX);
+    expect(data!.catalog.map((p) => p.id)).toContain("a");
+    expect(data!.catalogOmitted).toBe(201 - data!.catalog.length);
+  } finally {
+    f.cleanup();
+  }
+});

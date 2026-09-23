@@ -5,6 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import { listGaps, recordGapObservation } from "../scripts/wiki/gap-ledger";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { CATALOG_MAX } from "../scripts/wiki/navigation";
 import { digest, WorkflowStore } from "../scripts/wiki/workflow";
 import { assessGap, listCoverageAssessments, prepareCoverageReview } from "./coverage-work";
 import { readKnowledgeSnapshot } from "./snapshot";
@@ -292,7 +293,7 @@ it("records supplied scope and keeps unverified reasoning out of the review hand
   });
   expect(result).toMatchObject({
     ok: true,
-    schemaVersion: 2,
+    schemaVersion: 3,
     validation: { evidence: "exact-quotes-only", reason: "unverified", classification: "model-judgment" },
     scope: { kind: "provided-excerpts", externalSourcesReviewed: false },
   });
@@ -338,6 +339,37 @@ it.each(["knowledge", "observation", "input"])(
     await expect(prepareCoverageReview(f.root, result.jobId)).rejects.toThrow(/变化/);
   },
 );
+
+it("gives the assessment a catalog of related pages only, however large the wiki grows", async () => {
+  // 2026-09-23：原先把 index.md 截前 8,000 字符，库一大模型看到的只是按字母排在前面的那几十页
+  const f = await setup();
+  const text = readFileSync(join(f.root, "wiki/sources/a.md"), "utf8");
+  for (let i = 0; i < 300; i++)
+    f.write(
+      `wiki/sources/filler-${i}.md`,
+      text
+        .replace("id: a", `id: filler-${i}`)
+        .replace("title: A", `title: 无关 ${i}`)
+        .replace("summary: A 默认值", `summary: 无关主题 ${i}`)
+        .replace("默认值为 1。", "无关内容。"),
+    );
+  let material: { index?: unknown; catalog: { id: string }[]; catalogOmitted: number } | undefined;
+  const result = await assessGap(f.root, f.key, policy, {
+    runAgent: async (req) => {
+      material = JSON.parse(req.stdin).material;
+      return runner({ ...decision, satisfied: false, classification: "missing-knowledge" })(req);
+    },
+  });
+  expect(result.ok).toBe(true);
+  expect(material!.index).toBeUndefined();
+  expect(material!.catalog.length).toBeLessThanOrEqual(CATALOG_MAX);
+  expect(material!.catalog.map((p) => p.id)).toContain("a");
+  expect(material!.catalogOmitted).toBe(301 - material!.catalog.length);
+  expect(result).toMatchObject({
+    schemaVersion: 3,
+    scope: { catalog: { pages: material!.catalog.length, omitted: material!.catalogOmitted } },
+  });
+});
 
 it("keeps v1 receipts readable without silently upgrading them into review input", async () => {
   const f = await setup();
@@ -421,8 +453,10 @@ it("prepares selected raw lines and complete existing pages without promoting th
   const material = "material" in packet ? packet.material! : undefined;
   expect(material!.pages.find((p) => p.id === "a")!.text).toContain("此前摘录未包含的约束。");
   expect(material!.pages.some((p) => p.id === "b")).toBe(true);
-  expect(material!.inventory.map((p) => p.id)).toEqual(["a", "b", "z"]);
-  expect(material!.unprovidedPageIds).toEqual(["z"]);
+  // 目录只列与问题及所给页相关的页：「水果」页与问题无关，只计入 catalogOmitted
+  expect(material!.catalog.map((p) => p.id)).toEqual(["a", "b"]);
+  expect(material!.unprovidedPageIds).toEqual([]);
+  expect(material!.catalogOmitted).toBe(1);
   expect(material!.sources[0]!.content.lines).toEqual([
     { line: 2, text: "默认值为 1。" },
     { line: 3, text: "" },

@@ -18,8 +18,6 @@ export interface ChatHandbook {
 
 export interface ChatContext {
   wikiRoot: string;
-  /** wiki/index.md 全文，注入系统提示让 agent 知道有哪些页 */
-  indexMd: string;
   timeoutMs: number;
   revision?: string;
   /** Internal evaluation only; HTTP callers cannot select this profile. */
@@ -163,9 +161,8 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
     handbook.pageFormat.trim(),
     handbook.query.trim(),
     COVERAGE_REPORT_INSTRUCTION,
-    "",
-    "以下是知识库索引（wiki/index.md），列出了当前全部页面：",
-    ctx.indexMd.trim(),
+    // 2026-09-23 前这里是整份 index.md（每页约 228 字符），库越大系统提示越长；它就在快照目录里，按需搜即可
+    "知识库目录是当前目录下的 index.md，列出全部页面的标题与一句话摘要。程序在问题下面给了预检索的候选页；要找别的页，用 Grep 在 index.md 里搜关键词，不要整份读入。",
     ...(ctx.revision
       ? [`本轮知识版本：${ctx.revision}。本地文件仅从当前快照目录读取，目录外路径不可用。`]
       : []),

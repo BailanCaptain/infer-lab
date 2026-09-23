@@ -11,10 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { CHAPTER_IDS, CHAPTER_TITLES } from "../../src/content/wiki/chapters";
-import { citedPageLinks } from "../../src/content/wiki/retrieve";
+import { buildIndex, citedPageLinks } from "../../src/content/wiki/retrieve";
 import { ID_RE, parseRawRef } from "../../src/content/wiki/schema";
 import { type AgentRequest, type AgentResult, positiveInteger, type RunAgent, runBatch } from "./batch";
 import { lintPages, splitProblems } from "./lint";
+import { relevantPageIds } from "./navigation";
 import { loadPages, parsePage } from "./pages";
 import { prepareRawInput } from "./prepare-input";
 import { readRawSnapshot, withRawSources } from "./raw";
@@ -43,22 +44,37 @@ export function planRawCompile(root: string, input: RawCompileInput) {
   originSchema.parse(input.origin);
   positiveInteger(input.timeoutMs, "timeoutMs");
   const prepared = prepareRawInput(join(root, "wiki"), input.source);
+  const material = prepared.compilerData
+    ? (JSON.parse(prepared.compilerData) as { lines?: { text: string }[] })
+    : null;
   const inventory = loadPages(join(root, "wiki"));
   if (inventory.problems.length) throw new Error("现有页面无法解析，不能提供编译导航");
+  const others = inventory.pages.filter((page) => page.fm.id !== input.id);
+  // 问答记录只链回答用到的页；其余编译只列与材料相关的页：列全库时 104 页就占 10,660 字符（2026-09-23）
+  const listed = input.answerPages
+    ? others
+        .filter((page) => input.answerPages!.includes(page.fm.id))
+        .sort((a, b) => a.fm.id.localeCompare(b.fm.id))
+    : relevantPageIds(buildIndex(inventory.pages.map((p) => ({ ...p.fm, text: p.body }))), {
+        ids: [input.id],
+        query: [
+          input.id,
+          input.context?.why.slice(0, 500),
+          ...(material?.lines ?? []).map((l) => l.text),
+        ].join("\n"),
+      })
+        .ids.filter((id) => id !== input.id)
+        .map((id) => others.find((page) => page.fm.id === id)!);
   const navigation = {
-    note: "仅用于章节归属、relations 和页面链接，不是正文事实来源。事实仍只能来自 material；不能凭标题推导邻居的实现。没有适合的关系时保留缺口，不编造关联。引用本地 raw 材料时，图节点使用材料里的真实类名或函数名；文件路径写在正文，避免把源码文件当作运行组件。",
+    note: "仅用于章节归属、relations 和页面链接，不是正文事实来源。事实仍只能来自 material；不能凭标题推导邻居的实现。没有适合的关系时保留缺口，不编造关联。引用本地 raw 材料时，图节点使用材料里的真实类名或函数名；文件路径写在正文，避免把源码文件当作运行组件。pages 只列与本次材料相关的页，omitted 是没列出的页数；没列出不代表库里没有。",
     chapterIds: CHAPTER_IDS,
     chapterTitles: CHAPTER_TITLES,
-    pages: inventory.pages
-      .filter(
-        (page) => page.fm.id !== input.id && (!input.answerPages || input.answerPages.includes(page.fm.id)),
-      )
-      .map((page) => {
-        const title = sanitizeRawInput(page.fm.title);
-        if (title.blocked) throw new Error("编译导航标题清洗阻塞");
-        return { id: page.fm.id, title: title.text, file: page.file };
-      })
-      .sort((a, b) => a.id.localeCompare(b.id)),
+    pages: listed.map((page) => {
+      const title = sanitizeRawInput(page.fm.title);
+      if (title.blocked) throw new Error("编译导航标题清洗阻塞");
+      return { id: page.fm.id, title: title.text, file: page.file };
+    }),
+    omitted: others.length - listed.length,
   };
   const args = restrictedArgs(input.rules);
   const context = input.context
@@ -77,7 +93,7 @@ export function planRawCompile(root: string, input: RawCompileInput) {
     answerPages: input.answerPages,
     context,
     navigation,
-    material: prepared.compilerData ? JSON.parse(prepared.compilerData) : null,
+    material,
   });
   if (stdin.length > 64_000)
     throw new Error("编译材料超过 64000 字符；请明确缩小来源行号范围，不截断证据、不启动模型");

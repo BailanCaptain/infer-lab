@@ -110,7 +110,7 @@ export async function handleChat(
         ...(github && github.status !== "skipped" ? { github } : {}),
       },
       snapshot.handbook,
-      { wikiRoot: location, indexMd: snapshot.indexMd, revision: snapshot.revision, timeoutMs: 5 * 60_000 },
+      { wikiRoot: location, revision: snapshot.revision, timeoutMs: 5 * 60_000 },
     );
     const execute: typeof runChat =
       deps.runChat ?? ((req, on) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on)));

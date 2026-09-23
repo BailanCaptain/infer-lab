@@ -76,7 +76,6 @@ export function readKnowledgeSnapshotInLock(root: string) {
       .map((f) => ({ id: f.file.slice("diagrams/".length, -".svg".length), svg: f.text })),
     registry,
     handbook: sliceHandbook(handbookText),
-    indexMd,
     index: buildIndex(registry.pages.map((page) => ({ ...page, text: textByFile.get(page.file)! }))),
   };
 }

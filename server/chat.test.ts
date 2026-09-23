@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildChatRequest, parseChatLine, sseFrame } from "./chat";
 
 const hb = { pageFormat: "PF", query: "Q" };
-const ctx = { wikiRoot: "C:/w/wiki", indexMd: "# 索引\n- kv-cache", timeoutMs: 60_000 };
+const ctx = { wikiRoot: "C:/w/wiki", timeoutMs: 60_000 };
 
 describe("parseChatLine", () => {
   it("从 stream_event 的 text_delta 取增量", () => {
@@ -122,13 +122,15 @@ describe("buildChatRequest", () => {
     );
     expect(req.stdin).toContain("由 alpha 的关系扩展");
   });
-  it("cwd 是 wiki/，系统提示 = 页面格式 + 查询 + index.md", () => {
+  it("cwd 是 wiki/，系统提示 = 页面格式 + 查询 + 去 index.md 里搜的说明，不再塞整份索引", () => {
+    // 2026-09-23：整份 index.md 每页约 228 字符，库越大系统提示越长；模型在快照里本来就能 Grep 它
     const req = buildChatRequest({ message: "KV Cache 是什么" }, hb, ctx);
     expect(req.cwd).toBe("C:/w/wiki");
     const sys = req.args[req.args.indexOf("--append-system-prompt") + 1] ?? "";
     expect(sys).toContain("PF");
     expect(sys).toContain("Q");
-    expect(sys).toContain("kv-cache");
+    expect(sys).toContain("用 Grep 在 index.md 里搜");
+    expect(sys).not.toContain("列出了当前全部页面");
   });
 
   it("只给只读工具；写类工具一律禁掉", () => {

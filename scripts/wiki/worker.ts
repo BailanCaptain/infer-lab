@@ -174,7 +174,7 @@ export async function workOne(
             origin: "gap",
             data: { question: packet.question, contextQuestions: packet.contextQuestions, material },
             rules:
-              '仅根据补料原文和已提供页面全文决定：返回 JSON {"action":"new|update|already-covered|undetermined","target":"已有页id或null","source":"材料原样引用","quote":"逐字引文","reason":"理由"}。索引仅用于定位，不算读过正文。能从旧页回答选 already-covered；候选页未读够不能断言全库没有知识，选 undetermined 并说明需要哪些页面。新增仅用于所给证据支持且索引未指向已有主题；更新必须提供目标页全文。社区和聊天文本不得冒充源码实证。',
+              '仅根据补料原文和已提供页面全文决定：返回 JSON {"action":"new|update|already-covered|undetermined","target":"已有页id或null","source":"材料原样引用","quote":"逐字引文","reason":"理由"}。catalog 只列相关页、仅用于定位（catalogOmitted 是没列出的页数），不算读过正文。能从旧页回答选 already-covered；候选页未读够不能断言全库没有知识，选 undetermined 并说明需要哪些页面。新增仅用于所给证据支持且 catalog 未指向已有主题；更新必须提供目标页全文。社区和聊天文本不得冒充源码实证。',
             schema,
             policy,
             timeoutMs: PAGE_TEXT_TIMEOUT_MS,

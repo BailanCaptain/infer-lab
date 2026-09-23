@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { z } from "zod";
+import { relevantPageIds } from "../scripts/wiki/navigation";
 import { parsePage } from "../scripts/wiki/pages";
 import { prepareRawInput } from "../scripts/wiki/prepare-input";
 import { sanitizeRawInput } from "../scripts/wiki/sanitize";
@@ -22,6 +23,8 @@ export function prepareCoverageMaterial(
   snapshot: KnowledgeSnapshot,
   requiredPageIds: string[],
   input: CoverageMaterialOptions,
+  /** 缺口的问题与上下文问题：目录按它挑相关页 */
+  query: string,
 ) {
   const options = optionsSchema.parse(input);
   const ids = [...new Set([...requiredPageIds, ...(options.pages ?? [])])].sort();
@@ -59,21 +62,20 @@ export function prepareCoverageMaterial(
       screening: { version: cleaned.version, findings: cleaned.findings, cleanHash: digest(cleaned.text) },
     };
   });
-  const inventory = [...snapshot.registry.pages]
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map((p) => ({
-      id: p.id,
-      file: p.file,
-      title: screen(p.title).text,
-      summary: screen(p.summary).text,
-    }));
+  // 目录只列与问题及所给页相关的页：全库目录 104 页就占 2.4 万字符（2026-09-23），这份材料还要进付费判定
+  const related = relevantPageIds(snapshot.index, { ids, query });
+  const catalog = related.ids.map((id) => {
+    const p = snapshot.registry.pages.find((page) => page.id === id)!;
+    return { id, file: p.file, title: screen(p.title).text, summary: screen(p.summary).text };
+  });
   const content = {
     knowledgeRevision: snapshot.revision,
     sources,
     pages,
-    inventory,
-    // An inventory is a navigation aid, not evidence that the other bodies were reviewed.
-    unprovidedPageIds: inventory.filter((p) => !ids.includes(p.id)).map((p) => p.id),
+    catalog,
+    // A catalog is a navigation aid, not evidence that the other bodies were reviewed.
+    unprovidedPageIds: catalog.filter((p) => !ids.includes(p.id)).map((p) => p.id),
+    catalogOmitted: related.omitted,
   };
   const serialized = JSON.stringify(content);
   if (serialized.length > COVERAGE_MATERIAL_LIMITS.maxChars)

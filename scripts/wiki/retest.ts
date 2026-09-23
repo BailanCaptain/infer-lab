@@ -144,7 +144,6 @@ export async function runRetest(
       snapshot.handbook,
       {
         wikiRoot: location,
-        indexMd: snapshot.indexMd,
         revision: snapshot.revision,
         timeoutMs: 60_000,
         control: { model: plan.model, maxCostUsd: plan.reserveUsd },

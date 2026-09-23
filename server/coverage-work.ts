@@ -16,6 +16,7 @@ import { budgetedAgent } from "../scripts/wiki/budget";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { parsePage } from "../scripts/wiki/pages";
 import { RESTRICTED_PROFILE, restrictedArgs, runRestrictedClaude } from "../scripts/wiki/restricted-claude";
+import { CATALOG_MAX, relevantPageIds } from "../scripts/wiki/navigation";
 import { localFile } from "../scripts/wiki/review-files";
 import { sanitizeRawInput } from "../scripts/wiki/sanitize";
 import { atomicText, digest, WorkflowStore } from "../scripts/wiki/workflow";
@@ -28,7 +29,8 @@ import { readKnowledgeSnapshot, readKnowledgeSnapshotInLock } from "./snapshot";
 export const COVERAGE_CONTEXT_LIMITS = {
   maxPages: 3,
   maxPageChars: 3000,
-  maxIndexChars: 8000,
+  /** 目录只列与问题相关的页（2026-09-23 前是 index.md 截前 8,000 字符，库一大只剩按字母排前面的页） */
+  maxCatalogPages: CATALOG_MAX,
   maxInputChars: 24000,
 } as const;
 
@@ -70,25 +72,50 @@ const suppliedTextSchema = z
     truncated: z.boolean(),
   })
   .strict();
-const scopedReceiptSchema = legacyReceiptSchema.extend({
+const receiptValidationSchema = z
+  .object({
+    evidence: z.literal("exact-quotes-only"),
+    reason: z.literal("unverified"),
+    classification: z.literal("model-judgment"),
+  })
+  .strict();
+const suppliedPagesSchema = z.array(suppliedTextSchema.extend({ id: z.string().min(1) }));
+/** 2026-09-23 前的回执：范围里记的是截断后的 index.md；只读不写 */
+const indexScopedReceiptSchema = legacyReceiptSchema.extend({
   schemaVersion: z.literal(2),
   scope: z
     .object({
       kind: z.literal("provided-excerpts"),
       index: suppliedTextSchema,
-      pages: z.array(suppliedTextSchema.extend({ id: z.string().min(1) })),
+      pages: suppliedPagesSchema,
       externalSourcesReviewed: z.literal(false),
     })
     .strict(),
-  validation: z
+  validation: receiptValidationSchema,
+});
+const scopedReceiptSchema = legacyReceiptSchema.extend({
+  schemaVersion: z.literal(3),
+  scope: z
     .object({
-      evidence: z.literal("exact-quotes-only"),
-      reason: z.literal("unverified"),
-      classification: z.literal("model-judgment"),
+      kind: z.literal("provided-excerpts"),
+      catalog: z
+        .object({
+          hash: z.string().regex(/^[a-f0-9]{64}$/),
+          pages: z.number().int().nonnegative(),
+          omitted: z.number().int().nonnegative(),
+        })
+        .strict(),
+      pages: suppliedPagesSchema,
+      externalSourcesReviewed: z.literal(false),
     })
     .strict(),
+  validation: receiptValidationSchema,
 });
-const receiptSchema = z.discriminatedUnion("schemaVersion", [legacyReceiptSchema, scopedReceiptSchema]);
+const receiptSchema = z.discriminatedUnion("schemaVersion", [
+  legacyReceiptSchema,
+  indexScopedReceiptSchema,
+  scopedReceiptSchema,
+]);
 const rootPath = (root: string) => localFile(root, "wiki/_jobs/coverage");
 const filesOf = (jobId: string) => ({
   input: `_jobs/coverage/${jobId}.input.json`,
@@ -127,7 +154,7 @@ export function listCoverageAssessments(root: string) {
           .ref.slice("coverage-gap:".length),
         state: job.state,
         assessment: receipt?.decision.classification ?? "undetermined",
-        ...(receipt ? { scopeStatus: receipt.schemaVersion === 2 ? "recorded" : "legacy-unverified" } : {}),
+        ...(receipt ? { scopeStatus: receipt.schemaVersion === 1 ? "legacy-unverified" : "recorded" } : {}),
         ...(receipt ? { receipt } : {}),
         attempts: job.attempts,
       };
@@ -153,7 +180,7 @@ export async function prepareCoverageReview(
     const job = store.get(jobId);
     if (job.state !== "draft" || !job.origins.includes("gap")) throw new Error("不是可核对的覆盖诊断");
     const receipt = readReceipt(root, job);
-    if (receipt.schemaVersion !== 2) throw new Error("旧版诊断未记录材料范围，不能直接准备补料核对");
+    if (receipt.schemaVersion === 1) throw new Error("旧版诊断未记录材料范围，不能直接准备补料核对");
     const snapshot = readKnowledgeSnapshotInLock(root);
     if (snapshot.revision !== receipt.revision) throw new Error("知识版本已变化，需重新判定");
     const gap = listGaps(root).find((g) => g.key === receipt.gapKey);
@@ -181,6 +208,7 @@ export async function prepareCoverageReview(
               snapshot,
               receipt.scope.pages.map((p) => p.id),
               materialOptions,
+              `${material.question}\n${material.contextQuestions.join("\n")}`,
             ),
           }
         : {}),
@@ -216,6 +244,11 @@ export async function assessGap(
     const text = parsed.page.body.slice(0, COVERAGE_CONTEXT_LIMITS.maxPageChars);
     return { id: hit.id, text, truncated: text.length < parsed.page.body.length };
   });
+  const catalog = relevantPageIds(
+    snapshot.index,
+    { ids: pages.map((page) => page.id), query: `${latest.question}\n${latest.contextQuestions.join("\n")}` },
+    COVERAGE_CONTEXT_LIMITS.maxCatalogPages,
+  );
   const payload = {
     question: latest.question,
     contextQuestions: latest.contextQuestions,
@@ -224,12 +257,15 @@ export async function assessGap(
     originalCandidatesRecorded: true,
     originalRevision: latest.revision,
     revision: snapshot.revision,
-    index: snapshot.indexMd.slice(0, COVERAGE_CONTEXT_LIMITS.maxIndexChars),
-    indexTruncated: snapshot.indexMd.length > COVERAGE_CONTEXT_LIMITS.maxIndexChars,
+    catalog: catalog.ids.map((id) => {
+      const page = snapshot.index.byId.get(id)!;
+      return { id, title: page.title, summary: page.summary };
+    }),
+    catalogOmitted: catalog.omitted,
     pages,
     contextLimits: COVERAGE_CONTEXT_LIMITS,
     scope:
-      "有限索引与候选正文摘录；truncated 表示省略内容。未提供的正文和外部原文未核对，需省略内容才能确认时应保留未判明",
+      "相关页目录与有限候选正文摘录；catalogOmitted 是目录外的页数，truncated 表示正文省略了内容。未提供的正文和外部原文未核对，需省略内容才能确认时应保留未判明",
   };
   if (JSON.stringify(payload).length > COVERAGE_CONTEXT_LIMITS.maxInputChars)
     throw new Error("覆盖判定上下文超过上限，请缩短问题或上下文后重新记录");
@@ -259,7 +295,7 @@ export async function assessGap(
     targets: [`coverage-${key}`],
     recipeHash: digest(
       JSON.stringify({
-        receiptVersion: 2,
+        receiptVersion: 3,
         profile: RESTRICTED_PROFILE,
         rules,
         stdin,
@@ -342,7 +378,7 @@ export async function assessGap(
     )
       throw new Error("版本差异需两个不同的引文依据");
     const receipt = scopedReceiptSchema.parse({
-      schemaVersion: 2,
+      schemaVersion: 3,
       jobId: job.id,
       gapKey: key,
       revision: snapshot.revision,
@@ -350,7 +386,11 @@ export async function assessGap(
       decision,
       scope: {
         kind: "provided-excerpts",
-        index: { hash: digest(clean.index), chars: clean.index.length, truncated: clean.indexTruncated },
+        catalog: {
+          hash: digest(JSON.stringify(clean.catalog)),
+          pages: clean.catalog.length,
+          omitted: clean.catalogOmitted,
+        },
         pages: clean.pages.map((page) => ({
           id: page.id,
           hash: digest(page.text),

@@ -10,7 +10,7 @@ const request = () =>
   buildChatRequest(
     { message: "A？" },
     { pageFormat: "PF", query: "Q" },
-    { wikiRoot: "snapshot", indexMd: "# index", timeoutMs: 1000 },
+    { wikiRoot: "snapshot", timeoutMs: 1000 },
   );
 beforeEach(() => {
   vi.clearAllMocks();

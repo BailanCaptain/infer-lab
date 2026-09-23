@@ -39,7 +39,9 @@ test("local citation opens the original lines without executing HTML", async ({ 
   // Substitute the reader's complete runtime snapshot, so the API cannot overwrite a module-only mock.
   await context.route("**/api/wiki/pages", async (route) => {
     const text = readFileSync(join(process.cwd(), "src/content/wiki/registry.json"), "utf8");
-    const registry = JSON.parse(text.replace(/vllm-ascend@[a-f0-9]+:[^"\r\n]+/, ref));
+    const registry = JSON.parse(text);
+    // Point the page under test at the snapshot; "first source in the registry" drifts as pages are added.
+    registry.pages.find((p: { id: string }) => p.id === "block-table").sources[0] = ref;
     const pageTexts = registry.pages.map((p: { file: string }) => ({
       file: p.file,
       text: readFileSync(join(process.cwd(), "wiki", p.file), "utf8"),

@@ -50,6 +50,8 @@ it("archives immutable input, compiles only clean material, and deduplicates rep
     const deps = {
       runAgent: async (req: import("./batch").AgentRequest) => {
         calls++;
+        // 投喂的编译与整合都不能写死 60 秒：真实编译要 99–144 秒
+        expect(req.timeoutMs).toBeGreaterThanOrEqual(180_000);
         const packet = JSON.parse(req.stdin);
         if (packet.mode === "draft-integration")
           return {

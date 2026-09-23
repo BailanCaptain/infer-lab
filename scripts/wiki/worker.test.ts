@@ -6,12 +6,12 @@ import { readKnowledgeSnapshot } from "../../server/snapshot";
 import type { RunAgent } from "./batch";
 import { initBudget } from "./budget";
 import { recordGapObservation } from "./gap-ledger";
-import { listTasks } from "./queue";
+import { listTasks, readTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { acceptRetest, prepareRetest, runRetest } from "./retest";
-import { approveReview } from "./review";
+import { approveReview, rejectReview } from "./review";
 import { wikiFixture } from "./test-fixture";
-import { workOne } from "./worker";
+import { workerDue, workOne } from "./worker";
 
 const policy = { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 };
 async function setup(question: string) {
@@ -245,6 +245,85 @@ it("requires a frozen retest plan before compiling and requeues after human prep
       })),
     });
     expect(listTasks(f.root)[0]!.state).toBe("queued");
+  } finally {
+    f.cleanup();
+  }
+});
+
+it("审阅被驳回后带着驳回原因重编一次；重编结果与被驳回的那版一字不差就停下等人，不再自动收费", async () => {
+  // 2026-09-23 实遇：PR 11953 的草稿被驳回后任务永久卡在 needs-review，夜间任务不会再碰它
+  const question = "C 的上限是多少？";
+  const f = await setup(question);
+  try {
+    const cases = (["original", "holdout", "version", "no-evidence"] as const).map((kind, i) => ({
+      kind,
+      question: i ? `独立问题 ${kind}` : question,
+      expected: "正确且有证据",
+      forbidden: "没有版本边界",
+    }));
+    await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
+    await initBudget(f.root, { limitUsd: 2, priorChargedUsd: 0, reserveUsd: 0.1, maxCalls: 8 });
+    let chatCalls = 0;
+    const chat: typeof import("../../server/chat").runChat = async (_req, on) => {
+      chatCalls++;
+      on.text("知识库里还没有这一条。");
+      return { ok: true, costUsd: 0 };
+    };
+    await runRetest(f.root, f.task.id, undefined, chat);
+    expect(chatCalls).toBe(4);
+    const raw = saveRawSnapshot(join(f.root, "wiki"), "C 在 fixture 版本的上限为 3。\n");
+    const source = `raw:${raw.slice(4)}#L1`;
+    const rejectedContexts: (string | undefined)[] = [];
+    const runAgent: RunAgent = async (req) => {
+      const data = JSON.parse(req.stdin);
+      let output: string;
+      if (data.mode === "draft-integration")
+        output = JSON.stringify({
+          pages: [{ path: `sources/${data.draft.id}.md`, text: data.draft.text }],
+          decision: { promoted: [data.draft.id], merged: [], rejected: [] },
+        });
+      else if (data.mode === "coverage-assessment")
+        output = JSON.stringify({
+          satisfied: false,
+          classification: "missing-knowledge",
+          reason: "现有摘录没有 C",
+          evidence: [],
+        });
+      else if (data.material?.sources)
+        output = JSON.stringify({
+          action: "new",
+          target: null,
+          source,
+          quote: "C 在 fixture 版本的上限为 3。",
+          reason: "补料支持",
+        });
+      else {
+        rejectedContexts.push(data.context?.rejected);
+        const line = data.context?.rejected
+          ? "C 在 fixture 版本的上限为 3，其他版本尚未核对。"
+          : "C 的上限为 3。";
+        output = `---\nid: ${req.id}\ntitle: C 上限\ntype: source\nsummary: C 的上限\nsources: [${source}]\nevidence: I\nupdated: '2026-09-23'\n---\n## 一句话\n${line}[I] 参见 [A](../sources/a.md)。\n`;
+      }
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0, output };
+    };
+    const first = await workOne(f.root, f.task.id, policy, { sources: [source] }, { runAgent });
+    const firstReview = String(first.result!.reviewId);
+    await rejectReview(f.root, firstReview, "缺少版本边界");
+    expect(workerDue(f.root, readTask(f.root, f.task.id))).toBe(true);
+
+    const second = await workOne(f.root, f.task.id, policy, { retry: true, sources: [source] }, { runAgent });
+    expect(second.state).toBe("needs-review");
+    expect(second.result).toMatchObject({ recompiledAfter: firstReview });
+    expect(second.result!.reviewId).not.toBe(firstReview);
+    expect(rejectedContexts.at(-1)).toContain("缺少版本边界");
+    expect(chatCalls).toBe(4); // 前测已经做过，重编不再跑
+
+    const secondReview = String(second.result!.reviewId);
+    await rejectReview(f.root, secondReview, "还是不对");
+    const third = await workOne(f.root, f.task.id, policy, { retry: true, sources: [source] }, { runAgent });
+    // 重编出来与被驳回的那版一字不差：拿回的仍是那份被驳回的审阅，任务停下，夜间任务不再捡它
+    expect(third.result).toMatchObject({ reviewId: secondReview, recompiledAfter: secondReview });
+    expect(workerDue(f.root, readTask(f.root, f.task.id))).toBe(false);
   } finally {
     f.cleanup();
   }

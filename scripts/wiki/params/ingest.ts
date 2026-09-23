@@ -8,7 +8,7 @@ import { lineageSection, replaceSection } from "../lineage";
 import { loadPages } from "../pages";
 import { saveRawSnapshot } from "../raw";
 import { localFile } from "../review-files";
-import { runStructured } from "../structured";
+import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "../structured";
 import { atomicText, digest, WorkflowStore } from "../workflow";
 import type { WorkflowPolicy } from "../workflow-policy";
 import { paramSourceContext } from "./context";
@@ -48,6 +48,7 @@ export async function ingestParam(
         '只补教学正文，返回 JSON {"summary":"一句话作用","why":"为什么存在","costs":"开启代价","conflicts":"互斥与边界"}。只使用所给源码，事实不足明确待核对。不要生成 frontmatter、参数定义或版本表，不得编造 PR 或默认值。推导标 [D]，猜测标 [I]；不要伪造 C/S 编号。',
       schema,
       policy,
+      timeoutMs: PAGE_TEXT_TIMEOUT_MS,
     },
     deps,
   );

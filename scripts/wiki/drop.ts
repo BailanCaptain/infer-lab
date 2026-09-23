@@ -4,7 +4,7 @@ import { z } from "zod";
 import { sourceLines } from "./audit";
 import type { RunAgent } from "./batch";
 import { budgetedAgent } from "./budget";
-import { compileRaw } from "./compile-raw";
+import { COMPILE_TIMEOUT_MS, compileRaw } from "./compile-raw";
 import { prepareDraftReview } from "./draft-review";
 import { loadHandbook } from "./handbook";
 import { readRawSnapshot, saveRawSnapshot } from "./raw";
@@ -131,7 +131,7 @@ export async function acceptDrop(
       rules:
         loadHandbook(join(root, "wiki")).pageFormat +
         "\n将投喂文本编译为 source 页面；仅本地材料不能升为源码实证 C。",
-      timeoutMs: 60_000,
+      timeoutMs: COMPILE_TIMEOUT_MS,
       context: { why: record.why, sourceId: record.source },
     },
     input.policy,

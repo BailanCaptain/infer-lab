@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { lintLog } from "./lint";
-import { syncWiki } from "./sync";
+import { isolated, syncWiki } from "./sync";
 import { wikiFixture } from "./test-fixture";
 
 it("keeps daily maintenance uncharged, never starts initial corpus import, and logs failed steps", async () => {
@@ -64,4 +64,20 @@ it("uses the configured Python executable and keeps its failure diagnostic after
   } finally {
     f.cleanup();
   }
+});
+
+it("夜间任务的付费环节各自隔离失败：一处报错记进报告，后面的环节照跑", async () => {
+  // 2026-09-23 审视：交叉审视或某个补写任务一抛错，同一晚后面的任务就全不跑了
+  const ran: string[] = [];
+  const failed = await isolated("reconcile", async () => {
+    ran.push("reconcile");
+    throw new Error("结构化判定材料超量");
+  });
+  const worked = await isolated("worker", async () => {
+    ran.push("worker");
+    return 1;
+  });
+  expect(failed).toEqual({ ok: false, stage: "reconcile", error: "Error: 结构化判定材料超量" });
+  expect(worked).toEqual({ ok: true, value: 1 });
+  expect(ran).toEqual(["reconcile", "worker"]);
 });

@@ -20,6 +20,13 @@ import { atomicText, digest, WorkflowStore, type WorkInput } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
 export const STRUCTURED_INPUT_LIMIT = 40_000;
+/** 只回一小段 JSON 的判定 */
+export const DECISION_TIMEOUT_MS = 60_000;
+/**
+ * 要读或写整页正文的调用（整合、交叉审视、衰减重提取、补料判定、参数正文）。写死 60 秒时，
+ * 产品路径上唯一一次真实整合超时（2026-09-16），唯一成功的一次是在 300 秒下跑的。
+ */
+export const PAGE_TEXT_TIMEOUT_MS = 300_000;
 
 /** Normalize a single transport envelope; schema and evidence checks still follow. */
 export function parseStructuredJson(text: string): unknown {
@@ -37,6 +44,8 @@ export async function runStructured<T>(
     rules: string;
     schema: z.ZodType<T>;
     policy: WorkflowPolicy;
+    /** 默认 DECISION_TIMEOUT_MS；读写整页正文的调用传 PAGE_TEXT_TIMEOUT_MS */
+    timeoutMs?: number;
   },
   deps: { runAgent?: RunAgent; retry?: boolean } = {},
 ) {
@@ -74,7 +83,7 @@ export async function runStructured<T>(
       cwd: stage,
       args: restrictedArgs(input.rules, attempt.reservedUsd),
       stdin,
-      timeoutMs: 60_000,
+      timeoutMs: input.timeoutMs ?? DECISION_TIMEOUT_MS,
       allowedWrites: [],
     };
     mkdirSync(localFile(root, "wiki/_jobs/decisions"), { recursive: true });

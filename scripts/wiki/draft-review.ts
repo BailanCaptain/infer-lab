@@ -11,7 +11,7 @@ import { loadPages, parsePage } from "./pages";
 import { configuredRepoRoots } from "./repo-roots";
 import { listReviews } from "./review";
 import { localFile } from "./review-files";
-import { runStructured, STRUCTURED_INPUT_LIMIT } from "./structured";
+import { PAGE_TEXT_TIMEOUT_MS, runStructured, STRUCTURED_INPUT_LIMIT } from "./structured";
 import { digest } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
@@ -34,7 +34,7 @@ export async function prepareDraftReview(
     cwd: "",
     args: [],
     stdin: "",
-    timeoutMs: 60_000,
+    timeoutMs: PAGE_TEXT_TIMEOUT_MS,
     allowedWrites: ["concepts/**", "params/**", "sources/**", "_drafts/_integration.json"],
   };
   const result = await runStagedIntegration(root, request, [id], localDate(), {
@@ -84,6 +84,7 @@ export async function prepareDraftReview(
           origin: parsed.page!.fm.origin,
           policy,
           data: packet(),
+          timeoutMs: PAGE_TEXT_TIMEOUT_MS,
           rules: `${handbook.pageFormat}\n${handbook.integrate}\n本次无文件工具，只返回严格 JSON {"pages":[{"path":"sources/id.md","text":"完整 Markdown"}],"decision":{"promoted":[],"merged":[],"rejected":[],"contradictions":[],"revisions":[]}}。按整合规则判断更新、合并、补关系与矛盾，decision 必须恰好处置本草稿。只可修改已提供全文的页或创建与草稿同 id 的页；材料不足时拒收并说明。来源必须来自草稿或提供的旧页，禁止凭索引补事实。`,
           schema,
         },

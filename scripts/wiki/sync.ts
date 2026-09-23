@@ -15,11 +15,10 @@ import { parameterDiff, parameterKey } from "./params/sync";
 import { queueImportantPr } from "./pr-queue";
 import { listTasks } from "./queue";
 import { reconcileCycle } from "./reconcile";
-import { readReview } from "./review";
 import { localFile } from "./review-files";
 import { syncGithub } from "./sync-github";
 import { checkUrls, collectUrls, httpFetcher, urlFindings } from "./urls";
-import { workOne } from "./worker";
+import { workerDue, workOne } from "./worker";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 import { workflowPolicySchema } from "./workflow-policy";
 
@@ -169,26 +168,25 @@ async function runSync(
     ? urlFindings(await checkUrls(collectUrls(loadPages(join(root, "wiki")).pages), httpFetcher()))
     : [];
   const inspection = await patrol(root, seeds, config.patrolAgeDays, undefined, deadUrls);
+  // 付费环节各自隔离：一处失败记进报告，同一晚后面的环节照跑
   progress("reconcile");
   const reconciliation = config.reconcileBatches
-    ? await reconcileCycle(root, config.reconcileBatches, config.paid!)
+    ? await isolated("reconcile", () => reconcileCycle(root, config.reconcileBatches, config.paid!))
     : undefined;
   progress("drift");
   const drift = config.driftSample
-    ? await detectDrift(root, { sample: config.driftSample, seeds: config.seeds, policy: config.paid! })
+    ? await isolated("drift", () => detectDrift(root, { sample: config.driftSample, policy: config.paid! }))
     : undefined;
   progress("worker");
   const tasks = [];
   for (const task of listTasks(root)
-    .filter(
-      (t) =>
-        t.state === "queued" ||
-        (t.state === "needs-review" &&
-          typeof t.result?.reviewId === "string" &&
-          readReview(root, t.result.reviewId).state === "published"),
-    )
+    .filter((t) => workerDue(root, t))
     .slice(0, config.maxTasks))
-    tasks.push(await workOne(root, task.id, config.paid!, { retry: task.state !== "queued" }));
+    tasks.push(
+      await isolated(`worker:${task.id}`, () =>
+        workOne(root, task.id, config.paid!, { retry: task.state !== "queued" }),
+      ),
+    );
   return {
     parameters,
     deferred,
@@ -199,6 +197,18 @@ async function runSync(
     drift,
     modelCallsAllowed: !!config.paid && config.maxTasks + config.reconcileBatches + config.driftSample > 0,
   };
+}
+
+/** 付费环节的失败隔离：抛错的环节记成 {ok:false, stage, error}，不让同一晚后面的环节跟着停 */
+export async function isolated<T>(
+  stage: string,
+  run: () => Promise<T>,
+): Promise<{ ok: true; value: T } | { ok: false; stage: string; error: string }> {
+  try {
+    return { ok: true, value: await run() };
+  } catch (error) {
+    return { ok: false, stage, error: String(error) };
+  }
 }
 
 export async function syncWiki(root: string, input: z.input<typeof syncConfigSchema>) {

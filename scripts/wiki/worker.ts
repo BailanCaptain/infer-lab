@@ -6,22 +6,35 @@ import { readKnowledgeSnapshot } from "../../server/snapshot";
 import { sourceLines } from "./audit";
 import type { RunAgent } from "./batch";
 import { budgetedAgent } from "./budget";
-import { compileRaw } from "./compile-raw";
+import { COMPILE_TIMEOUT_MS, compileRaw } from "./compile-raw";
 import { readCorpus } from "./corpus";
 import { prepareDraftReview } from "./draft-review";
 import { listGaps } from "./gap-ledger";
 import { findGapSources } from "./gap-sources";
 import { loadHandbook } from "./handbook";
 import { prMaterial } from "./pr-material";
-import { readTask, runTask } from "./queue";
+import { type QueueTask, readTask, runTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { runRestrictedClaude } from "./restricted-claude";
 import { hasRetestPlan, runRetest } from "./retest";
 import { readReview } from "./review";
 import { localFile } from "./review-files";
-import { runStructured } from "./structured";
+import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
 import { digest, WorkflowStore } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
+
+/**
+ * 夜间任务该不该捡起这个任务：排队中的；审阅已发布、要复测或关闭的；审阅被驳回、还没按这次驳回重编过的。
+ * 最后一种是 2026-09-23 补的——此前驳回后任务永久停在 needs-review（PR 11953 就这样卡着）。
+ */
+export function workerDue(root: string, task: QueueTask): boolean {
+  if (task.state === "queued") return true;
+  if (task.state !== "needs-review" || typeof task.result?.reviewId !== "string") return false;
+  const review = readReview(root, task.result.reviewId);
+  return (
+    review.state === "published" || (review.state === "rejected" && task.result.recompiledAfter !== review.id)
+  );
+}
 
 export async function workOne(
   root: string,
@@ -36,16 +49,26 @@ export async function workOne(
   } = {},
   deps: { runAgent?: RunAgent; runChat?: typeof import("../../server/chat").runChat } = {},
 ) {
-  const timeoutMs = options.timeoutMs ?? 180_000;
+  const timeoutMs = options.timeoutMs ?? COMPILE_TIMEOUT_MS;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 600_000)
     throw new Error("worker timeout-ms 需要 1000–600000 毫秒");
   return runTask(
     root,
     taskId,
     async (task) => {
+      // 上一版草稿被驳回：带着驳回原因重编一次（编译输入因此不同，不会拿回旧缓存）
+      let rejected: { id: string; reason: string } | undefined;
       if (typeof task.result?.reviewId === "string") {
         const review = readReview(root, task.result.reviewId);
-        if (review.state !== "published") return { state: "needs-review", result: task.result };
+        if (review.state === "rejected") {
+          // 已按这次驳回重编过、结果仍是这份被驳回的审阅：停下等人，不再自动收费
+          if (task.result.recompiledAfter === review.id)
+            return { state: "needs-review", result: task.result };
+          rejected = { id: review.id, reason: review.reason ?? "" };
+        } else if (review.state !== "published") return { state: "needs-review", result: task.result };
+      }
+      if (!rejected && typeof task.result?.reviewId === "string") {
+        const review = readReview(root, task.result.reviewId);
         if (task.input.kind !== "gap")
           return { state: "closed", result: { ...task.result, closureBasis: "human-published" } };
         await runRetest(root, task.id, review.id, deps.runChat);
@@ -93,7 +116,8 @@ export async function workOne(
               next: `先以 wiki:retest prepare --input <四类题目与判准.json> 冻结计划；任务将重新排队，前测完成后才补写。taskId=${task.id}`,
             },
           };
-        await runRetest(root, task.id, undefined, deps.runChat);
+        // 前测在第一次编译之前已经做过；驳回后重编不再跑（知识版本多半已变，也不该重复收费）
+        if (!rejected) await runRetest(root, task.id, undefined, deps.runChat);
         const gap = listGaps(root).find((g) => g.key === gapInput.key)!;
         const sources = options.sources?.length
           ? options.sources
@@ -153,6 +177,7 @@ export async function workOne(
               '仅根据补料原文和已提供页面全文决定：返回 JSON {"action":"new|update|already-covered|undetermined","target":"已有页id或null","source":"材料原样引用","quote":"逐字引文","reason":"理由"}。索引仅用于定位，不算读过正文。能从旧页回答选 already-covered；候选页未读够不能断言全库没有知识，选 undetermined 并说明需要哪些页面。新增仅用于所给证据支持且索引未指向已有主题；更新必须提供目标页全文。社区和聊天文本不得冒充源码实证。',
             schema,
             policy,
+            timeoutMs: PAGE_TEXT_TIMEOUT_MS,
           },
           { runAgent: deps.runAgent, retry: options.retry },
         );
@@ -203,7 +228,13 @@ export async function workOne(
           origin: task.input.kind === "pr" ? "pr" : "gap",
           rules,
           timeoutMs,
-          context: { why, sourceId: task.id },
+          context: {
+            why,
+            sourceId: task.id,
+            ...(rejected
+              ? { rejected: `上一版草稿的审阅 ${rejected.id} 被驳回：${rejected.reason}。按驳回意见重写。` }
+              : {}),
+          },
         },
         policy,
         { runAgent: runner, retry: options.retry },
@@ -219,6 +250,7 @@ export async function workOne(
           draftId: id,
           compileJob: result.jobId,
           reviewId: review.reviewId,
+          ...(rejected ? { recompiledAfter: rejected.id } : {}),
           beforeRevision: before.revision,
           compilationStarted: true,
           next: `请在审阅面板或 wiki:review show ${review.reviewId} 核对完整变更；批准后独立问题复测`,

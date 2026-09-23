@@ -60,3 +60,19 @@ it.each(["write", "invalid", "unknown"])("rejects %s output and requires explici
     f.cleanup();
   }
 });
+
+it("调用方给的超时原样用上；不给时按一小段 JSON 的判定算 60 秒", async () => {
+  const f = wikiFixture();
+  try {
+    const seen: number[] = [];
+    const runAgent: import("./batch").RunAgent = async (req) => {
+      seen.push(req.timeoutMs);
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0.1, output: '{"quote":"abc"}' };
+    };
+    await runStructured(f.root, input, { runAgent });
+    await runStructured(f.root, { ...input, kind: "test-long-v1", timeoutMs: 300_000 }, { runAgent });
+    expect(seen).toEqual([60_000, 300_000]);
+  } finally {
+    f.cleanup();
+  }
+});

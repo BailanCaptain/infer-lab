@@ -23,6 +23,9 @@ import { sanitizeRawInput } from "./sanitize";
 import { atomicText, digest, originSchema, type WorkflowStore, type WorkInput } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
+/** 编译一份材料的超时：真实编译用过 99 秒与 144 秒（2026-09-16），补写与投喂共用这一个值 */
+export const COMPILE_TIMEOUT_MS = 180_000;
+
 export interface RawCompileInput {
   id: string;
   source: string;

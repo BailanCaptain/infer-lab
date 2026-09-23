@@ -23,6 +23,8 @@ it.each([false, true])(
       const deps = {
         runAgent: async (req: import("./batch").AgentRequest) => {
           calls++;
+          // 整合要把整页正文写回来：写死 60 秒时唯一一次真实整合超时（2026-09-16）
+          expect(req.timeoutMs).toBeGreaterThanOrEqual(180_000);
           const data = JSON.parse(req.stdin);
           expect(data.pages.some((p: { id: string }) => p.id === "a")).toBe(true);
           const text = `${original}\n补充缓存说明。[S1]\n`.replace(

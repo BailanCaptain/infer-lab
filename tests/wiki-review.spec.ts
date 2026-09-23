@@ -141,10 +141,13 @@ test("three uncovered turns persist one gap and show awaiting assessment without
     await page.getByTestId("chat-input").fill("未收录概念 main 怎么配置？");
     await page.getByTestId("chat-send").click();
     await expect(page.getByTestId("chat-gap").last()).toContainText(
-      i === 3 ? "已进入处理队列" : `（${i}/3）`,
+      i === 3 ? "已排进补写队列" : `（${i}/3）`,
     );
   }
-  await expect(page.getByTestId("chat-gap").last()).toContainText("预算内核对后生成待审变更");
+  // 2026-09-23 审视：原文「已进入处理队列；预算内核对后生成待审变更」说过头了——自动补写开关关着时
+  // 没有任何东西处理队列，打开后也要先写好复测计划才会编译。提示要如实说出这两个前提。
+  await expect(page.getByTestId("chat-gap").last()).toContainText("自动补写打开后");
+  await expect(page.getByTestId("chat-gap").last()).toContainText("复测计划");
   await expect(page.getByRole("button", { name: "存进 Wiki", exact: true })).toHaveCount(0);
   const current = await state();
   expect(current.gaps).toHaveLength(1);

@@ -242,7 +242,7 @@ export function useChat() {
                   v.state === "record-failed"
                     ? "缺口信号未能保存；本次回答仍保留，请稍后重试。"
                     : v.state === "awaiting-assessment"
-                      ? `缺口信号已记录（${v.count} 次），已进入处理队列；预算内核对后生成待审变更，缺材料时等待补充。`
+                      ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
                       : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
               })),
             knowledge: (v) => {

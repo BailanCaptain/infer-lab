@@ -1,26 +1,26 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { z } from "zod";
 import { parseRepoRef } from "../../src/content/wiki/schema";
 import { sourceLines } from "./audit";
 import type { RunAgent } from "./batch";
 import { gitText } from "./git";
 import { loadHandbook } from "./handbook";
-import { parseSeeds } from "./ingest";
 import { recordDrift } from "./maintenance";
 import { loadPages } from "./pages";
 import { saveRawSnapshot } from "./raw";
-import { runStructured } from "./structured";
+import { configuredRepoRoots } from "./repo-roots";
+import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
 import type { WorkflowPolicy } from "./workflow-policy";
 
 export async function detectDrift(
   root: string,
-  options: { sample: number; threshold?: number; seeds: string; policy: WorkflowPolicy; ids?: string[] },
+  /** seeds 不给就读 wiki/seeds/ 下全部仓库表：页面会引用 vllm-ascend、vllm、rfork 等多份配置里的仓库 */
+  options: { sample: number; threshold?: number; seeds?: string; policy: WorkflowPolicy; ids?: string[] },
   deps: { runAgent?: RunAgent; retry?: boolean } = {},
 ) {
   if (!Number.isInteger(options.sample) || options.sample < 1 || options.sample > 10)
     throw new Error("每轮 drift 抽样需要 1–10 页");
-  const seeds = parseSeeds(readFileSync(resolve(root, options.seeds), "utf8"));
+  const repoRoots = configuredRepoRoots(root, options.seeds);
   const loaded = loadPages(join(root, "wiki"));
   if (loaded.problems.length) throw new Error("页面解析失败");
   const pages = loaded.pages
@@ -32,9 +32,9 @@ export async function detectDrift(
     const sources = page.fm.sources.flatMap((source) => {
       const ref = parseRepoRef(source);
       if (!ref) return [];
-      const repo = seeds.repos[ref.repo];
-      if (!repo) throw new Error(`未配置来源仓库 ${ref.repo}`);
-      const text = gitText(resolve(root, repo.path), ["show", `${ref.commit}:${ref.path}`]);
+      const repoRoot = repoRoots[ref.repo];
+      if (!repoRoot) throw new Error(`未配置来源仓库 ${ref.repo}`);
+      const text = gitText(repoRoot, ["show", `${ref.commit}:${ref.path}`]);
       const lines = sourceLines(text);
       const start = ref.lineStart ?? 1;
       const end = ref.lineEnd ?? ref.lineStart ?? lines.length;
@@ -61,6 +61,7 @@ export async function detectDrift(
         rules: `${loadHandbook(join(root, "wiki")).extract}\n基于所给来源重提取正文，只返回 JSON {"body":"markdown 正文"}；没有提供旧正文，不依据模型记忆补事实。`,
         schema: z.object({ body: z.string().min(1).max(30_000) }).strict(),
         policy: options.policy,
+        timeoutMs: PAGE_TEXT_TIMEOUT_MS,
       },
       deps,
     );

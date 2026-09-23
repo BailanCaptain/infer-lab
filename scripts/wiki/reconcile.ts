@@ -9,31 +9,55 @@ import { loadPages } from "./pages";
 import { proposePages, wikiContents } from "./proposal";
 import { configuredRepoRoots } from "./repo-roots";
 import { localFile } from "./review-files";
-import { runStructured } from "./structured";
+import { PAGE_TEXT_TIMEOUT_MS, runStructured, STRUCTURED_INPUT_LIMIT } from "./structured";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
+type WikiPageEntry = ReturnType<typeof loadPages>["pages"][number];
+
+/**
+ * 交叉审视一批送给模型的输入：全库目录 + 本批几页的全文。分批与执行共用这一个函数，量出来的就是真正送进去的。
+ * 目录只放 id 与标题：它是地图，告诉模型全库有哪些页；要核对的是本批的全文。带摘要时目录单独就有
+ * 13,838 字符（2026-09-23，104 页），固定 6 页一批时 68 批没有一批装得进 40,000 字符的上限。
+ */
+export function reconcileInput(all: WikiPageEntry[], selected: WikiPageEntry[]) {
+  return {
+    inventory: all.map((p) => ({ id: p.fm.id, title: p.fm.title })),
+    pages: selected.map((p) => ({ ...p.fm, body: p.body })),
+  };
+}
+
+/** 按真实输入大小装批：每批最多 maxPages 页，装到上限的九成为止（留一成给清洗带来的长度变化） */
 export function reconcileBatches(root: string, maxPages = 6) {
   const { pages, problems } = loadPages(join(root, "wiki"));
   if (problems.length) throw new Error("现有页面解析失败");
   const index = buildIndex(pages.map((p) => ({ ...p.fm, text: p.body })));
+  const fits = (batch: WikiPageEntry[]) =>
+    JSON.stringify(reconcileInput(pages, batch)).length <= STRUCTURED_INPUT_LIMIT * 0.9;
   const covered = new Set<string>();
   return pages
     .sort((a, b) => a.fm.id.localeCompare(b.fm.id))
     .flatMap((page) => {
       if (covered.has(page.fm.id)) return [];
+      covered.add(page.fm.id);
+      // 单页加目录就装不下的页永远会被判超量，不排进去（2026-09-23 全库最长一页 13,259 字符，远不到）
+      if (!fits([page])) return [];
       const related = retrieve(`${page.fm.title} ${page.fm.summary}`, index, { expand: true }).map(
         (h) => h.id,
       );
-      const selected = [
-        page,
-        ...pages.filter(
-          (p) =>
-            p.fm.id !== page.fm.id &&
-            (related.includes(p.fm.id) || p.fm.chapters.some((ch) => page.fm.chapters.includes(ch))),
-        ),
-      ].slice(0, maxPages);
-      for (const p of selected) covered.add(p.fm.id);
+      const selected = [page];
+      for (const candidate of pages) {
+        if (selected.length >= maxPages) break;
+        // 已在别批出现过的页也可以再进来：跨批的相关页才有机会两两比对（沿用原来的分批语义）
+        if (candidate.fm.id === page.fm.id) continue;
+        const near =
+          related.includes(candidate.fm.id) ||
+          candidate.fm.chapters.some((ch) => page.fm.chapters.includes(ch));
+        if (near && fits([...selected, candidate])) {
+          selected.push(candidate);
+          covered.add(candidate.fm.id);
+        }
+      }
       return [selected];
     });
 }
@@ -84,14 +108,12 @@ export async function reconcileBatch(
     {
       kind: "reconcile-v1",
       origin: "seed",
-      data: {
-        inventory: pages.map((p) => ({ id: p.fm.id, summary: p.fm.summary })),
-        pages: selected.map((p) => ({ ...p.fm, body: p.body })),
-      },
+      data: reconcileInput(pages, selected),
       rules:
         '检查提供的页面正文，返回严格 JSON {"relations":[{"from":"id","relation":{"to":"id","kind":"builds-on|variant-of|conflicts-with|alternative-to","note":"关系说明"},"evidence":[{"page":"id","text":"逐字引文"}]}],"contradictions":[{"a":{"page":"id","text":"引文"},"b":{"page":"id","text":"引文"},"reason":"理由"}],"duplicates":[{"a":"id","b":"id","reason":"理由"}]}。只提出缺失的声明方向；不要写反向边。引文必须来自提供正文，不能把同词出现当作关系成立。矛盾和重复只提待审线索，不删除页、不改写事实。',
       schema,
       policy,
+      timeoutMs: PAGE_TEXT_TIMEOUT_MS,
     },
     deps,
   );

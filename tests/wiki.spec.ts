@@ -16,7 +16,8 @@ test.describe("知识库阅读页", () => {
     const items = nav.getByRole("link");
     expect(await items.count()).toBeGreaterThanOrEqual(11);
 
-    await nav.getByRole("link", { name: "Block Table" }).click();
+    // 锚定开头：目录里现在还有闭环长出来的「问答记录：Block Table…」，子串匹配会命中两条
+    await nav.getByRole("link", { name: /^Block Table/ }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Block Table");
     await expect(page.getByRole("heading", { name: "一句话" })).toBeVisible();

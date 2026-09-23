@@ -236,6 +236,54 @@
       "backlinks": []
     },
     {
+      "id": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
+      "title": "问答记录：Block Table 里的块什么时候分配、什么时候回收",
+      "type": "source",
+      "origin": "chat",
+      "summary": "一次问答的归档。结论是分配与回收都不在块表里发生，而在上游 EngineCore 进程的 KVCacheManager / BlockPool 里；块表只事后记账。",
+      "aliases": [
+        "块什么时候分配",
+        "块什么时候回收",
+        "allocate_slots 什么时候要块",
+        "free 之后块去哪"
+      ],
+      "chapters": [
+        "11"
+      ],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "raw:sha256-890a88e5535400f063780edc6b38e5f18137470165e9c05f2f0b59254a1921a4.md#L1-L19"
+      ],
+      "verified": [],
+      "evidence": "I",
+      "rawSources": [
+        "raw/sha256-890a88e5535400f063780edc6b38e5f18137470165e9c05f2f0b59254a1921a4.md"
+      ],
+      "relations": [
+        {
+          "to": "block-table",
+          "kind": "builds-on",
+          "note": "这次问答的落点是「块表只记账、不分配」，块表侧那三次写格子的动作由那一页定义"
+        },
+        {
+          "to": "vllm-kv-block-allocation",
+          "kind": "builds-on",
+          "note": "分配与回收的实际发生地是那一页讲的 KVCacheManager / BlockPool"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自那条请求的设定"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md",
+      "backlinks": []
+    },
+    {
       "id": "ascend-config-system",
       "title": "AscendConfig 配置系统",
       "type": "feature",
@@ -1158,6 +1206,11 @@
       "updated": "2026-09-22",
       "file": "concepts/block-table.md",
       "backlinks": [
+        {
+          "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
+          "kind": "enables",
+          "note": "这次问答的落点是「块表只记账、不分配」，块表侧那三次写格子的动作由那一页定义"
+        },
         {
           "from": "context-parallel",
           "kind": "enables",
@@ -5418,6 +5471,11 @@
           "note": "第 1 步 37 个 token 被垫到 40、后面 199 步各 1 个 token，这一页所有的数都从这条请求推出来"
         },
         {
+          "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
+          "kind": "enables",
+          "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自那条请求的设定"
+        },
+        {
           "from": "ascend-config-system",
           "kind": "enables",
           "note": "那条请求没配任何昇腾开关，走的全是这套默认值"
@@ -9030,6 +9088,11 @@
       "updated": "2026-09-21",
       "file": "concepts/vllm-kv-block-allocation.md",
       "backlinks": [
+        {
+          "from": "answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad",
+          "kind": "enables",
+          "note": "分配与回收的实际发生地是那一页讲的 KVCacheManager / BlockPool"
+        },
         {
           "from": "block-table",
           "kind": "enables",

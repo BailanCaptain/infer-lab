@@ -203,6 +203,148 @@
           "recordedAt": "2026-09-16T16:44:49.261Z"
         }
       ]
+    },
+    {
+      "key": "c83ead033328ef3d11ab1173a14ad5441a66d2cdc14553679c41d91069772155",
+      "occurrences": [
+        {
+          "eventId": "82a99d44-0f2b-4fd9-bc97-5d13227689e1",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [
+            "Block Table 里的块是什么时候分配、什么时候回收的？",
+            "Block Table 里的块是什么时候分配、什么时候回收的？"
+          ],
+          "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：全库检索 HCCL_BUFFSIZE / hccl_buffer_size / MC2 通信组，仅 enable-matmul-allreduce 页出现一次 HCCL_BUFFSIZE=500 且自述抄自 CI 用例；缺少缓冲大小定义点、各通信组默认值与自算逻辑、MC2 组不可单独配置的依据；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:06:18.207Z"
+        },
+        {
+          "eventId": "9fc4dc5a-dee8-4413-a860-36014c828871",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [
+            "Block Table 里的块是什么时候分配、什么时候回收的？",
+            "Block Table 里的块是什么时候分配、什么时候回收的？",
+            "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？"
+          ],
+          "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：复检全库 HCCL_BUFFSIZE / hccl_buffer_size / 通信域 / 通信组 / mc2_group，仅命中 enable-matmul-allreduce（HCCL_BUFFSIZE=500，自述抄自 CI 用例）、enable-sleep-mode-extra-cleanup（销毁重建通信域）、layer-sharding（仅提及通信组）；缺少缓冲区定尺来源、各通信组默认值与自算逻辑、MC2 组不可单独配置的依据；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:07:18.414Z"
+        }
+      ]
     }
   ]
 }

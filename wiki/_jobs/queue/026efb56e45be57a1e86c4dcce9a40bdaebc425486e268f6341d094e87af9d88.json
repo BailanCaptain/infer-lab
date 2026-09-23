@@ -6,15 +6,17 @@
     "number": 11953,
     "sourceHash": "e3248f04a90ac23bb79c63b06b510590e020167ac16058da08accfcf91f086ca"
   },
-  "state": "needs-review",
+  "state": "failed",
   "createdAt": "2026-09-15T16:47:38.297Z",
-  "attempts": 7,
+  "attempts": 11,
   "result": {
     "draftId": "pr-11953",
-    "compileJob": "54e8fe72c492f94a32af8af3ba8e681021726dd2022954eaf6affc1f4df0e19f",
-    "reviewId": "c95be1987f15bf3a9dd302c0089aeed969193d8d381f78bda4bb5aa1f878d120",
-    "beforeRevision": "267bf0373f15c2dede66355ea162bbd30897f271061c8365f6c0df7bf655e230",
+    "compileJob": "ee17f4a6ac741938331c2ba16d067f46cb3781b5a3790b1f18bbdf57426d1f08",
+    "reviewId": "423db4425caaa0aed8278ad5fc222df5865551ed9e36fb89c8d1dbef49bb8ae1",
+    "recompiledAfter": "c95be1987f15bf3a9dd302c0089aeed969193d8d381f78bda4bb5aa1f878d120",
+    "beforeRevision": "277c7dbeff558738de7a5c59142f6756d8bb602e10546c067c6c6a5b4f0ea21d",
     "compilationStarted": true,
-    "next": "wiki:review show c95be1987f15bf3a9dd302c0089aeed969193d8d381f78bda4bb5aa1f878d120"
-  }
+    "next": "请在审阅面板或 wiki:review show 423db4425caaa0aed8278ad5fc222df5865551ed9e36fb89c8d1dbef49bb8ae1 核对完整变更；批准后独立问题复测"
+  },
+  "reason": "Error: 已有任务预算不能通过重新提交修改或清零"
 }

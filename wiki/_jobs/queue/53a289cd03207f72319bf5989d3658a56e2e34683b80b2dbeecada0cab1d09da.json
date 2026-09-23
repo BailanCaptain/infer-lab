@@ -4,7 +4,7 @@
     "kind": "gap",
     "key": "62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba"
   },
-  "state": "awaiting-retest",
+  "state": "closed",
   "createdAt": "2026-09-16T16:44:49.269Z",
   "attempts": 6,
   "result": {
@@ -16,7 +16,10 @@
     "approvedReviewId": "eca7bf4e327d6515d425a74e49ce63947e26e25bc71d25d7791dcbd2e9d9c847",
     "publicationVerified": true,
     "phase": "posttest-budget-paused",
-    "next": "确认新的未知收费恢复方案后，wiki:retest run --task 53a289cd03207f72319bf5989d3658a56e2e34683b80b2dbeecada0cab1d09da --review 137c15321ae02fd3c6b3c7a2529b6e4bb2df310cd3d62592432d1613a8b79831"
+    "next": "确认新的未知收费恢复方案后，wiki:retest run --task 53a289cd03207f72319bf5989d3658a56e2e34683b80b2dbeecada0cab1d09da --review 137c15321ae02fd3c6b3c7a2529b6e4bb2df310cd3d62592432d1613a8b79831",
+    "retestReviewHash": "c47406f12ba566c50b87fadda41cd5b5af1f8c70beaca40d5b6b407be5540797",
+    "closureBasis": "explicit-semantic-review",
+    "closureObservationCount": 3
   },
   "reason": "Error: 费用未知，共享预算暂停；timeout 60000ms"
 }

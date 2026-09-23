@@ -431,3 +431,6 @@ vllm-ascend@releases/v0.26.0rc 2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f → 16b0
 用户看完 09-23 增量审视后说「改」。两路 Opus 5.5 逐条在钉住的源码上重新核对后修订：kv-cache-layerwise-offload 改正一处事实错误（main 上 mooncake 块键逐层路径的 validate_topology 对 PP / PCP / DCP 任一大于 1 直接报错，页面原说只有两条硬报错、暗示 CP 没被拦），预取深度改引 [C30]，末层等待改为三版共有；ucm 补机制一节、P2P 那半句的来源、与逐层卸载页同名开关 use_layerwise 的归属说明和关系边、main 侧包装层来源，写明 enable_event_sync 文档未解释；lmcache 证据等级由 S 改 C，讲清它本身做什么、chunk 与块的单位、main 取消注册的查法；prefill 卡片文案与正文对齐，改为「并行算完、只取最后一个位置采样」，链到分块页；rope 把动机与收益讲回来并标 [I]。use_layerwise 参数页补上 UCM 这第四处同名开关。
 
 验证：wiki:lint（这几页无提醒）、wiki:audit、wiki:diagrams --check 通过。
+## [2026-09-23] ingest | 问答记录：Block Table 里的块什么时候分配、什么时候回收
+晋升 sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md
+

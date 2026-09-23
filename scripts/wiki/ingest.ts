@@ -20,6 +20,7 @@ import { ID_RE, PAGE_TYPES } from "../../src/content/wiki/schema";
 import { type AgentEvent, type AgentRequest, type RunAgent, runBatch } from "./batch";
 import type { HandbookSlices } from "./handbook";
 import { FACTS_BUDGET, MARK_FLOOD } from "./limits";
+import { WORK_MODEL } from "./model-use";
 import { PAGE_DIRS, parsePage } from "./pages";
 import { revisionDateSchema, revisionSchema } from "./revisions";
 
@@ -177,6 +178,8 @@ function baseArgs(system: string): string[] {
     system,
     "--max-turns",
     "80",
+    "--model",
+    WORK_MODEL,
   ];
 }
 

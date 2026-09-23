@@ -12,6 +12,7 @@ import {
 } from "../../server/snapshot";
 import { withBudget } from "./budget";
 import { listGaps } from "./gap-ledger";
+import { MODEL_ID, WORK_MODEL } from "./model-use";
 import { readTask } from "./queue";
 import { readReview } from "./review";
 import { localFile } from "./review-files";
@@ -29,7 +30,8 @@ const planSchema = z
   .object({
     taskId: z.string().regex(/^[a-f0-9]{64}$/),
     beforeRevision: z.string(),
-    model: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/),
+    /** 前测与后测必须同一个模型，所以冻结在计划里；不写就用 WORK_MODEL */
+    model: z.string().regex(MODEL_ID).default(WORK_MODEL),
     reserveUsd: z.number().positive().finite(),
     cases: caseSchema.array().length(4),
   })
@@ -51,7 +53,7 @@ const pathOf = (root: string, taskId: string, suffix: string) =>
 export const hasRetestPlan = (root: string, taskId: string) => existsSync(pathOf(root, taskId, "plan"));
 
 /** Freeze holdouts before compilation. Rubrics are operational data excluded from all knowledge snapshots. */
-export async function prepareRetest(root: string, input: Omit<z.infer<typeof planSchema>, "beforeRevision">) {
+export async function prepareRetest(root: string, input: Omit<z.input<typeof planSchema>, "beforeRevision">) {
   const snapshot = await readKnowledgeSnapshot(root);
   const plan = planSchema.parse({ ...input, beforeRevision: snapshot.revision });
   const task = readTask(root, plan.taskId);

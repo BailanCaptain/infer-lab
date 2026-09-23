@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { WORK_MODEL } from "./model-use";
 import { restrictedArgs, runRestrictedClaude } from "./restricted-claude";
 
 const mocks = vi.hoisted(() => ({ spawn: vi.fn(), command: vi.fn() }));
@@ -55,6 +56,28 @@ describe("restricted CLI contract", () => {
     );
     mocks.command.mockReturnValue({ command: "claude", shell: true });
     expect((await runRestrictedClaude(req())).ok).toBe(false);
+    expect(mocks.spawn).not.toHaveBeenCalled();
+  });
+});
+
+// 用户 09-23 定：夜间任务固定用 Opus 5.5。夜间除复测以外的付费调用（诊断、判定、整合、交叉审视、抽检、编译）
+// 都走这个受限启动器；不固定时用的是 CLI 自带的默认模型，CLI 一升级就可能悄悄换掉
+describe("受限启动器固定作答模型", () => {
+  it("参数里带 --model，值取 WORK_MODEL", () => {
+    const args = restrictedArgs("rules", 1);
+    expect(args[args.indexOf("--model") + 1]).toBe(WORK_MODEL);
+    expect(WORK_MODEL).toBe("claude-opus-5-5[1m]");
+  });
+  it("缺了模型或换了模型的请求一律拒绝，不启动进程", async () => {
+    const args = restrictedArgs("rules", 1);
+    const at = args.indexOf("--model");
+    for (const bad of [
+      [...args.slice(0, at), ...args.slice(at + 2)],
+      args.map((a, i) => (i === at + 1 ? "claude-opus-5" : a)),
+    ]) {
+      const result = await runRestrictedClaude({ ...req(), args: bad });
+      expect(result).toMatchObject({ ok: false, reason: "受限编译配置不匹配" });
+    }
     expect(mocks.spawn).not.toHaveBeenCalled();
   });
 });

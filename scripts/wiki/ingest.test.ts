@@ -19,6 +19,7 @@ import {
   snapshotDir,
   strayPaths,
 } from "./ingest";
+import { WORK_MODEL } from "./model-use";
 
 const seedsYaml = `
 repos:
@@ -716,5 +717,16 @@ describe("联网权限按角色分（2026-09-11 修正）", () => {
       expect(d).toContain("Bash");
       expect(d).not.toContain("Edit");
     }
+  });
+});
+
+describe("提取与整合固定作答模型", () => {
+  it("和受限启动器用同一个 WORK_MODEL：写知识页的调用不随 CLI 默认模型变", () => {
+    const s = parseSeeds(multiRefYaml);
+    for (const req of [
+      extractRequest(s.features[0]!, s, ctx),
+      integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx),
+    ])
+      expect(req.args[req.args.indexOf("--model") + 1]).toBe(WORK_MODEL);
   });
 });

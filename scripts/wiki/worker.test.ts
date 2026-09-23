@@ -7,6 +7,7 @@ import { readKnowledgeSnapshot } from "../../server/snapshot";
 import type { RunAgent } from "./batch";
 import { initBudget } from "./budget";
 import { recordGapObservation } from "./gap-ledger";
+import { WORK_MODEL } from "./model-use";
 import { listTasks, readTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { acceptRetest, prepareRetest, runRetest } from "./retest";
@@ -421,4 +422,22 @@ it("binds a material decision by the archived reference and checks the quote lin
   expect(boundSource(sources, { source: "raw:y.md#L1", quote: "a = 1" })).toBeUndefined();
   expect(boundSource(sources, { source: "raw:x.md#L1-L5", quote: "a = 1\nc = 3" })).toBeUndefined();
   expect(boundSource(sources, { source: "raw:x.md#L1-L5", quote: "  " })).toBeUndefined();
+});
+
+it("复测计划不写模型时默认用 WORK_MODEL（夜间固定 Opus 5.5）；写了就按冻结的来", async () => {
+  const question = "B 的上限？";
+  const f = await setup(question);
+  try {
+    const cases = (["original", "holdout", "version", "no-evidence"] as const).map((kind) => ({
+      kind,
+      question: kind === "original" ? question : `独立问题 ${kind}`,
+      expected: "有依据",
+      forbidden: "编造",
+    }));
+    await prepareRetest(f.root, { taskId: f.task.id, reserveUsd: 0.1, cases });
+    const plan = JSON.parse(readFileSync(join(f.root, `wiki/_jobs/retests/${f.task.id}.plan.json`), "utf8"));
+    expect(plan.model).toBe(WORK_MODEL);
+  } finally {
+    f.cleanup();
+  }
 });

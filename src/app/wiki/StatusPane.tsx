@@ -13,6 +13,7 @@ interface WikiStatus {
   };
   models: {
     chatModel?: string;
+    workModel: string;
     recorded: number;
     switched: number;
     last?: { at: string; purpose: string; event?: string; from: string; to: string; reason?: string };
@@ -136,6 +137,7 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
             <h3>作答模型</h3>
             <dl>
               <Row label="问答用的模型">{status.models.chatModel ?? "CLI 默认（没有固定）"}</Row>
+              <Row label="夜间任务与编译">{status.models.workModel}（固定）</Row>
               <Row label="换过模型的调用" tone={status.models.switched ? "warn" : undefined}>
                 {status.models.switched} / {status.models.recorded} 次
               </Row>

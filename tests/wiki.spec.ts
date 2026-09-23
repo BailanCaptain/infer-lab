@@ -490,6 +490,7 @@ test.describe("状态页签", () => {
       paidWork: { tasks: 0, reconcile: 0, drift: 0 },
     },
     models: {
+      workModel: "claude-opus-5-5[1m]",
       recorded: 9,
       switched: 8,
       last: {
@@ -522,6 +523,7 @@ test.describe("状态页签", () => {
     await expect(pane).toContainText("2 / 30");
     // 2026-09-23：拒答换模型要在这里看得到，夜间无人值守的调用只能从这里查
     await expect(pane).toContainText("CLI 默认（没有固定）");
+    await expect(pane).toContainText("claude-opus-5-5[1m]（固定）");
     await expect(pane).toContainText("8 / 9 次");
     await expect(pane).toContainText("claude-opus-5-5[1m] → claude-opus-5（frontier_llm）");
     await page.screenshot({ path: info.outputPath("status-models.png"), fullPage: true });

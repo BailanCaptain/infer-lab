@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from "vitest";
 import { initBudget, withBudget } from "../scripts/wiki/budget";
+import { WORK_MODEL } from "../scripts/wiki/model-use";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
 import { readStatus } from "./status";
 
@@ -66,11 +67,12 @@ it("作答模型：配置固定的问答模型，和账本里记到的换模型�
   const s = readStatus(f.root);
   expect(s.models).toMatchObject({
     chatModel: "claude-fable-5-1",
+    workModel: WORK_MODEL,
     recorded: 2,
     switched: 1,
     last: { purpose: "chat", from: "claude-opus-5-5[1m]", to: "claude-opus-5", reason: "frontier_llm" },
   });
   const empty = wikiFixture();
   fixtures.push(empty);
-  expect(readStatus(empty.root).models).toEqual({ recorded: 0, switched: 0 });
+  expect(readStatus(empty.root).models).toEqual({ workModel: WORK_MODEL, recorded: 0, switched: 0 });
 });

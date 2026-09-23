@@ -1,5 +1,6 @@
 import type { AgentRequest, RunAgent } from "./batch";
 import { resolveClaudeCommand, spawnClaude } from "./claude-cli";
+import { WORK_MODEL } from "./model-use";
 
 export const RESTRICTED_PROFILE = "restricted-text-v1";
 export function restrictedArgs(rules: string, budget?: number): string[] {
@@ -18,6 +19,8 @@ export function restrictedArgs(rules: string, budget?: number): string[] {
     "--no-session-persistence",
     "--setting-sources",
     "",
+    "--model",
+    WORK_MODEL,
     "--system-prompt",
     rules,
     ...(budget === undefined ? [] : ["--max-budget-usd", String(budget)]),

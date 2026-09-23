@@ -11,6 +11,14 @@ import { z } from "zod";
 /** 可以交给 --model 的模型名：别名或完整 id，可带 [1m] 这类上下文后缀；挡住空格与以 - 开头的参数 */
 export const MODEL_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]*(\[[a-z0-9]+\])?$/;
 
+/**
+ * 写知识库的调用固定用的模型：受限启动器（编译、诊断、判定、整合、交叉审视、抽检）、提取与整合、复测计划的默认值。
+ * 用户 2026-09-23 定夜间任务固定 Opus 5.5。取值与当时 CLI 自选的默认模型一字不差（含 1M 上下文后缀），
+ * 固定只是为了 CLI 升级换默认模型时不跟着悄悄变；拒答时 CLI 照样会换模型，由 trackModels 记下。
+ * 改它会改变编译配方（compile-raw 的 recipeHash 含参数），同一份材料会重新编译。
+ */
+export const WORK_MODEL = "claude-opus-5-5[1m]";
+
 export const modelUseSchema = z
   .object({
     /** 启动时 CLI 选定的模型（system/init） */

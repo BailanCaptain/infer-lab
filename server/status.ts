@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { readBudget } from "../scripts/wiki/budget";
 import { listGaps } from "../scripts/wiki/gap-ledger";
-import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
+import { answeredBy, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
 import { collectStepTerms } from "../scripts/wiki/lint";
 import { listTasks } from "../scripts/wiki/queue";
 import { listReviews } from "../scripts/wiki/review";
@@ -57,6 +57,7 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
   };
   const models = {
     ...(config?.chatModel ? { chatModel: config.chatModel } : {}),
+    workModel: WORK_MODEL,
     recorded: recorded.length,
     switched: switched.length,
     ...(last && hop ? { last: { at: last.startedAt, purpose: last.purpose, ...hop } } : {}),

@@ -1,6 +1,6 @@
 {
   "id": "700c047d058af6db74676719445e4874e908421240acdba6ee1453c10224f616",
-  "state": "pending",
+  "state": "published",
   "payload": {
     "base": {
       "src/content/wiki/registry.json": "19a97f7db401b364c33193f7689beb40689cce722383f52843ffdde42ba20ade",

@@ -1,0 +1,18 @@
+{
+  "kind": "original",
+  "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+  "answer": "直接读最相关的页面。读完了，内容非常完整。\n\n---\n\n**一句话答案**：`get_hccl_config_for_pg_options` 按通信组名分三档分派 `hccl_buffer_size`，MC2 组因已知缺陷被排除在外、退回环境变量 `HCCL_BUFFSIZE`。\n\n---\n\n**分派规则**（[HCCL 缓冲区](concepts/gap-a5164fe10fa9184412f8.md)）：\n\n| 组名 | 缓冲区值 | 备注 |\n|---|---|---|\n| `\"dp\"` | `calculate_dp_buffer_size()` → 实际恒为 50 MiB [D] | 随 DP 规模现算，但下限顶掉一切现实值 |\n| `\"dynamic_eplb\"` | 100 MiB（常量） | 写死，只有默认的一半 |\n| 其他任何名字 | 200 MiB（默认值） | 兜底分支 |\n| 名字含 `\"mc2\"` | `None`（**不传 pg_options**） | 退回 `HCCL_BUFFSIZE` 环境变量 |\n\nMC2 组判断在查表之前用子串匹配 `\"mc2\" in group_name`，只要组名里出现这三个字母就提前返回。\n\n---\n\n**MC2 为什么不能单独配**：代码注释里有一条 `FIXME` 说明这是已知缺陷 [D]——mc2 算子自己读进程级环境变量 `HCCL_BUFFSIZE` 来划分通信空间，而 `pg_options` 里的 `hccl_buffer_size` 是建组时逐组下发的。两条通路同时生效时，算子按环境变量切出的空间与建组实际分配的大小对不上，会踩到内存不对齐 [I]。返回 `None` 相当于主动放弃逐组配置权，让 MC2 完全走环境变量那条路。\n\n**使用者要注意**：调 `HCCL_BUFFSIZE` 会同时影响**所有**依赖该环境变量的通信，不只是 MC2 [I]。\n\n---\n\n**注**：本页据维护者手工摘录的 `vllm_ascend/utils.py` 片段（只含常量定义区和三个函数，无调用方），**未核对任何在册发布版本**，上述规则只在该摘录范围内成立 [A]。\n\n<!-- wiki-coverage: {\"satisfied\":true,\"reason\":\"gap-a5164fe10fa9184412f8 页完整覆盖了三档分派规则、DP 公式推算与 MC2 不可逐组配置的原因（FIXME 注释）；证据等级 D，来自未版本核对的源码摘录，已在正文说明局限。\"} -->",
+  "outcome": {
+    "ok": true,
+    "sessionId": "67afa920-a020-4c3a-808a-4b285d401325",
+    "costUsd": 0.19318079999999999
+  },
+  "citations": {
+    "cited": true,
+    "selfDeclaredUncovered": false
+  },
+  "revision": "f4a81c58c55692164c1b67ba2835880bbf134d8c573088e2a010c13d05ed0465",
+  "reviewId": "700c047d058af6db74676719445e4874e908421240acdba6ee1453c10224f616",
+  "planHash": "2b49b01559cf8b371f249c162936cb94e0665b4619a0e1758cd5b290fa1720a8",
+  "semanticStatus": "needs-human-review"
+}

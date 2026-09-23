@@ -1826,6 +1826,11 @@
           "note": "组是沿 DP 轴连续取 rank 建的，所以每个切分数必须整除 data_parallel_size"
         },
         {
+          "from": "gap-a5164fe10fa9184412f8",
+          "kind": "enables",
+          "note": "只有 dp 这个组的缓冲区随配置变化，取的就是那一页讲的 data_parallel_size"
+        },
+        {
           "from": "large-scale-ep",
           "kind": "enables",
           "note": "大规模 EP 的每个「引擎」就是一个 DP rank；DP 复制什么、MoE 下各 rank 为什么必须齐步走，在那一页"
@@ -2737,7 +2742,13 @@
       "contradicts": [],
       "updated": "2026-09-22",
       "file": "concepts/eplb.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "gap-a5164fe10fa9184412f8",
+          "kind": "enables",
+          "note": "名为 dynamic_eplb 的通信组在这里被单独列出、缓冲区固定为 100，与其余组的默认值不同"
+        }
+      ]
     },
     {
       "id": "expert-parallel",
@@ -3154,6 +3165,49 @@
           "note": "两个 pass 盯的是同一段 all_reduce 加 RMSNorm 子图，融合 pass 排在前面，SP 会静默匹配不到；只在 v0.23 上撞得到，v0.26 起那个 pass 已删"
         }
       ]
+    },
+    {
+      "id": "gap-a5164fe10fa9184412f8",
+      "title": "HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options",
+      "type": "concept",
+      "origin": "gap",
+      "summary": "get_hccl_config_for_pg_options 按通信组名分派 hccl_buffer_size：dp 组按 dp_size 算、dynamic_eplb 组固定 100、其余走默认 200，而含 \"mc2\" 的组直接返回 None。",
+      "aliases": [
+        "HCCL_BUFFSIZE",
+        "hccl_buffer_size",
+        "HCCL 缓冲区"
+      ],
+      "chapters": [
+        "13",
+        "14"
+      ],
+      "order": 40,
+      "prerequisites": [],
+      "sources": [
+        "raw:sha256-c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8.md#L1-L106"
+      ],
+      "verified": [],
+      "evidence": "D",
+      "rawSources": [
+        "raw/sha256-c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8.md"
+      ],
+      "relations": [
+        {
+          "to": "eplb",
+          "kind": "builds-on",
+          "note": "名为 dynamic_eplb 的通信组在这里被单独列出、缓冲区固定为 100，与其余组的默认值不同"
+        },
+        {
+          "to": "data-parallel",
+          "kind": "builds-on",
+          "note": "只有 dp 这个组的缓冲区随配置变化，取的就是那一页讲的 data_parallel_size"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "concepts/gap-a5164fe10fa9184412f8.md",
+      "backlinks": []
     },
     {
       "id": "gqa",

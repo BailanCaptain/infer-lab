@@ -437,3 +437,6 @@ vllm-ascend@releases/v0.26.0rc 2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f → 16b0
 ## [2026-09-23] ingest | '[Refactor] remove layer sharding'
 晋升 sources/pr-11953.md
 
+## [2026-09-23] ingest | HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options
+晋升 concepts/gap-a5164fe10fa9184412f8.md
+

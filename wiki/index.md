@@ -1,11 +1,12 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 106 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 107 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
 - [Block Table：逻辑块号到物理块号的唯一翻译层](concepts/block-table.md) — 一张 (请求数 × 每请求最大块数) 的 int32 表。行是请求在这一批里的座位号，列是它自己数出来的第几个块，格子里填的是显存里的物理块号。 `11`
 - [三个进程与 patch 注入点](concepts/engine-processes.md) — V1 引擎跑起来是 Main、EngineCore、Worker 三类进程；昇腾的 patch 要分别进这三处，用的是三条不同的路。 `10`
+- [HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options](concepts/gap-a5164fe10fa9184412f8.md) — get_hccl_config_for_pg_options 按通信组名分派 hccl_buffer_size：dp 组按 dp_size 算、dynamic_eplb 组固定 100、其余走默认 200，而含 "mc2" 的组直接返回 None。 `13 14`
 - [GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加](concepts/gqa.md) — Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 因此正好减半，而注意力本身一次乘加都没少。 `04`
 - [KV Cache](concepts/kv-cache.md) — 把每一层、每个已经算过的 token 的 K 和 V 留在显存里。下一步生成新 token 时只算新的那一个，旧的直接读。 `05 11`
 - [MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE](concepts/mla.md) — 每层每个 token 只存一条 512 维潜向量加 64 维 RoPE 段；prefill 把它展开回每个头的 K 和 V，decode 干脆不展开，改把展开矩阵乘到 Q 上。 `04`
@@ -175,6 +176,7 @@
 - [enable_matmul_allreduce](params/enable-matmul-allreduce.md)
 - [Fine-Grained Tensor Parallelism：给个别大矩阵单独借几个 DP rank 来切](concepts/fine-grained-tp.md)
 - [fuse_allreduce_rms](params/fuse-allreduce-rms.md)
+- [HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options](concepts/gap-a5164fe10fa9184412f8.md)
 - [KVPP：KV 按层分给 TP 组里各张卡，算到哪层就把整层广播回来](concepts/kvpp.md)
 - [layer_sharding](params/layer-sharding.md)
 - [Pipeline Parallel：按层切开，界线上一步只过一份 hidden](concepts/pipeline-parallel.md)
@@ -187,6 +189,7 @@
 - [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md)
 - [EPLB：把热门专家搬到闲着的卡上，但不改路由](concepts/eplb.md)
 - [Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑](concepts/expert-parallel.md)
+- [HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options](concepts/gap-a5164fe10fa9184412f8.md)
 - [Large-Scale EP：一个 DP rank 一个 server，负载均衡搬到 vLLM 外面](concepts/large-scale-ep.md)
 - [multistream_overlap_gate](params/multistream-overlap-gate.md)
 

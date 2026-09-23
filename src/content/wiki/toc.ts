@@ -1,7 +1,10 @@
 /**
  * 阅读页左侧目录的章法，唯一定义处（用户 2026-09-20 定）：
  *
- *   推理基础知识 → 代码全流程 → 特性 → RFork 工作版 → 参数
+ *   推理基础知识 → 代码全流程 → 特性 → RFork 工作版 → 参数 → 知识库长出来的
+ *
+ * 最后一部分是 2026-09-23 闭环真跑通后加的：问答记录、PR 记录、缺口补写页由程序生成、人审后入库，
+ * 它们不在人排的阅读顺序里，也不该混进「其他」——读者要能一眼看出哪些知识是库自己长出来的。
  *
  * 之前目录按课程 22 章的章号分组：多数章是空的，读者看到的是「未归章 → 00 → 04 → 05 → 09…」的跳号，
  * 没章号的参数页全堆在最顶上。章号（frontmatter 的 `chapters`）仍然保留，但只回答「这页对应课程哪一章」，
@@ -19,6 +22,8 @@ export interface TocPage {
   type: string;
   chapters: string[];
   order: number;
+  /** frontmatter 的 origin；chat / pr / gap 三种是闭环长出来的页 */
+  origin?: string;
 }
 export interface TocSection<P> {
   /** 小标题；空串表示这一部分不分组 */
@@ -26,7 +31,7 @@ export interface TocSection<P> {
   pages: P[];
 }
 export interface TocPart<P> {
-  id: "basics" | "flow" | "features" | "rfork" | "params";
+  id: "basics" | "flow" | "features" | "rfork" | "params" | "grown";
   title: string;
   blurb: string;
   sections: TocSection<P>[];
@@ -38,6 +43,14 @@ const PARTS: Pick<TocPart<never>, "id" | "title" | "blurb">[] = [
   { id: "features", title: "特性", blurb: "vLLM 与 vLLM-Ascend 的各项特性" },
   { id: "rfork", title: "RFork 工作版", blurb: "独立演进的权重加载实现：机制、术语与故障定位" },
   { id: "params", title: "参数", blurb: "每个配置参数的定义、默认值与版本谱系" },
+  { id: "grown", title: "知识库长出来的", blurb: "问答、PR 和缺口补写产生、经人审后入库的页" },
+];
+
+/** 闭环长出来的页按来源分组；顺序就是读者最可能想找的顺序 */
+const GROWN_SECTIONS: { origin: string; title: string }[] = [
+  { origin: "gap", title: "补写的缺口" },
+  { origin: "chat", title: "问答记录" },
+  { origin: "pr", title: "PR 记录" },
 ];
 
 /** 人排的阅读顺序。这里写了 id 的页，位置以这里为准。 */
@@ -102,6 +115,11 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
   // RFork 工作版独立成章，不借用社区特性章号；后续子页也按 order 自动归入。
   const rforkPages = pages.filter((p) => p.id === "rfork" || p.id.startsWith("rfork-")).sort(byOrder);
   for (const p of rforkPages) placed.add(p.id);
+  const grown = GROWN_SECTIONS.map((section) => ({
+    title: section.title,
+    pages: pages.filter((p) => !placed.has(p.id) && p.origin === section.origin).sort(byOrder),
+  })).filter((section) => section.pages.length > 0);
+  for (const section of grown) for (const p of section.pages) placed.add(p.id);
   const rest = pages.filter((p) => !placed.has(p.id));
 
   const isBasic = (p: P) => p.chapters.length > 0 && p.chapters.every((c) => c <= BASICS_LAST_CHAPTER);
@@ -133,6 +151,7 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
     features,
     rfork: rforkPages.length ? [{ title: "", pages: rforkPages }] : [],
     params: params.length ? [{ title: "", pages: params }] : [],
+    grown,
   };
   return PARTS.map((part) => ({ ...part, sections: sections[part.id] })).filter(
     (part) => part.sections.length > 0,

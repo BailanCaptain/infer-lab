@@ -68,6 +68,26 @@ describe("buildToc", () => {
     expect(ids("params")).toEqual([["", ["a-param", "b-param"]]]);
   });
 
+  it("闭环长出来的页单独成部分、按来源分组，不落进「其他」", () => {
+    // 2026-09-23 闭环真跑通：发布的问答记录与 PR 记录没有人排的位置，掉进了「全流程 · 其他」
+    const toc = buildToc([
+      page("one-request", "concept", ["00"]),
+      { ...page("answer-abc", "source", ["11"]), origin: "chat" },
+      { ...page("pr-11953", "pr", ["21"], 10), origin: "pr" },
+      { ...page("gap-hccl", "concept", ["13"]), origin: "gap" },
+      { ...page("seeded", "concept", ["12"]), origin: "seed" },
+    ]);
+    expect(toc.map((p) => p.id)).toEqual(["basics", "flow", "grown"]);
+    expect(
+      toc.find((p) => p.id === "grown")!.sections.map((s) => [s.title, s.pages.map((p) => p.id)]),
+    ).toEqual([
+      ["补写的缺口", ["gap-hccl"]],
+      ["问答记录", ["answer-abc"]],
+      ["PR 记录", ["pr-11953"]],
+    ]);
+    expect(toc.find((p) => p.id === "flow")!.sections.map((s) => s.title)).toEqual(["其他"]);
+  });
+
   it("真实知识库：每一页恰好出现一次，全流程里没有落进「其他」的页", () => {
     const toc = buildToc(registry.pages);
     const listed = toc.flatMap((part) => part.sections.flatMap((s) => s.pages.map((p) => p.id)));

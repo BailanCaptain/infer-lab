@@ -13,9 +13,9 @@ repos:
     url: https://github.com/vllm-project/vllm-ascend
     path: tools/repos/vllm-ascend
     refs:
-      main: baa023ad
-      "releases/v0.23.0": 2c59ff10
-      "releases/v0.26.0rc": 2ed6cbba   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
+      main: "baa023ad"
+      "releases/v0.23.0": "2c59ff10"
+      "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
 
 features:
   - id: layer-sharding

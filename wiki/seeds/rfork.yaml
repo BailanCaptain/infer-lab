@@ -5,5 +5,5 @@ repos:
     url: https://github.com/yangsonglin13/vllm-ascend
     path: tools/repos/rfork
     refs:
-      main: 3284850b42f94934dfe6909ed6f1c4c145a7f69c
+      main: "3284850b42f94934dfe6909ed6f1c4c145a7f69c"
 features: []

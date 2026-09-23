@@ -29,7 +29,10 @@ export { type AgentEvent, type AgentRequest, type AgentResult, type RunAgent, ru
 
 // ---------- 种子清单 ----------
 
-const shaField = z.string().regex(/^[0-9a-f]{7,40}$/);
+/** YAML 会把 12345678、4e123456、01234567 这种形状读成数字（后者还丢掉开头的 0），所以 seeds 里的提交号一律加引号 */
+const shaField = z
+  .string({ invalid_type_error: "提交号要加引号：没加引号的 12345678、4e123456 这种形状会被 YAML 读成数字" })
+  .regex(/^[0-9a-f]{7,40}$/);
 
 /** 默认 ref 名。一个 repo 至少要有它，feature 不写 `ref` 时用它。 */
 export const DEFAULT_REF = "main";

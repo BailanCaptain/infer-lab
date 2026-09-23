@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { isMap, isScalar, parseDocument } from "yaml";
 import type { HandbookSlices } from "./handbook";
 import {
   type AgentResult,
@@ -728,5 +729,50 @@ describe("提取与整合固定作答模型", () => {
       integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx),
     ])
       expect(req.args[req.args.indexOf("--model") + 1]).toBe(WORK_MODEL);
+  });
+});
+
+// YAML 1.2 会把 12345678 读成数字、4e123456 读成无穷大、01234567 读成 1234567（丢了开头的 0）。
+// 现有钉点都带字母所以还没出事；下次重钉碰上这种形状，钉点解析就会失败或悄悄错位。
+describe("seeds 里的提交号必须加引号", () => {
+  it("没加引号被读成数字时，报错直接说要加引号", () => {
+    for (const sha of ["12345678", "4e123456", "01234567"])
+      expect(() =>
+        parseSeeds(
+          `repos:\n  r:\n    url: https://github.com/a/b\n    path: p\n    refs:\n      main: ${sha}\nfeatures: []\n`,
+        ),
+      ).toThrow(/加引号/);
+    expect(
+      parseSeeds(
+        `repos:\n  r:\n    url: https://github.com/a/b\n    path: p\n    refs:\n      main: "01234567"\nfeatures: []\n`,
+      ).repos.r!.refs.main,
+    ).toBe("01234567");
+  });
+
+  it("仓库里每份 seeds 的每个提交号都是带引号的字符串", () => {
+    const dir = new URL("../../wiki/seeds/", import.meta.url);
+    const files = readdirSync(dir).filter((name) => name.endsWith(".yaml"));
+    expect(files.length).toBeGreaterThan(0);
+    const bare: string[] = [];
+    for (const name of files) {
+      const doc = parseDocument(readFileSync(new URL(name, dir), "utf8"));
+      const repos = doc.get("repos");
+      if (!isMap(repos)) continue;
+      for (const repo of repos.items) {
+        if (!isMap(repo.value)) continue;
+        const refs = repo.value.get("refs");
+        const pins = [
+          ...(isMap(refs) ? refs.items.map((item) => [`refs.${item.key}`, item.value] as const) : []),
+          ["commit", repo.value.get("commit", true)] as const,
+        ];
+        for (const [where, node] of pins)
+          if (
+            node !== undefined &&
+            !(isScalar(node) && (node.type === "QUOTE_DOUBLE" || node.type === "QUOTE_SINGLE"))
+          )
+            bare.push(`${name} ${repo.key}.${where}`);
+      }
+    }
+    expect(bare).toEqual([]);
   });
 });

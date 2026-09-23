@@ -36,6 +36,25 @@ export function workerDue(root: string, task: QueueTask): boolean {
   );
 }
 
+/**
+ * 补写决定必须绑定到提供的补料原文上。模型写 source 时会在引用后面加备注（2026-09-23 真实缺口就这样），
+ * 引文也常跨行——归档格式每行正文前都有一行定位，整段 includes 必然失败。所以：source 里含有某份材料的
+ * 引用就算绑定到它；引文按行核，每一行都得逐字出现在那份材料里，编造的句子过不去。
+ */
+export function boundSource<T extends { content: { source: string; lines: { text: string }[] } }>(
+  sources: T[],
+  decision: { source: string; quote: string },
+): T | undefined {
+  const source = sources.find((s) => decision.source.includes(s.content.source));
+  if (!source) return undefined;
+  const text = source.content.lines.map((l) => l.text).join("\n");
+  const lines = decision.quote
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return lines.length && lines.every((l) => text.includes(l)) ? source : undefined;
+}
+
 export async function workOne(
   root: string,
   taskId: string,
@@ -166,15 +185,7 @@ export async function workOne(
           .strict()
           .superRefine((v, ctx) => {
             if (v.action === "new" || v.action === "update") {
-              const source = material.sources.find((s) => s.content.source === v.source);
-              if (
-                !source ||
-                !v.quote.trim() ||
-                !source.content.lines
-                  .map((l) => l.text)
-                  .join("\n")
-                  .includes(v.quote)
-              )
+              if (!boundSource(material.sources, v))
                 ctx.addIssue({ code: "custom", message: "补写决定没有绑定补料原文" });
               if (v.action === "update" && !material.pages.some((p) => p.id === v.target))
                 ctx.addIssue({ code: "custom", message: "更新前未读目标页全文" });
@@ -189,7 +200,7 @@ export async function workOne(
             origin: "gap",
             data: { question: packet.question, contextQuestions: packet.contextQuestions, material },
             rules:
-              '仅根据补料原文和已提供页面全文决定：返回 JSON {"action":"new|update|already-covered|undetermined","target":"已有页id或null","source":"材料原样引用","quote":"逐字引文","reason":"理由"}。catalog 只列相关页、仅用于定位（catalogOmitted 是没列出的页数），不算读过正文。能从旧页回答选 already-covered；候选页未读够不能断言全库没有知识，选 undetermined 并说明需要哪些页面。新增仅用于所给证据支持且 catalog 未指向已有主题；更新必须提供目标页全文。社区和聊天文本不得冒充源码实证。',
+              '仅根据补料原文和已提供页面全文决定：返回 JSON {"action":"new|update|already-covered|undetermined","target":"已有页id或null","source":"材料原样引用","quote":"逐字引文","reason":"理由"}。source 只写材料的 raw 引用本身，不加说明；quote 逐字照抄材料正文，可以多行。catalog 只列相关页、仅用于定位（catalogOmitted 是没列出的页数），不算读过正文。能从旧页回答选 already-covered；候选页未读够不能断言全库没有知识，选 undetermined 并说明需要哪些页面。新增仅用于所给证据支持且 catalog 未指向已有主题；更新必须提供目标页全文。社区和聊天文本不得冒充源码实证。',
             schema,
             policy,
             timeoutMs: PAGE_TEXT_TIMEOUT_MS,
@@ -206,7 +217,8 @@ export async function workOne(
             },
           };
         id = checked.value.action === "update" ? checked.value.target! : `gap-${task.input.key.slice(0, 20)}`;
-        source = checked.value.source;
+        // 编译只认归档引用本身，不带模型在 source 后面加的备注
+        source = boundSource(material.sources, checked.value)!.content.source;
         // Only machine-bounded source and existing page text reach compilation; not the diagnostic reason.
         why = JSON.stringify({
           question: packet.question,

@@ -12,7 +12,7 @@ import { saveRawSnapshot } from "./raw";
 import { acceptRetest, prepareRetest, runRetest } from "./retest";
 import { approveReview, rejectReview } from "./review";
 import { wikiFixture } from "./test-fixture";
-import { workerDue, workOne } from "./worker";
+import { boundSource, workerDue, workOne } from "./worker";
 
 const policy = { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 };
 async function setup(question: string) {
@@ -397,4 +397,28 @@ it("an undetermined assessment continues to the material decision once a retest 
   } finally {
     f.cleanup();
   }
+});
+
+it("binds a material decision by the archived reference and checks the quote line by line", () => {
+  // 2026-09-23 真实缺口：模型在 source 引用后面加了备注，引文又跨了归档格式里的定位行，整段 includes 必然失败
+  const sources = [
+    {
+      content: {
+        source: "raw:x.md#L1-L5",
+        lines: [
+          { line: 1, text: "来源：r@1:a.py" },
+          { line: 2, text: "r@1:a.py#L1" },
+          { line: 3, text: "    a = 1" },
+          { line: 4, text: "r@1:a.py#L2" },
+          { line: 5, text: "    b = 2" },
+        ],
+      },
+    },
+  ];
+  expect(
+    boundSource(sources, { source: "raw:x.md#L1-L5（a.py#L1-L2）；辅证略", quote: "a = 1\n    b = 2" }),
+  ).toBe(sources[0]);
+  expect(boundSource(sources, { source: "raw:y.md#L1", quote: "a = 1" })).toBeUndefined();
+  expect(boundSource(sources, { source: "raw:x.md#L1-L5", quote: "a = 1\nc = 3" })).toBeUndefined();
+  expect(boundSource(sources, { source: "raw:x.md#L1-L5", quote: "  " })).toBeUndefined();
 });

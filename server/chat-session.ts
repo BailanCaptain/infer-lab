@@ -7,11 +7,19 @@ import { atomicText, WorkflowStore } from "../scripts/wiki/workflow";
 import { HttpError } from "./http";
 
 const uuid = z.string().uuid();
+/**
+ * 一个模型会话最多续答几轮。2026-09-23 实测同一会话连问四轮，费用 $0.66 → $1.15 → $1.60 → $2.01：
+ * 续会话要带上全部历史，每轮约贵 $0.45，第四轮就超过 $2 的单次预留、触发共享预算熔断。
+ * 答满就换新会话，旧问题只留作指代上下文（和知识版本变化时的处理一样）。
+ */
+export const MAX_SESSION_TURNS = 3;
 const sessionSchema = z
   .object({
     id: uuid,
     revision: z.string().regex(/^[a-f0-9]{64}$/),
     agentSessionId: uuid.optional(),
+    /** 当前模型会话已答的轮数；换会话时从头数 */
+    turns: z.number().int().nonnegative().default(0),
     questions: z.array(z.string().max(8000)).max(6),
     active: z.object({ token: uuid, pid: z.number().int().positive() }).optional(),
   })
@@ -24,7 +32,7 @@ export interface ChatLease {
   agentSessionId?: string | undefined;
   previousQuestions: string[];
   contextQuestions: string[];
-  resetReason?: "knowledge-updated" | "session-unavailable" | undefined;
+  resetReason?: "knowledge-updated" | "session-unavailable" | "turn-limit" | undefined;
 }
 const pathOf = (root: string, id: string) =>
   localFile(root, `wiki/_jobs/chat-sessions/${uuid.parse(id)}.json`);
@@ -48,19 +56,29 @@ const alive = (pid: number) => {
 export function beginChat(root: string, revision: string, id?: string): Promise<ChatLease> {
   return new WorkflowStore(root).locked(() => {
     const known = id && uuid.safeParse(id).success && existsSync(pathOf(root, id));
-    const session: Session = known ? read(root, id) : { id: randomUUID(), revision, questions: [] };
+    const session: Session = known
+      ? read(root, id)
+      : { id: randomUUID(), revision, turns: 0, questions: [] };
     if (session.active && alive(session.active.pid))
       throw new HttpError(409, "这段会话正在回答，请等待结束后再提问");
     const changed = session.revision !== revision;
+    const exhausted = !changed && session.turns >= MAX_SESSION_TURNS;
+    const fresh = changed || exhausted;
     const token = randomUUID();
     const lease: ChatLease = {
       id: session.id,
       token,
       revision,
-      agentSessionId: changed ? undefined : session.agentSessionId,
-      previousQuestions: changed ? session.questions : [],
+      agentSessionId: fresh ? undefined : session.agentSessionId,
+      previousQuestions: fresh ? session.questions : [],
       contextQuestions: session.questions,
-      resetReason: changed ? "knowledge-updated" : id && !known ? "session-unavailable" : undefined,
+      resetReason: changed
+        ? "knowledge-updated"
+        : exhausted
+          ? "turn-limit"
+          : id && !known
+            ? "session-unavailable"
+            : undefined,
     };
     session.active = { token, pid: process.pid };
     write(root, session);
@@ -80,6 +98,8 @@ export function finishChat(
     if (result.ok) {
       session.revision = lease.revision;
       session.agentSessionId = uuid.safeParse(result.sessionId).success ? result.sessionId : undefined;
+      // 续上旧会话就累加；这轮开的是新会话就从 1 数起
+      session.turns = lease.agentSessionId ? session.turns + 1 : 1;
       session.questions = [...session.questions, question.slice(0, 8000)].slice(-6);
     }
     delete session.active;

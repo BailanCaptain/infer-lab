@@ -9,7 +9,7 @@ import { neighborhood } from "../src/content/wiki/relations";
 import { type CitationVerdict, retrieve } from "../src/content/wiki/retrieve";
 import { captureAnswer } from "./answers";
 import { buildChatRequest, CHAT_TIMEOUT_MS, type ChatHit, runChat, sseFrame } from "./chat";
-import { beginChat, type ChatLease, finishChat } from "./chat-session";
+import { beginChat, type ChatLease, finishChat, MAX_SESSION_TURNS } from "./chat-session";
 import { answerCitationGuide, checkAnswerCitations } from "./citations";
 import { coverageSignals } from "./coverage";
 import { HttpError, readJson, send } from "./http";
@@ -86,7 +86,12 @@ export async function handleChat(
       "cache-control": "no-cache",
       connection: "keep-alive",
     });
-    emit("knowledge", { revision: lease.revision, sessionId: lease.id, resetReason: lease.resetReason });
+    emit("knowledge", {
+      revision: lease.revision,
+      sessionId: lease.id,
+      resetReason: lease.resetReason,
+      maxTurns: MAX_SESSION_TURNS,
+    });
     emit("hits", { hits });
     // 贴的是报错才在线查 GitHub（F003 AC4 聊天层接入）；普通提问一个网络请求都不发
     let github: ChatTrace | undefined;

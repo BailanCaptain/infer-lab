@@ -134,7 +134,7 @@ async function streamChat(
     related: (pages: NonNullable<Msg["related"]>) => void;
     trace: (v: TraceView) => void;
     error: (m: string) => void;
-    knowledge: (v: { revision: string; sessionId: string; resetReason?: string }) => void;
+    knowledge: (v: { revision: string; sessionId: string; resetReason?: string; maxTurns?: number }) => void;
     gap: (v: {
       state: "collecting" | "awaiting-assessment" | "record-failed";
       count?: number;
@@ -255,7 +255,9 @@ export function useChat() {
                       versionNotice:
                         v.resetReason === "knowledge-updated"
                           ? "知识库已更新，本轮重新检索；旧回答仅保留显示。"
-                          : "原会话不可用，本轮重新检索。",
+                          : v.resetReason === "turn-limit"
+                            ? `这段对话已答满 ${v.maxTurns ?? 3} 轮，本轮开新会话重新检索（续得越长每轮越贵）；此前的问题只用来理解指代。`
+                            : "原会话不可用，本轮重新检索。",
                     }
                   : {}),
               }));

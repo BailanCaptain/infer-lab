@@ -128,7 +128,7 @@ export function WikiPage() {
           ));
           const head = (
             <>
-              <span className="wiki-toc-chapter">{"一二三四五"[i]}</span>
+              <span className="wiki-toc-chapter">{"一二三四五六"[i]}</span>
               {part.title}
               <small className="wiki-toc-count">{count}</small>
             </>

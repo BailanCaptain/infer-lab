@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "89f03ffee693030c11349b3bb0211af6a62c64ded44a893e89c4bc39baecfad3",
+  "input": {
+    "sources": [
+      {
+        "ref": "raw:sha256-c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8.md#L1-L106",
+        "hash": "c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8"
+      }
+    ],
+    "targets": [
+      "gap-a5164fe10fa9184412f8"
+    ],
+    "recipeHash": "97e4ad4c8fedc1d1cfd24a343bf8297db9f9367e05d7694aa34b13b61990d7d7"
+  },
+  "origins": [
+    "gap"
+  ],
+  "state": "draft",
+  "screening": {
+    "source": "raw:sha256-c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8.md#L1-L106",
+    "rawHash": "c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8",
+    "sanitizerVersion": "wiki-text-v1",
+    "cleanHash": "c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8",
+    "blocked": false,
+    "findings": []
+  },
+  "policy": {
+    "maxAttempts": 1,
+    "maxCostUsd": 4,
+    "reserveUsd": 2
+  },
+  "attempts": [
+    {
+      "token": "4516e70c-3454-44ce-ae69-f2dd2d994863",
+      "ownerPid": 14680,
+      "startedAt": "2026-09-23T03:46:59.854Z",
+      "finishedAt": "2026-09-23T03:48:24.724Z",
+      "reservedUsd": 2,
+      "costUsd": 0.31957475,
+      "state": "draft"
+    }
+  ],
+  "artifacts": {
+    "_drafts/gap-a5164fe10fa9184412f8.md": "d861b62427a7867dcdcfe32f615dc964fc3b6a71a8315732e19cc11f079fab3e",
+    "raw/sha256-c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8.md": "c00f9564c28c3b320827d06525af4c3bd334639d8bcda54d5260c760197302d8"
+  },
+  "createdAt": "2026-09-23T03:46:59.841Z",
+  "updatedAt": "2026-09-23T03:48:24.724Z"
+}

@@ -434,3 +434,6 @@ vllm-ascend@releases/v0.26.0rc 2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f → 16b0
 ## [2026-09-23] ingest | 问答记录：Block Table 里的块什么时候分配、什么时候回收
 晋升 sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md
 
+## [2026-09-23] ingest | '[Refactor] remove layer sharding'
+晋升 sources/pr-11953.md
+

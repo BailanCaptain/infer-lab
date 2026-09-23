@@ -407,6 +407,11 @@
           "note": "check_and_update_config 改写与最终定稿的，就是那一页解出来的那份配置"
         },
         {
+          "from": "pr-11953",
+          "kind": "enables",
+          "note": "该项原来在 AscendConfig.__init__ 里从 additional_config 读出，删除点之一就在这里"
+        },
+        {
           "from": "prefetch-ratio",
           "kind": "enables",
           "note": "这个键只是 additional_config 里的一段嵌套 dict，main 上它被 extra=\"forbid\" 拒收的机制在那一页"
@@ -4617,6 +4622,11 @@
           "from": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
           "kind": "alternative-to",
           "note": "两者都是为了不让每层都常驻一份全量 o_proj；layer_sharding 按层轮流放、v0.24 起已删，这个按 PCP 组切且只针对 o_proj"
+        },
+        {
+          "from": "pr-11953",
+          "kind": "enables",
+          "note": "这个 PR 删掉的就是 layer_sharding 这一项，读之前先看参数页知道它原来做什么"
         }
       ]
     },
@@ -6225,6 +6235,47 @@
           "note": "「是插件不是 fork」这个定位唯一的依据就是那两组 entry point，机制写在那一页"
         }
       ]
+    },
+    {
+      "id": "pr-11953",
+      "title": "[Refactor] remove layer sharding",
+      "type": "pr",
+      "origin": "pr",
+      "summary": "上游 PR",
+      "aliases": [
+        "PR 11953",
+        "remove layer sharding"
+      ],
+      "chapters": [
+        "21"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "raw:sha256-d93a892c756b5ee5bd28c3d0f921b32d53ee82001dacc2684cac56787c51d7fe.md#L1-L334"
+      ],
+      "verified": [],
+      "evidence": "I",
+      "rawSources": [
+        "raw/sha256-d93a892c756b5ee5bd28c3d0f921b32d53ee82001dacc2684cac56787c51d7fe.md"
+      ],
+      "relations": [
+        {
+          "to": "layer-sharding",
+          "kind": "builds-on",
+          "note": "这个 PR 删掉的就是 layer_sharding 这一项，读之前先看参数页知道它原来做什么"
+        },
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "该项原来在 AscendConfig.__init__ 里从 additional_config 读出，删除点之一就在这里"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "sources/pr-11953.md",
+      "backlinks": []
     },
     {
       "id": "prefetch-ratio",

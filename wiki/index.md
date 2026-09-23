@@ -1,6 +1,6 @@
 # Wiki 索引
 
-派生文件，由 `pnpm wiki:build` 生成，勿手改。共 105 页。
+派生文件，由 `pnpm wiki:build` 生成，勿手改。共 106 页。
 
 ## 概念（concept）
 - [四种注意力的代价](concepts/attention-cost.md) — 同样存一个 token 一层，普通 GQA 要 4096 字节，MLA 只要 1152。差别不是压缩得好，是存的东西根本不一样。 `04`
@@ -114,6 +114,9 @@
 ## 来源（source）
 - [问答记录：Block Table 里的块什么时候分配、什么时候回收](sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md) — 一次问答的归档。结论是分配与回收都不在块表里发生，而在上游 EngineCore 进程的 KVCacheManager / BlockPool 里；块表只事后记账。 `11`
 - [RFork 官网核读：原图、全部章节与工作版差异](sources/rfork-official-guide.md) — 按用户指定的英文 latest RFork Guide 核读全文与架构图，对照独立工作版，区分官方使用说明、工作版实际调用路径和仍需现场验收的内容。
+
+## PR（pr）
+- [[Refactor] remove layer sharding](sources/pr-11953.md) — 上游 PR `21`
 
 ## 按章节
 
@@ -229,6 +232,9 @@
 ### 20 读源码
 - [怎么读这个仓库](concepts/reading-vllm-ascend.md)
 - [vllm_ascend 目录地图](concepts/vllm-ascend-repo-map.md)
+
+### 21 PR 影响分析
+- [[Refactor] remove layer sharding](sources/pr-11953.md)
 
 ### 00 从一次对话开始：推理到底在算什么
 - [贯穿全书的那条请求](concepts/one-request.md)

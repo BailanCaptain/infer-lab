@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "33fbf3349d1cbcb3c889d89920a1c54227943ae39a6eb9f170c8d0eb7cddc430",
+  "input": {
+    "sources": [
+      {
+        "ref": "gap-material-v1",
+        "hash": "c4b14951463982cfe9510c3cf11528cda4603a469f2584c8b9b14bab0d0de312"
+      }
+    ],
+    "targets": [
+      "decision-c4b14951463982cfe9510c3cf11528cda4603a469f2584c8b9b14bab0d0de312"
+    ],
+    "recipeHash": "d88187ae9cae515d6165003e62074d5fe45cf4fc24f3501f397c4c7eb80a86c4"
+  },
+  "origins": [
+    "gap"
+  ],
+  "state": "draft",
+  "policy": {
+    "maxAttempts": 1,
+    "maxCostUsd": 4,
+    "reserveUsd": 2
+  },
+  "attempts": [
+    {
+      "token": "7a79b780-4df1-4ae1-adbe-7a9545539791",
+      "ownerPid": 28840,
+      "startedAt": "2026-09-23T03:40:51.959Z",
+      "finishedAt": "2026-09-23T03:41:09.583Z",
+      "reservedUsd": 2,
+      "costUsd": 0.21848800000000002,
+      "state": "draft"
+    }
+  ],
+  "artifacts": {
+    "_jobs/decisions/33fbf3349d1cbcb3c889d89920a1c54227943ae39a6eb9f170c8d0eb7cddc430.json": "672a46da28f05df320c0ffe6263dcd8c1996160203ea54c9249e52ecb4ca717c"
+  },
+  "createdAt": "2026-09-23T03:40:51.942Z",
+  "updatedAt": "2026-09-23T03:41:09.583Z"
+}

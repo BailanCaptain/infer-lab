@@ -94,7 +94,7 @@ export async function workOne(
         if (!assessed.ok || !("decision" in assessed))
           throw new Error("reason" in assessed ? assessed.reason : "诊断失败");
         const classification = assessed.decision.classification;
-        if (["covered", "retrieval-miss", "undetermined"].includes(classification))
+        if (["covered", "retrieval-miss"].includes(classification))
           return {
             state: "needs-review",
             result: {
@@ -102,6 +102,21 @@ export async function workOne(
               classification,
               compilationStarted: false,
               reason: "先核对现有证据与检索关系，不生成重复新页",
+            },
+          };
+        // 「未判明」是诚实的诊断：候选正文有截断时不能断言全库缺失（2026-09-23 真实缺口 HCCL 缓冲区就停在这里）。
+        // 真正判得出来的是下一步——补料判定拿到的是候选页全文加补料原文。人冻结了复测计划就说明要补这个缺口，
+        // 那就带着补料继续判；没有计划的照旧停下，等人决定。
+        if (classification === "undetermined" && !hasRetestPlan(root, task.id))
+          return {
+            state: "needs-review",
+            result: {
+              phase: "retest-plan",
+              assessment: assessed.jobId,
+              classification,
+              compilationStarted: false,
+              reason: "诊断未判明：候选正文有截断，不能断言全库缺失",
+              next: `要继续，先以 wiki:retest prepare --input <四类题目与判准.json> 冻结计划；任务会带着补料原文和候选页全文再判一次。taskId=${task.id}`,
             },
           };
         const gapInput = task.input;

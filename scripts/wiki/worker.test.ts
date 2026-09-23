@@ -334,3 +334,67 @@ it("审阅被驳回后带着驳回原因重编一次；重编结果与被驳回�
     f.cleanup();
   }
 });
+
+it("an undetermined assessment continues to the material decision once a retest plan is frozen", async () => {
+  // 2026-09-23 真实缺口（HCCL 缓冲区）：诊断对着截断的候选正文只能诚实地答「未判明」，任务就此停死。
+  // 真正判得出来的是下一步——补料判定拿到的是候选页全文加补料原文；人冻结了复测计划，就说明要补这个缺口。
+  const question = "B 的上限是多少？";
+  const f = await setup(question);
+  try {
+    const raw = saveRawSnapshot(join(f.root, "wiki"), "B 在 fixture 版本的上限为 2。\n");
+    const source = `raw:${raw.slice(4)}#L1`;
+    const modes: string[] = [];
+    const runAgent: RunAgent = async (req) => {
+      const data = JSON.parse(req.stdin);
+      modes.push(data.mode ?? (data.material?.sources ? "gap-material" : "compile"));
+      const output =
+        data.mode === "coverage-assessment"
+          ? JSON.stringify({
+              satisfied: null,
+              classification: "undetermined",
+              reason: "候选正文被截断，不能断言全库缺失",
+              evidence: [],
+            })
+          : JSON.stringify({
+              action: "already-covered",
+              target: "a",
+              source,
+              quote: "B 在 fixture 版本的上限为 2。",
+              reason: "补料核对后旧页已能回答",
+            });
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0, output };
+    };
+    const stopped = await workOne(f.root, f.task.id, policy, { sources: [source] }, { runAgent });
+    expect(stopped).toMatchObject({
+      state: "needs-review",
+      result: { phase: "retest-plan", classification: "undetermined", compilationStarted: false },
+    });
+    expect(modes).toEqual(["coverage-assessment"]);
+    const cases = (["original", "holdout", "version", "no-evidence"] as const).map((kind, i) => ({
+      kind,
+      question: i ? `独立问题 ${kind}` : question,
+      expected: "正确且有证据",
+      forbidden: "没有版本边界",
+    }));
+    await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
+    await initBudget(f.root, { limitUsd: 2, priorChargedUsd: 0, reserveUsd: 0.1, maxCalls: 8 });
+    const chat: typeof import("../../server/chat").runChat = async (_req, on) => {
+      on.text("知识库里还没有这一条。");
+      return { ok: true, costUsd: 0 };
+    };
+    const continued = await workOne(
+      f.root,
+      f.task.id,
+      policy,
+      { sources: [source], retry: true },
+      { runAgent, runChat: chat },
+    );
+    expect(modes).toEqual(["coverage-assessment", "gap-material"]);
+    expect(continued).toMatchObject({
+      state: "needs-review",
+      result: { compilationStarted: false, materialDecision: expect.stringMatching(/^[a-f0-9]{64}$/) },
+    });
+  } finally {
+    f.cleanup();
+  }
+});

@@ -121,7 +121,8 @@ describe("durable human review", () => {
     expect(show.status, show.stderr).toBe(0);
     expect(show.stdout).toContain("sources/a.md (新增)");
     expect(show.stdout).toContain("+启用需人工设置。");
-    expect(reviewDiff(f.root, f.id)).toContain("wiki/log.md");
+    // 派生文件发布时重新生成，不在待审差异里
+    expect(reviewDiff(f.root, f.id)).not.toContain("wiki/log.md");
     const approve = f.cli("wiki-review", ["approve", f.id]);
     expect(approve.status, approve.stderr).toBe(0);
     expect(readReview(f.root, f.id).state).toBe("published");
@@ -141,14 +142,14 @@ describe("durable human review", () => {
     expect(f.store.list()[0]?.state).toBe("draft");
     expect(listReviews(f.root)[0]?.reason).toBe("材料不足");
   });
-  it.each(["wiki/raw", "wiki/extra", "job"])("refuses stale approval after %s changes", async (kind) => {
-    const f = await proposal();
+  it.each(["wiki/raw", "job", "written page"])("refuses stale approval after %s changes", async (kind) => {
+    const f = await proposal(true);
     const file =
       kind === "wiki/raw"
         ? `wiki/${f.raw}`
         : kind === "job"
           ? `wiki/_jobs/${f.store.list()[0]!.id}.json`
-          : "wiki/sources/new.md";
+          : "wiki/sources/b.md";
     f.write(file, "user change");
     const before = wikiContents(f.root);
     await expect(approveReview(f.root, f.id)).rejects.toThrow(/变化/);
@@ -227,5 +228,106 @@ describe("durable human review", () => {
     f.write("tools/wiki-runtime/workflow.lock", JSON.stringify({ pid: process.pid, at: "now" }));
     expect(() => f.store.recoverLock()).toThrow(/仍存活/);
     expect(existsSync(join(f.root, "tools/wiki-runtime/workflow.lock"))).toBe(true);
+  });
+});
+
+// 2026-09-23：待审包以前比对整个 wiki/ 加注册表，任何改动（新草稿、直接发布的页、改手册）都让所有待审包过期；
+// 每个包又都带着 registry.json / index.md / log.md 的整份新内容，两个包批了一个，另一个必然过期。
+describe("待审包只盯本包依赖的文件", () => {
+  it("与本包无关的改动不让包过期：新增别的页、改手册、别的草稿", async () => {
+    const f = await proposal();
+    const unrelated =
+      "---\nid: new\ntitle: New\ntype: source\nsummary: 别处\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-15'\n---\n## 一句话\n别处的页。\n";
+    f.write("wiki/sources/new.md", unrelated);
+    f.write("wiki/HANDBOOK.md", "# 手册\n\n补一句。\n");
+    f.write("wiki/_drafts/other.md", "another draft");
+    await approveReview(f.root, f.id, { validate: () => [] });
+    expect(readReview(f.root, f.id).state).toBe("published");
+    expect(readFileSync(join(f.root, "wiki/sources/new.md"), "utf8")).toBe(unrelated);
+  });
+
+  it("包里不带 registry.json / index.md / log.md；base 只有本包写的文件、消耗的草稿、引用的原始材料和任务回执", async () => {
+    const f = await proposal(true);
+    const { payload } = readReview(f.root, f.id);
+    const paths = payload.writes.map((w) => w.path);
+    for (const derived of ["src/content/wiki/registry.json", "wiki/index.md", "wiki/log.md"]) {
+      expect(paths).not.toContain(derived);
+      expect(payload.base).not.toHaveProperty(derived);
+    }
+    expect(Object.keys(payload.base).sort()).toEqual(
+      [
+        "wiki/_drafts/a.md",
+        `wiki/_jobs/${f.store.list()[0]!.id}.json`,
+        `wiki/${f.raw}`,
+        "wiki/sources/b.md",
+      ].sort(),
+    );
+    expect(payload.log).toContain("晋升 sources/a.md");
+  });
+
+  it("两个同时待审的包先后批准都能发布，注册表、目录和日志在发布时重新生成、两页都在", async () => {
+    const f = wikiFixture();
+    fixtures.push(f);
+    const store = new WorkflowStore(f.root);
+    mkdirSync(join(f.root, "wiki/sources"), { recursive: true });
+    const raw = saveRawSnapshot(join(f.root, "wiki"), "本地资料：启用需人工设置。\n");
+    const source = `raw:${raw.slice(4)}#L1`;
+    const page = (id: string) =>
+      `---\nid: ${id}\ntitle: 页${id}\ntype: source\nsummary: 人工设置\nsources: [${source}]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n启用需人工设置。\n`;
+    const pack = async (id: string) => {
+      await compileRaw(
+        store,
+        { id, source, origin: "chat", rules: "fixture", timeoutMs: 1000 },
+        { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 },
+        {
+          runAgent: async (req) => ({
+            id: req.id,
+            ok: true,
+            exitCode: 0,
+            stderrTail: "",
+            output: page(id),
+            costUsd: 0,
+          }),
+        },
+      );
+      const result = await runStagedIntegration(
+        f.root,
+        {
+          id: "_integrate",
+          cwd: "",
+          args: [],
+          stdin: "",
+          timeoutMs: 1000,
+          allowedWrites: ["sources/**", "_drafts/_integration.json"],
+        },
+        [id],
+        "2026-09-15",
+        {
+          runAgent: async (req) => {
+            writeFileSync(join(req.cwd, `sources/${id}.md`), page(id));
+            writeFileSync(
+              join(req.cwd, "_drafts/_integration.json"),
+              JSON.stringify({ promoted: [id], merged: [], rejected: [] }),
+            );
+            return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+          },
+          validate: () => [],
+        },
+      );
+      return result.reviewId;
+    };
+    const first = await pack("a");
+    const second = await pack("b");
+    await approveReview(f.root, first);
+    await approveReview(f.root, second);
+    expect(readReview(f.root, second).state).toBe("published");
+    const registry = JSON.parse(readFileSync(join(f.root, "src/content/wiki/registry.json"), "utf8"));
+    expect(registry.pages.map((p: { id: string }) => p.id).sort()).toEqual(["a", "b"]);
+    const index = readFileSync(join(f.root, "wiki/index.md"), "utf8");
+    expect(index).toContain("页a");
+    expect(index).toContain("页b");
+    const log = readFileSync(join(f.root, "wiki/log.md"), "utf8");
+    expect(log).toContain("晋升 sources/a.md");
+    expect(log).toContain("晋升 sources/b.md");
   });
 });

@@ -1,7 +1,6 @@
-import { buildRegistry, renderIndex } from "./build";
-import { parsePage, type WikiPage } from "./pages";
+import { parsePage } from "./pages";
 import { createReview, type Review } from "./review";
-import { REGISTRY, wikiContents } from "./review-files";
+import { wikiContents } from "./review-files";
 
 /** Deterministic proposal assembly; actual publication still uses the shared review validator. */
 export async function proposePages(
@@ -17,15 +16,11 @@ export async function proposePages(
       throw new Error("仅能提出正式页面变更");
     after.set(path, text);
   }
-  const pages: WikiPage[] = [];
-  for (const [path, text] of after)
-    if (/^wiki\/(concepts|params|sources)\/.+\.md$/.test(path)) {
-      const parsed = parsePage(path.slice(5), text);
-      if (!parsed.page || parsed.problems.length) throw new Error(`待审页面解析失败：${path}`);
-      pages.push(parsed.page);
-    }
-  after.set("wiki/index.md", renderIndex(pages));
-  after.set(REGISTRY, `${JSON.stringify(buildRegistry(pages), null, 2)}\n`);
+  // 注册表与目录发布时重建，不进待审包
+  for (const [path, text] of updates) {
+    const parsed = parsePage(path.slice(5), text);
+    if (!parsed.page || parsed.problems.length) throw new Error(`待审页面解析失败：${path}`);
+  }
   return createReview(root, before, after, decision, repoRoots);
 }
 export { wikiContents };

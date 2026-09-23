@@ -3,8 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { HANDBOOK_H2 } from "../scripts/wiki/handbook";
-import { wikiFixture } from "../scripts/wiki/test-fixture";
+import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 
 let fixture: ReturnType<typeof wikiFixture>;
 let server: ChildProcess;
@@ -18,12 +17,8 @@ const original =
 test.beforeEach(async ({ context }) => {
   fixture = wikiFixture();
   liveChat = false;
-  fixture.write(
-    "wiki/HANDBOOK.md",
-    Object.values(HANDBOOK_H2)
-      .map((h) => `## ${h}\n\nfixture\n`)
-      .join("\n"),
-  );
+  // 手册切片要求「页面格式」下有读页约定与可引来源两个 H3（2026-09-23 第 1 条）；少了快照就读不出来
+  fixture.write("wiki/HANDBOOK.md", handbookFixture());
   fixture.write("wiki/sources/a.md", original);
   server = spawn(
     process.execPath,
@@ -171,8 +166,9 @@ test("continuing after publication shows the new version and starts fresh model 
   await expect(page.getByTestId("chat-version-notice")).toContainText("知识库已更新");
   await expect(page.getByTestId("chat-version")).toHaveCount(2);
   await expect(page.getByTestId("chat-version").last()).not.toHaveText(before);
+  // 问答版本行后面还跟着「 · 本轮可联网」，只比版本号
   await expect(page.getByTestId("reader-version")).toHaveText(
-    await page.getByTestId("chat-version").last().innerText(),
+    (await page.getByTestId("chat-version").last().innerText()).split(" · ")[0]!,
   );
   await expect(page.getByTestId("chat-log")).toContainText("已读到发布后的组合诊断");
   await expect(page.getByTestId("chat-send")).toBeDisabled();
@@ -228,6 +224,8 @@ test("save, inspect the real diff, approve, read and retrieve the new publicatio
 }, info) => {
   await saveFromChat(page);
   expect((await state()).pages).toBe(1);
+  // 待审期间别处直接改了页（这里是回答引用的页）：不再让这个包过期，批准照常发布
+  fixture.write("wiki/sources/a.md", original.replace("原有解释。", "原有解释已调整。"));
   await page.screenshot({ path: info.outputPath("wiki-review-pending.png"), fullPage: true });
   await page.getByRole("button", { name: "批准此版本并发布" }).click();
   await expect(page.getByTestId("review-state")).toContainText("已发布");
@@ -252,7 +250,9 @@ test("reject requires a reason and keeps the formal library unchanged", async ({
 test("stale publication reports the conflict and never displays a false success", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await saveFromChat(page);
-  fixture.write("wiki/sources/a.md", original.replace("原有解释。", "原有解释已调整。"));
+  // 待审包只盯本包依赖的文件（2026-09-23）：改的是本包要消耗的草稿才算冲突，改别的页不算
+  const draft = `wiki/_drafts/answer-${answerId}.md`;
+  fixture.write(draft, `${readFileSync(join(fixture.root, draft), "utf8")}\n补一句。\n`);
   const id = (await page.getByTestId("review-state").innerText()).split(" · ")[1]!;
   await page.getByRole("button", { name: "批准此版本并发布" }).click();
   await expect(page.getByRole("alert")).toBeVisible();

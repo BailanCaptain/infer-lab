@@ -23,7 +23,7 @@ import {
 import { PAGE_DIRS, parsePage } from "./pages";
 import { readRawSnapshot, saveRawSnapshot, withRawSources } from "./raw";
 import { createReview } from "./review";
-import { isWikiStatePath, REGISTRY } from "./review-files";
+import { isWikiStatePath } from "./review-files";
 import { revisePage } from "./revisions";
 
 function snapshotRefs(file: string, text: string | undefined): string[] {
@@ -86,10 +86,6 @@ function contents(root: string, skipJobs = true): Map<string, string> {
 
 function changed(before: Map<string, string>, after: Map<string, string>): string[] {
   return [...new Set([...before.keys(), ...after.keys()])].filter((p) => before.get(p) !== after.get(p));
-}
-
-function readOptional(path: string): string | undefined {
-  return existsSync(path) ? readFileSync(path, "utf8") : undefined;
 }
 
 /** Agent-backed proposals and already compiled source drafts share the same staging and review boundary. */
@@ -156,8 +152,6 @@ async function prepareStagedIntegration(
 ) {
   const wikiRoot = join(root, "wiki");
   const before = contents(wikiRoot);
-  const registryFile = join(root, "src/content/wiki/registry.json");
-  const registryBefore = readOptional(registryFile);
   const stagingRoot = mkdtempSync(join(tmpdir(), "wiki-integration-"));
   const rel = relative(resolve(tmpdir()), resolve(stagingRoot));
   if (!rel.startsWith("wiki-integration-") || rel.includes(".."))
@@ -220,10 +214,9 @@ async function prepareStagedIntegration(
     const decisionPath = "_drafts/_integration.json";
     if (before.has(decisionPath)) after.set(decisionPath, before.get(decisionPath)!);
     else after.delete(decisionPath);
+    // 注册表与目录不进待审包，发布时重建；log.md 只取本次追加的那段（见 review.ts DERIVED）
     const original = new Map([...before].map(([path, text]) => [`wiki/${path}`, text]));
     const candidate = new Map([...after].map(([path, text]) => [`wiki/${path}`, text]));
-    if (registryBefore !== undefined) original.set(REGISTRY, registryBefore);
-    candidate.set(REGISTRY, readFileSync(join(stagingRoot, REGISTRY), "utf8"));
     const review = await createReview(root, original, candidate, decision, deps.repoRoots);
     return { decision, pageCount: built.pageCount, costUsd: result.costUsd, reviewId: review.id };
   } finally {

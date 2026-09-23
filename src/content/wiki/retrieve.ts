@@ -59,6 +59,9 @@ export interface RetrieveOptions {
   expansionLimit?: number;
 }
 
+/** 字段序：0 = 标题（id + title + aliases）、1 = 摘要、2 = 正文 */
+type FieldTf = [number, number, number];
+
 export interface Index {
   pages: PageIndex[];
   /** 归一化后的 id / title / alias → 页 */
@@ -67,6 +70,11 @@ export interface Index {
   squashed: Map<string, PageIndex>;
   byId: Map<string, PageIndex>;
   adjacency: Map<string, string[]>;
+  /** BM25 倒排表：词 → 页 id → 各字段词频 */
+  postings: Map<string, Map<string, FieldTf>>;
+  /** 页 id → 各字段词数；avgLen 是全库均值，做长度归一 */
+  fieldLen: Map<string, FieldTf>;
+  avgLen: FieldTf;
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -111,28 +119,63 @@ export function buildIndex(pages: PageIndex[]): Index {
       if (k && !squashed.has(k)) squashed.set(k, p);
     }
   }
+  const postings = new Map<string, Map<string, FieldTf>>();
+  const fieldLen = new Map<string, FieldTf>();
+  const total: FieldTf = [0, 0, 0];
+  for (const p of pages) {
+    const fields = [`${p.id} ${p.title} ${p.aliases.join(" ")}`, p.summary, p.text];
+    const len: FieldTf = [0, 0, 0];
+    fields.forEach((text, f) => {
+      const ts = terms(text);
+      len[f] = ts.length;
+      for (const t of ts) {
+        let byPage = postings.get(t);
+        if (!byPage) {
+          byPage = new Map();
+          postings.set(t, byPage);
+        }
+        let tf = byPage.get(p.id);
+        if (!tf) {
+          tf = [0, 0, 0];
+          byPage.set(p.id, tf);
+        }
+        tf[f] = (tf[f] ?? 0) + 1;
+      }
+    });
+    fieldLen.set(p.id, len);
+    total.forEach((_, f) => {
+      total[f] = (total[f] ?? 0) + (len[f] ?? 0);
+    });
+  }
   return {
     pages,
     exact,
     squashed,
     byId: new Map(pages.map((p) => [p.id, p])),
     adjacency: buildAdjacency(pages),
+    postings,
+    fieldLen,
+    avgLen: total.map((n) => n / Math.max(1, pages.length)) as unknown as FieldTf,
   };
 }
 
-/** 拆成检索词：按非字母数字与 CJK 边界切，去掉太短的噪声词。 */
-function terms(query: string): string[] {
-  const raw = query
+/**
+ * 拆成检索词：拉丁串先按驼峰切开（`PagedAttention` → paged attention），再按
+ * 非字母数字切（下划线也切开，`hccl_buffer_size` 与「hccl buffer size」得到同一组词）；
+ * 中文按二元切分（"块表是干嘛的" → 块表 / 表是 / …）。索引与查询用同一把刀。
+ */
+function terms(text: string): string[] {
+  const raw = text
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .toLowerCase()
-    .split(/[^a-z0-9_一-鿿]+/)
+    .split(/[^a-z0-9一-鿿]+/)
     .filter(Boolean);
   const out: string[] = [];
   for (const t of raw) {
-    if (/^[a-z0-9_]+$/.test(t)) {
+    if (/^[a-z0-9]+$/.test(t)) {
       if (t.length >= 2 && !STOP_EN.has(t)) out.push(t);
-      // 长度 2 的片段（kv、tp、pp）只在标识符里有意义，正文命中会是噪声
+      // 单字符片段留不住任何信息，丢弃
     } else {
-      // 中文按二元切分，"块表是干嘛的" → 块表 / 表是 / ...
       if (t.length === 1) continue;
       for (let i = 0; i + 2 <= t.length; i++) out.push(t.slice(i, i + 2));
     }
@@ -142,64 +185,106 @@ function terms(query: string): string[] {
 
 const STOP_EN = new Set(["is", "the", "a", "an", "of", "to", "in", "on", "what", "how", "why", "and"]);
 
+/**
+ * BM25F（2026-09-23 换掉手写计分）：字段权重 标题 > 摘要 > 正文，词频做饱和与
+ * 长度归一，罕见词靠 idf 自然占权重。此前是标识命中 +8 / 正文命中 +1，宽松命中
+ * 直接给 800–900 固定分——「vllm-ascend」这种常见片段一出现就把关键词命中的
+ * 正确页压下去（09-23 的 HCCL 病例）。现在宽松命中也走同一套：按「这个片段被
+ * 几页认领」算 idf，记作一次标题字段命中，常见片段自然低分。
+ */
+const BM25_K1 = 1.2;
+const BM25_B = 0.75;
+const FIELD_WEIGHT: FieldTf = [5, 2.5, 1];
+/** 长度 2 的拉丁词（kv、tp、pp）只算标题字段：正文里满地都是，命中是噪声。 */
+const SHORT_LATIN_FIELDS = new Set([0]);
+/** 只出现在正文、从不出现在任何标题或摘要里的词，idf 封顶在这个值。 */
+const BODY_ONLY_IDF_CAP = 0.5;
+
+function idf(pagesTotal: number, df: number): number {
+  return Math.log(1 + (pagesTotal - df + 0.5) / (df + 0.5));
+}
+
+/** 一个词对一页的加权词频（含字段长度归一）；saturate 后乘 idf 才是得分。 */
+function weightedTf(index: Index, pageId: string, tf: FieldTf, fields?: Set<number>): number {
+  const len = index.fieldLen.get(pageId)!;
+  let sum = 0;
+  for (let f = 0; f < 3; f++) {
+    if (fields && !fields.has(f)) continue;
+    if (!tf[f]) continue;
+    const lenNorm = 1 - BM25_B + (BM25_B * len[f]!) / Math.max(1, index.avgLen[f]!);
+    sum += (FIELD_WEIGHT[f]! * tf[f]!) / lenNorm;
+  }
+  return sum;
+}
+
+const saturate = (wtf: number) => wtf / (BM25_K1 + wtf);
+
 export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}): Hit[] {
   const limit = opts.limit ?? 5;
   const q = norm(query);
   if (!q) return [];
 
   const scored = new Map<string, { page: PageIndex; score: number; how: Hit["how"] }>();
+  const add = (page: PageIndex, points: number, how: Hit["how"]) => {
+    const prev = scored.get(page.id);
+    if (prev) prev.score += points;
+    else scored.set(page.id, { page, score: points, how });
+  };
 
   const hit = index.exact.get(q);
   if (hit) scored.set(hit.id, { page: hit, score: 1000, how: "exact" });
 
-  // 宽松匹配：把查询里的连续拉丁片段压成无分隔符形式，与页面标识符互为前缀即算命中。
-  // 「layer share」→「layershare」是「layersharding」的前缀 → 命中。
+  // 宽松匹配：把查询里的每个连续拉丁片段压成无分隔符形式，与页面标识符互为前缀即算
+  // 命中。「layer share 是什么意思」→「layershare」是「layersharding」的前缀 → 命中。
+  // 得分不再是固定 800–900：按「这个片段被几页认领」算 idf，记作一次标题字段命中——
+  // 「hccl_buffsize」只有一页认领，分高；「vllm-ascend」满库都沾边，自然低分。
+  // 不再先试整句、命中了就跳过片段：问题以标识符开头时（09-23 的 HCCL 病例），
+  // 整句压平后恰好前缀命中总览页，逐片段那一步被跳过，真正的高分标识符就丢了。
   if (!hit) {
-    const q2 = squash(q);
-    if (q2.length >= MIN_FUZZY) {
-      for (const [key, page] of index.squashed) {
-        if (scored.has(page.id)) continue;
-        if (sameish(key, q2)) {
-          scored.set(page.id, { page, score: 900 - Math.abs(key.length - q2.length), how: "fuzzy" });
-        }
-      }
+    const patterns = new Set<string>();
+    for (const frag of q.match(/[a-z0-9_\-. ]{4,}/g) ?? []) {
+      const f = squash(frag);
+      if (f.length >= MIN_FUZZY) patterns.add(f);
     }
-    // 提问里夹着标识符时（「layer share 是什么意思」），逐个拉丁片段再试一遍
-    if (scored.size === 0) {
-      const latin = q.match(/[a-z0-9_\-. ]{4,}/g) ?? [];
-      for (const frag of latin) {
-        const f = squash(frag);
-        if (f.length < MIN_FUZZY) continue;
-        for (const [key, page] of index.squashed) {
-          if (scored.has(page.id)) continue;
-          if (sameish(key, f)) {
-            scored.set(page.id, { page, score: 800 - Math.abs(key.length - f.length), how: "fuzzy" });
-          }
-        }
+    for (const pattern of patterns) {
+      // closeness：片段占名字的比例。「prefill」对别名 Prefill Context Parallel 只占
+      // 开头一小截（7/22），认领要打折，否则长别名页把本词页挤下去（prefill/decode 病例）。
+      const matched = new Map<string, { page: PageIndex; closeness: number }>();
+      for (const [key, page] of index.squashed) {
+        if (!sameish(key, pattern)) continue;
+        const closeness = Math.min(key.length, pattern.length) / Math.max(key.length, pattern.length);
+        const prev = matched.get(page.id);
+        if (!prev || closeness > prev.closeness) matched.set(page.id, { page, closeness });
+      }
+      if (!matched.size) continue;
+      const patternIdf = idf(index.pages.length, matched.size);
+      for (const { page, closeness } of matched.values()) {
+        add(page, patternIdf * closeness * saturate(weightedTf(index, page.id, [1, 0, 0])), "fuzzy");
       }
     }
   }
 
-  const ts = terms(query);
-  if (ts.length > 0) {
-    for (const p of index.pages) {
-      const idText = norm(`${p.id} ${p.title} ${p.aliases.join(" ")}`);
-      const idSegments = new Set(idText.split(/[\s_\-.]+/).filter(Boolean));
-      const body = norm(`${p.summary}\n${p.text}`);
-      let score = 0;
-      for (const t of ts) {
-        // 长度 2 的拉丁片段（kv、tp、pp）只按整段匹配：`kv` 是 kv-cache 的一整段，
-        // 有意义；而 `la` 只是 `layer` 的一截，命中它纯属噪声。长片段仍按子串。
-        const short = t.length < 3 && /^[a-z0-9_]+$/.test(t);
-        if (short ? idSegments.has(t) : idText.includes(t)) score += 8;
-        else if (!short && body.includes(t)) score += 1;
-      }
-      if (score === 0) continue;
-      const prev = scored.get(p.id);
-      if (prev) prev.score += score;
-      else scored.set(p.id, { page: p, score, how: "keyword" });
+  const ts = [...new Set(terms(query))];
+  for (const t of ts) {
+    const byPage = index.postings.get(t);
+    if (!byPage) continue;
+    // 长度 2 的拉丁词（kv、tp、pp）只算标题字段命中，正文里的出现是噪声
+    const fields = t.length < 3 && /^[a-z0-9]+$/.test(t) ? SHORT_LATIN_FIELDS : undefined;
+    const df = fields ? [...byPage.entries()].filter(([, tf]) => tf[0]! > 0).length : byPage.size;
+    if (!df) continue;
+    // 全库任何标题、摘要里都没有的词多半是切分噪声（「什么是」切出的「么是」全库只在
+    // 六页正文里出现，罕见反而成了大权重）。这类词的 idf 封顶，不让它决定排序。
+    const anchored = [...byPage.values()].some((tf) => tf[0]! > 0 || tf[1]! > 0);
+    const termIdf = anchored
+      ? idf(index.pages.length, df)
+      : Math.min(idf(index.pages.length, df), BODY_ONLY_IDF_CAP);
+    for (const [pageId, tf] of byPage) {
+      const wtf = weightedTf(index, pageId, tf, fields);
+      if (wtf > 0) add(index.byId.get(pageId)!, termIdf * saturate(wtf), "keyword");
     }
   }
+  for (const entry of scored.values())
+    if (entry.how !== "exact") entry.score = Math.round(entry.score * 1000) / 1000;
 
   const direct = [...scored.values()]
     .sort((a, b) => b.score - a.score || a.page.id.localeCompare(b.page.id))

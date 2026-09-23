@@ -198,6 +198,166 @@ describe("retrieve · 图扩展（AC12）", () => {
   });
 });
 
+describe("retrieve · BM25 计分（2026-09-23 重做：宽松命中不给固定高分）", () => {
+  // 复刻 09-23 的真实病例：HCCL 问题里「vllm-ascend」宽松命中两个总览页，
+  // 固定 800 分把关键词命中的正确页压到第 3。BM25 下常见片段自然低分。
+  const caseIndex = buildIndex([
+    {
+      id: "vllm-ascend-overview",
+      title: "vLLM-Ascend 是什么",
+      aliases: ["vllm-ascend", "昇腾插件"],
+      summary: "让 vLLM 跑在昇腾上的插件。",
+      chapters: ["00"],
+      evidence: "C",
+      text: "## 一句话\n它注册平台插件。",
+    },
+    {
+      id: "vllm-ascend-repo-map",
+      title: "vllm_ascend 目录地图",
+      aliases: ["目录结构"],
+      summary: "仓库各目录都放什么。",
+      chapters: ["00"],
+      evidence: "C",
+      text: "## 一句话\n从入口读起。",
+    },
+    {
+      id: "hccl-buffer",
+      title: "HCCL 通信缓冲区怎么定",
+      aliases: ["HCCL_BUFFSIZE", "hccl_buffer_size"],
+      summary: "默认 200，dp 组自己算，MC2 组不能单独配。",
+      chapters: ["13"],
+      evidence: "C",
+      text: "## 一句话\n每个通信组建组时决定缓冲区大小。",
+    },
+  ]);
+
+  it("常见标识符片段压不过具体页的关键词命中（09-23 HCCL 病例）", () => {
+    const hits = retrieve(
+      "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值？",
+      caseIndex,
+    );
+    expect(hits[0]?.id).toBe("hccl-buffer");
+  });
+
+  it("只被一页认领的标识符宽松命中仍然排最前", () => {
+    expect(retrieve("hccl_buffsize 是多少", caseIndex)[0]?.id).toBe("hccl-buffer");
+  });
+
+  it("标题命中 > 摘要命中 > 正文命中", () => {
+    const fieldIndex = buildIndex(
+      (
+        [
+          ["in-title", "prefetch 开关", ["别名甲"], "别的话。", "别的正文。"],
+          ["in-summary", "另一页", ["别名乙"], "prefetch 的比例。", "别的正文。"],
+          ["in-body", "第三页", ["别名丙"], "别的话。", "正文里提到 prefetch 一次。"],
+        ] as const
+      ).map(([id, title, aliases, summary, text]) => ({
+        id,
+        title,
+        aliases: [...aliases],
+        summary,
+        chapters: ["00"],
+        evidence: "C",
+        text,
+      })),
+    );
+    expect(retrieve("prefetch", fieldIndex).map((h) => h.id)).toEqual(["in-title", "in-summary", "in-body"]);
+  });
+
+  it("罕见词比满库都是的词权重高", () => {
+    const idfIndex = buildIndex(
+      [
+        ["only-kvpp", "kvpp 组大小"],
+        ["config-a", "config 之一"],
+        ["config-b", "config 之二"],
+        ["config-c", "config 之三"],
+      ].map(([id, title]) => ({
+        id: id!,
+        title: title!,
+        aliases: [],
+        summary: "各不相干。",
+        chapters: ["00"],
+        evidence: "C",
+        text: "正文。",
+      })),
+    );
+    // 每页都各命中一个词；kvpp 只有一页有，config 四分之三的页都有
+    expect(retrieve("kvpp config", idfIndex)[0]?.id).toBe("only-kvpp");
+  });
+
+  it("kv cache 这类命中三个相关页的写法不再被降权", () => {
+    expect(retrieve("kv cache 显存怎么算", index)[0]?.id).toBe("kv-cache");
+  });
+
+  it("问的是本词时，同族长 id 的页不插到它前面（名字最接近的靠前）", () => {
+    const family = buildIndex(
+      (
+        [
+          ["kv-cache", "KV Cache"],
+          ["kv-cache-spec", "KV Cache Spec"],
+          ["kv-cache-memory-profiling", "KV Cache Memory Profiling"],
+        ] as const
+      ).map(([id, title]) => ({
+        id,
+        title,
+        aliases: [],
+        summary: "一句话。",
+        chapters: ["00"],
+        evidence: "C",
+        text: "正文。",
+      })),
+    );
+    expect(retrieve("什么是 KV Cache？", family)[0]?.id).toBe("kv-cache");
+  });
+
+  it("片段只占长别名开头一小截时按占比打折：问 prefill 不该输给 Prefill Context Parallel", () => {
+    // 复刻真实病例：context-parallel 的别名里有 Prefill Context Parallel 和
+    // Decode Context Parallel，「prefill 和 decode 有什么区别」两个片段都被它认领
+    const idx = buildIndex([
+      {
+        id: "prefill",
+        title: "Prefill",
+        aliases: ["预填充", "prefill 阶段", "TTFT"],
+        summary: "首 token 阶段，之后进入 decode。",
+        chapters: ["00"],
+        evidence: "C",
+        text: "prefill 算完首 token，decode 逐 token 生成。",
+      },
+      {
+        id: "context-parallel",
+        title: "Context Parallel：把序列维切到多张卡上",
+        aliases: ["Prefill Context Parallel", "Decode Context Parallel", "PCP", "DCP"],
+        summary: "上下文并行。",
+        chapters: ["00"],
+        evidence: "C",
+        text: "正文。",
+      },
+      {
+        // 真实库里 prefill / decode 满地都是、idf 很低，夹具里也要不止一页提到，
+        // 否则「decode 只有 context-parallel 有」会让它理所当然地排第一
+        id: "pd-disaggregation",
+        title: "PD 分离",
+        aliases: ["Prefill/Decode 分离"],
+        summary: "P 算 prefill，D 算 decode。",
+        chapters: ["00"],
+        evidence: "C",
+        text: "正文。",
+      },
+      // 无关填充页：把库撑到接近真实的页数比例，否则三页库里词词都稀有，idf 全失真
+      ...Array.from({ length: 7 }, (_, i) => ({
+        id: `filler-${i}`,
+        title: `无关主题${i}`,
+        aliases: [],
+        summary: "别的话题。",
+        chapters: ["00"],
+        evidence: "C",
+        text: "与并行无关的正文。",
+      })),
+    ]);
+    expect(retrieve("prefill 和 decode 有什么区别？", idx)[0]?.id).toBe("prefill");
+  });
+});
+
 describe("retrieve · 标识符的宽松写法（用户 2026-09-11 提出）", () => {
   it("空格写法能命中下划线/连字符的 id：layer sharding → layer-sharding", () => {
     expect(retrieve("layer sharding", index)[0]?.id).toBe("layer-sharding");

@@ -82,6 +82,25 @@ describe("restricted raw compilation", () => {
     expect(navigation.pages.map((p: { id: string }) => p.id)).toContain("block-table");
     expect(navigation.omitted).toBe(201 - navigation.pages.length);
   });
+  it("accepts a draft the model wrapped in one outer code fence", async () => {
+    // 2026-09-23 真实重编：模型把整页放进 ```markdown 围栏，frontmatter 没被识别，
+    // 报「id: Required…」，$0.40 的输出作废。围栏只是包装，不是内容。
+    const f = setup();
+    const result = await compileRaw(f.store, f.input, policy, {
+      runAgent: async (req) => ({
+        id: req.id,
+        ok: true,
+        exitCode: 0,
+        stderrTail: "",
+        costUsd: 0.1,
+        output: `\`\`\`markdown\n${f.page}\`\`\`\n`,
+      }),
+    });
+    expect(result.ok, result.reason).toBe(true);
+    const draft = readFileSync(join(f.root, "wiki/_drafts/a.md"), "utf8");
+    expect(draft.startsWith("---\nid: a\n")).toBe(true);
+    expect(draft).not.toContain("```");
+  });
   it("requires explicit retry and retains unknown costs across reopened stores", async () => {
     const f = setup();
     let calls = 0;

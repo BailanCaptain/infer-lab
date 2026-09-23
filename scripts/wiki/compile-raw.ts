@@ -21,6 +21,7 @@ import { prepareRawInput } from "./prepare-input";
 import { readRawSnapshot, withRawSources } from "./raw";
 import { RESTRICTED_PROFILE, restrictedArgs } from "./restricted-claude";
 import { sanitizeRawInput } from "./sanitize";
+import { unfence } from "./structured";
 import { atomicText, digest, originSchema, type WorkflowStore, type WorkInput } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
@@ -160,7 +161,9 @@ export async function compileRaw(
     if (readdirSync(stage).length) throw new Error("无工具编译产生了文件，拒绝发布");
     if (!result.output || Buffer.byteLength(result.output, "utf8") > 128 * 1024)
       throw new Error("缺少 Markdown 结果或结果过大");
-    const parsed = parsePage(draft, result.output);
+    // 模型偶尔把整页包进一层 ```markdown 围栏（2026-09-23 真实重编）；剥掉包装再按页面 schema 验
+    const output = unfence(result.output);
+    const parsed = parsePage(draft, output);
     if (!parsed.page || parsed.problems.length) throw new Error("编译草稿 schema 无效");
     if (
       input.purpose === "answer-record" &&
@@ -188,7 +191,7 @@ export async function compileRaw(
     if (loaded.problems.length || issues.length)
       throw new Error(`草稿 lint 失败：${JSON.stringify([...loaded.problems, ...issues])}`);
     const path = parseRawRef(input.source)!.path;
-    const text = withRawSources(result.output, [path], input.origin);
+    const text = withRawSources(output, [path], input.origin);
     const finished = await store.finish(
       job.id,
       attempt.token,

@@ -28,10 +28,18 @@ export const DECISION_TIMEOUT_MS = 60_000;
  */
 export const PAGE_TEXT_TIMEOUT_MS = 300_000;
 
+/**
+ * 模型有时把整段输出包在一层 ```lang 围栏里；围栏只是包装，不是内容。只在整段都在一层围栏内时剥掉它，
+ * 正文里自己的代码块不受影响。2026-09-23 真实重编就因为整页被包进 ```markdown，frontmatter 没被识别。
+ */
+export function unfence(text: string): string {
+  const fenced = /^\s*```[\w-]*\r?\n([\s\S]*)```\s*$/.exec(text);
+  return fenced ? fenced[1]! : text;
+}
+
 /** Normalize a single transport envelope; schema and evidence checks still follow. */
 export function parseStructuredJson(text: string): unknown {
-  const fenced = /^\s*```(?:json)?\r?\n([\s\S]*?)\r?\n```\s*$/i.exec(text);
-  return JSON.parse(fenced ? fenced[1]! : text);
+  return JSON.parse(unfence(text));
 }
 
 /** One tool-free, durable JSON decision. Machine validation never substitutes for evidence review. */

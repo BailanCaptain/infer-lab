@@ -204,8 +204,10 @@ function Landing({ count }: { count: number }) {
           贯穿全书的那条请求 <ArrowRight size={14} />
         </Link>
         <p className="wiki-start-hint">
-          左侧目录分四部分：<strong>推理基础知识</strong>、<strong>代码全流程</strong>、<strong>特性</strong>
-          、<strong>参数</strong>。前两部分从上到下就是该读的顺序；后两部分是用到再查的。
+          左侧目录分六部分：<strong>推理基础知识</strong>、<strong>代码全流程</strong>、<strong>特性</strong>
+          、<strong>RFork 工作版</strong>、<strong>参数</strong>、<strong>知识库长出来的</strong>
+          。前两部分从上到下就是该读的顺序；后面几部分是用到再查的，最后一部分是问答、PR
+          和缺口补写产生、经人审入库的页。
         </p>
       </section>
 

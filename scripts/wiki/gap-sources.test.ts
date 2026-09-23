@@ -53,3 +53,27 @@ it("uses pinned source lines and records the limited scope, excluding uncommitte
     f.cleanup();
   }
 });
+
+it("prefers files that match the most specific term over alphabetical order", () => {
+  // 2026-09-23 真实缺口（HCCL 缓冲区）：问题里的 hccl_buffer_size 只在 utils.py 里出现，但按路径字母序
+  // 先到的是三份只含泛词 hccl 的 docs，三个名额被它们占满，补料判定只能答「未判明」
+  const f = wikiFixture();
+  try {
+    for (const name of ["a", "b", "c"]) f.write(`repo/docs/source/${name}.md`, `hccl 的一般说明 ${name}\n`);
+    f.write(
+      "repo/vllm_ascend/utils.py",
+      "_DEFAULT_BUFFER_SIZE = 200\nhccl_buffer_size = _DEFAULT_BUFFER_SIZE\n",
+    );
+    const pin = f.commit("source");
+    f.write(
+      "wiki/seeds/vllm-ascend.yaml",
+      `repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: ${pin}}\nfeatures: []\n`,
+    );
+    const sources = findGapSources(f.root, "HCCL 通信缓冲区（hccl_buffer_size）是怎么定的？");
+    expect(sources).toHaveLength(3);
+    const first = readRawSnapshot(join(f.root, "wiki"), parseRawRef(sources[0]!)!.path);
+    expect(first).toContain(`r@${pin}:vllm_ascend/utils.py#L2\nhccl_buffer_size = _DEFAULT_BUFFER_SIZE`);
+  } finally {
+    f.cleanup();
+  }
+});

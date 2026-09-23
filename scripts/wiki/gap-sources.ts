@@ -48,26 +48,24 @@ export function findGapSources(root: string, question: string, seedsPath = "wiki
     const pin = ref ? repo.refs[ref] : undefined;
     if (!pin) continue;
     const dir = resolve(root, repo.path);
-    const paths = gitText(
-      dir,
-      [
-        "grep",
-        "-l",
-        "-i",
-        "--fixed-strings",
-        ...terms.flatMap((t) => ["-e", t]),
-        pin,
-        "--",
-        "vllm_ascend/",
-        "docs/source/",
-      ],
-      true,
-    )
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .map((p) => p.slice(p.indexOf(":") + 1))
-      .filter((p) => /\.(py|md|rst)$/.test(p))
-      .sort();
+    // 先按最具体（最长）的词找文件，再依次放宽：2026-09-23 真实缺口里 hccl_buffer_size 只在 utils.py 出现，
+    // 而按路径字母序先到的是三份只含泛词 hccl 的 docs，三个名额被它们占满，补料判定只能答「未判明」
+    const paths = [
+      ...new Set(
+        terms.flatMap((term) =>
+          gitText(
+            dir,
+            ["grep", "-l", "-i", "--fixed-strings", "-e", term, pin, "--", "vllm_ascend/", "docs/source/"],
+            true,
+          )
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map((p) => p.slice(p.indexOf(":") + 1))
+            .filter((p) => /\.(py|md|rst)$/.test(p))
+            .sort(),
+        ),
+      ),
+    ];
     for (const path of paths) {
       if (sources.length >= 3) return sources;
       const text = gitText(dir, ["show", `${pin}:${path}`]);

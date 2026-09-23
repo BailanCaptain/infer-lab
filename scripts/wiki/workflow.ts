@@ -178,7 +178,10 @@ export class WorkflowStore {
         const job = this.get(id);
         if (JSON.stringify(job.screening) !== JSON.stringify(checkedScreening))
           throw new Error("相同任务的清洗记录不一致");
-        if (JSON.stringify(job.policy) !== JSON.stringify(policy))
+        // 已完成的任务不会再产生费用，换个预算来复用它的回执也无妨（2026-09-23：诊断由 wiki:work assess
+        // 用另一套预算跑完后，夜间任务复用同一份诊断被这里拦住）；未完成的仍不许改预算
+        const finished = job.state === "draft" || job.state === "integrated";
+        if (!finished && JSON.stringify(job.policy) !== JSON.stringify(policy))
           throw new Error("已有任务预算不能通过重新提交修改或清零");
         job.origins = [...new Set([...job.origins, parsed.origin])].sort();
         return this.save(job);

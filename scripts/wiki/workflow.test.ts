@@ -50,6 +50,18 @@ describe("persistent wiki workflow", () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync(`${store.runtimeDir}/workflow.lock`, "utf8")).toContain("99999999");
   });
+  it("lets a finished job be reused under another budget: nothing can be charged to it any more", async () => {
+    // 2026-09-23 真实缺口：诊断先由 wiki:work assess 用 1/0.5 的预算跑完，夜间任务再拿自己的 4/2 预算
+    // 复用同一份诊断回执时被「不能修改预算」拦住。回执已完成，换个预算来读它不会产生任何费用。
+    const f = setup();
+    const store = new WorkflowStore(f.root);
+    const job = await store.enqueue(input, policy);
+    const attempt = await store.claim(job.id);
+    await store.finish(job.id, attempt.token, { ok: true, costUsd: 0.1, artifacts: {} }, () => {});
+    const reused = await store.enqueue(input, { ...policy, maxCostUsd: 100 });
+    expect(reused.state).toBe("draft");
+    expect(reused.policy).toEqual(policy);
+  });
   it("deduplicates evidence across origins and preserves the job after reopening", async () => {
     const f = setup();
     const store = new WorkflowStore(f.root);

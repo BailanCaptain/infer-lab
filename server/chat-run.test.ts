@@ -48,6 +48,18 @@ it("requires one successful final record, not just process exit zero", async () 
     expect((await runChat(request(), { text: () => {} })).ok).toBe(count === 1);
   }
 });
+it("把启动器认出的作答模型原样交回，路由才能标给读者、写进问答记录", async () => {
+  const models = {
+    requested: "claude-opus-5-5[1m]",
+    answered: ["claude-opus-5"],
+    switches: [{ event: "model_refusal_fallback", from: "claude-opus-5-5[1m]", to: "claude-opus-5" }],
+  };
+  mocks.spawn.mockImplementation(async (_req, parse) => {
+    parse(JSON.stringify({ type: "result", is_error: false, total_cost_usd: 0.3 }));
+    return { ok: true, costUsd: 0.3, models };
+  });
+  expect(await runChat(request(), { text: () => {} })).toMatchObject({ ok: true, costUsd: 0.3, models });
+});
 it("does not use shell fallback for the isolated argv profile", async () => {
   mocks.command.mockReturnValue({ command: "claude", shell: true });
   expect((await runChat(request(), { text: () => {} })).ok).toBe(false);

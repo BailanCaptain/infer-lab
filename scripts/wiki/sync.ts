@@ -8,6 +8,7 @@ import { gitText } from "./git";
 import { parseSeeds } from "./ingest";
 import { appendWikiLog } from "./log";
 import { patrol } from "./maintenance";
+import { MODEL_ID } from "./model-use";
 import { loadPages } from "./pages";
 import { ParameterBulkDeferred, publishParamSync } from "./params/publish-sync";
 import { scanRepo } from "./params/scan";
@@ -38,6 +39,8 @@ export const syncConfigSchema = z
     maxTasks: z.number().int().min(0).max(10).default(0),
     reconcileBatches: z.number().int().min(0).max(10).default(0),
     driftSample: z.number().int().min(0).max(10).default(0),
+    /** 网页问答固定用的模型（交给 --model）；不填走 CLI 默认。想换模型试时写进本机覆盖文件 */
+    chatModel: z.string().regex(MODEL_ID).optional(),
   })
   .strict();
 

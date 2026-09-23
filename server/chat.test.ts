@@ -109,6 +109,18 @@ describe("buildChatRequest", () => {
     expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toContain("离线对照");
   });
 
+  it("配置了问答模型（chatModel）就用 --model 固定它；没配置走 CLI 默认模型", () => {
+    const pinned = buildChatRequest({ message: "q" }, hb, { ...ctx, model: "claude-fable-5-1" });
+    expect(pinned.args[pinned.args.indexOf("--model") + 1]).toBe("claude-fable-5-1");
+    expect(pinned.args).not.toContain("--no-session-persistence");
+    expect(buildChatRequest({ message: "q" }, hb, ctx).args).not.toContain("--model");
+    expect(
+      buildChatRequest({ message: "q" }, hb, { ...ctx, model: "claude-opus-5-5[1m]" }).args,
+    ).toContain("claude-opus-5-5[1m]");
+    for (const model of ["", " ", "--tools", "a b", "x;rm"])
+      expect(() => buildChatRequest({ message: "q" }, hb, { ...ctx, model })).toThrow(/模型/);
+  });
+
   it("离线对照拒绝复用旧会话、历史问题和无效额度", () => {
     const control = { model: "claude-sonnet-4-6", maxCostUsd: 0.1 };
     for (const input of [

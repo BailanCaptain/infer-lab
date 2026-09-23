@@ -172,3 +172,30 @@ it.each([undefined, 0.8])(
     }
   },
 );
+
+// 所有付费调用都过这本账：编译、复测等不留会话记录，换没换模型只能从这里查
+it("账本每条调用记下实际作答模型；旧账目没有这个字段照样能读", async () => {
+  const f = wikiFixture();
+  try {
+    await initBudget(f.root, { limitUsd: 1, priorChargedUsd: 0, reserveUsd: 0.4, maxCalls: 3 });
+    const models = {
+      requested: "claude-opus-5-5[1m]",
+      answered: ["claude-opus-5"],
+      switches: [
+        {
+          event: "model_refusal_fallback",
+          from: "claude-opus-5-5[1m]",
+          to: "claude-opus-5",
+          reason: "frontier_llm",
+        },
+      ],
+    };
+    await withBudget(f.root, "chat", request, async () => ({ ok: true, costUsd: 0.1, models }));
+    await withBudget(f.root, "compile", request, async () => ({ ok: true, costUsd: 0.1 }));
+    const calls = readBudget(f.root).calls;
+    expect(calls[0]?.models).toEqual(models);
+    expect(calls[1]).not.toHaveProperty("models");
+  } finally {
+    f.cleanup();
+  }
+});

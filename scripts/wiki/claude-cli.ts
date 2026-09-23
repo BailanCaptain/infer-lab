@@ -16,6 +16,7 @@ import {
   parseStreamJsonLine,
   type RunAgent,
 } from "./ingest";
+import { trackModels } from "./model-use";
 
 export interface ClaudeCommand {
   command: string;
@@ -87,6 +88,7 @@ export interface LineOutcome {
  * 超时整树杀、stderr 只留尾部 2000、退出码与 result.is_error 归一成 AgentResult。
  * 两边的事件形状不同（问答还要文本增量），所以解析交给调用方，
  * 只要在认出 result 时把 sessionId / costUsd / isError 返回回来。
+ * 实际作答模型由这里统一认（见 model-use.ts），所有付费调用的结果里都带上，调用方不必各写一份。
  */
 export function spawnClaude(
   req: AgentRequest,
@@ -130,6 +132,7 @@ export function spawnClaude(
     let sessionId: string | undefined;
     let costUsd: number | undefined;
     let isError = false;
+    const models = trackModels();
     let stderr = "";
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -138,6 +141,7 @@ export function spawnClaude(
     }, req.timeoutMs);
 
     createInterface({ input: child.stdout! }).on("line", (line) => {
+      models.observe(line);
       const out = onLine(line);
       if (!out) return;
       if (out.isError !== undefined) isError = out.isError;
@@ -152,14 +156,17 @@ export function spawnClaude(
       cleanup();
       // 没有 pid = 进程根本没起来（例如找不到可执行文件），没有花钱；有 pid 的错误费用未知，交给账本处理
       if (child.pid === undefined) resolve(notStarted(`spawn-error: ${err.message}`));
-      else
+      else {
+        const used = models.result();
         resolve({
           id: req.id,
           ok: false,
           exitCode: null,
           reason: `spawn-error: ${err.message}`,
           stderrTail: stderr,
+          ...(used ? { models: used } : {}),
         });
+      }
     });
     child.on("close", (code) => {
       clearTimeout(timer);
@@ -167,6 +174,8 @@ export function spawnClaude(
       const base: AgentResult = { id: req.id, ok: false, exitCode: code, stderrTail: stderr };
       if (sessionId) base.sessionId = sessionId;
       if (costUsd !== undefined) base.costUsd = costUsd;
+      const used = models.result();
+      if (used) base.models = used;
       if (timedOut) resolve({ ...base, reason: `timeout ${req.timeoutMs}ms` });
       else if (code !== 0) resolve({ ...base, reason: `exit ${code}` });
       else if (isError) resolve({ ...base, reason: "result.is_error" });

@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { readBudget } from "../scripts/wiki/budget";
 import { listGaps } from "../scripts/wiki/gap-ledger";
+import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
 import { collectStepTerms } from "../scripts/wiki/lint";
 import { listTasks } from "../scripts/wiki/queue";
 import { listReviews } from "../scripts/wiki/review";
@@ -26,8 +27,10 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
   let budget:
     | { limitUsd: number; chargedUsd: number; calls: number; maxCalls: number; paused: boolean; pauseReason?: string }
     | undefined;
+  let calls: ReturnType<typeof readBudget>["calls"] = [];
   try {
     const b = readBudget(root);
+    calls = b.calls;
     const unknown = b.calls.filter((call) => call.state === "unknown").at(-1);
     budget = {
       limitUsd: b.policy.limitUsd,
@@ -42,6 +45,22 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
   }
 
   const config = existsSync(syncConfigPath) ? readSyncConfig(syncConfigPath) : undefined;
+  // 账本从 2026-09-23 晚起记模型，更早的调用没有这项，不算进分母
+  const recorded = calls.filter((call) => call.models);
+  const switched = recorded.filter((call) => modelSwitched(call.models));
+  const last = switched.at(-1);
+  // CLI 没报换手、只是作答模型对不上时，按启动时的模型 → 实际作答模型记
+  const hop = last?.models && {
+    from: last.models.requested ?? "",
+    to: answeredBy(last.models) ?? "",
+    ...last.models.switches.at(-1),
+  };
+  const models = {
+    ...(config?.chatModel ? { chatModel: config.chatModel } : {}),
+    recorded: recorded.length,
+    switched: switched.length,
+    ...(last && hop ? { last: { at: last.startedAt, purpose: last.purpose, ...hop } } : {}),
+  };
   const lastRun = json(join(root, "wiki/_jobs/sync/last-run.json")) as
     | { startedAt?: string; finishedAt?: string; status?: string }
     | undefined;
@@ -62,6 +81,7 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
   const reviews = listReviews(root);
   return {
     budget,
+    models,
     nightly: config && {
       lastRun,
       maxNewParamPages: config.maxNewParamPages,

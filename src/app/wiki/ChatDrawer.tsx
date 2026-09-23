@@ -104,6 +104,27 @@ function TraceResult({ trace }: { trace: TraceView }) {
   );
 }
 
+/** 服务端 model 事件；形状见 server/chat-route.ts，换手记录见 scripts/wiki/model-use.ts */
+interface ModelView {
+  requested?: string;
+  answeredBy?: string;
+  switched: boolean;
+  switches: { event: string; from: string; to: string; reason?: string }[];
+}
+const SWITCH_LABEL: Record<string, string> = {
+  model_refusal_fallback: "拒答",
+  model_fallback: "不可用",
+  model_consent_fallback: "没通过额度确认",
+};
+/** 「claude-opus-5-5[1m] 拒答（frontier_llm），改由 claude-opus-5 作答」 */
+function modelNotice(m: ModelView): string {
+  const hops = m.switches.map(
+    (s) => `${s.from} ${SWITCH_LABEL[s.event] ?? "换了模型"}${s.reason ? `（${s.reason}）` : ""}`,
+  );
+  const lead = hops.length ? hops.join("；") : `请求的是 ${m.requested ?? "默认模型"}`;
+  return `本轮换了模型：${lead}，改由 ${m.answeredBy ?? "另一个模型"} 作答。`;
+}
+
 interface Msg {
   /** 稳定 key：消息会边流边改，用数组下标当 key 会让 React 复用错行 */
   key: string;
@@ -122,6 +143,8 @@ interface Msg {
   versionNotice?: string;
   /** 服务端发现回答说自己联不了网、却一次都没用给它的联网工具 */
   toolNotice?: string;
+  /** 实际作答模型；CLI 拒答换模型时 switched 为真 */
+  model?: ModelView;
   gapNotice?: string;
   related?: { id: string; title: string; href: string; note: string }[];
   trace?: TraceView;
@@ -146,6 +169,7 @@ async function streamChat(
       online?: boolean;
     }) => void;
     notice: (v: { kind: string; message: string }) => void;
+    model: (v: ModelView) => void;
     gap: (v: {
       state: "collecting" | "awaiting-assessment" | "record-failed";
       count?: number;
@@ -190,6 +214,7 @@ async function streamChat(
       else if (ev === "knowledge") on.knowledge(data as never);
       else if (ev === "notice" && typeof data.message === "string") on.notice(data as never);
       else if (ev === "gap") on.gap(data as never);
+      else if (ev === "model" && Array.isArray(data.switches)) on.model(data as never);
       else if (ev === "trace" && typeof data.status === "string") on.trace(data as TraceView);
       else if (ev === "related" && Array.isArray(data.pages))
         on.related(data.pages as NonNullable<Msg["related"]>);
@@ -258,6 +283,7 @@ export function useChat() {
                       : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
               })),
             notice: (v) => patch((l) => ({ ...l, toolNotice: v.message })),
+            model: (v) => patch((l) => ({ ...l, model: v })),
             knowledge: (v) => {
               sessionId.current = v.sessionId;
               patch((l) => ({
@@ -331,7 +357,7 @@ export function ChatPane({
         )}
         {msgs.map((m) => (
           <div key={m.key} className={`wiki-chat-msg is-${m.role}`}>
-            {(m.revision || !!m.reading?.length) && (
+            {(m.revision || !!m.reading?.length || m.model) && (
               <div className="wiki-chat-meta">
                 {m.revision && (
                   <p className="wiki-chat-reading" data-testid="chat-version">
@@ -342,11 +368,21 @@ export function ChatPane({
                 {m.reading && m.reading.length > 0 && (
                   <p className="wiki-chat-reading">正在读：{m.reading.join("、")}</p>
                 )}
+                {m.model?.answeredBy && (
+                  <p className="wiki-chat-reading" data-testid="chat-model">
+                    作答模型 {m.model.answeredBy}
+                  </p>
+                )}
               </div>
             )}
             {m.versionNotice && (
               <p role="status" className="wiki-chat-uncited" data-testid="chat-version-notice">
                 {m.versionNotice}
+              </p>
+            )}
+            {m.model?.switched && (
+              <p role="status" className="wiki-chat-uncited" data-testid="chat-model-notice">
+                {modelNotice(m.model)}
               </p>
             )}
             {m.toolNotice && (

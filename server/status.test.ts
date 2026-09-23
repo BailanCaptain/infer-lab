@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import { initBudget } from "../scripts/wiki/budget";
+import { initBudget, withBudget } from "../scripts/wiki/budget";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
 import { readStatus } from "./status";
 
@@ -37,4 +37,40 @@ it("still answers when there is no ledger and no nightly config", () => {
   const s = readStatus(f.root);
   expect(s.budget).toBeUndefined();
   expect(s.nightly).toBeUndefined();
+});
+
+it("作答模型：配置固定的问答模型，和账本里记到的换模型次数与最近一次", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  f.write("wiki/sync.config.json", "{}");
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatModel: "claude-fable-5-1" }));
+  await initBudget(f.root, { limitUsd: 10, priorChargedUsd: 0, reserveUsd: 1, maxCalls: 10 });
+  const req = { id: "a", cwd: f.root, args: [], stdin: "q", timeoutMs: 1000, allowedWrites: [] };
+  await withBudget(f.root, "compile", req, async () => ({ ok: true, costUsd: 0.1 }));
+  await withBudget(f.root, "compile", req, async () => ({
+    ok: true,
+    costUsd: 0.1,
+    models: { requested: "claude-opus-5-5[1m]", answered: ["claude-opus-5-5"], switches: [] },
+  }));
+  await withBudget(f.root, "chat", req, async () => ({
+    ok: true,
+    costUsd: 0.1,
+    models: {
+      requested: "claude-opus-5-5[1m]",
+      answered: ["claude-opus-5"],
+      switches: [
+        { event: "model_refusal_fallback", from: "claude-opus-5-5[1m]", to: "claude-opus-5", reason: "frontier_llm" },
+      ],
+    },
+  }));
+  const s = readStatus(f.root);
+  expect(s.models).toMatchObject({
+    chatModel: "claude-fable-5-1",
+    recorded: 2,
+    switched: 1,
+    last: { purpose: "chat", from: "claude-opus-5-5[1m]", to: "claude-opus-5", reason: "frontier_llm" },
+  });
+  const empty = wikiFixture();
+  fixtures.push(empty);
+  expect(readStatus(empty.root).models).toEqual({ recorded: 0, switched: 0 });
 });

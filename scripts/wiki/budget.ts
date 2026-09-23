@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { z } from "zod";
 import type { AgentRequest, RunAgent } from "./batch";
+import { type ModelUse, modelUseSchema } from "./model-use";
 import { localFile } from "./review-files";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 
@@ -25,6 +26,8 @@ const callSchema = z.object({
   costUsd: z.number().finite().nonnegative().optional(),
   state: z.enum(["running", "finished", "unknown"]),
   reason: z.string().optional(),
+  /** 实际作答模型；2026-09-23 晚加这项之前的账目没有 */
+  models: modelUseSchema.optional(),
 });
 const stateSchema = z
   .object({
@@ -132,7 +135,9 @@ export async function initBudget(root: string, input: z.infer<typeof policySchem
 }
 
 /** A local admission limit; the provider may bill more than its soft per-request flag. */
-export async function withBudget<T extends { ok: boolean; costUsd?: number; reason?: string }>(
+export async function withBudget<
+  T extends { ok: boolean; costUsd?: number; reason?: string; models?: ModelUse },
+>(
   root: string,
   purpose: string,
   request: AgentRequest,
@@ -185,7 +190,7 @@ export async function withBudget<T extends { ok: boolean; costUsd?: number; reas
     atomicText(pathOf(root), JSON.stringify(state));
     return { call, req };
   });
-  const finish = async (costUsd: number | undefined, reason?: string) =>
+  const finish = async (costUsd: number | undefined, reason?: string, models?: ModelUse) =>
     store.locked(() => {
       const state = read(root);
       const call = state.calls.find((c) => c.id === claim.call.id)!;
@@ -198,6 +203,7 @@ export async function withBudget<T extends { ok: boolean; costUsd?: number; reas
       call.state = known ? "finished" : "unknown";
       call.finishedAt = new Date().toISOString();
       if (known) call.costUsd = costUsd;
+      if (models) call.models = models;
       call.reason = [failure, reason].filter(Boolean).join("；") || undefined;
       state.paused ||= !!failure;
       atomicText(pathOf(root), JSON.stringify(state));
@@ -210,7 +216,7 @@ export async function withBudget<T extends { ok: boolean; costUsd?: number; reas
     await finish(undefined, String(error));
     throw error;
   }
-  const failure = await finish(result.costUsd, result.reason);
+  const failure = await finish(result.costUsd, result.reason, result.models);
   return failure
     ? { ...result, ok: false, reason: [failure, result.reason].filter(Boolean).join("；") }
     : result;

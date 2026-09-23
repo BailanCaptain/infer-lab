@@ -1,3 +1,5 @@
+import type { ModelUse } from "./model-use";
+
 /** Shared execution contract. Entry adapters own prompts and artifact validation. */
 export interface AgentRequest {
   id: string;
@@ -21,6 +23,8 @@ export interface AgentResult {
   exitCode: number | null;
   sessionId?: string;
   costUsd?: number;
+  /** 实际作答模型与换手记录，启动器从 stream-json 里认出来的 */
+  models?: ModelUse;
   reason?: string;
   stderrTail: string;
   /** Text result for tool-free compilers; file-writing adapters leave this unset. */

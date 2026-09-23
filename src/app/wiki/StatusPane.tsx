@@ -11,6 +11,12 @@ interface WikiStatus {
     paused: boolean;
     pauseReason?: string;
   };
+  models: {
+    chatModel?: string;
+    recorded: number;
+    switched: number;
+    last?: { at: string; purpose: string; event?: string; from: string; to: string; reason?: string };
+  };
   nightly?: {
     lastRun?: { startedAt?: string; finishedAt?: string; status?: string };
     maxNewParamPages: number;
@@ -124,6 +130,28 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
             ) : (
               <p className="wiki-status-note">还没有建账本，问答用不了。</p>
             )}
+          </section>
+
+          <section>
+            <h3>作答模型</h3>
+            <dl>
+              <Row label="问答用的模型">{status.models.chatModel ?? "CLI 默认（没有固定）"}</Row>
+              <Row label="换过模型的调用" tone={status.models.switched ? "warn" : undefined}>
+                {status.models.switched} / {status.models.recorded} 次
+              </Row>
+              {status.models.last && (
+                <Row label="最近一次换模型">
+                  {when(status.models.last.at)} · {status.models.last.purpose} · {status.models.last.from} →{" "}
+                  {status.models.last.to}
+                  {status.models.last.reason ? `（${status.models.last.reason}）` : ""}
+                </Row>
+              )}
+            </dl>
+            <p className="wiki-status-note">
+              所有付费调用都记在账本里；实际作答模型从 9 月 23
+              日晚这次改动起才记，更早的调用不计入上面的次数。想固定问答模型，在
+              <code>wiki/sync.config.local.json</code> 里写 <code>chatModel</code>。
+            </p>
           </section>
 
           <section>

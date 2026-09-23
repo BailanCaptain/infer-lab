@@ -84,3 +84,41 @@ describe("长提示词不走命令行", () => {
     expect(result.reason).toMatch(/spawn-error/);
   });
 });
+
+// 2026-09-23 问答全部被 Opus 5.5 拒答后换成 Opus 5 作答，编译、复测等调用不留会话记录、查不到。
+// 启动器自己认模型，调用方的解析器不必各写一份，结果里都带上。
+describe("启动器记下实际作答模型", () => {
+  it("不管调用方的解析器认不认，结果里都带请求模型、实际模型和换手记录", async () => {
+    const events = [
+      { type: "system", subtype: "init", model: "claude-opus-5-5[1m]" },
+      {
+        type: "system",
+        subtype: "model_refusal_fallback",
+        original_model: "claude-opus-5-5[1m]",
+        fallback_model: "claude-opus-5",
+        api_refusal_category: "frontier_llm",
+      },
+      { type: "assistant", message: { model: "claude-opus-5", content: [{ type: "text", text: "答" }] } },
+      { type: "result", is_error: false, total_cost_usd: 0.2, session_id: "s" },
+    ];
+    const script = `for (const e of ${JSON.stringify(events)}) console.log(JSON.stringify(e));`;
+    const result = await spawnClaude(
+      { id: "t", cwd: tmpdir(), args: ["-e", script], stdin: "", timeoutMs: 20_000, allowedWrites: [] },
+      (l) => (JSON.parse(l).type === "result" ? { isError: false, costUsd: 0.2 } : undefined),
+      { command: process.execPath, shell: false },
+    );
+    expect(result).toMatchObject({ ok: true, costUsd: 0.2 });
+    expect(result.models).toEqual({
+      requested: "claude-opus-5-5[1m]",
+      answered: ["claude-opus-5"],
+      switches: [
+        {
+          event: "model_refusal_fallback",
+          from: "claude-opus-5-5[1m]",
+          to: "claude-opus-5",
+          reason: "frontier_llm",
+        },
+      ],
+    });
+  });
+});

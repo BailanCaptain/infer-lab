@@ -7,6 +7,7 @@ import { budgetedAgent } from "../scripts/wiki/budget";
 import { compileRaw, planRawCompile } from "../scripts/wiki/compile-raw";
 import { loadHandbook } from "../scripts/wiki/handbook";
 import { localDate } from "../scripts/wiki/ingest";
+import { type ModelUse, modelUseSchema } from "../scripts/wiki/model-use";
 import { validateIntegration } from "../scripts/wiki/integration-check";
 import { prepareSourceReview } from "../scripts/wiki/integration-run";
 import { configuredRepoRoots } from "../scripts/wiki/repo-roots";
@@ -25,6 +26,8 @@ const receiptSchema = z
     question: z.string().min(1),
     answer: z.string().min(1),
     pages: z.array(z.object({ file: z.string(), text: z.string() })).min(1),
+    /** 实际作答模型；2026-09-23 晚加这项之前的记录没有 */
+    model: modelUseSchema.optional(),
   })
   .strict();
 const mappingSchema = z
@@ -43,6 +46,7 @@ export async function captureAnswer(
   question: string,
   answer: string,
   pages: { file: string; text: string }[],
+  model?: ModelUse,
 ): Promise<string | undefined> {
   if (!checkAnswerCitations(answer, pages).cited) return undefined;
   const links = citedPageLinks(answer);
@@ -52,6 +56,7 @@ export async function captureAnswer(
     question,
     answer,
     pages: selected.sort((a, b) => a.file.localeCompare(b.file)),
+    ...(model ? { model } : {}),
   });
   if (Buffer.byteLength(json(record)) > 900 * 1024) return undefined;
   const id = digest(JSON.stringify(record));

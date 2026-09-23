@@ -8,6 +8,7 @@
 import type { ChatTrace, VersionCheck } from "../scripts/wiki/chat-trace";
 import type { HandbookSlices } from "../scripts/wiki/handbook";
 import type { AgentRequest } from "../scripts/wiki/ingest";
+import { MODEL_ID, type ModelUse } from "../scripts/wiki/model-use";
 import type { Neighborhood } from "../src/content/wiki/relations";
 import type { Hit } from "../src/content/wiki/retrieve";
 import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
@@ -19,6 +20,8 @@ export interface ChatContext {
   wikiRoot: string;
   timeoutMs: number;
   revision?: string;
+  /** 同步配置里的 chatModel；不填就用 CLI 默认模型 */
+  model?: string;
   /** Internal evaluation only; HTTP callers cannot select this profile. */
   control?: { model: string; maxCostUsd: number };
 }
@@ -165,12 +168,14 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
       throw new Error("离线对照必须使用独立新会话，不接受历史问题");
     if (input.github) throw new Error("离线对照只依据知识快照，不接受在线检索结果");
     if (
-      !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(control.model) ||
+      !MODEL_ID.test(control.model) ||
       !Number.isFinite(control.maxCostUsd) ||
       control.maxCostUsd <= 0
     )
       throw new Error("离线对照必须显式指定模型和正数调用额度");
   }
+  if (ctx.model !== undefined && !MODEL_ID.test(ctx.model)) throw new Error(`问答模型名不合法：${ctx.model}`);
+  const model = control?.model ?? ctx.model;
   const allowed = chatOnline(ctx) ? [...LOCAL_TOOLS, ...WEB_TOOLS] : LOCAL_TOOLS;
   // 手册只说「若本轮提供联网工具…」，模型得自己猜有没有；这里按实际给的工具写死，猜错就没借口了
   const toolsLine = chatOnline(ctx)
@@ -219,14 +224,8 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
     "--tools",
     allowed.join(","),
   ];
-  if (control)
-    args.push(
-      "--model",
-      control.model,
-      "--max-budget-usd",
-      String(control.maxCostUsd),
-      "--no-session-persistence",
-    );
+  if (model) args.push("--model", model);
+  if (control) args.push("--max-budget-usd", String(control.maxCostUsd), "--no-session-persistence");
   if (input.sessionId) args.push("--resume", input.sessionId, "--fork-session");
   args.push("--allowedTools", ...allowed, "--disallowedTools", ...DISALLOWED, ...(control ? WEB_TOOLS : []));
 
@@ -335,7 +334,7 @@ export function sseFrame(event: string, data: unknown): string {
 export async function runChat(
   req: AgentRequest,
   on: { text: (t: string) => void; tool?: (name: string, target?: string) => void },
-): Promise<{ ok: boolean; sessionId?: string; costUsd?: number; reason?: string }> {
+): Promise<{ ok: boolean; sessionId?: string; costUsd?: number; reason?: string; models?: ModelUse }> {
   const { spawnClaude, resolveClaudeCommand } = await import("../scripts/wiki/claude-cli");
   if (resolveClaudeCommand().shell)
     return { ok: false, reason: "问答隔离需要可直接执行的 claude 二进制路径（CLAUDE_CLI）" };
@@ -350,11 +349,12 @@ export async function runChat(
       }
     }
   });
-  const out: { ok: boolean; sessionId?: string; costUsd?: number; reason?: string } = {
+  const out: { ok: boolean; sessionId?: string; costUsd?: number; reason?: string; models?: ModelUse } = {
     ok: r.ok && results === 1,
   };
   if (r.sessionId) out.sessionId = r.sessionId;
   if (r.costUsd !== undefined) out.costUsd = r.costUsd;
+  if (r.models) out.models = r.models;
   if (r.reason) out.reason = r.reason;
   else if (results !== 1) out.reason = "问答没有唯一完整的结束记录";
   return out;

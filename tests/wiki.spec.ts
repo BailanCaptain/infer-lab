@@ -179,6 +179,62 @@ function sse(frames: [string, unknown][]): string {
 }
 
 test.describe("问答抽屉", () => {
+  test("标出实际作答模型；换了模型时说清谁拒答、谁接手（2026-09-23 问答全被换成 Opus 5）", async ({
+    page,
+  }, info) => {
+    const answer = "默认值为 1，见 [A](sources/a.md)。";
+    const turns = [
+      {
+        requested: "claude-opus-5-5[1m]",
+        answeredBy: "claude-opus-5",
+        switched: true,
+        switches: [
+          {
+            event: "model_refusal_fallback",
+            from: "claude-opus-5-5[1m]",
+            to: "claude-opus-5",
+            reason: "frontier_llm",
+          },
+        ],
+      },
+      { requested: "claude-opus-5-5[1m]", answeredBy: "claude-opus-5-5", switched: false, switches: [] },
+    ];
+    let turn = 0;
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route("**/api/wiki/chat", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: sse([
+          ["knowledge", { revision: "a".repeat(64), sessionId: "s-1", online: true }],
+          ["text", { text: answer }],
+          ["model", turns[turn++]],
+          ["cite", { cited: true, selfDeclaredUncovered: false }],
+          ["done", {}],
+        ]),
+      }),
+    );
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    await page.getByTestId("chat-input").fill("A 的默认值？");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-model").first()).toContainText("claude-opus-5");
+    const notice = page.getByTestId("chat-model-notice");
+    await expect(notice).toHaveCount(1);
+    await expect(notice).toContainText("claude-opus-5-5");
+    await expect(notice).toContainText("拒答");
+    await expect(notice).toContainText("frontier_llm");
+    await expect(notice).toContainText("claude-opus-5 作答");
+    await page.screenshot({ path: info.outputPath("model-switch-mobile.png"), fullPage: true });
+
+    await page.getByTestId("chat-input").fill("再问一次");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-model")).toHaveCount(2);
+    await expect(page.getByTestId("chat-model").nth(1)).toContainText("claude-opus-5-5");
+    // 没换模型就不报警
+    await expect(page.getByTestId("chat-model-notice")).toHaveCount(1);
+  });
+
   test("知识库内没有相关页面的真实拒答不会显示无引用警告", async ({ page }, info) => {
     const answer = "知识库内没有任何页面涉及 profiling_chunk_config，无法比较两个版本的配置解析行为。";
     await page.setViewportSize({ width: 390, height: 844 });
@@ -433,11 +489,23 @@ test.describe("状态页签", () => {
       spendsMoney: false,
       paidWork: { tasks: 0, reconcile: 0, drift: 0 },
     },
+    models: {
+      recorded: 9,
+      switched: 8,
+      last: {
+        at: "2026-09-23T03:26:42Z",
+        purpose: "chat",
+        event: "model_refusal_fallback",
+        from: "claude-opus-5-5[1m]",
+        to: "claude-opus-5",
+        reason: "frontier_llm",
+      },
+    },
     pages: { concepts: 38, params: 19, sources: 0 },
     todo: { pendingReviews: 0, missingTerms: ["token", "softmax"], totalTerms: 30, gaps: 1, queuedTasks: 0 },
   });
 
-  test("把预算、夜间维护和会不会自己花钱摆到明面上，且没有任何写操作", async ({ page }) => {
+  test("把预算、夜间维护和会不会自己花钱摆到明面上，且没有任何写操作", async ({ page }, info) => {
     const writes: string[] = [];
     page.on("request", (r) => {
       if (r.url().includes("/api/wiki/") && r.method() !== "GET") writes.push(r.url());
@@ -452,6 +520,11 @@ test.describe("状态页签", () => {
     await expect(pane).toContainText("48 / 2000");
     await expect(pane).toContainText("留到下一晚的");
     await expect(pane).toContainText("2 / 30");
+    // 2026-09-23：拒答换模型要在这里看得到，夜间无人值守的调用只能从这里查
+    await expect(pane).toContainText("CLI 默认（没有固定）");
+    await expect(pane).toContainText("8 / 9 次");
+    await expect(pane).toContainText("claude-opus-5-5[1m] → claude-opus-5（frontier_llm）");
+    await page.screenshot({ path: info.outputPath("status-models.png"), fullPage: true });
     await expect(pane.getByRole("button")).toHaveCount(0);
     expect(writes).toEqual([]);
   });

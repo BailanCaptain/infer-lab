@@ -29,3 +29,13 @@ it("本机覆盖文件同样过 schema：写了不认识的键就报错，不会
   writeFileSync(join(d, "sync.config.local.json"), JSON.stringify({ pyhton: "typo" }));
   expect(() => readSyncConfig(join(d, "sync.config.json"))).toThrow();
 });
+
+it("问答模型 chatModel 可以写在本机覆盖里；不像模型名的值直接报错", () => {
+  const d = dir();
+  writeFileSync(join(d, "sync.config.json"), "{}");
+  expect(readSyncConfig(join(d, "sync.config.json")).chatModel).toBeUndefined();
+  writeFileSync(join(d, "sync.config.local.json"), JSON.stringify({ chatModel: "claude-fable-5-1" }));
+  expect(readSyncConfig(join(d, "sync.config.json")).chatModel).toBe("claude-fable-5-1");
+  writeFileSync(join(d, "sync.config.local.json"), JSON.stringify({ chatModel: "--tools x" }));
+  expect(() => readSyncConfig(join(d, "sync.config.json"))).toThrow();
+});

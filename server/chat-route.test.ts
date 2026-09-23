@@ -303,3 +303,36 @@ it("tells the reader the turn was online, and flags an answer that claims it had
   const second = await (await used.request({ message: "A 的默认值？" })).text();
   expect(second).not.toContain("event: notice");
 });
+
+it("标出实际作答模型：换了模型要推给界面，也写进问答记录；配置了 chatModel 就固定它", async () => {
+  // 2026-09-23 实遇：8 个问答会话全被 Opus 5.5 以 frontier_llm 拒答、换 Opus 5 作答，界面上看不出来
+  const models = {
+    requested: "claude-opus-5-5[1m]",
+    answered: ["claude-opus-5"],
+    switches: [
+      { event: "model_refusal_fallback", from: "claude-opus-5-5[1m]", to: "claude-opus-5", reason: "frontier_llm" },
+    ],
+  };
+  let args: string[] = [];
+  const f = await setup(async (req, on) => {
+    args = req.args;
+    on.text("默认值为 1，见 [A](sources/a.md)。");
+    return { ok: true, sessionId: randomUUID(), models };
+  });
+  const response = await (await f.request({ message: "A 的默认值？" })).text();
+  expect(args).not.toContain("--model");
+  expect(frame(response, "model")).toEqual({
+    requested: "claude-opus-5-5[1m]",
+    answeredBy: "claude-opus-5",
+    switched: true,
+    switches: models.switches,
+  });
+  const answerId = frame(response, "done").answerId as string;
+  expect(JSON.parse(readFileSync(join(f.root, `wiki/_jobs/answers/${answerId}.json`), "utf8")).model).toEqual(
+    models,
+  );
+
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatModel: "claude-fable-5-1" }));
+  await (await f.request({ message: "A 的默认值？" })).text();
+  expect(args[args.indexOf("--model") + 1]).toBe("claude-fable-5-1");
+});

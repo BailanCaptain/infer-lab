@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChatRequest, parseChatLine, sseFrame } from "./chat";
+import { buildChatRequest, claimsOffline, parseChatLine, sseFrame } from "./chat";
 
 const hb = { pageFormat: "PF", query: "Q" };
 const ctx = { wikiRoot: "C:/w/wiki", timeoutMs: 60_000 };
@@ -202,5 +202,27 @@ describe("sseFrame", () => {
     const frame = sseFrame("text", { text: "a\nb" });
     expect(frame.split("\n\n").length).toBe(2);
     expect(frame).toContain("\\n");
+  });
+});
+
+describe("系统提示写明本轮有哪些工具", () => {
+  // 2026-09-23 实测：同一问题有的轮次模型说「本轮没有联网工具」、有的轮次真的去 WebFetch 了。
+  // 手册只说「若本轮提供…」，让模型自己猜；提示里直接写清，并让读者在界面上看到。
+  it("联网轮次：点名 WebFetch / WebSearch 可用，不许说没有联网工具", () => {
+    const req = buildChatRequest({ message: "x" }, hb, ctx);
+    const sys = req.args[req.args.indexOf("--append-system-prompt") + 1] ?? "";
+    expect(sys).toContain("WebFetch、WebSearch 可用");
+    expect(sys).toContain("不要说本轮没有联网工具");
+  });
+  it("离线对照：写明只有只读工具、不联网", () => {
+    const req = buildChatRequest({ message: "x" }, hb, { ...ctx, control: { model: "m", maxCostUsd: 1 } });
+    const sys = req.args[req.args.indexOf("--append-system-prompt") + 1] ?? "";
+    expect(sys).toContain("只有 Read、Grep、Glob，不联网");
+    expect(sys).not.toContain("WebFetch、WebSearch 可用");
+  });
+  it("回答里的「没有联网工具」这类说法能被程序认出来", () => {
+    expect(claimsOffline("本轮没有联网工具，只能读快照。")).toBe(true);
+    expect(claimsOffline("我这一轮只能读知识库快照，读不到上游源码。")).toBe(true);
+    expect(claimsOffline("默认值为 1，见 [A](sources/a.md)。")).toBe(false);
   });
 });

@@ -187,8 +187,17 @@ test.describe("问答抽屉", () => {
         status: 200,
         headers: { "content-type": "text/event-stream" },
         body: sse([
+          ["knowledge", { revision: "a".repeat(64), sessionId: "s-1", online: true }],
           ["text", { text: answer }],
           ["cite", checkAnswerCitations(answer, [])],
+          [
+            "notice",
+            {
+              kind: "offline-claim",
+              message:
+                "服务端本轮已提供联网工具（WebFetch / WebSearch），模型没有用就说无法联网；这条回答没有经过联网核对。",
+            },
+          ],
           ["done", {}],
         ]),
       }),
@@ -199,6 +208,9 @@ test.describe("问答抽屉", () => {
     await page.getByTestId("chat-send").click();
     await expect(page.getByTestId("chat-log")).toContainText(answer);
     await expect(page.getByTestId("chat-uncited")).toHaveCount(0);
+    // 2026-09-23：读者要看得到这一轮有没有联网工具，以及模型说「联不了网」却没用工具的情况
+    await expect(page.getByTestId("chat-online")).toContainText("本轮可联网");
+    await expect(page.getByTestId("chat-tool-notice")).toContainText("已提供联网工具");
     // F001 AC7：不报警，但要标成未收录，不能看起来像知识库结论
     await expect(page.getByTestId("chat-uncovered")).toContainText("未收录");
     await page.screenshot({ path: info.outputPath("honest-abstention-mobile.png"), fullPage: true });

@@ -117,7 +117,11 @@ interface Msg {
   reading?: string[];
   answerId?: string;
   revision?: string;
+  /** 服务端这一轮给了联网工具 */
+  online?: boolean;
   versionNotice?: string;
+  /** 服务端发现回答说自己联不了网、却一次都没用给它的联网工具 */
+  toolNotice?: string;
   gapNotice?: string;
   related?: { id: string; title: string; href: string; note: string }[];
   trace?: TraceView;
@@ -134,7 +138,14 @@ async function streamChat(
     related: (pages: NonNullable<Msg["related"]>) => void;
     trace: (v: TraceView) => void;
     error: (m: string) => void;
-    knowledge: (v: { revision: string; sessionId: string; resetReason?: string; maxTurns?: number }) => void;
+    knowledge: (v: {
+      revision: string;
+      sessionId: string;
+      resetReason?: string;
+      maxTurns?: number;
+      online?: boolean;
+    }) => void;
+    notice: (v: { kind: string; message: string }) => void;
     gap: (v: {
       state: "collecting" | "awaiting-assessment" | "record-failed";
       count?: number;
@@ -177,6 +188,7 @@ async function streamChat(
       else if (ev === "cite") on.cite(data as never);
       else if (ev === "error") on.error(String(data.message ?? "未知错误"));
       else if (ev === "knowledge") on.knowledge(data as never);
+      else if (ev === "notice" && typeof data.message === "string") on.notice(data as never);
       else if (ev === "gap") on.gap(data as never);
       else if (ev === "trace" && typeof data.status === "string") on.trace(data as TraceView);
       else if (ev === "related" && Array.isArray(data.pages))
@@ -245,11 +257,13 @@ export function useChat() {
                       ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
                       : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
               })),
+            notice: (v) => patch((l) => ({ ...l, toolNotice: v.message })),
             knowledge: (v) => {
               sessionId.current = v.sessionId;
               patch((l) => ({
                 ...l,
                 revision: v.revision,
+                ...(v.online !== undefined ? { online: v.online } : {}),
                 ...(v.resetReason
                   ? {
                       versionNotice:
@@ -322,6 +336,7 @@ export function ChatPane({
                 {m.revision && (
                   <p className="wiki-chat-reading" data-testid="chat-version">
                     知识版本 {m.revision.slice(0, 12)}
+                    {m.online && <span data-testid="chat-online"> · 本轮可联网</span>}
                   </p>
                 )}
                 {m.reading && m.reading.length > 0 && (
@@ -332,6 +347,11 @@ export function ChatPane({
             {m.versionNotice && (
               <p role="status" className="wiki-chat-uncited" data-testid="chat-version-notice">
                 {m.versionNotice}
+              </p>
+            )}
+            {m.toolNotice && (
+              <p role="status" className="wiki-chat-uncited" data-testid="chat-tool-notice">
+                {m.toolNotice}
               </p>
             )}
             {m.trace && <TraceResult trace={m.trace} />}

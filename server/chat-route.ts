@@ -8,7 +8,15 @@ import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
 import { neighborhood } from "../src/content/wiki/relations";
 import { type CitationVerdict, retrieve } from "../src/content/wiki/retrieve";
 import { captureAnswer } from "./answers";
-import { buildChatRequest, CHAT_TIMEOUT_MS, type ChatHit, runChat, sseFrame } from "./chat";
+import {
+  buildChatRequest,
+  CHAT_TIMEOUT_MS,
+  type ChatHit,
+  chatOnline,
+  claimsOffline,
+  runChat,
+  sseFrame,
+} from "./chat";
 import { beginChat, type ChatLease, finishChat, MAX_SESSION_TURNS } from "./chat-session";
 import { answerCitationGuide, checkAnswerCitations } from "./citations";
 import { coverageSignals } from "./coverage";
@@ -91,6 +99,8 @@ export async function handleChat(
       sessionId: lease.id,
       resetReason: lease.resetReason,
       maxTurns: MAX_SESSION_TURNS,
+      // 网页问答永远给联网工具（离线对照只走内部评测）；界面照实标出来
+      online: chatOnline({}),
     });
     emit("hits", { hits });
     // 贴的是报错才在线查 GitHub（F003 AC4 聊天层接入）；普通提问一个网络请求都不发
@@ -134,6 +144,13 @@ export async function handleChat(
     if (outcome.ok && !answer.trim()) outcome = { ok: false, reason: "问答没有返回正文" };
     if (outcome.ok) citations = checkAnswerCitations(answer, snapshot.pageTexts);
     if (outcome.ok && citations.cited) emit("related", { pages: relatedReading(answer, snapshot) });
+    // 给了联网工具、一次没用、却说自己联不了网：读者得知道这条回答没有联网核对
+    if (outcome.ok && chatOnline({}) && webTools.length === 0 && claimsOffline(answer))
+      emit("notice", {
+        kind: "offline-claim",
+        message:
+          "服务端本轮已提供联网工具（WebFetch / WebSearch），模型没有用就说无法联网；这条回答没有经过联网核对。",
+      });
     if (outcome.ok && answer.trim() && !res.destroyed)
       answerId = await captureAnswer(root, message, answer, snapshot.pageTexts);
     if (!outcome.ok) emit("error", { message: outcome.reason ?? "agent 失败" });

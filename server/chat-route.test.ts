@@ -287,3 +287,22 @@ it("a modified execution snapshot fails the turn and does not offer save", async
   expect(frame(response, "error").message).toContain("快照");
   expect(frame(response, "done").answerId).toBeUndefined();
 });
+
+it("tells the reader the turn was online, and flags an answer that claims it had no web tools without using any", async () => {
+  // 2026-09-23 实测：服务端每轮都给了 WebFetch / WebSearch，模型却有几轮说「本轮没有联网工具」。用户得知道。
+  const f = await setup(async (_req, on) => {
+    on.text("本轮没有联网工具，只能读快照；知识库里还没有这一条。");
+    return { ok: true, sessionId: randomUUID() };
+  });
+  const response = await (await f.request({ message: "HCCL 缓冲区怎么定？" })).text();
+  expect(frame(response, "knowledge")).toMatchObject({ online: true });
+  expect(frame(response, "notice")).toMatchObject({ kind: "offline-claim" });
+  expect(frame(response, "notice").message).toContain("已提供联网工具");
+  const used = await setup(async (_req, on) => {
+    on.tool?.("WebFetch", "https://docs.vllm.ai/");
+    on.text("本轮没有联网工具？不，我查到了：默认值为 1，见 [A](sources/a.md)。");
+    return { ok: true, sessionId: randomUUID() };
+  });
+  const second = await (await used.request({ message: "A 的默认值？" })).text();
+  expect(second).not.toContain("event: notice");
+});

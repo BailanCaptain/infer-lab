@@ -66,6 +66,16 @@ const LOCAL_TOOLS = ["Read", "Grep", "Glob"];
 const WEB_TOOLS = ["WebFetch", "WebSearch"];
 const DISALLOWED = ["Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent"];
 
+/** 这一轮给不给联网工具：只有内部离线对照不给。路由和请求构造都从这里判断，别各写一份。 */
+export const chatOnline = (ctx: Pick<ChatContext, "control">) => !ctx.control;
+
+/**
+ * 回答里「本轮没有联网工具」这类说法。2026-09-23 实测：服务端每轮都给了 WebFetch / WebSearch，
+ * 模型却有几轮这么说；程序认出来后告诉读者「这条回答没有联网核对」，不让它悄悄过去。
+ */
+export const claimsOffline = (answer: string) =>
+  /没有联网工具|无法联网|不能联网|没有联网|只能读(?:知识库)?快照|不替你(?:去官方文档)?取证/.test(answer);
+
 /**
  * 子图注入。回答「什么是 X」时只读 X 一页是不够的——2026-09-11 实测就是读一页
  * 就停了，因为那时候边是无类型的 `related`，agent 既不知道该去哪页，也不知道
@@ -162,11 +172,16 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
     )
       throw new Error("离线对照必须显式指定模型和正数调用额度");
   }
-  const allowed = control ? LOCAL_TOOLS : [...LOCAL_TOOLS, ...WEB_TOOLS];
+  const allowed = chatOnline(ctx) ? [...LOCAL_TOOLS, ...WEB_TOOLS] : LOCAL_TOOLS;
+  // 手册只说「若本轮提供联网工具…」，模型得自己猜有没有；这里按实际给的工具写死，猜错就没借口了
+  const toolsLine = chatOnline(ctx)
+    ? `本轮工具：${LOCAL_TOOLS.join("、")} 只读当前快照；${WEB_TOOLS.join("、")} 可用——知识库没有时按手册查官方来源，并写明「知识库未收录，以下来自官方来源」。不要说本轮没有联网工具。`
+    : `本轮工具：只有 ${LOCAL_TOOLS.join("、")}，不联网。`;
   const system = [
     handbook.pageFormat.trim(),
     handbook.query.trim(),
     COVERAGE_REPORT_INSTRUCTION,
+    toolsLine,
     // 2026-09-23 前这里是整份 index.md（每页约 228 字符），库越大系统提示越长；它就在快照目录里，按需搜即可
     "知识库目录是当前目录下的 index.md，列出全部页面的标题与一句话摘要。程序在问题下面给了预检索的候选页；要找别的页，用 Grep 在 index.md 里搜关键词，不要整份读入。",
     ...(ctx.revision

@@ -12,7 +12,7 @@
 |---|---|---|---|
 | **首页** | 主仓 `infra-view-new`（main），`http://localhost:5183/#/` | 城市 3D 背景 + 左侧十章目录；**目录只是静态文字，没有任何章节页** | 入口。点进去就该是章节线 |
 | **地基** | 主仓 `src/sim/`、`src/timeline/` | 完成、有测试；Qwen3-0.6B 一层前向 21 步真实数据 + 昇腾 910B 驻留/搬运规则 + 播放引擎。**目前没有任何画面在消费它** | 让「模型层」和「硬件层」每一步对得上的数据来源 |
-| **模型物体（GLM）** | `infra-view-hardware-study-20260906/glm-flow/`，`python tools/serve_preview.py` → `http://localhost:4178/glm-flow/` | GLM 整模型 3D 物体，四视图 + 分段播放，格子数=真实维度；09-20 定了骨架方向，细节未逐条对齐，未接入主仓 | Part 1「模型计算层」各章的舞台 |
+| **模型物体（GLM）** | `infra-view-hardware-study-20260906/glm-flow/master/`，`python tools/serve_preview.py` → `http://localhost:4178/glm-flow/master/model.html` | GLM 整模型 3D 母版（09-25 用户定）：真实比例、照 bbycroft 排，45 层 + MTP + 头尾，形状和参数对照官方代码与权重文件；还没有能播的段，未接入主仓；准绳是该目录的 `MASTER-DESIGN.md` | Part 1「模型计算层」各章的舞台 |
 | **硬件物体** | 同目录 `whole/`，同一个服务 → `http://localhost:4178/whole/` | 「算力群岛 · 机柜到芯片」，DGX H100 / Atlas 800T A2，机柜→整机→内部→模组；可用，未接入主仓 | Part 2「硬件执行层」各章的舞台 |
 | **知识库** | 工作树 `infra-view-new-llm-wiki`（分支 `feat/llm-wiki`，本地未推送），后端 8790 + 前端 `localhost:5193/#/wiki` | 69 页 + 53 张图 + 右侧问答/审阅/状态侧栏；全库已逐句对过钉住的源码 | Part 3/4 各章的底稿；同时是每章右侧的「不懂就问」 |
 | **模型工作台**（PLAN.md §1.2） | 主仓 `src/sim/modelspec/`（`analyze.ts`），没有页面 | 数字引擎有一半：有测试，Qwen3 的参数量、激活参数、每 token KV 字节已能算；第 3、4 问（部署方案、理论耗时）没做；页面没做；GLM 的 config 解析器没做（现有解析器只认 qwen3 / qwen3_moe / qwen2 / llama） | Part 1 收尾那一章的交互部分，也是「母版」的落点：贴另一份 `config.json`，3D 模型物体和四个答案一起变 |

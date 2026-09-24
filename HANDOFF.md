@@ -1,3 +1,5 @@
+> LLM WIKI 新会话请先读 [最新交接](C:/Users/-/Desktop/infra-view-new-llm-wiki/HANDOFF-LLM-WIKI.md)，并在 `C:/Users/-/Desktop/infra-view-new-llm-wiki` 的 `feat/llm-wiki` 工作树继续。此 main 工作区不是 Wiki 当前实现；以下项目背景保留。
+
 # 交接说明（2026-09-06 深夜重写）
 
 ## 当前开篇：大模型推理之旅 · 城市背景

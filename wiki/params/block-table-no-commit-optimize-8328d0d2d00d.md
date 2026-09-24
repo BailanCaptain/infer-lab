@@ -25,6 +25,10 @@ sources:
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L329-L354
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/worker/block_table.py#L445-L452
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:docs/source/user_guide/configuration/additional_config.md#L76-L76
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:docs/source/user_guide/configuration/additional_config.md#L26-L26
 rawSources:
   - >-
     raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
@@ -58,7 +62,9 @@ MRv1 only: 0 uses dirty-range commits; 1 restores a full-table H2D copy.
 | 真实配置路径 | `additional_config["block_table_no_commit_optimize"]` [C1] | 顶层键；配置类 docstring 的全量键示例里列着它，默认 `0` [C3] |
 | 类型与默认 | `Literal[0, 1]`，默认 `0`（用优化实现） | 只认 0 / 1，别的值在配置校验就被拒 |
 | 选择点 | `_get_block_table_cls()`：`1` 返回 `BlockTable`，其余返回 `OptimizedBlockTable` [C2] | 每个 KV cache group 的块表都按它选类，进程起来后不再变 |
-| 适用范围 | 字段注释：MRv1 only [C1] | 不跑 MRv1 的部署写它没有效果 |
+| 适用范围 | 字段注释：MRv1 only [C1]；官方参数表写明 MRv2 有自己的分段增量更新、**无视这个键** [S5] | 不跑 MRv1 的部署写它没有效果 |
+| 寿命 | 官方参数表把它标成临时的 MRv1 兼容项，**MRv1 退役时会被删掉** [S5] | 别把它写进长期维护的部署模板 |
+| 环境变量 | `VLLM_ASCEND_BLOCK_TABLE_NO_COMMIT_OPTIMIZE` **不被支持**，只认 additional-config 里的 0/1 [S6] | 老习惯设环境变量等于没设 |
 | 覆盖版本 | 只有 main（2026-09-23 起，见版本谱系） | 两个在册发布分支的配置类逐键 `.get()`，写上被静默忽略 |
 
 ## 为什么存在

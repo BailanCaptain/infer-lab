@@ -1,88 +1,26 @@
-layout: scene
+layout: figure
 id: gqa
-caption: 上排 16 个 Q 头、下排 8 个 K/V 头（Qwen3-0.6B 的真实头数），一格正好压住上面两格；下半张是算的时候这两个数怎么交给算子
-size: [900, 660]
+caption: 同样 16 个 Q 头，每个 token 每层存几份 K/V：各配一份是 16 份，本模型 2 份，最省 1 份（bf16，单颗 NPU）
+size: [900, 290]
 
-regions:
-  - label: 一层里的头数：16 个 Q，8 个 K/V
-    note: 两排一样长，因为每个头都是 128 维——GQA 砍的不是维度，是 K/V 的组数：16 组变 8 组。
-    at: [20, 36]
-    size: [860, 252]
-    tone: neutral
-  - label: 算的时候：两个数交给算子，Python 侧从没出现过 16 份 K/V
-    note: 复制不是没发生，是发生在算子里面——昇腾自己写的多模态 encoder 那条路才真的 repeat_interleave。
-    at: [20, 308]
-    size: [860, 328]
-    tone: ascend
+texts:
+  - { at: [30, 34], text: 16 个 Q 头不变，只改存几份 K/V, size: 14, strong: true }
+  - { at: [30, 77], text: Q 头, size: 13.5 }
+  - { at: [30, 137], text: MHA, size: 13.5, note: true }
+  - { at: [30, 197], text: GQA（本模型）, size: 13.5, strong: true, tone: kv }
+  - { at: [30, 257], text: MQA, size: 13.5, note: true }
+  - { at: [830, 137], text: 16 KiB, size: 13.5, note: true }
+  - { at: [244, 197], text: 2 KiB, size: 14, strong: true, tone: kv }
+  - { at: [198, 257], text: 1 KiB, size: 13.5, note: true }
 
-brackets:
-  - { at: [40, 138], span: 94, label: 2 个 Q 头共用一组, dir: up, tone: accent }
-
-strips:
-  - at: [40, 142]
-    cells: 16
-    cell: 46
-    gap: 2
-    h: 34
-    highlights: [0, 1]
-    tone: accent
-    label: 16 个 Q 头 × 128 维，q_size = 2048
-  - at: [40, 214]
-    cells: 8
-    cell: 94
-    gap: 2
-    h: 34
-    highlights: [0]
-    tone: ascend
-    label: 8 个 K 头 + 8 个 V 头 × 128 维，kv_size = 1024
-
-notes:
-  - { at: [840, 194], text: 16 个 Q 头照样各算一遍，乘加次数没少, size: 12.5, anchor: end }
-  - { at: [840, 266], text: 只有这一排进 KV Cache：4096 B／token／层, size: 12.5, anchor: end }
-  - at: [60, 606]
-    text: 16 和 8 这两个数一路传到算子入参为止，中间没有一步把 K/V 摊成 16 份：省的是字节数和读取量，不是乘加次数。
-    size: 12.5
-    width: 800
-    strong: true
-
-bands:
-  - label: 缓存里就只有 8 个 KV 头
-    sub: "(2, num_blocks, 128, 8, 128) —— 第四维那个 8 是 KV 头数，不是 16"
-    fn: get_kv_cache_shape
-    icon: grid
-    at: [60, 386]
-    size: [800, 50]
-    tone: neutral
-  - label: 取的时候 8 个头被压进最后一维
-    sub: "key_cache.view(num_block, block_size, -1)：8 × 128 压成 1024"
-    fn: _get_fia_params
-    icon: layers
-    at: [60, 444]
-    size: [800, 50]
-    tone: neutral
-  - label: 算子按 num_key_value_heads 自己分组
-    sub: num_heads=16 与 num_key_value_heads=8 一起传进去，K/V 不复制
-    fn: npu_fused_infer_attention_score
-    icon: bolt
-    at: [60, 528]
-    size: [800, 50]
-    tone: ascend
-
-boundaries:
-  - at: 512
-    from: 40
-    to: 880
-    vertical: false
-    label: "过了这条线才分组：Python 侧到此只有 8 份"
+rows:
+  - { at: [150, 58], count: 16, w: 38, h: 28, gap: 4, tone: token }
+  - { at: [150, 118], count: 16, w: 38, h: 28, gap: 4, tone: kv, faded: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] }
+  - { at: [150, 178], count: 2, w: 38, h: 28, gap: 4, tone: kv }
+  - { at: [150, 238], count: 1, w: 38, h: 28, gap: 4, tone: kv, faded: [0] }
 
 pins:
-  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3.py#L79-L94
-    symbols: [num_kv_heads, head_dim, q_size, kv_size]
+  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3_next.py#L219-L235
+    symbols: [total_num_kv_heads, num_kv_heads, head_dim, kv_size]
   - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
-    symbols: [get_kv_cache_shape, num_blocks, block_size, num_kv_heads, head_size]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1174-L1218
-    symbols: [_get_fia_params, key_cache, num_block]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359
-    symbols: [npu_fused_infer_attention_score, num_key_value_heads, num_heads]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/mm_encoder_attention.py#L89-L96
-    symbols: [repeat_interleave, num_queries_per_kv]
+    symbols: [get_kv_cache_shape, num_kv_heads, head_size]

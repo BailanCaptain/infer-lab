@@ -1,44 +1,27 @@
-layout: scene
+layout: figure
 id: prepare-inputs-flow
-caption: 第 92 步 decode：上游给的两个整数，怎么变成「写进哪一格」（行号按 v0.23 画；v0.26 上是第 890 行起、共 437 行）
-size: [900, 510]
+caption: 第 1 步问题的 37 个 token 写进这个 KV 块的前 37 格；第 2 步的 1 个 token 在位置 37，就写进第 37 格。之后每步往后挪一格，237 个 token 都在这一块里
+size: [900, 330]
 
-regions:
-  - label: 上游交过来的
-    note: 全是整数，没有一个张量
-    at: [20, 40]
-    size: [300, 190]
-    tone: upstream
-  - label: 昇腾算出来的
-    note: 算子真正要吃的东西
-    at: [580, 40]
-    size: [300, 190]
-    tone: ascend
+rows:
+  - { at: [40, 56], count: 37, w: 13, h: 24, gap: 3, tone: token }
 
-boxes:
-  - { at: [36, 116], size: [268, 44], title: "num_scheduled_tokens = 1", tone: upstream }
-  - { at: [36, 168], size: [268, 44], title: "block_ids = [b0, b1]", tone: upstream }
-  - { at: [596, 108], size: [268, 38], title: "input_ids   (1,)", tone: ascend }
-  - { at: [596, 152], size: [268, 38], title: "positions   (1,)  值是 128", tone: ascend }
-  - { at: [596, 196], size: [268, 38], title: "slot_mapping   (1,)", tone: ascend }
+items:
+  - { at: [680, 44], size: [190, 50], text: 第 2 步：1 个 token, sub: 位置 37, tone: token }
 
-  - { at: [336, 96], size: [238, 118], title: _prepare_inputs, sub: "第 862 行起，共 514 行", fn: Triton kernel 算槽位, tone: accent, icon: calc }
+grids:
+  - { at: [40, 150], rows: 1, cols: 48, cell: [16, 32], tone: kv, fill: 37, cells: [{ at: [0, 37], tone: token, style: solid }], label: 一个 KV 块 2048 格，画出前 48 格 }
 
-arrows:
-  - { from: [308, 155], to: [332, 155], tone: upstream }
-  - { from: [578, 155], to: [592, 155], tone: ascend }
+links:
+  - { from: [335, 86], to: [335, 146], tone: token }
+  - { from: [700, 96], to: [641, 146], tone: token }
 
-strips:
-  - { at: [140, 306], cells: 2, cell: 34, gap: 6, highlight: 1, tone: neutral, label: "block_table 这一行：两列，第 92 步用到的是第 1 列" }
-  - { at: [420, 306], cells: 12, cell: 22, gap: 3, highlight: 0, tone: ascend, label: "b1 这一块的 128 个槽位（画出前 12 个），这一步写第 0 格" }
-
-notes:
-  - { at: [20, 272], text: "中间那一步具体在算什么", size: 13.5, strong: true }
-  - { at: [140, 372], text: "位置 128 ÷ 128 = 第 1 列", size: 12.5 }
-  - { at: [420, 372], text: "128 % 128 = 第 0 格", size: 12.5 }
-  - { at: [20, 412], text: "slot = block_table[req][128 // 128] × 128 + 128 % 128 = b1 × 128 + 0", size: 14, strong: true }
-  - { at: [20, 446], text: "这道除法和取模就是「分页」在代码里的全部形态。上游只给了 b0、b1 两个整数，落到哪一格是这里算的——两件事分在两个进程里。", size: 12.5, width: 860 }
-  - { at: [20, 482], text: "批里没排满的位置要填 PAD_SLOT_ID：一个哨兵槽位，写进去不会弄坏任何人的 KV。", size: 12.5, width: 860 }
+texts:
+  - { at: [40, 38], text: 第 1 步：37 个 token，位置 0–36, size: 13, strong: true }
+  - { at: [820, 172], text: ⋯, size: 20 }
+  - { at: [48, 202], text: "0", size: 12.5, anchor: middle }
+  - { at: [640, 202], text: "37", size: 12.5, anchor: middle }
+  - { at: [40, 290], text: 写进第几格 = 块号 × 2048 + 位置, size: 15, strong: true }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880

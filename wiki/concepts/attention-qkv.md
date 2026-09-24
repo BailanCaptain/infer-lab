@@ -35,9 +35,6 @@ relations:
   - to: gqa
     kind: builds-on
     note: 本页只说「16 个 Q 头共用 2 个 KV 头」这件事，为什么 K、V 的头可以少、省下的是什么，在那一页
-  - to: kv-cache
-    kind: builds-on
-    note: 本页最后埋的伏笔——前面 token 的 K、V 存下来备查——那份存下来的东西就是 KV Cache
 contradicts: []
 updated: "2026-09-25"
 origin: seed

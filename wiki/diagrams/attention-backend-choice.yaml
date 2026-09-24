@@ -1,36 +1,46 @@
-layout: scene
+layout: figure
 id: attention-backend-choice
-caption: 选后端是三道闸，最后一道查的是三元组——不是二元组
-size: [900, 474]
+caption: 一层注意力怎么找到它的后端——全注意力层过三道闸去查表，线性注意力层自己带着后端进场
+size: [900, 470]
 
-bands:
-  - { label: 闸一 · 显式选了 FLASH_ATTN, sub: "还要过 _validate_fa3_backend 校验；过了直接返回 AscendFABackend", at: [20, 48], size: [860, 62], tone: muted, icon: search }
-  - { label: 闸二 · is_310p(), sub: "走另一张表 backend_map_310；查不到会回落到 (False, False) 那一项", at: [20, 120], size: [860, 62], tone: muted, icon: search }
-  - { label: "闸三 · 查主表 backend_map[(use_mla, use_sparse, use_compress)]", sub: "直接下标访问，不合法的组合直接 KeyError，不会回落", at: [20, 192], size: [860, 62], tone: accent, icon: pick }
+dividers:
+  - { from: [634, 20], to: [634, 440], sides: [启动时查表的路, 层自带后端的路] }
 
-boxes:
-  - { at: [20, 292], size: [206, 76], title: AscendAttentionBackend, sub: "(False, False, False)", fn: 普通 MHA / GQA, tone: ascend }
-  - { at: [238, 292], size: [206, 76], title: AscendMLABackend, sub: "(True, False, False)", fn: MLA 模型, tone: ascend }
-  - { at: [456, 292], size: [206, 76], title: AscendSFABackend, sub: "(True, True, False)", fn: 稀疏 MLA, tone: ascend }
-  - { at: [674, 292], size: [206, 76], title: AscendDSABackend, sub: "(True, False, True)", fn: DSA, tone: ascend }
+items:
+  - { at: [40, 36], size: [560, 48], text: 全注意力层, sub: 例子里 10 层, tone: kv }
 
-strips:
-  - { at: [20, 394], cells: 1, cell: 206, h: 20, highlight: 0, tone: neutral }
-  - { at: [238, 394], cells: 1, cell: 206, h: 20, tone: muted }
-  - { at: [456, 394], cells: 1, cell: 206, h: 20, tone: muted }
-  - { at: [674, 394], cells: 1, cell: 206, h: 20, tone: muted }
+  - { at: [40, 128], size: [560, 42], text: 闸一：有人点名 FA3 吗？——例子没点名，往下, style: plain }
+  - { at: [40, 182], size: [560, 42], text: 闸二：是 310p 老硬件吗？——例子不是，往下, style: plain }
+  - { at: [40, 236], size: [560, 46], text: 闸三：查主表——是 MLA 吗？稀疏吗？压缩吗？, tone: control }
 
-notes:
-  - { at: [20, 282], text: "主表只有这四项", size: 13, strong: true }
-  - { at: [20, 388], text: "KV 形状", size: 12.5, anchor: start }
-  - { at: [24, 432], text: "五维，最前面那个 2 是 K 和 V", size: 12 }
-  - { at: [242, 432], text: "四维，没有独立的 K/V", size: 12 }
-  - { at: [460, 432], text: "四维", size: 12 }
-  - { at: [678, 432], text: "四维 + 单独一块 scale", size: 12 }
-  - { at: [20, 462], text: "那条请求走的是最左边一条：Qwen3-0.6B 是 GQA，三个布尔量都是 False。算显存时它那个 2 必须乘上，MLA 那三条不能乘——一个公式套不了所有后端。", size: 12.5, width: 860 }
+  - { at: [40, 340], size: [130, 56], text: 普通后端, sub: GQA / MHA, tone: control }
+  - { at: [183, 340], size: [130, 56], text: MLA 后端, tone: control, style: faded }
+  - { at: [326, 340], size: [130, 56], text: 稀疏 MLA 后端, tone: control, style: faded }
+  - { at: [469, 340], size: [130, 56], text: DSA 后端, tone: control, style: faded }
+
+  - { at: [664, 36], size: [216, 48], text: 线性注意力层, sub: 例子里 30 层, tone: token }
+  - { at: [664, 340], size: [216, 56], text: GDN 后端, sub: 线性注意力专用, tone: token }
+
+links:
+  - { from: [320, 84], to: [320, 128], tone: control }
+  - { from: [320, 170], to: [320, 182], tone: control }
+  - { from: [320, 224], to: [320, 236], tone: control }
+  - { from: [772, 84], to: [772, 340], tone: token }
+
+fans:
+  - { from: [320, 282], to: [[105, 340], [248, 340], [391, 340], [534, 340]], tone: control }
+
+tags:
+  - { at: [469, 306], text: 查不到＝直接报错，不回落 }
+
+texts:
+  - { at: [40, 316], text: 例子三个开关全是「否」，查到最左这格, size: 13, note: true }
+  - { at: [664, 200], text: 不查表：层生下来就带着自己的后端，昇腾把这层换成了自家版本, size: 13, note: true, width: 216 }
+  - { at: [40, 428], text: 例子的 10 层全走它, size: 13, strong: true }
+  - { at: [664, 428], text: 例子的 30 层全走它, size: 13, strong: true }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
     symbols: [get_attn_backend_cls]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L112
-    symbols: [AscendAttentionBackend]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/gdn.py#L64-L65
+    symbols: [get_attn_backend]

@@ -1,24 +1,28 @@
-layout: scene
+layout: figure
 id: prefill
-caption: 这条短请求的一次 prefill 产生第一个回答 token，随后 199 次 decode 产生余下回答；示意时间轴不按耗时比例。
-size: [900, 472]
-regions:
-  - { label: 已知的 prompt：37 个 token 可并排处理, at: [20, 24], size: [860, 142], tone: upstream }
-strips:
-  - { at: [44, 101], cells: 37, cell: 20, gap: 2, h: 26, tone: upstream }
-boxes:
-  - { at: [36, 220], size: [248, 92], title: 第 1 步 · prefill, sub: 输入 37 个，写 37 格 KV, fn: 采样回答 token 1, tone: upstream }
-  - { at: [326, 220], size: [248, 92], title: 第 2 步 · decode, sub: 输入回答 token 1，追加 1 格, fn: 采样回答 token 2, tone: accent }
-  - { at: [616, 220], size: [248, 92], title: …第 200 步 · decode, sub: 输入回答 token 199，追加 1 格, fn: 采样回答 token 200, tone: accent }
-arrows:
-  - { from: [160, 129], to: [160, 216], tone: upstream }
-  - { from: [286, 266], to: [322, 266], tone: accent }
-  - { from: [576, 266], to: [612, 266], tone: accent }
+caption: 第 1 步把问题的 37 个 token 一起送进去，只吐出回答的第 1 个 token；之后 199 步每步只送进 1 个 token、吐出 1 个
+size: [900, 290]
+
+texts:
+  - { at: [30, 40], text: 第 1 步 · prefill, size: 14, strong: true }
+  - { at: [30, 176], text: 第 2 到 200 步 · decode, size: 14, strong: true }
+
+rows:
+  - { at: [30, 60], count: 37, w: 16, h: 32, gap: 3, tone: token }
+  - { at: [30, 196], count: 1, w: 16, h: 32, gap: 3, tone: token }
+
+items:
+  - { at: [780, 56], size: [100, 40], text: 回答第 1 个, tone: token }
+  - { at: [780, 192], size: [100, 40], text: 下一个, tone: token }
+
+links:
+  - { from: [736, 76], to: [776, 76], tone: token }
+  - { from: [54, 212], to: [776, 212], tone: token, dashed: true }
+
 brackets:
-  - { at: [326, 343], span: 538, dir: down, label: 199 次 decode：下一步输入依赖上一步采样结果, tone: accent }
-notes:
-  - { at: [36, 390], text: 总共输入模型 37 + 199 = 236 个 token 次；最后采出的 token 不再送回。, size: 13, width: 830 }
-  - { at: [36, 430], text: 长 prompt 可由 schedule 分到多步，不能把本图的一步 prefill 当成普遍规则。, size: 13, width: 830 }
+  - { from: 30, to: 730, y: 104, label: 37 个一起送进去 }
+  - { from: 30, to: 46, y: 240, label: 每步 1 个 }
+
 pins:
   - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
     symbols: [schedule]

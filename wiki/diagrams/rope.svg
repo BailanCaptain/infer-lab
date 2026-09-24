@@ -1,34 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="只画一个二维配对：Q 与 K 各按自己的位置旋转。点积的位置因子取决于角度差，内容向量仍决定分数。">
-  <title>只画一个二维配对：Q 与 K 各按自己的位置旋转。点积的位置因子取决于角度差，内容向量仍决定分数。</title>
-  <rect width="900" height="500" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="24" width="414" height="304" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="38" width="160.2" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="56.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Q 的一对分量 · 位置 p</text>
-  <rect x="466" y="24" width="414" height="304" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="482" y="38" width="160.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="493" y="56.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">K 的一对分量 · 位置 q</text>
-  <rect x="42" y="385" width="816" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <text x="58" y="419.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">点积里的位置项只剩 (q − p) × 频率</text>
-  <text x="58" y="437.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个内容向量一起平移位置时点积不变；换 token 内容，分数仍会变。</text>
-  <path d="M105 260 L370 260" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M370 260 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M105 260 L105 90" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M105 90 l-5.5 11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M105 260 L300 224" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8" stroke-dasharray="6 4"/>
-  <path d="M300 224 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M105 260 L232 108" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M232 108 l-5.5 11 l11 0 z" fill="var(--color-control, #5b6763)"/>
-  <path d="M551 260 L816 260" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M816 260 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M551 260 L551 90" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M551 90 l-5.5 11 l11 0 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M551 260 L728 204" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8" stroke-dasharray="6 4"/>
-  <path d="M728 204 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M551 260 L587 78" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M587 78 l-5.5 11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <text x="236" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">旋转后 Q</text>
-  <text x="270" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">原 Q</text>
-  <text x="598" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">旋转后 K</text>
-  <text x="740" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">原 K</text>
-  <text x="158" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">转角 p × 频率</text>
-  <text x="604" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">转角 q × 频率</text>
-  <text x="42" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一对分量使用同一个频率；实线和虚线等长，示意角度不对应具体 token。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="同一对数字，K 和 Q 各按自己的位置转；位置整体往后挪 100 格，两根箭头都转到了别处，但夹角不变（每格转多少是示意）">
+  <title>同一对数字，K 和 Q 各按自己的位置转；位置整体往后挪 100 格，两根箭头都转到了别处，但夹角不变（每格转多少是示意）</title>
+  <desc>一对数字当成平面上的一个点，箭头方向就是按位置转过的角度；每格按 20 度示意；同一对数字，位置整体往后挪 100 格：两根箭头转到了别处，夹角和左边一样</desc>
+  <defs><marker id="rope-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="rope-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <circle cx="230" cy="230" r="120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M90 230 L370 230" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M230 230 L290 126" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
+  <path d="M230 230 L209 112" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
+  <text x="302" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">K</text>
+  <text x="196" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56" text-anchor="end">Q</text>
+  <text x="244" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">差 2 格</text>
+  <circle cx="670" cy="230" r="120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M530 230 L810 230" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M670 230 L649 348" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
+  <path d="M670 230 L730 334" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
+  <text x="636" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93" text-anchor="end">K</text>
+  <text x="742" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">Q</text>
+  <text x="684" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">差 2 格</text>
+  <text x="230" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">位置 3 的 K · 位置 5 的 Q</text>
+  <text x="670" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">位置 103 的 K · 位置 105 的 Q</text>
 </svg>

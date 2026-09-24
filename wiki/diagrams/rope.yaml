@@ -1,29 +1,38 @@
-layout: scene
+layout: figure
 id: rope
-caption: 只画一个二维配对：Q 与 K 各按自己的位置旋转。点积的位置因子取决于角度差，内容向量仍决定分数。
-size: [900, 500]
-regions:
-  - { label: Q 的一对分量 · 位置 p, at: [20, 24], size: [414, 304], tone: upstream }
-  - { label: K 的一对分量 · 位置 q, at: [466, 24], size: [414, 304], tone: ascend }
-arrows:
-  - { from: [105, 260], to: [370, 260], tone: muted }
-  - { from: [105, 260], to: [105, 90], tone: muted }
-  - { from: [105, 260], to: [300, 224], tone: muted, style: dashed }
-  - { from: [105, 260], to: [232, 108], tone: upstream }
-  - { from: [551, 260], to: [816, 260], tone: muted }
-  - { from: [551, 260], to: [551, 90], tone: muted }
-  - { from: [551, 260], to: [728, 204], tone: muted, style: dashed }
-  - { from: [551, 260], to: [587, 78], tone: ascend }
-notes:
-  - { at: [236, 102], text: 旋转后 Q, size: 13 }
-  - { at: [270, 215], text: 原 Q, size: 13 }
-  - { at: [598, 98], text: 旋转后 K, size: 13 }
-  - { at: [740, 198], text: 原 K, size: 13 }
-  - { at: [158, 291], text: 转角 p × 频率, size: 13 }
-  - { at: [604, 291], text: 转角 q × 频率, size: 13 }
-  - { at: [42, 354], text: 同一对分量使用同一个频率；实线和虚线等长，示意角度不对应具体 token。, size: 13, width: 820 }
-boxes:
-  - { at: [42, 385], size: [816, 76], title: 点积里的位置项只剩 (q − p) × 频率, sub: 两个内容向量一起平移位置时点积不变；换 token 内容，分数仍会变。, tone: accent }
+caption: 同一对数字，K 和 Q 各按自己的位置转；位置整体往后挪 100 格，两根箭头都转到了别处，但夹角不变（每格转多少是示意）
+size: [900, 420]
+
+texts:
+  - { at: [230, 36], text: 位置 3 的 K · 位置 5 的 Q, strong: true, anchor: middle }
+  - { at: [670, 36], text: 位置 103 的 K · 位置 105 的 Q, strong: true, anchor: middle }
+
+sketches:
+  - name: rope-dial
+    note: 一对数字当成平面上的一个点，箭头方向就是按位置转过的角度；每格按 20 度示意
+    at: [40, 60]
+    size: [380, 340]
+    shapes:
+      - { kind: circle, at: [190, 170], r: 120, tone: ink, style: outline }
+      - { kind: line, points: [[50, 170], [330, 170]], tone: ink, dashed: true }
+      - { kind: line, points: [[190, 170], [250, 66]], tone: kv, arrow: end }
+      - { kind: line, points: [[190, 170], [169, 52]], tone: token, arrow: end }
+      - { kind: text, at: [262, 64], text: K, strong: true, tone: kv }
+      - { kind: text, at: [156, 44], text: Q, strong: true, tone: token, anchor: end }
+      - { kind: text, at: [204, 100], text: 差 2 格, anchor: middle }
+  - name: rope-dial
+    note: 同一对数字，位置整体往后挪 100 格：两根箭头转到了别处，夹角和左边一样
+    at: [480, 60]
+    size: [380, 340]
+    shapes:
+      - { kind: circle, at: [190, 170], r: 120, tone: ink, style: outline }
+      - { kind: line, points: [[50, 170], [330, 170]], tone: ink, dashed: true }
+      - { kind: line, points: [[190, 170], [169, 288]], tone: kv, arrow: end }
+      - { kind: line, points: [[190, 170], [250, 274]], tone: token, arrow: end }
+      - { kind: text, at: [156, 306], text: K, strong: true, tone: kv, anchor: end }
+      - { kind: text, at: [262, 292], text: Q, strong: true, tone: token }
+      - { kind: text, at: [204, 248], text: 差 2 格, anchor: middle }
+
 pins:
   - source: vllm@0fc695fc:vllm/model_executor/layers/rotary_embedding/common.py#L164-L177
     symbols: [cos, sin]

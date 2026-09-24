@@ -1,27 +1,41 @@
-layout: scene
+layout: figure
 id: request-call-chain
-caption: 那条请求的第 92 步 decode，七跳调用栈：缩进越深，离硬件越近
-size: [900, 574]
+caption: 一条请求走过的七站：过了调度器旁边那条线，剩下的路全在昇腾的代码里
+size: [900, 250]
 
-boundaries:
-  - { at: 186, from: 20, to: 880, vertical: false, label: 进程边界 }
+texts:
+  - { at: [20, 44], text: 一步 = 从左到右走一遍，回来接着下一步, size: 14, strong: true }
+  - { at: [330, 220], text: 挑出的 token 交回上游，下一步从调度器再来, size: 12.5, note: true }
 
-boxes:
-  - { at: [30, 56], size: [520, 50], title: "一、HTTP 进来 / LLM.generate", sub: 前端进程，只有文字和 token id, tone: neutral }
-  - { at: [68, 116], size: [520, 50], title: 二、调度器决定这一步跑它, sub: "产出 SchedulerOutput：1 个 token 的名额 + 两个 block id", fn: Scheduler.schedule, tone: upstream }
-  - { at: [106, 200], size: [520, 50], title: 三、昇腾侧第一跳, sub: PP 收发：收上一段的中间结果，算完再发给下一段, fn: NPUWorker.execute_model, tone: ascend }
-  - { at: [144, 260], size: [520, 50], title: 四、本卡这一步的主循环, fn: NPUModelRunner.execute_model, tone: ascend }
-  - { at: [182, 320], size: [520, 50], title: 五、把请求摊成张量, sub: "算出第 128 个 token 落进第二块的第 0 格", fn: _prepare_inputs, tone: ascend }
-  - { at: [220, 380], size: [520, 50], title: 六、跑 28 层，注意力算子读写 KV, sub: "按 block_table 逐块读，按 slot_mapping 写", tone: ascend }
-  - { at: [258, 440], size: [520, 50], title: 七、采样，产出 1 个 token id, fn: sample_tokens, tone: ascend }
+items:
+  - { at: [20, 84], size: [104, 60], text: 接口, sub: 收下请求, tone: control, style: faded }
+  - { at: [138, 84], size: [104, 60], text: 调度器, sub: 发 token 名额, tone: control, style: faded }
+  - { at: [296, 84], size: [104, 60], text: Worker, sub: 管卡间收发, tone: control }
+  - { at: [414, 84], size: [104, 60], text: 主循环, sub: 算不算它拍板, tone: control }
+  - { at: [532, 84], size: [104, 60], text: 摆张量, sub: 定笔记落哪格, tone: control }
+  - { at: [650, 84], size: [104, 60], text: 走 40 层, sub: 读写 KV 笔记, tone: kv }
+  - { at: [762, 84], size: [116, 60], text: 采样, sub: 挑下一个 token, tone: token }
 
-brackets:
-  - { at: [800, 56], span: 110, label: 上游, dir: left, tone: upstream }
-  - { at: [800, 200], span: 290, label: 昇腾, dir: left, tone: ascend }
+badges:
+  - { at: [22, 84], n: 1 }
+  - { at: [140, 84], n: 2 }
+  - { at: [298, 84], n: 3 }
+  - { at: [416, 84], n: 4 }
+  - { at: [534, 84], n: 5 }
+  - { at: [652, 84], n: 6 }
+  - { at: [770, 84], n: 7 }
 
-notes:
-  - { at: [20, 512], text: "想改哪一跳就去哪儿：一、二两跳的调度逻辑在上游，但跑的类已被 patch 换成 BalanceScheduler，要改只能换调度器类或写 patch；三到五、七在 worker/ 下，直接改；第六跳在 attention/ 与 ops/。", size: 12.5, width: 860 }
-  - { at: [20, 556], text: "第二跳和第三跳之间那条线是进程边界，也是责任边界：过了它，「算哪些 token」已成定局，剩下全是「怎么算」。", size: 12.5, width: 860 }
+dividers:
+  - { from: [268, 56], to: [268, 224], sides: [上游 vLLM, 昇腾的代码] }
+
+links:
+  - { from: [124, 114], to: [138, 114] }
+  - { from: [242, 114], to: [296, 114] }
+  - { from: [400, 114], to: [414, 114] }
+  - { from: [518, 114], to: [532, 114] }
+  - { from: [636, 114], to: [650, 114] }
+  - { from: [754, 114], to: [768, 114] }
+  - { from: [820, 144], via: [[820, 196], [190, 196]], to: [190, 144], tone: control, dashed: true }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L640

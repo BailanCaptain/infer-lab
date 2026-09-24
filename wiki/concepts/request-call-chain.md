@@ -2,7 +2,7 @@
 id: request-call-chain
 title: 一次请求的调用链
 type: concept
-summary: 从 HTTP 到 token 一共七跳。前两跳是上游 vLLM 的调度逻辑，进程边界在第二跳与第三跳之间，之后全在昇腾侧。
+summary: 一条请求从接口进来到吐出下一个 token，要走七站：前两站是上游 vLLM 在定「这一步算谁」，从第三站起全是昇腾的代码在管「怎么算」；分界线在多卡时还是一道进程边界。
 aliases: [调用链, call chain, 请求路径, 一次请求, execute_model 链路]
 chapters: ["09"]
 order: 10
@@ -26,82 +26,96 @@ evidence: "C"
 relations:
   - to: npu-worker-lifecycle
     kind: builds-on
-    note: 这条链路每一跳都假定 worker 已经走完六步启动，KV 张量和图都就位了
+    note: 这条链路每一站都假定 worker 已经走完六步启动，KV 张量和图都就位了
   - to: npu-model-runner
     kind: builds-on
-    note: 第四到第七跳都在同一个文件里，那一页讲这个文件怎么分区
+    note: 第四到第七站都在同一个文件里，那一页讲这个文件怎么分区
   - to: one-request
     kind: builds-on
-    note: 上图画的就是那条请求第 92 步的调用栈
+    note: 上半的例子走的就是那条请求的第 1 步和第 92 步
 contradicts: []
-updated: "2026-09-24"
+updated: "2026-09-25"
 origin: seed
 ---
 
-## 一句话
+你按下回车，几秒之后屏幕上开始一个字一个字往外蹦。这中间你那句话去了哪儿？它从接口进来，到 NPU 上真正开算，要经过几站、每站在干嘛？出了问题，又该去哪一站找？
 
-一次请求从进来到产出 token，代码上是七跳。**分界线在第二跳和第三跳之间**：前面是上游 vLLM 的调度器，后面全是 `vllm_ascend` 的代码 [D]。多卡时那里还是一道进程边界；单卡默认配置（那条请求就是）下执行器是 `uni`，两边同住 EngineCore 进程，交接的对象一模一样 [C14]。
+## 从接口到 NPU，一共七站
 
 ```wiki-diagram
 file: request-call-chain
 ```
 
-## 那条请求走到这里
+图上这条路，机器每转一圈就从左到右走一遍。一圈叫**一步**：挑出一批请求，算一次，各吐一个 token（引擎怎么转圈，见[引擎的那个循环](vllm-engine-core.md)）。七站是：
 
-上图画的就是那条请求的**第 92 步 decode**。这一步很典型：上游只给了 1 个 token 的名额和两个 block id，之后的七跳全是「怎么把这 1 个 token 算出来」。
+**一、接口收下请求。** 你的话在这里被切成 [token](token.md)，排进队伍等着被算。
 
-缩进表示调用深度：**越往下越靠近硬件，昇腾自己的代码也越多**。第二跳和第三跳之间那条线是责任边界（多卡时同时是进程边界）——线以上的两跳**调度逻辑是上游的**，但跑的类已经不是上游那个：昇腾的 platform patch 无条件把 `Scheduler` 这个名字换成了 `BalanceScheduler` [C10][C11]，它是上游 `schedule()` 的抄件加一道默认关着的闸门，见 [Balance Scheduling](balance-scheduling.md)。此外还能用 `scheduler_cls` 换成别的子类 [C8]。
+**二、调度器发名额。** [调度器](vllm-scheduler.md)每一步决定**这一批**（同一步里一起算的那些请求）放谁进来、各算几个 token，顺便把「你的笔记该住显存哪个块」的块号也定好，写成一张清单交给后面。名额是按「还差多少个没算」分的，调度器眼里没有 prefill 和 decode 之分。
 
-## 七跳分别交接什么
+**这里换边。** 前两站的逻辑是上游 vLLM 的；从第三站起，跑的全是昇腾仓库自己的代码。多卡时这条线还是一道**进程**边界（进程：操作系统里同时跑着的一份程序，互相不共享内存）——清单要跨进程送过去才到第三站；单卡时两边同住一个进程，但交接的清单一模一样。谁住在哪个进程，见[引擎有哪几个进程](engine-processes.md)。
 
-**一、HTTP 或 `LLM.generate`。** 上游 vLLM 的入口，请求进队列。
+**三、Worker 接活。** [Worker](npu-worker-lifecycle.md) 是守着一颗 NPU 干活的那个进程。它拿到清单先干的不是算，而是管**多颗卡之间的收发**：模型被切成几段接力跑时，它负责收上一段传来的半成品，本卡算完再发给下一段。
 
-**二、Scheduler。** 上游代码，决定这一步跑哪些请求、各自跑几个 token，产物是 `SchedulerOutput`。这一跳之后换边——`SchedulerOutput` 是为跨进程传输设计的交接对象（多卡时真跨进程，单卡 `uni` 执行器下是进程内的一次调用）[D]，这解释了为什么昇腾要把一些跨步状态挂在它身上（例子见 [NPUModelRunner 怎么读](npu-model-runner.md)）。
+**四、本卡主循环。** Worker 随手把清单转给[本卡真正的执行总管](npu-model-runner.md)。这一步要不要真的算——清单上可能一个 token 都没有——由它拍板；算完怎么交差也归它。
 
-**三、`NPUWorker.execute_model(scheduler_output)`。** 昇腾侧第一跳。它先记显存统计、按 msmonitor 配置推进 profiling 的步数，然后处理 PP 的跨 rank 收发：如果这一步有 token 要算、且不是 PP 的第一个 rank，就用 `get_pp_group().irecv_tensor_dict()` 收上一段的 `intermediate_tensors`，并按是否开 SP 决定 `all_gather_group` 传不传 [C1]。`forward_pass` 这个布尔量来自 `scheduler_output.total_num_scheduled_tokens > 0`，但在这一跳只用来决定收不收 `intermediate_tensors` [C1]——「这一步要不要真的跑 forward」是下一跳的 runner 判断的 [C9]。
+**五、把请求摆成张量。** 算子只认对齐的数字表。这一站把清单翻译成算子要的张量：这一步的每个 token 属于哪条请求、排在第几位、它的笔记该写进哪个块的哪一格，全在这里定下。
 
-**四、`NPUModelRunner.execute_model`。** 本卡这一步的主循环 [C5]。
+**六、跑模型。** 张量摆好，从第 1 层走到最后一层（我们例子里的模型是 40 层），注意力算子沿途按第五站定好的位置读写 [KV Cache](kv-cache.md) 里的笔记。真正调到哪个注意力算子，启动时就定了，见[注意力后端家族](attention-backend-family.md)。
 
-**五、`_prepare_inputs`。** 把请求集合变成算子要的张量，返回 `logits_indices`、`spec_decode_metadata`、`total_num_scheduled_tokens` 三样 [C4]。它开头就断言 `total_num_scheduled_tokens > 0` [C4]。之前还有一跳 `_update_states`，负责把调度结果合进本卡的持久状态 [C3]。
+**七、采样。** 最后一层的输出变成一串分数，从里面挑出下一个 token，打包交回上游。一圈到此走完，下一步再从第二站开始。
 
-**六、模型 forward → 注意力后端。** 算子按 `block_table` 与 `slot_mapping` 逐块读写 KV。哪个后端被调到在启动时就定了，见 [注意力后端家族](attention-backend-family.md)。
+## 那条请求走一遍
 
-**七、`sample_tokens`。** 采样并产出 `ModelRunnerOutput` [C6]。注意 `NPUWorker` 侧也有一个 `sample_tokens`，它接 `grammar_output` 参数后直接转给 runner [C2]——结构化输出那条路径是从这里进的。
+[那条 37 个 token 的请求](one-request.md)在这条路上的两个瞬间：
 
-## 哪几跳是昇腾自己的
+- **第 1 步（prefill）**：第二站发给它 37 个 token 的名额和一个块号——一个块有 2048 个位置，它整条请求 237 个 token 从头到尾住这一个块就够了。第五站把 37 个 token 并排摆好，第六站 40 层一起算、10 层全注意力每层写 37 格笔记，第七站挑出回答的第 1 个 token。
+- **第 92 步（decode）**：名额只有 1 个，块号还是那一个。这一步送进去的是上一步刚挑出的回答第 91 个 token，第五站算出它的笔记该落在块里的第 127 格（从 0 数；推导在下半），第六站 10 层全注意力各写一格、读前面全部，第七站挑出回答的第 92 个 token。
 
-| 跳 | 代码归属 | 改它要动哪里 |
-|---|---|---|
-| 一、二 | 调度逻辑在上游，跑的类被 patch 换成了 `BalanceScheduler` | 要么用 `scheduler_cls` 换成 `vllm_ascend/core/` 下的调度器子类 [C8]，要么走 [Patch 机制](ascend-patch-system.md) |
-| 三 | `vllm_ascend/worker/worker.py` | 直接改 |
-| 四、五、七 | `vllm_ascend/worker/model_runner_v1.py` | 直接改 |
-| 六 | `vllm_ascend/attention/*.py` + `vllm_ascend/ops/` | 直接改 |
+## 想改哪一站，去哪儿改
 
-这张表是「我这个改动该落在哪」的第一判断依据 [A]。落在前两跳的需求，在昇腾仓库里只能换掉整个调度器类或写成 patch；落在后五跳的，直接改子类 [D]。
+后五站是昇腾仓库里自己的文件，想改直接改。前两站不一样：调度逻辑长在上游 vLLM 里，昇腾仓库想动它只有两条路——把整个调度器换成自己的子类，或者用 [Patch 机制](ascend-patch-system.md)在启动时把上游的类偷偷换掉。事实上昇腾默认就干了后者：第二站实际跑的类是上游调度器的抄件，逻辑照旧，多一道默认关着的闸门，见 [Balance Scheduling](balance-scheduling.md)。
 
-## 一条 traceback 怎么对上这七跳
-
-栈是倒序的，从下往上找第一个 `vllm_ascend` 帧，就知道进到了第几跳 [A]：
-
-- 最深处是 `torch_npu` 或 aclnn 调用 → 第六跳，看算子层；
-- 最深处在 `_prepare_inputs` 里 → 第五跳，多半是形状或槽位问题；
-- 栈里根本没有 `vllm_ascend` 帧 → 问题在前两跳，先去上游查，再看有没有对应 patch。
-- 反过来不成立：栈里出现 `patch/platform/patch_balance_schedule.py` 仍然是第二跳，那是被换掉名字的调度器 [C10][C11]；v0.26 分支上这一帧也可能落在 `patch/platform/patch_kv_delivery_preemption.py`，同样是第二跳 [C12]。
-
-完整的定位方法见 [怎么读这个仓库](reading-vllm-ascend.md)。
-
-## 第二跳那个类，v0.26 上多了一层
-
-七跳的划分、每一跳的职责和交接物，v0.23 维护分支与 v0.26 分支一致；差异只在第二跳究竟跑的是哪个类。
-
-| 项 | v0.23 维护分支 与 main 开发主线 | v0.26 分支 | 意味着什么 |
-|---|---|---|---|
-| `BalanceScheduler` 的父类 | 上游 `Scheduler` | 同在 patch 里的 `KVDeliveryScheduler` [C13]，它自己也带一份完整的 `schedule()` | [!] 第二跳的栈多一层，按文件名认跳数时别把这一层当成昇腾的执行侧 |
-
-开关与语义见 [Balance Scheduling](balance-scheduling.md)，这里只关心它对「第几跳」的影响。
+所以排查问题时第一个要判断的是「在线的哪一边」：报错栈里全是上游的文件，就先去上游查（再看有没有对应的补丁）；出现昇腾的文件，看它落在第几站。具体怎么按文件名认站，在下半。
 
 ## 常见误解
 
-- **「Worker 的 `execute_model` 就是跑模型」**——它主要在处理 PP 的跨 rank 收发与统计，真正的执行在下一跳的 runner 里 [C1]。
-- **「每一步都会跑 forward」**——这一步可能没有任何 token 要算，runner 在 `_prepare_inputs` 之前就返回 `EMPTY_MODEL_RUNNER_OUTPUT` 了 [C9]。
-- **「采样在模型 forward 里」**——采样是单独一跳 `sample_tokens` [C6]，而且 worker 侧还有一层同名转发用于结构化输出 [C2]。
+- **「Worker 那一站在跑模型」**——它主要在管卡间收发和统计，真正的执行从第四站才开始。
+- **「每一步都会真的算一遍」**——这一步可能一个 token 名额都没有，第四站直接交一份空产出就回去了。
+- **「挑字是模型的一部分」**——采样是单独的第七站；而且结构化输出（限定模型只能吐合法 JSON 之类）另有一条小门直通这一站，见下半。
+
+## 对照源码
+
+### 版本差异
+
+七站的划分、每站的职责和交接物，releases/v0.23.0 与 releases/v0.26.0rc 一致；差异只在第二站实际跑的是哪个类：
+
+| 项 | v0.23 维护分支 与 main 开发主线 | v0.26 分支 | 意味着什么 |
+|---|---|---|---|
+| `BalanceScheduler` 的父类 | 上游 `Scheduler` [C11] | 同在 patch 里的 `KVDeliveryScheduler` [C13]，它自己也带一份完整的 `schedule()` [C12] | [!] 第二站的栈多一层，按文件名认站时别把这一层当成昇腾的执行侧 |
+
+开关与语义见 [Balance Scheduling](balance-scheduling.md)，这里只关心它对「第几站」的影响。
+
+### 源码位置
+
+上半的七站对应的调用链：
+
+| 站 | 代码 | 归属 |
+|---|---|---|
+| 一 | HTTP 入口 / `LLM.generate`，上游 vLLM | 上游 |
+| 二 | `Scheduler.schedule()` 产出 `SchedulerOutput`；实际跑的类见下 | 逻辑在上游，类被 patch 换过 |
+| 三 | `NPUWorker.execute_model(scheduler_output)`，`vllm_ascend/worker/worker.py` | 昇腾 |
+| 四 | `NPUModelRunner.execute_model`，`vllm_ascend/worker/model_runner_v1.py` | 昇腾 |
+| 五 | `_prepare_inputs`（之前还有一跳 `_update_states`） | 昇腾 |
+| 六 | 模型 forward → `vllm_ascend/attention/*.py` + `vllm_ascend/ops/` | 昇腾 |
+| 七 | `sample_tokens` | 昇腾 |
+
+逐条展开：
+
+- **第二站跑的类**：昇腾的 platform patch 无条件把 `Scheduler` 这个名字换成 `BalanceScheduler`——`patch/platform/__init__.py` 固定 import `patch_balance_schedule`，后者末尾直接赋值 `vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler`。此外平台代码还会按配置把 `scheduler_cls` 指到 `vllm_ascend/core/` 下的其他子类（如 `SchedulerDynamicBatch`、`ProfilingChunkScheduler`）[C8]。
+- **进程边界**：`SchedulerOutput` 是为跨进程传输设计的交接对象；单卡默认执行器是 `uni`（上游在 `world_size == 1` 时自动选它），此时是进程内的一次调用 [D]。这也解释了为什么昇腾把一些跨步状态挂在 `SchedulerOutput` 身上（例子见 [NPUModelRunner 怎么读](npu-model-runner.md)）。
+- **第三站只管收发**：`NPUWorker.execute_model` 先记显存统计、按 msmonitor 配置推进 profiling 步数，然后处理 PP 的跨 rank 收发——`forward_pass` 来自 `scheduler_output.total_num_scheduled_tokens > 0`，为真且不是 PP 第一个 rank 时用 `get_pp_group().irecv_tensor_dict()` 收上一段的 `intermediate_tensors`，并按是否开 SP 决定 `all_gather_group` 传不传。`forward_pass` 在这一站只用来决定收不收中间结果；「这一步要不要真的跑 forward」由第四站判断——没有 token 名额时 runner 在 `_prepare_inputs` 之前就返回 `EMPTY_MODEL_RUNNER_OUTPUT`。
+- **第五站的交接物**：`_prepare_inputs` 返回 `logits_indices`、`spec_decode_metadata`、`total_num_scheduled_tokens` 三样，开头就断言 `total_num_scheduled_tokens > 0`。
+- **第七站与结构化输出**：runner 的 `sample_tokens` 产出 `ModelRunnerOutput`；`NPUWorker` 侧还有一个同名 `sample_tokens`，接 `grammar_output` 参数后直接转给 runner——结构化输出那条路径从这里进。
+- **想改哪站落在哪** [A]：前两站只能换调度器类 或走 [Patch 机制](ascend-patch-system.md)；第三站改 `worker/worker.py`，四、五、七站改 `worker/model_runner_v1.py`，第六站改 `attention/*.py` 与 `ops/`，都直接改。
+- **一条 traceback 怎么对上七站** [A]：栈是倒序的，从下往上找第一个 `vllm_ascend` 帧——最深处是 `torch_npu` 或 aclnn 调用 → 第六站，看算子层；最深处在 `_prepare_inputs` 里 → 第五站，多半是形状或槽位问题；栈里根本没有 `vllm_ascend` 帧 → 前两站，先去上游查，再看有没有对应 patch。反过来不成立：栈里出现 `patch/platform/patch_balance_schedule.py` 仍然是第二站，那是被换掉名字的调度器；v0.26 分支上这一帧也可能落在 `patch/platform/patch_kv_delivery_preemption.py`，同样是第二站。完整的定位方法见[怎么读这个仓库](reading-vllm-ascend.md)。
+- **上半例子数字的出处**：37 / 200 / 237、块 2048 个位置、10 层全注意力每层写一格，都是[那条请求](one-request.md)页里的已核值；「第 92 步写第 127 格」是推导 [D]：第 92 步送进去的是回答第 91 个 token，它的位置 = 37 + 91 − 1 = 127（从 0 数），整条请求 237 个 token 都住在同一个块里，块内格号就等于位置号。

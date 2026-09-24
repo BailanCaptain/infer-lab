@@ -1,56 +1,38 @@
-layout: scene
+layout: figure
 id: model-runner-layout
-caption: model_runner_v1.py 的 5251 行按真实行号切开（按 v0.23 画；v0.26 上是 5314 行，区的划分不变、行号全漂）：_prepare_inputs 领头的那一区占了近六分之一
-size: [900, 480]
+caption: 每一步都是这五件事：前三件在第一次叫它时做完，后两件等第二次叫它
+size: [900, 220]
 
-regions:
-  - label: 一个文件，5251 行
-    note: 不要从第 1 行往下读。先决定要改什么行为，再直接跳进对应那一段。
-    at: [20, 40]
-    size: [860, 412]
-    tone: neutral
+items:
+  - { at: [20, 60], size: [150, 60], text: 收下调度结果, tone: control, style: faded }
+  - { at: [197, 60], size: [150, 60], text: 摆好输入, tone: token }
+  - { at: [374, 60], size: [150, 60], text: 跑 40 层, tone: weight, depth: 3 }
+  - { at: [551, 60], size: [150, 60], text: 挑出 1 个 token, tone: token }
+  - { at: [728, 60], size: [150, 60], text: 交回去, tone: control, style: faded }
 
-strips:
-  - { at: [180, 112.0], cells: 1, cell: 26, h: 16.6, highlight: 0, tone: muted }
-  - { at: [180, 128.6], cells: 1, cell: 26, h: 28.6, highlight: 0, tone: ascend }
-  - { at: [180, 157.2], cells: 1, cell: 26, h: 8.3, highlight: 0, tone: ascend }
-  - { at: [180, 165.5], cells: 1, cell: 26, h: 49.8, highlight: 0, tone: accent }
-  - { at: [180, 215.2], cells: 1, cell: 26, h: 17.8, highlight: 0, tone: muted }
-  - { at: [180, 233.0], cells: 1, cell: 26, h: 28.2, highlight: 0, tone: ascend }
-  - { at: [180, 261.2], cells: 1, cell: 26, h: 59.8, highlight: 0, tone: ascend }
-  - { at: [180, 321.0], cells: 1, cell: 26, h: 29.6, highlight: 0, tone: ascend }
-  - { at: [180, 350.5], cells: 1, cell: 26, h: 66.2, highlight: 0, tone: ascend }
-  - { at: [180, 416.7], cells: 1, cell: 26, h: 21.3, highlight: 0, tone: ascend }
+links:
+  - { from: [170, 90], to: [197, 90] }
+  - { from: [347, 90], to: [374, 90] }
+  - { from: [524, 90], to: [551, 90] }
+  - { from: [701, 90], to: [728, 90] }
 
-notes:
-  - { at: [170, 124.3], text: "L1", size: 11.5, anchor: end }
-  - { at: [216, 124.3], text: "文件头与 import", size: 12.5, strong: true }
-  - { at: [170, 146.9], text: "L268", size: 11.5, anchor: end }
-  - { at: [216, 146.9], text: "类定义与 __init__   NPUModelRunner", size: 12.5, strong: true }
-  - { at: [170, 165.3], text: "L729", size: 11.5, anchor: end }
-  - { at: [216, 165.3], text: "把调度结果合进本卡状态   _update_states", size: 12.5, strong: true }
-  - { at: [170, 194.4], text: "L862", size: 11.5, anchor: end }
-  - { at: [216, 194.4], text: "把请求摊成张量   _prepare_inputs", size: 12.5, strong: true }
-  - { at: [170, 228.1], text: "L1664", size: 11.5, anchor: end }
-  - { at: [216, 228.1], text: "辅助与中间状态", size: 12.5, strong: true }
-  - { at: [170, 251.1], text: "L1950", size: 11.5, anchor: end }
-  - { at: [216, 251.1], text: "一步执行的主循环   execute_model", size: 12.5, strong: true }
-  - { at: [170, 295.1], text: "L2404", size: 11.5, anchor: end }
-  - { at: [216, 295.1], text: "采样与输出   sample_tokens", size: 12.5, strong: true }
-  - { at: [170, 339.8], text: "L3367", size: 11.5, anchor: end }
-  - { at: [216, 339.8], text: "假批：profile 与图捕获   _dummy_run", size: 12.5, strong: true }
-  - { at: [170, 387.6], text: "L3843", size: 11.5, anchor: end }
-  - { at: [216, 387.6], text: "KV 张量怎么分配   initialize_kv_cache", size: 12.5, strong: true }
-  - { at: [170, 431.4], text: "L4909", size: 11.5, anchor: end }
-  - { at: [216, 431.4], text: "每层每块的 KV 形状声明   get_kv_cache_spec", size: 12.5, strong: true }
-  - { at: [20, 472], text: "它继承上游 GPUModelRunner：这个文件里没有的方法不是缺失，是沿用上游。", size: 12.5, width: 860 }
+badges:
+  - { at: [20, 60], n: 1 }
+  - { at: [197, 60], n: 2 }
+  - { at: [374, 60], n: 3 }
+  - { at: [551, 60], n: 4 }
+  - { at: [728, 60], n: 5 }
+
+brackets:
+  - { from: 20, to: 524, y: 150, label: 第一次叫它 }
+  - { from: 551, to: 878, y: 150, label: 第二次叫它 }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760
     symbols: [_update_states]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880
     symbols: [_prepare_inputs]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1970
     symbols: [execute_model]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2428
     symbols: [sample_tokens]

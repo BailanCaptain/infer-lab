@@ -1,0 +1,55 @@
+layout: figure
+id: attention-qkv-flow
+caption: 「它」拿自己的 Q 去和每个 K 算注意力分数，换算成比例后，按比例把各家的 V 收进来；后面的 token 被挡住
+size: [900, 450]
+
+items:
+  - { at: [20, 165], size: [80, 50], text: 它, tone: token }
+  - { at: [130, 170], size: [70, 40], text: Q, tone: token }
+
+  - { at: [260, 48], size: [90, 44], text: 小猫, tone: token, style: faded }
+  - { at: [380, 48], size: [90, 44], text: 吃饱, tone: token, style: faded }
+  - { at: [500, 48], size: [90, 44], text: 了, tone: token, style: faded }
+  - { at: [620, 48], size: [90, 44], text: 它, tone: token, style: faded }
+  - { at: [740, 48], size: [90, 44], text: 睡着, tone: control, style: faded }
+
+  - { at: [260, 112], size: [90, 38], text: K, tone: kv, style: faded }
+  - { at: [380, 112], size: [90, 38], text: K, tone: kv, style: faded }
+  - { at: [500, 112], size: [90, 38], text: K, tone: kv, style: faded }
+  - { at: [620, 112], size: [90, 38], text: K, tone: kv, style: faded }
+
+  - { at: [260, 280], size: [90, 40], text: V, tone: kv }
+  - { at: [380, 280], size: [90, 40], text: V, tone: kv }
+  - { at: [500, 280], size: [90, 40], text: V, tone: kv }
+  - { at: [620, 280], size: [90, 40], text: V, tone: kv }
+
+  - { at: [560, 378], size: [190, 44], text: 它收到的内容, tone: token }
+
+dividers:
+  - { from: [725, 20], to: [725, 330], sides: [看得见, 看不见] }
+
+links:
+  - { from: [100, 190], to: [130, 190], tone: token }
+  - { from: [478, 400], to: [560, 400], tone: kv }
+
+fans:
+  - { from: [200, 185], to: [[305, 152], [425, 152], [545, 152], [665, 152]], tone: token }
+  - { from: [[305, 322], [425, 322], [545, 322], [665, 322]], to: [460, 382], tone: kv }
+
+nodes:
+  - { at: [460, 400], text: "+" }
+
+bars:
+  - { at: [260, 212], h: 20, scale: 1.2, segments: [{ value: 70, tone: token }] }
+  - { at: [380, 212], h: 20, scale: 1.2, segments: [{ value: 10, tone: token }] }
+  - { at: [500, 212], h: 20, scale: 1.2, segments: [{ value: 5, tone: token }] }
+  - { at: [620, 212], h: 20, scale: 1.2, segments: [{ value: 15, tone: token }] }
+
+texts:
+  - { at: [20, 140], text: Q 和每个 K 算注意力分数, size: 13, note: true }
+  - { at: [20, 254], text: softmax 后的比例, size: 13, strong: true }
+  - { at: [260, 254], text: "0.70", size: 13 }
+  - { at: [380, 254], text: "0.10", size: 13 }
+  - { at: [500, 254], text: "0.05", size: 13 }
+  - { at: [620, 254], text: "0.15", size: 13 }
+  - { at: [20, 405], text: 按比例把各家的 V 加起来, size: 13, note: true }

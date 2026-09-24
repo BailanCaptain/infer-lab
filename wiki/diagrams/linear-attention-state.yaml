@@ -1,0 +1,35 @@
+layout: figure
+id: linear-attention-state
+caption: 全注意力每来一个新 token 都要跟前面每个连一遍，笔记也跟着变长；线性注意力只跟一份固定大小的状态打交道
+size: [900, 240]
+
+dividers:
+  - { from: [450, 20], to: [450, 226], sides: [全注意力, 线性注意力] }
+
+rows:
+  - { at: [40, 110], count: 7, w: 30, h: 30, gap: 8, tone: token }
+  - { at: [480, 110], count: 7, w: 30, h: 30, gap: 8, tone: token, faded: [0, 1, 2, 3, 4, 5, 6] }
+
+items:
+  - { at: [147, 44], size: [44, 34], text: 新, tone: token, style: solid }
+  - { at: [803, 40], size: [44, 34], text: 新, tone: token, style: solid }
+  - { at: [780, 98], size: [90, 56], text: 状态, sub: 固定大小, tone: kv, style: solid }
+
+fans:
+  - from: [169, 78]
+    to: [[55, 110], [93, 110], [131, 110], [169, 110], [207, 110], [245, 110], [283, 110]]
+
+links:
+  - { from: [744, 125], to: [774, 125] }
+  - { from: [825, 74], to: [825, 96] }
+
+bars:
+  - at: [40, 176]
+    h: 26
+    scale: 38
+    segments:
+      - { value: 7, tone: kv, text: 笔记 }
+      - { value: 2, tone: kv, style: hatch }
+
+texts:
+  - { at: [480, 170], text: 看完就扔, size: 13.5 }

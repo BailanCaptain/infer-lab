@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" width="900" height="250" role="img" aria-label="全注意力层里 16 个 Q 头并排，每 8 个共用一个 KV 头">
+  <title>全注意力层里 16 个 Q 头并排，每 8 个共用一个 KV 头</title>
+  <defs><marker id="attention-heads-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M82 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M132 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M182 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M232 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M282 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M332 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M382 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M432 106 L257 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M482 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M532 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M582 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M632 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M682 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M732 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M782 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <path d="M832 106 L657 160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-heads-ah-kv)"/>
+  <rect x="60" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="110" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="160" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="210" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="260" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="310" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="360" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="410" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="460" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="510" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="560" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="610" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="660" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="710" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="760" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="810" y="60" width="44" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="187" y="160" width="140" height="44" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="257" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV 头 1</text>
+  <rect x="587" y="160" width="140" height="44" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="657" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV 头 2</text>
+  <text x="60" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">16 个 Q 头，每个是一串 256 个数字</text>
+  <text x="60" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">2 个 KV 头，每个也是 256 个数字</text>
+</svg>

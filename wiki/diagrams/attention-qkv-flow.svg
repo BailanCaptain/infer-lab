@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="「它」拿自己的 Q 去和每个 K 算注意力分数，换算成比例后，按比例把各家的 V 收进来；后面的 token 被挡住">
+  <title>「它」拿自己的 Q 去和每个 K 算注意力分数，换算成比例后，按比例把各家的 V 收进来；后面的 token 被挡住</title>
+  <defs><marker id="attention-qkv-flow-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="attention-qkv-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M725 20 L725 330" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="713" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)" text-anchor="end">看得见</text>
+  <text x="737" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">看不见</text>
+  <path d="M100 190 L130 190" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-token)"/>
+  <path d="M478 400 L560 400" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-kv)"/>
+  <path d="M200 185 L305 152" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-token)"/>
+  <path d="M200 185 L425 152" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-token)"/>
+  <path d="M200 185 L545 152" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-token)"/>
+  <path d="M200 185 L665 152" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-token)"/>
+  <path d="M305 322 L460 382" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-kv)"/>
+  <path d="M425 322 L460 382" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-kv)"/>
+  <path d="M545 322 L460 382" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-kv)"/>
+  <path d="M665 322 L460 382" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#attention-qkv-flow-ah-kv)"/>
+  <rect x="260" y="212" width="84" height="20" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="380" y="212" width="12" height="20" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="500" y="212" width="6" height="20" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="620" y="212" width="18" height="20" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="20" y="165" width="80" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="60" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">它</text>
+  <rect x="130" y="170" width="70" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="165" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Q</text>
+  <rect x="260" y="48" width="90" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="305" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">小猫</text>
+  <rect x="380" y="48" width="90" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="425" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">吃饱</text>
+  <rect x="500" y="48" width="90" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="545" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">了</text>
+  <rect x="620" y="48" width="90" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="665" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">它</text>
+  <rect x="740" y="48" width="90" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="785" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">睡着</text>
+  <rect x="260" y="112" width="90" height="38" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="305" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">K</text>
+  <rect x="380" y="112" width="90" height="38" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="425" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">K</text>
+  <rect x="500" y="112" width="90" height="38" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="545" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">K</text>
+  <rect x="620" y="112" width="90" height="38" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="665" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">K</text>
+  <rect x="260" y="280" width="90" height="40" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="305" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">V</text>
+  <rect x="380" y="280" width="90" height="40" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="425" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">V</text>
+  <rect x="500" y="280" width="90" height="40" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="545" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">V</text>
+  <rect x="620" y="280" width="90" height="40" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">V</text>
+  <rect x="560" y="378" width="190" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="655" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">它收到的内容</text>
+  <circle cx="460" cy="400" r="18" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="460" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text>
+  <text x="20" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">Q 和每个 K 算注意力分数</text>
+  <text x="20" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">softmax 后的比例</text>
+  <text x="260" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">0.70</text>
+  <text x="380" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">0.10</text>
+  <text x="500" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">0.05</text>
+  <text x="620" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">0.15</text>
+  <text x="20" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">按比例把各家的 V 加起来</text>
+</svg>

@@ -1,0 +1,23 @@
+layout: figure
+id: attention-heads
+caption: 全注意力层里 16 个 Q 头并排，每 8 个共用一个 KV 头
+size: [900, 250]
+
+texts:
+  - { at: [60, 40], text: 16 个 Q 头，每个是一串 256 个数字, size: 14, strong: true }
+  - { at: [60, 236], text: 2 个 KV 头，每个也是 256 个数字, size: 13, note: true }
+
+rows:
+  - { at: [60, 60], count: 16, w: 44, h: 44, gap: 6, tone: token }
+
+fans:
+  - from: [[82, 106], [132, 106], [182, 106], [232, 106], [282, 106], [332, 106], [382, 106], [432, 106]]
+    to: [257, 160]
+    tone: kv
+  - from: [[482, 106], [532, 106], [582, 106], [632, 106], [682, 106], [732, 106], [782, 106], [832, 106]]
+    to: [657, 160]
+    tone: kv
+
+items:
+  - { at: [187, 160], size: [140, 44], text: KV 头 1, tone: kv }
+  - { at: [587, 160], size: [140, 44], text: KV 头 2, tone: kv }

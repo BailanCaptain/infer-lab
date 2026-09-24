@@ -1,0 +1,48 @@
+layout: figure
+id: moe-pick
+caption: 一个 token 走进一层 MoE：路由器从 256 个专家里点亮 8 个，共享专家不用挑；其余 248 个这次闲着。点亮的编号只是举例
+size: [900, 450]
+
+items:
+  - { at: [20, 50], size: [150, 52], text: 一个 token, sub: 隐藏向量 2048 个数, tone: token }
+  - { at: [230, 50], size: [130, 52], text: 路由器, sub: 给 256 个打分, tone: control }
+  - { at: [690, 200], size: [150, 60], text: 共享专家, sub: 不用挑，都要过, tone: weight }
+  - { at: [690, 390], size: [150, 44], text: 这一层的输出, tone: token }
+
+# 256 个路由专家：8 行 × 32 列，编号按行数（第 n 号在第 n÷32 行、第 n%32 列）。
+# 点亮的是 3、27、54、90、113、133、180、241 号，和专家并行那页的举例一致
+grids:
+  - at: [40, 170]
+    rows: 8
+    cols: 32
+    cell: [16, 16]
+    gap: 3
+    tone: weight
+    style: faded
+    cells:
+      - { at: [0, 3], style: solid }
+      - { at: [0, 27], style: solid }
+      - { at: [1, 22], style: solid }
+      - { at: [2, 26], style: solid }
+      - { at: [3, 17], style: solid }
+      - { at: [4, 5], style: solid }
+      - { at: [5, 20], style: solid }
+      - { at: [7, 17], style: solid }
+    label: 256 个专家，亮的 8 个这次干活
+
+nodes:
+  - { at: [765, 350], text: "+" }
+
+links:
+  - { from: [170, 76], to: [228, 76] }
+  - { from: [295, 102], to: [295, 166] }
+  # 隐藏向量直接送去共享专家，不经过路由器
+  - { from: [95, 50], via: [[95, 28], [765, 28]], to: [765, 198] }
+  - { from: [648, 250], curve: [[700, 250], [740, 300]], to: [751, 337] }
+  - { from: [765, 260], to: [765, 330] }
+  - { from: [765, 368], to: [765, 388] }
+
+texts:
+  - { at: [306, 140], text: 挑分最高的 8 个, size: 13, note: true }
+  - { at: [420, 20], text: 不经过路由器, size: 13, note: true }
+  - { at: [740, 355], text: 8 份按分数加权，再加上共享专家, size: 13, note: true, anchor: end }

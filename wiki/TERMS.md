@@ -13,28 +13,28 @@
 
 | 统一叫法 | 别的叫法（收进 aliases） | 一句白话 | 对应页面 | 备注 |
 | --- | --- | --- | --- | --- |
-| token | 词元、令牌 | 模型眼里的一个字块，一段话会被切成很多个 token。 | 缺 | 全库已统一用 token，不用中文译名。 |
-| embedding（词向量） | 词嵌入、嵌入向量 | 把一个 token 换成一串数字，模型只认数字。 | 缺 | |
-| 层 | layer、Transformer 层 | 模型里重复很多遍的同一套计算，一遍叫一层。 | 缺 | 写「第 N 层」「注意力层」，别单写「层」（另有软件层等含义）。 |
-| 隐藏向量（hidden） | 隐藏态、hidden state、隐藏维度 | 层与层之间传的那串数字，一个 token 一串。 | 缺 | 数据叫「隐藏向量」，长度叫「隐藏维度」；别写裸 hidden。 |
-| 权重 | weight、模型参数 | 训练好就不再变的那些数字，算的时候拿来乘。 | 缺 | 和「参数量」「配置项」分开，见下一行。 |
-| 参数量 | 总参数、激活参数 | 一个模型里权重的总个数，常写成 7B、35B。 | 缺 | 模型规模写「参数量」，启动选项写「配置项」；别用裸「参数」两头指。 |
-| 矩阵乘 | matmul、GEMM、矩阵乘法 | 把一批数字和权重成片相乘，模型里最费算力的一步。 | 缺 | 正文写「矩阵乘」，代码名照写 matmul。 |
-| 注意力 | attention、自注意力 | 让每个 token 去看前面的 token，再按看到的调整自己。 | 缺 | 专名保留原形：PagedAttention、Flash Attention。 |
-| Q、K、V | query、key、value、QKV | 每个 token 算出的三份数字：Q 去问，K 被问，V 是答案。 | 缺 | 正文用单字母；配置里的 key 不是注意力的 K。 |
-| 注意力分数 | attention score | Q 和某个 K 算出来的一个数，表示该看它多少。 | 缺 | 别用裸「分数 / 打分」——专家负载均衡也在用。 |
-| softmax | 归一化指数 | 把一排分数换算成加起来等于一的比例。 | 缺 | |
+| token | 词元、令牌 | 模型眼里的一个字块，一段话会被切成很多个 token。 | token | 全库已统一用 token，不用中文译名。 |
+| embedding（词向量） | 词嵌入、嵌入向量 | 把一个 token 换成一串数字，模型只认数字。 | embedding | |
+| 层 | layer、Transformer 层 | 模型里重复很多遍的同一套计算，一遍叫一层。 | layers-and-hidden | 写「第 N 层」「注意力层」，别单写「层」（另有软件层等含义）。 |
+| 隐藏向量（hidden） | 隐藏态、hidden state、隐藏维度 | 层与层之间传的那串数字，一个 token 一串。 | layers-and-hidden | 数据叫「隐藏向量」，长度叫「隐藏维度」；别写裸 hidden。 |
+| 权重 | weight、模型参数 | 训练好就不再变的那些数字，算的时候拿来乘。 | matmul-and-weights | 和「参数量」「配置项」分开，见下一行。 |
+| 参数量 | 总参数、激活参数 | 一个模型里权重的总个数，常写成 7B、35B。 | matmul-and-weights | 模型规模写「参数量」，启动选项写「配置项」；别用裸「参数」两头指。 |
+| 矩阵乘 | matmul、GEMM、矩阵乘法 | 把一批数字和权重成片相乘，模型里最费算力的一步。 | matmul-and-weights | 正文写「矩阵乘」，代码名照写 matmul。 |
+| 注意力 | attention、自注意力 | 让每个 token 去看前面的 token，再按看到的调整自己。 | attention-qkv | 专名保留原形：PagedAttention、Flash Attention。 |
+| Q、K、V | query、key、value、QKV | 每个 token 算出的三份数字：Q 去问，K 被问，V 是答案。 | attention-qkv | 正文用单字母；配置里的 key 不是注意力的 K。 |
+| 注意力分数 | attention score | Q 和某个 K 算出来的一个数，表示该看它多少。 | attention-qkv | 别用裸「分数 / 打分」——专家负载均衡也在用。 |
+| softmax | 归一化指数 | 把一排分数换算成加起来等于一的比例。 | attention-qkv | |
 | 注意力头 | head、多头、Q 头、KV 头 | 同一层里并排做好几份注意力，一份叫一个头。 | gqa | 写「注意力头 / Q 头 / KV 头」，不单用「头」。 |
-| 头维度 | head dim、head_size | 一个注意力头里那串数字有多长。 | 缺 | |
-| 因果掩码 | causal mask、mask | 挡住后面的 token，让每个 token 只看得见前面。 | 缺 | 别和结构化输出的「文法掩码」混。 |
-| MLP | FFN、前馈网络 | 注意力之后的那两次矩阵乘，每个 token 各算各的。 | 缺 | |
-| 残差 | residual、残差连接 | 把这一层算出来的加回原来那串数字，而不是换掉。 | 缺 | |
-| RMSNorm | 归一化、LayerNorm | 把一串数字整体缩放到差不多大小，免得越算越偏。 | 缺 | LayerNorm 是另一种做法，不当同义词。 |
-| MoE | 混合专家、Mixture of Experts | 把 MLP 换成很多份，每个 token 只用上其中几份。 | 缺（expert-parallel 里讲） | |
-| 专家 | expert | MoE 里的一份 MLP，每层有几百份。 | expert-parallel | |
-| 路由器 | router、门控、gate | MoE 每层的小网络，决定每个 token 交给哪几个专家。 | 缺（eplb 讲它的负载均衡） | 网络叫「路由器」，输出叫「路由结果」；把请求分给 DP 副本的叫「前端路由」，是另一回事。 |
-| 共享专家 | shared expert | 每层固定有一份，所有 token 都要过它。 | 缺（expert-parallel 里讲） | |
-| 线性注意力 | linear attention、Mamba、GDN | 另一种省 KV Cache 的算法，不逐个回看前面的 token。 | 缺 | 讲原理用「线性注意力」，讲具体结构直接写 Mamba / GDN。 |
+| 头维度 | head dim、head_size | 一个注意力头里那串数字有多长。 | attention-qkv | |
+| 因果掩码 | causal mask、mask | 挡住后面的 token，让每个 token 只看得见前面。 | attention-qkv | 别和结构化输出的「文法掩码」混。 |
+| MLP | FFN、前馈网络 | 注意力之后的那两次矩阵乘，每个 token 各算各的。 | mlp-residual-norm | |
+| 残差 | residual、残差连接 | 把这一层算出来的加回原来那串数字，而不是换掉。 | mlp-residual-norm | |
+| RMSNorm | 归一化、LayerNorm | 把一串数字整体缩放到差不多大小，免得越算越偏。 | mlp-residual-norm | LayerNorm 是另一种做法，不当同义词。 |
+| MoE | 混合专家、Mixture of Experts | 把 MLP 换成很多份，每个 token 只用上其中几份。 | moe | |
+| 专家 | expert | MoE 里的一份 MLP，每层有几百份。 | moe | |
+| 路由器 | router、门控、gate | MoE 每层的小网络，决定每个 token 交给哪几个专家。 | moe | 网络叫「路由器」，输出叫「路由结果」；把请求分给 DP 副本的叫「前端路由」，是另一回事。 |
+| 共享专家 | shared expert | 每层固定有一份，所有 token 都要过它。 | moe | |
+| 线性注意力 | linear attention、Mamba、GDN | 另一种省 KV Cache 的算法，不逐个回看前面的 token。 | linear-attention | 讲原理用「线性注意力」，讲具体结构直接写 Mamba / GDN。 |
 | KV Cache | KV 缓存、kv cache | 把算过的 K 和 V 存起来，下一步直接读，不重算。 | kv-cache | 两个词都大写；简称 KV 在每页首次出现时写全。 |
 | prefill | 预填充、P 阶段 | 先把问题里所有 token 一起算一遍，填好 KV Cache。 | prefill | 「P 节点」指跑 prefill 的机器，不是阶段本身。 |
 | decode | 解码、D 阶段 | 问题算完后，一次吐一个 token，吐一次算一步。 | 缺（vllm-scheduler 讲两者关系） | 「解码」被投机解码、引导解码借用，统一写 decode。 |

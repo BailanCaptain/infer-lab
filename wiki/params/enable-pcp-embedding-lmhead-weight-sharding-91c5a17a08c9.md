@@ -81,10 +81,10 @@ if self.enable_pcp_embedding_lmhead_weight_sharding and vc.parallel_config.prefi
 |---|---|---|
 | 真实配置路径 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]` [C1] | 顶层键；配置类 docstring 的全量键示例里列着它，默认 `true` [C3] |
 | 类型与默认 | `bool`，默认 `True` | 这是少数「默认开」的实验键：关它才要动手写 |
-| 生效门 | 权重前缀是 `embed_tokens` / `head`、这个键为真、且 PCP > 1，三者同时成立 [C2] | 别的权重不看它；PCP=1 时它是死代码 |
+| 生效门 | 权重前缀是 `embed_tokens` / `head`、这个键为真、且 PCP > 1，三者同时成立 [C2] | 别的权重不看它；PCP=1 时它是死代码 [D] |
 | 与细粒度 TP | `embedding_tensor_parallel_size` / `lmhead_tensor_parallel_size` 任一开着就 `ValueError` [C2] | 两套机制切同一批权重，构建期就拦，报错点名两个键 |
 | 与 `enable_reduce_sample` | 同开且 PCP>1，启动期 `ValueError` [C4] | 见上方「约束线索」引的 validator 原文 |
-| 读取方式 | utils 里的访问函数带 `lru_cache` [C5]，`additional_config["refresh"]` 会清缓存 [C6] | 进程内只算一次，运行中改配置不生效 |
+| 读取方式 | utils 里的访问函数带 `lru_cache` [C5]，`additional_config["refresh"]` 会清缓存 [C6] | 进程内只算一次，运行中改配置不生效 [D] |
 | 覆盖版本 | 只有 main（2026-09-23 起，见版本谱系） | 两个在册发布分支的配置类逐键 `.get()`，写上被静默忽略 |
 
 ## 为什么存在

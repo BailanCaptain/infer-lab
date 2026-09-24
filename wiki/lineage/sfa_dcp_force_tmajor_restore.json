@@ -33,7 +33,7 @@
     },
     {
       "ref": "releases/v0.23.0",
-      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "commit": "1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8",
       "files": 0
     },
     {
@@ -48,22 +48,27 @@
     },
     {
       "ref": "releases/v0.26.0rc",
-      "commit": "2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f",
+      "commit": "16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2",
       "files": 0
     },
     {
       "ref": "releases/v0.27.1rc",
-      "commit": "6f9e86a714ffbc2d5cfd6740bccf3252b7c81d30",
+      "commit": "325293616f96dc09a2dce1ece5ee412190dddbb4",
       "files": 0
     },
     {
       "ref": "releases/v0.28.0rc",
-      "commit": "c8addbb24fe8fa820bb79685c116e43ba89b77e9",
+      "commit": "df7d511e9282745ccbef73509495637b01e160b4",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.29.0rc",
+      "commit": "a71b766ce6fc0a9669a412e15a5cf53f7f827093",
       "files": 3
     },
     {
       "ref": "main",
-      "commit": "baa023ada41a5b889cac6249845a688aab130892",
+      "commit": "39fef3f8fe71e71a8b7a684ae0f62b85ff18661f",
       "files": 3
     }
   ],
@@ -101,7 +106,8 @@
         "branches": [
           "origin/dependabot/github_actions/actions/setup-python-7.0.0",
           "origin/main",
-          "origin/releases/v0.28.0rc"
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc"
         ]
       }
     }

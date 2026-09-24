@@ -96,7 +96,7 @@ vllm serve /path/to/Qwen3-0.6B \
 
 ## 提议、验证、再提议，都在同一次 `execute_model` 里
 
-一步的顺序是写死的三段 [C5]：
+一步的顺序是写死的三段：
 
 1. **排队**——调度器把上一步产出的 K 个草稿当普通 token 排进这一步，`_calc_spec_decode_metadata` 把它们摊成三组下标：`logits_indices`（K+1 个，要取哪些位置的 logits）、`target_logits_indices`（K 个，拿去和草稿比）、`bonus_logits_indices`（1 个，最后那个位置）[C3]。
 2. **验证**——`_sample` 带着这一步的 logits 和 `spec_decode_metadata` 一起被调用，走的是拒绝采样那一路，不是普通采样。

@@ -23,19 +23,52 @@ export function containingRefs(repo: string, commit: string) {
   };
 }
 
+function resolveLineageRef(repo: string, ref: string) {
+  if (!ref || ref.startsWith("-") || /[\s~^:{}]/.test(ref)) throw new Error("谱系 ref 无效");
+  if (/^[a-f0-9]{7,40}$/.test(ref) || ref.startsWith("refs/"))
+    return gitText(repo, ["rev-parse", "--verify", `${ref}^{commit}`]).trim();
+  try {
+    return gitText(repo, ["rev-parse", "--verify", `refs/remotes/origin/${ref}^{commit}`]).trim();
+  } catch {
+    return gitText(repo, ["rev-parse", "--verify", `${ref}^{commit}`]).trim();
+  }
+}
+
+/**
+ * 版本谱系的展示范围：发布分支（本地或 origin 的 releases/v*）按版本号排序，再带上 extra 里
+ * 解析得出的 ref；一个都解析不出来才退回 fallback。CLI 与夜间参数刷新共用这一个来源——
+ * 夜间刷新曾只拿同步前后两个提交当「版本」，把 wiki:lineage 写好的逐发布分支表整节顶掉（2026-09-24 修复）。
+ */
+export function lineageRefs(repo: string, extra: string[], fallback: string[]): string[] {
+  const branches = [
+    ...new Set(
+      lines(
+        gitText(repo, [
+          "for-each-ref",
+          "--format=%(refname:short)",
+          "refs/heads/releases/*",
+          "refs/remotes/origin/releases/*",
+        ]),
+      )
+        .map((l) => l.replace(/^origin\//, ""))
+        .filter((l) => /^releases\/v\d+\.\d+/.test(l)),
+    ),
+  ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const refs = [...new Set([...branches, ...extra])].filter((ref) => {
+    try {
+      resolveLineageRef(repo, ref);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  return refs.length ? refs : [...fallback];
+}
+
 export function gitLineage(repo: string, term: string, refs: string[], paths: string[]) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(term) || !refs.length || !paths.length)
     throw new Error("谱系标识符或范围无效");
-  const resolveRef = (ref: string) => {
-    if (!ref || ref.startsWith("-") || /[\s~^:{}]/.test(ref)) throw new Error("谱系 ref 无效");
-    if (/^[a-f0-9]{7,40}$/.test(ref) || ref.startsWith("refs/"))
-      return gitText(repo, ["rev-parse", "--verify", `${ref}^{commit}`]).trim();
-    try {
-      return gitText(repo, ["rev-parse", "--verify", `refs/remotes/origin/${ref}^{commit}`]).trim();
-    } catch {
-      return gitText(repo, ["rev-parse", "--verify", `${ref}^{commit}`]).trim();
-    }
-  };
+  const resolveRef = (ref: string) => resolveLineageRef(repo, ref);
   const counts = new Map<string, number>();
   const count = (sha: string) => {
     if (!counts.has(sha))

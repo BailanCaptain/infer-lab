@@ -86,7 +86,7 @@ file: mla
 
 压缩就是一次普通的线性层：`kv_a_proj_with_mqa` 把 `hidden_size` 打到 `kv_lora_rank + qk_rope_head_dim`。这里藏着一个**命名陷阱**——模型带 q 的 LoRA 时（DeepSeek-V2/V3 的 `q_lora_rank = 1536`），这一层会和 `q_a_proj` 合成一个 `fused_qkv_a_proj`，加载权重时按 `mla_params_mapping` 把两份拼起来 [C18]。也就是说 checkpoint 里那个张量还叫 `kv_a_proj_with_mqa`，Python 对象上却已经没有这个属性了；V2-Lite 的 `q_lora_rank` 是 `null`，所以只有它这一档保留原名。昇腾侧照这两种情况各写一支，切出来的永远是 `q_c` 和 `kv_no_split` 两段。
 
-落盘由**一个融合算子**干完三件事：`npu_kv_rmsnorm_rope_cache` 拿 `kv_a_layernorm` 的权重做 RMSNorm、拿 cos/sin 转 RoPE、再按 `slot_mapping` 写进两个缓存张量 [C7]。RMSNorm 只覆盖 512 那段——`kv_a_layernorm` 本来就是按 `kv_lora_rank` 建的。
+落盘由**一个融合算子**干完三件事：`npu_kv_rmsnorm_rope_cache` 拿 `kv_a_layernorm` 的权重做 RMSNorm、拿 cos/sin 转 RoPE、再按 `slot_mapping` 写进两个缓存张量。RMSNorm 只覆盖 512 那段——`kv_a_layernorm` 本来就是按 `kv_lora_rank` 建的。
 
 解压是反过来那个投影 `kv_b_proj`：`kv_lora_rank → num_heads × (qk_nope_head_dim + v_head_dim)`，出来再切成 `k_nope` 和 `value`。**这个调用只出现在 prefill 那一支。** 算子那头也看得出区别：prefill 用的 `npu_fused_infer_attention_score` 收 query / key / value 三个不同张量，`block_table` 传的是 `None` [C6]——这一步的 KV 还在手上，不必回缓存里捞。
 

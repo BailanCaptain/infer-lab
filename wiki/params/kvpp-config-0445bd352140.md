@@ -4,7 +4,7 @@ title: kvpp_config
 type: param
 summary: >-
   AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进
-  additional_config 会被静默剔掉。只在 main 开发主线上有。
+  additional_config 会被静默剔掉。在册版本里只有 main 有。
 aliases:
   - additional_config.kvpp_config
   - KVPP 配置对象
@@ -16,7 +16,7 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-09-24'
 relations:
   - to: kvpp
     kind: builds-on
@@ -112,8 +112,19 @@ vllm serve <非 hybrid 的 MLA 模型> --tensor-parallel-size 8 --enforce-eager 
 
 | 版本 | 是否存在 |
 | --- | --- |
-| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（6 个文件） |
-| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（7 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 有（6 个文件） |
+| releases/v0.29.0rc | 有（6 个文件） |
+| main | 有（7 个文件） |
 
 - **引入**：2026-09-11 · 45b74a6904a2ea7b90c4f441da014003984099d2 · PR [#16094](https://github.com/vllm-project/vllm-ascend/pull/16094) —— [Feature][KVPP] Add eager KV layer parallelism with full-layer broadcast (#16094)
   包含该提交的 tag：未找到；分支：origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor

@@ -72,7 +72,7 @@ origin: seed
 
 PD 分离的 D 节点上开了多个 DP rank 时，请求长度一不均匀，最肥的那个 rank 就拖住所有人——DP 组每一步要一起算、一起等。DyntraLB 让每个 rank 每步报一遍**自己手上每条请求占了几个 KV 块**，全组 `all_gather` 成同一张表，再各自跑同一个 planner，算出这一步该暂停哪几条、放进来哪几条。**它一条请求都不搬家**：被暂停的请求 KV 留在原地，以后还由同一个 rank 接着跑 [S30]。
 
-它**只有 main 开发主线上有**。v0.23 维护分支和 v0.26 分支（2026-09-17 源码快照）上 `vllm_ascend/core/dyntra_lb_scheduler.py`、`patch/platform/patch_dyntra_lb_core.py`、`docs/source/user_guide/feature_guide/dyntra_lb.md` 三个路径 `git ls-tree` 全部为空，整仓 `git grep -i dyntra` 一条都搜不到；两个分支挑调度器那段代码里也只有 profiling-chunk、dynamic-batch、batch-job 这些分支，没有它 [C28][C29]。所以下面全篇讲的是 main，随时会变。
+它**只有 main 开发主线上有**。v0.23 维护分支和 v0.26 分支（2026-09-17 源码快照）上 `vllm_ascend/core/dyntra_lb_scheduler.py`、`patch/platform/patch_dyntra_lb_core.py`、`docs/source/user_guide/feature_guide/dyntra_lb.md` 三个路径 `git ls-tree` 全部为空，整仓 `git grep -i dyntra` 一条都搜不到；两个分支挑调度器那段代码里也只有 profiling-chunk、dynamic-batch、batch-job 这些分支，没有它 [C28]。所以下面全篇讲的是 main，随时会变。
 
 ```wiki-diagram
 file: dyntra-lb
@@ -105,7 +105,7 @@ file: dyntra-lb
 
 ## 跨 rank 传的只有块数，没有请求 id
 
-打包出去的是一个定长 int32 向量，长 `2 × max_num_seqs + 2`：前 `2 × max_num_seqs` 格放块数（running 在前、这一步可接纳的 waiting 在后，不足补 0），倒数第二格放 running 的条数当分界线，最后一格放「本步有没有新来的长请求」；缓冲区在 `_init_data_parallel` 里一次性分配，之后每步原地覆盖 [C15][C19]。
+打包出去的是一个定长 int32 向量，长 `2 × max_num_seqs + 2`：前 `2 × max_num_seqs` 格放块数（running 在前、这一步可接纳的 waiting 在后，不足补 0），倒数第二格放 running 的条数当分界线，最后一格放「本步有没有新来的长请求」；缓冲区在 `_init_data_parallel` 里一次性分配，之后每步原地覆盖 [C15]。
 
 计划回来时也只有块数：`{"out_blk": [...], "in_blk": [...], "freeze": bool}`，而 `freeze` 的定义恰好就是 `len(in_blk) == 0` [C14]。`_apply_load_balance_modifications` 拿 `out_blk` 里的数字**去 running 里找块数相同的那一条**，拿 `in_blk` 去候选里找块数相同的那一条 [C3]。**两条块数相同的请求在计划眼里完全可换**——协议里没有 id，最后暂停的是哪一条，由 running 列表的顺序决定 [D]。
 
@@ -129,7 +129,7 @@ planner 的主循环是：按总块数排序，先让最轻的 rank 拿一条更
 
 ## 装上去是四个类，加一个换掉的引擎核心进程
 
-校验通过后分两路挑类：没开 recompute 调度就走 `_get_dyntra_lb_scheduler_cls`，同步 `DyntraLBScheduler`、异步 `AsyncDyntraLBScheduler`；开了 recompute 则换成 `_get_recompute_scheduler_cls(dyntra_lb_enabled=True)` 给出的另两个 [C26]。四个类都只是把 `DyntraLBPolicyMixin` 混进不同基类，policy 那份代码只有一份。另一半在进程上：`run_engine_core` 启动时把 `vllm.v1.engine.core.DPEngineCoreProc` 这个名字整个换成 `DyntraLBDPEngineCoreProc`，而且这一支排在均衡调度那一支前面（`elif`）[C20]。装法本身的规矩在 [patch 系统](ascend-patch-system.md)。
+校验通过后分两路挑类：没开 recompute 调度就走 `_get_dyntra_lb_scheduler_cls`，同步 `DyntraLBScheduler`、异步 `AsyncDyntraLBScheduler`；开了 recompute 则换成 `_get_recompute_scheduler_cls(dyntra_lb_enabled=True)` 给出的另两个。四个类都只是把 `DyntraLBPolicyMixin` 混进不同基类，policy 那份代码只有一份。另一半在进程上：`run_engine_core` 启动时把 `vllm.v1.engine.core.DPEngineCoreProc` 这个名字整个换成 `DyntraLBDPEngineCoreProc`，而且这一支排在均衡调度那一支前面（`elif`）[C20]。装法本身的规矩在 [patch 系统](ascend-patch-system.md)。
 
 `run_balance_load` 挂在 `_has_global_unfinished_reqs` 的返回值之后——和均衡调度同一个位置、同一个理由（空转的 rank 也得参加集合通信）。本步末尾算出的计划，下一步 `schedule()` 开头才执行，一份只用一次 [S33]。`start_step` 比的是 `step_counter`，而上游在一波请求跑完后把它清零 [C36]，所以 250 是**每一波从头数**，不是服务启动以来的总步数 [D]。
 

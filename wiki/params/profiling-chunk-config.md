@@ -242,14 +242,15 @@ main 配置默认 1.0，参与下文的线性插值；维护分支的运行公�
 | releases/v0.26.0rc | 有（5 个文件） |
 | releases/v0.27.1rc | 有（7 个文件） |
 | releases/v0.28.0rc | 有（8 个文件） |
+| releases/v0.29.0rc | 有（8 个文件） |
 | main | 有（8 个文件） |
 
 - **引入**：2026-04-17 · bec63146cf1442542940d4c2ce9f7eee8ab9845c · PR [#7896](https://github.com/vllm-project/vllm-ascend/pull/7896) —— [Feature][PP] Support Dynamic Chunk for Chunked Pipeline Parallelism (#7896)
-  包含该提交的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  包含该提交的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
   - `vllm_ascend/ascend_config.py` +68 / −4（文本行变化）
   - `vllm_ascend/worker/model_runner_v1.py` +48 / −4（文本行变化）
   - `vllm_ascend/core/profiling_chunk_predictor.py` +379 / −0（文本行变化）
   - `vllm_ascend/core/scheduler_profiling_chunk.py` +723 / −0（文本行变化）
   - `vllm_ascend/patch/__init__.py` +28 / −0（文本行变化）
 
-当前含该标识符的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
+当前含该标识符的 tag：v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2

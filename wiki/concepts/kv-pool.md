@@ -85,7 +85,7 @@ file: kv-pool
 
 同一个 `AscendStoreConnector` 类在两种角色下长得不一样：`KVConnectorRole.SCHEDULER` 造 `KVPoolScheduler`，其余角色造 `KVPoolWorker`，而且**只有 `rank == 0` 且没开 layerwise 的 worker** 才额外起一个 `LookupKeyServer` [C6]。默认非 layerwise 查询用 `LookupKeyClient` 经 ZMQ 去问这个 REP 后台线程，答案是 **4 个字节的大端整数**：池里一共命中到第几个 token。这次查询把 vLLM 自己算出的 `num_computed_tokens` 当作 `hbm_hit_tokens` 一起发过去，返回值减掉它才是真要搬的量——官方文档把这条叫「只取多出来的块，其余直接用片上的」[S4]，**这就是 KV Pool 和 prefix caching 的接缝**。worker 那侧把这段 token 的块哈希拼成 key，整批丢给存储引擎问 `exists`。所以池只知道块在不在，不知道块里是什么。
 
-**不能据此推成「调度器没有存储客户端」。** main 的 `KVPoolScheduler` 构造时会调用后端的 `create_scheduler_client` [C11]；layerwise 查询按数据面另走分支，不经过上面这条默认 ZMQ 路径 [C10]。图里画的是非 layerwise 模式，逐层模式要看 [Layerwise KV Offload](kv-cache-layerwise-offload.md)。
+**不能据此推成「调度器没有存储客户端」。** main 的 `KVPoolScheduler` 构造时会调用后端的 `create_scheduler_client`；layerwise 查询按数据面另走分支，不经过上面这条默认 ZMQ 路径。图里画的是非 layerwise 模式，逐层模式要看 [Layerwise KV Offload](kv-cache-layerwise-offload.md)。
 
 这也解释了后面为什么搬运那么直白：源和目的都是 KV cache 张量的**原始 HBM 地址**。`register_buffer` 把这些区间登记给存储引擎之后，`put` / `get` 收的就是裸地址列表和长度列表，没有 LMCache 那样的中转 buffer——官方设计文档说得很直白：不把 MooncakeStore 挂在 LMCache 的 remote backend 后面，就是为了用上贴合昇腾硬件的传输策略 [S3]。
 
@@ -100,7 +100,7 @@ file: kv-pool
 - **读默认是同步的。** `load_async` 同样默认关，不开时 `start_load_kv` 里直接调 `m_store.get(...)`，这一步的耗时算进前向。
 - **写交后台线程，但不是不等。** `wait_for_save` 录一个 `torch.npu.Event` 后把请求塞进发送线程队列，随即 `request_queue.join()` 等队列排空（这一等在 main 上已经挪到下一步开头，见下表）；发送线程在真正 `put` 之前会 `current_event.synchronize()`，确保前向已经把 KV 写进 HBM [C18]。
 
-一份能直接跑的 PD 混部配置（`kv_both` = 既读也写池）[S28]。`lookup_rpc_port: "0"` 是本节点第一个实例，第二个改 `"1"`；`backend` 名字写错是启动即 `ValueError`，不会静默退回默认值 [C11]。main 上还多一个 `qos_priority`，整数 0–4，越大越优先，类型错或越界同样是启动即 `ValueError` [C25]：
+一份能直接跑的 PD 混部配置（`kv_both` = 既读也写池）。`lookup_rpc_port: "0"` 是本节点第一个实例，第二个改 `"1"`；`backend` 名字写错是启动即 `ValueError`，不会静默退回默认值 [C11]。main 上还多一个 `qos_priority`，整数 0–4，越大越优先，类型错或越界同样是启动即 `ValueError` [C25]：
 
 ```bash
 export PYTHONHASHSEED=0   # 所有节点必须一致，否则块哈希对不上
@@ -119,10 +119,10 @@ KV_CONFIG='{
 | key 串开头 | `@pcp<n>@dcp<n>@…` | `@pcp:<n>@dcp:<n>@…` | 去掉 `pcp`，只剩 `@dcp:<n>@…` | [!] 三版的池数据两两不通用，升级等于清池 |
 | layerwise 下 Decode 写不写池 | `save_kv_layer` 只看 `kv_role`，是 consumer 就直接 return [C8] | 和非 layerwise 一样看 `consumer_is_to_put` [C31] | 同 v0.26，只是抽成 `is_kv_save_role()` [C7] | [!] 同时开 `use_layerwise` 和 `consumer_is_to_put` 的 Decode 节点，只有 v0.23 仍不写池 |
 | mooncake + layerwise | 没有这条路，`use_gva_layerwise` 写死只认 `memcache` [C29] | 同 v0.23，仍只认 `memcache` [C32] | 多一条 mooncake 专属的 block-key 路径，且只支持纯 TP：PP / PCP / DCP 任一 > 1 就 `ValueError` [C23] | main 新增，但用户文档的参数表仍写着 `use_layerwise` 需要 `memcache` [S1]——照文档配会漏掉它；逐层传输本身见 [Layerwise KV Offload](kv-cache-layerwise-offload.md) |
-| 写回等在哪一步 | `wait_for_save` 末尾 `request_queue.join()`，本步不排空不返回 | 同 v0.23 | `wait_for_save` 只登记一个 save batch 就返回，改由下一步的 `handle_preemptions` → `wait_for_previous_save()` 等它落地 [C17][C33] | [!] main 上写回真正跨出了本步，profiling 里这段耗时记在下一步的开头；栅栏挪到了「块被复用之前」，不是「本步结束之前」 |
+| 写回等在哪一步 | `wait_for_save` 末尾 `request_queue.join()`，本步不排空不返回 | 同 v0.23 | `wait_for_save` 只登记一个 save batch 就返回，改由下一步的 `handle_preemptions` → `wait_for_previous_save()` 等它落地 [C17] | [!] main 上写回真正跨出了本步，profiling 里这段耗时记在下一步的开头；栅栏挪到了「块被复用之前」，不是「本步结束之前」 |
 
 ## 常见误解
 
-- **「`lookup_rpc_port` 是个 TCP 端口，要挑没被占用的。」**——不是。它只是拼进 IPC 套接字路径 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<n>_dp_rank<r>` 的一段字符串 [C12]。文档说「每个实例需要唯一配置」是对的，但唯一性的作用域是同机的这条路径，跟端口占用无关。
+- **「`lookup_rpc_port` 是个 TCP 端口，要挑没被占用的。」**——不是。它只是拼进 IPC 套接字路径 `ipc://$VLLM_RPC_BASE_PATH/lookup_rpc_port_<n>_dp_rank<r>` 的一段字符串。文档说「每个实例需要唯一配置」是对的，但唯一性的作用域是同机的这条路径，跟端口占用无关。
 - **「开了 KV Pool，prefix caching 就被替代了。」**——反过来，它建立在 prefix caching 之上：命中先在 HBM 里算，池只补上多出来的那一段，其余块仍从片上直接取。关掉 prefix caching，池也就没有可衔接的命中前缀了。
 - **「池里查到了就一定能用上。」**——`get` 返回非 0 的块会被记进 `_invalid_block_ids` [C16]，而 vLLM 侧 `kv_load_failure_policy` 默认是 `fail`，请求直接报错终止；要让它退回重算必须显式配 `recompute`，且混合注意力模型还不支持 [S1]。

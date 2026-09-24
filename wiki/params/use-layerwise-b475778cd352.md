@@ -93,7 +93,7 @@ rawSources:
 3. Yuanrong 后端自己的 JSON 配置文件（路径由环境变量 `YR_CONFIG_PATH` 给），默认 `false` [C1]——**文末自动生成区钉的是这一处**，所以那里的标识写成 `YuanrongConfig["use_layerwise"]`，指的是那份 JSON 的字段而不是 `additional_config`；官方要求它必须与第 1 处取值一致 [S11]；
 4. UCM 自己那份 yaml 配置文件（路径由环境变量 `UCM_CONFIG_FILE` 给）的顶层键，由外部 `ucm` 包读取，不走 `kv_connector_extra_config`——部署示例里集中式配 `false`、P2P 与混部配 `true`，出处与读法见 [UCM](../concepts/ucm.md)。
 
-**存在范围。** 第 1 处三个版本都有、默认值和读法一字未变 [C13] [C17]；第 2、3 处分别是 v0.26 与 main 才出现的；第 4 处由外部 `ucm` 包定义，本仓库三个版本的 UCM 包装层都只转发、不读取它。三个版本上都没有校验去比对这几处是否一致。
+**存在范围。** 第 1 处三个版本都有、默认值和读法一字未变 [C13]；第 2、3 处分别是 v0.26 与 main 才出现的；第 4 处由外部 `ucm` 包定义，本仓库三个版本的 UCM 包装层都只转发、不读取它。三个版本上都没有校验去比对这几处是否一致。
 
 [那条请求](../concepts/one-request.md)用不到它：Qwen3-0.6B 单卡、没有 `--kv-transfer-config`，连接器根本不会被构造。
 
@@ -103,7 +103,7 @@ rawSources:
 |---|---|---|---|---|
 | 配置路径 | `kv_connector_extra_config["use_layerwise"]` | 同左 | 同左 | 这是第 1 处、绝大多数人要配的那一处；文末生成区钉的是第 3 处 Yuanrong JSON，别把两者混成一个键 [!] |
 | 类型 / 默认 | `bool` / `false`，`.get()` 取原值 | 同左 | 同左 | 没有 pydantic 强转，JSON 里写 `"false"`（带引号）是真值 [D] |
-| 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改由后端注册表查：`use_layerwise and layerwise_data_plane == "block_key"`，而 `mooncake` 的协议模块声明 `LAYERWISE_DATA_PLANE = "block_key"`、`memcache` 声明 `"gva"` [C4] [C21] | 同一份配置在 main 上走的是另一套数据面；`use_gva_layerwise` 和 `is_block_key_layerwise` 这两个名字在 main 上都已搜不到 [!] |
+| 后端特殊布局的判据 | `use_layerwise and backend == "memcache"`，叫 `use_gva_layerwise` | 同左 | 改由后端注册表查：`use_layerwise and layerwise_data_plane == "block_key"`，而 `mooncake` 的协议模块声明 `LAYERWISE_DATA_PLANE = "block_key"`、`memcache` 声明 `"gva"` [C4] | 同一份配置在 main 上走的是另一套数据面；`use_gva_layerwise` 和 `is_block_key_layerwise` 这两个名字在 main 上都已搜不到 [!] |
 | 额外校验 | 无 | 无 | mooncake + layerwise 时 PP / PCP / DCP 任一 > 1 直接 `ValueError` | main 上多一道启动期闸门，只允许纯 TP 拓扑 |
 | 对 `load_async` 的影响 | 开了就把 `load_async` 静默按成 false [C14] | 同左 | 同左 | 两个键同时配 `true` 不报错，异步加载那一半安静失效 [!] |
 | 对图模式的影响 | — | — | 连接器声明 `requires_piecewise_for_cudagraph` 返回本键的值 [C3] | main 上开它会把 ACLGraph 顶成 PIECEWISE 模式 |
@@ -122,7 +122,7 @@ rawSources:
 2. **异步加载被关掉。** `return need_to_allocate, self.load_async and not self.use_layerwise`——逐层模式下加载必须跟着层走，不能再交给后台线程。
 3. **后端要有按层寻址的能力。** 一个块的 KV 被拆成每层一份对象，所以 key 的构造方式也得换：v0.23 / v0.26 用 `use_gva_layerwise` 把这条路硬绑在 `memcache` 上；main 把这个判断挪进了后端协议注册表——`backend_map` 给每个后端登记一个 `layerwise_protocol` 模块，连接器拿 `get_layerwise_protocol` / `get_layerwise_data_plane` 查出数据面再判 `== "block_key"` [C4]。`mooncake` 的协议模块声明 `"block_key"` [C21]，`memcache` 声明 `"gva"` 并自己持有 `extract_layout_config` 那道 opt-in 闸门 [C7]，`yuanrong` 压根没登记 layerwise 协议 [C4]。
 
-main 上还多了一层保护，只是这一版已经不再由一个 mooncake 专用函数把关：连接器构造时调通用的 `validate_layerwise_topology`，它把 `parallel_config` 转交给后端协议自己的 `validate_topology` [C4]。mooncake 那一份检查 PP / PCP / DCP，任一大于 1 就抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")` [C5]。原因写在函数文档里——当前的 block key 里没有这几个维度的坐标，多机多维并行会让不同 rank 算出同一个 key。
+main 上还多了一层保护，只是这一版已经不再由一个 mooncake 专用函数把关：连接器构造时调通用的 `validate_layerwise_topology`，它把 `parallel_config` 转交给后端协议自己的 `validate_topology`。mooncake 那一份检查 PP / PCP / DCP，任一大于 1 就抛 `ValueError("Mooncake block-key layerwise currently supports TP-only topology; ...")` [C5]。原因写在函数文档里——当前的 block key 里没有这几个维度的坐标，多机多维并行会让不同 rank 算出同一个 key。
 
 ## 开了的代价
 
@@ -153,17 +153,18 @@ main 上还多了一层保护，只是这一版已经不再由一个 mooncake �
 | releases/v0.26.0rc | 有（7 个文件） |
 | releases/v0.27.1rc | 有（8 个文件） |
 | releases/v0.28.0rc | 有（9 个文件） |
+| releases/v0.29.0rc | 有（9 个文件） |
 | main | 有（9 个文件） |
 
 - **引入**：2025-09-18 · cef43b524e5dbf24434ac330235c5c835284c580 · PR [#2913](https://github.com/vllm-project/vllm-ascend/pull/2913) —— [Feat] A Connector that supports Mooncake store (#2913)
-  包含该提交的 tag：v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev
+  包含该提交的 tag：v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev
   - `vllm_ascend/worker/model_runner_v1.py` +3 / −9（文本行变化）
   - `vllm_ascend/distributed/__init__.py` +5 / −0（文本行变化）
   - `vllm_ascend/distributed/mooncake/__init__.py` +0 / −0（文本行变化）
   - `vllm_ascend/distributed/mooncake/config_data.py` +447 / −0（文本行变化）
   - `vllm_ascend/distributed/mooncake/kv_transfer.py` +251 / −0（文本行变化）
 
-当前含该标识符的 tag：v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
+当前含该标识符的 tag：v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
 
 ## 参数定义（自动生成）
 

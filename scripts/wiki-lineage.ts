@@ -9,9 +9,8 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { worktreeDir } from "./wiki/clone";
-import { gitText } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
-import { gitLineage, renderVerifiedLineage } from "./wiki/lineage-git";
+import { gitLineage, lineageRefs, renderVerifiedLineage } from "./wiki/lineage-git";
 import { localFile } from "./wiki/review-files";
 import { atomicText } from "./wiki/workflow";
 
@@ -33,16 +32,8 @@ const repo = seeds.repos[repoName];
 if (!repo) throw new Error("seeds 里没有 repo");
 const dir = resolve(root, worktreeDir(repo, Object.keys(repo.refs)[0] as string));
 
-const git = (args: string[]): string => gitText(dir, args, args[0] === "grep");
-
-/** 默认展示发布分支；事件由提交与父提交的实际存在性计算。 */
-const defaultRefs = git(["branch", "-r", "--list", "origin/releases/*"])
-  .split(/\r?\n/)
-  .map((l) => l.trim().replace(/^origin\//, ""))
-  .filter((l) => /^releases\/v\d+\.\d+/.test(l))
-  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-const refs = (arg("--refs")?.split(",") ?? [...defaultRefs, "main"]).map((r) => r.trim());
+/** 默认展示发布分支 + main（lineageRefs 是唯一定义，夜间参数刷新用同一个）；事件由提交与父提交的实际存在性计算。 */
+const refs = (arg("--refs")?.split(",") ?? lineageRefs(dir, ["main"], ["main"])).map((r) => r.trim());
 const paths = (arg("--paths", "vllm_ascend/") as string).split(",");
 const lineage = gitLineage(dir, term, refs, paths);
 const path = localFile(root, arg("--out") ?? `wiki/lineage/${term}.json`);

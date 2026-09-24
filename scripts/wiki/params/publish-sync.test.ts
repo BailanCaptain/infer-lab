@@ -92,6 +92,7 @@ it("publishes one addition, removal and default change without overwriting prose
     f.write(`repo/${file}`, beforeText);
     const before = { commit: f.commit("initial"), entries: scanSources({ [file]: beforeText }) };
     f.git(["tag", "v1"]);
+    f.git(["branch", "releases/v0.23.0"]);
     for (const entry of before.entries)
       f.write(
         `wiki/params/${paramId(entry)}.md`,
@@ -114,6 +115,10 @@ it("publishes one addition, removal and default change without overwriting prose
     expect(text).toContain("人工保留解释。[D]");
     expect(text).toContain("默认表达式 | `2`");
     expect(text).toContain("v2");
+    // 版本谱系按发布分支列（wiki:lineage 的口径），不许被刷成裸提交对——2026-09-24 夜间就这么把 8 页的表顶掉过
+    expect(text).toContain("| releases/v0.23.0 | 有");
+    expect(text).toContain("| main | 有");
+    expect(text).not.toMatch(/^\| [a-f0-9]{40} \|/m);
     const removed = readFileSync(join(f.root, `wiki/params/${paramId(before.entries[1]!)}.md`), "utf8");
     expect(removed).toContain("**移除**");
     const log = readFileSync(join(f.root, "wiki/log.md"), "utf8");

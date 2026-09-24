@@ -162,7 +162,7 @@ vllm serve <非 hybrid 的 MLA/SFA 模型> \
 
 **以代码为准：用户指南是对的。** 组大小公式里明摆着乘了 `prefill_context_parallel_size`，通信组初始化处断言 `kvpp_size == global_pcp_size * global_tp_size` [C5]，而 `validate` 只拦 DCP 和「不是这两个连接器」。
 
-**这个快照已明确标成实验特性。** `baa023ad` 的支持矩阵新增了 KVPP，并标为 **Experimental**，范围限定在 eager 模式下的非 hybrid MLA/SFA 模型 [S25]；用户指南标题也带着同一标记 [S1]。这意味着接口和功能仍可能变化，部署组合应逐项核对，不能把「代码接受配置」当成性能与稳定性保证。
+**这个快照已明确标成实验特性。** `baa023ad` 的支持矩阵新增了 KVPP，并标为 **Experimental**，范围限定在 eager 模式下的非 hybrid MLA/SFA 模型 [S25]；用户指南标题也带着同一标记。这意味着接口和功能仍可能变化，部署组合应逐项核对，不能把「代码接受配置」当成性能与稳定性保证。
 
 ## 常见误解
 

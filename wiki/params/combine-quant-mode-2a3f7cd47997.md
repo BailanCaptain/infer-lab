@@ -4,7 +4,7 @@ title: combine_quant_mode
 type: param
 summary: >-
   MoE 的 MC2 combine 阶段（专家算完把结果收回来的那次 all-to-all）通信时用哪种量化：非 0 就强行覆盖模型自己推出来的模式，只认
-  0/2/3/4，默认 0 不干预。只在 main 开发主线上有，v0.23 与 v0.26 两个发布分支上配了会被静默忽略。
+  0/2/3/4，默认 0 不干预。在册版本里只有 main 有，v0.23 与 v0.26 两个发布分支上配了会被静默忽略。
 origin: seed
 aliases:
   - MC2 combine 通信量化
@@ -16,7 +16,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-09-24'
 relations:
   - to: expert-parallel
     kind: builds-on
@@ -68,7 +68,7 @@ rawSources:
 
 **它只动 combine 那一半。** 同一个 `TokenDispatcherWithMC2` 里，dispatch 方向的 `quant_mode` 是另一段独立的 `if / elif`，从头到尾不看这个键 [C4]。所以它造得出「发出去一种精度、收回来另一种」的不对称状态——这正是它存在的理由，而不是副作用。
 
-**存在范围。** 只在 main 开发主线上有，2026-09-07 由 PR [#15441](https://github.com/vllm-project/vllm-ascend/pull/15441) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）在 `vllm_ascend/` 和 `docs/source/` 下都搜不到这个名字。那两个分支的 `AscendConfig` 还是逐键 `additional_config.get(...)` 的普通类 [C14]，配上它**既不报错也不生效**；main 反过来是 `extra="forbid"` 的 pydantic 模型 [C12]，名字拼错就启动失败（装了 vLLM-Omni 才降成一条 warning）[C13]。
+**存在范围。** 在册版本里只有 main 有（上游后来分出的 v0.28/v0.29 rc 分支也带着它，不在册），2026-09-07 由 PR [#15441](https://github.com/vllm-project/vllm-ascend/pull/15441) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）在 `vllm_ascend/` 和 `docs/source/` 下都搜不到这个名字。那两个分支的 `AscendConfig` 还是逐键 `additional_config.get(...)` 的普通类 [C14]，配上它**既不报错也不生效**；main 反过来是 `extra="forbid"` 的 pydantic 模型 [C12]，名字拼错就启动失败（装了 vLLM-Omni 才降成一条 warning）[C13]。
 
 [那条请求](../concepts/one-request.md)用不到它：Qwen3-0.6B 是 dense 模型，没有 MoE 层，MC2 这条通道根本不存在。要走到这里，至少得换成开了 [EP](../concepts/expert-parallel.md) 的 MoE 模型。
 
@@ -123,8 +123,19 @@ elif comm_quant_mode is not None:
 
 | 版本 | 是否存在 |
 | --- | --- |
-| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（2 个文件） |
-| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（2 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 有（2 个文件） |
+| releases/v0.29.0rc | 有（2 个文件） |
+| main | 有（2 个文件） |
 
 - **引入**：2026-09-07 · 203ae3eb0a734c3a7ba638d84e116bcca24b1a09 · PR [#15441](https://github.com/vllm-project/vllm-ascend/pull/15441) —— [Feature][Quant] Introduce combine_quant_mode to force MC2 combine stage communication quantization (#15441)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor

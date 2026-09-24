@@ -76,7 +76,7 @@ file: prefix-caching
 
 ## 开了它，`--block-size` 就不是你写的那个数
 
-平台层在配置检查里调一次 `refresh_block_size`。只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 为真、而 `block_size` 又不是 128，它就把 `block_size` 改成 128：不报错、不警告，只留一条 info 级日志 [C1][C2]。你在命令行写的 `--block-size 64` 就这么没了，而显存估算全都建在这个数上。
+平台层在配置检查里调一次 `refresh_block_size`。只要 `enable_prefix_caching` 或 `enable_chunked_prefill` 为真、而 `block_size` 又不是 128，它就把 `block_size` 改成 128：不报错、不警告，只留一条 info 级日志 [C1]。你在命令行写的 `--block-size 64` 就这么没了，而显存估算全都建在这个数上。
 
 128 也是 `AscendAttentionBackend.get_supported_kernel_block_sizes()` 报的唯一一个 kernel 块大小 [C20]，两者对得上；但定这个值的是上面那个函数，不是这个列表。
 

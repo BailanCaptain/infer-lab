@@ -1222,6 +1222,11 @@
           "note": "这次问答的落点是「块表只记账、不分配」，块表侧那三次写格子的动作由那一页定义"
         },
         {
+          "from": "block-table-no-commit-optimize-8328d0d2d00d",
+          "kind": "enables",
+          "note": "它选的是那一页讲的块表往 NPU 提交时的实现——默认只提交脏行区间，写 1 退回整表拷贝"
+        },
+        {
           "from": "context-parallel",
           "kind": "enables",
           "note": "CP 下槽位走块表里 _compute_pcp_dcp_slot_mapping 那条分支，虚拟块与行扩展都在那一页"
@@ -1253,23 +1258,38 @@
       "title": "block_table_no_commit_optimize",
       "type": "param",
       "origin": "seed",
-      "summary": "block_table_no_commit_optimize 的静态定义，正文待补。",
-      "aliases": [],
+      "summary": "MRv1 块表优化的回退开关：默认 0 用「只提交脏行区间」的 OptimizedBlockTable，写 1 换回整表 H2D 拷贝的老实现。名字容易读反——它是关优化的，不是开优化的。只在 main 上有。",
+      "aliases": [
+        "block_table_no_commit_optimize",
+        "块表脏区提交回退",
+        "OptimizedBlockTable"
+      ],
       "chapters": [],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L514"
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L514",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/worker/block_table.py#L455-L458",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L329-L354",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/worker/block_table.py#L445-L452"
       ],
-      "verified": [],
+      "verified": [
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "block-table",
+          "kind": "builds-on",
+          "note": "它选的是那一页讲的块表往 NPU 提交时的实现——默认只提交脏行区间，写 1 退回整表拷贝"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-23",
+      "updated": "2026-09-24",
       "file": "params/block-table-no-commit-optimize-8328d0d2d00d.md",
       "backlinks": []
     },
@@ -1334,7 +1354,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/c8-enable-reshape-optim-8bd7e5f82c6c.md",
       "backlinks": []
     },
@@ -1448,7 +1468,7 @@
       "title": "combine_quant_mode",
       "type": "param",
       "origin": "seed",
-      "summary": "MoE 的 MC2 combine 阶段（专家算完把结果收回来的那次 all-to-all）通信时用哪种量化：非 0 就强行覆盖模型自己推出来的模式，只认 0/2/3/4，默认 0 不干预。只在 main 开发主线上有，v0.23 与 v0.26 两个发布分支上配了会被静默忽略。",
+      "summary": "MoE 的 MC2 combine 阶段（专家算完把结果收回来的那次 all-to-all）通信时用哪种量化：非 0 就强行覆盖模型自己推出来的模式，只认 0/2/3/4，默认 0 不干预。在册版本里只有 main 有，v0.23 与 v0.26 两个发布分支上配了会被静默忽略。",
       "aliases": [
         "MC2 combine 通信量化",
         "combine 阶段通信量化模式",
@@ -1507,7 +1527,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/combine-quant-mode-2a3f7cd47997.md",
       "backlinks": []
     },
@@ -1628,6 +1648,11 @@
       "updated": "2026-09-22",
       "file": "concepts/context-parallel.md",
       "backlinks": [
+        {
+          "from": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+          "kind": "enables",
+          "note": "PCP 是那一页讲的 prefill 上下文并行；这个键管权重侧——PCP 组里 embedding 和 LM Head 还要不要每卡各存一份完整的 TP 切片"
+        },
         {
           "from": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
           "kind": "enables",
@@ -2159,7 +2184,7 @@
       "title": "enable_force_eplb",
       "type": "param",
       "origin": "seed",
-      "summary": "把 MoE 路由算出来的 topk_ids 整个丢掉，换成一张按 ep_size / ep_rank 算出来的轮转表，让每个专家、每张卡收到的 token 数完全相等——压测和算子调优用，开了输出就不对。默认 false，只在 main 开发主线上有。",
+      "summary": "把 MoE 路由算出来的 topk_ids 整个丢掉，换成一张按 ep_size / ep_rank 算出来的轮转表，让每个专家、每张卡收到的 token 数完全相等——压测和算子调优用，开了输出就不对。默认 false，在册版本里只有 main 有。",
       "aliases": [
         "强制 EPLB",
         "强制专家均衡路由",
@@ -2220,7 +2245,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/enable-force-eplb-b7ec3661121f.md",
       "backlinks": [
         {
@@ -2306,23 +2331,44 @@
       "title": "enable_pcp_embedding_lmhead_weight_sharding",
       "type": "param",
       "origin": "seed",
-      "summary": "enable_pcp_embedding_lmhead_weight_sharding 的静态定义，正文待补。",
-      "aliases": [],
+      "summary": "PCP>1 时把 embedding 与 LM Head 的权重按 TP×PCP 网格再切一份，每卡只留 1/(TP×PCP)。bool 默认 true——开着 PCP 升级到含它的 main，行为自动就是切开的；要旧行为得显式写 false。与细粒度 TP 的 embedding/lmhead 两键互斥。只在 main 上有。",
+      "aliases": [
+        "enable_pcp_embedding_lmhead_weight_sharding",
+        "PCP embedding/LM-head 权重切分"
+      ],
       "chapters": [],
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L480"
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L480",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ops/vocab_parallel_embedding.py#L95-L125",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L329-L354",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L820-L845",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/utils.py#L1493-L1498",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/utils.py#L195-L198"
       ],
-      "verified": [],
+      "verified": [
+        "main"
+      ],
       "evidence": "C",
       "rawSources": [
         "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md"
       ],
-      "relations": [],
+      "relations": [
+        {
+          "to": "context-parallel",
+          "kind": "builds-on",
+          "note": "PCP 是那一页讲的 prefill 上下文并行；这个键管权重侧——PCP 组里 embedding 和 LM Head 还要不要每卡各存一份完整的 TP 切片"
+        },
+        {
+          "to": "fine-grained-tp",
+          "kind": "conflicts-with",
+          "note": "和它的 embedding_tensor_parallel_size / lmhead_tensor_parallel_size 切的是同一批权重，撞上在权重构建期直接 ValueError，二选一"
+        }
+      ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-23",
+      "updated": "2026-09-24",
       "file": "params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
       "backlinks": []
     },
@@ -2331,7 +2377,7 @@
       "title": "enable_pcp_o_proj_weight_sharding",
       "type": "param",
       "origin": "seed",
-      "summary": "开了 SFA-PCP 之后，让 o_proj 权重在加载期就按 PCP 组再切一刀、常驻只留 1/pcp_size，prefill 现 all-gather 出一份全量、decode 直接用本地片。默认 false，只在 main 开发主线上有，对 DSA-CP 无效。",
+      "summary": "开了 SFA-PCP 之后，让 o_proj 权重在加载期就按 PCP 组再切一刀、常驻只留 1/pcp_size，prefill 现 all-gather 出一份全量、decode 直接用本地片。默认 false，在册版本里只有 main 有，对 DSA-CP 无效。",
       "aliases": [
         "PCP o_proj 权重分片",
         "SFA-PCP O-proj 权重切分",
@@ -2391,7 +2437,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
       "backlinks": []
     },
@@ -3064,7 +3110,13 @@
       "contradicts": [],
       "updated": "2026-09-22",
       "file": "concepts/fine-grained-tp.md",
-      "backlinks": []
+      "backlinks": [
+        {
+          "from": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+          "kind": "conflicts-with",
+          "note": "和它的 embedding_tensor_parallel_size / lmhead_tensor_parallel_size 切的是同一批权重，撞上在权重构建期直接 ValueError，二选一"
+        }
+      ]
     },
     {
       "id": "flash-attention-3",
@@ -4507,7 +4559,7 @@
       "title": "kvpp_config",
       "type": "param",
       "origin": "seed",
-      "summary": "AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进 additional_config 会被静默剔掉。只在 main 开发主线上有。",
+      "summary": "AscendConfig 上的 KVPP 子配置，只有 size 一个字段，由 enable_kvpp 与 TP × PCP 算出而不是用户填；写进 additional_config 会被静默剔掉。在册版本里只有 main 有。",
       "aliases": [
         "additional_config.kvpp_config",
         "KVPP 配置对象",
@@ -4562,7 +4614,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/kvpp-config-0445bd352140.md",
       "backlinks": [
         {
@@ -8248,7 +8300,7 @@
       "title": "sfa_dcp_force_tmajor_restore",
       "type": "param",
       "origin": "seed",
-      "summary": "DCP 解码路径上 query all-gather 之后，把布局还原从零拷贝的 strided view 改回真的物化一份 t-major 连续存储——上游为对照实验留的回退开关，默认 false 走优化后的零拷贝路径。只在 main 开发主线上有。",
+      "summary": "DCP 解码路径上 query all-gather 之后，把布局还原从零拷贝的 strided view 改回真的物化一份 t-major 连续存储——上游为对照实验留的回退开关，默认 false 走优化后的零拷贝路径。在册版本里只有 main 有。",
       "aliases": [
         "SFA DCP t-major 还原",
         "强制 t-major 连续化",
@@ -8308,7 +8360,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
       "backlinks": []
     },
@@ -8894,7 +8946,7 @@
       "title": "use_fused_overlap",
       "type": "param",
       "origin": "seed",
-      "summary": "Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config 这个嵌套块里（不是顶层），bool、默认 false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬 miss 再算」。只在 main 开发主线上有。",
+      "summary": "Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config 这个嵌套块里（不是顶层），bool、默认 false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬 miss 再算」。在册版本里只有 main 有。",
       "aliases": [
         "sparse_kv_offload_config.use_fused_overlap",
         "融合重叠 decode",
@@ -8947,7 +8999,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-22",
+      "updated": "2026-09-24",
       "file": "params/use-fused-overlap-75a180fff6ab.md",
       "backlinks": []
     },

@@ -107,7 +107,7 @@ PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，�
 
 ## 每卡的 28 层里有 14 层是 `PPMissingLayer`，它连权重都不读
 
-`make_layers` 拿 `get_pp_indices` 要到 `[start_layer, end_layer)`，然后拼一个**长度仍然是 28** 的 `ModuleList`：前面填 `PPMissingLayer()`，中间才真建层，后面再填 `PPMissingLayer()` [C7]。`PPMissingLayer` 是 `torch.nn.Identity` 的子类，forward 把第一个参数原样退回。下标因此和不切时完全一致——这是它不直接建一个 14 层列表的原因。
+`make_layers` 拿 `get_pp_indices` 要到 `[start_layer, end_layer)`，然后拼一个**长度仍然是 28** 的 `ModuleList`：前面填 `PPMissingLayer()`，中间才真建层，后面再填 `PPMissingLayer()`。`PPMissingLayer` 是 `torch.nn.Identity` 的子类，forward 把第一个参数原样退回。下标因此和不切时完全一致——这是它不直接建一个 14 层列表的原因。
 
 三件事跟着这一步走：
 
@@ -119,7 +119,7 @@ PP 组是 `all_ranks.transpose(2, 4).reshape(-1, pp_size)` 取出来的 [C2]，�
 
 ## 中间只过两条张量；logits 和采样只在最后一段
 
-`IntermediateTensors` 就是一个 `dict[str, Tensor]` 的壳，Qwen2/Qwen3 这条线往里放的键固定是 `hidden_states` 和 `residual`，形状都是 `(num_tokens, hidden_size)` [C8]。**在这条线上是两条不是一条**——`residual` 也得过界，否则下一段第一层的 RMSNorm 接不上。往壳里放几条由各模型族自己登记：ChatGLM、GPT-2 这类老架构只放 `hidden_states` 一条 [C40][C41]。非首段 forward 的第一句就是 `assert intermediate_tensors is not None`。
+`IntermediateTensors` 就是一个 `dict[str, Tensor]` 的壳，Qwen2/Qwen3 这条线往里放的键固定是 `hidden_states` 和 `residual`，形状都是 `(num_tokens, hidden_size)` [C8]。**在这条线上是两条不是一条**——`residual` 也得过界，否则下一段第一层的 RMSNorm 接不上。往壳里放几条由各模型族自己登记：ChatGLM、GPT-2 这类老架构只放 `hidden_states` 一条 [C40]。非首段 forward 的第一句就是 `assert intermediate_tensors is not None`。
 
 昇腾侧 `NPUModelRunner.execute_model` 走到末尾时分岔：不是最后一段就 `return hidden_states`（此时它是 `IntermediateTensors`），**不算 logits、不采样、不产出 `ModelRunnerOutput`**；是最后一段才 `compute_logits` [C22]。
 

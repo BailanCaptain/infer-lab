@@ -61,7 +61,7 @@ file: ownership-boundary
 
 界线不在某个目录上，而在一条请求的时间线上：**上游把决定好的 `SchedulerOutput` 交出来的那一刻**。
 
-在那之前，`Scheduler.schedule()` 已经定完了这一步跑哪几条序列、每条跑几个 token [C2][C3]，`KVCacheManager` 和 `BlockPool` 也已经把 KV block 分配好了 [C4][C5]。昇腾拿到的是一份既成事实。
+在那之前，`Scheduler.schedule()` 已经定完了这一步跑哪几条序列、每条跑几个 token [C2]，`KVCacheManager` 和 `BlockPool` 也已经把 KV block 分配好了 [C4]。昇腾拿到的是一份既成事实。
 
 在那之后，全部是「怎么执行」：用哪个注意力后端、每个 token 落进 KV 的哪个槽位 [C8]、算子在 AI Core 上怎么算、跨卡怎么通信。
 

@@ -122,7 +122,7 @@ vllm serve Qwen/Qwen3-VL-2B-Instruct --tensor-parallel-size 2 \
 
 | 项 | v0.23 与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| `enable_sp()` 读什么 | `enable_flashcomm1` 或同名环境变量，缓存在 `_ENABLE_SP` | `parallel_config.use_sequence_parallel_moe`，上游算好的一个 property [C16] | 真相源搬到了上游；main 上再写 `enable_flashcomm1` 只换来一条 `FlashComm is deprecated` 警告，真正生效与否仍看上游那个 property `[!]` |
+| `enable_sp()` 读什么 | `enable_flashcomm1` 或同名环境变量，缓存在 `_ENABLE_SP` | `parallel_config.use_sequence_parallel_moe`，上游算好的一个 property | 真相源搬到了上游；main 上再写 `enable_flashcomm1` 只换来一条 `FlashComm is deprecated` 警告，真正生效与否仍看上游那个 property `[!]` |
 | dense + 纯 TP 能不能开 | 能，门槛是 `num_tokens > 1000` | 不能。上游那个 property 要求 `enable_expert_parallel` 且 `tensor_parallel_size > 1` 且 `data_parallel_size > 1` [C17] | 单机 dense 模型上的 SP 在 main 已经没有了 `[!]` |
 | Linear 这一层 | 两条分派链末尾各有一档 `enable_sp()`，返回 `Sequence*ParallelOp` | 两条链里再没有一档读 `enable_sp`，`Sequence*ParallelOp` 两个类整个删掉 [C18] | 想靠 profiling 找 `SequenceRowParallelOp` 的人在 main 上找不到 |
 | `maybe_pad_and_reduce` | 按 `flash_comm_v1_enabled` 在 all-reduce 与 reduce-scatter 之间二选一 | 注释写死 “EP communication only”，只剩 EP 那一路，没有 TP 分支 [C21] | 同名算子换了职责，照旧理解会读错调用链 |

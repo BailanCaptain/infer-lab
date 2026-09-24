@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ParamEntry } from "../../../src/content/wiki/schema";
 import { runBuild } from "../build";
 import { replaceSection } from "../lineage";
-import { gitLineage, renderVerifiedLineage } from "../lineage-git";
+import { gitLineage, lineageRefs, renderVerifiedLineage } from "../lineage-git";
 import { appendWikiLog } from "../log";
 import { loadPages } from "../pages";
 import { localFile } from "../review-files";
@@ -72,6 +72,8 @@ export async function publishParamSync(
   );
   const diff = { ...full, added: full.added.filter((entry) => !held.has(parameterKey(entry))) };
   const updates = [...diff.added, ...diff.changed.map((d) => d.after), ...diff.relocated.map((d) => d.after)];
+  // 与 wiki:lineage 同一套展示范围：发布分支 + 本次的 ref；都解析不出（测试夹具）才退回提交对
+  const lineageScope = lineageRefs(input.repoDir, [input.ref], [input.before.commit, input.after.commit]);
   const resolved = updates.map((entry) => ({ entry, id: parameterPageId(root, input.repo, entry, pages) }));
   for (const { entry, id } of resolved) {
     if (!id) {
@@ -96,12 +98,7 @@ export async function publishParamSync(
       before,
     );
     text = recordParamSource(root, input.repoDir, input.repo, input.after.commit, entry.file, text);
-    const lineage = gitLineage(
-      input.repoDir,
-      entry.name,
-      [input.before.commit, input.after.commit],
-      ["vllm_ascend/"],
-    );
+    const lineage = gitLineage(input.repoDir, entry.name, lineageScope, ["vllm_ascend/"]);
     writes.push({ path, before, after: replaceSection(text, "## 版本谱系", renderVerifiedLineage(lineage)) });
   }
   for (const entry of diff.removed) {
@@ -113,12 +110,7 @@ export async function publishParamSync(
     const path = localFile(root, `wiki/params/${id}.md`);
     if (!existsSync(path)) continue;
     const before = readFileSync(path, "utf8");
-    const lineage = gitLineage(
-      input.repoDir,
-      entry.name,
-      [input.before.commit, input.after.commit],
-      ["vllm_ascend/"],
-    );
+    const lineage = gitLineage(input.repoDir, entry.name, lineageScope, ["vllm_ascend/"]);
     writes.push({
       path,
       before,

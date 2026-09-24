@@ -5,7 +5,7 @@ type: param
 summary: >-
   Sparse KV Offload 在 decode 上的第二条路径开关，挂在 sparse_kv_offload_config
   这个嵌套块里（不是顶层），bool、默认 false；开了就用 npu_fused_sparse_attention_overlap 直接读主机池，不再「搬
-  miss 再算」。只在 main 开发主线上有。
+  miss 再算」。在册版本里只有 main 有。
 aliases:
   - sparse_kv_offload_config.use_fused_overlap
   - 融合重叠 decode
@@ -17,7 +17,7 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-09-24'
 relations:
   - to: kv-cache-sparse-offload
     kind: builds-on
@@ -69,7 +69,7 @@ rawSources:
 
 **它不在 `additional_config` 顶层。** 它是 `SparseKVOffloadConfig` 的字段，真实路径是 `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]`（见文末「参数定义」），必须写在 `sparse_kv_offload_config` 这个嵌套块里。写成顶层那样在 main 上启动，会被 `AscendConfig` 的 `extra="forbid"` 当拼写错误直接拒掉 [C6]。
 
-**存在范围。** 只在 main 开发主线上有（以及从 main 分出去的 v0.28.0rc，见下面「版本谱系」）。v0.26 分支（2026-09-17 源码快照）的 `SparseKVOffloadConfig` 是普通类、逐个 `user_config.get(...)` 取值，只认 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache` 四个键 [C19]，写上它会被静默忽略；v0.23 维护分支上整套 Sparse KV Offload 都不存在。
+**存在范围。** 在册版本里只有 main 有（上游从 main 分出的 v0.28.0rc、v0.29.0rc 也带着它，但不在册，见下面「版本谱系」）。v0.26 分支（2026-09-17 源码快照）的 `SparseKVOffloadConfig` 是普通类、逐个 `user_config.get(...)` 取值，只认 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` / `keep_device_kv_cache` 四个键 [C19]，写上它会被静默忽略；v0.23 维护分支上整套 Sparse KV Offload 都不存在。
 
 ## 事实表
 
@@ -104,7 +104,7 @@ rawSources:
 
 **报错信息会把你指向一个不存在的配置块。** 那两处 `RuntimeError` 的文案都写着 `kv_offload_decode_config.use_fused_overlap=true`，但 `kv_offload_decode_config` 这个名字在 `vllm_ascend/` 和 `docs/` 里一处都找不到 [D]。真正要写的是 `sparse_kv_offload_config`。看到这条报错别去搜那个名字 [!]。
 
-**官方文档完全没有它。** main 上 Decode 侧的启动示例只列了 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` 三项 [S17]（[线上页](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html)），`additional_config.md` 里连 `sparse_kv_offload_config` 这一块都没有。**没有文档意味着没有兼容承诺**——它是 2026-09-07 随 PR [#14957](https://github.com/vllm-project/vllm-ascend/pull/14957) 进来的，至今没有回合到任何发布分支。
+**官方文档完全没有它。** main 上 Decode 侧的启动示例只列了 `enabled` / `topk_buffer_size` / `dram_size_per_dp_GB` 三项 [S17]（[线上页](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html)），`additional_config.md` 里连 `sparse_kv_offload_config` 这一块都没有。**没有文档意味着没有兼容承诺**——它是 2026-09-07 随 PR [#14957](https://github.com/vllm-project/vllm-ascend/pull/14957) 进来的，至今没有进任何在册版本；上游后来分出的 v0.28.0rc、v0.29.0rc 带着它，但那两个分支不在册、也没人核对过。
 
 **开了就多常驻两条 stream 和一块元数据缓冲。** `_init_offload_buffers` 在这个分支里额外建 `current_kv_save_stream`、`fused_plan_stream`，以及一块 `1 + max_num_topk_rows` 的 int32 张量（再从中切出 `fused_plan_status_npu` 和 `fused_plan_current_linear_slots_npu`）[C14]。这些是启动时按最大规模建的，和实际请求走不走到 fused 路径无关。
 
@@ -118,8 +118,19 @@ rawSources:
 
 | 版本 | 是否存在 |
 | --- | --- |
-| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（3 个文件） |
-| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（3 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 有（3 个文件） |
+| releases/v0.29.0rc | 有（3 个文件） |
+| main | 有（3 个文件） |
 
 - **引入**：2026-09-07 · 1493369b754840da75c117651b50034a4cc7ae2d · PR [#14957](https://github.com/vllm-project/vllm-ascend/pull/14957) —— [Feature][Attention] Add fused sparse attention overlap decode support for Ascend SFA KV offload (#14957)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor

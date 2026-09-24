@@ -4,7 +4,7 @@ title: enable_pcp_o_proj_weight_sharding
 type: param
 summary: >-
   开了 SFA-PCP 之后，让 o_proj 权重在加载期就按 PCP 组再切一刀、常驻只留 1/pcp_size，prefill 现 all-gather
-  出一份全量、decode 直接用本地片。默认 false，只在 main 开发主线上有，对 DSA-CP 无效。
+  出一份全量、decode 直接用本地片。默认 false，在册版本里只有 main 有，对 DSA-CP 无效。
 origin: seed
 aliases:
   - PCP o_proj 权重分片
@@ -15,7 +15,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-09-24'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -123,8 +123,19 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 
 | 版本 | 是否存在 |
 | --- | --- |
-| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（3 个文件） |
-| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（3 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 有（3 个文件） |
+| releases/v0.29.0rc | 有（3 个文件） |
+| main | 有（3 个文件） |
 
 - **引入**：2026-09-07 · 78cd10dec8f1307634506b736d8c27000500a62d · PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) —— [Feature] Enable pcp + o_proj weight split/gather (#14814)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor

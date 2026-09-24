@@ -4,7 +4,7 @@ title: sfa_dcp_force_tmajor_restore
 type: param
 summary: >-
   DCP 解码路径上 query all-gather 之后，把布局还原从零拷贝的 strided view 改回真的物化一份 t-major
-  连续存储——上游为对照实验留的回退开关，默认 false 走优化后的零拷贝路径。只在 main 开发主线上有。
+  连续存储——上游为对照实验留的回退开关，默认 false 走优化后的零拷贝路径。在册版本里只有 main 有。
 origin: seed
 aliases:
   - SFA DCP t-major 还原
@@ -15,7 +15,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-09-24'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -127,8 +127,19 @@ return torch.split(gathered, context.split_sizes, dim=-1)
 
 | 版本 | 是否存在 |
 | --- | --- |
-| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（3 个文件） |
-| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（3 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 无 |
+| releases/v0.22.1rc | 无 |
+| releases/v0.23.0 | 无 |
+| releases/v0.24.0rc | 无 |
+| releases/v0.25.1rc | 无 |
+| releases/v0.26.0rc | 无 |
+| releases/v0.27.1rc | 无 |
+| releases/v0.28.0rc | 有（3 个文件） |
+| releases/v0.29.0rc | 有（3 个文件） |
+| main | 有（3 个文件） |
 
 - **引入**：2026-09-16 · 8f26bb734759e79f3186cc0efbca6d9cb1b594ee · PR [#15970](https://github.com/vllm-project/vllm-ascend/pull/15970) —— [Performance] Optimize the DCP decode query-gather layout path (#15970)
   包含该提交的 tag：未找到；分支：origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc

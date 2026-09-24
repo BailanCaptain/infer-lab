@@ -77,7 +77,7 @@ file: paged-attention
 
 ## 默认跑的不是 PagedAttention 算子
 
-`forward_impl` 里只有一个 if，三个条件全真才走 PA：当前批次是纯 decode（`AscendAttentionState.DecodeOnly`）、这一层不是滑动窗口层、且 `using_paged_attention()` 返回真 [C4][C5]。三个分支这段的判断条件逐字相同。
+`forward_impl` 里只有一个 if，三个条件全真才走 PA：当前批次是纯 decode（`AscendAttentionState.DecodeOnly`）、这一层不是滑动窗口层、且 `using_paged_attention()` 返回真 [C4]。三个分支这段的判断条件逐字相同。
 
 第三个条件自己又是四道门，按顺序：开了投机解码直接假；当前硬件档位没有 `PAGED_ATTENTION` 这项能力直接假（哪些硬件有这项能力见下面那张表）；`head_size == 512` 的大头维层直接真（Gemma4 回退）；`cudagraph_mode` 不是 `FULL_DECODE_ONLY` 假；最后才看这一步的 token 数在不在 `pa_shape_list` 里 [C6][C7]。而 `pa_shape_list` 默认是空表 [C13]，所以最后一句默认恒假。
 

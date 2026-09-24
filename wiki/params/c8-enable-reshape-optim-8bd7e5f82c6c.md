@@ -19,7 +19,7 @@ verified:
   - releases/v0.26.0rc
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-09-24'
 relations:
   - to: kv-cache-quantization
     kind: builds-on
@@ -74,7 +74,7 @@ rawSources:
 | 实际取值 | `enable_sparse_li_c8 and additional_config.get(..., False)` [C9] | `c8_enable_reshape_optim and enable_sparse_li_c8 and is_prefill_node` [C2] | main 多加了一道 PD 角色闸，少一个条件就为假 |
 | 混部（没有 `kv_transfer_config`） | 可以开 | **恒为假** [C2] | main 上不做 PD 分离就永远享受不到这个优化，日志里也不会说 [!] |
 | `enable_sparse_li_c8` 从哪来 | 用户在 `additional_config` 里配 | 由 `attention_config.indexer_kv_dtype` 是不是 fp8/int8 推出来 | main 上你连前提条件都不再直接控制 |
-| 读它的地方 | `sfa_v1.py` 的建 metadata 与 `_use_li_c8_reshape_optim` [C13] | 搬到 `attention/indexer.py`，经只读属性 `c8_reshape_optim_enabled` 取 [C4] | 在 main 上按老文件名搜会搜空 |
+| 读它的地方 | `sfa_v1.py` 的建 metadata 与 `_use_li_c8_reshape_optim` [C13] | 搬到 `attention/indexer.py`，经只读属性 `c8_reshape_optim_enabled` 取 | 在 main 上按老文件名搜会搜空 |
 | 开了写什么 | `store_kv_block` + `store_kv_block_metadata` | 同 | 两个算子配套：先算出分组元数据，再成段写 |
 | 关了写什么 | `npu_scatter_nd_update_`，逐 slot 更新 | 同 | 这是默认路径，也是 indexer 不走 C8 时唯一的路径 |
 | 往 `additional_config` 里写它 | 收下，就是这个键本身 | 收下——它是字段、又不在 `_NON_USER_INPUT_KEYS` 里，`extra="forbid"` 放行 [C7] | 官方 GLM5.2 教程里的 `"c8_enable_reshape_optim":false` 不再因这个键被拒绝 [S8] |
@@ -106,8 +106,19 @@ indexer 的 K 缓存写入是个**极碎的操作**：每个 token 一个 slot�
 
 | 版本 | 是否存在 |
 | --- | --- |
-| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（1 个文件） |
-| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（1 个文件） |
+| releases/v0.13.0 | 无 |
+| releases/v0.18.0 | 无 |
+| releases/v0.20.2rc | 无 |
+| releases/v0.21.0rc | 有（2 个文件） |
+| releases/v0.22.1rc | 有（2 个文件） |
+| releases/v0.23.0 | 有（2 个文件） |
+| releases/v0.24.0rc | 有（2 个文件） |
+| releases/v0.25.1rc | 有（2 个文件） |
+| releases/v0.26.0rc | 有（2 个文件） |
+| releases/v0.27.1rc | 有（2 个文件） |
+| releases/v0.28.0rc | 无 |
+| releases/v0.29.0rc | 有（1 个文件） |
+| main | 有（1 个文件） |
 
 - **引入**：2026-06-10 · a53f8a023016219a3d5246a881d74d4d8d892f0c · PR [#10292](https://github.com/vllm-project/vllm-ascend/pull/10292) —— [Feature] add ascendc ops store_kv_block (#10292)
   包含该提交的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann

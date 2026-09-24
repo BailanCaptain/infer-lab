@@ -141,7 +141,7 @@ vllm serve Qwen/Qwen3-0.6B \
 
 FULL 模式下有一样东西录不进图：`seq_lens` 每步都变，而 workspace 和算子 task 已经固化。昇腾的办法是**捕获时就往图里埋一个等待点**——先记下 `torch.npu.ExternalEvent()` 的 `wait(stream)` 与 `reset(stream)`，再录注意力算子。回放走到那里会停住等这个 event。
 
-放行的是 `update_graph_params()`：它在一条单独的 update stream 上，拿 forward context 里**当前这一步**的 `seq_lens` 重算 workspace，用 `graph_task_update_begin/end` 把算子 task 的入参换掉，最后 `event.record(update_stream)` [C28]。
+放行的是 `update_graph_params()`：它在一条单独的 update stream 上，拿 forward context 里**当前这一步**的 `seq_lens` 重算 workspace，用 `graph_task_update_begin/end` 把算子 task 的入参换掉，最后 `event.record(update_stream)`。
 
 所以调用顺序反直觉：`_model_forward()` 里是**先 `run_model()` 把回放 launch 出去、后调 `_update_full_graph_params_if_needed()`** [C26]——只有 `enable_enpu` 的软切分场景反过来，先 update 再 run，同一段源码的注释说那里要先 record 后 wait。设计文档写的是「Before replay, `update_full_graph_params()` calls the backend specific `update_graph_params()`」[S10]——按 Python 调用顺序这句不成立 [!]；成立的说法是「在图里那个注意力算子真正执行之前」。
 
@@ -155,13 +155,13 @@ FULL 模式下有一样东西录不进图：`seq_lens` 每步都变，而 worksp
 | 换模式 / 换尺寸 | `--compilation-config '{"cudagraph_mode": "...", "cudagraph_capture_sizes": [...]}'` | 上游字段，昇腾只在配置检查里按平台收窄 |
 | 控编译期优化 | `--additional-config '{"ascend_compilation_config": {"enable_npugraph_ex": false}}'` | 昇腾自己的 `AscendCompilationConfig` |
 
-`enable_npugraph_ex` 默认 `True`，但**只在 FULL / FULL_DECODE_ONLY 下真生效**：`cudagraph_mode` 为 `NONE` 或需要 piecewise 编译时，平台层把它连同 `enable_static_kernel` 一起写回 `False` [C17]。那条请求跑默认的 `FULL_AND_PIECEWISE`，`requires_piecewise_compilation()` 为真，所以 npugraph_ex 在它身上根本没开 [D]。`enable_static_kernel` 默认 `False`，开了要在启动捕获阶段多花几分钟到几十分钟编译定形算子，而且断言要求 npugraph_ex 同开。
+`enable_npugraph_ex` 默认 `True`，但**只在 FULL / FULL_DECODE_ONLY 下真生效**：`cudagraph_mode` 为 `NONE` 或需要 piecewise 编译时，平台层把它连同 `enable_static_kernel` 一起写回 `False`。那条请求跑默认的 `FULL_AND_PIECEWISE`，`requires_piecewise_compilation()` 为真，所以 npugraph_ex 在它身上根本没开 [D]。`enable_static_kernel` 默认 `False`，开了要在启动捕获阶段多花几分钟到几十分钟编译定形算子，而且断言要求 npugraph_ex 同开。
 
 会真踩到的硬约束：
 
 - 两个发布分支上 `ASCEND_LAUNCH_BLOCKING=1` 与图模式**互斥且不降级**，是启动时 `raise ValueError` [C18]。调试时顺手 export 过这个变量的人第一个撞上；main 上这道闸已经拆了，见下表 `[!]`。
 - encoder-decoder 模型被强制收到 `PIECEWISE`，编译模式不是 `VLLM_COMPILE` 就收到 `NONE`；context parallel 下 `cudagraph_mode="FULL"` 官方自述「支持得还不够」；310P 与 Atlas 200I Pro 不支持 `enable_npugraph_ex`。
-- 捕获报 `207008` 或 `Stream resources are insufficient` 时，vllm-ascend 把它重抛成带处置建议的错误；piecewise 最容易撞上，因为它录的图最多 [S4]。
+- 捕获报 `207008` 或 `Stream resources are insufficient` 时，vllm-ascend 把它重抛成带处置建议的错误；piecewise 最容易撞上，因为它录的图最多。
 
 ## 三个版本的差异
 
@@ -170,7 +170,7 @@ FULL 模式下有一样东西录不进图：`seq_lens` 每步都变，而 worksp
 | `enable_super_kernel` | 没有这个键 | 有，不写就跟随 `enable_static_kernel` [C40] | 有，字段默认 `False`，但只写 `enable_static_kernel` 时仍跟随它 [C42] | [!] 在 v0.23 上照 v0.26 文档写这个键，会掉进 `**kwargs` 被静默忽略 |
 | A5 砍 4 档的门禁 | `get_ascend_device_type() == AscendDeviceType.A5` | 同左 | 改判 `HardwareCapability.REDUCED_CUDAGRAPH_CAPTURE_SIZES` [C44] | 行为一样（都是 4 档），但按旧名字在 main 上 grep 不到 |
 | 捕获尺寸要对齐 TP 的触发条件 | 只有 `enable_sp` | 同左 | 还包括 shared-expert DP 与 DSA CP [C43] | [!] main 上更多配置会改写你手写的 `cudagraph_capture_sizes` |
-| 可打断的图包装器 | 无 | 无 | 多一个 `BreakableACLGraphWrapper` [C45] | main 上图模式多出一条路径 |
+| 可打断的图包装器 | 无 | 无 | 多一个 `BreakableACLGraphWrapper` | main 上图模式多出一条路径 |
 | `ASCEND_LAUNCH_BLOCKING=1` 撞上图模式 | 启动 `raise ValueError` [C18] | 同左 | 检查已删，`vllm_ascend/` 里 grep 不到这个变量 | [!] 同一条命令在两个发布分支上起不来、在 main 上照常开图 |
 
 ## 常见误解

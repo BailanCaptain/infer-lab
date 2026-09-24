@@ -69,7 +69,7 @@ origin: seed
 
 ## 一句话
 
-多个 DP rank 跑同一份模型时，请求会堆在其中几个 rank 上：满载的那几个同时扛着 prefill 和 decode、变慢，空着的那几个继续收新请求，差距越拉越大 [S18]。Balance Scheduling 给的不是搬运，而是**一道全局准入闸**——每步 `all_gather` 收齐各 rank 的 `len(self.running)`，**只要有任何一个 rank 顶到了 `max_num_seqs`，所有 rank 这一步都不再从 waiting 队列放人进来**，先让顶满的那个把手上的请求排空。
+多个 DP rank 跑同一份模型时，请求会堆在其中几个 rank 上：满载的那几个同时扛着 prefill 和 decode、变慢，空着的那几个继续收新请求，差距越拉越大。Balance Scheduling 给的不是搬运，而是**一道全局准入闸**——每步 `all_gather` 收齐各 rank 的 `len(self.running)`，**只要有任何一个 rank 顶到了 `max_num_seqs`，所有 rank 这一步都不再从 waiting 队列放人进来**，先让顶满的那个把手上的请求排空。
 
 它**不是「让落后的 rank 追上领先的」**——设计文档把这个理解点名否掉了 [S21]。三个分支上都有它，v0.23 维护分支上就已经是现在这套语义；差别全在配置怎么写、以及引擎核心那一侧接得干不干净。
 
@@ -92,7 +92,7 @@ file: balance-scheduling
 
 ## 真正的改动是两行，抄下来的是五百多行
 
-上游扫 waiting 那段循环长这样——先判本 rank 的 running 满没满，再取队列 [C14]：
+上游扫 waiting 那段循环长这样——先判本 rank 的 running 满没满，再取队列：
 
 ```python
 while (self.waiting or self.skipped_waiting) and token_budget > 0:
@@ -131,7 +131,7 @@ vllm serve Qwen/Qwen3-30B-A3B \
 
 四个值的来由：模型必须是 MoE（Qwen3-30B-A3B 是；换成 dense 的 Qwen3-0.6B，这条命令在 v0.23 上会撞断言起不来，见上）；`enable_balance_scheduling` 默认 `false`，不写就整套不启用 [C10]；`--data-parallel-size` 必须大于 1，等于 1 就是上一节那种彻底空转；`--max-num-seqs` 直接就是闸门那个上限，**调它等于同时动两件事**——单 rank 的并发，和全局冻结的触发点。这些键怎么从 `additional_config` 走到 `AscendConfig`，见[配置系统](ascend-config-system.md)。
 
-三道硬约束，不满足就是启动失败：和 `profiling_chunk_config` 同开直接 `ValueError` [C11]；只支持 PD 混部，配了 `kv_transfer_config` 而 `kv_role` 不是 `kv_both` 也 `ValueError` [C13]；main 开发主线上还多一条，和 DyntraLB 同开同样 `ValueError`。
+三道硬约束，不满足就是启动失败：和 `profiling_chunk_config` 同开直接 `ValueError` [C11]；只支持 PD 混部，配了 `kv_transfer_config` 而 `kv_role` 不是 `kv_both` 也 `ValueError`；main 开发主线上还多一条，和 DyntraLB 同开同样 `ValueError`。
 
 ## 三个分支上，开关和装法都不一样
 
@@ -141,11 +141,11 @@ vllm serve Qwen/Qwen3-30B-A3B \
 |---|---|---|---|---|
 | 配置键写在哪 | 只认顶层 `enable_balance_scheduling` | 顶层或 `scheduler_config` 下，后者优先，写顶层会打 deprecation 警告 [C24] | 同 v0.26 | 旧的顶层写法三版都还开得起来，只是新版会提醒你挪窝 |
 | `VLLM_ASCEND_BALANCE_SCHEDULING` | 认，`envs.py` 里有这个名字 | 认 | **不认**，`envs.py` 里已经没有它，配置代码的注释写明「legacy environment fallback has been removed」[C26] | [!] 靠环境变量开它的部署升到 main 会**静默失效**：服务照起，闸门不装 |
-| 引擎核心那一侧 | 整段抄 `run_busy_loop` 和 `run_engine_core` | 只覆盖 `_has_global_unfinished_reqs`，模块名按开关替换 [C23] | 同 v0.26，那次替换搬进了 `patch_engine_core.py` | v0.23 的两份抄件会随上游演进过期；新版只剩一个钩子要盯 |
+| 引擎核心那一侧 | 整段抄 `run_busy_loop` 和 `run_engine_core` | 只覆盖 `_has_global_unfinished_reqs`，模块名按开关替换 | 同 v0.26，那次替换搬进了 `patch_engine_core.py` | v0.23 的两份抄件会随上游演进过期；新版只剩一个钩子要盯 |
 | `BalanceScheduler` 的父类 | 上游 `Scheduler` | `KVDeliveryScheduler`，另一份 ascend 抄件 [C22] | 上游 `Scheduler` | [!] 只有 v0.26 上「关掉就等于纯上游」不成立，中间还隔着一层抄件 |
 | 和 DyntraLB 互斥 | 无此特性 | 无此特性 | 同开直接 `ValueError` [C30] | main 上 decode 侧那条负载均衡是另一条路，二选一 |
 
-main 自己的文档还没对齐：配置页正文写着这个环境变量「no longer supported」[S31]，同一个文件顶上的速查表却仍列着 `VLLM_ASCEND_BALANCE_SCHEDULING → scheduler_config.enable_balance_scheduling` 这一行 [S32]。以代码为准 [!]。
+main 自己的文档还没对齐：配置页正文写着这个环境变量「no longer supported」[S31]，同一个文件顶上的速查表却仍列着 `VLLM_ASCEND_BALANCE_SCHEDULING → scheduler_config.enable_balance_scheduling` 这一行。以代码为准 [!]。
 
 ## 常见误解
 

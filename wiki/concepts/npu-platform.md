@@ -67,7 +67,7 @@ file: platform-surface
 
 类体顶部几行就定完了身份：`device_name` 与 `device_type` 都是 `"npu"`，`ray_device_key` 是 `"NPU"`，可见设备的环境变量是 `ASCEND_RT_VISIBLE_DEVICES`，PyTorch 侧的 `dispatch_key` 是 `"PrivateUse1"` [C1]。
 
-这一组里有一个反直觉的成员：`get_device_total_memory` 在 v0.23 与 v0.26 上**故意抛 `NotImplementedError`**，而不是返回显存大小 [C4]。源码里紧跟的注释写了原因——实现它会提前调用 `get_device_name()` 从而过早初始化 `torch_npu`，而 `torch_npu` 只允许全局初始化一次，重复初始化会报错。main 上它改成了守卫式：torch_npu 已初始化就返回 `torch.npu.mem_get_info` 的真实值，只有启动早期照抛 [C18] `[!]`。所以「启动期问平台要总显存」这条路在三个版本上都走不通，显存预算得靠别的办法算 [D]；运行期这条路 main 已经放开。
+这一组里有一个反直觉的成员：`get_device_total_memory` 在 v0.23 与 v0.26 上**故意抛 `NotImplementedError`**，而不是返回显存大小。源码里紧跟的注释写了原因——实现它会提前调用 `get_device_name()` 从而过早初始化 `torch_npu`，而 `torch_npu` 只允许全局初始化一次，重复初始化会报错。main 上它改成了守卫式：torch_npu 已初始化就返回 `torch.npu.mem_get_info` 的真实值，只有启动早期照抛 `[!]`。所以「启动期问平台要总显存」这条路在三个版本上都走不通，显存预算得靠别的办法算 [D]；运行期这条路 main 已经放开。
 
 ## 第二组：启动时真的改配置
 

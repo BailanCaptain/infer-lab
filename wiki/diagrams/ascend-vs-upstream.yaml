@@ -1,38 +1,32 @@
-layout: scene
+layout: figure
 id: ascend-vs-upstream
-caption: 上游每留一个口子，昇腾就交一个子类；同一行左右两边是同一个位置
-size: [900, 456]
+caption: 上游 vLLM 留了五个口子，昇腾适配层每个口子交一个自己的版本；没留口子的地方，只能启动时把上游的零件换掉
+size: [900, 440]
 
-regions:
-  - label: 上游 vLLM 留的口子
-    at: [20, 40]
-    size: [420, 44]
-    tone: upstream
-    chip: top
-  - label: vllm-ascend 交上来的
-    at: [460, 40]
-    size: [420, 44]
-    tone: ascend
-    chip: top
+dividers:
+  - { from: [450, 20], to: [450, 350], sides: [上游 vLLM 留的口子, 昇腾适配层交上来的] }
 
-boundaries:
-  - { at: 450, from: 96, to: 424, label: 继承 }
+items:
+  - { at: [60, 50], size: [320, 46], text: 平台：硬件的事都问它, tone: control, style: plain }
+  - { at: [60, 112], size: [320, 46], text: Worker：守着一颗 NPU, tone: control, style: plain }
+  - { at: [60, 174], size: [320, 46], text: 执行器：跑一步的主循环, tone: control, style: plain }
+  - { at: [60, 236], size: [320, 46], text: 注意力算子, tone: kv, style: plain }
+  - { at: [60, 298], size: [320, 46], text: 跨卡通信, tone: comm, style: plain }
 
-bands:
-  - { label: Platform, sub: 硬件问题全问它, at: [20, 100], size: [420, 56], tone: upstream, icon: gear }
-  - { label: WorkerBase, sub: 一张卡上的生命周期, at: [20, 166], size: [420, 56], tone: upstream, icon: proc }
-  - { label: GPUModelRunner, sub: 一步执行的主循环, at: [20, 232], size: [420, 56], tone: upstream, icon: calc }
-  - { label: AttentionBackend, sub: 注意力算子与 KV 形状, at: [20, 298], size: [420, 56], tone: upstream, icon: pick }
-  - { label: DeviceCommunicatorBase, sub: 跨卡通信, at: [20, 364], size: [420, 56], tone: upstream, icon: plug }
+  - { at: [520, 50], size: [320, 46], text: 昇腾自己的平台, tone: control }
+  - { at: [520, 112], size: [320, 46], text: 昇腾自己的 Worker, tone: control }
+  - { at: [520, 174], size: [320, 46], text: 昇腾自己的主循环, tone: control }
+  - { at: [520, 236], size: [320, 46], text: 昇腾的注意力实现, tone: kv }
+  - { at: [520, 298], size: [320, 46], text: 昇腾的通信实现, tone: comm }
 
-  - { label: NPUPlatform, sub: "platform.py，第 128 行", at: [460, 100], size: [420, 56], tone: ascend }
-  - { label: NPUWorker, sub: "worker/worker.py", at: [460, 166], size: [420, 56], tone: ascend }
-  - { label: NPUModelRunner, sub: "model_runner_v1.py，5251 行", at: [460, 232], size: [420, 56], tone: ascend }
-  - { label: "后端类：v0.23 上五个", sub: "attention/ 下 17 个文件；v0.26 起六个", at: [460, 298], size: [420, 56], tone: ascend }
-  - { label: NPUCommunicator, sub: "distributed/ 下 46 个文件", at: [460, 364], size: [420, 56], tone: ascend }
+  - { at: [60, 378], size: [780, 44], text: 没留口子的地方：启动时直接换掉上游的零件, tone: danger, style: faded }
 
-notes:
-  - { at: [20, 446], text: "留不出口子的地方没有这一行——那些只能在运行时把上游对象换掉，也就是 patch。所以「昇腾的某段行为在哪」只有两个答案：某个子类里，或者 patch 目录里。", size: 12.5, width: 860 }
+links:
+  - { from: [520, 73], to: [384, 73], tone: control }
+  - { from: [520, 135], to: [384, 135], tone: control }
+  - { from: [520, 197], to: [384, 197], tone: control }
+  - { from: [520, 259], to: [384, 259], tone: kv }
+  - { from: [520, 321], to: [384, 321], tone: comm }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
@@ -43,3 +37,5 @@ pins:
     symbols: [NPUModelRunner]
   - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L79
     symbols: [AscendAttentionBackend]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L23
+    symbols: [NPUCommunicator]

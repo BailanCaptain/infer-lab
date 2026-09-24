@@ -1,37 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="昇腾的开关有两条互不相通的路：小写键名走 AscendConfig，大写走环境变量">
-  <title>昇腾的开关有两条互不相通的路：小写键名走 AscendConfig，大写走环境变量</title>
-  <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="44" width="420" height="336" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="58" width="119.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">路一 · 小写键名</text>
-  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">--additional-config 那段 JSON</text>
-  <rect x="460" y="44" width="420" height="336" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="476" y="58" width="146.2" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="487" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">路二 · 大写环境变量</text>
-  <text x="478" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">名字带 VLLM_ASCEND_ 前缀的</text>
-  <rect x="36" y="128" width="388" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="52" y="151.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">上游只是原样存着</text>
-  <text x="52" y="169.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">VllmConfig.additional_config，一个 dict</text>
-  <rect x="36" y="192" width="388" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">AscendConfig 按键拆成八个子配置</text>
-  <text x="52" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">xlite_graph_config、eplb_config 等八个</text>
-  <text x="52" y="246" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">ascend_config.py</text>
-  <rect x="36" y="264" width="388" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="287.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">全仓用 get_ascend_config() 取</text>
-  <text x="52" y="305.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">没初始化就抛 RuntimeError</text>
-  <rect x="36" y="328" width="388" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <text x="52" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">NPUPlatform.check_and_update_config 还能改它</text>
-  <text x="52" y="361" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">、拦它</text>
-  <rect x="476" y="128" width="388" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="492" y="151.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">envs.py 里一张 env_variables 表</text>
-  <text x="492" y="169.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">v0.23 分支上 21 个条目</text>
-  <rect x="476" y="192" width="388" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="492" y="219.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">两类</text>
-  <text x="492" y="237.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一半是构建期的，一半是运行期开关</text>
-  <rect x="476" y="264" width="388" height="54" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="492" y="287.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">代码里直接读 envs_ascend.XXX</text>
-  <text x="492" y="305.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不进 AscendConfig，也不受校验族管</text>
-  <rect x="476" y="328" width="388" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
-  <text x="492" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">没有谁在启动时改写它们</text>
-  <text x="20" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">配了没生效时按这个顺序查：一、键名在 ascend_config.py 里存不存在；二、check_and_update_config 有没有把它改掉或拦掉；三、如果压根搜不</text>
-  <text x="20" y="428.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">到键名，换去 envs.py——它在另一条路上。</text>
-  <text x="20" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">get_ascend_config() 抛的那条 RuntimeError 说的是时机不对，不是内容不对：这段代码跑在 init_ascend_config 之前。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="一个昇腾开关的旅程：写在启动命令附带的一段 JSON 里，上游原样带着不解释，启动时按键拆成八组配置对象，各组件都从进程里唯一的一份里取">
+  <title>一个昇腾开关的旅程：写在启动命令附带的一段 JSON 里，上游原样带着不解释，启动时按键拆成八组配置对象，各组件都从进程里唯一的一份里取</title>
+  <defs><marker id="config-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M220 132 L280 132" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#config-flow-ah-ink)"/>
+  <path d="M490 132 L552 132" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#config-flow-ah-ink)"/>
+  <path d="M718 158 L718 204" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#config-flow-ah-ink)"/>
+  <rect x="560" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="600" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="640" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="680" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="720" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="760" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="800" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="840" y="110" width="36" height="44" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="30" y="100" width="190" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="125" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">启动命令</text>
+  <text x="125" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">附带的一段 JSON</text>
+  <rect x="280" y="100" width="210" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="385" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">上游原样带着</text>
+  <text x="385" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">不解释也不检查</text>
+  <rect x="570" y="204" width="296" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="718" y="228" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">各组件随取随用</text>
+  <text x="718" y="247" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整个进程只有一份</text>
+  <text x="560" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">启动时按键拆成八组，缺的键用默认值补上</text>
+  <rect x="30" y="216" width="258" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
+  <text x="159" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼错的键在拆的时候被直接略过，不报错</text>
 </svg>

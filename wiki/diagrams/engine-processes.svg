@@ -1,54 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="900" height="480" role="img" aria-label="三类角色，三条各走各的 patch 注入路——主进程打过的不会被子进程继承；单卡时 Worker 住在 EngineCore 进程里">
-  <title>三类角色，三条各走各的 patch 注入路——主进程打过的不会被子进程继承；单卡时 Worker 住在 EngineCore 进程里</title>
-  <rect width="900" height="480" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="76" width="276" height="330" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="90" width="87.9" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="108.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Main 进程</text>
-  <text x="38" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">解析命令行 · 选平台</text>
-  <rect x="312" y="76" width="276" height="330" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="328" y="90" width="138.1" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="339" y="108.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程</text>
-  <text x="330" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">调度器 · KV 管理</text>
-  <rect x="604" y="76" width="276" height="330" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="620" y="90" width="72.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="631" y="108.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Worker</text>
-  <text x="622" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">真正碰 NPU · 多卡才每卡一进程</text>
-  <rect x="36" y="172" width="244" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="52" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">里面跑什么</text>
-  <text x="52" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">argparse、选平台、拉起子进程</text>
-  <text x="52" y="233" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)">NPUPlatform</text>
-  <rect x="328" y="172" width="244" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="344" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">里面跑什么</text>
-  <text x="344" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">调度逻辑是上游的，类被 patch 换掉</text>
-  <text x="344" y="233" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">BalanceScheduler</text>
-  <rect x="620" y="172" width="244" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="636" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">里面跑什么</text>
-  <text x="636" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">昇腾代码占主体</text>
-  <text x="636" y="233" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">NPUModelRunner</text>
-  <rect x="36" y="276" width="244" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="48" y="308" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(54.4 314.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
-  <text x="88" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">patch 从哪条路进来</text>
-  <text x="88" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">平台层，进程最早</text>
-  <text x="88" y="347" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">adapt_patch(True)</text>
-  <rect x="328" y="276" width="244" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="340" y="308" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(346.4 314.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
-  <text x="380" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">patch 从哪条路进来</text>
-  <text x="380" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">四个入口里三个各补一次</text>
-  <text x="380" y="347" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">_ensure_global_patch</text>
-  <rect x="620" y="276" width="244" height="96" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="632" y="308" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(638.4 314.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
-  <text x="672" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">patch 从哪条路进来</text>
-  <text x="672" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">worker 起来的那一刻</text>
-  <text x="672" y="347" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">adapt_patch()</text>
-  <path d="M158 66 L158 74" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
-  <path d="M158 74 l-5.5 -11 l11 0 z" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M296 120 L308 120" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M308 120 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <rect x="282" y="110" width="40" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="302" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">fork</text>
-  <path d="M588 120 L600 120" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M600 120 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <rect x="574" y="110" width="40" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="594" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">fork</text>
-  <text x="20" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="600" fill="var(--color-ink, #17211f)">起一条昇腾服务</text>
-  <text x="20" y="432" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">中间那一格最不直观：EngineCore 是新起的解释器，Main 里那次 import 的副作用不会被继承，_GLOBAL_PATCH_APPLIED 只在进程内去重——正因如此它</text>
-  <text x="20" y="450.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">才能在每个子进程里各生效一次。</text>
-  <text x="20" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">排查时倒着用：栈里有调度器 → 中间这格；栈里有 torch_npu → 右边这格；报错在参数校验阶段 → 左边这格。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="两颗 NPU 上跑起来是四个进程：Main 把问题切成 token 交给 EngineCore，EngineCore 每一步把同一份清单发给两个 Worker，每个 Worker 守一颗 NPU、手里是一半的模型">
+  <title>两颗 NPU 上跑起来是四个进程：Main 把问题切成 token 交给 EngineCore，EngineCore 每一步把同一份清单发给两个 Worker，每个 Worker 守一颗 NPU、手里是一半的模型</title>
+  <defs><marker id="engine-processes-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="engine-processes-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="20" y="110" width="180" height="170" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Main 进程</text>
+  <rect x="270" y="110" width="210" height="170" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="286" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 进程</text>
+  <rect x="560" y="40" width="320" height="130" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="576" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker 进程 · NPU 0</text>
+  <rect x="560" y="220" width="320" height="130" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="576" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker 进程 · NPU 1</text>
+  <path d="M175 195 L305 195" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#engine-processes-ah-token)"/>
+  <path d="M445 195 L620 105" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-ah-control)"/>
+  <path d="M445 195 L620 285" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-ah-control)"/>
+  <rect x="45" y="170" width="130" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="110" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分词</text>
+  <rect x="305" y="170" width="140" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="375" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度器</text>
+  <rect x="620" y="80" width="200" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="720" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一半的模型</text>
+  <rect x="620" y="260" width="200" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="720" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一半的模型</text>
 </svg>

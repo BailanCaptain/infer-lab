@@ -1,43 +1,25 @@
-layout: scene
+layout: figure
 id: plugin-registration
-caption: 装包时写进元数据的五个口，vLLM 在两个不同的进程里分两次来取
-size: [900, 470]
+caption: 装包时写下两组入口；两颗 NPU 跑起来的四个进程，每个都把这张清单读一遍
+size: [900, 360]
 
-regions:
-  - label: 安装期
-    note: 装完包就写在磁盘的元数据里，跟有没有跑代码无关
-    at: [20, 40]
-    size: [370, 400]
-    tone: neutral
-  - label: 启动期
-    note: vLLM 主动来扫，昇腾不调用 vLLM 一行代码
-    at: [420, 40]
-    size: [460, 400]
-    tone: ascend
+items:
+  - { at: [50, 88], size: [220, 56], text: 平台入口 ×1, tone: control }
+  - { at: [50, 206], size: [220, 56], text: 通用入口 ×4, tone: control, depth: 3 }
 
-boundaries:
-  - { at: 405, from: 40, to: 440, label: 这条线两边不是同一个时刻 }
+  - { at: [580, 50], size: [230, 56], text: Main, style: plain }
+  - { at: [580, 150], size: [230, 56], text: EngineCore, style: plain }
+  - { at: [580, 250], size: [230, 56], text: Worker ×2, style: plain, depth: 1 }
 
-boxes:
-  - { at: [40, 128], size: [330, 52], title: "vllm.platform_plugins", sub: "ascend → register()，返回一个字符串", tone: neutral, icon: plug }
-  - { at: [40, 196], size: [330, 40], title: register_connector, sub: KV 连接器与权重传输引擎, tone: muted }
-  - { at: [40, 244], size: [330, 40], title: register_model_loader, sub: netloader 与 rfork 两个加载器, tone: muted }
-  - { at: [40, 292], size: [330, 40], title: register_service_profiling, sub: 服务级 profiling 配置, tone: muted }
-  - { at: [40, 340], size: [330, 40], title: register_model, sub: 昇腾自己的模型实现, tone: muted }
+dividers:
+  - { from: [390, 20], to: [390, 340], sides: [装包时写下, 每个进程起来都读] }
 
-  - { at: [470, 120], size: [390, 68], title: Main 进程：挑平台, sub: "拿到字符串才 import，这时才第一次碰 torch_npu", fn: NPUPlatform, tone: ascend, icon: search }
-  - { at: [470, 250], size: [390, 84], title: EngineCore 子进程：加载 general plugin, sub: "四个里有三个第一句是 _ensure_global_patch()", fn: _ensure_global_patch, tone: ascend, icon: patch }
+fans:
+  - { from: [[270, 116], [270, 234]], to: [372, 175], tone: control }
+  - { from: [408, 175], to: [[580, 78], [580, 178], [580, 278]], tone: control }
 
-arrows:
-  - { from: [374, 154], to: [466, 154], tone: neutral }
-  - { from: [374, 288], to: [466, 288], tone: muted }
-
-brackets:
-  - { at: [40, 386], span: 330, label: "vllm.general_plugins（这四个）", dir: down, tone: muted }
-
-notes:
-  - { at: [470, 360], text: "为什么这四个要自己补一次 patch：子进程是新起的解释器，Main 进程里那次 import 的副作用不会被继承。", size: 12.5, width: 390 }
-  - { at: [20, 460], text: "register() 返回的是类路径字符串而不是类——这样 vLLM 可以先比完几个平台插件，确定用昇腾之后才把 torch_npu 拉进进程。", size: 12.5, width: 860 }
+nodes:
+  - { at: [390, 175], r: 18, text: 读 }
 
 pins:
   - source: vllm-ascend@2c59ff10:setup.py#L543-L551
@@ -46,7 +28,11 @@ pins:
     symbols: [register]
   - source: vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77
     symbols: [register_connector, register_model_loader, register_service_profiling, register_model]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35
-    symbols: [_ensure_global_patch]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-    symbols: [NPUPlatform]
+  - source: vllm@0fc695fc:vllm/plugins/__init__.py#L12-L22
+    symbols: [DEFAULT_PLUGINS_GROUP, PLATFORM_PLUGINS_GROUP]
+  - source: vllm@0fc695fc:vllm/engine/arg_utils.py#L744-L747
+    symbols: [load_general_plugins]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L106-L109
+    symbols: [load_general_plugins]
+  - source: vllm@0fc695fc:vllm/v1/worker/worker_base.py#L245-L247
+    symbols: [load_general_plugins]

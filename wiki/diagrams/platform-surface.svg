@@ -1,36 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-label="NPUPlatform 的四类活：只有第二类会真的改掉你给的配置">
-  <title>NPUPlatform 的四类活：只有第二类会真的改掉你给的配置</title>
-  <rect width="900" height="486" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="48" width="860" height="68" rx="10" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="20" y="48" width="5" height="68" rx="2.5" fill="var(--color-ink-faint, #8a928f)"/>
-  <g transform="translate(43.8 71.8) scale(0.85)" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></g>
-  <text x="78" y="79" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">一、报身份</text>
-  <text x="78" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">device_name=npu · dispatch_key=PrivateUse1 · ASCEND_RT_VISIBLE_DEVICES</text>
-  <rect x="20" y="128" width="860" height="68" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="20" y="128" width="5" height="68" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(43.8 151.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
-  <text x="78" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">二、改配置</text>
-  <text x="78" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">pre_register_and_update 打全局 patch、加量化选项；check_and_update_config 改写整份 VllmConfig</text>
-  <rect x="20" y="208" width="860" height="68" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="20" y="208" width="5" height="68" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(43.8 231.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5"/></g>
-  <text x="78" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">三、拦配置</text>
-  <text x="78" y="259" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">四个校验按固定顺序跑，不合法的组合在这里抛错</text>
-  <rect x="20" y="288" width="860" height="68" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="20" y="288" width="5" height="68" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(43.8 311.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="78" y="319" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">四、给跳板</text>
-  <text x="78" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">get_attn_backend_cls · get_device_communicator_cls · get_compile_backend · get_static_graph_wrapper_cls</text>
-  <rect x="20" y="376" width="420" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="32" y="391" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(38.4 397.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="72" y="394.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">get_device_total_memory 故意抛 </text>
-  <text x="72" y="412.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">NotImplementedError</text>
-  <text x="72" y="430.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">实现它会过早初始化 torch_npu，而它只允许全局初始化一次</text>
-  <rect x="460" y="376" width="420" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="472" y="391" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(478.4 397.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="512" y="403.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">simple_compile_backend = &quot;eager&quot;</text>
-  <text x="512" y="421.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">注释写的是 # Disable torch.compile()</text>
-  <text x="20" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink, #17211f)">两条最容易被当成 bug 的设计</text>
-  <text x="460" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不是不支持图，是换了自己那套——昇腾的图模式在另外两个方法里。</text>
-  <text x="20" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第二类是这一页的重点：启动参数和实际生效的配置可以不是一回事。排查「我配了但没生效」要先来这一层，不要先怀疑 JSON 写错。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="上游有硬件问题都来问昇腾的平台类；它答四类，中间两类会动你给的配置">
+  <title>上游有硬件问题都来问昇腾的平台类；它答四类，中间两类会动你给的配置</title>
+  <defs><marker id="platform-surface-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M300 24 L300 370" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="288" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)" text-anchor="end">上游问</text>
+  <text x="312" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">平台类答</text>
+  <path d="M240 192 L380 78" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-surface-ah-control)"/>
+  <path d="M240 192 L380 158" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-surface-ah-control)"/>
+  <path d="M240 192 L380 238" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-surface-ah-control)"/>
+  <path d="M240 192 L380 318" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-surface-ah-control)"/>
+  <rect x="50" y="160" width="190" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="145" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">vLLM 上游</text>
+  <rect x="380" y="50" width="280" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="520" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">报身份</text>
+  <rect x="380" y="130" width="280" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="520" y="163" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">改配置</text>
+  <rect x="380" y="210" width="280" height="56" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="520" y="243" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拦配置</text>
+  <rect x="380" y="290" width="280" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="520" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">指路</text>
+  <rect x="690" y="66" width="167" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
+  <text x="773.5" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">显存多大？启动时答不上</text>
 </svg>

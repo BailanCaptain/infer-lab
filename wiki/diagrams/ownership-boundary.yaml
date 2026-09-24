@@ -1,65 +1,30 @@
-layout: scene
+layout: figure
 id: ownership-boundary
-caption: 那条请求横穿两块地盘：界线左边的决定归 vLLM，右边归昇腾（v0.23.0）
-size: [900, 486]
+caption: 界线左边 vLLM 决定「算哪些」，右边昇腾决定「怎么算」；跨过界线的只有一份清单（v0.23.0）
+size: [900, 400]
 
-regions:
-  - label: vLLM
-    note: 决定算哪些 token · 选择与分配
-    at: [20, 40]
-    size: [452, 412]
-    tone: upstream
-  - label: vllm-ascend
-    note: 决定这些 token 怎么算出来 · 执行
-    at: [472, 40]
-    size: [408, 412]
-    tone: ascend
+texts:
+  - { at: [40, 44], text: 决定算哪些 token · 选择与分配, size: 14, strong: true }
+  - { at: [560, 44], text: 决定怎么算出来 · 执行, size: 14, strong: true }
+  - { at: [40, 372], text: 多卡时这条线同时是进程边界；单 NPU 时两边同住一个进程，交接不变, size: 12.5, note: true }
 
-boundaries:
-  - at: 472
-    from: 40
-    to: 452
-    label: SchedulerOutput 交接 · 也是进程边界
+dividers:
+  - { from: [450, 24], to: [450, 344], sides: [vLLM, vllm-ascend] }
 
-spines:
-  - y: 274
-    from: 20
-    to: 880
-    tone: ascend
-    segments:
-      - { x: 472, tone: upstream }
+items:
+  - { at: [40, 70], size: [280, 46], text: 这一步放哪几条请求, tone: control }
+  - { at: [40, 132], size: [280, 46], text: 每条这一步算几个 token, tone: control }
+  - { at: [40, 194], size: [280, 46], text: 把 KV 块整块分好, tone: kv }
 
-pills:
-  - { at: [60, 274], text: 一句问题, tone: upstream }
-  - { at: [843, 274], text: 一个 token, tone: ascend }
+  - { at: [362, 258], size: [176, 52], text: 清单, sub: 算谁 · 算多少 · 块在哪, tone: control }
 
-stops:
-  - { x: 140, side: above, title: 排队与抢占, fn: EngineCore, icon: queue, tone: upstream }
-  - { x: 270, side: below, title: 这一步跑哪几条, fn: Scheduler.schedule, icon: split, tone: upstream }
-  - { x: 400, side: above, title: 分哪几个 block, fn: KVCacheManager, icon: grid, tone: upstream }
-  - { x: 555, side: below, title: 用哪个注意力后端, fn: get_attn_backend_cls, icon: pick, tone: ascend }
-  - { x: 675, side: above, title: token 落哪个槽位, fn: compute_slot_mapping, icon: slot, tone: ascend }
-  - { x: 800, side: below, title: 算子怎么算, fn: "csrc/ 核函数", icon: chip, tone: ascend }
+  - { at: [560, 70], size: [300, 46], text: 挑哪套注意力实现, tone: control }
+  - { at: [560, 132], size: [300, 46], text: 这个 token 落进块里哪一格, tone: kv }
+  - { at: [560, 194], size: [300, 46], text: 算子在 NPU 上真的算, tone: weight }
 
-strips:
-  - at: [332, 110]
-    cells: 6
-    cell: 20
-    linkTo: [400, 205]
-    label: 上游只说「这 6 块归你」
-    tone: upstream
-  - at: [607, 110]
-    cells: 6
-    cell: 20
-    highlight: 2
-    linkTo: [675, 205]
-    label: 昇腾定「写进第 3 块的这一格」
-    tone: ascend
-
-notes:
-  - at: [20, 478]
-    text: "同一批 block：左边决定分几块，右边决定每个 token 落进哪一格。这两件事最常被混成一件。"
-    size: 12.5
+fans:
+  - { from: [[320, 93], [320, 155], [320, 217]], to: [386, 284], tone: control }
+  - { from: [514, 284], to: [[560, 93], [560, 155], [560, 217]], tone: control }
 
 pins:
   - source: vllm@0fc695fc:vllm/v1/engine/core.py#L95-L100

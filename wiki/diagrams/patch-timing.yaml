@@ -1,39 +1,27 @@
-layout: scene
+layout: figure
 id: patch-timing
-caption: 一个布尔量分出两个时机：adapt_patch(is_global_patch) 只有这两条岔路
-size: [900, 452]
+caption: 服务启动时补丁分两批换：Worker 出生之前换全局补丁，Worker 出生那一刻换 Worker 补丁；请求进来时都已换好
+size: [900, 270]
 
-boxes:
-  - { at: [330, 44], size: [240, 62], title: adapt_patch, sub: 函数体只有四行, tone: accent, icon: split }
+items:
+  - { at: [30, 50], size: [170, 48], text: 选中平台, tone: control, style: plain }
+  - { at: [250, 50], size: [170, 48], text: EngineCore 起来, tone: control, style: plain }
+  - { at: [480, 50], size: [170, 48], text: Worker 出生, tone: weight, style: plain }
+  - { at: [700, 50], size: [170, 48], text: 接请求, tone: token, style: faded }
 
-regions:
-  - label: is_global_patch=True
-    note: worker 起来之前
-    at: [20, 158]
-    size: [420, 246]
-    tone: upstream
-  - label: 默认（False）
-    note: worker 起来的那一刻
-    at: [460, 158]
-    size: [420, 246]
-    tone: ascend
+  - { at: [30, 170], size: [390, 56], text: 全局补丁, sub: 块大小 2048 在这批里, tone: control }
+  - { at: [480, 170], size: [170, 56], text: Worker 补丁, sub: 40 层怎么算, tone: weight }
 
-arrows:
-  - { from: [400, 108], to: [230, 156], via: [[400, 130], [230, 130]], tone: upstream }
-  - { from: [500, 108], to: [670, 156], via: [[500, 130], [670, 130]], tone: ascend }
+links:
+  - { from: [200, 74], to: [250, 74] }
+  - { from: [420, 74], to: [480, 74] }
+  - { from: [650, 74], to: [700, 74] }
+  - { from: [115, 100], to: [115, 168], tone: control }
+  - { from: [335, 100], to: [335, 168], tone: control }
+  - { from: [565, 100], to: [565, 168], tone: weight }
 
-bands:
-  - { label: 谁调它, sub: "pre_register_and_update / plugin 入口", at: [36, 246], size: [388, 50], tone: upstream }
-  - { label: import 哪个包, sub: "from vllm_ascend.patch import platform", at: [36, 304], size: [388, 50], tone: upstream }
-  - { label: 改的是什么, sub: 调度器、执行器这些 worker 之外的上游对象, at: [36, 362], size: [388, 50], tone: upstream }
-
-  - { label: 谁调它, sub: "NPUWorker.__init__ 的第一件实质工作", at: [476, 246], size: [388, 50], tone: ascend }
-  - { label: import 哪个包, sub: "from vllm_ascend.patch import worker", at: [476, 304], size: [388, 50], tone: ascend }
-  - { label: 改的是什么, sub: 模型、算子、通信这些进程内的上游对象, at: [476, 362], size: [388, 50], tone: ascend }
-
-notes:
-  - { at: [20, 430], text: "没有第三种时机。生效方式是 import 的副作用，没有注册表——所以「顺序」就是两个 __init__.py 里 import 语句的顺序。", size: 12.5, width: 860 }
-  - { at: [20, 448], text: "在 NPUWorker.__init__ 里，adapt_patch() 排在注册算子、解 AscendConfig、super().__init__() 之前：后面那些都要用被改过的上游行为。", size: 12.5, width: 860 }
+dividers:
+  - { from: [450, 24], to: [450, 250] }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567

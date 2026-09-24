@@ -1,76 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-label="那条请求横穿两块地盘：界线左边的决定归 vLLM，右边归昇腾（v0.23.0）">
-  <title>那条请求横穿两块地盘：界线左边的决定归 vLLM，右边归昇腾（v0.23.0）</title>
-  <rect width="900" height="486" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="40" width="452" height="412" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="54" width="55.5" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vLLM</text>
-  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">决定算哪些 token · 选择与分配</text>
-  <rect x="472" y="40" width="408" height="412" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="488" y="54" width="111.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="499" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend</text>
-  <text x="490" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">决定这些 token 怎么算出来 · 执行</text>
-  <line x1="20" y1="274" x2="472" y2="274" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <line x1="472" y1="274" x2="880" y2="274" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M880 274 l-14 -7 l0 14 z" fill="var(--color-weight, #b87a00)"/>
-  <line x1="472" y1="40" x2="472" y2="452" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="472" y="29" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">SchedulerOutput 交接 · 也是进程边界</text>
-  <rect x="332" y="110" width="20" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="355" y="110" width="20" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="378" y="110" width="20" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="401" y="110" width="20" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="424" y="110" width="20" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="447" y="110" width="20" height="20" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="332" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">上游只说「这 6 块归你」</text>
-  <line x1="399.5" y1="156" x2="400" y2="205" stroke="var(--color-control, #5b6763)" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
-  <rect x="607" y="110" width="20" height="20" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="630" y="110" width="20" height="20" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="653" y="110" width="20" height="20" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="676" y="110" width="20" height="20" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="699" y="110" width="20" height="20" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="722" y="110" width="20" height="20" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="607" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">昇腾定「写进第 3 块的这一格」</text>
-  <line x1="674.5" y1="156" x2="675" y2="205" stroke="var(--color-weight, #b87a00)" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
-  <line x1="140" y1="274" x2="140" y2="246" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="140" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="140" cy="274" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="120" y="205" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(128 213) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
-  <text x="140" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">排队与抢占</text>
-  <rect x="93.5" y="154.5" width="93" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="140" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">EngineCore</text>
-  <line x1="270" y1="274" x2="270" y2="302" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="270" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="270" cy="274" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="250" y="303" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(258 311) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="270" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步跑哪几条</text>
-  <rect x="193.5" y="364.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="270" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">Scheduler.schedule</text>
-  <line x1="400" y1="274" x2="400" y2="246" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="400" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="400" cy="274" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="380" y="205" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(388 213) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
-  <text x="400" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">分哪几个 block</text>
-  <rect x="338.5" y="154.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="400" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">KVCacheManager</text>
-  <line x1="555" y1="274" x2="555" y2="302" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="555" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="555" cy="274" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="535" y="303" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(543 311) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="555" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">用哪个注意力后端</text>
-  <rect x="471" y="364.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="555" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">get_attn_backend_cls</text>
-  <line x1="675" y1="274" x2="675" y2="246" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="675" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="675" cy="274" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="655" y="205" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(663 213) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v8H3z M9 8v8M15 8v8"/></g>
-  <text x="675" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">token 落哪个槽位</text>
-  <rect x="591" y="154.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="675" y="172" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">compute_slot_mapping</text>
-  <line x1="800" y1="274" x2="800" y2="302" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="800" cy="274" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="800" cy="274" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="780" y="303" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(788 311) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="800" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算子怎么算</text>
-  <rect x="753.3" y="364.5" width="93.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="800" y="382" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">csrc/ 核函数</text>
-  <rect x="21" y="260.5" width="78" height="27" rx="13.5" fill="var(--color-control, #5b6763)"/><text x="32" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一句问题</text>
-  <rect x="795.6" y="260.5" width="99" height="27" rx="13.5" fill="var(--color-weight, #b87a00)"/><text x="806.6" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一个 token</text>
-  <text x="20" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一批 block：左边决定分几块，右边决定每个 token 落进哪一格。这两件事最常被混成一件。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="界线左边 vLLM 决定「算哪些」，右边昇腾决定「怎么算」；跨过界线的只有一份清单（v0.23.0）">
+  <title>界线左边 vLLM 决定「算哪些」，右边昇腾决定「怎么算」；跨过界线的只有一份清单（v0.23.0）</title>
+  <defs><marker id="ownership-boundary-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M450 24 L450 344" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="438" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)" text-anchor="end">vLLM</text>
+  <text x="462" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">vllm-ascend</text>
+  <path d="M320 93 L386 284" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ownership-boundary-ah-control)"/>
+  <path d="M320 155 L386 284" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ownership-boundary-ah-control)"/>
+  <path d="M320 217 L386 284" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ownership-boundary-ah-control)"/>
+  <path d="M514 284 L560 93" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ownership-boundary-ah-control)"/>
+  <path d="M514 284 L560 155" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ownership-boundary-ah-control)"/>
+  <path d="M514 284 L560 217" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ownership-boundary-ah-control)"/>
+  <rect x="40" y="70" width="280" height="46" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="180" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一步放哪几条请求</text>
+  <rect x="40" y="132" width="280" height="46" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="180" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每条这一步算几个 token</text>
+  <rect x="40" y="194" width="280" height="46" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="180" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">把 KV 块整块分好</text>
+  <rect x="362" y="258" width="176" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">清单</text>
+  <text x="450" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算谁 · 算多少 · 块在哪</text>
+  <rect x="560" y="70" width="300" height="46" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="710" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">挑哪套注意力实现</text>
+  <rect x="560" y="132" width="300" height="46" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="710" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这个 token 落进块里哪一格</text>
+  <rect x="560" y="194" width="300" height="46" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="710" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算子在 NPU 上真的算</text>
+  <text x="40" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">决定算哪些 token · 选择与分配</text>
+  <text x="560" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">决定怎么算出来 · 执行</text>
+  <text x="40" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">多卡时这条线同时是进程边界；单 NPU 时两边同住一个进程，交接不变</text>
 </svg>

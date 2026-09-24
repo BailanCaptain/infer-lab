@@ -1,34 +1,26 @@
-layout: scene
+layout: figure
 id: config-flow
-caption: 昇腾的开关有两条互不相通的路：小写键名走 AscendConfig，大写走环境变量
-size: [900, 470]
+caption: 一个昇腾开关的旅程：写在启动命令附带的一段 JSON 里，上游原样带着不解释，启动时按键拆成八组配置对象，各组件都从进程里唯一的一份里取
+size: [900, 300]
 
-regions:
-  - label: 路一 · 小写键名
-    note: "--additional-config 那段 JSON"
-    at: [20, 44]
-    size: [420, 336]
-    tone: ascend
-  - label: 路二 · 大写环境变量
-    note: "名字带 VLLM_ASCEND_ 前缀的"
-    at: [460, 44]
-    size: [420, 336]
-    tone: neutral
+items:
+  - { at: [30, 100], size: [190, 64], text: 启动命令, sub: 附带的一段 JSON, tone: control }
+  - { at: [280, 100], size: [210, 64], text: 上游原样带着, sub: 不解释也不检查, tone: control, style: faded }
+  - { at: [570, 204], size: [296, 56], text: 各组件随取随用, sub: 整个进程只有一份, tone: token }
 
-boxes:
-  - { at: [36, 128], size: [388, 54], title: 上游只是原样存着, sub: "VllmConfig.additional_config，一个 dict", tone: upstream }
-  - { at: [36, 192], size: [388, 62], title: AscendConfig 按键拆成八个子配置, sub: "xlite_graph_config、eplb_config 等八个", fn: ascend_config.py, tone: ascend }
-  - { at: [36, 264], size: [388, 54], title: 全仓用 get_ascend_config() 取, sub: 没初始化就抛 RuntimeError, tone: ascend }
-  - { at: [36, 328], size: [388, 38], title: "NPUPlatform.check_and_update_config 还能改它、拦它", tone: accent }
+rows:
+  - { at: [560, 110], count: 8, w: 36, h: 44, gap: 4, tone: control }
 
-  - { at: [476, 128], size: [388, 54], title: "envs.py 里一张 env_variables 表", sub: v0.23 分支上 21 个条目, tone: neutral }
-  - { at: [476, 192], size: [388, 62], title: 两类, sub: 一半是构建期的，一半是运行期开关, tone: neutral }
-  - { at: [476, 264], size: [388, 54], title: 代码里直接读 envs_ascend.XXX, sub: 不进 AscendConfig，也不受校验族管, tone: neutral }
-  - { at: [476, 328], size: [388, 38], title: 没有谁在启动时改写它们, tone: muted }
+links:
+  - { from: [220, 132], to: [280, 132] }
+  - { from: [490, 132], to: [552, 132] }
+  - { from: [718, 158], to: [718, 204] }
 
-notes:
-  - { at: [20, 410], text: "配了没生效时按这个顺序查：一、键名在 ascend_config.py 里存不存在；二、check_and_update_config 有没有把它改掉或拦掉；三、如果压根搜不到键名，换去 envs.py——它在另一条路上。", size: 12.5, width: 860 }
-  - { at: [20, 452], text: "get_ascend_config() 抛的那条 RuntimeError 说的是时机不对，不是内容不对：这段代码跑在 init_ascend_config 之前。", size: 12.5, width: 860 }
+texts:
+  - { at: [560, 92], text: 启动时按键拆成八组，缺的键用默认值补上, size: 13, note: true }
+
+tags:
+  - { at: [30, 216], text: 拼错的键在拆的时候被直接略过，不报错 }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L33

@@ -1,38 +1,32 @@
-layout: scene
+layout: figure
 id: engine-core-loop
-caption: EngineCore 的 while 循环：那条请求的 200 步都是同一圈跑出来的
-size: [900, 470]
+caption: 引擎只有这一个圈：挑一批、算一次、每条请求各吐一个 token；转一圈就是一步，那条请求的回答是它转了 200 圈
+size: [900, 330]
 
-regions:
-  - label: EngineCore 进程
-    note: 整个进程就是一个 while 循环。它转一圈，全部在跑的请求各往前走一步。
-    at: [20, 40]
-    size: [860, 382]
-    tone: upstream
+items:
+  - { at: [30, 140], size: [140, 64], text: 有活吗, tone: control, style: plain }
+  - { at: [240, 140], size: [160, 64], text: 挑一批, sub: 调度器, tone: control }
+  - { at: [470, 140], size: [160, 64], text: 算一次, sub: 两颗 NPU, tone: weight }
+  - { at: [700, 140], size: [170, 64], text: 各吐一个 token, tone: token }
 
-spines:
-  - { y: 250, from: 66, to: 790, tone: upstream }
+badges:
+  - { at: [240, 140], n: 1, tone: control }
+  - { at: [470, 140], n: 2, tone: weight }
+  - { at: [700, 140], n: 3, tone: token }
 
-stops:
-  - { x: 150, side: above, title: 有活干吗, detail: 没有就阻塞在这里等, fn: _process_input_queue, icon: clock, tone: upstream }
-  - { x: 340, side: below, title: 这一步算谁、各算几个, fn: Scheduler.schedule, icon: split, tone: upstream }
-  - { x: 530, side: above, title: 送下去执行, detail: 跨进程，等 Worker 回话, fn: execute_model, icon: chip, tone: ascend }
-  - { x: 710, side: below, title: 按结果更新状态, fn: update_from_output, icon: calc, tone: upstream }
+links:
+  - { from: [170, 172], to: [240, 172], tone: control }
+  - { from: [400, 172], to: [470, 172], tone: control }
+  - { from: [630, 172], to: [700, 172], tone: token }
+  - { from: [785, 204], to: [100, 204], via: [[785, 270], [100, 270]], tone: control }
+  - { from: [70, 140], to: [130, 140], via: [[70, 92], [130, 92]], tone: control, dashed: true }
 
-arrows:
-  - from: [810, 250]
-    to: [62, 250]
-    via: [[846, 250], [846, 392], [40, 392], [40, 250]]
-    tone: upstream
-    label: 转下一圈
-
-notes:
-  - { at: [56, 452], text: "那条请求的 200 步，就是这个循环转了 200 圈。第 1 圈给它 37 个 token 的名额，第 2 到第 200 圈各给 1 个——循环体一个字都没改。", size: 12.5, width: 830 }
+texts:
+  - { at: [100, 78], text: 没活：睡着等, size: 13, note: true, anchor: middle }
+  - { at: [442, 296], text: 转一圈 = 一步, size: 14, strong: true, anchor: middle }
 
 pins:
   - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
     symbols: [run_busy_loop, _process_input_queue]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346
-    symbols: [Scheduler, schedule]
   - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
-    symbols: [execute_model, update_from_output]
+    symbols: [schedule, execute_model, update_from_output]

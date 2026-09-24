@@ -1,48 +1,28 @@
-layout: scene
+layout: figure
 id: engine-processes
-caption: 三类角色，三条各走各的 patch 注入路——主进程打过的不会被子进程继承；单卡时 Worker 住在 EngineCore 进程里
-size: [900, 480]
+caption: 两颗 NPU 上跑起来是四个进程：Main 把问题切成 token 交给 EngineCore，EngineCore 每一步把同一份清单发给两个 Worker，每个 Worker 守一颗 NPU、手里是一半的模型
+size: [900, 370]
 
-regions:
-  - label: Main 进程
-    note: 解析命令行 · 选平台
-    at: [20, 76]
-    size: [276, 330]
-    tone: neutral
-  - label: EngineCore 进程
-    note: 调度器 · KV 管理
-    at: [312, 76]
-    size: [276, 330]
-    tone: upstream
-  - label: Worker
-    note: 真正碰 NPU · 多卡才每卡一进程
-    at: [604, 76]
-    size: [276, 330]
-    tone: ascend
+frames:
+  - { label: Main 进程, at: [20, 110], size: [180, 170] }
+  - { label: EngineCore 进程, at: [270, 110], size: [210, 170] }
+  - { label: Worker 进程 · NPU 0, at: [560, 40], size: [320, 130] }
+  - { label: Worker 进程 · NPU 1, at: [560, 220], size: [320, 130] }
 
-boxes:
-  - { at: [36, 172], size: [244, 76], title: 里面跑什么, sub: "argparse、选平台、拉起子进程", fn: NPUPlatform, tone: neutral }
-  - { at: [328, 172], size: [244, 76], title: 里面跑什么, sub: 调度逻辑是上游的，类被 patch 换掉, fn: BalanceScheduler, tone: upstream }
-  - { at: [620, 172], size: [244, 76], title: 里面跑什么, sub: 昇腾代码占主体, fn: NPUModelRunner, tone: ascend }
+items:
+  - { at: [45, 170], size: [130, 50], text: 分词, tone: token }
+  - { at: [305, 170], size: [140, 50], text: 调度器, tone: control }
+  - { at: [620, 80], size: [200, 50], text: 一半的模型, tone: weight }
+  - { at: [620, 260], size: [200, 50], text: 一半的模型, tone: weight }
 
-  - { at: [36, 276], size: [244, 96], title: patch 从哪条路进来, sub: 平台层，进程最早, fn: "adapt_patch(True)", tone: accent, icon: patch }
-  - { at: [328, 276], size: [244, 96], title: patch 从哪条路进来, sub: 四个入口里三个各补一次, fn: _ensure_global_patch, tone: accent, icon: patch }
-  - { at: [620, 276], size: [244, 96], title: patch 从哪条路进来, sub: worker 起来的那一刻, fn: "adapt_patch()", tone: accent, icon: patch }
+links:
+  - { from: [175, 195], to: [305, 195], tone: token }
 
-arrows:
-  - { from: [158, 66], to: [158, 74], tone: neutral }
-  - { from: [296, 120], to: [308, 120], tone: muted, label: fork }
-  - { from: [588, 120], to: [600, 120], tone: muted, label: fork }
-
-notes:
-  - { at: [20, 46], text: "起一条昇腾服务", size: 14, strong: true }
-  - { at: [20, 432], text: "中间那一格最不直观：EngineCore 是新起的解释器，Main 里那次 import 的副作用不会被继承，_GLOBAL_PATCH_APPLIED 只在进程内去重——正因如此它才能在每个子进程里各生效一次。", size: 12.5, width: 860 }
-  - { at: [20, 470], text: "排查时倒着用：栈里有调度器 → 中间这格；栈里有 torch_npu → 右边这格；报错在参数校验阶段 → 左边这格。", size: 12.5, width: 860 }
+fans:
+  - { from: [445, 195], to: [[620, 105], [620, 285]], tone: control }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L19-L35
-    symbols: [_ensure_global_patch]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188
-    symbols: [pre_register_and_update]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110
-    symbols: [adapt_patch]
+  - source: vllm@0fc695fc:vllm/config/parallel.py#L845-L851
+    symbols: [distributed_executor_backend]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L176-L192
+    symbols: [make_worker_process]

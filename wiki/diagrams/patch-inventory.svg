@@ -1,72 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="59 个 patch 文件，格子数就是真实文件数（按 v0.23 画；v0.26 分支上是 64 个）">
-  <title>59 个 patch 文件，格子数就是真实文件数（按 v0.23 画；v0.26 分支上是 64 个）</title>
-  <rect width="900" height="430" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="40" width="860" height="302" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="54" width="166.7" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm_ascend/patch/</text>
-  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每加一个 patch，清单里就要补一段 Why / How / Related PR / Future Plan</text>
-  <rect x="60" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="88" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="116" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="144" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="172" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="200" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="228" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="256" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="284" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="312" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="340" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="368" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="396" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="424" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="452" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="480" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="508" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="536" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="564" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="592" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="620" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="648" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="676" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="704" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="732" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="760" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="788" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="816" y="120" width="24" height="24" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="60" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">patch/platform/ · worker 起来之前改上游，由 NPUPlatform.pre_register_and_update 触发</text>
-  <rect x="60" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="88" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="116" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="144" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="172" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="200" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="228" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="256" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="284" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="312" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="340" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="368" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="396" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="424" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="452" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="480" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="508" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="536" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="564" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="592" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="620" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="648" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="676" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="704" y="196" width="24" height="24" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="60" y="238" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">patch/worker/ · 每个 worker 进程内改，由 NPUWorker.__init__ 触发</text>
-  <rect x="60" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="88" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="116" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="144" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="172" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="200" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="228" y="272" width="24" height="24" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <text x="60" y="314" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">patch/worker/patch_v2/ · 配合实验性的 v2 model runner</text>
-  <text x="20" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个 __init__.py 按 is_310p()、vllm_version_is()、HAS_TRITON、DYNAMIC_EPLB 这类条件 import——没被 import 的文件等于没打。所以上面这些</text>
-  <text x="20" y="384.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">格子不是「都在生效」，是「都可能生效」。</text>
-  <text x="20" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">数量本身不是结论：清单里每条都写了 Related PR 与 Future Plan，相当一部分在等上游合 PR 之后删掉。要判断质量得看那两栏。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="900" height="220" role="img" aria-label="v0.23 维护分支上的 59 个补丁文件，一格一个文件（v0.26 分支上是 64 个）">
+  <title>v0.23 维护分支上的 59 个补丁文件，一格一个文件（v0.26 分支上是 64 个）</title>
+  <defs></defs>
+  <rect x="200" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="224" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="248" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="272" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="296" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="320" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="344" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="368" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="392" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="416" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="440" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="464" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="488" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="512" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="536" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="560" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="584" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="608" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="632" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="656" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="680" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="704" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="728" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="752" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="776" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="800" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="824" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="848" y="40" width="20" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="200" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="224" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="248" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="272" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="296" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="320" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="344" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="368" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="392" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="416" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="440" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="464" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="488" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="512" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="536" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="560" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="584" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="608" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="632" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="656" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="680" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="704" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="728" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="752" y="100" width="20" height="36" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="200" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="224" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="248" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="272" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="296" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="320" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="344" y="160" width="20" height="36" rx="4" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <text x="30" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#4d5652">全局补丁 28</text>
+  <text x="30" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#936300">Worker 补丁 24</text>
+  <text x="30" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#936300">新版 runner 用 7</text>
 </svg>

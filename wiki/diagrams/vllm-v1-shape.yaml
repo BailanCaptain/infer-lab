@@ -1,51 +1,30 @@
-layout: scene
+layout: figure
 id: vllm-v1-shape
-caption: 那条请求要穿过两道进程边界，下去一次、上来一次（vLLM v0.23.0）
-size: [900, 578]
+caption: 同一条请求往下穿过两道边界：前端手里是字和 token 编号，EngineCore 手里是一条记录，两颗 NPU 上的 Worker 手里才有张量
+size: [900, 440]
 
-regions:
-  - label: 前端进程
-    note: 收 HTTP · 分词 · 反分词。这里只有文字和 token id，没有一个张量。
-    at: [20, 44]
-    size: [860, 150]
-    tone: neutral
-  - label: EngineCore 进程
-    note: 排队 · 调度 · 分 KV block。这里只有整数，没有一个 NPU 算子。
-    at: [20, 218]
-    size: [860, 150]
-    tone: upstream
-  - label: Worker 进程
-    note: 建张量 · 跑 28 层 · 采样。到这里才第一次碰硬件。
-    at: [20, 392]
-    size: [860, 150]
-    tone: ascend
+frames:
+  - { label: 前端进程, at: [40, 36], size: [820, 84] }
+  - { label: EngineCore 进程, at: [40, 186], size: [820, 84] }
+  - { label: Worker · NPU 0, at: [40, 336], size: [395, 84] }
+  - { label: Worker · NPU 1, at: [465, 336], size: [395, 84] }
 
-boundaries:
-  - { at: 206, from: 20, to: 880, vertical: false, label: "进程边界 ① · ZMQ：下去的是 EngineCoreRequest，上来的是 EngineCoreOutputs" }
-  - { at: 380, from: 20, to: 880, vertical: false, label: "进程边界 ② · 下去的是 SchedulerOutput，上来的是 ModelRunnerOutput" }
+dividers:
+  - { from: [20, 153], to: [880, 153] }
+  - { from: [20, 303], to: [880, 303] }
 
-boxes:
-  - { at: [60, 122], size: [258, 58], title: 把问题切成 token, sub: 得到 37 个 token id, fn: InputProcessor, icon: text, tone: neutral }
-  - { at: [326, 122], size: [258, 58], title: 交给 EngineCore, sub: 打包成 EngineCoreRequest, fn: AsyncLLM.add_request, icon: plug, tone: neutral }
-  - { at: [592, 122], size: [258, 58], title: 收回 token 再变成字, sub: 一个一个往外吐, fn: OutputProcessor, icon: queue, tone: neutral }
-  - { at: [60, 296], size: [258, 58], title: 排进队列, sub: waiting 与 running 两条队, fn: EngineCore.add_request, icon: queue, tone: upstream }
-  - { at: [326, 296], size: [258, 58], title: 这一步算谁、算几个, sub: 第 1 步给它 37 个名额, fn: Scheduler.schedule, icon: split, tone: upstream }
-  - { at: [592, 296], size: [258, 58], title: 分 KV block, sub: 第 92 步才要第二块, fn: KVCacheManager, icon: grid, tone: upstream }
-  - { at: [60, 470], size: [258, 58], title: 把请求摊成张量, sub: block_table 与 slot_mapping, fn: _prepare_inputs, icon: calc, tone: ascend }
-  - { at: [326, 470], size: [258, 58], title: 跑 28 层, sub: 注意力算子读写 KV, fn: NPUModelRunner, icon: chip, tone: ascend }
-  - { at: [592, 470], size: [258, 58], title: 采样, sub: 吐出 1 个 token id, fn: sample_tokens, icon: bolt, tone: ascend }
+items:
+  - { at: [270, 56], size: [360, 44], text: 一句话 ↔ 37 个 token 编号, tone: token }
+  - { at: [270, 206], size: [360, 44], text: 一条记录：这一步算 37 个, tone: control }
+  - { at: [117, 356], size: [240, 44], text: 37 个位置的张量, tone: weight }
+  - { at: [542, 356], size: [240, 44], text: 37 个位置的张量, tone: weight }
 
-arrows:
-  - { from: [300, 194], to: [300, 216], tone: upstream }
-  - { from: [600, 216], to: [600, 194], tone: neutral }
-  - { from: [300, 368], to: [300, 390], tone: ascend }
-  - { from: [600, 390], to: [600, 368], tone: upstream }
+links:
+  - { from: [380, 100], to: [380, 206], tone: token }
+  - { from: [520, 206], to: [520, 100], tone: token }
 
-notes:
-  - at: [20, 566]
-    text: "越往下越具体：上面一层只认字，中间一层只认整数，最下面一层才认张量和显存地址。跨一次边界就换一种东西。"
-    size: 12.5
-    width: 860
+fans:
+  - { from: [450, 250], to: [[237, 356], [662, 356]], tone: control }
 
 pins:
   - source: vllm@0fc695fc:vllm/v1/engine/input_processor.py#L36-L40
@@ -62,3 +41,5 @@ pins:
     symbols: [KVCacheManager]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
     symbols: [NPUModelRunner]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L176-L191
+    symbols: [make_worker_process]

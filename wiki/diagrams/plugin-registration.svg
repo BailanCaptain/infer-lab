@@ -1,47 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="装包时写进元数据的五个口，vLLM 在两个不同的进程里分两次来取">
-  <title>装包时写进元数据的五个口，vLLM 在两个不同的进程里分两次来取</title>
-  <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="40" width="370" height="400" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="54" width="62.5" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">安装期</text>
-  <text x="38" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">装完包就写在磁盘的元数据里，跟有没有跑代码无关</text>
-  <rect x="420" y="40" width="460" height="400" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="436" y="54" width="62.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="447" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期</text>
-  <text x="438" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">vLLM 主动来扫，昇腾不调用 vLLM 一行代码</text>
-  <line x1="405" y1="40" x2="405" y2="440" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="405" y="29" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">这条线两边不是同一个时刻</text>
-  <rect x="40" y="128" width="330" height="52" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="52" y="138" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(58.4 144.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
-  <text x="92" y="150.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">vllm.platform_plugins</text>
-  <text x="92" y="168.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">ascend → register()，返回一个字符串</text>
-  <rect x="40" y="196" width="330" height="40" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
-  <text x="56" y="212.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">register_connector</text>
-  <text x="56" y="230.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">KV 连接器与权重传输引擎</text>
-  <rect x="40" y="244" width="330" height="40" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
-  <text x="56" y="260.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">register_model_loader</text>
-  <text x="56" y="278.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">netloader 与 rfork 两个加载器</text>
-  <rect x="40" y="292" width="330" height="40" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
-  <text x="56" y="308.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">register_service_profiling</text>
-  <text x="56" y="326.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">服务级 profiling 配置</text>
-  <rect x="40" y="340" width="330" height="40" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.5"/>
-  <text x="56" y="356.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">register_model</text>
-  <text x="56" y="374.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">昇腾自己的模型实现</text>
-  <rect x="470" y="120" width="390" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="482" y="138" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(488.4 144.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5"/></g>
-  <text x="522" y="142" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">Main 进程：挑平台</text>
-  <text x="522" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">拿到字符串才 import，这时才第一次碰 torch_npu</text>
-  <text x="522" y="177" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">NPUPlatform</text>
-  <rect x="470" y="250" width="390" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="482" y="276" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(488.4 282.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
-  <text x="522" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 子进程：加载 general plugin</text>
-  <text x="522" y="298" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">四个里有三个第一句是 _ensure_global_patch()</text>
-  <text x="522" y="315" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_ensure_global_patch</text>
-  <path d="M374 154 L466 154" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
-  <path d="M466 154 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M374 288 L466 288" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.8"/>
-  <path d="M466 288 l-11 -5.5 l0 11 z" fill="var(--color-ink-faint, #8a928f)"/>
-  <path d="M40 386 l0 9 L370 395 l0 -9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
-  <text x="205" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">vllm.general_plugins（这四个）</text>
-  <text x="470" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">为什么这四个要自己补一次 patch：子进程是新起的解释器，Main 进</text>
-  <text x="470" y="378.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">程里那次 import 的副作用不会被继承。</text>
-  <text x="20" y="460" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">register() 返回的是类路径字符串而不是类——这样 vLLM 可以先比完几个平台插件，确定用昇腾之后才把 torch_npu 拉进进程。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-label="装包时写下两组入口；两颗 NPU 跑起来的四个进程，每个都把这张清单读一遍">
+  <title>装包时写下两组入口；两颗 NPU 跑起来的四个进程，每个都把这张清单读一遍</title>
+  <defs><marker id="plugin-registration-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M390 20 L390 340" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="378" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)" text-anchor="end">装包时写下</text>
+  <text x="402" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">每个进程起来都读</text>
+  <path d="M270 116 L372 175" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-control)"/>
+  <path d="M270 234 L372 175" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-control)"/>
+  <path d="M408 175 L580 78" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-control)"/>
+  <path d="M408 175 L580 178" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-control)"/>
+  <path d="M408 175 L580 278" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#plugin-registration-ah-control)"/>
+  <rect x="50" y="88" width="220" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="160" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台入口 ×1</text>
+  <rect x="71" y="185" width="220" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="64" y="192" width="220" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="57" y="199" width="220" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="50" y="206" width="220" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="160" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通用入口 ×4</text>
+  <rect x="580" y="50" width="230" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="695" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Main</text>
+  <rect x="580" y="150" width="230" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="695" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">EngineCore</text>
+  <rect x="587" y="243" width="230" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="580" y="250" width="230" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="695" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Worker ×2</text>
+  <circle cx="390" cy="175" r="18" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="390" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">读</text>
 </svg>

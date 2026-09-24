@@ -1,0 +1,52 @@
+layout: figure
+id: layers-stack
+caption: 一串隐藏向量从下往上穿过一叠一模一样的层，每层自带一份权重，顶上出下一个 token
+size: [880, 480]
+
+texts:
+  - { at: [30, 40], text: 同一套加工做 40 遍, size: 15, strong: true }
+  - { at: [40, 210], text: 每过一层，这串数字被改一次, size: 13.5, tone: token, width: 190 }
+  - { at: [594, 80], text: 每层自带一份权重, size: 13.5, tone: weight }
+  - { at: [594, 402], text: 套路一样，数字不同, size: 13, note: true, width: 240 }
+
+items:
+  # 顶上出来的结果
+  - { at: [368, 20], size: [130, 30], text: 下一个 token, tone: token }
+  # 每层旁边那一小块：这一层自己的权重
+  - { at: [594, 93], size: [28, 28], tone: weight }
+  - { at: [594, 157], size: [28, 28], tone: weight }
+  - { at: [594, 285], size: [28, 28], tone: weight }
+  - { at: [594, 349], size: [28, 28], tone: weight }
+
+layers:
+  - at: [300, 84]
+    width: 260
+    h: 46
+    gap: 18
+    bands:
+      - { text: 第 40 层, sub: 注意力 + 一组专家 }
+      - { text: 第 39 层, sub: 注意力 + 一组专家 }
+      - { text: "⋯ 中间 36 层，同样的套路 ⋯" }
+      - { text: 第 2 层, sub: 注意力 + 一组专家 }
+      - { text: 第 1 层, sub: 注意力 + 一组专家 }
+
+rows:
+  # 进第 1 层之前的那串隐藏向量（画 8 格示意）
+  - { at: [332, 410], count: 8, w: 22, h: 16, tone: token }
+
+links:
+  # 向量从下往上，一层一层穿过去
+  - { from: [430, 408], to: [430, 388], tone: token }
+  - { from: [430, 338], to: [430, 324], tone: token }
+  - { from: [430, 274], to: [430, 260], tone: token }
+  - { from: [430, 210], to: [430, 196], tone: token }
+  - { from: [430, 146], to: [430, 132], tone: token }
+  - { from: [430, 82], to: [430, 54], tone: token }
+  # 每层的权重进这一层
+  - { from: [592, 107], to: [564, 107], tone: weight }
+  - { from: [592, 171], to: [564, 171], tone: weight }
+  - { from: [592, 299], to: [564, 299], tone: weight }
+  - { from: [592, 363], to: [564, 363], tone: weight }
+
+brackets:
+  - { from: 332, to: 529, y: 436, label: 一个 token 的隐藏向量：2048 个数字（画 8 格示意） }

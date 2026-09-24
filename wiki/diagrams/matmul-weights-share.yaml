@@ -1,0 +1,21 @@
+layout: figure
+id: matmul-weights-share
+caption: 权重只有一份：37 个 token 排着队，谁来都乘同一片
+size: [700, 320]
+
+texts:
+  - { at: [40, 38], text: 这一步要算的 37 个 token, size: 13, tone: token }
+  - { at: [350, 298], text: 每步哪怕只算 1 个 token，整片权重也要重读一遍, note: true, anchor: middle }
+
+rows:
+  - { at: [40, 50], count: 37, w: 14, h: 20, gap: 3, tone: token }
+
+items:
+  - { at: [263, 156], size: [180, 100], text: 一片权重, sub: 只有一份，谁来都乘它, tone: weight }
+
+links:
+  - { from: [47, 74], to: [293, 152], tone: token }
+  - { from: [200, 74], to: [323, 152], tone: token }
+  - { from: [353, 74], to: [353, 152], tone: token }
+  - { from: [506, 74], to: [383, 152], tone: token }
+  - { from: [659, 74], to: [413, 152], tone: token }

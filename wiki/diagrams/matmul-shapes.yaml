@@ -1,0 +1,19 @@
+layout: figure
+id: matmul-shapes
+caption: 一次矩阵乘：每个 token 占一行，2048 个数字被同一片权重搅拌成 4096 个新数字
+size: [940, 300]
+
+equations:
+  - at: [60, 150]
+    gap: 18
+    terms:
+      - { w: 140, h: 44, cols: 8, rows: 4, tone: token, label: "输入：37 个 token", dims: "[37, 2048]", mark: { row: 0 } }
+      - { op: "×" }
+      - { w: 280, h: 140, cols: 8, rows: 4, tone: weight, label: 一片权重, dims: "[2048, 4096]" }
+      - { op: "=" }
+      - { w: 280, h: 44, cols: 8, rows: 4, tone: token, label: "输出：还是每个 token 一行", dims: "[37, 4096]", mark: { row: 0 } }
+
+texts:
+  - { at: [60, 106], text: 活的：每来一条请求都不一样, size: 13, tone: token }
+  - { at: [402, 60], text: 死的：训练完就存在这里，不再变, size: 13, tone: weight, anchor: middle }
+  - { at: [470, 288], text: 圈出的一行是同一个 token（2048 进 → 4096 出）, note: true, anchor: middle }

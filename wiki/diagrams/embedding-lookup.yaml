@@ -1,0 +1,67 @@
+layout: figure
+id: embedding-lookup
+caption: 拿编号去大表里找到对应的那一行，整行抄出来，就是这个 token 的词向量
+size: [900, 300]
+
+texts:
+  - { at: [40, 42], text: token 编号, size: 15, strong: true }
+  - { at: [330, 42], text: 一张大表：每个编号一行, size: 15, strong: true }
+  - { at: [640, 42], text: 查出来的词向量, size: 15, strong: true }
+  - { at: [736, 288], text: 8 格只是示意, size: 13, note: true, anchor: middle }
+
+items:
+  - { at: [40, 63], size: [90, 34], text: 8 号, tone: token }
+  - { at: [40, 123], size: [90, 34], text: 9 号, tone: token }
+  - { at: [40, 183], size: [90, 34], text: 312 号, tone: token }
+
+grids:
+  # 大表：只画 10 行 8 列示意；第 1、2、6 行是被查中的那几行
+  - at: [330, 70]
+    rows: 10
+    cols: 8
+    cell: [24, 18]
+    tone: weight
+    style: empty
+    label: 只画了其中几行
+    cells:
+      - { at: [1, 0], style: solid }
+      - { at: [1, 1], style: solid }
+      - { at: [1, 2], style: solid }
+      - { at: [1, 3], style: solid }
+      - { at: [1, 4], style: solid }
+      - { at: [1, 5], style: solid }
+      - { at: [1, 6], style: solid }
+      - { at: [1, 7], style: solid }
+      - { at: [3, 0], style: solid }
+      - { at: [3, 1], style: solid }
+      - { at: [3, 2], style: solid }
+      - { at: [3, 3], style: solid }
+      - { at: [3, 4], style: solid }
+      - { at: [3, 5], style: solid }
+      - { at: [3, 6], style: solid }
+      - { at: [3, 7], style: solid }
+      - { at: [6, 0], style: solid }
+      - { at: [6, 1], style: solid }
+      - { at: [6, 2], style: solid }
+      - { at: [6, 3], style: solid }
+      - { at: [6, 4], style: solid }
+      - { at: [6, 5], style: solid }
+      - { at: [6, 6], style: solid }
+      - { at: [6, 7], style: solid }
+  # 抄出来的三行，各是一串数字
+  - { at: [640, 81], rows: 1, cols: 8, cell: [24, 18], tone: token, style: solid }
+  - { at: [640, 141], rows: 1, cols: 8, cell: [24, 18], tone: token, style: solid }
+  - { at: [640, 201], rows: 1, cols: 8, cell: [24, 18], tone: token, style: solid }
+
+links:
+  # 编号 → 表里那一行
+  - { from: [130, 80], to: [330, 97] }
+  - { from: [130, 140], to: [330, 133] }
+  - { from: [130, 200], to: [330, 187] }
+  # 那一行 → 取出来的向量
+  - { from: [522, 97], to: [640, 90] }
+  - { from: [522, 133], to: [640, 150] }
+  - { from: [522, 187], to: [640, 210] }
+
+brackets:
+  - { from: 640, to: 832, y: 229, label: 一串 = 2048 个数字 }

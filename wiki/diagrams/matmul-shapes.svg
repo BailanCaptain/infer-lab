@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 300" width="940" height="300" role="img" aria-label="一次矩阵乘：每个 token 占一行，2048 个数字被同一片权重搅拌成 4096 个新数字">
+  <title>一次矩阵乘：每个 token 占一行，2048 个数字被同一片权重搅拌成 4096 个新数字</title>
+  <defs></defs>
+  <rect x="60" y="128" width="140" height="44" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M77.5 128v44M95 128v44M112.5 128v44M130 128v44M147.5 128v44M165 128v44M182.5 128v44M60 139h140M60 150h140M60 161h140" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="60" y="128" width="140" height="11" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="2.8"/>
+  <text x="130" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">输入：37 个 token</text>
+  <text x="130" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[37, 2048]</text>
+  <text x="223.2" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="26" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">×</text>
+  <rect x="246.4" y="80" width="280" height="140" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M281.4 80v140M316.4 80v140M351.4 80v140M386.4 80v140M421.4 80v140M456.4 80v140M491.4 80v140M246.4 115h280M246.4 150h280M246.4 185h280" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="386.4" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">一片权重</text>
+  <text x="386.4" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[2048, 4096]</text>
+  <text x="549.6" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="26" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">=</text>
+  <rect x="572.8" y="128" width="280" height="44" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M607.8 128v44M642.8 128v44M677.8 128v44M712.8 128v44M747.8 128v44M782.8 128v44M817.8 128v44M572.8 139h280M572.8 150h280M572.8 161h280" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="572.8" y="128" width="280" height="11" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="2.8"/>
+  <text x="712.8" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">输出：还是每个 token 一行</text>
+  <text x="712.8" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[37, 4096]</text>
+  <text x="60" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56">活的：每来一条请求都不一样</text>
+  <text x="402" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">死的：训练完就存在这里，不再变</text>
+  <text x="470" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">圈出的一行是同一个 token（2048 进 → 4096 出）</text>
+</svg>

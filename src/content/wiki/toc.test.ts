@@ -39,7 +39,10 @@ describe("buildToc", () => {
       page("one-request", "concept", ["00"]),
     ]);
     expect(toc.map((p) => p.title)).toEqual(["推理基础知识", "代码全流程", "特性", "参数"]);
-    expect(toc[0]!.sections[0]!.pages.map((p) => p.id)).toEqual(["one-request", "kv-cache"]);
+    expect(toc[0]!.sections.map((s) => [s.title, s.pages.map((p) => p.id)])).toEqual([
+      ["", ["one-request"]],
+      ["", ["kv-cache"]],
+    ]);
     expect(toc[1]!.sections.map((s) => [s.title, s.pages.map((p) => p.id)])).toEqual([
       ["先看全貌", ["vllm-v1-shape"]],
       ["每一步：调度、分块、准备输入、前向", ["vllm-scheduler"]],
@@ -49,7 +52,7 @@ describe("buildToc", () => {
   it("没被点名的新页自动归位，不出现「未归类」", () => {
     const toc = buildToc([
       page("softmax", "concept", ["04"], 30),
-      page("token", "concept", ["01"], 10),
+      page("causal-mask", "concept", ["01"], 10),
       page("new-engine-thing", "concept", ["10"]),
       page("no-chapter-concept", "concept"),
       page("new-feature", "feature", ["17"]),
@@ -59,7 +62,7 @@ describe("buildToc", () => {
     ]);
     const ids = (part: string) =>
       toc.find((p) => p.id === part)!.sections.map((s) => [s.title, s.pages.map((p) => p.id)]);
-    expect(ids("basics")).toEqual([["", ["token", "softmax"]]]);
+    expect(ids("basics")).toEqual([["", ["causal-mask", "softmax"]]]);
     expect(ids("flow")).toEqual([["其他", ["new-engine-thing", "no-chapter-concept"]]]);
     expect(ids("features")).toEqual([
       ["量化与投机解码", ["new-feature"]],

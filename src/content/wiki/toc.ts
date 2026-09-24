@@ -55,7 +55,24 @@ const GROWN_SECTIONS: { origin: string; title: string }[] = [
 
 /** 人排的阅读顺序。这里写了 id 的页，位置以这里为准。 */
 const CURATED: Record<"basics" | "flow", { title: string; pages: string[] }[]> = {
-  basics: [{ title: "", pages: ["one-request", "prefill", "kv-cache", "rope", "attention-cost"] }],
+  basics: [
+    { title: "", pages: ["one-request"] },
+    {
+      // 用户 2026-09-25 定的新章：模型计算类的基础词，挂在 00 章例子之后
+      title: "大模型基础知识",
+      pages: [
+        "token",
+        "embedding",
+        "matmul-and-weights",
+        "layers-and-hidden",
+        "attention-qkv",
+        "mlp-residual-norm",
+        "moe",
+        "linear-attention",
+      ],
+    },
+    { title: "", pages: ["prefill", "kv-cache", "rope", "attention-cost"] },
+  ],
   flow: [
     {
       title: "先看全貌",
@@ -127,8 +144,9 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
   const moreBasics = concepts.filter(isBasic).sort(byOrder);
   const moreFlow = concepts.filter((p) => !isBasic(p)).sort(byOrder);
   if (moreBasics.length) {
-    // 基础部分不分组：新术语页直接接在人排的那几页后面
-    if (basics[0] && basics[0].title === "") basics[0].pages.push(...moreBasics);
+    // 没被点名的基础页接在最后：别插进「大模型基础知识」前面打断人排的顺序
+    const tail = basics[basics.length - 1];
+    if (tail && tail.title === "") tail.pages.push(...moreBasics);
     else basics.push({ title: "", pages: moreBasics });
   }
   if (moreFlow.length) flow.push({ title: "其他", pages: moreFlow });

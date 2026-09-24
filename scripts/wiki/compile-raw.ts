@@ -180,7 +180,8 @@ export async function compileRaw(
       if (!targets.length || targets.some((id) => !known.has(id)))
         throw new Error("问答草稿必须关联已提供的页面，不能引用未知页面");
     }
-    if (!/^## 一句话\s*$/m.test(parsed.page.body)) throw new Error("草稿缺少一句话小节");
+    // 2026-09-25 起不再规定开头必须是「## 一句话」；准入只挡掉连一个小节都没有的输出
+    if (!/^##\s+\S/m.test(parsed.page.body)) throw new Error("草稿正文没有任何 ## 小节");
     const loaded = loadPages(wiki);
     const issues = splitProblems(
       lintPages([...loaded.pages.filter((p) => p.fm.id !== input.id), parsed.page], {

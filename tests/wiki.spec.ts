@@ -20,7 +20,7 @@ test.describe("知识库阅读页", () => {
     await nav.getByRole("link", { name: /^Block Table/ }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Block Table");
-    await expect(page.getByRole("heading", { name: "一句话" })).toBeVisible();
+    await expect(page.getByTestId("wiki-body").getByRole("heading", { level: 2 }).first()).toBeVisible();
   });
 
   test("页头写明这页对过哪几个版本：v0.23 与 v0.26 并存，没列出的就是还没人对过", async ({ page }) => {
@@ -49,15 +49,28 @@ test.describe("知识库阅读页", () => {
     await expect(page.getByTestId("toc-params").getByRole("link", { name: "layer_sharding" })).toBeVisible();
   });
 
-  test("页面骨架：一句话开头，讲那条请求，常见误解收尾，其余小标题是结论句", async ({ page }) => {
-    // 2026-09-20 全库统一成这个写法；老的「为什么需要它 / 怎么工作 / 事实表」七节模板已弃用
-    await page.goto("/#/wiki/block-table");
-    const titles = await page.getByTestId("wiki-body").getByRole("heading", { level: 2 }).allInnerTexts();
-    expect(titles[0]).toBe("一句话");
-    expect(titles).toContain("那条请求走到这里");
-    expect(titles.slice(-2)).toEqual(["常见误解", "接着看"]);
-    for (const old of ["为什么需要它", "怎么工作", "拿真实数字走一遍", "事实表"])
-      expect(titles).not.toContain(old);
+  test("两层结构：上半讲给初学者、不挂证据角标；下半「对照源码」只用固定查阅小标题", async ({ page }) => {
+    // 2026-09-25 读者定为初学者：「一句话 / 那条请求 / 常见误解」五步模板弃用。
+    // 按新写法改过的页先是讲解，再是给核对源码的人查的「对照源码」。
+    await page.goto("/#/wiki/expert-parallel");
+    const body = page.getByTestId("wiki-body");
+    await expect(body.getByRole("heading", { level: 2, name: "对照源码" })).toBeVisible();
+    const layout = await body.evaluate((root) => {
+      const h2 = [...root.querySelectorAll("h2")].find((h) => h.textContent?.trim() === "对照源码")!;
+      const upperMarks = [...root.querySelectorAll("span.wiki-evidence")].filter(
+        (m) => h2.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_PRECEDING,
+      ).length;
+      const lower: string[] = [];
+      for (let el = h2.nextElementSibling; el && el.tagName !== "H2"; el = el.nextElementSibling)
+        if (el.tagName === "H3") lower.push(el.textContent?.trim() ?? "");
+      const h2s = [...root.querySelectorAll("h2")].map((h) => h.textContent?.trim());
+      return { upperMarks, lower, h2s };
+    });
+    expect(layout.h2s).not.toContain("一句话");
+    expect(layout.upperMarks).toBe(0);
+    const fixed = ["怎么开", "会报什么错", "开销和什么时候别开", "版本差异", "源码位置"];
+    expect(layout.lower.length).toBeGreaterThan(0);
+    expect(layout.lower.every((t) => fixed.includes(t))).toBe(true);
   });
 
   test("图渲染成 SVG，不是一段源码", async ({ page }) => {

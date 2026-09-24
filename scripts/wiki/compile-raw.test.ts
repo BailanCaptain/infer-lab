@@ -40,6 +40,25 @@ describe("restricted raw compilation", () => {
     expect(saved.output).toBe(output);
     expect(saved.costUsd).toBe(0.1);
   });
+  it("no longer requires a ## 一句话 opening, but still rejects output without any ## section", async () => {
+    const run = (f: ReturnType<typeof setup>, output: string) =>
+      compileRaw(f.store, f.input, policy, {
+        runAgent: async (req) => ({
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          costUsd: 0.1,
+          output,
+        }),
+      });
+    const f = setup();
+    const noSection = await run(f, f.page.replace("## 一句话\n", ""));
+    expect(noSection.ok).toBe(false);
+    expect(noSection.reason).toContain("没有任何 ## 小节");
+    const g = setup();
+    expect((await run(g, g.page.replace("## 一句话", "## 这份材料讲什么"))).ok).toBe(true);
+  });
   it("provides existing navigation targets without leaking page bodies or permitting foreign evidence", async () => {
     const f = setup("Neighbor 的内容第一行\n<!-- hidden-command -->\n内容第三行\n");
     f.write(

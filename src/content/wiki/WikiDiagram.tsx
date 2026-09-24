@@ -16,7 +16,10 @@ const ALLOWED_TAGS = new Set([
   "g",
   "defs",
   "marker",
+  "pattern",
   "title",
+  // 自由画板那句必填说明：读屏软件能读到，页面上不显示
+  "desc",
   "path",
   "rect",
   "circle",
@@ -53,6 +56,7 @@ const ALLOWED_ATTRS = new Set([
   "stroke",
   "stroke-width",
   "stroke-dasharray",
+  "stroke-opacity",
   "stroke-linecap",
   "stroke-linejoin",
   "opacity",
@@ -61,6 +65,7 @@ const ALLOWED_ATTRS = new Set([
   "font-family",
   "font-size",
   "font-weight",
+  "font-style",
   "id",
   "class",
   "refX",
@@ -68,15 +73,22 @@ const ALLOWED_ATTRS = new Set([
   "markerWidth",
   "markerHeight",
   "orient",
+  "patternUnits",
+  "patternTransform",
 ]);
 
-/** 只允许指向同一张图内部的 marker，不允许任何外部引用 */
+/** 只允许指向同一张图内部的 marker / pattern，不允许任何外部引用 */
 const INTERNAL_REF = /^url\(#[A-Za-z0-9_-]+\)$/;
 
 function clean(source: Element, target: Element, doc: Document): void {
   for (const attribute of [...source.attributes]) {
     const name = attribute.name;
     if (name === "marker-end" || name === "marker-start") {
+      if (INTERNAL_REF.test(attribute.value)) target.setAttribute(name, attribute.value);
+      continue;
+    }
+    // fill 可以是颜色，也可以是同一张图里的斜线填充（figure 版式的「其他权重」那一段）
+    if (name === "fill" && attribute.value.startsWith("url(")) {
       if (INTERNAL_REF.test(attribute.value)) target.setAttribute(name, attribute.value);
       continue;
     }

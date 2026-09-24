@@ -1,0 +1,22 @@
+layout: figure
+id: expert-parallel-split
+caption: 同一块矩阵的两种放法。只画了专家的一块矩阵，另外两块同理
+size: [900, 250]
+
+texts:
+  - { at: [20, 24], text: 按 TP 切, size: 15, strong: true }
+  - { at: [470, 24], text: 按 EP 分, size: 15, strong: true }
+  - { at: [20, 208], text: 每个专家都切成两半：两颗都要算，算完把两半的结果加起来, size: 14, width: 410 }
+  - { at: [470, 208], text: 专家不切，整个放在一颗上：谁那里有这个专家，就由谁来算, size: 14, width: 410 }
+
+frames:
+  - { label: NPU 0, at: [20, 40], size: [200, 140], inside: true }
+  - { label: NPU 1, at: [236, 40], size: [200, 140], inside: true }
+  - { label: NPU 0, at: [470, 40], size: [200, 140], inside: true }
+  - { label: NPU 1, at: [686, 40], size: [200, 140], inside: true }
+
+matrices:
+  - { at: [40, 96], w: 160, h: 20, cols: 8, rows: 1, label: 5 号专家的上半块 }
+  - { at: [256, 96], w: 160, h: 20, cols: 8, rows: 1, label: 5 号专家的下半块 }
+  - { at: [490, 80], w: 160, h: 40, cols: 8, rows: 2, label: 整个 5 号专家, dims: 2048 × 512 }
+  - { at: [706, 80], w: 160, h: 40, cols: 8, rows: 2, label: 整个 133 号专家 }

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import { ID_RE } from "../../src/content/wiki/schema";
+import { type FigureSpec, figureSpecSchema, renderFigure } from "./figure";
 import { renderScene } from "./scene";
 
 /**
@@ -22,7 +23,25 @@ import { renderScene } from "./scene";
 const point = z.tuple([z.number(), z.number()]);
 
 /** 方块的语义配色。tone 表达「这是谁的代码」，不表达好看。 */
-export const TONES = ["upstream", "ascend", "accent", "neutral", "muted"] as const;
+/**
+ * 前五个是旧名字，按「谁的地盘」取色，留给存量图。
+ * 后六个按「这是什么东西」取色，和全站设计令牌同一套（src/design：--color-token 等）：
+ * token / 激活 = 青、权重 / 计算 = 琥珀、KV Cache / 显存 = 蓝、通信 = 紫、调度 = 灰、出错 = 红。
+ * 新图只用后六个，同一种颜色在全库只表示同一种东西。
+ */
+export const TONES = [
+  "upstream",
+  "ascend",
+  "accent",
+  "neutral",
+  "muted",
+  "token",
+  "weight",
+  "kv",
+  "comm",
+  "control",
+  "danger",
+] as const;
 export type Tone = (typeof TONES)[number];
 
 /** 图标名。画在 24×24 格子里的极简线条，定义在 scene.ts。 */
@@ -157,6 +176,8 @@ export const sceneSpecSchema = z
             highlights: z.array(z.number().int()).default([]),
             /** 故意盖在上一条格子上：底下那条是刻度，这条是填到哪儿。碰撞检查会跳过它 */
             overlay: z.boolean().default(false),
+            /** 没选中的格子淡下去（不描边），让选中的那几格跳出来 */
+            dim: z.boolean().default(false),
             /** 画一条淡虚线连到某个坐标，指明这排格子在讲哪一步 */
             linkTo: point.optional(),
             label: z.string().optional(),
@@ -233,16 +254,21 @@ export const sceneSpecSchema = z
   })
   .strict();
 
-export const diagramSpecSchema = sceneSpecSchema;
+/**
+ * 两种版式：scene 是存量图的旧版式；figure 是 2026-09-24 定下的教学图版式，新图只用它。
+ * 画风写死在 figure.ts 里，作者只说「这是什么」，所以后面的图长得都一样。
+ */
+export const diagramSpecSchema = z.discriminatedUnion("layout", [sceneSpecSchema, figureSpecSchema]);
 
 export type DiagramSpec = z.infer<typeof diagramSpecSchema>;
-export type SceneSpec = DiagramSpec;
+export type SceneSpec = z.infer<typeof sceneSpecSchema>;
+export type { FigureSpec };
 
 export const DIAGRAM_DIR = "diagrams";
 
 /** spec → SVG。纯函数、无随机、无时间戳：同一份 spec 永远得到同一个字节序列。 */
 export function renderDiagram(spec: DiagramSpec): string {
-  return renderScene(spec);
+  return spec.layout === "figure" ? renderFigure(spec) : renderScene(spec);
 }
 
 /** 「这张图声明了哪些源码符号」的唯一出口，AC11 的检查只认它。 */

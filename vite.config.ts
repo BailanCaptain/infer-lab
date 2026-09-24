@@ -25,7 +25,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8790",
+        target: `http://127.0.0.1:${process.env.WIKI_SERVER_PORT ?? 8790}`,
         // 后端的写入保护要求 Origin 与 Host 一致（server/http.ts checkWriter）。
         // 代理会把 Host 换成后端地址，浏览器里点「批准」就永远 403；这里把读者看到的 Host 原样带过去。
         configure: (proxy) => {

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200" role="img" aria-label="光是专家就占满了一颗 NPU；分给两颗后，每颗只占一半">
+  <title>光是专家就占满了一颗 NPU；分给两颗后，每颗只占一半</title>
+  <defs><pattern id="expert-parallel-fit-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <rect x="150" y="46" width="540" height="26" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="166" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">全部专家 60 GiB</text>
+  <rect x="690" y="46" width="46.8" height="26" rx="4" fill="url(#expert-parallel-fit-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <rect x="150" y="40" width="536.4" height="38" rx="7" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="2.2"/>
+  <text x="686.4" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-kv, #4c65b6)" text-anchor="end">一颗 NPU 的显存：64 GB</text>
+  <rect x="150" y="134" width="270" height="26" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="166" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">128 个专家 30 GiB</text>
+  <rect x="150" y="128" width="536.4" height="38" rx="7" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="2.2"/>
+  <text x="20" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">只用一颗</text>
+  <text x="748" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">+ 其他权重约 5 GiB</text>
+  <text x="20" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">用两颗，每颗</text>
+  <text x="436" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93">空出来的放其他权重和 KV Cache</text>
+  <text x="150" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">长度按比例画，1 GiB 约 9 像素</text>
+  <rect x="780" y="84" width="63" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
+  <text x="811.5" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">装不下</text>
+</svg>

@@ -1,0 +1,36 @@
+layout: figure
+id: one-request-layers
+caption: 40 层里只有每第 4 层是全注意力，其余 30 层是线性注意力
+size: [900, 210]
+
+texts:
+  - { at: [30, 44], text: 一个 token 要从左走到右，走完 40 层, size: 14, strong: true }
+  - { at: [56, 174], text: "30 层线性注意力：不留笔记", size: 13.5 }
+  - { at: [426, 174], text: "10 层全注意力：每个 token 留笔记", size: 13.5, tone: kv }
+
+grids:
+  - at: [120, 64]
+    rows: 1
+    cols: 40
+    cell: [17, 34]
+    gap: 2
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 3], tone: kv, style: solid }
+      - { at: [0, 7], tone: kv, style: solid }
+      - { at: [0, 11], tone: kv, style: solid }
+      - { at: [0, 15], tone: kv, style: solid }
+      - { at: [0, 19], tone: kv, style: solid }
+      - { at: [0, 23], tone: kv, style: solid }
+      - { at: [0, 27], tone: kv, style: solid }
+      - { at: [0, 31], tone: kv, style: solid }
+      - { at: [0, 35], tone: kv, style: solid }
+      - { at: [0, 39], tone: kv, style: solid }
+
+brackets:
+  - { from: 120, to: 194, y: 112, label: 每 4 层一组 }
+
+items:
+  - { at: [30, 160], size: [18, 18], tone: token, style: faded }
+  - { at: [400, 160], size: [18, 18], tone: kv, style: solid }

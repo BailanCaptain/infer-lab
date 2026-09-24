@@ -1,9 +1,10 @@
 /**
- * 把 wiki/HANDBOOK.md 按 H2 切成七片，分别注入不同角色的 agent。
+ * 把 wiki/HANDBOOK.md 按 H2 切成六片，分别注入不同角色的 agent。
+ * 2026-09-25 「人类须知」搬去 HANDOFF-LLM-WIKI.md：HANDBOOK 只留给 agent 的规则，给人看的说明不再占切片。
  * 程序只做索引（切片），不做语义判断；H3 及以下归属当前 H2；前言与未知 H2 丢弃。
  * 思路借自 Multi-Agent packages/api/src/wiki/handbook-slicer.ts。
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const HANDBOOK_H2 = {
@@ -13,7 +14,6 @@ export const HANDBOOK_H2 = {
   query: "查询",
   coverage: "覆盖判定",
   lint: "Lint",
-  human: "人类须知",
 } as const;
 export type HandbookSliceKey = keyof typeof HANDBOOK_H2;
 
@@ -55,7 +55,6 @@ export function sliceHandbook(content: string): HandbookSlices {
     query: "",
     coverage: "",
     lint: "",
-    human: "",
     reading: "",
     citable: "",
   };
@@ -84,6 +83,17 @@ export function sliceHandbook(content: string): HandbookSlices {
   return slices;
 }
 
+/**
+ * 术语叫法表（2026-09-25）：全库同一个东西用同一个叫法，第一次出现时用表里的白话解释。
+ * 它单独放在 wiki/TERMS.md，会越加越长、改得勤，和写作规则分开维护；
+ * 写页的 agent 没有读文件的工具，只看得到注入的规则，所以拼到「页面格式」末尾一起给它。
+ * 问答、覆盖判定只读页不写页，它们的切片不带这张表。
+ */
+export const TERMS_FILE = "TERMS.md";
+
 export function loadHandbook(wikiRoot: string): HandbookSlices {
-  return sliceHandbook(readFileSync(join(wikiRoot, "HANDBOOK.md"), "utf8"));
+  const slices = sliceHandbook(readFileSync(join(wikiRoot, "HANDBOOK.md"), "utf8"));
+  const terms = join(wikiRoot, TERMS_FILE);
+  if (existsSync(terms)) slices.pageFormat += `\n${readFileSync(terms, "utf8")}`;
+  return slices;
 }

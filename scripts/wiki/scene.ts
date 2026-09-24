@@ -28,6 +28,12 @@ const TONE: Record<Tone, string> = {
   accent: "var(--color-accent, #e85b32)",
   neutral: "var(--color-kv, #4c65b6)",
   muted: "var(--color-ink-faint, #8a928f)",
+  token: "var(--color-token, #087f73)",
+  weight: "var(--color-weight, #c78300)",
+  kv: "var(--color-kv, #4c65b6)",
+  comm: "var(--color-comm, #9a4b86)",
+  control: "var(--color-control, #66716d)",
+  danger: "var(--color-danger, #b54237)",
 };
 
 const SOFT: Record<Tone, string> = {
@@ -36,6 +42,12 @@ const SOFT: Record<Tone, string> = {
   accent: "var(--color-accent-soft, #fff0e9)",
   neutral: "var(--color-kv-soft, #e8edff)",
   muted: "var(--color-canvas, #f5f2ea)",
+  token: "var(--color-token-soft, #ddf4ef)",
+  weight: "var(--color-weight-soft, #fff4cf)",
+  kv: "var(--color-kv-soft, #e8edff)",
+  comm: "var(--color-comm-soft, #f7e7f2)",
+  control: "var(--color-surface-sunken, #ece9df)",
+  danger: "var(--color-accent-soft, #fff0e9)",
 };
 
 const INK = "var(--color-ink, #17211f)";
@@ -46,7 +58,7 @@ const FONT = "'Inter Variable','Noto Sans SC',system-ui,sans-serif";
 const MONO = "'JetBrains Mono',ui-monospace,monospace";
 
 /** 反引号在图上没有意义，漏出来就是画在图上的一个符号——一律去掉。 */
-function esc(t: string): string {
+export function esc(t: string): string {
   return t
     .replace(/`/g, "")
     .replace(/&/g, "&amp;")
@@ -55,7 +67,7 @@ function esc(t: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function round(n: number): number {
+export function round(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
@@ -63,7 +75,7 @@ function round(n: number): number {
  * 文字宽度估算：中日韩字符约 1em，拉丁字母约 0.56em，标点约 0.4em。
  * 首版用 `label.length * 常数` 算胶囊宽度，中英混排时忽宽忽窄、还会裁掉半个字。
  */
-function textWidth(s: string, size: number, latin = 0.56): number {
+export function textWidth(s: string, size: number, latin = 0.56): number {
   let em = 0;
   for (const ch of s) {
     if (/[⺀-鿿＀-￯　-〿]/.test(ch)) em += 1;
@@ -78,7 +90,7 @@ const chipTextWidth = (text: string, size: number) =>
   Math.max(textWidth(text, size), [...text].length * 0.6 * size);
 
 /** 按像素宽度断行。中日韩字符可在任意位置断，拉丁单词整体不拆。 */
-function wrap(text: string, size: number, maxWidth: number): string[] {
+export function wrap(text: string, size: number, maxWidth: number): string[] {
   const atoms: string[] = [];
   let latin = "";
   for (const ch of text) {
@@ -313,7 +325,9 @@ export function renderScene(spec: SceneSpec): string {
         // 细的用实色加透明度区分选中，粗的才用「浅底 + 描边」。
         tiny
           ? `<rect x="${round(x)}" y="${round(y)}" width="${cw}" height="${ch}" fill="${TONE[s.tone]}" opacity="${on.has(i) ? 1 : 0.5}"/>`
-          : `<rect x="${round(x)}" y="${round(y)}" width="${cw}" height="${ch}" rx="3" fill="${on.has(i) ? TONE[s.tone] : SOFT[s.tone]}" stroke="${TONE[s.tone]}" stroke-width="1.1"/>`,
+          : s.dim && !on.has(i)
+            ? `<rect x="${round(x)}" y="${round(y)}" width="${cw}" height="${ch}" rx="3" fill="${SOFT[s.tone]}" stroke="${TONE[s.tone]}" stroke-width="1" stroke-opacity="0.22"/>`
+            : `<rect x="${round(x)}" y="${round(y)}" width="${cw}" height="${ch}" rx="3" fill="${on.has(i) ? TONE[s.tone] : SOFT[s.tone]}" stroke="${TONE[s.tone]}" stroke-width="1.1"/>`,
       );
     }
     const len = s.cells * (cw + gap) - gap;

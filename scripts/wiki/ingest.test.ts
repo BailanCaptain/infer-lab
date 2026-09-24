@@ -44,7 +44,6 @@ const hb: HandbookSlices = {
   query: "Q",
   coverage: "CO",
   lint: "L",
-  human: "H",
   reading: "R",
   citable: "CI",
 };

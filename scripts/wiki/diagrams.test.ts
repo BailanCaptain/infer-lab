@@ -1,7 +1,14 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { diagramRefs, diagramSpecSchema, loadDiagrams, renderDiagram, specPins } from "./diagrams";
+import {
+  diagramRefs,
+  diagramSpecSchema,
+  loadDiagrams,
+  renderDiagram,
+  sceneSpecSchema,
+  specPins,
+} from "./diagrams";
 import { sceneCollisions, sceneOverflows } from "./scene";
 import { wikiFixture } from "./test-fixture";
 
@@ -157,7 +164,7 @@ it("specPins 是「这张图声明了哪些源码符号」的唯一出口", () =
 
 it("sceneOverflows 抓住画到框外的字——渲染本身不会报错，所以要单独查", () => {
   const spec = (sub: string) =>
-    diagramSpecSchema.parse({
+    sceneSpecSchema.parse({
       layout: "scene",
       id: "d",
       caption: "c",
@@ -171,7 +178,7 @@ it("sceneOverflows 抓住画到框外的字——渲染本身不会报错，所�
 
   // 站点的字以 x 为中心往两边摊，贴着画布边就会伸出去
   const edge = sceneOverflows(
-    diagramSpecSchema.parse({
+    sceneSpecSchema.parse({
       layout: "scene",
       id: "d",
       caption: "c",
@@ -186,7 +193,7 @@ it("sceneOverflows 抓住画到框外的字——渲染本身不会报错，所�
 it("sceneCollisions 抓住压在一起的两块东西——engine-core-loop 就是这么糊掉的", () => {
   // 轴上站点朝上堆，地盘的标题胶囊在上面：轴压得越高，两者越容易撞在一起
   const spec = (axis: number) =>
-    diagramSpecSchema.parse({
+    sceneSpecSchema.parse({
       layout: "scene",
       id: "d",
       caption: "c",
@@ -216,7 +223,7 @@ it("sceneCollisions 抓住压在一起的两块东西——engine-core-loop 就�
 
 it("刻度条上的填充标了 overlay 就不算撞——它本来就该盖在上面", () => {
   const spec = (overlay: boolean) =>
-    diagramSpecSchema.parse({
+    sceneSpecSchema.parse({
       layout: "scene",
       id: "d",
       caption: "c",

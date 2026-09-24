@@ -1,0 +1,17 @@
+layout: figure
+id: expert-parallel-assign
+caption: 进 MoE 之前先分工，每颗 NPU 负责一半 token
+size: [900, 190]
+
+texts:
+  - { at: [34, 30], text: 37 个 token + 1 个空位 = 38, size: 14, strong: true }
+  - { at: [34, 152], text: 每颗 19 × 8 = 152 次「token 找专家」, size: 14 }
+  - { at: [34, 176], text: 路由均匀时，约一半要发到对面, size: 14, tone: comm }
+
+rows:
+  - { at: [34, 48], count: 19, w: 19, h: 26, gap: 3, tone: token }
+  - { at: [460, 48], count: 19, w: 19, h: 26, gap: 3, tone: token, ghost: [18] }
+
+brackets:
+  - { from: 34, to: 449, y: 84, label: NPU 0 负责前 19 个 }
+  - { from: 460, to: 875, y: 84, label: NPU 1 负责后 18 个，外加补的空位 }

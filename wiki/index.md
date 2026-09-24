@@ -10,7 +10,7 @@
 - [GQA：16 个 Q 头共用 8 组 K/V，省的是显存不是乘加](concepts/gqa.md) — Q 保持 16 个头，K 和 V 只留 8 个头，相邻两个 Q 头共用一组；KV Cache 按 KV 头数占 Q 头数的比例缩——Qwen3-0.6B 是 8/16 正好减半，MQA 只留 1 个头就是 1/16——而注意力本身一次乘加都没少。 `04`
 - [KV Cache](concepts/kv-cache.md) — 把已经算过的 token 的注意力中间量留在显存里，下一步生成新 token 时只算新的那一个，旧的直接读。MHA/GQA 模型存的是每层的 K 和 V；MLA 存的是压缩后的 latent，不是 K、V 本身。 `05 11`
 - [MLA：缓存里躺的不是 K 和 V，是一条潜向量加一小段 RoPE](concepts/mla.md) — 每层每个 token 只存一条 512 维潜向量加 64 维 RoPE 段；prefill 把它展开回每个头的 K 和 V，decode 干脆不展开，改把展开矩阵乘到 Q 上。 `04`
-- [贯穿全书的那条请求](concepts/one-request.md) — 全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。 `00`
+- [贯穿全库的例子：37 个 token 的问题，200 个 token 的回答](concepts/one-request.md) — 全库只跟一个例子：Qwen3.6-35B-A3B 跑在两颗昇腾 NPU 上，问题 37 个 token，回答 200 个 token。后面每一页讲的都是它走到某一步时，机器在做什么。 `00`
 - [一个算子从 Python 走到 AI Core](concepts/op-to-ai-core.md) — 拿 RMSNorm 走一遍四层。最关键的一段是 ops/layernorm.py 里的一个 if——它两边一边是自己编的融合算子，一边是 CANN 现成的算子加一次额外的逐元素加法。 `16`
 - [Prefill](concepts/prefill.md) — 生成第一个字之前，把问题里每个 token 的 K 和 V 算出来写进缓存的那一步。它算得多，短问题一步做完、长问题切成几步，决定了「多久出第一个字」。 `05`
 - [怎么读这个仓库](concepts/reading-vllm-ascend.md) — 三条定位路线：手上有 traceback、有特性名、有上游类名各走一条；两个 ref 的对照法与三个会得出错结论的查法。 `20`
@@ -44,7 +44,7 @@
 - [DyntraLB：跨 rank 传的只有块数，没有请求 id](concepts/dyntra-lb.md) — PD 分离的 D 节点上（MoE 模型的多 DP 部署），各 DP rank 每步 all_gather 一遍「每条请求占几个 KV 块」，同一个 planner 算出这一步谁暂停、谁放进来；一条请求都不搬家。 `12`
 - [EPD 分离：把视觉编码器也拆成一类实例](concepts/epd-disaggregation.md) — 多模态模型的视觉编码器单独起一个实例（E），算出的图像 embedding 经 EC 连接器交给 prefill/decode 那边，PD 上不再跑视觉塔。 `18`
 - [EPLB：把热门专家搬到闲着的卡上，但不改路由](concepts/eplb.md) — 开了 EP 之后哪张卡忙由数据决定，EPLB 数每个专家吃了多少 token，交给一个独立子进程算新摆法，再一层一层把专家权重 P2P 搬过去。 `14`
-- [Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑](concepts/expert-parallel.md) — MoE 层按专家切开，每张卡完整持有一批专家的权重。代价看选中的通信方案：MC2 与 all-to-all 路径每层把 token 发出去再收回来，ALLGATHER 路径一个 token 都不发——每卡拿全量 token，只算自己那段专家。 `14`
+- [专家并行（EP）：专家不切开，按编号分给不同的 NPU](concepts/expert-parallel.md) — MoE 模型每层有几百个专家，一颗 NPU 放不下时，EP 把每层的专家按编号整份分给参与计算的几颗 NPU；每个 token 被送到它选中的专家所在的 NPU 上算完，再送回来。要写 --enable-expert-parallel，而且参与 MoE 的 NPU 多于一颗才生效。 `14`
 - [Fine-Grained Tensor Parallelism：给个别大矩阵单独借几个 DP rank 来切](concepts/fine-grained-tp.md) — 全局 TP 之外，单独给 embedding、lm_head、o_proj、dense MLP 各设一个切分数；切的是 DP 轴——从同一份 DP 里借几个 rank 把这张表分掉，省的是重复的权重副本。 `13`
 - [Flash Attention 3：为了和训练侧算得一样，把默认的 FIA 换掉](concepts/flash-attention-3.md) — 昇腾 attention/ 下一个独立的注意力后端（v0.23 上那里五个后端类、v0.26 起六个），把注意力算子从 torch_npu 的 FIA 换成外部包 flash_attn_npu_v3 里的 flash_attn_with_kvcache——不是为了更快，是为了让 RL 里推理侧和训练侧用同一个算子。 `16 04`
 - [图模式层](concepts/graph-mode-layer.md) — 昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。 `16`
@@ -190,7 +190,7 @@
 - [combine_quant_mode](params/combine-quant-mode-2a3f7cd47997.md)
 - [enable_force_eplb](params/enable-force-eplb-b7ec3661121f.md)
 - [EPLB：把热门专家搬到闲着的卡上，但不改路由](concepts/eplb.md)
-- [Expert Parallel：每张卡整份拿走一批专家，token 追着专家跑](concepts/expert-parallel.md)
+- [专家并行（EP）：专家不切开，按编号分给不同的 NPU](concepts/expert-parallel.md)
 - [HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options](concepts/gap-a5164fe10fa9184412f8.md)
 - [Large-Scale EP：一个 DP rank 一个 server，负载均衡搬到 vLLM 外面](concepts/large-scale-ep.md)
 - [multistream_overlap_gate](params/multistream-overlap-gate.md)
@@ -242,7 +242,7 @@
 - [[Refactor] remove layer sharding](sources/pr-11953.md)
 
 ### 00 从一次对话开始：推理到底在算什么
-- [贯穿全书的那条请求](concepts/one-request.md)
+- [贯穿全库的例子：37 个 token 的问题，200 个 token 的回答](concepts/one-request.md)
 
 ### 04 Attention 深入
 - [注意力后端家族](concepts/attention-backend-family.md)

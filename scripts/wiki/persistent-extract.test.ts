@@ -32,7 +32,6 @@ describe("seed adapter with persistent jobs", () => {
         query: "query",
         coverage: "coverage",
         lint: "lint",
-        human: "human",
         reading: "reading",
         citable: "citable",
       },

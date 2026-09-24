@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { HANDBOOK_H2, HANDBOOK_H3, HandbookSliceMissingError, loadHandbook, sliceHandbook } from "./handbook";
 import { lintPages } from "./lint";
 import { parsePage } from "./pages";
-import { handbookFixture } from "./test-fixture";
+import { handbookFixture, wikiFixture } from "./test-fixture";
 
 const doc = `---
 title: x
@@ -43,14 +43,15 @@ F
 `;
 
 describe("sliceHandbook", () => {
-  it("按 H2 切七片，H3 归当前片，标题行保留，未知 H2 与前言丢弃", () => {
+  it("按 H2 切六片，H3 归当前片，标题行保留，未知 H2 与前言丢弃", () => {
     const s = sliceHandbook(doc);
     expect(s.pageFormat).toBe(
       "## 页面格式\nA1\n### 读页约定\nR\n#### 读页约定里的小节\nR2\n### 子节\nA2\n### 可引来源\nCI\n\n",
     );
     expect(s.extract.trim()).toBe("## 提取\nB");
     expect(s.coverage.trim()).toBe("## 覆盖判定\nG");
-    expect(s.human.trim()).toBe("## 人类须知\nF");
+    // 人类须知已搬去交接文档；HANDBOOK 里若还留着同名一节，它不进任何切片
+    expect(JSON.stringify(s)).not.toContain("人类须知");
     expect(JSON.stringify(s)).not.toContain("丢弃");
     expect(JSON.stringify(s)).not.toContain("前言");
   });
@@ -73,6 +74,21 @@ describe("sliceHandbook", () => {
     expect(() => sliceHandbook(moved)).toThrow(/可引来源/);
     const twice = doc.replace("### 子节\n", "### 读页约定\n");
     expect(() => sliceHandbook(twice)).toThrow(/读页约定/);
+  });
+  it("术语叫法表单独成文件，拼到「页面格式」末尾给写页的 agent；只读页的切片不带它", () => {
+    const f = wikiFixture();
+    try {
+      f.write("wiki/HANDBOOK.md", handbookFixture());
+      const bare = loadHandbook(`${f.root}/wiki`);
+      f.write("wiki/TERMS.md", "### 术语叫法\n\n| 统一叫法 | 一句白话 |\n| NPU | 昇腾的计算芯片 |\n");
+      const s = loadHandbook(`${f.root}/wiki`);
+      expect(s.pageFormat.startsWith(bare.pageFormat)).toBe(true);
+      expect(s.pageFormat).toContain("| NPU | 昇腾的计算芯片 |");
+      expect(s.reading).toBe(bare.reading);
+      expect(s.query).toBe(bare.query);
+    } finally {
+      f.cleanup();
+    }
   });
   it("测试夹具造的最小手册能切出全部切片", () => {
     const s = sliceHandbook(handbookFixture());

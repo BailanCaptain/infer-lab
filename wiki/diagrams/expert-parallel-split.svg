@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" width="900" height="250" role="img" aria-label="同一块矩阵的两种放法。只画了专家的一块矩阵，另外两块同理">
+  <title>同一块矩阵的两种放法。只画了专家的一块矩阵，另外两块同理</title>
+  <defs></defs>
+  <rect x="20" y="40" width="200" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">NPU 0</text>
+  <rect x="236" y="40" width="200" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="252" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">NPU 1</text>
+  <rect x="470" y="40" width="200" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="486" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">NPU 0</text>
+  <rect x="686" y="40" width="200" height="140" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="702" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">NPU 1</text>
+  <rect x="40" y="96" width="160" height="20" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M60 96v20M80 96v20M100 96v20M120 96v20M140 96v20M160 96v20M180 96v20" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="120" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">5 号专家的上半块</text>
+  <rect x="256" y="96" width="160" height="20" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M276 96v20M296 96v20M316 96v20M336 96v20M356 96v20M376 96v20M396 96v20" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="336" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">5 号专家的下半块</text>
+  <rect x="490" y="80" width="160" height="40" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M510 80v40M530 80v40M550 80v40M570 80v40M590 80v40M610 80v40M630 80v40M490 100h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="570" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">整个 5 号专家</text>
+  <text x="570" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">2048 × 512</text>
+  <rect x="706" y="80" width="160" height="40" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M726 80v40M746 80v40M766 80v40M786 80v40M806 80v40M826 80v40M846 80v40M706 100h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="786" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">整个 133 号专家</text>
+  <text x="20" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">按 TP 切</text>
+  <text x="470" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">按 EP 分</text>
+  <text x="20" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">每个专家都切成两半：两颗都要算，算完把两半的结果加起来</text>
+  <text x="470" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">专家不切，整个放在一颗上：谁那里有这个专家，就由谁来算</text>
+</svg>

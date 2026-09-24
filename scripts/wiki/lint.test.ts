@@ -203,18 +203,47 @@ describe("lintPages · HANDBOOK 新规则", () => {
   const SECTIONS = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"];
   const fullBody = SECTIONS.map((h) => `## ${h}\nx`).join("\n");
 
-  // 2026-09-19 放开固定骨架：概念页与特性页只剩 `## 一句话` 一条硬要求，
-  // 其余小节按这一页讲的东西自己定。
-  it("missing-section：缺 ## 一句话 报红", () => {
-    const bad = lintPages([mkRaw("a", {}, "## 怎么工作\nx")], opts);
-    expect(bad.map((p) => p.rule)).toContain("missing-section");
-    expect(bad.find((p) => p.rule === "missing-section")?.message).toContain("一句话");
+  // 2026-09-19 放开固定骨架，只留 `## 一句话`；2026-09-25 读者定为初学者，一句话也不再强制，
+  // 开头改成「先给一个具体问题」——那条机器查不了，写在 HANDBOOK。
+  it("概念页与特性页不再强制 ## 一句话，自定分节照样放行", () => {
+    for (const type of ["concept", "feature"] as const) {
+      const rules = lintPages([mkRaw("a", { type }, "## 为什么要拆\nx\n## 从报错找到文件\nz")], opts).map(
+        (p) => p.rule,
+      );
+      expect(rules).not.toContain("missing-section");
+    }
+    expect(lintPages([mkRaw("a", {}, fullBody)], opts).map((p) => p.rule)).not.toContain("missing-section");
   });
 
-  it("有 ## 一句话 的自定分节页放行，不再强制那套七节骨架", () => {
-    const freeform = "## 一句话\nx\n## 目录地图\ny\n## 从报错找到文件\nz";
-    expect(lintPages([mkRaw("a", {}, freeform)], opts).map((p) => p.rule)).not.toContain("missing-section");
-    expect(lintPages([mkRaw("a", {}, fullBody)], opts).map((p) => p.rule)).not.toContain("missing-section");
+  describe("两层结构：上半讲给初学者，下半「对照源码」用固定小标题", () => {
+    const upper = "## 一个模型装不下\n讲解。";
+    it("对照源码下只用固定的五个小标题、按顺序，用不上的可以不写", () => {
+      const body = `${upper}\n## 对照源码\n### 怎么开\n开法 [C1]\n### 版本差异\n差异 [C1]\n### 源码位置\n位置 [C1]`;
+      const rules = lintPages([mkRaw("a", {}, body)], opts).map((p) => p.rule);
+      expect(rules).not.toContain("source-half-heading");
+      expect(rules).not.toContain("mark-in-upper-half");
+    });
+    it("自造的小标题、打乱顺序都报 source-half-heading", () => {
+      const invented = `${upper}\n## 对照源码\n### 实现细节\nx`;
+      const shuffled = `${upper}\n## 对照源码\n### 源码位置\nx\n### 怎么开\ny`;
+      for (const body of [invented, shuffled]) {
+        const bad = lintPages([mkRaw("a", {}, body)], opts).filter((p) => p.rule === "source-half-heading");
+        expect(bad.length).toBe(1);
+      }
+    });
+    it("证据标记出现在上半报 mark-in-upper-half；代码块里的方括号不算", () => {
+      const bad = `## 一个模型装不下\n专家有 60 GiB [C1]。\n## 对照源码\n### 源码位置\n位置 [C1]`;
+      expect(lintPages([mkRaw("a", {}, bad)], opts).map((p) => p.rule)).toContain("mark-in-upper-half");
+      const fenced = `## 一个模型装不下\n\`\`\`text\nx[C1]\n\`\`\`\n## 对照源码\n### 源码位置\n位置 [C1]`;
+      expect(lintPages([mkRaw("a", {}, fenced)], opts).map((p) => p.rule)).not.toContain(
+        "mark-in-upper-half",
+      );
+    });
+    it("还没改写、没有「对照源码」的旧页不查这两条", () => {
+      const rules = lintPages([mkRaw("a", {}, "## 一句话\n结论 [C1]")], opts).map((p) => p.rule);
+      expect(rules).not.toContain("mark-in-upper-half");
+      expect(rules).not.toContain("source-half-heading");
+    });
   });
 
   it("stray-whatsnext：正文手写 ## 接着看报红（它由 relations 生成）", () => {
@@ -343,8 +372,8 @@ describe("lintPages · 旧格式页的过渡（Task 29）", () => {
     expect(rules).not.toContain("legacy-format");
   });
 
-  it("两种格式都不沾的页，照常报缺小节", () => {
-    const rules = lintPages([mkRaw("a", {}, "## 随便写的\nx")], opts).map((p) => p.rule);
+  it("两种格式都不沾的页，照常报缺小节（概念页已不强制小节，拿参数页验）", () => {
+    const rules = lintPages([mkRaw("a", { type: "param" }, "## 随便写的\nx")], opts).map((p) => p.rule);
     expect(rules).toContain("missing-section");
     expect(rules).not.toContain("legacy-format");
   });

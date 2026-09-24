@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadDiagrams, renderDiagram } from "./wiki/diagrams";
+import { figureAdvisories, figureProblems, sketchUsage } from "./wiki/figure";
 import { sceneCollisions, sceneOverflows } from "./wiki/scene";
 
 /**
@@ -21,15 +22,33 @@ if (problems.length) {
 // 两种画错都不会让渲染报错，所以各查一遍：
 //   一、字跑出框（第一版「图难看」有一半是这种看不见的溢出）；
 //   二、两块东西压在一起（engine-core-loop 的站点标题正好撞进地盘胶囊，全绿却糊成一团）。
-const bad = [...diagrams.values()].flatMap((d) => [
-  ...sceneOverflows(d.spec).map((m) => `${d.specFile} ${m}`),
-  ...sceneCollisions(d.spec).map((m) => `${d.specFile} ${m}`),
-]);
+const bad = [...diagrams.values()].flatMap((d) =>
+  d.spec.layout === "figure"
+    ? figureProblems(d.spec).map((m) => `${d.specFile} ${m}`)
+    : [
+        ...sceneOverflows(d.spec).map((m) => `${d.specFile} ${m}`),
+        ...sceneCollisions(d.spec).map((m) => `${d.specFile} ${m}`),
+      ],
+);
 for (const m of bad) console.error(`x ${m}`);
 if (bad.length) {
   console.error(`
 wiki:diagrams 失败：${bad.length} 处画到了框外或压在一起`);
   process.exit(1);
+}
+
+const figures = [...diagrams.values()].flatMap((d) => (d.spec.layout === "figure" ? [d.spec] : []));
+const sketches = sketchUsage(figures);
+const advisories = [
+  ...[...diagrams.values()].flatMap((d) =>
+    d.spec.layout === "figure" ? figureAdvisories(d.spec).map((m) => `${d.specFile} ${m}`) : [],
+  ),
+  ...sketches.promote,
+];
+if (sketches.total) console.log(`  自由画板 ${sketches.total} 处，分布在 ${sketches.figures} 张图`);
+if (advisories.length) {
+  console.error(`! 待留意 ${advisories.length} 处（不阻塞）：`);
+  for (const m of advisories) console.error(`  ${m}`);
 }
 
 const stale: string[] = [];

@@ -1,134 +1,258 @@
 ---
 id: one-request
-title: 贯穿全书的那条请求
+title: "贯穿全库的例子：37 个 token 的问题，200 个 token 的回答"
 type: concept
-summary: 全库只跟一条请求：Qwen3-0.6B、单卡、37 个 token 的问题、200 个 token 的回答。每一页都在讲它走到某一步时发生了什么。
-aliases: [那条请求, 样例请求, 贯穿例子, 37 token, 一条请求走到哪]
+summary: 全库只跟一个例子：Qwen3.6-35B-A3B 跑在两颗昇腾 NPU 上，问题 37 个 token，回答 200 个 token。后面每一页讲的都是它走到某一步时，机器在做什么。
+aliases:
+  [
+    那条请求,
+    样例请求,
+    贯穿例子,
+    贯穿全站的例子,
+    37 token,
+    237 个 token,
+    一条请求走到哪,
+    Qwen3.6-35B-A3B,
+    worked example,
+    例子设定,
+  ]
 chapters: ["00"]
 order: 10
 sources:
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L250
-  - vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L348
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L142-L144
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L116-L118
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236
-  - vllm-ascend@2c59ff10:vllm_ascend/attention/dsa_v1.py#L229-L231
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-  - vllm@0fc695fc:vllm/config/scheduler.py#L146-L149
-  - vllm@0fc695fc:vllm/config/vllm.py#L933-L1002
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1240-L1290
-verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
+  - https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/main/config.json
+  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L200-L216
+  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L222-L228
+  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3-30B-A3B.md#L96-L99
+  - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L150-L150
+  - vllm-ascend@2ed6cbba:docs/source/user_guide/support_matrix/supported_models.md#L133-L133
+  - vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_models.md#L139-L139
+  - vllm-ascend@2ed6cbba:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L192-L205
+  - vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L195-L208
+  - vllm@0fc695fc:vllm/config/model.py#L1289-L1295
+  - vllm@0fc695fc:vllm/model_executor/models/qwen3_5.py#L687-L707
+  - vllm@0fc695fc:vllm/model_executor/layers/mamba/mamba_utils.py#L213-L234
+  - vllm@0fc695fc:vllm/model_executor/models/config.py#L534-L560
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L70
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L97
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L102-L107
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L110-L124
+  - vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L616-L636
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1400
+  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2374-L2409
+  - vllm@0fc695fc:vllm/config/model.py#L1851-L1856
+  - vllm@568afb3a:vllm/engine/arg_utils.py#L2514-L2522
+  - vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L117
+  - vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L127-L153
+  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1240-L1268
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L1316-L1355
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L249-L262
+  - vllm@84030bbe:vllm/engine/arg_utils.py#L2773-L2813
+  - vllm@84030bbe:vllm/config/model.py#L2135-L2139
+verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
-  - to: kv-cache-spec
+  - to: expert-parallel
     kind: builds-on
-    note: 每 token 112 KiB、每块 14 MiB 这两个数是那一页从块张量形状算出来的，这里只取结果拿来用
+    note: 这个例子的 256 个专家怎么分给两颗 NPU、37 个 token 怎么补成 38 再对半分，整条线在那一页
+  - to: tensor-parallel
+    kind: builds-on
+    note: 注意力部分对半切给两颗 NPU，每颗只剩 1 个 KV 头、每个 token 每层 1 KiB，都是那一页的切法带来的
+  - to: kv-cache
+    kind: builds-on
+    note: 这里说的「笔记」就是 KV Cache；只有 10 层全注意力要存它，另外 30 层不存
   - to: paged-attention
     kind: builds-on
-    note: 这条请求尾巴上空着的 19 个槽位，就是分页方案承诺的「浪费最多一个块」的那个上限
+    note: 这条请求占住一个 2048 个位置的块只用掉 237 个，正是分页方案「最多浪费一个块」的上限
+  - to: prefix-caching
+    kind: builds-on
+    note: 这个模型在已发布的版本上默认不开前缀缓存，开了之后第二次提问能省掉哪一段，在那一页
+  - to: vllm-scheduler
+    kind: builds-on
+    note: 第一步算 37 个 token、之后每步算 1 个，是调度器按同一条规则分出来的，不是两套代码
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-25"
 origin: seed
 ---
 
-## 一句话
+## 你问了一句话，中间这几秒机器在干什么
 
-这个知识库从头到尾只跟一条请求。**Qwen3-0.6B，单卡昇腾，问题分词后 37 个 token，回答 200 个 token。** 后面几十页讲的都是它——它排在哪个队里、谁决定这一步算它、它的 K 和 V 写进了哪一格、算它的那个矩阵乘最后落到哪个核上。
+你在聊天框里打了一句话，按下回车。这句话被切成 token（模型眼里的一个字块，一段话会被切成很多个 token）之后是 37 个。过了几秒，模型回了你一段话，200 个 token。
+
+中间这几秒，机器做的事情是可以一条条数清楚的：它把整个模型从头到尾走了 200 遍；两颗芯片之间来回传了上万次数据；它在显存里给这次提问划了两块地方，一块几乎空着，另一块一上来就占满。
+
+这一页把这次提问的每个数字钉死。后面几十页讲的都是同一个例子走到某一步时发生了什么——它排在哪个队里、谁决定这一步算它、它算出来的东西写进了哪一格。钉死一个例子的好处很实在：每一页都能给出具体的数，而不是「一般来说会……」。
+
+## 这个例子的全部设定
+
+| 项 | 这个例子取什么 | 为什么是它 |
+| --- | --- | --- |
+| 模型 | Qwen3.6-35B-A3B | 昇腾官方为这个模型写了部署教程，模型结构和支持范围都查得到 |
+| 硬件 | 一张 Atlas A3 卡上的两颗 NPU | 官方示例就是两颗；光是这个模型的专家权重就有约 60 GiB，一颗 64 GB 的 NPU 装不下 |
+| 怎么摊到两颗上 | 注意力部分对半切，每层的 256 个专家按编号分成两堆 | 官方示例的做法，整条线在[专家并行](expert-parallel.md) |
+| 问题长度 | 37 个 token | 短到一步就能算完，不用切成几段分几步算 |
+| 回答长度 | 200 个 token | 长到能看清「一步吐一个 token」的过程，又短到一个块就装得下 |
+| 版本 | 昇腾适配层的 v0.23 维护分支、v0.26 分支、main 开发主线 | 三个版本本页都核过；取值不一样的地方写在下半 |
+
+这张表里只有「37」和「200」是我挑的，挑的理由写在第三列；其余都是模型和官方示例给定的。
+
+## 40 层里，只有 10 层要记笔记
+
+先看这个模型长什么样。它有 40 层——一层就是一套重复的计算，一个 token 要从第 1 层一路走到第 40 层，才轮到下一个 token。
+
+这 40 层里有两种注意力，这是整页最要紧的一件事。
+
+**全注意力**层要回头看前面所有 token。为了不每一步都把前面重算一遍，它把每个 token 算出来的两份数据存下来备查——后面把这份存下来的东西叫「笔记」。笔记会随着回答变长而越攒越多。
+
+**线性注意力**层不回头翻。它手里只有一份固定大小的「状态」，每看完一个 token 就把这个 token 揉进状态里，看完就扔。不管回答多长，这份状态都是那么大。
+
+这个模型每 4 层里有 3 层是线性注意力，第 4 层是全注意力。40 层排下来，第 4、8、12……一直到第 40 层是全注意力，一共 10 层；剩下 30 层是线性注意力。
 
 ```wiki-diagram
-file: the-request
+file: one-request-layers
 ```
 
-## 为什么要钉死一条请求
+这件事决定了后面所有关于显存的账：真正随着回答变长而变大的，只有那 10 层的笔记。
 
-因为不钉死，每一页就只能讲「一般来说」。
+## 每一层还有 256 个专家，一个 token 只用 8 个
 
-「调度器会给每个请求分配 token 预算」——分了多少？「KV Cache 按块分配」——这条请求分到几块？「prefill 和 decode 走不同的算子分支」——这条请求在第几步换的分支？没有具体的数，这些句子都是对的，但读完之后仍然不知道机器在做什么。这是上一版这批页最大的毛病：每一页都在复述机制，没有一页能说出一个具体时刻。
+除了注意力，每一层还有一组「专家」，每个专家是一小块计算。这个模型每层有 256 个专家，但一个 token 走到这一层时只挑其中 8 个来算，另外还有 1 个所有 token 都要过的共享专家。模型名字里的「35B-A3B」说的就是这件事：参数一共约 350 亿，每个 token 实际用到的只有约 30 亿。
 
-钉死一条之后，每一页都变成「**这条请求走到这里，发生了什么**」。页与页之间也就自动接上了——上一页结束的那一刻，正是下一页开始的那一刻。
+256 个专家整层放不进一颗 NPU，于是按编号分成两堆：0 到 127 号在一颗上，128 到 255 号在另一颗上。一个 token 选中的专家在哪颗上，它就被送到哪颗上去算，算完再送回来。
 
-## 这条请求的全部设定
+这里还有一个数值后面会反复出现：进专家这一步之前，两颗 NPU 要先把手上的 token 对半分。37 是奇数，分不匀，于是补一个空位凑成 38，每颗负责 19 个。完整的过程在[专家并行](expert-parallel.md)那一页。
 
-| 项 | 值 | 为什么选它 |
-|---|---|---|
-| 模型 | Qwen3-0.6B：28 层，H=1024，n_q=16，n_kv=8，d_h=128，bf16 | 全库的 worked example 一直用它，换模型等于把已有二十页的数都作废 |
-| 硬件 | 单张 Atlas A2（910B），TP=1 | 并行一开，「哪张卡算哪一半」会盖住「这一步在算什么」 |
-| 版本 | vllm-ascend v0.23 维护分支 + 配套的 vLLM v0.23.0；这张表的每个取值在 v0.26 分支 + vLLM v0.26.0 上都一样 | 两边必须成对，见 [vLLM 与昇腾各管什么](who-owns-what.md) |
-| 问题长度 | 37 个 token | 比一个块（128）短，于是 prefill 一步算完，不触发 chunked prefill |
-| 回答长度 | 200 个 token | 足够长到跨过块边界——这正是要看的那个时刻 |
-| `block_size` | 128 | 不是选的：命令行没写，`check_and_update_config` 里的 `refresh_block_size` 就填 128 [C10]（v0.26 分支上这个函数逐字未动，只是挪到了 `utils.py` 的另一处 [C13]）。后端报的 `[128]` [C5][C6]（`AscendDSABackend` 还报更小的块 [C9]）是 kernel 支持范围，不是定这个值的那一步 |
+## 200 步：第一步算 37 个 token，之后每步算 1 个
 
-上面只有「37」和「200」是我挑的 [A]，挑的理由写在第三列；其余都是模型和代码给定的。
+回答 200 个 token，就要把模型从头走 200 遍。
 
-## 三个可以拿计算器复核的数
+- **第一步**把问题的 37 个 token 一起送进去，走完 40 层，末尾吐出回答的第 1 个 token。这一步通常叫 prefill（预填充：先把问题里所有 token 一起算一遍）。
+- **之后的 199 步**，每一步只送进上一步刚吐出来的那 1 个 token，走完 40 层，再吐 1 个。这叫 decode（一次吐一个 token）。
 
-**一、每个 token 要存多少 KV。** 一层存 K 和 V 两份，每份 `n_kv × d_h` 个 bf16：
+两个名字只是讲给人听的分法。机器每一步做的事是同一套：拿到这一步该算的 token，从第 1 层走到第 40 层。区别只在这一步手里有 37 个 token 还是 1 个。
 
-```
-2 × 8 × 128 × 2 B = 4 KiB   （每 token 每层）
-4 KiB × 28 层     = 112 KiB （每 token 全模型）
-```
+所以「几秒钟」是这么来的：第一步要算 37 个 token，算得重一点；后面 199 步每步只算 1 个，但每一步都得把 40 层的权重从头到尾读一遍——这 199 步是耗时间的大头。
 
-**二、一个块有多大。** 一块装 128 个 token 的位置：
+## 这次提问在一颗 NPU 上占多大地方
 
-```
-128 × 4 KiB   = 512 KiB （每块每层）
-512 KiB × 28  = 14 MiB  （每块全模型）
+前面说机器给这次提问划了两块地方，现在来看这两块各有多大。下面的数都是**一颗 NPU 上的量**，另一颗对称。
+
+**第一块：全注意力那 10 层的笔记。** 两颗 NPU 把注意力对半分之后，每颗每层只需要给每个 token 存 1 KiB 的笔记；10 层就是 10 KiB。一次提问一共 237 个 token（问题 37 + 回答 200），笔记加起来 2.3 MiB——很小。
+
+但笔记不是一个 token 一个 token 现要的，是**一次要一大片**，一片叫一个块。这个模型在两颗 NPU 上的块是 2048 个位置。也就是说，这次提问一开口就占住了一个能放 2048 个 token 的块，只用掉开头 237 个，剩下 1811 个位置空着，别的请求也拿不走。
+
+```wiki-diagram
+file: one-request-block
 ```
 
-这两个数的完整推导在 [KV Cache Spec](kv-cache-spec.md)，那里是从块张量的真实形状 `(2, num_blocks, 128, 8, 128)` 推的 [D]。
+为什么块这么大？因为线性注意力那 30 层的状态得和注意力的块摆得一样齐，块的大小是倒着从状态的大小算出来的，不是随手定的。这是「混合」模型特有的，纯注意力模型的块通常小得多。
 
-**三、这条请求占几块。** 37 + 200 = 237 个 token，`ceil(237 / 128) = 2` 块，共 28 MiB；真正装东西的只有 237 × 112 KiB = 25.9 MiB [D]。差出来的 2.1 MiB 是第二块尾巴上那 **19 个空槽位**——别的请求拿不走，因为块的所有权是整块的。
+**第二块：线性注意力那 30 层的状态。** 每层的状态约 1 MiB，30 层合起来约 30.7 MiB。它和回答多长完全无关——回答 200 个也好、2000 个也好，都是这么大。
 
-## 时间轴上那两个要记住的时刻
+不过实际占掉的比这更多：每一层的状态在显存里要补齐到和一整个注意力块一样大，于是 30 层实际占掉约 60.7 MiB，其中大约一半是补出来的空白。
 
-**第 1 步：prefill。** 37 个 token 一次算完，一次 forward。图上左边那个实心块就是它——实心表示「这些 token 在同一步里」。
+```wiki-diagram
+file: one-request-memory
+```
 
-**第 92 步 decode：换块。** 位置 0 到 127 都在第 0 块里；prompt 占掉 0–36，decode 每步写一格，写到第 91 步正好把第 127 格填满。第 92 步要写位置 128，第 0 块没有位置了，上游的 `KVCacheManager.allocate_slots` 这时才去 `BlockPool` 要第二块 [C3][C4]。
+两块加起来，这次提问在每颗 NPU 上占掉约 80 MiB，其中真正装着数据的约 33 MiB。**和直觉相反的地方在这里**：占地方的大头不是那份「越答越多」的笔记，而是那份从一开始就固定、和回答长短无关的状态。
 
-这个时刻值得单独记住，因为它把两件常被混为一谈的事分开了：
+这些数的前提是：两颗 NPU、按官方示例的配置启动、状态用 4 字节精度存。换成 4 颗、8 颗，块的大小和每颗要存的量都会变，具体值在下半。
 
-- **要不要新块、要哪一块** —— 上游决定，在 EngineCore 进程里 [C3][C4]；
-- **这个 token 写进这块的第几格** —— 昇腾决定，`compute_slot_mapping` 在 Worker 进程里算 [C7]。
+## 同样的问题问第二遍，机器还会从头再算一遍
 
-## 一步 = 一次 forward，不分 prefill 和 decode
+前缀缓存（两条请求开头一样，开头那些块直接拿来用，不重算）听上去理所当然，但对这个模型，在两个已发布的版本上它默认是**关着**的——不明确打开就不会生效；开发主线上才改回默认打开。
 
-图上一个实心块加 199 根竖线，一共 200 根，就是 200 次 forward。
+官方教程给这个模型的示例命令里明确打开了它。所以如果你照教程启动，第二次提问确实能省掉重复的开头；如果你什么都不写，就会老老实实从头再算一遍。这一条只对这一类混合注意力模型成立，别的模型的默认值不一样。
 
-但要注意：**「prefill 阶段」和「decode 阶段」是讲给人听的说法，调度器里没有这两个东西。** 上游在 `schedule()` 的注释里把这句话写在了最前面——调度器只看每个请求的 `num_computed_tokens` 还差多少追上 `num_tokens_with_spec`，然后尽量分配 token 让它追上 [C2]。第 1 步给这条请求分 37 个 token，第 2 步给 1 个，用的是同一段代码、同一条规则。
+## 这个例子看不见什么
 
-正因为如此，`EngineCore.step()` 才能一个分支都不写地循环下去：调度、执行、更新，不判断现在是哪个阶段 [C1]。
+它是最简单的一次提问，所以有几件事它看不见：
 
-要补一句的是：这条请求什么都没配，异步调度就已经默认开着了 [C11][C12]，所以循环里实际调的是 `step_with_batch_queue` 而不是 `step()`。调度、执行、更新这三件事的顺序没变，变的是第二件之后不等结果就回头做下一圈的第一件，见 [异步调度](async-scheduling.md)。
+- **看不到抢位置。** 队列里只有它一条，看不到多条请求抢算力、排队、被挤下去。
+- **看不到长上下文。** 237 个 token 一个块就装下了，长问题要切成几段算的那些麻烦，它一样都碰不到。
+- **看不到跨机器。** 两颗 NPU 在同一张卡上，不涉及机器之间的网络。
+- **看不到分开部署。** 官方支持矩阵里，这个模型把问题和回答拆到不同机器上跑这件事三个版本都写着不支持。
+- **权重精度不一样。** 官方示例用的是压缩过的权重，本页算显存时按未压缩的算，所以专家那 60 GiB 是上限值。
 
-## 它会在下面这些页再次出现
+后面的页需要这几种情形时，会自己说明它在这个例子上加了什么。加什么要写明白，不能换一个例子重讲。
 
-每一页都从这条请求的某一刻切进去：
+## 后面各页从哪一刻接手
 
-| 请求走到哪一刻 | 哪一页接手 |
-|---|---|
-| 文字还没变成 token，进程还没分 | [vLLM 的形状](vllm-v1-shape.md) |
-| 排进队列，等着被挑中 | [EngineCore：那个 while 循环](vllm-engine-core.md) |
-| 被挑中，拿到这一步的 37 个 token 名额 | [调度器：没有 prefill 和 decode 之分](vllm-scheduler.md) |
-| 拿到第 0 块；第 92 步拿到第 1 块 | [block 是怎么分出来的](vllm-kv-block-allocation.md) |
-| `SchedulerOutput` 跨进程送到昇腾侧 | [vLLM 与昇腾各管什么](who-owns-what.md) |
-| 落到 `NPUWorker`，换成张量 | [一次请求的调用链](request-call-chain.md) |
-| 算出「第 128 格」这个下标 | [准备输入：从请求到张量](prepare-inputs-flow.md) |
-| 进入注意力算子 | [注意力后端家族](attention-backend-family.md) |
-| 它每个 token 到底占掉多少字节 | [四种注意力的代价](attention-cost.md) |
-| 矩阵乘落到 AI Core | [算子与核函数](ops-and-kernels.md) |
-| 一次 RMSNorm 掉到最底下那一层 | [一个算子从 Python 走到 AI Core](op-to-ai-core.md) |
+| 走到哪一刻 | 哪一页接手 |
+| --- | --- |
+| 文字还没变成 token，进程还没分好 | [vLLM 的形状](vllm-v1-shape.md) |
+| 排进队列，等着被挑中 | [引擎的那个循环](vllm-engine-core.md) |
+| 被挑中，拿到第一步的 37 个 token 名额 | [调度器：没有 prefill 和 decode 之分](vllm-scheduler.md) |
+| 向显存要那个 2048 个位置的块 | [block 是怎么分出来的](vllm-kv-block-allocation.md) |
+| 算出「这个 token 写进第几格」 | [从请求到张量](prepare-inputs-flow.md) |
+| 注意力对半切给两颗 NPU | [张量并行](tensor-parallel.md) |
+| 每层的 256 个专家分成两堆，token 发过去再收回来 | [专家并行](expert-parallel.md) |
+| 全注意力那 10 层开始留笔记 | [KV Cache](kv-cache.md) |
+| 每种注意力各占多少字节 | [四种注意力的代价](attention-cost.md) |
+| 第二次提问想省掉开头 | [前缀缓存](prefix-caching.md) |
 
-## 这条请求代表不了什么
+## 对照源码
 
-它是最简单的一条，所以有几件事它看不见 [A]：
+这一节给要去核对源码、查配置、排查问题的人。上半每个数的依据都在这里。
 
-- **批不起来。** 它是队列里唯一的请求，看不到多条请求抢 token 预算，也看不到抢占。
-- **没有前缀命中。** 第一次问，`get_computed_blocks` 返回 0 [C8]。前缀复用是另一条线。
-- **不跨卡。** TP=1，没有 all-reduce，也没有 PP 的跨 rank 收发。
-- **不触发 chunked prefill。** 37 比一步的 token 预算小得多，一步就算完了。
+### 怎么开
 
-需要这四种情形的页会自己说明它在这条请求上加了什么。加什么要写明白，不能换一条请求重讲。
+例子对应的最小启动命令：
+
+```bash
+vllm serve Qwen/Qwen3.6-35B-A3B \
+    --tensor-parallel-size 2 \
+    --enable-expert-parallel \
+    --enable-prefix-caching
+```
+
+- 官方教程给 A2/A3 的示例用的是 W8A8 权重，带 `--quantization ascend` 和一组调优项（`--max-model-len 262144`、`--async-scheduling`、`--compilation-config` 等）[S2]，并逐条解释了每个参数。本页只取上面这三项，其余保持默认。
+- 模型形状全部来自官方配置 [S1]：`num_hidden_layers: 40`；`layer_types` 里下标 3、7、…、39 是 `full_attention`（10 层），其余 30 层是 `linear_attention`，`full_attention_interval: 4`；`num_attention_heads: 16`、`num_key_value_heads: 2`、`head_dim: 256`、`hidden_size: 2048`；`num_experts: 256`、`num_experts_per_tok: 8`、`moe_intermediate_size: 512`；线性注意力部分 `linear_num_key_heads: 16`、`linear_num_value_heads: 32`、`linear_key_head_dim: 128`、`linear_value_head_dim: 128`、`linear_conv_kernel_dim: 4`、`mamba_ssm_dtype: "float32"`。
+- 每颗 NPU 的 KV 头数是 `max(1, total_num_kv_heads // tensor_parallel_size)` [C10]，所以 TP=2 时 `max(1, 2 // 2) = 1`。TP=4、8 时同样是 1（复制，不再切）。
+- **块大小不用自己设。** 通用那条路（`refresh_block_size` 把块大小定成 128）对混合模型直接返回，不参与 [C19]；改由昇腾的 `patch_mamba_config` 按「SSM 页对齐」算：`attn_block_size = kernel_block_size × cdiv(ssm_block_page_size, kernel_block_size × attn_single_token_k_page_size)`，其中 `kernel_block_size = 128` [C15]。代入这个模型：TP=1 与 TP=2 都得 2048，TP=4 得 1024，TP=8 得 512 [D]。
+- 状态的精度不是猜的：`mamba_ssm_cache_dtype` 为 `auto` 时取 HF 配置里的 `mamba_ssm_dtype`，也就是 fp32 [C13]。
+- A3 一张卡是双 die，一台机器 8 张卡共 16 个芯片，vLLM 按芯片计数 [S4]；本页的「一颗 NPU」就是一个芯片。
+- 「37 补成 38、每颗 19 个」来自 MC2 的 prepare：先补齐到 TP 的整数倍，再按 TP rank 沿 token 维切开 [C27]，细节在[专家并行](expert-parallel.md)。
+
+### 会报什么错
+
+- 用户传的 `--block-size` 比算出来的小时**不报错、静默改大**，只留一条 info 日志 `Setting attention block size to %d tokens ...`；传得比它大则保留原值 [C16]。想按 128 一块来理解这个模型的人会在这里对不上账。
+- SSM 页和注意力页对不齐时直接断言失败：`Cannot align ssm_page_size and attn_page_size.` [C15]。
+- 补齐 mamba 页时也有一条 info 日志，但它报的**不是「浪费了多少」**：算的是卷积页占补齐后页面的比例，这个例子约 1.2%；真正被补出来的空白占整页约 49% [C17]。照日志估显存会差一倍。
+- 把问题和回答拆到不同机器上跑（PD 分离），三个版本的支持矩阵里这个模型都是 ❌，见下面的版本差异表。
+
+### 开销和什么时候别开
+
+以下都是 TP=2、一颗 NPU、bf16 权重下的值。
+
+- **全注意力 KV**：`2（K 与 V）× 1（每颗的 KV 头）× 256（head_dim）× 2 B = 1 KiB`（每 token 每层），10 层合计 **10 KiB/token**。TP=1 时每颗 2 个 KV 头，是 20 KiB。
+- **一个块**：`2048 × 10 KiB = 20 MiB`/NPU。这次提问 237 个 token 只写进 `237 × 10 KiB = 2.31 MiB`。块大是这类模型的特点，代价是**短请求、高并发时每条请求至少占住 20 MiB**；请求平均只有几十上百个 token 时，这笔浪费比 KV 本身还大。
+- **线性注意力状态**：形状由 `gated_delta_net_state_shape` 给出 [C12]——卷积状态 `(conv_dim / tp, kernel - 1)`，`conv_dim = 128 × 16 × 2 + 128 × 32 = 8192`，TP=2 下 `4096 × 3 × 2 B = 24 KiB`；SSM 状态 `(32 / 2, 128, 128) × 4 B = 1 MiB`。30 层合计 **30.7 MiB/请求/NPU**。这一项和序列长短无关。
+- **补齐后的实际占用**：每个 mamba 页被补齐成「一整块注意力页 + 卷积页」，即 `2048 × 1 KiB + 24 KiB = 2 MiB + 24 KiB` [C17]；上游算显存时用的就是补齐后的值 [C18]。30 层合计 **60.7 MiB/请求/NPU**，其中约 30 MiB 是空白 [D]。两个数都要记：讲状态本身用 30.7，估显存容量必须用 60.7。
+- 合计约 80.7 MiB/请求/NPU，真正装数据的约 33 MiB。
+- 前缀缓存不是白开的：官方教程提醒长上下文场景要盯着显存，它会加重 KV 压力 [S3]。
+
+### 版本差异
+
+| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 |
+| --- | --- | --- | --- |
+| A2/A3 上的支持状态 | ✅ 支持 [S5] | 🔵 实验性 [S6] | 🔵 实验性 [S7] |
+| 块大小怎么算 | 按 SSM 页对齐 | 同一段代码 [C23] | 同一套算法，外面多包了一层稀疏索引模型的分支，普通混合模型走的还是这条 [C24] |
+| 混合模型跳过通用块大小 | 有 | 有 [C25] | 有 [C26] |
+| 前缀缓存的默认值 | 关：上游把混合模型判为「不支持前缀缓存」[C20][C21] | 关：已判为支持，但对混合模型刻意保持手动打开 [C22] | 开：恢复「支持就默认开」，混合模型判为支持 [C28][C29] |
+| 官方教程的启动命令 | 显式写了打开前缀缓存 [S2] | 同 | 同 |
+
+「实验性」只指 A2/A3 这张表；同一份文档里 Atlas 300I DUO 那张表三个版本都是 ✅。官方没有写降级为实验性的原因。
+
+### 源码位置
+
+| 看什么 | 在哪 |
+| --- | --- |
+| 模型结构 | HF 仓库 `Qwen/Qwen3.6-35B-A3B` 的 `config.json`，看 `text_config` |
+| 每颗 NPU 分到几个 KV 头 | 上游 `vllm/config/model.py`，`get_num_kv_heads` |
+| 线性注意力状态的形状 | 上游 `vllm/model_executor/layers/mamba/mamba_utils.py`，`gated_delta_net_state_shape` |
+| 状态用什么精度 | 上游 `vllm/model_executor/models/config.py`，`Qwen3_5ForConditionalGenerationConfig` |
+| 块大小怎么算、页怎么补齐 | `vllm_ascend/patch/platform/patch_mamba_config.py` |
+| 补齐后的页怎么计入显存 | 上游 `vllm/v1/kv_cache_interface.py`，`MambaSpec.page_size_bytes` |
+| 混合模型为什么不走通用块大小 | `vllm_ascend/utils.py`，`refresh_block_size` |
+| 前缀缓存的默认值 | 上游 `vllm/engine/arg_utils.py`，`_set_default_chunked_prefill_and_prefix_caching_args` |

@@ -16,7 +16,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: "2026-09-22"
+updated: '2026-09-22'
 relations:
   - to: expert-parallel
     kind: builds-on
@@ -50,9 +50,13 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38'
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L486
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
+  - >-
+    raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -119,21 +123,11 @@ elif comm_quant_mode is not None:
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 无 |
-| releases/v0.20.2rc | 无 |
-| releases/v0.21.0rc | 无 |
-| releases/v0.22.1rc | 无 |
-| releases/v0.23.0 | 无 |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
-| releases/v0.28.0rc | 有（2 个文件） |
-| main | 有（2 个文件） |
+| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（2 个文件） |
+| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（2 个文件） |
 
 - **引入**：2026-09-07 · 203ae3eb0a734c3a7ba638d84e116bcca24b1a09 · PR [#15441](https://github.com/vllm-project/vllm-ascend/pull/15441) —— [Feature][Quant] Introduce combine_quant_mode to force MC2 combine stage communication quantization (#15441)
-  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor
+  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor
   - `vllm_ascend/ops/fused_moe/token_dispatcher.py` +6 / −1（文本行变化）
   - `vllm_ascend/ascend_config.py` +4 / −0（文本行变化）
 
@@ -148,8 +142,8 @@ elif comm_quant_mode is not None:
 | 标识 | `additional_config["combine_quant_mode"]` |
 | 类型 | `Literal[0, 2, 3, 4]` |
 | 默认表达式 | `0` |
-| 定义 | `vllm_ascend/ascend_config.py:474` [C2] |
-| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
+| 定义 | `vllm_ascend/ascend_config.py:486` [C16] |
+| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
 
 字段注释：
 

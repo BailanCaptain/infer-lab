@@ -19,7 +19,7 @@ verified:
   - releases/v0.26.0rc
   - main
 evidence: C
-updated: "2026-09-22"
+updated: '2026-09-22'
 relations:
   - to: kv-cache-quantization
     kind: builds-on
@@ -49,9 +49,13 @@ sources:
     vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L83
   - >-
     https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L540
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
+  - >-
+    raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
 ---
@@ -102,35 +106,25 @@ indexer 的 K 缓存写入是个**极碎的操作**：每个 token 一个 slot�
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 无 |
-| releases/v0.20.2rc | 无 |
-| releases/v0.21.0rc | 有（2 个文件） |
-| releases/v0.22.1rc | 有（2 个文件） |
-| releases/v0.23.0 | 有（2 个文件） |
-| releases/v0.24.0rc | 有（2 个文件） |
-| releases/v0.25.1rc | 有（2 个文件） |
-| releases/v0.26.0rc | 有（2 个文件） |
-| releases/v0.27.1rc | 有（2 个文件） |
-| releases/v0.28.0rc | 无 |
-| main | 有（1 个文件） |
+| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（1 个文件） |
+| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（1 个文件） |
 
 - **引入**：2026-06-10 · a53f8a023016219a3d5246a881d74d4d8d892f0c · PR [#10292](https://github.com/vllm-project/vllm-ascend/pull/10292) —— [Feature] add ascendc ops store_kv_block (#10292)
-  包含该提交的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
+  包含该提交的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann
   - `vllm_ascend/attention/sfa_v1.py` +51 / −10（文本行变化）
   - `vllm_ascend/worker/model_runner_v1.py` +3 / −2（文本行变化）
   - `vllm_ascend/ascend_config.py` +1 / −0（文本行变化）
   - `vllm_ascend/attention/utils.py` +4 / −0（文本行变化）
   - `vllm_ascend/spec_decode/llm_base_proposer.py` +3 / −0（文本行变化）
 - **移除**：2026-09-07 · c30092741be0829dfb387103a32f433f5c0ecb5c · PR [#15752](https://github.com/vllm-project/vllm-ascend/pull/15752) —— [Refactor] Auto-enable LI C8 reshape optimization (#15752)
-  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor
+  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor
   - `vllm_ascend/ascend_config.py` +21 / −10（文本行变化）
   - `vllm_ascend/attention/sfa_v1.py` +2 / −2（文本行变化）
 - **引入**：2026-09-20 · 1e0742722d149b99f91ece504180aa9bdf8b69af · PR [#16952](https://github.com/vllm-project/vllm-ascend/pull/16952) —— [Misc][Config] Restore C8 reshape optimization switch (#16952)
-  包含该提交的 tag：未找到；分支：origin/main
+  包含该提交的 tag：未找到；分支：origin/main、origin/releases/v0.29.0rc
   - `vllm_ascend/ascend_config.py` +7 / −3（文本行变化）
 
-当前含该标识符的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
+当前含该标识符的 tag：v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
 
 ## 参数定义（自动生成）
 
@@ -141,8 +135,8 @@ indexer 的 K 缓存写入是个**极碎的操作**：每个 token 一个 slot�
 | 标识 | `additional_config["c8_enable_reshape_optim"]` |
 | 类型 | `bool` |
 | 默认表达式 | `True` |
-| 定义 | `vllm_ascend/ascend_config.py:526` [C1] |
-| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
+| 定义 | `vllm_ascend/ascend_config.py:540` [C17] |
+| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
 
 字段注释：
 

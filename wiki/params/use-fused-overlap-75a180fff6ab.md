@@ -17,14 +17,13 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: "2026-09-22"
+updated: '2026-09-22'
 relations:
   - to: kv-cache-sparse-offload
     kind: builds-on
     note: 它是那套卸载在 decode 上的第二条路径开关，只有 sparse_kv_offload_config.enabled 为真时才有人读它
 sources:
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1478
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1478'
   - >-
     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L1478
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1467-L1486'
@@ -52,9 +51,13 @@ sources:
   - >-
     https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054'
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L1535
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
+  - >-
+    raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -115,21 +118,11 @@ rawSources:
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 无 |
-| releases/v0.20.2rc | 无 |
-| releases/v0.21.0rc | 无 |
-| releases/v0.22.1rc | 无 |
-| releases/v0.23.0 | 无 |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
-| releases/v0.28.0rc | 有（3 个文件） |
-| main | 有（3 个文件） |
+| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（3 个文件） |
+| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（3 个文件） |
 
 - **引入**：2026-09-07 · 1493369b754840da75c117651b50034a4cc7ae2d · PR [#14957](https://github.com/vllm-project/vllm-ascend/pull/14957) —— [Feature][Attention] Add fused sparse attention overlap decode support for Ascend SFA KV offload (#14957)
-  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor
+  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor
   - `vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp` +0 / −336（文本行变化）
   - `vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py` +498 / −40（文本行变化）
   - `vllm_ascend/attention/sfa_kv_offload.py` +687 / −1（文本行变化）
@@ -146,8 +139,8 @@ rawSources:
 | 标识 | `additional_config["sparse_kv_offload_config"]["use_fused_overlap"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:1478` [C2] |
-| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
+| 定义 | `vllm_ascend/ascend_config.py:1535` [C20] |
+| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
 
 字段注释：
 

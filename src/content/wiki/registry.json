@@ -1249,6 +1249,31 @@
       ]
     },
     {
+      "id": "block-table-no-commit-optimize-8328d0d2d00d",
+      "title": "block_table_no_commit_optimize",
+      "type": "param",
+      "origin": "seed",
+      "summary": "block_table_no_commit_optimize 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L514"
+      ],
+      "verified": [],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "params/block-table-no-commit-optimize-8328d0d2d00d.md",
+      "backlinks": []
+    },
+    {
       "id": "c8-enable-reshape-optim-8bd7e5f82c6c",
       "title": "c8_enable_reshape_optim",
       "type": "param",
@@ -1281,7 +1306,8 @@
         "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L1547-L1549",
         "vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_v1.py#L460-L467",
         "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L83",
-        "https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html"
+        "https://docs.vllm.ai/projects/ascend/en/v0.26.0rc1/user_guide/configuration/additional_config.html",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L540"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -1291,6 +1317,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md"
       ],
       "relations": [
@@ -1448,7 +1475,8 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455",
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L486"
       ],
       "verified": [
         "main"
@@ -1456,6 +1484,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
@@ -2159,7 +2188,8 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455",
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L478"
       ],
       "verified": [
         "main"
@@ -2167,6 +2197,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
@@ -2271,6 +2302,31 @@
       ]
     },
     {
+      "id": "enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9",
+      "title": "enable_pcp_embedding_lmhead_weight_sharding",
+      "type": "param",
+      "origin": "seed",
+      "summary": "enable_pcp_embedding_lmhead_weight_sharding 的静态定义，正文待补。",
+      "aliases": [],
+      "chapters": [],
+      "order": 500,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L480"
+      ],
+      "verified": [],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md"
+      ],
+      "relations": [],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-09-23",
+      "file": "params/enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9.md",
+      "backlinks": []
+    },
+    {
       "id": "enable-pcp-o-proj-weight-sharding-8528cf5af9c6",
       "title": "enable_pcp_o_proj_weight_sharding",
       "type": "param",
@@ -2303,7 +2359,8 @@
         "vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L1281-L1295",
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L479"
       ],
       "verified": [
         "main"
@@ -2311,6 +2368,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
@@ -2445,7 +2503,8 @@
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L607-L612",
         "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L640-L659",
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/graph_mode.md#L184-L186",
-        "vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L210-L213"
+        "vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L210-L213",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L124"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -2455,6 +2514,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
       "relations": [
@@ -4475,7 +4535,8 @@
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L97-L104",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50"
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L532"
       ],
       "verified": [
         "main"
@@ -4483,6 +4544,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
@@ -8214,7 +8276,8 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L316-L334",
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455",
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38"
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L477"
       ],
       "verified": [
         "main"
@@ -8222,6 +8285,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],
@@ -8861,7 +8925,8 @@
         "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1090-L1093",
         "vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.md#L219-L238",
         "https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/layerwise_and_sparse_kv_cache_offloading.html",
-        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054"
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054",
+        "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L1535"
       ],
       "verified": [
         "main"
@@ -8869,6 +8934,7 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
+        "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
       ],

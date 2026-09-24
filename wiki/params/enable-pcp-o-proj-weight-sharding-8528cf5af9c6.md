@@ -15,7 +15,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: "2026-09-22"
+updated: '2026-09-22'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -53,9 +53,13 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38'
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L479
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
+  - >-
+    raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -119,21 +123,11 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 无 |
-| releases/v0.20.2rc | 无 |
-| releases/v0.21.0rc | 无 |
-| releases/v0.22.1rc | 无 |
-| releases/v0.23.0 | 无 |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
-| releases/v0.28.0rc | 有（3 个文件） |
-| main | 有（3 个文件） |
+| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（3 个文件） |
+| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（3 个文件） |
 
 - **引入**：2026-09-07 · 78cd10dec8f1307634506b736d8c27000500a62d · PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) —— [Feature] Enable pcp + o_proj weight split/gather (#14814)
-  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor
+  包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor
   - `vllm_ascend/quantization/tp_weight_switch.py` +0 / −296（文本行变化）
   - `vllm_ascend/attention/context_parallel/sfa_cp.py` +122 / −58（文本行变化）
   - `vllm_ascend/attention/context_parallel/dsa_cp.py` +43 / −42（文本行变化）
@@ -151,8 +145,8 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 | 标识 | `additional_config["enable_pcp_o_proj_weight_sharding"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:468` [C2] |
-| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
+| 定义 | `vllm_ascend/ascend_config.py:479` [C18] |
+| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
 
 字段注释：
 

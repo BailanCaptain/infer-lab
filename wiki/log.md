@@ -440,3 +440,17 @@ vllm-ascend@releases/v0.26.0rc 2ed6cbbaf481d84cfd3f2d01d47bcf79ee064c1f → 16b0
 ## [2026-09-23] ingest | HCCL 通信缓冲区怎么定：默认 200、DP 组自己算、MC2 组不给 pg_options
 晋升 concepts/gap-a5164fe10fa9184412f8.md
 
+## [2026-09-23] ingest | 参数增量
+
+vllm-ascend@main a71b766ce6fc0a9669a412e15a5cf53f7f827093 → 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f；新增 4 / 删除 4 / 变更 6。
+
+- enable_reduce_sample: 默认表达式 "False" → "False"
+- finegrained_tp_config: 默认表达式 "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())" → "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())"
+- scheduler_config: 默认表达式 "dataclasses.field(default_factory=lambda: SchedulerConfig())" → "dataclasses.field(default_factory=lambda: SchedulerConfig())"
+- oproj_tensor_parallel_size: 默认表达式 "0" → "0"
+- mlp_tensor_parallel_size: 默认表达式 "0" → "0"
+- target_layer_ids: 默认表达式 "<unknown>" → "None"
+
+## [2026-09-23] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

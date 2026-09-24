@@ -16,7 +16,7 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: "2026-09-22"
+updated: '2026-09-22'
 relations:
   - to: kvpp
     kind: builds-on
@@ -25,8 +25,7 @@ relations:
     kind: builds-on
     note: 它是工厂注入的字段而不是用户输入，能不能写、写了会怎样，由 _NON_USER_INPUT_KEYS 那条构造链决定
 sources:
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L518
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L518'
   - >-
     vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L518
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L60-L77'
@@ -45,9 +44,13 @@ sources:
     https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50'
+  - >-
+    vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L532
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
+  - >-
+    raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
   - >-
@@ -109,21 +112,11 @@ vllm serve <非 hybrid 的 MLA 模型> --tensor-parallel-size 8 --enforce-eager 
 
 | 版本 | 是否存在 |
 | --- | --- |
-| releases/v0.13.0 | 无 |
-| releases/v0.18.0 | 无 |
-| releases/v0.20.2rc | 无 |
-| releases/v0.21.0rc | 无 |
-| releases/v0.22.1rc | 无 |
-| releases/v0.23.0 | 无 |
-| releases/v0.24.0rc | 无 |
-| releases/v0.25.1rc | 无 |
-| releases/v0.26.0rc | 无 |
-| releases/v0.27.1rc | 无 |
-| releases/v0.28.0rc | 有（6 个文件） |
-| main | 有（6 个文件） |
+| a71b766ce6fc0a9669a412e15a5cf53f7f827093 | 有（6 个文件） |
+| 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f | 有（7 个文件） |
 
 - **引入**：2026-09-11 · 45b74a6904a2ea7b90c4f441da014003984099d2 · PR [#16094](https://github.com/vllm-project/vllm-ascend/pull/16094) —— [Feature][KVPP] Add eager KV layer parallelism with full-layer broadcast (#16094)
-  包含该提交的 tag：未找到；分支：origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/revert-15908-new-refactor
+  包含该提交的 tag：未找到；分支：origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor
   - `vllm_ascend/worker/worker.py` +26 / −4（文本行变化）
   - `vllm_ascend/platform.py` +5 / −2（文本行变化）
   - `vllm_ascend/attention/mla_v1.py` +8 / −1（文本行变化）
@@ -141,8 +134,8 @@ vllm serve <非 hybrid 的 MLA 模型> --tensor-parallel-size 8 --enforce-eager 
 | 标识 | `additional_config["kvpp_config"]` |
 | 类型 | `KVPPConfig` |
 | 默认表达式 | `dataclasses.field(default_factory=KVPPConfig, kw_only=True)` |
-| 定义 | `vllm_ascend/ascend_config.py:518` [C2] |
-| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
+| 定义 | `vllm_ascend/ascend_config.py:532` [C17] |
+| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
 
 字段注释：
 

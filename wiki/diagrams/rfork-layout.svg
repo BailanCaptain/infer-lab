@@ -1,41 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 472" width="900" height="472" role="img" aria-label="两种布局路径：橙色阶段在读取前，蓝色阶段在读取后">
-  <title>两种布局路径：橙色阶段在读取前，蓝色阶段在读取后</title>
-  <rect width="900" height="472" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="45" width="860" height="152" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="59" width="272.3" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="77.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">processed layout：量化 / NZ 等路径</text>
-  <rect x="20" y="250" width="860" height="152" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="36" y="264" width="228.8" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="47" y="282.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">checkpoint layout：其余路径</text>
-  <rect x="45" y="110" width="260" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="57" y="126" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(63.4 132.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
-  <text x="97" y="138.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">布局准备 + NPU 同步</text>
-  <text x="97" y="156.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">此时还没有申请 source lease</text>
-  <rect x="320" y="110" width="260" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="332" y="126" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(338.4 132.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="372" y="138.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">申请、注册、验收、读取</text>
-  <text x="372" y="156.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">填入 seed 的已处理权重</text>
-  <rect x="595" y="110" width="260" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="607" y="126" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(613.4 132.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="647" y="138.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">eval 与 seed 发布判断</text>
-  <text x="647" y="156.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不重复一般布局后处理</text>
-  <rect x="45" y="315" width="260" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="57" y="331" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(63.4 337.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="97" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">申请、注册、验收、读取</text>
-  <text x="97" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">本地已构建模型骨架</text>
-  <rect x="320" y="315" width="260" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="332" y="331" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(338.4 337.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
-  <text x="372" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">加载后处理</text>
-  <text x="372" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">未量化 MoE 有专门跳过逻辑</text>
-  <rect x="595" y="315" width="260" height="64" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="607" y="331" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(613.4 337.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="647" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">eval，刷新注册再发布</text>
-  <text x="647" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">后处理可能替换底层 storage</text>
-  <path d="M305 142 L320 142" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M320 142 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M580 142 L595 142" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M595 142 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M305 347 L320 347" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
-  <path d="M320 347 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M580 347 L595 347" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
-  <path d="M595 347 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
-  <text x="35" y="442" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条路都排除 topk_indices_buffer；它是接收实例自己的工作区，不是要继承的权重。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="两条路都从 A 读权重，差别在后处理放在哪一侧：要转布局的，读之前先转好；按原形状搬的，读完再处理并刷新登记">
+  <title>两条路都从 A 读权重，差别在后处理放在哪一侧：要转布局的，读之前先转好；按原形状搬的，读完再处理并刷新登记</title>
+  <defs><marker id="rfork-layout-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M380 70 L430 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
+  <path d="M620 70 L670 70" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
+  <path d="M380 180 L430 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
+  <path d="M620 180 L670 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-layout-ah-control)"/>
+  <rect x="190" y="40" width="190" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="285" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">转布局 + 同步</text>
+  <rect x="430" y="40" width="190" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="525" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 A 读</text>
+  <rect x="670" y="40" width="190" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="765" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">直接发布</text>
+  <rect x="190" y="150" width="190" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="285" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">只搭骨架</text>
+  <rect x="430" y="150" width="190" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="525" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从 A 读</text>
+  <rect x="670" y="150" width="190" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="765" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后处理 · 刷新登记</text>
+  <text x="40" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">要转布局</text>
+  <text x="40" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">按原形状</text>
 </svg>

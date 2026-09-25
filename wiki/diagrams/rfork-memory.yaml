@@ -1,21 +1,23 @@
-layout: scene
+layout: figure
 id: rfork-memory
-caption: 地址教学例子：逻辑权重范围小于支撑分配块，注册期间还要保住原 storage
-size: [900, 440]
-regions:
-  - { label: 分配器记录的支撑块：1024 字节, note: "教学地址 [1000, 2024)，下方每格代表 128 字节", at: [25, 42], size: [850, 195], tone: muted }
-strips:
-  - { at: [90, 128], cells: 8, cell: 88, h: 42, gap: 0, tone: muted }
-  - { at: [178, 128], cells: 1, cell: 88, h: 42, gap: 0, overlay: true, tone: ascend }
-notes:
-  - { at: [82, 198], text: "1000", width: 70, size: 13 }
-  - { at: [177, 198], text: "1128", width: 75, size: 13 }
-  - { at: [265, 198], text: "1256", width: 75, size: 13 }
-  - { at: [767, 198], text: "2024", width: 80, size: 13 }
-  - { at: [45, 272], text: 橙色格子是 W：64 个 float16 元素 × 2 字节 = 128 字节。, width: 810, size: 14, strong: true }
-  - { at: [45, 308], text: "Ex 注册描述：逻辑 (1128, 128)，支撑 (1000, 1024)。不把整块都当权重读取。", width: 810, size: 13 }
-  - { at: [45, 349], text: 如果 W.data 换了新存储，旧 MR 仍指向旧地址；必须另外保留原 storage owner。, width: 810, size: 13 }
-  - { at: [45, 394], text: 这些地址只用于教学；真实范围从当前张量与 NPU memory snapshot 得到。, width: 810, size: 13 }
+caption: 教学地址：权重 W 只占分配块里的一小段；登记时同时写下 W 自己的范围和它所在的整块
+size: [900, 270]
+
+items:
+  - { at: [90, 70], size: [88, 60], tone: control, style: plain }
+  - { at: [178, 70], size: [88, 60], text: W, sub: 64 × 2 字节, tone: weight }
+  - { at: [266, 70], size: [528, 60], tone: control, style: plain }
+
+texts:
+  - { at: [90, 56], text: "1000", size: 13, anchor: middle }
+  - { at: [178, 56], text: "1128", size: 13, anchor: middle }
+  - { at: [266, 56], text: "1256", size: 13, anchor: middle }
+  - { at: [794, 56], text: "2024", size: 13, anchor: middle }
+
+brackets:
+  - { from: 178, to: 266, y: 142, label: "逻辑范围 (1128, 128)" }
+  - { from: 90, to: 794, y: 200, label: "支撑范围 (1000, 1024)" }
+
 pins:
   - source: rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L356-L422
     symbols: [logical_registrations, memory_registration_cls]

@@ -1,26 +1,31 @@
-layout: scene
+layout: figure
 id: rfork-lifecycle
-caption: 模型路径与 lease 记账分开：释放未确认只阻止 seed 发布，不撤销成功的模型
-size: [900, 540]
-regions:
-  - { label: 模型 / 内存路径, note: 先有有效模型，才能讨论成为 seed, at: [20, 40], size: [860, 150], tone: neutral }
-  - { label: 后台 lease 释放路径, note: 有界重试；释放 HTTP 在 session 锁外, at: [20, 245], size: [860, 155], tone: ascend }
-boxes:
-  - { at: [45, 109], size: [260, 60], title: TRANSFERRED, sub: 本次全部同步读取成功, icon: chip, tone: neutral }
-  - { at: [320, 109], size: [260, 60], title: READY, sub: 模型与 seed 注册准备完成, icon: bolt, tone: neutral }
-  - { at: [595, 109], size: [260, 60], title: SERVING, sub: 需释放确认，且服务与初报成功, icon: plug, tone: neutral }
-  - { at: [45, 317], size: [260, 60], title: 一次 HTTP 释放请求, sub: 使用这次借用的身份, icon: text, tone: ascend }
-  - { at: [320, 317], size: [260, 60], title: RETRYABLE / REJECTED, sub: 等待再试 / 保留未决 lease, icon: clock, tone: ascend }
-  - { at: [595, 317], size: [260, 60], title: RELEASED, sub: 200 / 404 是当前客户端认可结果, icon: pick, tone: ascend }
-arrows:
-  - { from: [305, 140], to: [320, 140], tone: neutral }
-  - { from: [580, 140], to: [595, 140], tone: neutral }
-  - { from: [170, 190], to: [170, 245], style: dashed, tone: ascend }
-  - { from: [720, 245], to: [720, 190], style: dashed, tone: upstream }
-notes:
-  - { at: [240, 221], text: read 后安排异步释放；模型线程继续后处理, width: 400, size: 13 }
-  - { at: [35, 442], text: DEFERRED 是发布结果：READY 的模型可以先返回，待 lease 确认后再尝试成为 seed。, width: 830, size: 14, strong: true }
-  - { at: [35, 489], text: retry 耗尽或永久拒绝：不发布 seed、不伪造释放成功。cleanup 失败时也不能随意释放内存。, width: 830, size: 13 }
+caption: 模型和租约各走一条路：租约还不上只挡住「当来源」，已经传好的模型照样交出去
+size: [900, 400]
+
+frames:
+  - { label: 模型这条路, at: [30, 30], size: [840, 120] }
+  - { label: 归还租约这条路（后台）, at: [30, 190], size: [840, 180] }
+
+items:
+  - { at: [60, 64], size: [200, 52], text: 权重传完, tone: weight }
+  - { at: [350, 64], size: [200, 52], text: 就绪, tone: weight, style: faded }
+  - { at: [640, 64], size: [200, 52], text: 当来源服务, tone: weight }
+  - { at: [60, 224], size: [200, 52], text: 发一次归还, tone: control, style: plain }
+  - { at: [640, 224], size: [200, 52], text: 已归还, tone: control, style: plain }
+  - { at: [350, 300], size: [200, 52], text: 被拒 / 次数用完, tone: danger, style: plain }
+
+links:
+  - { from: [260, 90], to: [350, 90], tone: weight }
+  - { from: [550, 90], to: [640, 90], tone: weight }
+  - { from: [160, 116], to: [160, 224], tone: control, dashed: true }
+  - { from: [260, 250], to: [640, 250], tone: control }
+  - { from: [160, 276], to: [350, 326], via: [[160, 326]], tone: danger }
+  - { from: [740, 224], to: [740, 116], tone: control, dashed: true }
+
+texts:
+  - { at: [752, 176], text: 还上了才当来源, tone: control }
+
 pins:
   - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L38
     symbols: [TRANSFERRED, READY, SERVING, RETRYABLE, REJECTED, RELEASED, DEFERRED]

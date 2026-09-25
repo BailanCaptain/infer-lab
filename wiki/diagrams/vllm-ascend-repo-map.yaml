@@ -1,44 +1,17 @@
-layout: scene
+layout: figure
 id: vllm-ascend-repo-map
-caption: 条的长度就是真实行数（按 v0.23 维护分支画，vllm_ascend/ 共 442 个文件、130661 行；v0.26 分支上是 500 个文件、150827 行）
-size: [900, 470]
+caption: 条的长度就是 v0.23 上的真实行数。实色三条是第一遍就读的主干；最长那条是其余 16 个目录连同根下 13 个文件加起来
+size: [900, 340]
 
-regions:
-  - label: 按行数排一遍就知道该读哪里
-    note: 深色三条是主干；读懂它们就能跟完一次请求。最长那条是其余 16 个目录连同根下 13 个 .py 加起来。
-    at: [20, 40]
-    size: [860, 372]
-    tone: neutral
-
-strips:
-  - { at: [214.0, 112], cells: 1, cell: 183.4, h: 22, highlight: 0, tone: ascend }
-  - { at: [214.0, 150], cells: 1, cell: 186.5, h: 22, highlight: 0, tone: ascend }
-  - { at: [214.0, 188], cells: 1, cell: 297.4, h: 22, highlight: 0, tone: ascend }
-  - { at: [214.0, 226], cells: 1, cell: 133.5, h: 22, highlight: 0, tone: accent }
-  - { at: [214.0, 264], cells: 1, cell: 265.7, h: 22, highlight: 0, tone: upstream }
-  - { at: [214.0, 302], cells: 1, cell: 83.3, h: 22, highlight: 0, tone: muted }
-  - { at: [214.0, 340], cells: 1, cell: 86.6, h: 22, highlight: 0, tone: muted }
-  - { at: [214.0, 378], cells: 1, cell: 418.0, h: 22, highlight: 0, tone: muted }
-
-notes:
-  - { at: [204.0, 128], text: worker/, size: 13, anchor: end, strong: true }
-  - { at: [407.4, 128], text: "14486 行 · 31 个文件 · 第一遍就读", size: 12 }
-  - { at: [204.0, 166], text: attention/, size: 13, anchor: end, strong: true }
-  - { at: [410.5, 166], text: "14732 行 · 17 个文件 · 第一遍就读", size: 12 }
-  - { at: [204.0, 204], text: ops/, size: 13, anchor: end, strong: true }
-  - { at: [521.4, 204], text: "v0.23 上 23484 行 · 89 个文件 · 追一个具体算子时", size: 12 }
-  - { at: [204.0, 242], text: patch/, size: 13, anchor: end, strong: true }
-  - { at: [357.5, 242], text: "10546 行 · 64 个文件 · 怀疑上游被改过时", size: 12 }
-  - { at: [204.0, 280], text: distributed/, size: 13, anchor: end, strong: true }
-  - { at: [489.7, 280], text: "20985 行 · 46 个文件 · 排查跨卡问题时", size: 12 }
-  - { at: [204.0, 318], text: quantization/, size: 13, anchor: end, strong: true }
-  - { at: [307.3, 318], text: "6578 行 · 27 个文件 · 开量化时", size: 12 }
-  - { at: [204.0, 356], text: _310p/, size: 13, anchor: end, strong: true }
-  - { at: [310.6, 356], text: "6838 行 · 49 个文件 · 只在 310P 上跑时", size: 12 }
-  - { at: [204.0, 394], text: 其余 16 个目录加根文件, size: 13, anchor: end, strong: true }
-  - { at: [642.0, 394], text: "33012 行 · 119 个文件 · 按需", size: 12 }
-  - { at: [20, 440], text: "文件多不等于重要：ops/ 文件最多但读请求路径时它是被动的一层；worker/ 文件只有它的三分之一，却是主干。", size: 12.5, width: 860 }
-  - { at: [20, 462], text: "两个例外要记住：core/ 不是核心推理逻辑，是接上游调度与 KV 管理的接缝；model_executor/ 只有 3 个文件 263 行，比名字小得多。", size: 12.5, width: 860 }
+bars:
+  - { at: [40, 20], scale: 0.017, segments: [{ value: 23484, tone: control, text: 算子替换 }] }
+  - { at: [40, 58], scale: 0.017, segments: [{ value: 14732, tone: kv, text: 注意力 }] }
+  - { at: [40, 96], scale: 0.017, segments: [{ value: 14486, tone: control, text: 单卡执行 }] }
+  - { at: [40, 144], scale: 0.017, segments: [{ value: 20985, tone: comm, style: hatch, text: 跨卡通信 }] }
+  - { at: [40, 182], scale: 0.017, segments: [{ value: 10546, tone: control, style: hatch, text: 接上游的补丁 }] }
+  - { at: [40, 220], scale: 0.017, segments: [{ value: 6838, tone: ink, style: hatch, text: 310P 专用 }] }
+  - { at: [40, 258], scale: 0.017, segments: [{ value: 6578, tone: weight, style: hatch, text: 量化 }] }
+  - { at: [40, 296], scale: 0.017, segments: [{ value: 33012, tone: ink, style: hatch, text: 其余 16 个目录 }] }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269

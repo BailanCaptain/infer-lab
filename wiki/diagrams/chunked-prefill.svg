@@ -4,9 +4,11 @@
   <rect x="100" y="70" width="262.1" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <text x="116" y="91" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">新算 2048</text>
   <rect x="100" y="130" width="262.1" height="32" rx="4" fill="url(#chunked-prefill-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="116" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">已存 2048</text>
   <rect x="362.1" y="130" width="262.1" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <text x="378.1" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">新算 2048</text>
   <rect x="100" y="190" width="524.3" height="32" rx="4" fill="url(#chunked-prefill-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="116" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">已存 4096</text>
   <rect x="624.3" y="190" width="248.4" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <text x="640.3" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">新算 1941</text>
   <text x="30" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">每一步最多算 2048 个 token</text>

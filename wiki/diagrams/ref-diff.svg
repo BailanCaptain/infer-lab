@@ -1,36 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="口径是 v0.23（2c59ff10）↔ main（baa023ad）这一对：目录层面只差 8 项——但同名不等于同内容；v0.26 不在这张图里">
-  <title>口径是 v0.23（2c59ff10）↔ main（baa023ad）这一对：目录层面只差 8 项——但同名不等于同内容；v0.26 不在这张图里</title>
-  <rect width="900" height="440" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="44" width="252" height="300" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="58" width="166.2" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 v0.23 维护分支上</text>
-  <rect x="288" y="44" width="324" height="300" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="304" y="58" width="130.5" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="315" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">两边同名的 21 个</text>
-  <rect x="628" y="44" width="252" height="300" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="644" y="58" width="160.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="655" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">只在 main 开发主线上</text>
-  <rect x="36" y="104" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">flash_common3_context.py</text>
-  <rect x="36" y="150" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">kv_offload/</text>
-  <rect x="36" y="196" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">memcache_comm_fence.py</text>
-  <rect x="36" y="242" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="52" y="266" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">simple_kv_offload/</text>
-  <rect x="644" y="104" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="660" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">config_utils.py</text>
-  <rect x="644" y="150" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="660" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">ec_manager/</text>
-  <rect x="644" y="196" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="660" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">observability/</text>
-  <rect x="644" y="242" width="220" height="38" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <text x="660" y="266" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">weight_switch/</text>
-  <rect x="304" y="132" width="292" height="92" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="316" y="162" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(322.4 168.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v14M18 7v14M6 7c0 6 12 2 12 8"/></g>
-  <text x="356" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">同名 ≠ 同内容</text>
-  <text x="356" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一个类，行号差 46 行</text>
-  <text x="356" y="201" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">platform.py</text>
-  <text x="304" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">class NPUPlatform 在一边是 platform.py 第 </text>
-  <text x="304" y="268.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">128 行，在另一边是第 82 行。对照要按符号名，不</text>
-  <text x="304" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">是按行号：两边各 grep 一次再比内容。</text>
-  <text x="20" y="376" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">本库所有来源都写成 repo@commit:path#L起-L止，就是为了这件事——只记行号的笔记换个分支就会指到别的代码上。</text>
-  <text x="20" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个 ref 不是新旧关系，是两个使用场景：在稳定分支上开发就该读稳定分支。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" width="900" height="260" role="img" aria-label="同一个文件里的同一个类，在三条分支上分别落在第 128、127、82 行；v0.23 和 v0.26 只差一行，内容却早已不同——对照要按名字找，不能按行号">
+  <title>同一个文件里的同一个类，在三条分支上分别落在第 128、127、82 行；v0.23 和 v0.26 只差一行，内容却早已不同——对照要按名字找，不能按行号</title>
+  <defs></defs>
+  <rect x="30" y="44" width="240" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">v0.23 维护分支</text>
+  <rect x="330" y="44" width="240" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="346" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">v0.26 分支</text>
+  <rect x="630" y="44" width="240" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="646" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">main 开发主线</text>
+  <rect x="56" y="64" width="110" height="119" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="356" y="64" width="110" height="118" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="656" y="64" width="110" height="73" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="56" y="185" width="110" height="14" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="356" y="184" width="110" height="14" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="656" y="139" width="110" height="14" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="176" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652">第 128 行</text>
+  <text x="476" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652">第 127 行</text>
+  <text x="776" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652">第 82 行</text>
 </svg>

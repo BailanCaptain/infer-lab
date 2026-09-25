@@ -1,24 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="地址教学例子：逻辑权重范围小于支撑分配块，注册期间还要保住原 storage">
-  <title>地址教学例子：逻辑权重范围小于支撑分配块，注册期间还要保住原 storage</title>
-  <rect width="900" height="440" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="25" y="42" width="850" height="195" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="41" y="56" width="222.9" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="52" y="74.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">分配器记录的支撑块：1024 字节</text>
-  <text x="43" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">教学地址 [1000, 2024)，下方每格代表 128 字节</text>
-  <rect x="90" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="178" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="266" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="354" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="442" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="530" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="618" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="706" y="128" width="88" height="42" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="178" y="128" width="88" height="42" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="82" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1000</text>
-  <text x="177" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1128</text>
-  <text x="265" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1256</text>
-  <text x="767" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">2024</text>
-  <text x="45" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="600" fill="var(--color-ink, #17211f)">橙色格子是 W：64 个 float16 元素 × 2 字节 = 128 字节。</text>
-  <text x="45" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">Ex 注册描述：逻辑 (1128, 128)，支撑 (1000, 1024)。不把整块都当权重读取。</text>
-  <text x="45" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">如果 W.data 换了新存储，旧 MR 仍指向旧地址；必须另外保留原 storage owner。</text>
-  <text x="45" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这些地址只用于教学；真实范围从当前张量与 NPU memory snapshot 得到。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" width="900" height="270" role="img" aria-label="教学地址：权重 W 只占分配块里的一小段；登记时同时写下 W 自己的范围和它所在的整块">
+  <title>教学地址：权重 W 只占分配块里的一小段；登记时同时写下 W 自己的范围和它所在的整块</title>
+  <defs></defs>
+  <rect x="90" y="70" width="88" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="178" y="70" width="88" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="222" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W</text>
+  <text x="222" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">64 × 2 字节</text>
+  <rect x="266" y="70" width="528" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M178 142 v8 h88 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="222" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">逻辑范围 (1128, 128)</text>
+  <path d="M90 200 v8 h704 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="442" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">支撑范围 (1000, 1024)</text>
+  <text x="90" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1000</text>
+  <text x="178" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1128</text>
+  <text x="266" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1256</text>
+  <text x="794" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">2024</text>
 </svg>

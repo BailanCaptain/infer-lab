@@ -2,7 +2,7 @@
 id: rfork-terms
 title: RFork 术语：把模型、内存和调度的名词分开
 type: concept
-summary: 解释 RFork 里的实例、Worker、分片、张量布局、内存注册、元数据、租约和清理。每个词说明它指的对象、与相近词的区别以及排错时的作用。
+summary: 读 RFork 时碰到的名词，常常一个词在模型、内存、调度三层各有意思。这页按层列成表：每个词指的是什么、和长得像的词差在哪、排错时拿它查什么。
 aliases:
   - RFork 术语
   - RFork 名词
@@ -34,7 +34,7 @@ relations:
     kind: builds-on
     note: target 与 draft 在投机解码中的计算职责由投机解码页解释，本章只讲它们的权重共享
 contradicts: []
-updated: '2026-09-23'
+updated: '2026-09-25'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -49,8 +49,6 @@ rawSources:
   - >-
     raw/sha256-ced334d86bb2fbc3284d127854ea3710bee45de12d95cdd91aeb6efb5e08e13f.md
 ---
-
-## 一句话
 
 读 RFork 最容易混淆的是**同一个词分属不同层**：一个 seed 不是整个模型集群，一个地址不是一个张量的身份，一个 lease 不是内存锁。这一页给出工作版的词典；遇到原理问题再进入对应机制页。[C1]
 

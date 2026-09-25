@@ -1,30 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 478" width="900" height="478" role="img" aria-label="两层身份：配置决定能否互换，rank 与角色决定要拿哪份">
-  <title>两层身份：配置决定能否互换，rank 与角色决定要拿哪份</title>
-  <rect width="900" height="478" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="25" y="40" width="850" height="140" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="41" y="54" width="76" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="52" y="72.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">配置身份</text>
-  <text x="43" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">模型版本、dtype、量化、组大小、布局策略</text>
-  <rect x="25" y="220" width="850" height="140" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="41" y="234" width="76" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="52" y="252.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">分片身份</text>
-  <text x="43" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">TP / PP / EP rank、main / draft、模型与策略标识</text>
-  <rect x="60" y="105" width="415" height="55" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="72" y="116.5" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(78.4 122.9) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></g>
-  <text x="112" y="137.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">规范化描述符：排序、稳定表示</text>
-  <rect x="550" y="105" width="285" height="55" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="562" y="116.5" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(568.4 122.9) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="602" y="137.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SHA256 → fingerprint</text>
-  <rect x="60" y="285" width="415" height="55" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="72" y="296.5" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(78.4 302.9) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="112" y="317.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">fingerprint 加上分片身份</text>
-  <rect x="550" y="285" width="285" height="55" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="562" y="296.5" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(568.4 302.9) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="602" y="317.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">SHA256 → seed key</text>
-  <path d="M475 132 L550 132" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
-  <path d="M550 132 l-11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M700 180 L440 220" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.8"/>
-  <path d="M440 220 l11 -5.5 l0 11 z" fill="var(--color-kv, #4c65b6)"/>
-  <path d="M475 312 L550 312" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M550 312 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
-  <text x="40" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="600" fill="var(--color-ink, #17211f)">配置哈希不读取权重内容，也没有包含 RFork 的代码提交号。</text>
-  <text x="40" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #5b6763)">key 一致只通过第一道门；选中来源之后还要对照完整张量清单。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="两次哈希：配置先算成兼容性指纹；指纹再加上分片编号和主 / 草稿角色，算成 seed key">
+  <title>两次哈希：配置先算成兼容性指纹；指纹再加上分片编号和主 / 草稿角色，算成 seed key</title>
+  <defs><marker id="rfork-identity-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="rfork-identity-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M340 72 L440 72" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-ah-control)"/>
+  <path d="M640 72 L750 72 L750 170" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-ah-control)"/>
+  <path d="M340 202 L640 202" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#rfork-identity-ah-weight)"/>
+  <rect x="40" y="40" width="300" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="190" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">配置描述</text>
+  <text x="190" y="87" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">版本、数值类型、并行大小、布局</text>
+  <rect x="440" y="40" width="200" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="540" y="77" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">兼容性指纹</text>
+  <rect x="40" y="170" width="300" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="190" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">分片编号和角色</text>
+  <text x="190" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">TP / PP / EP 编号、主 / 草稿</text>
+  <rect x="640" y="170" width="220" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="750" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">seed key</text>
+  <text x="40" y="276" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#8f3229">两次都只看配置，不读权重内容</text>
 </svg>

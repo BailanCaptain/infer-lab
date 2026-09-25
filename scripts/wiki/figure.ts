@@ -776,6 +776,8 @@ function paint(spec: FigureSpec): Run {
         r.parts.push(
           `<rect x="${round(x)}" y="${y}" width="${round(w)}" height="${b.h}" rx="4" fill="url(#${id}-hatch)" stroke="${MUTED}" stroke-width="1.3"/>`,
         );
+        // 斜纹段是浅底，文字用正色——反白在这里看不见
+        if (s.text) text(r, x + 16, y + b.h / 2 + 5, s.text, { size: 13, weight: 700, fill: INK });
       } else {
         r.parts.push(
           `<rect x="${round(x)}" y="${y}" width="${round(w)}" height="${b.h}" rx="4" fill="${COLOR[s.tone]}" stroke="${INK}" stroke-width="1.3"/>`,

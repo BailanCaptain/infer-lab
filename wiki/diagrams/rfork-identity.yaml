@@ -1,22 +1,22 @@
-layout: scene
+layout: figure
 id: rfork-identity
-caption: 两层身份：配置决定能否互换，rank 与角色决定要拿哪份
-size: [900, 478]
-regions:
-  - { label: 配置身份, note: 模型版本、dtype、量化、组大小、布局策略, at: [25, 40], size: [850, 140], tone: neutral }
-  - { label: 分片身份, note: TP / PP / EP rank、main / draft、模型与策略标识, at: [25, 220], size: [850, 140], tone: ascend }
-boxes:
-  - { at: [60, 105], size: [415, 55], title: 规范化描述符：排序、稳定表示, icon: text, tone: neutral }
-  - { at: [550, 105], size: [285, 55], title: SHA256 → fingerprint, icon: pick, tone: neutral }
-  - { at: [60, 285], size: [415, 55], title: fingerprint 加上分片身份, icon: split, tone: ascend }
-  - { at: [550, 285], size: [285, 55], title: SHA256 → seed key, icon: pick, tone: ascend }
-arrows:
-  - { from: [475, 132], to: [550, 132], tone: neutral }
-  - { from: [700, 180], to: [440, 220], tone: neutral }
-  - { from: [475, 312], to: [550, 312], tone: ascend }
-notes:
-  - { at: [40, 405], text: 配置哈希不读取权重内容，也没有包含 RFork 的代码提交号。, width: 820, size: 15, strong: true }
-  - { at: [40, 444], text: key 一致只通过第一道门；选中来源之后还要对照完整张量清单。, width: 820, size: 13 }
+caption: 两次哈希：配置先算成兼容性指纹；指纹再加上分片编号和主 / 草稿角色，算成 seed key
+size: [900, 300]
+
+items:
+  - { at: [40, 40], size: [300, 64], text: 配置描述, sub: 版本、数值类型、并行大小、布局, tone: control, style: plain }
+  - { at: [440, 40], size: [200, 64], text: 兼容性指纹, tone: control }
+  - { at: [40, 170], size: [300, 64], text: 分片编号和角色, sub: TP / PP / EP 编号、主 / 草稿, tone: weight, style: plain }
+  - { at: [640, 170], size: [220, 64], text: seed key, tone: weight }
+
+links:
+  - { from: [340, 72], to: [440, 72], tone: control }
+  - { from: [640, 72], to: [750, 170], via: [[750, 72]], tone: control }
+  - { from: [340, 202], to: [640, 202], tone: weight }
+
+texts:
+  - { at: [40, 276], text: 两次都只看配置，不读权重内容, tone: danger, strong: true }
+
 pins:
   - source: rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287
     symbols: [build_compatibility_fingerprint, build_seed_key]

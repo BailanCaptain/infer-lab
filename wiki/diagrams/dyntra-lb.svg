@@ -6,6 +6,7 @@
   <rect x="686" y="54" width="13.5" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <rect x="110" y="92" width="18" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <rect x="128" y="92" width="288" height="26" rx="4" fill="url(#dyntra-lb-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="144" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">候补 64 块</text>
   <rect x="110" y="186" width="576" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <text x="126" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长对话 128 块</text>
   <rect x="686" y="186" width="13.5" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>

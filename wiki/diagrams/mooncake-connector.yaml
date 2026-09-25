@@ -1,102 +1,35 @@
-layout: scene
+layout: figure
 id: mooncake-connector
-caption: 同一个连接器类在两个进程里各活半个；整块传和逐层传的区别不在快慢，在谁发起、什么时候发起（v0.23 维护分支）
-size: [900, 620]
+caption: 整块拉要等 P 节点 28 层全算完才开始搬；逐层推把前 27 层的搬运藏进 P 还在算的时间里。两条路 D 节点都要等 28 层到齐（示意，搬运时长按每层四分之一层计算时间画）
+size: [900, 250]
 
-regions:
-  - label: P 节点 · kv_role=kv_producer
-    at: [20, 30]
-    size: [420, 250]
-    tone: ascend
-  - label: D 节点 · kv_role=kv_consumer
-    at: [460, 30]
-    size: [420, 250]
-    tone: neutral
-
-boundaries:
-  - at: 162
-    from: 20
-    to: 880
-    vertical: false
-    label: 进程边界：上 EngineCore，下 Worker
-
-boxes:
-  - at: [38, 72]
-    size: [384, 68]
-    title: "调度侧：请求结束时先扣住块"
-    sub: 跑在 EngineCore 进程，碰不到 HBM
-    fn: MooncakeConnectorScheduler
-    tone: ascend
-    icon: queue
-  - at: [478, 72]
-    size: [384, 68]
-    title: "调度侧：报出还差多少 token"
-    sub: 块先占上，这一步一个 token 都不算
-    fn: get_num_new_matched_tokens
-    tone: neutral
-    icon: queue
-  - at: [38, 176]
-    size: [384, 84]
-    title: "worker 侧：把 KV 的 HBM 区间登记给传输引擎"
-    sub: 整块传时只答元数据，不发字节
-    fn: register_kv_caches
-    tone: ascend
-    icon: chip
-  - at: [478, 176]
-    size: [384, 84]
-    title: "worker 侧：真正搬字节的那一半"
-    sub: MooncakeConnectorWorker，丢给后台线程
-    fn: start_load_kv
-    tone: neutral
-    icon: bolt
-
-arrows:
-  - from: [60, 308]
-    to: [860, 308]
-    label: 整块传：D 发起 batch_transfer_sync_read
-    tone: neutral
-  - from: [60, 356]
-    to: [860, 356]
-    label: 逐层传：P 发起 batch_transfer_sync_write
-    tone: accent
-
-strips:
-  - at: [60, 410]
-    cells: 28
-    cell: 20
-    gap: 3
-    h: 26
-    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
-    tone: neutral
-    label: 整块传：P 把 28 层全算完、这条请求结束之后，D 才一次性读走
-  - at: [60, 490]
-    cells: 28
-    cell: 20
-    gap: 3
-    h: 26
-    highlights: [0, 1, 2, 3, 4, 5, 6]
-    tone: accent
-    label: 逐层传：P 刚算完第 7 层，前 7 层已经躺在 D 的 HBM 里，剩下 21 层边算边传
-
-notes:
-  - at: [20, 566]
-    text: 两条路的终点一样：D 都要等 28 层全到齐才开始 decode。逐层传省下来的是传输时间——它被藏进了 P 算后面那些层的时间里；另一半好处是 D 的块在 P 开算之前就占好了，不用等 P 结束才分配。
-    size: 12.5
-    width: 860
+timelines:
+  - at: [30, 50]
+    scale: 18
+    start: 0
+    end: 35
+    ticks: 7
+    unit: 层的计算时间
+    labelW: 130
+    lanes:
+      - label: 整块拉 · P 算
+        spans:
+          - { from: 0, to: 28, tone: token, style: faded }
+      - label: 整块拉 · 搬
+        spans:
+          - { from: 28, to: 35, tone: comm, text: D 一次读走 28 层 }
+      - label: 逐层推 · P 算
+        spans:
+          - { from: 0, to: 28, tone: token, style: faded }
+      - label: 逐层推 · 搬
+        spans:
+          - { from: 1, to: 28.25, tone: comm, text: P 每算完一层就推一层 }
+    marks:
+      - { t: 28.25, label: 逐层推：到齐 }
+      - { t: 35, label: 整块拉：到齐 }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1508-L1592
-    symbols:
-      [
-        MooncakeConnectorScheduler,
-        MooncakeConnectorWorker,
-        get_num_new_matched_tokens,
-        register_kv_caches,
-        start_load_kv,
-      ]
   - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L962-L969
     symbols: [batch_transfer_sync_read]
   - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L494-L519
     symbols: [batch_transfer_sync_write]
-  - source: vllm@0fc695fc:vllm/config/kv_transfer.py#L41-L43
-    symbols: [kv_role, kv_producer, kv_consumer]

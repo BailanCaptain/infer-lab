@@ -1,98 +1,27 @@
-layout: scene
+layout: figure
 id: pd-disaggregation
-caption: 一条请求在 1P1D 上的走法：P 算完 1 块就下班，D 把整块拉过去、重算最后一个位置才开始吐字（v0.23 维护分支）
-size: [900, 735]
+caption: KV 怎么从 P 节点到 D 节点：P 算完问题留下 1 块 KV，D 把整块拉过去；D 说收完了，P 才放块，D 再重算最后 1 个 token 开始吐字（Qwen3-0.6B，1P1D）
+size: [900, 240]
 
-regions:
-  - label: P 节点 · kv_role=kv_producer
-    at: [20, 30]
-    size: [420, 350]
-    tone: ascend
-  - label: D 节点 · kv_role=kv_consumer
-    at: [460, 30]
-    size: [420, 350]
-    tone: neutral
+frames:
+  - { label: P 节点, at: [30, 64], size: [360, 150] }
+  - { label: D 节点, at: [510, 64], size: [360, 150] }
 
-boundaries:
-  - at: 450
-    from: 110
-    to: 380
-    label: 换了台机器
+items:
+  - { at: [55, 100], size: [130, 44], text: 算 37 个 token, tone: token }
+  - { at: [225, 100], size: [130, 44], text: 1 块 KV, tone: kv }
+  - { at: [545, 100], size: [130, 44], text: 1 块 KV, tone: kv }
+  - { at: [715, 100], size: [130, 44], text: 重算最后 1 个, tone: token }
 
-spines:
-  - y: 230
-    from: 44
-    to: 862
-    tone: neutral
-    segments:
-      - { x: 450, tone: ascend }
+links:
+  - { from: [185, 122], to: [225, 122] }
+  - { from: [355, 122], to: [545, 122], tone: kv }
+  - { from: [675, 122], to: [715, 122] }
+  - { from: [610, 144], to: [290, 144], via: [[610, 180], [290, 180]], tone: control, dashed: true }
 
-stops:
-  - x: 140
-    side: above
-    title: 一次 prefill
-    detail: 37 个 token 一步算完
-    tone: ascend
-    icon: calc
-  - x: 320
-    side: below
-    title: 撞到长度上限才交棒
-    detail: 状态得是 FINISHED_LENGTH_CAPPED
-    fn: request_finished
-    tone: ascend
-    icon: clock
-  - x: 600
-    side: above
-    title: 先占块，不算
-    detail: WAITING_FOR_REMOTE_KVS
-    fn: kv_connector_no_forward
-    tone: neutral
-    icon: slot
-  - x: 790
-    side: below
-    title: 重算位置 36
-    detail: 再往后 199 步 decode
-    tone: neutral
-    icon: calc
-
-strips:
-  - at: [60, 430]
-    cells: 128
-    cell: 5
-    gap: 1
-    h: 24
-    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-    tone: ascend
-    label: "P 上这 1 块：128 个格子只写了前 37 个，真装着 KV 的是 37 × 112 KiB ≈ 4.05 MiB"
-  - at: [60, 530]
-    cells: 128
-    cell: 5
-    gap: 1
-    h: 24
-    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-    tone: neutral
-    label: "D 上另分 1 块：块号不同、内容相同——传完之前两台机器各占一份"
-  - at: [60, 610]
-    cells: 1
-    cell: 8
-    h: 20
-    highlight: 0
-    tone: ascend
-    label: P 上 1 次 forward
-  - at: [60, 665]
-    cells: 200
-    cell: 3
-    gap: 1
-    h: 20
-    highlight: 0
-    tone: neutral
-    label: "D 上 200 次 forward：第 1 次只重算位置 36，其余 199 次每次 1 个 token"
-
-arrows:
-  - from: [443, 482]
-    to: [443, 528]
-    label: batch_transfer_sync_read 整块搬走 14 MiB
-    tone: accent
+texts:
+  - { at: [450, 110], text: D 整块拉过来, anchor: middle, tone: kv }
+  - { at: [450, 202], text: 收完了，P 才放块, anchor: middle, tone: control }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1882-L1928
@@ -103,5 +32,3 @@ pins:
     symbols: [WAITING_FOR_REMOTE_KVS]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075
     symbols: [kv_connector_no_forward]
-  - source: vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13
-    symbols: [kv_producer, kv_consumer, kv_both]

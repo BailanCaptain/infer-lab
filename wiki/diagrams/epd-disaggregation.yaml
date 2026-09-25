@@ -1,158 +1,35 @@
-layout: scene
+layout: figure
 id: epd-disaggregation
-caption: 1E1PD：代理先拿图去 E 换一份 embedding 落盘，PD 那边把「跑视觉塔」换成「读这个文件」
-size: [900, 680]
+caption: E 节点把图算成 embedding 放进共享目录，PD 节点直接读，自己的视觉编码器不再跑
+size: [900, 300]
 
-spines:
-  - y: 62
-    from: 40
-    to: 860
-    tone: muted
-    segments:
-      - { x: 300, tone: upstream }
-      - { x: 700, tone: ascend }
+frames:
+  - { label: E 节点, at: [240, 80], size: [200, 130] }
+  - { label: PD 节点, at: [660, 40], size: [220, 210] }
 
-stops:
-  - x: 140
-    side: below
-    icon: split
-    title: 代理收到请求
-    detail: 没有图就整条跳过 E
-    fn: has_mm_input
-    tone: accent
-  - x: 370
-    side: below
-    icon: proc
-    title: 整条转给 E
-    detail: 只把 max_tokens 改成 1
-    fn: _encode_single_request
-    tone: upstream
-  - x: 600
-    side: below
-    icon: clock
-    title: 等 E 回 200
-    detail: 响应体丢掉不用
-    tone: upstream
-  - x: 800
-    side: below
-    icon: plug
-    title: 原请求转给 PD
-    detail: 不带任何 EC 参数
-    tone: ascend
+items:
+  - { at: [30, 113], size: [150, 64], text: 文字 + 一张图, tone: token, style: solid }
+  - { at: [260, 113], size: [160, 64], text: 视觉编码器, tone: weight, style: solid }
+  - { at: [480, 113], size: [140, 64], text: 共享目录, sub: 图的 embedding, tone: comm, style: solid }
+  - { at: [680, 70], size: [180, 56], text: 视觉编码器（跳过）, tone: weight, style: faded }
+  - { at: [680, 170], size: [180, 56], text: 语言模型, tone: weight, style: solid }
 
-regions:
-  - label: E 实例 · ec_role = ec_producer
-    at: [20, 206]
-    size: [860, 152]
-    tone: upstream
-  - label: PD 实例 · ec_role = ec_consumer
-    at: [20, 476]
-    size: [860, 152]
-    tone: ascend
-
-boxes:
-  - at: [44, 258]
-    size: [256, 86]
-    title: 只跑视觉塔
-    sub: 算完就返回，不进语言模型
-    fn: _execute_mm_encoder
-    tone: upstream
-    icon: chip
-  - at: [320, 258]
-    size: [256, 86]
-    title: KV 缓存分 0 块
-    sub: 这一路直接返回空 dict
-    fn: get_kv_cache_spec
-    tone: upstream
-    icon: grid
-  - at: [596, 258]
-    size: [260, 86]
-    title: embedding 写进共享目录
-    sub: 先 detach 到 CPU 再落盘
-    fn: save_caches
-    tone: upstream
-    icon: file
-  - at: [290, 388]
-    size: [320, 68]
-    title: encoder_cache.safetensors
-    sub: 每个 mm_hash 一个子目录
-    fn: shared_storage_path
-    tone: accent
-    icon: file
-  - at: [44, 528]
-    size: [258, 86]
-    title: 调度时先查盘上有没有
-    sub: 命中就不扣编码算力预算
-    fn: has_cache_item
-    tone: ascend
-    icon: search
-  - at: [322, 528]
-    size: [270, 86]
-    title: 这张图改走外部加载
-    sub: external_load_encoder_input
-    fn: update_state_after_alloc
-    tone: ascend
-    icon: split
-  - at: [600, 528]
-    size: [256, 86]
-    title: worker 读盘填进缓存
-    sub: _gather_mm_embeddings 之前
-    fn: start_load_caches
-    tone: ascend
-    icon: plug
-
-boundaries:
-  - at: 376
-    from: 20
-    to: 880
-    vertical: false
-    label: 进程边界：两个实例之间只有这一个目录
-
-strips:
-  - at: [56, 400]
-    cells: 2
-    cell: 26
-    gap: 8
-    tone: upstream
-    label: "本图：E + PD 两个实例"
-  - at: [700, 400]
-    cells: 3
-    cell: 26
-    gap: 8
-    tone: ascend
-    label: "另一种：E + P + D 三个实例"
-
-arrows:
-  - { from: [450, 352], to: [450, 384], tone: upstream }
-  - { from: [450, 460], to: [450, 480], tone: ascend }
-
-notes:
-  - at: [20, 654]
-    text: 拆出去的只有视觉塔那一段算力；E 上仍然摆着一整份模型权重，两边加起来的权重显存是单机的两倍。
-    size: 12.5
-    width: 860
-    strong: true
+links:
+  - { from: [180, 145], to: [260, 145] }
+  - { from: [420, 145], to: [480, 145], tone: comm }
+  - { from: [620, 145], to: [680, 198], via: [[650, 145], [650, 198]], tone: comm }
+  - { from: [105, 177], to: [770, 226], via: [[105, 280], [770, 280]], dashed: true }
 
 pins:
   - source: vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L312-L321
     symbols: [has_mm_input]
-  - source: vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L165-L184
-    symbols: [_encode_single_request, max_tokens]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2051-L2058
     symbols: [_execute_mm_encoder, has_ec_transfer, is_producer]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L4909-L4919
-    symbols: [get_kv_cache_spec, is_producer]
   - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L98-L118
     symbols: [save_caches, is_producer]
-  - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L192-L200
-    symbols: [encoder_cache.safetensors]
   - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L52-L57
     symbols: [shared_storage_path]
   - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L120-L133
     symbols: [has_cache_item]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L546-L550
-    symbols: [external_load_encoder_input, update_state_after_alloc]
   - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/base.py#L139-L148
     symbols: [start_load_caches, _gather_mm_embeddings]
-  - source: vllm@0fc695fc:vllm/config/ec_transfer.py#L10-L36
-    symbols: [ec_role, ec_producer, ec_consumer]

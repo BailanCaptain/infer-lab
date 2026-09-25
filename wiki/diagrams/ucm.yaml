@@ -1,70 +1,31 @@
-layout: scene
+layout: figure
 id: ucm
-caption: 两种 PD 部署的交接点不同：左侧通过共享存储交接，右侧通过 Mooncake 直传；UCM 在右侧只画 Prefill 的前缀缓存职责。
-size: [900, 560]
-regions:
-  - label: 集中式 PD
-    at: [20, 24]
-    size: [420, 470]
-    tone: ascend
-  - label: P2P PD
-    at: [460, 24]
-    size: [420, 470]
-    tone: upstream
-boxes:
-  - at: [44, 88]
-    size: [372, 66]
-    title: Prefill 计算并写出 KV
-    fn: UCMConnector
-    tone: ascend
-    icon: chip
-  - at: [44, 240]
-    size: [372, 74]
-    title: 共享存储：P 与 D 看见同一份数据
-    sub: 本机 DRAM 缓存之后接 NFS / 3FS 等后端
-    tone: accent
-    icon: layers
-  - at: [44, 390]
-    size: [372, 66]
-    title: Decode 从共享存储取 KV
-    fn: UCMConnector
-    tone: ascend
-    icon: chip
-  - at: [484, 88]
-    size: [372, 66]
-    title: Prefill 组合两种连接器
-    fn: MultiConnector
-    tone: upstream
-    icon: split
-  - at: [484, 236]
-    size: [168, 92]
-    title: 复用旧前缀
-    fn: UCMConnector
-    sub: 外部前缀存储
-    tone: ascend
-    icon: layers
-  - at: [676, 236]
-    size: [180, 92]
-    title: Mooncake 直传
-    sub: 本次请求 P → D
-    tone: upstream
-    icon: plug
-  - at: [676, 390]
-    size: [180, 66]
-    title: Decode 接收 KV
-    tone: upstream
-    icon: chip
-arrows:
-  - { from: [230, 156], to: [230, 238], tone: ascend }
-  - { from: [230, 316], to: [230, 388], tone: ascend }
-  - { from: [568, 156], to: [568, 234], tone: ascend }
-  - { from: [766, 156], to: [766, 234], tone: upstream }
-  - { from: [766, 330], to: [766, 388], tone: upstream }
-notes:
-  - at: [20, 518]
-    text: 同名本地目录不等于共享存储。持久性与命中率要在实际后端验证，不能由连接器注册推断。
-    width: 860
-    size: 12.5
+caption: 两种 PD 分离，KV 从 P 节点到 D 节点走的路不一样：集中式经共享存储中转，P2P 由 Mooncake 直传，UCM 只在 P 节点旁管前缀复用
+size: [900, 290]
+
+frames:
+  - { label: 集中式 PD 分离, at: [30, 50], size: [400, 210] }
+  - { label: P2P PD 分离, at: [470, 50], size: [400, 210] }
+
+items:
+  - { at: [60, 82], size: [130, 44], text: P 节点, tone: token }
+  - { at: [270, 82], size: [130, 44], text: D 节点, tone: token }
+  - { at: [135, 190], size: [190, 48], text: 共享存储, tone: kv }
+  - { at: [500, 82], size: [130, 44], text: P 节点, tone: token }
+  - { at: [710, 82], size: [130, 44], text: D 节点, tone: token }
+  - { at: [500, 190], size: [130, 48], text: 前缀存储, tone: kv, style: faded }
+
+links:
+  - { from: [125, 126], to: [185, 190], tone: kv }
+  - { from: [275, 190], to: [335, 126], tone: kv }
+  - { from: [630, 104], to: [710, 104], tone: kv }
+  - { from: [565, 126], to: [565, 190], tone: kv, dashed: true }
+
+texts:
+  - { at: [670, 70], text: Mooncake 直传, anchor: middle, tone: kv }
+
 pins:
   - source: vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L270-L294
     symbols: [MultiConnector, UCMConnector, MooncakeConnectorV1]
+  - source: vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L68-L175
+    symbols: [UCMConnector, storage_backends]

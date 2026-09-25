@@ -1,41 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="注册责任的变化：发布分支由昇腾接到上游连接器，main 把入口交回插件；图不推断插件内部存储布局。">
-  <title>注册责任的变化：发布分支由昇腾接到上游连接器，main 把入口交回插件；图不推断插件内部存储布局。</title>
-  <rect width="900" height="540" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="24" width="530" height="470" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="38" width="207.8" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="56.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">v0.23 维护分支 / v0.26 分支</text>
-  <rect x="574" y="24" width="306" height="470" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="590" y="38" width="114.9" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="601" y="56.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">main 开发主线</text>
-  <line x1="44" y1="296" x2="526" y2="296" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="522" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">昇腾包装层 / 上游连接器</text>
-  <rect x="44" y="84" width="482" height="66" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="56" y="101" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(62.4 107.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
-  <text x="96" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">服务配置里的注册名</text>
-  <text x="96" y="131.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">LMCacheAscendConnector</text>
-  <rect x="44" y="190" width="482" height="80" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="56" y="214" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(62.4 220.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h9v9H4z M11 11h9v9h-9z M13 4l7 7"/></g>
-  <text x="96" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">昇腾包装模块先导入插件</text>
-  <text x="96" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">再从上游 vLLM 导入连接器类</text>
-  <text x="96" y="253" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">lmcache_ascend</text>
-  <rect x="44" y="326" width="482" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="56" y="344" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(62.4 350.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="96" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">上游连接器选择实现</text>
-  <text x="96" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认 use_native = False</text>
-  <text x="96" y="383" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">LMCacheConnectorV1</text>
-  <rect x="598" y="100" width="258" height="90" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <rect x="610" y="129" width="32" height="32" rx="9" fill="var(--color-kv-soft, #e8edff)"/><g transform="translate(616.4 135.4) scale(0.8)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v14M18 7v14M6 7c0 6 12 2 12 8"/></g>
-  <text x="650" y="141.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">本仓库不再注册旧名称</text>
-  <text x="650" y="159.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">旧配置不能原样当成新入口</text>
-  <rect x="598" y="302" width="258" height="90" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="610" y="331" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(616.4 337.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0z M12 18v3"/></g>
-  <text x="650" y="343.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">LMCache-Ascend 包负责</text>
-  <text x="650" y="361.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">注册方式与运行配置一起核对</text>
-  <path d="M285 152 L285 188" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M285 188 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M285 272 L285 324" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M285 324 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
-  <path d="M727 192 L727 300" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
-  <path d="M727 300 l-5.5 -11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
-  <text x="44" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认实现从已安装的 LMCache 包加载；注册成功仍不证明后端配置正确。</text>
-  <text x="598" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这里的变化不等于取消昇腾支持。</text>
-  <text x="20" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先确认四个版本：vLLM、vllm-ascend、LMCache、LMCache-Ascend；再验证冷缓存与热缓存。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 290" width="900" height="290" role="img" aria-label="发布分支由 vllm-ascend 替 LMCache 登记名字再转过去；main 把登记交回 LMCache-Ascend 插件">
+  <title>发布分支由 vllm-ascend 替 LMCache 登记名字再转过去；main 把登记交回 LMCache-Ascend 插件</title>
+  <defs><marker id="lmcache-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="lmcache-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <rect x="30" y="50" width="560" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">v0.23 / v0.26 分支</text>
+  <rect x="620" y="50" width="250" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="636" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">main</text>
+  <path d="M185 145 L243 145" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#lmcache-ah-control)"/>
+  <path d="M375 145 L433 145" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#lmcache-ah-kv)"/>
+  <rect x="55" y="110" width="130" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">vllm-ascend 登记</text>
+  <rect x="245" y="110" width="130" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="310" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">昇腾包装层</text>
+  <rect x="435" y="110" width="130" height="70" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="500" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">LMCache 存取</text>
+  <rect x="650" y="110" width="190" height="70" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="745" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">插件自己登记并存取</text>
+  <rect x="650" y="205" width="115" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
+  <text x="707.5" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">旧名字不再登记</text>
 </svg>

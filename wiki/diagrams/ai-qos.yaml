@@ -1,94 +1,29 @@
-layout: scene
+layout: figure
 id: ai-qos
-caption: 端点只写得下一个 QoS 标签，真正分车道的是交换机——同一个 SDMA 标签 2 靠入口 VL 劈成两条，AllReduce 进高优先级，KV 搬运掉到最低
-size: [900, 640]
+caption: 同一个 SDMA 标签，交换机靠入口车道把集合通信和 KV 搬运分进两条优先级不同的车道
+size: [900, 280]
 
-regions:
-  - label: 端点侧 · 每张 NPU 写进驱动
-    note: 一台流量引擎（master）只存得下一个 QoS 标签，它的 D2D 与 H2D 共用这一个数；ASCEND_RT_VISIBLE_DEVICES 列出的每张卡都要设一遍。
-    at: [20, 26]
-    size: [860, 186]
-    tone: ascend
-  - label: UB 交换机侧 · 同一个端口上的三条车道
-    note: 严格优先级（SP）：高优先级车道不空，低的那条一个字节也发不出去。默认只点亮三条，前两条同为 3——被区别对待的只有 KV 搬运。
-    at: [20, 322]
-    size: [860, 272]
-    tone: neutral
+dividers:
+  - { from: [345, 30], to: [345, 260], sides: ["NPU 端：脚本写进驱动", "UB 交换机：人去敲命令"] }
 
-boxes:
-  - at: [36, 124]
-    size: [262, 76]
-    title: AIV
-    sub: master 11、12 → 标签 5
-    fn: MASTER_ID_AIV_DATA
-    tone: ascend
-    icon: chip
-  - at: [319, 124]
-    size: [262, 76]
-    title: SDMA
-    sub: master 13 → 标签 2
-    fn: MASTER_ID_SDMA
-    tone: accent
-    icon: chip
-  - at: [602, 124]
-    size: [262, 76]
-    title: PCIe DMA
-    sub: master 7 → 标签 7
-    fn: MASTER_ID_PCIEDMA
-    tone: muted
-    icon: chip
+items:
+  - { at: [30, 70], size: [190, 48], text: 集合通信（入口 0）, tone: comm, style: solid }
+  - { at: [30, 180], size: [190, 48], text: KV 搬到主机（入口 1）, tone: kv, style: solid }
+  - { at: [250, 122], size: [70, 46], text: 标签 2, tone: control, style: plain }
+  - { at: [380, 118], size: [170, 54], text: 按标签和入口查表, tone: control, style: faded }
+  - { at: [620, 60], size: [250, 52], text: 车道 2 · 优先级 3, tone: comm, style: solid }
+  - { at: [620, 180], size: [250, 52], text: 车道 3 · 优先级 1, tone: kv, style: faded }
 
-arrows:
-  - { from: [167, 202], to: [167, 230], tone: ascend }
-  - { from: [450, 202], to: [450, 230], tone: accent }
-  - { from: [733, 202], to: [733, 230], tone: muted }
-
-bands:
-  - label: 交换机入口：按（标签，入口 VL）查一次表，改写成 dqos
-    sub: 标签 2 进来，入口 VL=0 改写成 5，入口 VL=1 改写成 0——入口 VL 是端点唯一还剩的一位信息
-    fn: generate_command
-    at: [40, 234]
-    size: [820, 56]
-    tone: accent
-    icon: split
-  - label: VL 5 · SP 优先级 3
-    sub: 算子下发：AIV 的 H2D 与 PCIe DMA 的 H2D 合用这一条
-    fn: H2D_VL_INIT
-    at: [40, 402]
-    size: [820, 56]
-    tone: neutral
-    icon: bolt
-  - label: VL 2 · SP 优先级 3
-    sub: 卡间集合通信：dispatch / combine 与 AllReduce / AllGather 合用这一条
-    fn: D2D_VL_INIT
-    at: [40, 466]
-    size: [820, 56]
-    tone: ascend
-    icon: bolt
-  - label: VL 3 · SP 优先级 1
-    sub: KV 往 DDR 卸载与预取：上面两条空了才轮到它
-    fn: SDMA_H2D
-    at: [40, 530]
-    size: [820, 56]
-    tone: muted
-    icon: clock
-
-boundaries:
-  - at: 308
-    from: 20
-    to: 880
-    vertical: false
-    label: 脚本到此为止：它连不上交换机，下面这些得人去敲
-
-notes:
-  - at: [20, 614]
-    text: "默认值下去重后打印 23 条 hccs 命令：5 条 qos remap、9 条 vl remap、9 条 sp。VL 0、1、4 一条都没用到——只有把某种流量调低档位才会落到那里。"
-    size: 12.5
-    width: 860
+links:
+  - { from: [220, 94], to: [250, 138], tone: comm }
+  - { from: [220, 204], to: [250, 152], tone: kv }
+  - { from: [320, 145], to: [380, 145] }
+  - { from: [550, 135], to: [620, 86], tone: comm }
+  - { from: [550, 155], to: [620, 206], tone: kv }
 
 pins:
   - source: vllm-ascend@2c59ff10:tools/ai_qos.py#L1-L26
-    symbols: [MASTER_ID_AIV_DATA, MASTER_ID_SDMA, MASTER_ID_PCIEDMA, D2D_VL_INIT, H2D_VL_INIT]
+    symbols: [MASTER_ID_SDMA, D2D_VL_INIT, H2D_VL_INIT]
   - source: vllm-ascend@2c59ff10:tools/ai_qos.py#L326-L338
     symbols: [aiqos_table, SDMA_H2D]
   - source: vllm-ascend@2c59ff10:tools/ai_qos.py#L379-L402

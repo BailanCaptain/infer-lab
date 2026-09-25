@@ -1,115 +1,34 @@
-layout: scene
+layout: figure
 id: data-parallel
-caption: DP=2：整份模型复制两遍，请求由前端挑一个 rank 送进去；两个 rank 之间有没有绳子拴着，取决于模型是不是 MoE
-size: [900, 712]
+caption: DP=2：注意力每个副本各存一整套，256 个专家却摊到全部 4 颗 NPU 上，所以两个副本每一步都得一起走
+size: [900, 350]
 
-regions:
-  - label: 前端进程 · 只有一份
-    note: 这条请求归哪个 rank，在这里就定了
-    at: [20, 28]
-    size: [860, 116]
-    tone: upstream
-  - label: DP rank 0
-    note: 整份权重 + 自己的调度器、自己的 KV 块池
-    at: [20, 172]
-    size: [420, 230]
-    tone: neutral
-  - label: DP rank 1
-    note: 一模一样的另一整套，不共享任何东西
-    at: [460, 172]
-    size: [420, 230]
-    tone: neutral
+texts:
+  - { at: [40, 30], text: 这条请求只进 DP rank 0, size: 14, strong: true, tone: token }
+  - { at: [470, 30], text: DP rank 1 没活干，每步也陪跑 1 个 token, size: 14, tone: control }
+  - { at: [450, 330], text: 专家层每一步都要跨副本收发, size: 13.5, tone: comm, anchor: middle }
 
-boxes:
-  - at: [392, 46]
-    size: [468, 80]
-    title: 挑分数最低的那个 rank
-    sub: score = waiting × 4 + running，最小的那个赢
-    fn: get_core_engine_for_request
-    tone: accent
-    icon: pick
-  - at: [36, 246]
-    size: [388, 66]
-    title: 自己的两条队列，看不见对面
-    sub: dense 时这就是一个 dp_size 被改回 1 的引擎
-    fn: EngineCoreProc
-    tone: upstream
-  - at: [476, 246]
-    size: [388, 66]
-    title: 自己的两条队列，看不见对面
-    sub: MoE 时才换成带 all-reduce 钩子的子类
-    fn: DPEngineCoreProc
-    tone: upstream
+frames:
+  - { label: DP rank 0 · 2 颗 NPU, at: [40, 70], size: [390, 180] }
+  - { label: DP rank 1 · 2 颗 NPU, at: [470, 70], size: [390, 180] }
 
-strips:
-  - at: [36, 330]
-    cells: 2
-    cell: 26
-    gap: 5
-    highlights: [0, 1]
-    tone: accent
-    label: 那条请求的 2 个 KV 块只落在这一边
-  - at: [476, 330]
-    cells: 2
-    cell: 26
-    gap: 5
-    tone: accent
-    label: 这一边一块都没分出去
-  - at: [40, 528]
-    cells: 12
-    cell: 26
-    gap: 5
-    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    tone: upstream
-    label: rank 0 这一步真有 12 个 token
-  - at: [472, 528]
-    cells: 12
-    cell: 26
-    gap: 5
-    highlights: [0, 1, 2]
-    tone: accent
-    label: rank 1 只有 3 个，其余 9 格是被拉齐出来的空算
+items:
+  - { at: [60, 92], size: [350, 56], text: 注意力：一整套, tone: weight, style: solid }
+  - { at: [490, 92], size: [350, 56], text: 注意力：一整套, tone: weight, style: solid }
+  - { at: [60, 172], size: [165, 56], tone: weight, style: faded }
+  - { at: [245, 172], size: [165, 56], tone: weight, style: faded }
+  - { at: [490, 172], size: [165, 56], tone: weight, style: faded }
+  - { at: [675, 172], size: [165, 56], tone: weight, style: faded }
 
-boundaries:
-  - at: 424
-    from: 20
-    to: 880
-    vertical: false
-    label: 下面这一段只在 MoE 上存在
+links:
+  - { from: [410, 200], to: [490, 200], tone: comm }
+  - { from: [490, 214], to: [410, 214], tone: comm }
 
-bands:
-  - at: [20, 440]
-    size: [860, 64]
-    tone: ascend
-    icon: layers
-    label: 每一步先对齐：全场谁的 token 最多
-    sub: 各 rank 报一个数，all_reduce 取最大值，短的补 padding 补齐
-    fn: _sync_metadata_across_dp
-  - at: [20, 592]
-    size: [860, 64]
-    tone: ascend
-    icon: split
-    label: 对齐之后才敢发包：进门 all-gather，出门 reduce-scatter
-    sub: 谁缺席谁把全场挂住，所以没活干的 rank 也得空跑一步
-    fn: _prepare_with_dp_group
-
-arrows:
-  - { from: [520, 128], via: [[230, 150]], to: [230, 168], tone: accent, label: 这一条落在 rank 0 }
-  - { from: [700, 128], via: [[670, 150]], to: [670, 168], tone: muted, style: dashed, label: 这次没轮到它 }
-
-notes:
-  - at: [20, 690]
-    text: dense 模型完全走不到这一段：上游把非 MoE 的 DP rank 当成 dp_size = 1 的独立引擎，两个 rank 之间一根绳子都没有。
-    size: 12.5
-    width: 860
-    strong: true
+brackets:
+  - { from: 60, to: 840, y: 270, label: 256 个专家按编号摊给 4 颗，每颗 64 个 }
 
 pins:
-  - source: vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426
-    symbols: [get_core_engine_for_request]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1155-L1168
+    symbols: [use_ep]
   - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1164
-    symbols: [EngineCoreProc, DPEngineCoreProc, data_parallel_size]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L686-L691
-    symbols: [_sync_metadata_across_dp, all_reduce]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L321-L340
-    symbols: [_prepare_with_dp_group, all_gather, reduce_scatter]
+    symbols: [DPEngineCoreProc]

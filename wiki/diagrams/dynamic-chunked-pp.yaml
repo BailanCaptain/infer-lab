@@ -1,90 +1,87 @@
-layout: scene
+layout: figure
 id: dynamic-chunked-pp
-caption: 同一条 131072 token 的 prefill：固定块 4 步、耗时 1:3:5:7；动态块 16 步、每步一样长。横向长度都是耗时，两排一样长——省掉的是下一级的等待，不是计算
-size: [900, 560]
+caption: 示意：128k 长文在两段流水线里走完。固定块越往后越慢，第 2 段越等越久；每块耗时相同时，第 2 段一块接一块、没有空等
+size: [900, 300]
 
-regions:
-  - label: 固定块 · 每块都是 32768 个 token
-    note: 块一样大，注意力却是 O(n²)：第 4 块要对着 98304 个前缀 token 做注意力，耗时是第 1 块的 7 倍。下一级流水线只能干等着它。
-    at: [20, 26]
-    size: [860, 214]
-    tone: muted
-  - label: 动态块 · 每块都是同样的耗时 T
-    note: 目标耗时 T 定死，反解出这一步能塞多少 token。前缀越长切得越薄，同一条 128k 输入被切成 16 块，每块花掉一样多的时间。
-    at: [20, 258]
-    size: [860, 214]
-    tone: accent
+texts:
+  - { at: [30, 34], text: "固定块：4 块一样大，耗时 T、3T、5T、7T", size: 14, strong: true }
+  - { at: [30, 170], text: "动态块：16 块，每块都花 T", size: 14, strong: true }
 
-strips:
-  - at: [44, 140]
-    cells: 1
-    cell: 28
-    h: 34
-    gap: 3
-    highlights: [0]
-    tone: upstream
-    label: T
-  - at: [75, 140]
-    cells: 3
-    cell: 28
-    h: 34
-    gap: 3
-    tone: upstream
-    label: 3T
-  - at: [168, 140]
-    cells: 5
-    cell: 28
-    h: 34
-    gap: 3
-    highlights: [0, 1, 2, 3, 4]
-    tone: upstream
-    label: 5T
-  - at: [323, 140]
-    cells: 7
-    cell: 28
-    h: 34
-    gap: 3
-    tone: upstream
-    label: 7T
-  - at: [44, 372]
-    cells: 16
-    cell: 28
-    h: 34
-    gap: 3
-    tone: accent
-    label: 16 格 = 16 块，每格都是 T
-
-notes:
-  - at: [44, 128]
-    text: 4 步走完，一格 = 一份时间
-    size: 12.5
-    width: 300
-  - at: [44, 216]
-    text: "一块 32768 个 token，耗时却是 T : 3T : 5T : 7T——比例由 f(l) = a·l² 直接给出。"
-    size: 12.5
-    width: 816
-  - at: [44, 360]
-    text: 16 步走完，总长度和上面一排一样
-    size: 12.5
-    width: 300
-  - at: [44, 448]
-    text: 块大小 32768 → 13696 → 10496 → 8832 → 7808 → … → 4224，每个都向上对齐到 max(page_size, 64) 的倍数；第 17 块起会被 min_chunk 顶住。
-    size: 12.5
-    width: 816
-
-bands:
-  - label: 每步反解出这一步切多少 token
-    sub: 取正根、平滑、对齐，再 min(predicted_chunk, num_new_tokens)
-    fn: predict_chunk_size
-    icon: calc
-    at: [20, 490]
-    size: [860, 54]
-    tone: ascend
+timelines:
+  - at: [30, 50]
+    scale: 60
+    start: 0
+    end: 11.5
+    labelW: 80
+    laneH: 28
+    gap: 10
+    lanes:
+      - label: 段 1
+        spans:
+          - { from: 0, to: 0.5, tone: token }
+          - { from: 0.5, to: 2, tone: token, style: faded }
+          - { from: 2, to: 4.5, tone: token }
+          - { from: 4.5, to: 8, tone: token, style: faded }
+      - label: 段 2
+        spans:
+          - { from: 0.5, to: 1, tone: token }
+          - { from: 1, to: 2, tone: danger, style: hatch }
+          - { from: 2, to: 3.5, tone: token, style: faded }
+          - { from: 3.5, to: 4.5, tone: danger, style: hatch }
+          - { from: 4.5, to: 7, tone: token }
+          - { from: 7, to: 8, tone: danger, style: hatch }
+          - { from: 8, to: 11.5, tone: token, style: faded }
+    marks:
+      - { t: 11.5, label: 11.5T }
+  - at: [30, 186]
+    scale: 60
+    start: 0
+    end: 11.5
+    labelW: 80
+    laneH: 28
+    gap: 10
+    lanes:
+      - label: 段 1
+        spans:
+          - { from: 0, to: 0.5, tone: token }
+          - { from: 0.5, to: 1, tone: token, style: faded }
+          - { from: 1, to: 1.5, tone: token }
+          - { from: 1.5, to: 2, tone: token, style: faded }
+          - { from: 2, to: 2.5, tone: token }
+          - { from: 2.5, to: 3, tone: token, style: faded }
+          - { from: 3, to: 3.5, tone: token }
+          - { from: 3.5, to: 4, tone: token, style: faded }
+          - { from: 4, to: 4.5, tone: token }
+          - { from: 4.5, to: 5, tone: token, style: faded }
+          - { from: 5, to: 5.5, tone: token }
+          - { from: 5.5, to: 6, tone: token, style: faded }
+          - { from: 6, to: 6.5, tone: token }
+          - { from: 6.5, to: 7, tone: token, style: faded }
+          - { from: 7, to: 7.5, tone: token }
+          - { from: 7.5, to: 8, tone: token, style: faded }
+      - label: 段 2
+        spans:
+          - { from: 0.5, to: 1, tone: token }
+          - { from: 1, to: 1.5, tone: token, style: faded }
+          - { from: 1.5, to: 2, tone: token }
+          - { from: 2, to: 2.5, tone: token, style: faded }
+          - { from: 2.5, to: 3, tone: token }
+          - { from: 3, to: 3.5, tone: token, style: faded }
+          - { from: 3.5, to: 4, tone: token }
+          - { from: 4, to: 4.5, tone: token, style: faded }
+          - { from: 4.5, to: 5, tone: token }
+          - { from: 5, to: 5.5, tone: token, style: faded }
+          - { from: 5.5, to: 6, tone: token }
+          - { from: 6, to: 6.5, tone: token, style: faded }
+          - { from: 6.5, to: 7, tone: token }
+          - { from: 7, to: 7.5, tone: token, style: faded }
+          - { from: 7.5, to: 8, tone: token }
+          - { from: 8, to: 8.5, tone: token, style: faded }
+    marks:
+      - { t: 8.5, label: 8.5T }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L374-L388
-    symbols: [predict_chunk_size, page_size]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L237-L271
+    symbols: [discriminant, smooth_factor, min_chunk]
   - source: vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L313-L342
     symbols: [predicted_chunk, num_new_tokens]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L259-L271
-    symbols: [min_chunk]

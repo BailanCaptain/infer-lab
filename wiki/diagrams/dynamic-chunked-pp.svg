@@ -1,57 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="同一条 131072 token 的 prefill：固定块 4 步、耗时 1:3:5:7；动态块 16 步、每步一样长。横向长度都是耗时，两排一样长——省掉的是下一级的等待，不是计算">
-  <title>同一条 131072 token 的 prefill：固定块 4 步、耗时 1:3:5:7；动态块 16 步、每步一样长。横向长度都是耗时，两排一样长——省掉的是下一级的等待，不是计算</title>
-  <rect width="900" height="560" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="214" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
-  <rect x="36" y="40" width="246.1" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">固定块 · 每块都是 32768 个 token</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">块一样大，注意力却是 O(n²)：第 4 块要对着 98304 个前缀 token 做注意力，耗时是第 1 块的 7 倍。下一级流水线只能干等着它。</text>
-  <rect x="20" y="258" width="860" height="214" rx="12" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="36" y="272" width="214" height="26.5" rx="13.3" fill="var(--color-accent, #e85b32)"/><text x="47" y="290.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">动态块 · 每块都是同样的耗时 T</text>
-  <text x="38" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目标耗时 T 定死，反解出这一步能塞多少 token。前缀越长切得越薄，同一条 128k 输入被切成 16 块，每块花掉一样多的时间。</text>
-  <rect x="20" y="490" width="860" height="54" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="20" y="490" width="5" height="54" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(43.8 506.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="78" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每步反解出这一步切多少 token</text>
-  <text x="78" y="534" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">取正根、平滑、对齐，再 min(predicted_chunk, num_new_tokens)</text>
-  <rect x="708" y="504.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="784.5" y="522" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">predict_chunk_size</text>
-  <rect x="44" y="140" width="28" height="34" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="44" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">T</text>
-  <rect x="75" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="106" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="137" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="75" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">3T</text>
-  <rect x="168" y="140" width="28" height="34" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="199" y="140" width="28" height="34" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="230" y="140" width="28" height="34" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="261" y="140" width="28" height="34" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="292" y="140" width="28" height="34" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="168" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">5T</text>
-  <rect x="323" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="354" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="385" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="416" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="447" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="478" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="509" y="140" width="28" height="34" rx="3" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="323" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">7T</text>
-  <rect x="44" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="75" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="106" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="137" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="168" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="199" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="230" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="261" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="292" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="323" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="354" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="385" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="416" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="447" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="478" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="509" y="372" width="28" height="34" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <text x="44" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">16 格 = 16 块，每格都是 T</text>
-  <text x="44" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">4 步走完，一格 = 一份时间</text>
-  <text x="44" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一块 32768 个 token，耗时却是 T : 3T : 5T : 7T——比例由 f(l) = a·l² 直接给出。</text>
-  <text x="44" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">16 步走完，总长度和上面一排一样</text>
-  <text x="44" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">块大小 32768 → 13696 → 10496 → 8832 → 7808 → … → 4224，每个都向上对齐到 max(page_size, 64) 的倍数；第 17 块起会被 min_chunk 顶住。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="示意：128k 长文在两段流水线里走完。固定块越往后越慢，第 2 段越等越久；每块耗时相同时，第 2 段一块接一块、没有空等">
+  <title>示意：128k 长文在两段流水线里走完。固定块越往后越慢，第 2 段越等越久；每块耗时相同时，第 2 段一块接一块、没有空等</title>
+  <defs><pattern id="dynamic-chunked-pp-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <text x="98" y="68.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">段 1</text>
+  <path d="M110 78H800" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="110" y="50" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="140" y="50" width="90" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="230" y="50" width="150" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="380" y="50" width="210" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="98" y="106.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">段 2</text>
+  <rect x="140" y="88" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="170" y="88" width="60" height="28" rx="4" fill="url(#dynamic-chunked-pp-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <rect x="230" y="88" width="90" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="320" y="88" width="60" height="28" rx="4" fill="url(#dynamic-chunked-pp-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <rect x="380" y="88" width="150" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="530" y="88" width="60" height="28" rx="4" fill="url(#dynamic-chunked-pp-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <rect x="590" y="88" width="210" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <path d="M110 128H800" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M110 128v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="110" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M800 128v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="800" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">11.5</text>
+  <path d="M800 46V128" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
+  <text x="800" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">11.5T</text>
+  <text x="98" y="204.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">段 1</text>
+  <path d="M110 214H800" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="110" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="140" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="170" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="200" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="230" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="260" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="290" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="320" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="350" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="380" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="410" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="440" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="470" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="500" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="530" y="186" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="560" y="186" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="98" y="242.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">段 2</text>
+  <rect x="140" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="170" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="200" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="230" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="260" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="290" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="320" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="350" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="380" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="410" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="440" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="470" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="500" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="530" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="560" y="224" width="30" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="590" y="224" width="30" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <path d="M110 264H800" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M110 264v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="110" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M800 264v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="800" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">11.5</text>
+  <path d="M620 182V264" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
+  <text x="620" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">8.5T</text>
+  <text x="30" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">固定块：4 块一样大，耗时 T、3T、5T、7T</text>
+  <text x="30" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">动态块：16 块，每块都花 T</text>
 </svg>

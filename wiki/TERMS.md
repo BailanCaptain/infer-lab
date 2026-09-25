@@ -17,7 +17,7 @@
 | embedding（词向量） | 词嵌入、嵌入向量 | 把一个 token 换成一串数字，模型只认数字。 | embedding | |
 | 层 | layer、Transformer 层 | 模型里重复很多遍的同一套计算，一遍叫一层。 | layers-and-hidden | 写「第 N 层」「注意力层」，别单写「层」（另有软件层等含义）。 |
 | 隐藏向量（hidden） | 隐藏态、hidden state、隐藏维度 | 层与层之间传的那串数字，一个 token 一串。 | layers-and-hidden | 数据叫「隐藏向量」，长度叫「隐藏维度」；别写裸 hidden。 |
-| 权重 | weight、模型参数 | 训练好就不再变的那些数字，算的时候拿来乘。 | matmul-and-weights | 和「参数量」「配置项」分开，见下一行。 |
+| 权重 | weight、模型参数 | 训练得到的数字，固定模型推理时读取使用。 | matmul-and-weights | 和「参数量」「配置项」分开；继续训练、适配器或更新模型是另外的操作。 |
 | 参数量 | 总参数、激活参数 | 一个模型里权重的总个数，常写成 7B、35B。 | matmul-and-weights | 模型规模写「参数量」，启动选项写「配置项」；别用裸「参数」两头指。 |
 | 矩阵乘 | matmul、GEMM、矩阵乘法 | 把一批数字和权重成片相乘，模型里最费算力的一步。 | matmul-and-weights | 正文写「矩阵乘」，代码名照写 matmul。 |
 | 注意力 | attention、自注意力 | 让每个 token 去看前面的 token，再按看到的调整自己。 | attention-qkv | 专名保留原形：PagedAttention、Flash Attention。 |
@@ -27,14 +27,14 @@
 | 注意力头 | head、多头、Q 头、KV 头 | 同一层里并排做好几份注意力，一份叫一个头。 | gqa | 写「注意力头 / Q 头 / KV 头」，不单用「头」。 |
 | 头维度 | head dim、head_size | 一个注意力头里那串数字有多长。 | attention-qkv | |
 | 因果掩码 | causal mask、mask | 挡住后面的 token，让每个 token 只看得见前面。 | attention-qkv | 别和结构化输出的「文法掩码」混。 |
-| MLP | FFN、前馈网络 | 注意力之后的那两次矩阵乘，每个 token 各算各的。 | mlp-residual-norm | |
+| MLP | FFN、前馈网络 | 注意力之后逐个加工 token 的前馈计算，每个 token 各算各的。 | mlp-residual-norm | 带门控的 MLP 可有三片逻辑权重，不能一概说只有两次矩阵乘。 |
 | 残差 | residual、残差连接 | 把这一层算出来的加回原来那串数字，而不是换掉。 | mlp-residual-norm | |
 | RMSNorm | 归一化、LayerNorm | 把一串数字整体缩放到差不多大小，免得越算越偏。 | mlp-residual-norm | LayerNorm 是另一种做法，不当同义词。 |
 | MoE | 混合专家、Mixture of Experts | 把 MLP 换成很多份，每个 token 只用上其中几份。 | moe | |
-| 专家 | expert | MoE 里的一份 MLP，每层有几百份。 | moe | |
+| 专家 | expert | MoE 里的一份前馈网络，由路由选择参与计算。 | moe | 专家数量依模型而定，本例每层有 256 个路由专家。 |
 | 路由器 | router、门控、gate | MoE 每层的小网络，决定每个 token 交给哪几个专家。 | moe | 网络叫「路由器」，输出叫「路由结果」；把请求分给 DP 副本的叫「前端路由」，是另一回事。 |
-| 共享专家 | shared expert | 每层固定有一份，所有 token 都要过它。 | moe | |
-| 线性注意力 | linear attention、Mamba、GDN | 另一种省 KV Cache 的算法，不逐个回看前面的 token。 | linear-attention | 讲原理用「线性注意力」，讲具体结构直接写 Mamba / GDN。 |
+| 共享专家 | shared expert | 不参加 top-k 选择，所有 token 都经过的专家路径。 | moe | 是否设置、设置几个依模型而定；本例每层一个，输出还有门控。 |
+| 线性注意力 | linear attention、GDN、Gated DeltaNet | 可用递推状态汇总历史，不必每步逐位置回看所有 K、V。 | linear-attention | 本例采用 Gated DeltaNet。Mamba 是选择性状态空间模型，不列为同义词。 |
 | KV Cache | KV 缓存、kv cache | 把算过的 K 和 V 存起来，下一步直接读，不重算。 | kv-cache | 两个词都大写；简称 KV 在每页首次出现时写全。 |
 | prefill | 预填充、P 阶段 | 先把问题里所有 token 一起算一遍，填好 KV Cache。 | prefill | 「P 节点」指跑 prefill 的机器，不是阶段本身。 |
 | decode | 解码、D 阶段 | 问题算完后，一次吐一个 token，吐一次算一步。 | 缺（vllm-scheduler 讲两者关系） | 「解码」被投机解码、引导解码借用，统一写 decode。 |
@@ -54,7 +54,7 @@
 | 前缀缓存 | Prefix Caching、APC | 两条请求开头一样，开头那些块直接拿来用，不重算。 | prefix-caching | |
 | Chunked Prefill | 分块预填充 | 问题太长就切成几段，分几步 prefill 完。 | chunked-prefill | 首次写「Chunked Prefill（分块预填充）」。 |
 | 投机解码 | Speculative Decoding、推测解码 | 先让小模型猜几个 token，大模型一次验完，猜对就白赚。 | speculative-decoding | 组成部分统一叫「草稿模型」「草稿 token」。 |
-| MTP | Multi-Token Prediction | 投机解码的一种做法，用模型自带的预测模块当草稿。 | speculative-decoding | 待核：「模型自带」还没有页面佐证。 |
+| MTP | Multi-Token Prediction | 在本例投机解码中，用模型配套的多 token 预测模块生成草稿。 | speculative-decoding | 已核：Qwen3.6-35B-A3B 的 text_config.mtp_num_hidden_layers 为 1；这不表示服务默认已启用投机解码，开关见该页下半。 |
 | PD 分离 | disaggregation、分离部署 | prefill 和 decode 放到不同机器上跑，算完把 KV 搬过去。 | pd-disaggregation | 两边的机器写「P 节点 / D 节点」，不写「P 实例」。 |
 | 量化 | quantization、W8A8 | 把权重从大数字换成小数字存，省显存，精度略降。 | quantization | 具体格式（W8A8、int8）照原样写，不翻译。 |
 | 图模式 | graph mode | 把一整趟计算提前录下来，之后照录好的重放，省下发开销。 | graph-mode-layer | 两个动作叫「捕获」「回放」。 |
@@ -70,16 +70,17 @@
 | 统一叫法 | 别的叫法（收进 aliases） | 一句白话 | 对应页面 | 备注 |
 | --- | --- | --- | --- | --- |
 | 昇腾 | Ascend | 华为的 AI 芯片和配套软件这一整套东西。 | vllm-ascend-overview | 包名、类名里的 Ascend 照原样。 |
-| NPU | 昇腾芯片、device | 昇腾用来算模型的芯片，作用相当于别处的显卡。 | 缺 | vLLM 看到的计算设备一律写 NPU。 |
-| 卡 | 单卡、加速卡 | 机器上插的一块加速板；A3 一张卡上有两颗 NPU。 | 缺 | 只在讲插了几块硬件时用「卡」；数计算设备用 NPU，别写「单卡」表示单 NPU。 |
-| Atlas A2 / A3 | 910B、A5 | 昇腾的两代硬件，A3 比 A2 新、卡间连得更快。 | 缺 | 每页首次写全 Atlas A2 / Atlas A3，之后简写 A2 / A3。 |
-| 显存 | HBM、设备内存 | NPU 自己的那块内存，权重和 KV Cache 都放在里面。 | kv-cache-memory-profiling | 强调带宽时才写 HBM，并注明就是显存。 |
-| 主机内存 | host memory、CPU 内存 | CPU 那边的内存，比显存大得多也慢得多。 | kv-cache-cpu-offload | 别写裸「内存」——写全「显存」或「主机内存」。 |
-| AI Core | Cube、Vector、AIV | NPU 芯片里真正做乘法的那部分。 | 缺 | 待核：它和 Cube / Vector / AIV 的层级关系还没核到可读来源。 |
-| CANN | 昇腾软件栈 | 昇腾的底层软件包，算子和运行时都归它管。 | 缺 | 驱动不属于 CANN。 |
-| HCCL | 集合通信库 | 昇腾 NPU 之间传数据用的那套库。 | 缺 | 首次写「HCCL（昇腾卡间通信库）」。 |
-| 超节点 | SuperPoD | 多台机器用高速网连成一台来用。 | 缺 | 待核：库内没有定义页，这句是外部常识。 |
-| 机器 | 节点、服务器、单机 | 一台物理机器；多台连起来才叫多机部署。 | 缺 | 「节点」只留给 P 节点 / D 节点这类角色名，别当机器讲。 |
+| NPU | 昇腾芯片、device | 昇腾计算处理器；本库部署语境指软件可见的计算设备。 | hardware-devices | 软件设备、物理封装与板卡分别计数，不默认一一对应。 |
+| 卡 | 单卡、加速卡 | 一块板级加速硬件。 | hardware-devices | 数计算设备用 NPU；板卡与设备的映射按具体型号核对。 |
+| Atlas A2 / A3 | Atlas A2、Atlas A3 | 昇腾产品系列的称呼，具体规格还要看完整产品型号。 | hardware-devices | 不把 910B、A5 混作同义词；首次写全 Atlas A2 / Atlas A3。 |
+| 显存 | 设备内存、HBM | NPU 侧供计算使用的内存，常存权重、KV Cache 和临时结果。 | device-memory | HBM 是内存技术名，不是所有设备内存的同义词；实际预算见 kv-cache-memory-profiling。 |
+| 主机内存 | host memory、CPU 内存 | CPU 一侧的内存，和设备显存分别计算容量。 | device-memory | 不假定容量或速度关系；卸载过程见 kv-cache-cpu-offload。 |
+| AI Core | AICore | NPU 内承担计算的一类核心，另含存储、搬运与控制部件。 | ai-core | 已按 CANN 8.0.RC2 指南核实耦合/分离模式；不是 Cube、Vector 的同义词。 |
+| Cube / Vector / Scalar | AIC、AIV、AI Cube、AI Vector | 分别承担矩阵、向量、标量计算的单元。 | ai-core | AIC/AIV 是分离模式下的核心称呼，和单元层级分开讲；不推定核数比例。 |
+| CANN | 昇腾软件栈 | 承接上层计算框架、提供运行时、算子、图与通信等能力的软件体系。 | cann-hccl | 环境记录中将 CANN 与驱动、固件版本分别列出。 |
+| HCCL | 集合通信库 | 组织昇腾设备在同机或跨机器收发、合并数据的软件库。 | cann-hccl | 首次写「HCCL（昇腾集合通信库）」；属于 CANN，不是物理链路。 |
+| 超节点 | SuperPoD | 多个计算设备通过高速互联组成的协作系统。 | superpod | 已核 Atlas 900 A3 SuperPoD 官方实践；内存池化还依赖软件，不能把它说成自动合成一颗 NPU。 |
+| 机器 | 节点、服务器、单机 | 一台物理服务器。 | hardware-devices | 「节点」可能指物理机器，也可能指 P/D 部署角色，正文应说明语境。 |
 
 ### 四、并行与通信
 

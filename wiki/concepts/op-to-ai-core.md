@@ -3,7 +3,7 @@ id: op-to-ai-core
 title: 一个算子从 Python 走到 AI Core
 type: concept
 summary: 拿那条请求里跑得最多的小算子——归一化——从 Python 一路追到 AI Core。四层里真正要做决定的只有一处分岔：一边是仓库自己编的融合算子，一边是 CANN 现成的算子再单独补一步。
-aliases: [算子链路, RMSNorm, AscendRMSNorm, AscendGemmaRMSNorm, npu_add_rms_norm_bias, AscendC, op_kernel, op_host, tiling, tiling key, UB, 算子四层]
+aliases: [算子链路, AscendRMSNorm, AscendGemmaRMSNorm, npu_add_rms_norm_bias, AscendC, op_kernel, op_host, tiling, tiling key, UB, 算子四层]
 chapters: ["16"]
 order: 20
 sources:

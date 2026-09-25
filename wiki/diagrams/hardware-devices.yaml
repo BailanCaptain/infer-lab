@@ -1,0 +1,16 @@
+layout: figure
+id: hardware-devices
+caption: 一台机器里可以有多个软件可见设备；图不规定设备与板卡的数量对应关系
+size: [900, 260]
+frames:
+  - { at: [30, 45], size: [840, 170], label: 一台物理机器 }
+  - { at: [345, 85], size: [230, 105], label: NPU 设备 0 }
+  - { at: [610, 85], size: [230, 105], label: NPU 设备 1 }
+items:
+  - { at: [65, 106], size: [215, 58], text: 主机程序, sub: 选择设备并提交任务, tone: control }
+  - { at: [367, 123], size: [186, 42], text: 计算与设备内存, tone: kv }
+  - { at: [632, 123], size: [186, 42], text: 计算与设备内存, tone: kv }
+links:
+  - { from: [280, 135], to: [340, 135] }
+texts:
+  - { at: [30, 240], text: 软件边界示意：板卡数、封装数、可见设备数分别核对, note: true }

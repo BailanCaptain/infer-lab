@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 345" width="900" height="345" role="img" aria-label="高速互联保留设备与内存的位置；统一编址和对象缓存还需要相应软件">
+  <title>高速互联保留设备与内存的位置；统一编址和对象缓存还需要相应软件</title>
+  <defs><marker id="superpod-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="30" y="40" width="330" height="185" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">机器 A · 示意</text>
+  <rect x="540" y="40" width="330" height="185" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="556" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">机器 B · 示意</text>
+  <path d="M360 151 L535 151" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#superpod-ah-comm)"/>
+  <rect x="55" y="84" width="280" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="195" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机内存 A</text>
+  <rect x="55" y="154" width="280" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="195" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">NPU 与设备内存 A</text>
+  <rect x="565" y="84" width="280" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705" y="114" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机内存 B</text>
+  <rect x="565" y="154" width="280" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">NPU 与设备内存 B</text>
+  <rect x="155" y="270" width="590" height="48" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">配套软件：统一编址 / 跨机访问 / 对象存取</text>
+  <text x="447" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">高速互联</text>
+  <text x="30" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">两台机器示意 · 非产品规模图</text>
+</svg>

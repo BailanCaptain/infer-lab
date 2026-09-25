@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 275" width="900" height="275" role="img" aria-label="容量按位置分别计算；跨位置访问或搬运都需要对应的硬件与软件路径">
+  <title>容量按位置分别计算；跨位置访问或搬运都需要对应的硬件与软件路径</title>
+  <defs><marker id="device-memory-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="30" y="50" width="320" height="165" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">CPU 一侧</text>
+  <rect x="540" y="50" width="330" height="165" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="556" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">NPU 一侧</text>
+  <path d="M350 130 L535 130" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#device-memory-ah-comm)"/>
+  <rect x="65" y="103" width="250" height="70" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="190" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机内存</text>
+  <text x="190" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">CPU 内存</text>
+  <rect x="570" y="103" width="270" height="70" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">设备内存（显存）</text>
+  <text x="705" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重、KV、临时结果</text>
+  <text x="445" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">访问或搬运</text>
+  <text x="30" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">容量：能放多少字节    带宽：每秒能传多少字节</text>
+</svg>

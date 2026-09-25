@@ -32,4 +32,4 @@ bars:
       - { value: 2, tone: kv, style: hatch }
 
 texts:
-  - { at: [480, 170], text: 看完就扔, size: 13.5 }
+  - { at: [480, 170], text: 汇入递推状态, size: 13.5 }

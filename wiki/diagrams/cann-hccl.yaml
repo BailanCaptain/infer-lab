@@ -1,0 +1,18 @@
+layout: figure
+id: cann-hccl
+caption: CANN 承接上层计算任务；HCCL 是其中组织设备通信的组件，底层链路另有硬件条件
+size: [900, 345]
+frames:
+  - { at: [275, 40], size: [345, 255], label: CANN · 软件职责示意 }
+items:
+  - { at: [30, 128], size: [180, 76], text: 上层计算框架, tone: control }
+  - { at: [300, 90], size: [295, 66], text: 运行时、算子与图, tone: control }
+  - { at: [300, 192], size: [295, 66], text: HCCL, sub: 设备之间的通信, tone: comm }
+  - { at: [690, 88], size: [180, 68], text: 昇腾设备计算, tone: weight }
+  - { at: [690, 192], size: [180, 68], text: 设备间链路, tone: comm }
+links:
+  - { from: [210, 164], to: [270, 164] }
+  - { from: [620, 122], to: [685, 122] }
+  - { from: [620, 225], to: [685, 225], tone: comm }
+texts:
+  - { at: [30, 323], text: 概念分工图：省略驱动等中间组件，不是安装清单或完整调用栈, note: true }

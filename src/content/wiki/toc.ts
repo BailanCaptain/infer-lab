@@ -72,6 +72,10 @@ const CURATED: Record<"basics" | "flow", { title: string; pages: string[] }[]> =
       ],
     },
     { title: "", pages: ["prefill", "kv-cache", "rope", "attention-cost"] },
+    {
+      title: "昇腾硬件基础",
+      pages: ["hardware-devices", "device-memory", "ai-core", "cann-hccl", "superpod"],
+    },
   ],
   flow: [
     {

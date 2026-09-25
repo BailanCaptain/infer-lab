@@ -1,0 +1,19 @@
+layout: figure
+id: ai-core
+caption: 两种组织形式；只画层级，不表示核数、物理面积或 AIC 与 AIV 的数量比例
+size: [900, 340]
+frames:
+  - { at: [30, 75], size: [360, 195], label: 耦合模式 · 一个 AI Core }
+  - { at: [480, 75], size: [165, 195], label: 分离模式 · AIC }
+  - { at: [690, 75], size: [180, 195], label: 分离模式 · AIV }
+items:
+  - { at: [55, 118], size: [145, 65], text: Cube, sub: 矩阵计算, tone: weight }
+  - { at: [220, 118], size: [145, 65], text: Vector, sub: 向量计算, tone: token }
+  - { at: [55, 203], size: [310, 42], text: Scalar · 标量与控制, tone: control }
+  - { at: [495, 118], size: [135, 65], text: Cube, sub: 矩阵计算, tone: weight }
+  - { at: [705, 118], size: [150, 65], text: Vector, sub: 向量计算, tone: token }
+  - { at: [495, 203], size: [135, 42], text: Scalar, tone: control }
+  - { at: [705, 203], size: [150, 42], text: Scalar, tone: control }
+texts:
+  - { at: [30, 38], text: AI Core 内部的两种组织形式, strong: true }
+  - { at: [30, 310], text: 存储、搬运和其他控制部件未画出；型号归类见正文来源, note: true }

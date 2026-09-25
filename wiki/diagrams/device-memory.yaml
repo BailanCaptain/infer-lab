@@ -1,0 +1,15 @@
+layout: figure
+id: device-memory
+caption: 容量按位置分别计算；跨位置访问或搬运都需要对应的硬件与软件路径
+size: [900, 275]
+frames:
+  - { at: [30, 50], size: [320, 165], label: CPU 一侧 }
+  - { at: [540, 50], size: [330, 165], label: NPU 一侧 }
+items:
+  - { at: [65, 103], size: [250, 70], text: 主机内存, sub: CPU 内存, tone: control }
+  - { at: [570, 103], size: [270, 70], text: 设备内存（显存）, sub: 权重、KV、临时结果, tone: kv }
+links:
+  - { from: [350, 130], to: [535, 130], tone: comm }
+texts:
+  - { at: [445, 112], text: 访问或搬运, anchor: middle, size: 13, tone: comm }
+  - { at: [30, 250], text: 容量：能放多少字节    带宽：每秒能传多少字节, note: true }

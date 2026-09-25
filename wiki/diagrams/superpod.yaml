@@ -1,0 +1,18 @@
+layout: figure
+id: superpod
+caption: 高速互联保留设备与内存的位置；统一编址和对象缓存还需要相应软件
+size: [900, 345]
+frames:
+  - { at: [30, 40], size: [330, 185], label: 机器 A · 示意 }
+  - { at: [540, 40], size: [330, 185], label: 机器 B · 示意 }
+items:
+  - { at: [55, 84], size: [280, 50], text: 主机内存 A, tone: control }
+  - { at: [55, 154], size: [280, 50], text: NPU 与设备内存 A, tone: kv }
+  - { at: [565, 84], size: [280, 50], text: 主机内存 B, tone: control }
+  - { at: [565, 154], size: [280, 50], text: NPU 与设备内存 B, tone: kv }
+  - { at: [155, 270], size: [590, 48], text: 配套软件：统一编址 / 跨机访问 / 对象存取, tone: comm }
+links:
+  - { from: [360, 151], to: [535, 151], tone: comm }
+texts:
+  - { at: [447, 132], text: 高速互联, anchor: middle, tone: comm }
+  - { at: [30, 251], text: 两台机器示意 · 非产品规模图, note: true }

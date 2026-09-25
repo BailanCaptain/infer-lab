@@ -1,24 +1,27 @@
-layout: scene
+layout: figure
 id: block-allocation
-caption: 那条请求要了两次块：第 1 步要一块，第 92 步 decode 再要一块
-size: [900, 470]
+caption: 空闲的 KV 块排成一队；请求从队头取走一块，引用计数 0 → 1；用完计数减回 0，块排回队尾
+size: [900, 300]
 
-bands:
-  - { label: BlockPool, sub: 全机共用的空闲块队列，按淘汰顺序排着, at: [20, 44], size: [860, 62], tone: muted, icon: box }
-  - { label: 第 1 步, sub: "prompt 37 个 token → ceil(37 / 128) = 1 块", at: [20, 178], size: [860, 84], fn: allocate_slots, tone: neutral, icon: grid }
-  - { label: 第 92 步 decode, sub: 第 0 块的 128 格刚好写满，才去要第二块, at: [20, 280], size: [860, 84], fn: get_new_blocks, tone: ascend, icon: grid }
-  - { label: 请求结束, sub: "两块一起还回空闲队列，ref_cnt 归零；开了前缀缓存就先留着内容", at: [20, 382], size: [860, 64], fn: free, tone: muted, icon: queue }
+texts:
+  - { at: [30, 44], text: 空闲池：全机共用一队, size: 14, strong: true }
+  - { at: [30, 150], text: 从队头取一块, size: 13, note: true }
+  - { at: [620, 150], text: 请求结束，排回队尾, size: 13, note: true }
 
-strips:
-  - { at: [44, 120], cells: 40, cell: 16, gap: 4, highlights: [0, 1], tone: muted, label: "实心的那两块就是这条请求拿走的；popleft_n 从队头取，所以它俩是队里最早空出来的" }
+rows:
+  - { at: [30, 66], count: 24, w: 26, h: 26, gap: 6, tone: kv, faded: [0], ghost: [23] }
 
-notes:
-  - { at: [20, 462], text: "「要几块」在这一侧算，「token 写进块里的第几格」在昇腾那一侧算。两件事常被混成一件。", size: 12.5, width: 860 }
+items:
+  - { at: [330, 196], size: [240, 64], text: 这条请求的 KV 块, sub: "引用计数 0 → 1 → 0", tone: kv }
+
+links:
+  - { from: [43, 96], to: [330, 228], curve: [[43, 228], [200, 228]], tone: kv }
+  - { from: [570, 228], to: [779, 96], curve: [[700, 228], [779, 228]], tone: kv, dashed: true }
 
 pins:
-  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L348
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L363
     symbols: [get_new_blocks, free_block_queue]
-  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L250
-    symbols: [allocate_slots]
-  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L444
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441
+    symbols: [free_blocks]
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L446
     symbols: [free]

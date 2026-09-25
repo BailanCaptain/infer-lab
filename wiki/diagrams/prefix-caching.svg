@@ -1,50 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="命中的单位是写满的块；昇腾侧只在块大小、哈希粒度、命中后的算子入参三处插手">
-  <title>命中的单位是写满的块；昇腾侧只在块大小、哈希粒度、命中后的算子入参三处插手</title>
-  <rect width="900" height="520" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="200" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="133.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 决定的</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">逐块哈希、查表、引用计数、淘汰都在 EngineCore 进程里，昇腾侧没有另写一份</text>
-  <rect x="20" y="268" width="860" height="200" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="282" width="197.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="300.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 做的三件适配</text>
-  <text x="38" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不碰匹配逻辑，改的是块多大、哈希按多大切、命中之后算子怎么收参数</text>
-  <line x1="20" y1="250" x2="880" y2="250" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="876" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">命中多少 token、用哪些块，过了这条线已成定局</text>
-  <rect x="40" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="88" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="136" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="184" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="232" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="280" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="328" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="376" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="424" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="472" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="520" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="568" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="616" y="136" width="42" height="42" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="40" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">命中 13 块 = 1664 个 token：块号直接填进第二条请求的块表</text>
-  <rect x="664" y="136" width="42" height="42" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <text x="664" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这一块要现算</text>
-  <rect x="36" y="358" width="266" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="48" y="385" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 391.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
-  <text x="88" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">块大小顶成 128</text>
-  <text x="88" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开 APC 就改，只留一条 info 日志</text>
-  <text x="88" y="424" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">refresh_block_size</text>
-  <rect x="308" y="358" width="278" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="320" y="385" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(326.4 391.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
-  <text x="360" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">哈希粒度单独算一份</text>
-  <text x="360" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">多 group 且开 DCP 时取 gcd</text>
-  <text x="360" y="424" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">resolve_kv_cache_block_sizes</text>
-  <rect x="592" y="358" width="272" height="86" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="604" y="385" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(610.4 391.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="644" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">命中后单列一种状态</text>
-  <text x="644" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">算子拿块表切片，KV 仍按全长读</text>
-  <text x="644" y="424" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">PrefillCacheHit</text>
-  <path d="M366 230 L366 264" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M366 264 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M40 128 l0 -9 L706 119 l0 9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
-  <text x="373" y="111" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">第二条请求 1712 token = 14 块</text>
-  <text x="40" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第 14 块装的是前缀剩下的 36 个 token 加 12 个新 token，它从来没被写满过，也就从来没进过哈希表</text>
-  <text x="20" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">省掉的是那 1664 个 token 的 embedding、QKV 投影和 MLP，整整 28 层；没省掉的是注意力对 KV 的读取——块表仍指着 14 块，算子拿到的 KV 长度仍是</text>
-  <text x="20" y="510.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">1712。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 190" width="900" height="190" role="img" aria-label="第二次提问 6037 个 token，开头 6000 个和上一次相同；只有写满的前两块能直接拿来用，第三块连同相同的 1904 个 token 一起重算">
+  <title>第二次提问 6037 个 token，开头 6000 个和上一次相同；只有写满的前两块能直接拿来用，第三块连同相同的 1904 个 token 一起重算</title>
+  <defs></defs>
+  <rect x="40" y="70" width="532.5" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="56" y="95" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">命中 4096 个 token</text>
+  <rect x="572.5" y="70" width="247.5" height="40" rx="4" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="588.5" y="95" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开头相同也重算 1904</text>
+  <rect x="820" y="70" width="4.8" height="40" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="40" y="64" width="798.7" height="52" rx="7" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="2.2"/>
+  <path d="M40 122 v8 h266 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="173" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">块 1：直接拿来用</text>
+  <path d="M306 122 v8 h266 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="439" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">块 2：直接拿来用</text>
+  <path d="M572 122 v8 h267 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705.5" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">块 3：没写满，现算</text>
+  <text x="40" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">一个块 = 2048 个 token</text>
+  <text x="823" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">新问题 37</text>
 </svg>

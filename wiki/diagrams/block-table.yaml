@@ -1,94 +1,46 @@
-layout: scene
+layout: figure
 id: block-table
-caption: 第 92 步 decode：position 128 经块表翻译成槽位 5376
-size: [900, 512]
+caption: 第 92 步：第 127 位是这条请求的第 0 块，块表查到显存第 5 块，槽位 10367
+size: [900, 400]
 
-regions:
-  - label: ① 逻辑地址
-    note: 请求自己数：第几个块、块里第几格
-    at: [20, 40]
-    size: [255, 176]
-    tone: neutral
-  - label: ② 块表
-    note: 唯一的翻译层。行是座位号，列是逻辑块号
-    at: [322, 40]
-    size: [255, 176]
-    tone: ascend
-  - label: ③ 物理槽位
-    note: 整个 KV 池里的第几格，算子按它读写
-    at: [625, 40]
-    size: [255, 176]
-    tone: accent
+items:
+  - { at: [20, 88], size: [160, 64], text: 第 127 位, sub: 第 0 块 · 第 127 格, tone: token }
 
-boxes:
-  - at: [36, 128]
-    size: [223, 72]
-    title: position = 128
-    sub: 128 // 128 → 逻辑块 1
-    fn: 128 % 128 → 块内第 0 格
-    tone: neutral
-  - at: [338, 128]
-    size: [223, 72]
-    title: 块表 第 0 行 第 1 列
-    sub: block_table.np[0, 1]
-    fn: → 物理块 42
-    tone: ascend
-  - at: [641, 128]
-    size: [223, 72]
-    title: 槽位 5376
-    sub: 42 × 128 + 0
-    fn: reshape_and_cache 写这一格
-    tone: accent
+grids:
+  - at: [330, 72]
+    rows: 1
+    cols: 6
+    cell: [60, 34]
+    gap: 0
+    tone: control
+    cells:
+      - { at: [0, 0], text: "5", style: solid }
+    rowLabels: [这条请求]
+    colLabels: [第 0 块, 第 1 块, 第 2 块]
+    label: 块表：一行一条请求，一格一个块号
+  - at: [236, 262]
+    rows: 1
+    cols: 12
+    cell: [44, 30]
+    gap: 6
+    tone: kv
+    cells:
+      - { at: [0, 5], text: "5", style: solid }
+    label: 显存里的 KV 块（只画 12 块，每块 2048 格）
 
-arrows:
-  - { from: [266, 164], to: [318, 164], tone: ascend }
-  - { from: [568, 164], to: [621, 164], tone: accent }
-  - { from: [31.5, 292], via: [[31.5, 360], [95.5, 360]], to: [95.5, 392], tone: muted, style: dashed }
-  - from: [58.5, 292]
-    via: [[58.5, 332], [613.5, 332]]
-    to: [613.5, 392]
-    tone: accent
-    label: 逻辑块 1 → 物理块 42
+links:
+  - { from: [180, 120], via: [[220, 120], [220, 89]], to: [262, 89], tone: token }
+  - { from: [360, 106], via: [[360, 222], [508, 222]], to: [508, 258], tone: control }
 
-strips:
-  - at: [20, 268]
-    cells: 32
-    cell: 23
-    gap: 4
-    highlights: [0, 1]
-    tone: ascend
-  - at: [20, 396]
-    cells: 60
-    cell: 11
-    gap: 3
-    highlights: [5, 42]
-    tone: neutral
-    label: 显存里的全部物理块（画出前 60 个）；块表里那个数就是这排里的下标
-
-notes:
-  - at: [20, 244]
-    text: "块表真正的样子：256 行 × 32 列的 int32；这条请求只用到第 0 行的前两列"
-    size: 13.5
-    strong: true
-  - at: [120, 306]
-    text: "列号就是逻辑块号；append_row 从行尾追加，commit_block_table 每步把前 num_reqs 行拷到 NPU"
-    size: 12.5
-    width: 760
-  - at: [20, 458]
-    text: "slot = 物理块号 × block_size + 块内偏移 = 42 × 128 + 0 = 5376"
-    size: 14
-    strong: true
-  - at: [20, 488]
-    text: "表里填 0 表示这一列还没分配：块 0 被当成哨兵，不是指向显存第一块。"
-    size: 12.5
-    width: 860
+texts:
+  - { at: [20, 370], text: "槽位 = 5 × 2048 + 127 = 10367", size: 15, strong: true, tone: kv }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L108-L135
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L108-L146
     symbols: [append_row, block_table, num_blocks_per_row]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L288-L303
+    symbols: [_convert_physical_to_logical_blocks]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L179
     symbols: [compute_slot_mapping, slot_mapping]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L278-L283
     symbols: [commit_block_table]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1142-L1157
-    symbols: [reshape_and_cache]

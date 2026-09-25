@@ -1,104 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="一次抢占的两条时间线：D2H 必须赶在 HBM 块被别人拿走之前（main 快照 baa023ad）">
-  <title>一次抢占的两条时间线：D2H 必须赶在 HBM 块被别人拿走之前（main 快照 baa023ad）</title>
-  <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="306" width="430" height="82" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="20" y="306" width="5" height="82" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(43.8 336.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
-  <text x="78" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">调度侧只记块号</text>
-  <text x="78" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">复用上游 BlockPool 管空闲与共享</text>
-  <rect x="308" y="334.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="369.5" y="352" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">cpu_block_pool</text>
-  <rect x="470" y="306" width="410" height="82" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="470" y="306" width="5" height="82" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(493.8 336.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5M12 12v10"/></g>
-  <text x="528" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">worker 侧才有字节</text>
-  <text x="528" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">启动时一次开好的 pinned 张量</text>
-  <rect x="730.5" y="334.5" width="130.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="795.8" y="352" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">pin_memory=True</text>
-  <line x1="132" y1="148" x2="470" y2="148" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <line x1="470" y1="148" x2="860" y2="148" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M860 148 l-14 -7 l0 14 z" fill="var(--color-weight, #b87a00)"/>
-  <line x1="132" y1="458" x2="470" y2="458" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <line x1="470" y1="458" x2="860" y2="458" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M860 458 l-14 -7 l0 14 z" fill="var(--color-weight, #b87a00)"/>
-  <line x1="470" y1="96" x2="470" y2="616" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="470" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">进程边界 · metadata 跟着 SchedulerOutput 下去</text>
-  <rect x="44" y="620" width="40" height="40" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="92" y="620" width="40" height="40" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="140" y="620" width="40" height="40" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="188" y="620" width="40" height="40" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="236" y="620" width="40" height="40" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="44" y="678" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">16 GiB/卡 ≈ 1170 个 CPU 块：同时最多保住 4 条 32K 的请求，第 5 条只能退回重算</text>
-  <line x1="170" y1="148" x2="170" y2="176" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="170" cy="148" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="170" cy="148" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="150" y="177" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(158 185) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
-  <text x="170" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">分不出块了</text>
-  <text x="170" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">挑中一条正在跑的请求</text>
-  <rect x="108.5" y="257.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="170" y="275" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">allocate_slots</text>
-  <line x1="350" y1="148" x2="350" y2="176" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="350" cy="148" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="350" cy="148" r="5.5" fill="var(--color-accent, #e85b32)"/>
-  <rect x="330" y="177" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
-  <g transform="translate(338 185) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="350" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">问连接器接不接</text>
-  <text x="350" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">空闲 CPU 块不够就返 False</text>
-  <rect x="239.8" y="257.5" width="220.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="350" y="275" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">update_state_before_preempt</text>
-  <line x1="600" y1="148" x2="600" y2="176" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="600" cy="148" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="600" cy="148" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="580" y="177" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(588 185) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="600" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">阻塞 D2H</text>
-  <text x="600" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">赶在 _update_states 之前</text>
-  <rect x="523.5" y="257.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="600" y="275" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">handle_preemptions</text>
-  <line x1="790" y1="148" x2="790" y2="176" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="790" cy="148" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="790" cy="148" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="770" y="177" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(778 185) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
-  <text x="790" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本 rank 报一声</text>
-  <text x="790" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">集齐 world_size 份才算存好</text>
-  <rect x="698.5" y="257.5" width="183" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="790" y="275" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">completed_store_events</text>
-  <line x1="150" y1="458" x2="150" y2="486" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="150" cy="458" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="150" cy="458" r="5.5" fill="var(--color-accent, #e85b32)"/>
-  <rect x="130" y="487" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
-  <g transform="translate(138 495) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
-  <text x="150" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">能恢复多少 token</text>
-  <text x="150" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">没存完就返 None，这步先跳过</text>
-  <rect x="43.5" y="567.5" width="213" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="150" y="585" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">get_num_new_matched_tokens</text>
-  <line x1="362" y1="458" x2="362" y2="486" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="362" cy="458" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="362" cy="458" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="342" y="487" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(350 495) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
-  <text x="362" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">拿到新的 HBM 块</text>
-  <text x="362" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">建 CPU→HBM 回填表</text>
-  <rect x="263" y="567.5" width="198" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="362" y="585" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">update_state_after_alloc</text>
-  <line x1="600" y1="458" x2="600" y2="486" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="600" cy="458" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="600" cy="458" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="580" y="487" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(588 495) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="600" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">阻塞 H2D</text>
-  <text x="600" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">前向之前把块搬回来</text>
-  <rect x="542.3" y="567.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="600" y="585" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">start_load_kv</text>
-  <line x1="790" y1="458" x2="790" y2="486" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="790" cy="458" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="790" cy="458" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="770" y="487" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(778 495) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
-  <text x="790" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">让前向流等一下</text>
-  <text x="790" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">等的是 load_stream</text>
-  <rect x="709.8" y="567.5" width="160.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="790" y="585" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">wait_for_layer_load</text>
-  <path d="M600 288 L600 304" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M600 304 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M700 390 L700 452" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M700 452 l-5.5 -11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M452 347 L466 347" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8" stroke-dasharray="6 4"/>
-  <path d="M466 347 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
-  <text x="20" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">① 抢占这一步</text>
-  <text x="20" y="462" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">② 恢复那一步</text>
-  <text x="500" y="640" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">D2H 非同步不可：调度器可能在同一步里就把这些 HBM 块 id 分给</text>
-  <text x="500" y="658.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">别人，晚一步搬到的就是别人的数据。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" width="900" height="320" role="img" aria-label="被踢掉的请求先把 16 个 KV 块和状态搬进主机内存，重新排上再搬回来；主机内存没空位时，才退回 P 节点从头重算">
+  <title>被踢掉的请求先把 16 个 KV 块和状态搬进主机内存，重新排上再搬回来；主机内存没空位时，才退回 P 节点从头重算</title>
+  <defs><marker id="recompute-cpu-offload-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="recompute-cpu-offload-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
+  <rect x="20" y="40" width="390" height="130" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">D 节点显存</text>
+  <rect x="490" y="40" width="390" height="130" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="506" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">主机内存</text>
+  <path d="M410 84 L490 84" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#recompute-cpu-offload-ah-kv)"/>
+  <path d="M490 136 L410 136" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#recompute-cpu-offload-ah-kv)"/>
+  <path d="M215 170 L215 234" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#recompute-cpu-offload-ah-danger)"/>
+  <rect x="40" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="61" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="82" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="103" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="124" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="145" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="166" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="187" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="208" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="229" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="250" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="271" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="292" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="313" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="334" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="355" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="510" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="531" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="552" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="573" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="594" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="615" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="636" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="657" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="678" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="699" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="720" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="741" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="762" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="783" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="804" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="825" y="64" width="18" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="40" y="120" width="90" height="32" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="85" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">状态</text>
+  <rect x="510" y="120" width="90" height="32" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="555" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">状态</text>
+  <rect x="20" y="234" width="390" height="50" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="215" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">没空位：退回 P 节点重算</text>
+  <text x="420" y="74" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">① 搬出去</text>
+  <text x="420" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">② 搬回来</text>
+  <text x="490" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">一条 32K 请求：16 块 + 状态，约 381 MiB</text>
 </svg>

@@ -1,117 +1,27 @@
-layout: scene
+layout: figure
 id: kv-pool
-caption: 非 layerwise 路径：查表经 worker，搬数据直接走 HBM 地址（main baa023ad）
-size: [900, 600]
+caption: 显存里命中的块直接用，池只补上多出来的那一块；连一块都凑不满的问题根本不去问池
+size: [900, 320]
 
-regions:
-  - label: EngineCore 进程 · 调度器侧
-    note: 默认非 layerwise 查询经 ZMQ 发给 worker，返回池里一共命中到第几个 token。
-    at: [20, 34]
-    size: [860, 152]
-    tone: upstream
-  - label: Worker 进程 · rank 0 那一个
-    note: REP 后台线程替调度器查表；数据搬运由各 worker 执行。
-    at: [20, 230]
-    size: [860, 172]
-    tone: ascend
-  - label: 存储引擎
-    note: mooncake / memcache / yuanrong 三选一，这里只画查表、注册与读写。
-    at: [20, 442]
-    size: [860, 132]
-    tone: neutral
+texts:
+  - { at: [60, 50], text: 问题 4096 个 token = 2 个 KV 块, size: 14, strong: true }
 
-boundaries:
-  - at: 206
-    from: 20
-    to: 880
-    vertical: false
-    label: 进程边界 · 默认非 layerwise 查询走 ipc://，逐层模式另有查询分支
-  - at: 418
-    from: 20
-    to: 880
-    vertical: false
-    label: 过了这条线不再认 token，只认 (地址, 长度)
+items:
+  - { at: [60, 70], size: [200, 64], text: 第 1 块 · 显存里有, tone: kv }
+  - { at: [300, 70], size: [200, 64], text: 第 2 块, tone: kv, style: faded }
+  - { at: [300, 226], size: [200, 64], text: 第 2 块 · 池里有, tone: kv, depth: 2 }
+  - { at: [630, 70], size: [230, 64], text: 37 个 token, sub: 凑不满一块，不问池, tone: token, style: faded }
 
-boxes:
-  - at: [44, 106]
-    size: [264, 72]
-    title: 先数 HBM 里命中了几个
-    sub: 这个数要一起发给池
-    fn: get_num_new_matched_tokens
-    icon: search
-    tone: upstream
-  - at: [320, 106]
-    size: [264, 72]
-    title: 不足一个粒度直接退出
-    sub: 37 // 128 = 0 < 128，返回 0
-    fn: cache_transfer_granularity
-    icon: split
-    tone: muted
-  - at: [598, 106]
-    size: [238, 72]
-    title: 剩下的才去问池
-    sub: ZMQ REQ，附上 HBM 命中数
-    fn: LookupKeyClient.lookup
-    icon: plug
-    tone: upstream
-  - at: [44, 302]
-    size: [260, 76]
-    title: REP 后台线程
-    sub: rank 0 且非 layerwise 才起
-    fn: LookupKeyServer
-    icon: proc
-    tone: ascend
-  - at: [320, 302]
-    size: [252, 76]
-    title: 逐块问在不在
-    sub: 返回命中到第几个 token
-    fn: exists
-    icon: grid
-    tone: ascend
-  - at: [588, 302]
-    size: [248, 76]
-    title: 前向前后各搬一次
-    sub: get 同步，put 交后台线程
-    fn: start_load_kv
-    icon: bolt
-    tone: accent
-  - at: [600, 496]
-    size: [236, 76]
-    title: addr = base_addr + block_id × block_stride
-    sub: 每层每张量各一条
-    fn: prepare_value
-    tone: neutral
+dividers:
+  - { from: [30, 180], to: [540, 180], sides: [本卡显存, 外部池] }
 
-strips:
-  - at: [44, 516]
-    cells: 28
-    cell: 16
-    gap: 3
-    tone: neutral
-    label: 28 层各一条 (addr, size)——非 layerwise 模式下层不是 key 的一部分
-
-arrows:
-  - { from: [240, 188], to: [240, 228], tone: upstream }
-  - { from: [560, 228], to: [560, 188], tone: ascend }
-  - { from: [240, 404], to: [240, 440], tone: accent }
-  - { from: [560, 440], to: [560, 404], tone: neutral }
-
-notes:
-  - at: [20, 592]
-    text: 查表走控制面、跨一次进程；搬数据走数据面：register_buffer 把 HBM 区间登记进去之后，put / get 收的就是裸地址和长度。
-    size: 12.5
-    width: 860
+links:
+  - { from: [400, 226], to: [400, 134], tone: comm }
 
 pins:
   - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L591-L626
     symbols: [get_num_new_matched_tokens, LookupKeyClient, cache_transfer_granularity]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/ascend_store_connector.py#L409-L452
-    symbols: [LookupKeyServer]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L3254-L3264
-    symbols: [exists]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1085-L1173
-    symbols: [start_load_kv]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L436-L464
-    symbols: [prepare_value, base_addr, block_id, block_stride]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L73-L166
-    symbols: [register_buffer, put, get]
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L278-L286
+    symbols: [infer_cache_transfer_granularity]
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L175-L185
+    symbols: [mamba_cache_mode, mamba_block_size]

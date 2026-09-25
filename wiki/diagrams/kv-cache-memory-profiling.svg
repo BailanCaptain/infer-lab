@@ -1,56 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" width="900" height="470" role="img" aria-label="启动四步与那根 64 GiB 的卡：预算只减掉左边三块，图池落在它右边">
-  <title>启动四步与那根 64 GiB 的卡：预算只减掉左边三块，图池落在它右边</title>
-  <rect width="900" height="470" fill="var(--color-surface, #fbfaf6)"/>
-  <line x1="52" y1="160" x2="672" y2="160" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <line x1="672" y1="160" x2="858" y2="160" stroke="var(--color-accent, #e85b32)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M858 160 l-14 -7 l0 14 z" fill="var(--color-accent, #e85b32)"/>
-  <line x1="672" y1="26" x2="672" y2="200" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="672" y="15" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">KV Cache 张量在这里申请</text>
-  <rect x="40" y="290" width="58" height="48" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="98" y="290" width="662" height="48" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="760" y="290" width="23" height="48" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="783" y="290" width="57" height="48" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <line x1="140" y1="160" x2="140" y2="132" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="140" cy="160" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="140" cy="160" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="120" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(128 99) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
-  <text x="140" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">① 拍快照</text>
-  <text x="140" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">整卡 64 GiB 记下来</text>
-  <rect x="86" y="21.5" width="108" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="140" y="39" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">_init_device</text>
-  <line x1="350" y1="160" x2="350" y2="132" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="350" cy="160" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="350" cy="160" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="330" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(338 99) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="350" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">② 跑最坏情况</text>
-  <text x="350" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">量激活峰值</text>
-  <rect x="299.8" y="21.5" width="100.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="350" y="39" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">profile_run</text>
-  <line x1="555" y1="160" x2="555" y2="132" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="555" cy="160" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="555" cy="160" r="5.5" fill="var(--color-kv, #4c65b6)"/>
-  <rect x="535" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4"/>
-  <g transform="translate(543 99) scale(1)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="555" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ 立预算</text>
-  <text x="555" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">57.60 − 4.61 = 52.99</text>
-  <rect x="448.5" y="21.5" width="213" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="555" y="39" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">determine_available_memory</text>
-  <line x1="790" y1="160" x2="790" y2="132" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="790" cy="160" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="790" cy="160" r="5.5" fill="var(--color-accent, #e85b32)"/>
-  <rect x="770" y="91" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
-  <g transform="translate(778 99) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="790" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">④ 捕获图</text>
-  <text x="790" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">图池这时才吃显存</text>
-  <rect x="732.3" y="21.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="790" y="39" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">capture_model</text>
-  <path d="M40 290 l0 -9 L98 281 l0 9" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
-  <text x="69" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)" text-anchor="middle">三块 4.61 GiB</text>
-  <path d="M760 290 l0 -9 L783 281 l0 9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
-  <text x="771.5" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">图池 1.80 GiB（预算外）</text>
-  <path d="M98 338 l0 9 L760 347 l0 -9" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
-  <text x="429" y="365" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)" text-anchor="middle">KV Cache 预算 52.99 GiB = 3875 块 = 496,000 个 token 的位置</text>
-  <path d="M40 374 l0 9 L840 383 l0 -9" fill="none" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.4" opacity="0.75"/>
-  <text x="440" y="401" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink-faint, #8a928f)" text-anchor="middle">整卡 total_memory 64 GiB</text>
-  <text x="40" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="600" fill="var(--color-ink, #17211f)">同一件事画到实际比例上：左边那三块是权重 1.11 + 激活峰值 2.30 + 非 torch 1.20，右边两段不在预算里</text>
-  <text x="40" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">图捕获发生在 KV 张量申请之后：它那 1.80 GiB 吃的是 0.9 切剩下的这段尾巴，不进上面那个减法。尾巴不够，worker 就死在这一步——日志给出</text>
-  <text x="40" y="448.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">的 --kv-cache-memory 建议值正是用来补这个缺口。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="900" height="220" role="img" aria-label="一颗 NPU 的 64 GiB：九成里减掉权重和临时数据，剩下的给 KV；录图那一块落在九成之外">
+  <title>一颗 NPU 的 64 GiB：九成里减掉权重和临时数据，剩下的给 KV；录图那一块落在九成之外</title>
+  <defs><pattern id="kv-cache-memory-profiling-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <rect x="30" y="84" width="407.5" height="46" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="46" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">权重 32.6</text>
+  <rect x="437.5" y="84" width="43.8" height="46" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="481.3" y="84" width="268.8" height="46" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="497.3" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">KV 预算 21.5</text>
+  <rect x="750" y="84" width="22.5" height="46" rx="4" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="772.5" y="84" width="57.5" height="46" rx="4" fill="url(#kv-cache-memory-profiling-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <rect x="30" y="78" width="800" height="58" rx="7" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="2.2"/>
+  <path d="M30 156 v8 h720 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="390" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">九成 57.6 GiB：减法只在这里面算</text>
+  <path d="M750 156 v8 h80 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="790" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">留出的一成</text>
+  <text x="30" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">一颗 NPU 显存 64 GiB</text>
+  <text x="440" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">临时数据等 3.5</text>
+  <text x="742" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#8f3229">录图 1.8</text>
 </svg>

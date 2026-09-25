@@ -1,132 +1,31 @@
-layout: scene
+layout: figure
 id: recompute-cpu-offload
-caption: 一次抢占的两条时间线：D2H 必须赶在 HBM 块被别人拿走之前（main 快照 baa023ad）
-size: [900, 700]
+caption: 被踢掉的请求先把 16 个 KV 块和状态搬进主机内存，重新排上再搬回来；主机内存没空位时，才退回 P 节点从头重算
+size: [900, 320]
 
-boundaries:
-  - at: 470
-    from: 96
-    to: 616
-    label: 进程边界 · metadata 跟着 SchedulerOutput 下去
+frames:
+  - { label: D 节点显存, at: [20, 40], size: [390, 130] }
+  - { label: 主机内存, at: [490, 40], size: [390, 130] }
 
-spines:
-  - y: 148
-    from: 132
-    to: 860
-    tone: ascend
-    segments: [{ x: 470, tone: upstream }]
-  - y: 458
-    from: 132
-    to: 860
-    tone: ascend
-    segments: [{ x: 470, tone: upstream }]
+rows:
+  - { at: [40, 64], count: 16, w: 18, h: 40, gap: 3, tone: kv }
+  - { at: [510, 64], count: 16, w: 18, h: 40, gap: 3, tone: kv }
 
-stops:
-  - x: 170
-    side: below
-    title: 分不出块了
-    detail: 挑中一条正在跑的请求
-    fn: allocate_slots
-    icon: grid
-    tone: upstream
-  - x: 350
-    side: below
-    title: 问连接器接不接
-    detail: 空闲 CPU 块不够就返 False
-    fn: update_state_before_preempt
-    icon: split
-    tone: accent
-  - x: 600
-    side: below
-    title: 阻塞 D2H
-    detail: 赶在 _update_states 之前
-    fn: handle_preemptions
-    icon: bolt
-    tone: ascend
-  - x: 790
-    side: below
-    title: 本 rank 报一声
-    detail: 集齐 world_size 份才算存好
-    fn: completed_store_events
-    icon: clock
-    tone: ascend
-  - x: 150
-    spine: 1
-    side: below
-    title: 能恢复多少 token
-    detail: 没存完就返 None，这步先跳过
-    fn: get_num_new_matched_tokens
-    icon: queue
-    tone: accent
-  - x: 362
-    spine: 1
-    side: below
-    title: 拿到新的 HBM 块
-    detail: 建 CPU→HBM 回填表
-    fn: update_state_after_alloc
-    icon: grid
-    tone: upstream
-  - x: 600
-    spine: 1
-    side: below
-    title: 阻塞 H2D
-    detail: 前向之前把块搬回来
-    fn: start_load_kv
-    icon: bolt
-    tone: ascend
-  - x: 790
-    spine: 1
-    side: below
-    title: 让前向流等一下
-    detail: 等的是 load_stream
-    fn: wait_for_layer_load
-    icon: clock
-    tone: ascend
+items:
+  - { at: [40, 120], size: [90, 32], text: 状态, tone: kv }
+  - { at: [510, 120], size: [90, 32], text: 状态, tone: kv }
+  - { at: [20, 234], size: [390, 50], text: 没空位：退回 P 节点重算, tone: danger, style: faded }
 
-bands:
-  - label: 调度侧只记块号
-    sub: 复用上游 BlockPool 管空闲与共享
-    fn: cpu_block_pool
-    icon: queue
-    at: [20, 306]
-    size: [430, 82]
-    tone: upstream
-  - label: worker 侧才有字节
-    sub: 启动时一次开好的 pinned 张量
-    fn: pin_memory=True
-    icon: box
-    at: [470, 306]
-    size: [410, 82]
-    tone: ascend
+links:
+  - { from: [410, 84], to: [490, 84], tone: kv }
+  - { from: [490, 136], to: [410, 136], tone: kv, dashed: true }
+  - { from: [215, 170], to: [215, 234], tone: danger, dashed: true }
 
-arrows:
-  - { from: [600, 288], to: [600, 304], tone: ascend }
-  - { from: [700, 390], to: [700, 452], tone: ascend }
-  - { from: [452, 347], to: [466, 347], tone: accent, style: dashed }
-
-strips:
-  - at: [44, 620]
-    cells: 5
-    cell: 40
-    gap: 8
-    highlights: [0, 1, 2, 3]
-    tone: ascend
-    label: 16 GiB/卡 ≈ 1170 个 CPU 块：同时最多保住 4 条 32K 的请求，第 5 条只能退回重算
-
-notes:
-  - { at: [20, 152], text: ① 抢占这一步, size: 13.5, strong: true }
-  - { at: [20, 462], text: ② 恢复那一步, size: 13.5, strong: true }
-  - at: [500, 640]
-    text: D2H 非同步不可：调度器可能在同一步里就把这些 HBM 块 id 分给别人，晚一步搬到的就是别人的数据。
-    size: 12.5
-    width: 380
+texts:
+  - { at: [420, 74], text: ① 搬出去, size: 13 }
+  - { at: [420, 160], text: ② 搬回来, size: 13 }
+  - { at: [490, 264], text: 一条 32K 请求：16 块 + 状态，约 381 MiB, size: 13, note: true }
 
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/core/recompute_scheduler.py#L316-L373
-    symbols: [allocate_slots]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L284-L334
-    symbols: [update_state_before_preempt, get_num_new_matched_tokens, update_state_after_alloc, cpu_block_pool, world_size]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/worker.py#L212-L296
-    symbols: [handle_preemptions, start_load_kv, wait_for_layer_load, completed_store_events, load_stream, pin_memory]
-  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2233-L2238
-    symbols: [_update_states]
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L262-L334
+    symbols: [_create_preempt_state]

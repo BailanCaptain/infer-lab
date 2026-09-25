@@ -1,112 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 760" width="900" height="760" role="img" aria-label="C8 分两段：加载期把层改装成量化版，运行期写时量化、读时不反量化（vllm-ascend main 开发主线）">
-  <title>C8 分两段：加载期把层改装成量化版，运行期写时量化、读时不反量化（vllm-ascend main 开发主线）</title>
-  <rect width="900" height="760" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="44" width="860" height="190" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="58" width="132.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="76.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">加载期 · 只做一次</text>
-  <text x="38" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">描述文件里出现 kv_cache_type = C8，引擎才去改装这些层；scale 本身随 safetensors 一起加载，描述文件只登记哪些层有。</text>
-  <rect x="52" y="282" width="828" height="66" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="52" y="282" width="5" height="66" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(75.8 304.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="110" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 量化写入</text>
-  <text x="110" y="332" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">clamp(round(K / scale + offset), -128, 127)</text>
-  <rect x="693" y="302.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="777" y="320" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">_quantize_kv_to_int8</text>
-  <rect x="52" y="358" width="828" height="66" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="52" y="358" width="5" height="66" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(75.8 380.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v8H3z M9 8v8M15 8v8"/></g>
-  <text x="110" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② 散写进 int8 缓存</text>
-  <text x="110" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">按 slot_mapping 落格，缓存是 NZ 5D 视图</text>
-  <rect x="670.5" y="378.5" width="190.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="765.8" y="396" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">npu_scatter_pa_kv_cache</text>
-  <rect x="52" y="434" width="828" height="66" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="52" y="434" width="5" height="66" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
-  <g transform="translate(75.8 456.8) scale(0.85)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="110" y="464" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ decode 读：不反量化</text>
-  <text x="110" y="484" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">int8 缓存 + 块表 + 两条 antiquant scale 一起进算子，零 gather</text>
-  <rect x="610.5" y="454.5" width="250.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="735.8" y="472" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">npu_fused_infer_attention_score</text>
-  <rect x="52" y="510" width="828" height="66" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="52" y="510" width="5" height="66" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
-  <g transform="translate(75.8 532.8) scale(0.85)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
-  <text x="110" y="540" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">④ prefill 读：看是不是新 prompt</text>
-  <text x="110" y="560" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">全新 prompt 直接用还没量化的 float KV；命中前缀才 gather 出来拼 dense</text>
-  <rect x="648" y="530.5" width="213" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1"/><text x="754.5" y="548" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-kv, #4c65b6)" text-anchor="middle">_dequant_paged_kv_to_dense</text>
-  <line x1="20" y1="252" x2="880" y2="252" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="876" y="243" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">main 多一道闸：--kv-cache-dtype 不是 int8 / fp8 就不走 C8</text>
-  <rect x="52" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="78" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="104" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="130" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="156" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="182" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="208" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="234" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="260" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="286" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="312" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="338" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="364" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="390" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="416" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="442" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="468" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="494" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="520" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="546" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="572" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="598" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="624" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="650" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="676" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="702" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="728" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <rect x="754" y="600" width="22" height="22" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <text x="52" y="640" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">bf16：一层每 token 4 KiB，28 层合 112 KiB</text>
-  <rect x="52" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="78" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="104" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="130" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="156" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="182" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="208" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="234" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="260" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="286" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="312" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="338" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="364" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="390" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="416" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="442" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="468" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="494" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="520" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="546" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="572" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="598" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="624" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="650" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="676" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="702" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="728" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="754" y="658" width="22" height="11" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="52" y="687" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">int8：高度对半——每 token 56 KiB，一块（128 token）从 14 MiB 掉到 7 MiB</text>
-  <rect x="44" y="142" width="250" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="60" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">描述文件登记 C8</text>
-  <text x="60" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">带 k_proj.kv_cache_scale 的层</text>
-  <text x="60" y="201" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_add_kvcache_quant_metadata</text>
-  <rect x="310" y="142" width="250" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="326" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">按层分发量化方法</text>
-  <text x="326" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">is_c8_quant_layer 为真的层</text>
-  <text x="326" y="201" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">get_quant_method</text>
-  <rect x="576" y="142" width="250" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <text x="592" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">改写这一层的 dtype 与 impl</text>
-  <text x="592" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">kv_cache_torch_dtype = int8</text>
-  <text x="592" y="201" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">create_weights</text>
-  <path d="M294 178 L308 178" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M308 178 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M560 178 L574 178" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M574 178 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
-  <path d="M28 282 l-8 0 L20 424 l8 0" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.4" opacity="0.75"/>
-  <text x="34" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-weight, #b87a00)">写</text>
-  <path d="M28 434 l-8 0 L20 576 l8 0" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" opacity="0.75"/>
-  <text x="34" y="510" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-kv, #4c65b6)">读</text>
-  <text x="20" y="726" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">省下的字节是真的，代价是比校准集更极端的激活值会被截到 ±127——scale 离线定死，运行时改不了。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" width="900" height="270" role="img" aria-label="写进 KV 块之前先除以 scale 压成 int8，一份 K、V 从 2 KiB 变 1 KiB（每 token 每层、一颗 NPU 独跑）；读的时候不先解开，连 scale 一起交给注意力算子">
+  <title>写进 KV 块之前先除以 scale 压成 int8，一份 K、V 从 2 KiB 变 1 KiB（每 token 每层、一颗 NPU 独跑）；读的时候不先解开，连 scale 一起交给注意力算子</title>
+  <defs><marker id="kv-cache-quantization-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-quantization-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M180 120 L240 120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
+  <path d="M410 120 L470 120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
+  <path d="M640 120 L700 120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
+  <path d="M555 200 L325 150" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-weight)"/>
+  <path d="M555 200 L785 150" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-weight)"/>
+  <rect x="30" y="90" width="150" height="60" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="105" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">K、V</text>
+  <text x="105" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">bf16 · 2 KiB</text>
+  <rect x="240" y="90" width="170" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="325" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">÷ scale 取整</text>
+  <rect x="484" y="66" width="170" height="80" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="477" y="73" width="170" height="80" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="470" y="80" width="170" height="80" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="555" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV 块</text>
+  <text x="555" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">int8 · 1 KiB</text>
+  <rect x="700" y="90" width="170" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="785" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">注意力算子</text>
+  <rect x="470" y="200" width="170" height="40" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="555" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">scale</text>
 </svg>

@@ -1,101 +1,71 @@
-layout: scene
+layout: figure
 id: kv-cache-sparse-offload
-caption: D 节点上的一个 decode 步：主 KV 一直在主机，只有 top-k 里没命中的那几行跨过界线（v0.26 分支）
-size: [900, 532]
+caption: D 节点上的一个 decode 步：全量 KV 一直待在主机内存，只有这一步要读、NPU 上又还没有的那几行被搬上来
+size: [900, 380]
 
-regions:
-  - label: 主机 pinned 池
-    note: 每个 DP 一份，DP 内 TP 共享。全量主 KV 住这里，能开多大 batch 变成主机内存问题。
-    at: [20, 44]
-    size: [380, 424]
-    tone: neutral
-  - label: NPU
-    note: 只剩 indexer 的 K 缓存和每层一份热缓冲区；主 paged KV 默认不分配。
-    at: [500, 44]
-    size: [380, 424]
-    tone: ascend
+frames:
+  - { label: 主机内存, at: [20, 60], size: [860, 110] }
+  - { label: NPU, at: [20, 260], size: [860, 100] }
 
-boundaries:
-  - { at: 450, from: 44, to: 468, vertical: true, label: "一个 decode 步只跨这条线两次" }
-
-boxes:
-  - at: [42, 130]
-    size: [334, 70]
-    title: 全量主 KV，pinned
-    sub: 只有 TP rank 0 分配并写新行
-    fn: k_caches_cpu / v_caches_cpu
-    icon: box
-    tone: neutral
-  - at: [42, 300]
-    size: [334, 70]
-    title: 每层一张 LRU 驻留表
-    sub: 命中挪队尾，miss 占队首可驱逐槽
-    fn: lru_resident_compact
-    icon: queue
-    tone: upstream
-  - at: [522, 130]
-    size: [334, 70]
-    title: 本步的 K 和 V 算完就走
-    sub: 不落 NPU 主缓存，按 token 行下去
-    fn: _compute_kv_only
-    icon: calc
-    tone: ascend
-  - at: [522, 222]
-    size: [334, 70]
-    title: indexer 选中 2048 个历史位置
-    sub: 模型自带的 DSA，与卸载无关
-    fn: indexer_select_post_process
-    icon: pick
-    tone: ascend
-  - at: [522, 380]
-    size: [334, 70]
-    title: 稀疏注意力只读热缓冲区
-    sub: 喂进去的是物理槽位
-    fn: _execute_sparse_flash_attention_process
-    tone: accent
-
-strips:
-  - at: [42, 220]
-    cells: 44
-    cell: 7
-    h: 16
-    gap: 1
-    tone: neutral
-    label: 一行历史 = 1,950,336 个 token 的位置
-  - at: [522, 322]
-    cells: 13
-    cell: 22
+grids:
+  - at: [40, 80]
+    rows: 3
+    cols: 36
+    cell: [22, 18]
+    gap: 0
+    tone: kv
+    style: faded
+    cells:
+      - { at: [0, 3], style: solid }
+      - { at: [0, 9], style: solid }
+      - { at: [0, 20], style: solid }
+      - { at: [1, 5], style: solid }
+      - { at: [1, 14], style: solid }
+      - { at: [1, 22], style: solid }
+      - { at: [2, 8], style: solid }
+      - { at: [2, 17], style: solid }
+      - { at: [2, 27], style: solid }
+      - { at: [2, 6], tone: comm, style: solid }
+      - { at: [2, 19], tone: comm, style: solid }
+      - { at: [2, 31], tone: comm, style: solid }
+  - at: [40, 276]
+    rows: 1
+    cols: 24
+    cell: [30, 30]
     gap: 4
-    highlights: [2, 6, 11]
-    tone: accent
-    label: 热缓冲区一行 = 4096 个槽位，实心的是这一步搬上来的
+    tone: kv
+    style: empty
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 1], style: solid }
+      - { at: [0, 2], style: solid }
+      - { at: [0, 5], style: solid }
+      - { at: [0, 6], style: solid }
+      - { at: [0, 8], style: solid }
+      - { at: [0, 13], style: solid }
+      - { at: [0, 14], style: solid }
+      - { at: [0, 16], style: solid }
+      - { at: [0, 3], tone: comm, style: solid }
+      - { at: [0, 11], tone: comm, style: solid }
+      - { at: [0, 19], tone: comm, style: solid }
 
-arrows:
-  - { from: [518, 152], to: [382, 152], label: 新 token 一行, tone: ascend }
-  - { from: [518, 252], via: [[450, 252], [450, 322]], to: [382, 322], label: top-k 位置, tone: ascend }
-  - { from: [382, 333], to: [518, 333], label: 只搬 miss 行, tone: upstream }
-  - { from: [845, 348], to: [845, 376], tone: accent }
+links:
+  - { from: [183, 136], to: [157, 272], tone: comm }
+  - { from: [469, 136], to: [429, 272], tone: comm }
+  - { from: [733, 136], to: [701, 272], tone: comm }
 
-notes:
-  - at: [42, 402]
-    text: 这段 C++ 跑在 host 上；图模式下由 _launch_host_func 挂到计算流上执行。
-    size: 12.5
-    width: 334
-  - at: [20, 506]
-    text: 搬运量正比于「top-k 里没命中的行数」，不再正比于序列长度——这是它能在 decode 阶段成立的全部理由。
-    size: 12.5
-    width: 860
+texts:
+  - { at: [40, 156], text: "全量 KV：1,950,336 个位置", size: 13.5, strong: true }
+  - { at: [748, 214], text: 只搬没命中的几行, size: 13.5, strong: true, tone: comm }
+  - { at: [40, 340], text: "热缓冲区：4096 个位置", size: 13.5, strong: true }
+  - { at: [300, 340], text: 实心：本步要读、已在，不搬, size: 13, tone: kv }
+  - { at: [540, 340], text: 没命中：刚搬上来, size: 13, tone: comm }
+  - { at: [700, 340], text: 空格：随时可被挤掉, size: 13, note: true }
 
 pins:
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_kv_offload.py#L271-L300
-    symbols: [_compute_kv_only]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/attention/sfa_kv_offload.py#L345-L400
-    symbols: [_execute_sparse_flash_attention_process]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L473-L520
-    symbols: [indexer_select_post_process]
   - source: vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L461-L500
     symbols: [topk_buffers_k, k_caches_cpu, v_caches_cpu]
   - source: vllm-ascend@2ed6cbba:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp#L77-L200
     symbols: [lru_resident_compact]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1041-L1089
-    symbols: [keep_device_kv_cache]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/device/device_op.py#L473-L520
+    symbols: [indexer_select_post_process]

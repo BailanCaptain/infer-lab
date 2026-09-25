@@ -1,109 +1,31 @@
-layout: scene
+layout: figure
 id: kv-cache-cpu-offload
-caption: 搬什么、什么时候搬全是上游定的；昇腾只换掉 worker 侧那段搬运，单位是一格不是一个 token（v0.23 维护分支 = v0.26 分支）
-size: [900, 600]
+caption: 显存里的 KV 块被挤掉之前先拷一份到主机内存；同一段开头再来、显存里已经没了，就从主机内存拷回来，不用重算
+size: [900, 260]
 
-regions:
-  - label: 上游 vLLM 的调度侧
-    note: 块池多大、哪几格该被淘汰、什么时候存什么时候取，全在上游调度侧决定；发布分支上昇腾连 OffloadingConnector 都没有重新注册
-    at: [20, 26]
-    size: [860, 152]
-    tone: upstream
-  - label: vllm-ascend 只换了 worker 侧这一段
-    note: 配置里必须自己用 spec_module_path 把 NPUOffloadingSpec 指出来，连接器名仍写上游的 OffloadingConnector
-    at: [20, 208]
-    size: [860, 350]
-    tone: ascend
+frames:
+  - { label: 显存（一颗 NPU）, at: [30, 60], size: [300, 170] }
+  - { label: 主机内存, at: [570, 60], size: [300, 170] }
 
-boundaries:
-  - at: 192
-    from: 20
-    to: 880
-    vertical: false
-    label: 作业过了这条线才变成真正的字节拷贝
+rows:
+  - { at: [55, 100], count: 5, w: 44, h: 44, gap: 8, tone: kv, faded: [4] }
+  - { at: [595, 100], count: 5, w: 44, h: 44, gap: 8, tone: kv, ghost: [2, 3, 4] }
 
-boxes:
-  - at: [44, 106]
-    size: [390, 58]
-    title: 决定哪几格搬、搬去哪一格
-    sub: 前缀哈希与 LRU 都在上游，昇腾没重写
-    fn: CPUOffloadingManager
-    icon: queue
-    tone: upstream
-  - at: [458, 106]
-    size: [398, 58]
-    title: 发下来的是一格的作业
-    sub: 一格 = block_size_factor 个 NPU 块
-    fn: transfer_async
-    icon: split
-    tone: upstream
-  - at: [44, 268]
-    size: [812, 50]
-    title: spec 只做两件事：挑上游的 manager、换自己的 handler
-    sub: num_cpu_blocks 必填，缺了直接抛异常
-    fn: NPUOffloadingSpec
-    icon: box
-    tone: ascend
-  - at: [44, 334]
-    size: [260, 76]
-    title: 每层开两张 CPU 张量
-    sub: dtype 与形状照抄 NPU 侧
-    fn: CpuNpuOffloadingHandler
-    icon: layers
-    tone: ascend
-  - at: [328, 334]
-    size: [248, 76]
-    title: 每方向一条固定流
-    sub: 同方向内部严格串行
-    fn: d2h_stream
-    icon: queue
-    tone: ascend
-  - at: [604, 334]
-    size: [252, 76]
-    title: 一次批量 DMA 下发
-    sub: CANN 8.5+ 压成一次调用
-    fn: swap_blocks_batch
-    icon: bolt
-    tone: ascend
+links:
+  - { from: [310, 112], to: [590, 112], tone: kv }
+  - { from: [590, 134], to: [310, 134], tone: kv, dashed: true }
 
-strips:
-  - at: [44, 438]
-    cells: 56
-    cell: 13
-    h: 18
-    gap: 1
-    highlights: [0, 1]
-    tone: ascend
-    label: 一格要发 56 个拷贝描述符：28 层 × K/V 两张，每个 256 KiB
+tags:
+  - { at: [247, 160], text: 要被挤掉, tone: danger }
 
-arrows:
-  - { from: [450, 180], to: [450, 206], tone: ascend }
-  - { from: [304, 372], to: [326, 372], tone: ascend }
-  - { from: [578, 372], to: [602, 372], tone: ascend }
-
-notes:
-  - at: [44, 488]
-    text: 官方示例的 block_size 128 和 NPU 块一样大，所以一格就是一个 NPU 块、128 个 token、14 MiB；num_cpu_blocks 写 1000，锁住的就是 13.67 GiB 页锁定主机内存。
-    size: 12.5
-    width: 812
-  - at: [44, 524]
-    text: 这就是那条 37 token 的请求得不到回填的原因：队列里只有它一条，NPU 块池不淘汰，取那一侧永远不触发。
-    size: 12.5
-    width: 812
-    strong: true
-  - at: [20, 574]
-    text: main 上这一路换了形状：连接器与两个 spec 都被昇腾就地替换，容量参数改成字节预算，另外多一路挂文件系统 tier 的多级卸载。
-    size: 12.5
-    width: 860
+texts:
+  - { at: [450, 102], text: 存：挤掉之前拷一份, size: 13, anchor: middle }
+  - { at: [450, 160], text: 取：同样开头再来时拷回, size: 13, anchor: middle }
+  - { at: [55, 205], text: 一个 KV 块 = 2048 个 token，20 MiB, size: 12.5, note: true }
+  - { at: [595, 205], text: 锁页内存，容量自己给, size: 12.5, note: true }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L16-L43
-    symbols: [NPUOffloadingSpec, CPUOffloadingManager, num_cpu_blocks]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L45-L63
-    symbols: [CpuNpuOffloadingHandler]
+    symbols: [NPUOffloadingSpec, CPUOffloadingManager]
   - source: vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L54-L230
-    symbols: [CpuNpuOffloadingHandler, transfer_async, d2h_stream, block_size_factor]
-  - source: vllm-ascend@2c59ff10:csrc/torch_binding.cpp#L127-L247
-    symbols: [swap_blocks_batch]
-  - source: vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L131-L147
-    symbols: [OffloadingConnector]
+    symbols: [CpuNpuOffloadingHandler, d2h_stream, h2d_stream]

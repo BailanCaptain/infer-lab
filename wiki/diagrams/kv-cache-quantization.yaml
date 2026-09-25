@@ -1,117 +1,29 @@
-layout: scene
+layout: figure
 id: kv-cache-quantization
-caption: C8 分两段：加载期把层改装成量化版，运行期写时量化、读时不反量化（vllm-ascend main 开发主线）
-size: [900, 760]
+caption: 写进 KV 块之前先除以 scale 压成 int8，一份 K、V 从 2 KiB 变 1 KiB（每 token 每层、一颗 NPU 独跑）；读的时候不先解开，连 scale 一起交给注意力算子
+size: [900, 270]
 
-regions:
-  - label: 加载期 · 只做一次
-    note: 描述文件里出现 kv_cache_type = C8，引擎才去改装这些层；scale 本身随 safetensors 一起加载，描述文件只登记哪些层有。
-    at: [20, 44]
-    size: [860, 190]
-    tone: ascend
+items:
+  - { at: [30, 90], size: [150, 60], text: K、V, sub: bf16 · 2 KiB, tone: kv, style: faded }
+  - { at: [240, 90], size: [170, 60], text: ÷ scale 取整, tone: control, style: plain }
+  - { at: [470, 80], size: [170, 80], text: KV 块, sub: int8 · 1 KiB, tone: kv, depth: 2 }
+  - { at: [700, 90], size: [170, 60], text: 注意力算子, tone: control, style: plain }
+  - { at: [470, 200], size: [170, 40], text: scale, tone: weight, style: faded }
 
-boxes:
-  - at: [44, 142]
-    size: [250, 72]
-    title: 描述文件登记 C8
-    sub: 带 k_proj.kv_cache_scale 的层
-    fn: _add_kvcache_quant_metadata
-    tone: ascend
-  - at: [310, 142]
-    size: [250, 72]
-    title: 按层分发量化方法
-    sub: is_c8_quant_layer 为真的层
-    fn: get_quant_method
-    tone: ascend
-  - at: [576, 142]
-    size: [250, 72]
-    title: 改写这一层的 dtype 与 impl
-    sub: kv_cache_torch_dtype = int8
-    fn: create_weights
-    tone: ascend
+links:
+  - { from: [180, 120], to: [240, 120], tone: kv }
+  - { from: [410, 120], to: [470, 120], tone: kv }
+  - { from: [640, 120], to: [700, 120], tone: kv }
 
-arrows:
-  - { from: [294, 178], to: [308, 178], tone: ascend }
-  - { from: [560, 178], to: [574, 178], tone: ascend }
-
-boundaries:
-  - at: 252
-    from: 20
-    to: 880
-    vertical: false
-    label: "main 多一道闸：--kv-cache-dtype 不是 int8 / fp8 就不走 C8"
-
-bands:
-  - label: ① 量化写入
-    sub: "clamp(round(K / scale + offset), -128, 127)"
-    fn: _quantize_kv_to_int8
-    at: [52, 282]
-    size: [828, 66]
-    tone: ascend
-    icon: calc
-  - label: ② 散写进 int8 缓存
-    sub: 按 slot_mapping 落格，缓存是 NZ 5D 视图
-    fn: npu_scatter_pa_kv_cache
-    at: [52, 358]
-    size: [828, 66]
-    tone: ascend
-    icon: slot
-  - label: ③ decode 读：不反量化
-    sub: int8 缓存 + 块表 + 两条 antiquant scale 一起进算子，零 gather
-    fn: npu_fused_infer_attention_score
-    at: [52, 434]
-    size: [828, 66]
-    tone: neutral
-    icon: bolt
-  - label: ④ prefill 读：看是不是新 prompt
-    sub: 全新 prompt 直接用还没量化的 float KV；命中前缀才 gather 出来拼 dense
-    fn: _dequant_paged_kv_to_dense
-    at: [52, 510]
-    size: [828, 66]
-    tone: neutral
-    icon: layers
-
-brackets:
-  - { at: [20, 282], span: 142, label: 写, dir: left, tone: ascend }
-  - { at: [20, 434], span: 142, label: 读, dir: left, tone: neutral }
-
-strips:
-  - at: [52, 600]
-    cells: 28
-    cell: 22
-    h: 22
-    gap: 4
-    tone: muted
-    label: "bf16：一层每 token 4 KiB，28 层合 112 KiB"
-  - at: [52, 658]
-    cells: 28
-    cell: 22
-    h: 11
-    gap: 4
-    tone: ascend
-    label: "int8：高度对半——每 token 56 KiB，一块（128 token）从 14 MiB 掉到 7 MiB"
-
-notes:
-  - at: [20, 726]
-    text: 省下的字节是真的，代价是比校准集更极端的激活值会被截到 ±127——scale 离线定死，运行时改不了。
-    size: 12.5
-    width: 860
-    strong: true
+fans:
+  - { from: [555, 200], to: [[325, 150], [785, 150]], tone: weight }
 
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L928-L946
-    symbols: [_add_kvcache_quant_metadata, kv_cache_type, c8_quant_layers]
-  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/configs/modelslim_config.py#L643-L674
-    symbols: [get_quant_method, is_c8_quant_layer, AscendC8KVCacheAttentionMethod]
-  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
-    symbols: [create_weights, kv_cache_torch_dtype, AscendC8AttentionBackendImpl]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L544-L558
-    symbols: [enable_c8_quant]
   - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1483-L1504
     symbols: [_quantize_kv_to_int8]
   - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1721-L1736
     symbols: [npu_scatter_pa_kv_cache, slot_mapping]
   - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1506-L1542
     symbols: [npu_fused_infer_attention_score, key_antiquant_scale]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1561-L1619
-    symbols: [_dequant_paged_kv_to_dense]
+  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
+    symbols: [create_weights, kv_cache_torch_dtype]

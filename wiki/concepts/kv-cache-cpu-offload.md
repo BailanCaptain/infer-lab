@@ -2,7 +2,7 @@
 id: kv-cache-cpu-offload
 title: "KV Cache CPU Offload：把要被淘汰的块存进主机内存"
 type: feature
-summary: NPU 上的 KV 块被淘汰之前先异步拷一份进主机内存；下一条请求共享同一段前缀、而 NPU 上那几块已经没了，就再拷回来，省掉重新 prefill。昇腾只换掉 worker 侧的搬运。
+summary: 显存里的 KV 块被挤掉之前，先拷一份到主机内存；之后有请求用到同一段开头、显存里却已经没了，就从主机内存拷回来，省掉重算。昇腾只换了真正搬字节的那一段。
 aliases: [KV Cache CPU Offload, KV Cache CPU 卸载, KV 缓存 CPU 卸载, CPU Offload, NPUOffloadingSpec, CPUOffloadingSpec, TieringOffloadingSpec, OffloadingConnector, 多级 KV 卸载]
 chapters: ["11"]
 sources:
@@ -36,18 +36,24 @@ sources:
   - vllm-ascend@2c59ff10:tests/e2e/pull_request/one_card/test_cpu_offloading.py#L62-L128
   - vllm-ascend@2c59ff10:csrc/torch_binding.cpp#L127-L247
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L5-L13
+  - https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/main/config.json
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/offloading_connector.py#L226-L299
+  - vllm@0fc695fc:vllm/v1/kv_offload/base.py#L393-L442
+  - vllm@0fc695fc:vllm/v1/kv_offload/cpu/spec.py#L30-L63
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L20-L32
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kv_cache_cpu_offload.md#L95-L102
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
   - to: prefix-caching
     kind: builds-on
-    note: 回填只在 NPU 前缀缓存未命中、而 CPU 池里还存着同一段前缀时触发；没有前缀缓存这条路径永远不会走到
+    note: 回填只在 NPU 前缀缓存未命中、而主机内存池里还存着同一段前缀时触发；没有前缀缓存这条路径永远不会走到
   - to: paged-attention
     kind: builds-on
-    note: 卸载与回填的最小单位就是分页 KV 块，一个 CPU 格由整数个 NPU 块拼成
+    note: 卸载与回填的最小单位就是分页 KV 块，主机内存里的一段由整数个 NPU 块拼成
   - to: kv-cache-spec
     kind: builds-on
-    note: 一个 CPU 格的字节数直接由每块每层的 page_size_bytes 乘这个倍数得出
+    note: 一段的字节数直接由每块每层的 page_size_bytes 乘这个倍数得出
   - to: recompute-cpu-offload
     kind: alternative-to
     note: 那一页的触发条件是调度器抢占某条请求、按请求点名搬走；这一页的触发条件是块池 LRU 淘汰，搬的是碰巧要被丢掉的块
@@ -56,85 +62,169 @@ relations:
     note: 那一页让 D 节点的全量主 KV 常驻主机内存、每步按 top-k 取回；这一页 NPU 仍是主存放地，主机内存只是被淘汰块的备份
   - to: kv-cache-layerwise-offload
     kind: alternative-to
-    note: 那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整格
+    note: 那一页改的是搬运时机（每层算完立刻发，走 AscendStoreConnector）；这一页的时机由上游块池定，粒度是一整段
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-09-25"
 ---
 
-## 一句话
+显存里的 KV 块被挤掉之前，先拷一份到主机内存；之后有请求用到同一段开头、显存里那几块却已经没了，就从主机内存拷回来。**它是拿搬运换重算，不是省显存**——付一次显存与主机内存之间的来回拷贝，省掉一次把整段开头重新算一遍。
 
-KV Cache CPU Offload 在 NPU 的 KV 块被淘汰之前，把它异步拷一份到主机内存；下一条请求若与它共享前缀、而 NPU 上那几块已经被别人占了，就再异步拷回来 [S30]。**它是拿带宽换算力，不是省显存**——付一次跨 PCIe 的往返，省一次全层前向。块池、LRU、前缀匹配全是上游 `OffloadingConnector` 的，vllm-ascend 换掉的只有 worker 侧那段搬运：NPU 流加一次批量 DMA。**发布分支与 main 之间，配置键几乎没有一个能照搬** [!]。
+## 先看一个问题
 
-三个版本上都有，但形状不同：**v0.23 维护分支和 v0.26 分支在这一页上一条不差**——实现同在 `vllm_ascend/kv_offload/` 下，`npu.py` 与 `cpu_npu.py` 两个文件逐字相同 [C26]，官方文档给的也是同一套键 [S19]。**下面的正文按 v0.23（= v0.26）讲**。main 上昇腾接管了连接器注册表、容量参数换成字节预算、还多了一路多级卸载，两边怎么对应见末尾的差异表。
+两个人先后把同一份两万 token 的合同贴进来提问。第一个人问完，这两万 token 的 KV Cache 还留在显存里；如果第二个人来得早，[前缀缓存](prefix-caching.md)直接把那些 KV 块拿来用，一步都不用重算。
+
+麻烦在中间隔了一阵子。这段时间别的请求源源不断，显存里的 KV 块池满了，要给新来的腾地方，最久没人用的块先被挤掉——正好是那份合同的。第二个人一来，前缀缓存扑空，两万 token 只能从头再算一遍。
+
+显存就那么大，挤掉是免不了的。可主机内存（CPU 那边的内存）通常大得多：**被挤掉之前，能不能先在主机内存里留个底，下次要用时再拷回来？** 这一页讲的就是这件事。
 
 ```wiki-diagram
 file: kv-cache-cpu-offload
 ```
 
-## 那条请求用不到它
+## 它做了什么：一存一取
 
-[那条请求](one-request.md)全程 37 + 200 = 237 个 token，存那一侧它其实够得着——跑完攒得出一个满块。**但取那一侧它永远走不到**：回填的前提是「另一条请求与它共享前缀、而 NPU 上那几块已经被顶掉了」，队列里只有它一条，NPU 块池毫无压力，第二次机会根本不出现。而这个特性的收益全在取那一侧。
+**存。** 显存里一个块要被挤掉之前，系统先把它异步拷一份到主机内存。「异步」的意思是拷贝走专门的通道，不耽误模型接着算。
 
-还有一条更硬的：**不满一格的尾巴不会被搬**。e2e 用例为此专门把 prompt 一个字一个字垫到 CPU 格大小的整数倍，才敢去断言收到了 CPU 存事件 [C28]。那条请求的 237 个 token 里，尾巴上那 109 个从头到尾都留在 NPU 上。
+**取。** 新请求进来，先照常在显存里找同样开头的块；找不到，再去主机内存里找。那边有，就拷回显存，这段开头就不用重算了。
 
-要让这一页有数可算，得照 e2e 用例改设定：prompt 拉到 10001 个 token 跑一遍，`llm.reset_prefix_cache()` 清掉 NPU 侧的命中，再跑第二遍——用例就是这么验「CPU 命中快过冷启动」的。配置抄官方示例那一组，其余设定不变 [A]：
+哪些块该存、主机内存满了先扔谁、新请求的开头能不能对上，这些决定全是上游 vLLM 做的，按「最久没用的先扔」管主机内存那边的池子。昇腾只换掉了最底下那一层：**真正把字节从显存拷到主机内存、再拷回来的那段代码**，因为这一段和硬件直接打交道。
 
-| 这一步在算什么 | 值 | 依据 |
-|---|---|---|
-| 一个子张量一块多少字节 | 128 × 8 × 128 × 2 B = **256 KiB** | 昇腾把 K、V 存成两张张量，一块的字节数就是 `stride(0) × element_size` [C14] |
-| 一个 NPU 块合计 | 28 层 × 2 张 = 56 个子张量 × 256 KiB = **14 MiB** | 和 [KV Cache Spec](kv-cache-spec.md) 算出的每块 14 MiB 对得上 |
-| 官方示例的一格有多大 | `block_size` 128 ÷ NPU 块 128 = 倍数 1，**一格就是一个 NPU 块**，128 个 token | `block_size` 是 CPU 侧格大小，须为 NPU 块的整数倍 [S4] |
-| 搬一格要发多少个拷贝描述符 | 1 × 56 = **56 个**，合计 14 MiB | 描述符按「块 × 子张量」展开，个数就是这个乘积 |
-| `num_cpu_blocks: 1000` 要多少主机内存 | 1000 × 14 MiB = **13.67 GiB**，可缓存 1000 × 128 = **128,000 个 token** | 有 pinned 就用 pinned，这 13.67 GiB 全是页锁定的 [D] |
+有一点要先知道：主机内存那边不是一个块一个块地管，而是**几个块拼成一段**，一段一段地存、一段一段地取。凑不满一段的尾巴，不存。
 
-最后一行是最该记住的那个数：官方示例里看着人畜无害的 `"num_cpu_blocks": 1000`，锁住的是 13.67 GiB 主机内存，而且是锁页内存。
+## 拿 Qwen3.6-35B-A3B 算一笔账
 
-## 它不省一个字节的 HBM
+沿用[一个请求的全过程](one-request.md)那一页的设定：Qwen3.6-35B-A3B，两颗 NPU 把注意力对半分。下面的数都是**一颗 NPU 上的量**，另一颗对称。
 
-NPU 侧的 KV 块池仍由 `gpu_memory_utilization` 说了算，这个特性一个字节都不退给你。官方文档的建议恰恰相反：**调低** `gpu_memory_utilization` 会让卸载更活跃 [S22]——NPU 侧块池越小，淘汰越频繁，CPU 池的命中机会越多。被换掉的是主机内存，预留过多会直接把宿主机 OOM 掉（在线版见 <https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/kv_cache_cpu_offload.html> [S25]）。
+先回忆那一页算好的几个数：这个模型 40 层里只有 10 层是全注意力，它们才有 KV Cache；每颗 NPU 每层给每个 token 存 1 KiB，10 层合计 10 KiB。一个 KV 块是 2048 个 token，所以**一个块在一颗 NPU 上是 20 MiB**。
 
-所以它的收益只在一种形状上成立：**前缀长、复用率高、而 HBM 装不下全部热数据**。哪段前缀值得留、留多久，是上游块池的 LRU 在管；前缀怎么按哈希匹配、为什么命中的是「块」而不是任意长度，见 [Prefix Caching](prefix-caching.md)。
+再看开发主线官方示例的写法：主机内存一共给 8 GiB（两颗 NPU 合起来算），一段拼 8 个块。代进这个模型：
 
-## 昇腾只换了 worker 侧的搬运，调度侧一行没动
+| 算什么 | 值 |
+|---|---|
+| 一段有多少 token | 8 × 2048 = **16,384 个** |
+| 一段在一颗 NPU 上多少字节（只算全注意力的 KV） | 8 × 20 MiB = **160 MiB** |
+| 两颗 NPU 合起来一段多少字节 | 2 × 160 MiB = **320 MiB** |
+| 8 GiB 最多装几段 | 8192 ÷ 320 = 25.6，**最多 25 段**，约 40 万 token |
 
-**第一处：连接器仍是上游那个，spec 靠路径塞进去。** 发布分支的 `register_connector()` 里根本没有 `OffloadingConnector` 这一项 [C15]——昇腾不接管这个连接器，所以配置里必须自己写 `spec_module_path` 把昇腾的 spec 指出来：
+「最多」是因为这里只算了全注意力那部分；线性注意力的状态也要跟着存（下一节），每段实际更大，能装的段数只会更少。
+
+这张表里最该记住的是第一行。**一段就要一万六千多个 token**——那条[一个请求](one-request.md)里的 237 个 token 连一个块（2048）都没填满，更凑不齐一段，从头到尾一个字节都不会被存。块大是这个模型的特点（为什么大见 [KV 块是怎么分出来的](vllm-kv-block-allocation.md)），拼成段之后更大。对这个模型，把「一段拼几个块」调小是第一件要想的事。
+
+## 线性注意力那 30 层怎么办
+
+这个模型另外 30 层是[线性注意力](linear-attention.md)，它们不存 KV Cache，而是每条请求一份固定大小的状态（每颗 NPU 每层约 1 MiB）。只把那 10 层的 KV 拷回来是不够的——线性注意力那 30 层的状态缺了，拷回的开头照样接不上。
+
+开发主线上，这一路认识这种状态：搬运时把它和 KV 块一起登记，而且按状态本身的大小拷，不带显存里为了对齐补出来的那一半空白。
+
+两个已发布版本上，这一路是照「每层一对 K、V」写的，而且要求整个模型只有一种块大小。这个模型既有 KV 块又有线性注意力状态，按代码看大概率一启动就会被这条要求拦下；我们没有在机器上实跑确认。**想在这个模型上用它，看开发主线。**
+
+## 它不省一个字节的显存
+
+显存里给 KV 块池划多大，还是由启动时的显存占比说了算，这个特性一个字节都不退给你。官方文档的建议恰恰相反：把显存占比**调低**，块池小了，挤掉得更频繁，主机内存那边命中的机会才更多。
+
+花掉的是主机内存，而且是锁页内存（被钉住、不能被系统换出去的那种）。给得太多，会把宿主机本身的内存挤爆。
+
+所以它只在一种形状上划算：**开头很长、经常被重复用到、而显存装不下全部热数据。** 对这个模型还要再加一条：重复的开头得比一段长。
+
+## 搬运是怎么做的
+
+昇腾换掉的那一段做了三件事：
+
+- **两条专用通道。** 显存到主机内存一条，主机内存到显存一条，互不阻塞，也都不挡模型计算。但同一条通道里，后一笔要等前一笔拷完，是排队的。
+- **存之前先等模型写完。** KV 是模型计算时写进显存的，拷走之前得确认它真的写好了。
+- **一次发一大批。** 一段里每层、K 和 V 各一份，各自的起止地址在启动时就算好，拷的时候整批一次交给底层驱动，而不是一份一份地发。每一笔拷完都实测一次耗时，带宽是量出来的，不是估的。
+
+## 常见误解
+
+- **「两条通道，存和取就能并行跑满带宽。」**——两条通道只保证存和取互不阻塞。同一个方向内部，后一笔等前一笔，是串行的。
+- **「开了就能省显存。」**——不能，见上一节。它只是给被挤掉的块在主机内存里留了个底。
+- **「主机内存给得越大越好。」**——那是锁页内存，给多了宿主机自己不够用。先按上面的表算清一段多大、想存多少 token。
+- **「发布版本上没跑通，是我配错了。」**——先看两件事：这一路在两个发布版本上的自动测试是整条跳过的，官方自己没在跑；而且配置写法和开发主线完全不同，照主线文档抄到发布版本上本来就不认。
+
+## 对照源码
+
+### 怎么开
+
+**v0.23 与 v0.26 分支**（两边这一页一条不差：实现同在 `vllm_ascend/kv_offload/` 下，`npu.py` 与 `cpu_npu.py` 逐字相同 [C26]，官方文档给的也是同一套键 [S19]）。连接器仍是上游的 `OffloadingConnector`，发布分支的 `register_connector()` 里根本没有这一项 [C15]，所以必须自己写 `spec_module_path` 把昇腾的 spec 指出来 [S20]：
 
 ```python
 kv_transfer_config = KVTransferConfig(
     kv_connector="OffloadingConnector",   # 上游的连接器，昇腾没有替换
     kv_role="kv_both",                    # 存与取都开，只写不读没意义
     kv_connector_extra_config={
-        "num_cpu_blocks": 1000,           # CPU 池几格，必填 → 13.67 GiB
-        "block_size": 128,                # 一格几个 token，须是 NPU 块的整数倍
+        "num_cpu_blocks": 1000,           # 主机侧几段，必填
+        "block_size": 128,                # 一段几个 token，须是 NPU 块的整数倍
         "spec_name": "NPUOffloadingSpec",
         "spec_module_path": "vllm_ascend.kv_offload.npu",
     },
 )
 ```
 
-这段可以原样复制 [S20]。**第二处：spec 只做两件事。** `NPUOffloadingSpec.__init__` 上来就查 `num_cpu_blocks`，缺了直接 `raise Exception` [C13]；`get_manager()` 原样返回上游的 `CPUOffloadingManager`，格大小传 `gpu_block_size × block_size_factor`、格数传 `num_cpu_blocks`——**LRU、前缀匹配、什么时候存什么时候取，一行都没重写**；`get_handlers()` 把两个方向都交给同一个 `CpuNpuOffloadingHandler`。
+这是官方示例原样，示例模型是纯注意力的 Qwen3-0.6B。`block_size` 须为 NPU 块的整数倍 [S4]；**对 Qwen3.6-35B-A3B，NPU 块是 2048，128 不是它的倍数**，要写至少 2048 [D]。每段占用正比于 `block_size × num_layers × (key_size + value_size)`，文档提醒你自己乘 [S4]。
 
-**第三处：CPU 池的形状跟着 NPU 张量走。** handler 给每层开两张 CPU 张量（K 一张、V 一张），dtype 和形状照抄 NPU 侧，只把第 0 维换成 `num_cpu_blocks × block_size_factor`，可用 pinned 就用 pinned [C14]。开完就把它们拍平成一串子张量 `[layer0_key, layer0_value, layer1_key, …]`，预存每个子张量的首地址与「一块多少字节」。真正搬运时靠一次 numpy 广播算出全部源地址、目的地址和长度——**地址在启动时就备好了，模型执行路径上什么都没多做**。
+spec 只做两件事：`NPUOffloadingSpec.__init__` 查 `num_cpu_blocks`；`get_manager()` 原样返回上游的 `CPUOffloadingManager`，段大小传 `gpu_block_size × block_size_factor`、段数传 `num_cpu_blocks`，LRU、前缀匹配一行没重写 [C13]；`get_handlers()` 把两个方向都交给同一个 `CpuNpuOffloadingHandler` [C23]。handler 给每层开两张 CPU 张量（K、V 各一），dtype 与形状照抄 NPU 侧，只把第 0 维换成 `num_cpu_blocks × block_size_factor`，可用 pinned 就用 pinned；随后拍平成 `[layer0_key, layer0_value, layer1_key, …]`，预存每个子张量的首地址与 `stride(0) × element_size` [C14]。
 
-一次搬运的时序解释了下面第一条误解。store（D2H）下发前先 `stream.wait_stream(torch.npu.current_stream())`——KV 是在模型主流上写进去的，D2H 不能在写完之前读；然后同方向的后一笔 `wait_event` 前一笔的 `end_event`，把这个方向串成一条链。拷贝本身是一次 `torch.ops._C_ascend.swap_blocks_batch(src, dst, sizes, direction)`，`direction` 0 是 H2D、1 是 D2H [C12]。完成后 `get_finished` 用 `start_event.elapsed_time(end_event)` 算出实测耗时，连同字节数一起上报——**带宽不是估出来的，是每笔都被量过的** [C24]。到 CANN 那一层，编到 `CANN_MEMCPY_BATCH_ASYNC` 时整批描述符压成**一次** `aclrtMemcpyBatchAsync`，否则退化成逐描述符的 `aclrtMemcpyAsync` 循环 [C29]。
+store（D2H）下发前先 `stream.wait_stream(torch.npu.current_stream())`；同方向后一笔 `wait_event` 前一笔的 `end_event`；拷贝本身是一次 `torch.ops._C_ascend.swap_blocks_batch(src, dst, sizes, direction)`，`direction` 0 是 H2D、1 是 D2H [C12]。`get_finished` 用 `start_event.elapsed_time(end_event)` 算实测耗时，连同字节数上报 [C24]。编到 `CANN_MEMCPY_BATCH_ASYNC` 时整批描述符压成一次 `aclrtMemcpyBatchAsync`，否则退化成逐描述符的 `aclrtMemcpyAsync` 循环 [C29]。
 
-## 两个发布分支与 main：配置键换了一遍
+**main**：连接器名和上游两个 spec 名都被就地换成昇腾实现 [C5]，配置直接写上游名字 [S35]：
 
-下表的 main 指 2026-09-21 的源码快照，两个发布分支指 v0.23 与 v0.26 各自钉住的那个提交，完整提交号在来源里。v0.26 与 v0.23 在下表每一行上都相同，所以并成一列。main 那一版的实现整个搬了家，住进 `vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/` 下；只有最底下那段 `swap_blocks_batch` 的 C++ 三版逐字相同。
+```python
+kv_transfer_config = KVTransferConfig(
+    kv_connector="OffloadingConnector",
+    kv_role="kv_both",
+    kv_connector_extra_config={
+        "cpu_bytes_to_use": 8 * (1 << 30),   # 全部 worker 合计的字节预算，必填
+        "blocks_per_chunk": 8,               # 一段拼几个 NPU 块；与 block_size 二选一
+        "spec_name": "CPUOffloadingSpec",    # 多级卸载写 TieringOffloadingSpec
+    },
+)
+```
+
+参数含义见 [S2]：`cpu_bytes_to_use` 是全服务器的主机内存预算；`blocks_per_chunk` 与 `block_size` 互斥，后者只在所有 KV 缓存组块大小相同时可用。
+
+上半那张账的推导 [D]：每颗 NPU 每块 20 MiB 取自 [one-request](one-request.md) 的已核值（`2 × 1 KV 头 × 256 × 2 B = 1 KiB`/token/层 × 10 层 × 2048）；模型形状见 [S31]。一段 = `blocks_per_chunk × block_size`，e2e 用例就是这么算的 [C11]。段数按上游检出的算法：每段字节 = NPU 上全部 KV 张量总字节 ÷ 块数 × `world_size` × 倍数，再按对齐向上取整，`cpu_bytes_to_use` 整除它 [C34]。这里只放进了全注意力的 KV，线性注意力状态也在 KV 张量里，所以 25 是上限。
+
+线性注意力状态：main 的 `AscendOffloadingConnectorWorker.register_kv_caches` 对 `MambaSpec` 层把每个状态张量登记成视图，拷贝字节数是去掉补齐的 `page_size_bytes`（`replace(layer_spec, page_size_padded=None)`）[C32]。发布分支的 `get_manager()` 与 `get_handlers()` 都 `assert len(self.gpu_block_size) == 1` [C13][C23]，handler 对每层固定按下标 0、1 取 K、V [C14]。上游检出里 `gpu_block_size` 是「每个 KV 缓存组一个值」[C33]，混合模型不止一组，据此推断发布分支在 Qwen3.6-35B-A3B 上过不了这条断言 [D]；但我们检出的上游不是发布分支配套的那一版（发布分支导入的 `vllm.v1.kv_offload.spec` 在检出里不存在），这条没有实跑核过 [!]。
+
+### 会报什么错
+
+- 发布分支缺 `num_cpu_blocks`：`raise Exception("num_cpu_blocks must be specified in kv_connector_extra_config")` [C13]。
+- main 缺 `cpu_bytes_to_use`：上游 spec 抛 `cpu_bytes_to_use must be specified in kv_connector_extra_config` [C34]。
+- `block_size` 不是 NPU 块的整数倍：上游 `assert offloaded_block_size_int % gpu_block_size == 0` [C33]。对这个模型写 128 就会撞上 [D]。
+- 各组块大小不同却写了 `block_size`：上游断言 `If 'block_size' is specified in kv_connector_extra_config, ... all groups must have the same block size.` [C33]。
+- 块大小不能被前缀哈希的块大小整除：上游断言信息里直接提示 `Hybrid models (e.g. Mamba+Attention) need --enable-prefix-caching to align block sizes.` [C33]。
+- main 上线性注意力状态张量不是非空 list：`TypeError: Mamba KV cache for ... must be a non-empty list`；状态字节数和 spec 对不上：`ValueError: Mamba KV cache page size mismatch ...` [C32]。
+- 发布分支的配置照抄到 main：`spec_module_path` 指的 `vllm_ascend.kv_offload.npu` 已经不在那个路径上，实现整个搬进了 `vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/` [!]。
+
+### 开销和什么时候别开
+
+- 不省 HBM：NPU 侧块池仍由 `gpu_memory_utilization` 决定；官方建议调低它让卸载更活跃 [S22][S1]。
+- 主机内存是锁页的，预留过多会让宿主机 OOM（v0.23 在线版 [S25]；main 文档 [S3]）。
+- `TieringOffloadingSpec` 必须用共享 mmap 做一级 tier，CANN 没有等价于 CUDA 任意 mmap 注册的接口，这一路**没有 pinned 的带宽保证**，要在目标机器上另测 [S3]。main 的 e2e 也只对 CPU-only 那一路断言「CPU 命中快过冷启动」[C11]。
+- 段越大，命中粒度越粗：文档调 `blocks_per_chunk` 时专门提醒了这一点 [S36]。对块大小 2048 的混合模型，`blocks_per_chunk: 8` 意味着短于 16,384 token 的前缀永远不会被存 [D]。不满一段的尾巴不搬，e2e 用例为此把 prompt 垫成「整数段 + 1 个 token」才去断言收到存事件 [C28][C11]。
+- 上游检出里 `offload_prompt_only` 默认 `True`，只存 prompt 阶段的块，decode 生成的块不存 [C33]；是否与各分支配套的上游一致没有核到。
+
+### 版本差异
+
+main 指 2026-09-21 的源码快照，两个发布分支指 v0.23 与 v0.26 各自钉住的提交。v0.26 与 v0.23 在下表每一行都相同，并成一列。只有最底下那段 `swap_blocks_batch` 的 C++ 三版逐字相同。
 
 | 项 | v0.23 与 v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|
-| 怎么插进去 | 注册表里没有 `OffloadingConnector`，靠配置里的 `spec_module_path` 把 spec 塞进去 | 连接器名和上游两个 spec 名都被就地换成昇腾实现 [C5] | 发布分支的配置照抄到 main，`spec_module_path` 指的模块已经不在那个路径上 [!] |
-| 容量参数 | `num_cpu_blocks`，格数，**必填**，缺了直接抛异常 [C13] | `cpu_bytes_to_use`，字节，全服务器预算 [S2] | 同一个位置换了单位，迁移必须自己换算，别指望旧键还被认 [!] |
-| 分块参数 | `block_size`：一格的 token 数，须为 NPU 块的整数倍 [S4] | `blocks_per_chunk` 与 `block_size` **二选一**，互斥 | 前者是绝对值、后者是倍数，迁移时要换算 |
-| CPU 池张量 | 每层固定两张，保留原 dtype 与形状 | 每个规范视图一张 int8 二维 `[格数, page_size × blocks_per_chunk]` [C9] | main 的池按字节寻址，与模型布局解耦 |
-| 多级卸载 | 没有 | `TieringOffloadingSpec` 加文件系统二级 tier，必须走共享 mmap | 只有 main 能把冷数据再往下压一层，但那一路没有 pinned 的带宽保证 [!] |
-| 传输流 | 每方向一条固定流 `d2h_stream` / `h2d_stream` | 每笔从 `_stream_pool` 取一条、用完回收 | 并发度不变：同方向仍被 `end_event` 串行 |
-| e2e 用例 | 整条 `@pytest.mark.skip`，理由写着 cpu offload connector 已废弃 [C16] | 正常跑，且断言 CPU 命中必须快过冷启动 | 发布分支上这条路没有 CI 守着，升级 CANN 或 torch_npu 后要自己压一遍 [!] |
+| 怎么插进去 | 注册表里没有 `OffloadingConnector`，靠 `spec_module_path` 把 spec 塞进去 [C15] | 连接器名和上游两个 spec 名都被就地换成昇腾实现 [C5] | 发布分支的配置照抄到 main，`spec_module_path` 指的模块已经不在那个路径上 [!] |
+| 容量参数 | `num_cpu_blocks`，段数，**必填** [C13] | `cpu_bytes_to_use`，字节，全服务器预算 [S2] | 换了单位，迁移必须自己换算 [!] |
+| 分块参数 | `block_size`：一段的 token 数，须为 NPU 块整数倍 [S4] | `blocks_per_chunk` 与 `block_size` **二选一** [S2] | 前者绝对值、后者倍数 |
+| CPU 池张量 | 每层固定两张，保留原 dtype 与形状 [C14] | 每个规范视图一张 int8 二维 `[段数, page_size × blocks_per_chunk]` [C9] | main 的池按字节寻址，与模型布局解耦 |
+| 线性注意力状态 | 按「每层一对 K、V」写，且只认一种块大小 [C13][C14] | `MambaSpec` 层单独登记、按去补齐的字节拷 [C32] | 混合模型只看 main [D] |
+| 多级卸载 | 没有 | `TieringOffloadingSpec` 加文件系统二级 tier，必须走共享 mmap [S1][S3] | 冷数据能再往下压一层，但没有 pinned 的带宽保证 [!] |
+| 传输流 | 每方向一条固定流 `d2h_stream` / `h2d_stream` [C14] | 每笔从 `_stream_pool` 取一条、用完回收 [C8] | 并发度不变：同方向仍被 `end_event` 串行 |
+| e2e 用例 | 整条 `@pytest.mark.skip`，理由写着 cpu offload connector 已废弃 [C16] | 正常跑，且断言 CPU 命中必须快过冷启动 [C11] | 发布分支上没有 CI 守着，升级 CANN 或 torch_npu 后要自己压一遍 [!] |
 
-## 常见误解
+### 源码位置
 
-- **「两个方向 = D2H 和 H2D 并行跑满带宽。」**——两个 handler 只保证两个方向互不阻塞、且都不阻塞模型主流。同一方向内部，后一笔显式 `wait_event` 前一笔的结束事件，是严格串行的。
-- **「开了卸载就能省 NPU 显存。」**——不能。NPU 侧块池的大小完全由 `gpu_memory_utilization` 决定，这个特性只是给被淘汰的块在主机内存里留了个副本；官方建议反过来**调低**它好让卸载更活跃。花掉的是主机内存，`num_cpu_blocks: 1000` 在那条请求的模型上就是 13.67 GiB 锁页内存。
-- **「`num_cpu_blocks` 数的是 token，或者是字节。」**——都不是，它数的是 CPU 格，一格 `block_size` 个 token。官方文档专门写了一句「每格占用正比于 `block_size × num_layers × (key_size + value_size)`」提醒你自己乘 [S4]。main 上换成 `cpu_bytes_to_use` 之后才轮到字节。
-- **「发布分支上没跑通，是我配错了。」**——先看 CI：这条路的 e2e 用例在两个发布分支上是整条 skip 掉的 [C16]，官方自己也没在跑。配置照上面那段抄，跑不起来就是真有问题，不是你写错了键。
+- 发布分支 spec 与 handler：`vllm_ascend/kv_offload/npu.py`、`vllm_ascend/kv_offload/cpu_npu.py` [C13][C23][C14][C24]
+- 发布分支连接器注册表：`vllm_ascend/distributed/kv_transfer/__init__.py` [C15]
+- main 连接器、spec、worker：`vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/native/` 下的 `offloading_connector.py`、`npu.py`、`cpu_npu.py` [C6][C32][C7][C8][C9]
+- 批量拷贝算子：`csrc/torch_binding.cpp` 的 `swap_blocks_batch` [C10][C29]
+- e2e 用例：`tests/e2e/pull_request/one_card/test_cpu_offloading.py` [C11][C16][C28]
+- 上游：`vllm/v1/kv_offload/base.py`（`OffloadingSpec`）、`vllm/v1/kv_offload/cpu/spec.py`（`CPUOffloadingSpec`）[C33][C34]
+- 官方文档：main [S17]、v0.23 [S25]

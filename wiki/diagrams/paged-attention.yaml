@@ -1,81 +1,45 @@
-layout: scene
+layout: figure
 id: paged-attention
-caption: 一份分块布局，两个算子都能按块读；走哪个由 forward_impl 里唯一的那个 if 决定
-size: [900, 660]
+caption: KV 按定长块分配：写满才要下一块，块在显存里不用挨着；一块 2048 个位置，那条请求写 237 个就答完了——浪费上限是不足一块
+size: [900, 400]
 
-regions:
-  - label: 一份分块布局
-    note: "每层的 K 和 V 各是一个 (num_blocks, 128, 8, 128) 的大张量。一块固定装 128 个 token，写满了才要下一块。"
-    at: [20, 40]
-    size: [860, 162]
-    tone: neutral
+frames:
+  - label: 一颗 NPU 显存里的 KV 块（每块 2048 个位置，大小定死）
+    at: [30, 56]
+    size: [840, 120]
 
-strips:
-  - at: [44, 124]
-    cells: 12
-    cell: 56
-    h: 46
-    gap: 6
-    highlights: [0, 1]
-    tone: neutral
-    label: "那条请求占第 0、1 两块：第 0 块 128 格写满，第 1 块只用了 109 格"
+items:
+  - { at: [54, 92], size: [120, 56], text: 请求 B, tone: kv, style: faded }
+  - { at: [189, 92], size: [120, 56], text: 空闲, style: plain }
+  - { at: [324, 92], size: [120, 56], text: 这条请求, tone: kv, style: solid }
+  - { at: [459, 92], size: [120, 56], text: 请求 B, tone: kv, style: faded }
+  - { at: [594, 92], size: [120, 56], text: 空闲, style: plain }
+  - { at: [729, 92], size: [120, 56], text: 空闲, style: plain }
 
-boundaries:
-  - { at: 224, from: 20, to: 880, vertical: false, label: "分岔点：forward_impl 里唯一的那个 if" }
+texts:
+  - { at: [30, 28], text: 要一块给一块，谁要给谁——块和块不用挨着，靠块表对回去, size: 14, strong: true }
+  - { at: [54, 200], text: 请求 B 写满了第一块才拿到第二块，两块中间隔着别人, size: 12.5, note: true }
+  - { at: [54, 252], text: 放大「这条请求」的那一块, size: 13.5, strong: true }
+  - { at: [54, 356], text: 237 个 token 一块就装下；空着的 1811 个位置别的请求拿不走, size: 12.5 }
 
-boxes:
-  - at: [20, 236]
-    size: [860, 70]
-    title: 三个条件全真才走 PA，任何一条不满足都落到 FIA
-    sub: "attn_state == DecodeOnly 且 sliding_window is None 且 using_paged_attention()"
-    fn: forward_impl
-    icon: split
-    tone: ascend
-  - at: [20, 344]
-    size: [420, 100]
-    title: npu_fused_infer_attention_score
-    sub: "K/V 先压成 (num_block, 128, 1024) 再传"
-    fn: _get_kv_cache_view
-    icon: chip
-    tone: neutral
-  - at: [460, 344]
-    size: [420, 100]
-    title: _npu_paged_attention
-    sub: "key_cache / value_cache 四维原样传进去"
-    fn: forward_paged_attention
-    icon: bolt
-    tone: accent
-  - { at: [20, 474], size: [206, 76], title: ① 投机解码, sub: 开了就直接假, tone: muted }
-  - { at: [238, 474], size: [206, 76], title: ② 硬件档位, sub: A5 与 310P 没这项能力, tone: muted }
-  - { at: [456, 474], size: [206, 76], title: ③ 图模式, sub: "必须 FULL_DECODE_ONLY", tone: muted }
-  - { at: [674, 474], size: [206, 76], title: "④ token 数命中", sub: "默认 pa_shape_list 是空表", tone: accent }
+links:
+  - { from: [384, 152], to: [384, 268], tone: ink, dashed: true }
 
-arrows:
-  - { from: [240, 308], to: [240, 342], label: 默认走这边, tone: neutral }
-  - { from: [660, 308], to: [660, 342], label: 命中才走这边, tone: accent }
+bars:
+  - at: [54, 276]
+    h: 30
+    scale: 0.39
+    frame: { value: 2048, label: 一块 = 2048 个位置, tone: kv }
+    segments:
+      - { value: 237, tone: kv, text: 写了 237 }
 
-brackets:
-  - at: [20, 566]
-    span: 860
-    label: 四道门全过才轮到 PA。默认卡在第四道，所以那个算子默认永远不执行
-    dir: down
-    tone: accent
-
-notes:
-  - { at: [20, 464], text: "条件三 using_paged_attention() 自己又是四道门：", size: 13.5, strong: true }
-  - at: [20, 622]
-    text: "块表和 seq_lens 两个算子都要，不同的只是 KV 张量的维数。PrefillNoCache 那一支例外——那一步的 K/V 还在手上，block_table 传 None。"
-    size: 12.5
-    width: 860
+tags:
+  - { at: [560, 250], text: 浪费上限：不足一块 }
 
 pins:
   - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L143
     symbols: [get_kv_cache_shape, get_supported_kernel_block_sizes]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1202-L1223
-    symbols: [forward_impl, AscendAttentionState, using_paged_attention]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L781-L831
-    symbols: [_get_kv_cache_view, npu_fused_infer_attention_score, PrefillNoCache]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1056-L1075
-    symbols: [forward_paged_attention, _npu_paged_attention]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/utils.py#L177-L193
-    symbols: [using_paged_attention, pa_shape_list, FULL_DECODE_ONLY]
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L127-L141
+    symbols: [attn_block_size, kernel_block_size]
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L231-L240
+    symbols: [max_num_blocks_per_req]

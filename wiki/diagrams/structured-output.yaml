@@ -1,100 +1,53 @@
-layout: scene
+layout: figure
 id: structured-output
-caption: 文法状态机只活在 EngineCore 进程里；跨过进程边界的是一张按位压缩的成品位图，Worker 只负责把它贴到 logits 上
-size: [900, 700]
+caption: 位图里一格管一个 token：开关为 0 的那些，分数在采样前被改成负无穷，只能从剩下的里挑
+size: [900, 320]
 
-regions:
-  - label: EngineCore 进程 · 状态机在这里
-    note: 编译、填位图、推进与回滚全在 CPU 上。这一侧不碰 logits。
-    at: [20, 26]
-    size: [860, 386]
-    tone: upstream
-  - label: Worker 进程 · 只负责把位图贴上去
-    note: 两条路都写 -inf，区别只在写在哪个设备上。默认走的是左边那条。
-    at: [20, 452]
-    size: [860, 190]
-    tone: ascend
+texts:
+  - { at: [30, 38], text: 这一步挑 token 之前，先按位图划掉不合规矩的, size: 14, strong: true }
+  - { at: [30, 84], text: 模型给的分 }
+  - { at: [30, 144], text: 位图：1 = 允许, tone: control }
+  - { at: [30, 204], text: 采样时的分 }
+  - { at: [190, 300], text: "这个模型一整行：248320 个 token，7760 个整数", size: 12.5, note: true }
 
-bands:
-  - label: ① 请求进来，先把 schema 编成状态机
-    sub: 编译完成前状态是 WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR，排在 skipped_waiting 上
-    fn: grammar_init
-    icon: clock
-    at: [52, 128]
-    size: [796, 52]
-    tone: upstream
-  - label: ② 每一圈：把上一步确认的 token 喂进状态机
-    sub: 推进完再 rollback 回去，状态机吃的不是这一步的采样结果
-    fn: get_grammar_bitmask
-    icon: calc
-    at: [52, 186]
-    size: [796, 52]
-    tone: upstream
-  - label: ③ 位图一次分配到位，之后只填不扩
-    sub: 行数 = max_num_seqs × (1 + 草稿数)，每个待采样位置占一行
-    fn: allocate_token_bitmask
-    icon: grid
-    at: [52, 244]
-    size: [796, 52]
-    tone: upstream
+grids:
+  - at: [190, 62]
+    rows: 1
+    cols: 32
+    cell: [19, 30]
+    gap: 2
+    tone: token
+    style: faded
+  - at: [190, 122]
+    rows: 1
+    cols: 32
+    cell: [19, 30]
+    gap: 2
+    tone: control
+    style: empty
+    cells:
+      - { at: [0, 3], style: solid }
+      - { at: [0, 4], style: solid }
+      - { at: [0, 5], style: solid }
+      - { at: [0, 18], style: solid }
+  - at: [190, 182]
+    rows: 1
+    cols: 32
+    cell: [19, 30]
+    gap: 2
+    tone: danger
+    style: faded
+    cells:
+      - { at: [0, 3], tone: token, style: solid }
+      - { at: [0, 4], tone: token, style: solid }
+      - { at: [0, 5], tone: token, style: solid }
+      - { at: [0, 18], tone: token, style: solid }
 
-strips:
-  - at: [52, 322]
-    cells: 32
-    cell: 20
-    h: 26
-    gap: 4
-    highlights: [3, 4, 5, 18]
-    tone: accent
-    label: "一个 int32 管 32 个 token：亮着的 4 个允许，其余 28 个的 logit 会被写成 -inf"
-
-boundaries:
-  - at: 432
-    from: 20
-    to: 880
-    vertical: false
-    label: "位图每行 = 4748 个 int32 = 18.5 KiB（151936 / 32）"
-
-arrows:
-  - { from: [434, 372], to: [434, 484], tone: accent }
-
-boxes:
-  - at: [52, 548]
-    size: [390, 80]
-    title: 默认这条：搬回 CPU 再贴
-    sub: logits 一来一回约 890 KiB，每一步都做
-    fn: apply_grammar_bitmask
-    tone: ascend
-    icon: proc
-  - at: [458, 548]
-    size: [390, 80]
-    title: 另一条：NPU 上原地写
-    sub: 要 VLLM_USE_V2_MODEL_RUNNER 才走得到
-    fn: _apply_grammar_bitmask_kernel
-    tone: ascend
-    icon: bolt
-
-notes:
-  - at: [20, 668]
-    text: "每一步都重来一遍：算一行位图、过一次边界、贴一次 logits。文法编译只有第一次，位图和这趟往返是每一步的。"
-    size: 12.5
-    width: 860
-    strong: true
+brackets:
+  - { from: 190, to: 862, y: 226, label: "一个 32 位整数 = 32 个开关" }
 
 pins:
-  - source: vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L130-L171
-    symbols: [grammar_init]
-  - source: vllm@0fc695fc:vllm/v1/request.py#L108-L113
-    symbols: [WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1651-L1663
-    symbols: [skipped_waiting]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1305-L1327
-    symbols: [get_grammar_bitmask]
-  - source: vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L220-L229
-    symbols: [allocate_token_bitmask, max_num_seqs]
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2448-L2455
     symbols: [apply_grammar_bitmask]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/v2/structured_outputs.py#L34-L50
-    symbols: [_apply_grammar_bitmask_kernel]
-  - source: vllm-ascend@baa023ad:vllm_ascend/patch/__init__.py#L774-L786
-    symbols: [VLLM_USE_V2_MODEL_RUNNER]
+  - source: vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L220-L229
+    symbols: [allocate_token_bitmask]

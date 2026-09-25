@@ -1,111 +1,30 @@
-layout: scene
+layout: figure
 id: batch-job-aware-scheduler
-caption: 换掉的只有等待队列：先替在跑的请求扣下下一轮要的块，剩下的预算才拿去按 job 挑人
-size: [900, 660]
+caption: 先替在跑的请求留出下一步要的块，剩下的才拿去放新请求
+size: [900, 250]
 
-regions:
-  - label: 上游 Scheduler 原样继承：两个 while、token 预算、chunked prefill、抢占都没动
-    at: [20, 26]
-    size: [860, 126]
-    tone: upstream
-  - label: "BatchJobAwareRequestQueue：被换掉的那条 self.waiting"
-    note: 先扣预留，再按 job 挑人；挑不出人这一步就不接新请求
-    at: [20, 194]
-    size: [860, 452]
-    tone: ascend
+texts:
+  - { at: [30, 40], text: 这一步还空着的块（假设 8 块，每块 2048 个位置）, size: 14, strong: true }
+  - { at: [60, 226], text: 扣完是 0，这一步一条新请求都不放, size: 13, note: true, tone: danger }
 
-boxes:
-  - at: [36, 78]
-    size: [268, 62]
-    title: 先扫 running 再扫 waiting
-    sub: 两个 while 的顺序没动
-    fn: token_budget
-    tone: upstream
-    icon: queue
-  - at: [316, 78]
-    size: [268, 62]
-    title: waiting 这条 while 的出口
-    sub: 队列说挑不出人就停
-    fn: peek_request
-    tone: upstream
-    icon: pick
-  - at: [596, 78]
-    size: [268, 62]
-    title: 抢占的请求退回 waiting
-    sub: 在新队列里等于重新入桶
-    fn: prepend_request
-    tone: upstream
-    icon: split
+grids:
+  - at: [60, 64]
+    rows: 1
+    cols: 8
+    cell: [88, 56]
+    gap: 8
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 6], tone: kv, style: solid, text: 预留 }
+      - { at: [0, 7], tone: kv, style: solid, text: 预留 }
 
-boundaries:
-  - at: 172
-    from: 20
-    to: 880
-    vertical: false
-    label: 被替换的只有 self.waiting；skipped_waiting 仍是上游 FCFS 队列
-
-strips:
-  - at: [42, 272]
-    cells: 40
-    cell: 17
-    h: 26
-    gap: 3
-    highlights: [37, 38, 39]
-    tone: ascend
-    label: block_pool 里 40 个空闲块；最右 3 块替在跑的请求预留，剩下 37 块 × 128 = 4736 token 才是准入预算
-
-spines:
-  - y: 470
-    from: 60
-    to: 845
-    tone: ascend
-
-stops:
-  - x: 132
-    side: above
-    title: 算准入预算
-    detail: (空闲块 − 预留块) × 128
-    fn: _admission_budget
-    tone: ascend
-    icon: calc
-  - x: 336
-    side: below
-    title: 冷启动的先上
-    detail: 每个 job 的前 3 条
-    fn: _get_cold_start_request
-    tone: accent
-    icon: pick
-  - x: 556
-    side: above
-    title: 排 job 的先后
-    detail: 4736 > 4096，长 decode 的在前
-    fn: _sort_jobs
-    tone: ascend
-    icon: split
-  - x: 750
-    side: below
-    title: 桶内挑一条
-    detail: 取 ≤ 4736 的最长 prompt
-    fn: peek_best_fit_request
-    tone: accent
-    icon: search
-
-notes:
-  - at: [42, 630]
-    text: 预留的那 3 块不是省下来的——它替已经在跑的请求先占住下一轮要写的格子。少接几条新请求，换的是少一次「抢占 → 清空 KV → 从头重算」。
-    size: 12.5
-    width: 800
+brackets:
+  - { from: 60, to: 628, y: 140, label: "6 块 × 2048 = 12288 个 token，拿去放新请求" }
+  - { from: 636, to: 820, y: 140, label: 留给在跑的请求 }
 
 pins:
-  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L680
-    symbols: [token_budget, peek_request, skipped_waiting]
-  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1224-L1234
-    symbols: [prepend_request]
   - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L541
-    symbols: [_admission_budget, _get_cold_start_request, block_pool]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L595-L609
-    symbols: [_sort_jobs]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333
-    symbols: [peek_best_fit_request]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L622-L641
-    symbols: [BatchJobAwareRequestQueue, waiting]
+    symbols: [_admission_budget, block_pool]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L242
+    symbols: [reserve_margin_blocks, reserve_max_blocks]

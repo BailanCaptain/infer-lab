@@ -1,114 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 622" width="900" height="622" role="img" aria-label="第 N 步还在 NPU 上算，第 N+1 步已经在 CPU 上排好了；能这样排，靠的是调度器先给「会产出但还没产出」的 token 记一个占位">
-  <title>第 N 步还在 NPU 上算，第 N+1 步已经在 CPU 上排好了；能这样排，靠的是调度器先给「会产出但还没产出」的 token 记一个占位</title>
-  <rect width="900" height="622" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="252" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="231" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">EngineCore 进程（上游 vLLM）</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">step_with_batch_queue 排完一批就直接返回，不去取结果；队列没满、还有请求可排，就接着排下一批。</text>
-  <rect x="20" y="318" width="860" height="250" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="332" width="158.6" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="350.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">Worker 进程（昇腾）</text>
-  <text x="38" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">采样出的 token id 不回 CPU：占位符让调度器接着排，真值留在设备上等下一步自己取。</text>
-  <line x1="60" y1="140" x2="860" y2="140" stroke="var(--color-control, #5b6763)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M860 140 l-14 -7 l0 14 z" fill="var(--color-control, #5b6763)"/>
-  <line x1="20" y1="298" x2="880" y2="298" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="876" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">跨进程：token id 不从这里回来</text>
-  <rect x="56" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="73" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="90" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="107" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="124" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="141" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="158" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="175" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="192" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="209" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="226" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="243" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="260" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="277" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="294" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="311" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="328" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="345" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="362" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="379" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="396" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="413" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="430" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="447" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="464" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="481" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="498" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="515" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="532" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="549" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="566" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="583" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="600" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="617" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="634" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="651" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <rect x="668" y="424" width="14" height="26" rx="3" fill="var(--color-control, #5b6763)" stroke="var(--color-control, #5b6763)" stroke-width="1.1"/>
-  <text x="56" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">prompt 的 37 个 token id，早就在 CPU 上</text>
-  <rect x="694" y="424" width="26" height="26" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <text x="694" y="468" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">第 38 格写的是 -1</text>
-  <rect x="36" y="502" width="268" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="48" y="515" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 521.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="88" y="527.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">真 id 留在 NPU 上</text>
-  <text x="88" y="545.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">prev_sampled_token_ids</text>
-  <rect x="318" y="502" width="268" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="330" y="515" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(336.4 521.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
-  <text x="370" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">下一步在设备上换回来</text>
-  <text x="370" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">-1 那格被覆盖成真 id</text>
-  <text x="370" y="554" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_prepare_input_ids</text>
-  <rect x="600" y="502" width="264" height="58" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="612" y="515" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(618.4 521.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="652" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">结果晚一圈才回 CPU</text>
-  <text x="652" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">在异步拷贝流上做 D2H</text>
-  <text x="652" y="554" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">AsyncGPUModelRunnerOutput</text>
-  <line x1="130" y1="140" x2="130" y2="168" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="130" cy="140" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="130" cy="140" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="110" y="169" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(118 177) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="130" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">调度第 N 步</text>
-  <text x="130" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">谁跑、各跑几个</text>
-  <rect x="91" y="249.5" width="78" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="130" y="267" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">schedule</text>
-  <line x1="350" y1="140" x2="350" y2="168" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="350" cy="140" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="350" cy="140" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="330" y="169" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(338 177) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="350" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">送下去就走</text>
-  <text x="350" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">拿到的是 future</text>
-  <rect x="292.3" y="249.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="350" y="267" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">execute_model</text>
-  <line x1="575" y1="140" x2="575" y2="168" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="575" cy="140" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="575" cy="140" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="555" y="169" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(563 177) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v8H3z M9 8v8M15 8v8"/></g>
-  <text x="575" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">先记一笔占位</text>
-  <text x="575" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">这一步会产出、但还没产出的 token</text>
-  <rect x="479.8" y="249.5" width="190.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="575" y="267" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">num_output_placeholders</text>
-  <line x1="795" y1="140" x2="795" y2="168" stroke="var(--color-control, #5b6763)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="795" cy="140" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="795" cy="140" r="5.5" fill="var(--color-control, #5b6763)"/>
-  <rect x="775" y="169" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.4"/>
-  <g transform="translate(783 177) scale(1)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
-  <text x="795" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 N+1 步照排</text>
-  <text x="795" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">第 N 步还在 NPU 上</text>
-  <rect x="707.3" y="249.5" width="175.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="795" y="267" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">step_with_batch_queue</text>
-  <path d="M330 280 L330 314" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M330 314 l-5.5 -11 l11 0 z" fill="var(--color-control, #5b6763)"/>
-  <rect x="271.5" y="287" width="117" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="330" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">SchedulerOutput</text>
-  <path d="M560 314 L560 280" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M560 280 l-5.5 11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <rect x="494.5" y="287" width="131" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="560" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">ModelRunnerOutput</text>
-  <path d="M350 100 l0 9 L795 109 l0 -9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
-  <text x="572.5" y="127" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">这一段里第 N 步一直在 NPU 上跑</text>
-  <path d="M694 416 l0 -9 L720 407 l0 9" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.4" opacity="0.75"/>
-  <text x="707" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-accent, #e85b32)" text-anchor="middle">num_output_placeholders 从 0 变成 1</text>
-  <text x="24" y="588" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">同步调度下 NPU 每算完一步都要停下来等：等 CPU 把结果收回去、更新状态、算出下一步的名额、再把 SchedulerOutput 送过进程边界。异步把这一</text>
-  <text x="24" y="606.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">段压到上一步的 forward 底下——那条请求的 200 圈，每圈省下的都是它。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 226" width="900" height="226" role="img" aria-label="同步时 NPU 每算完一步都要空等 CPU 排下一步；异步时 CPU 趁 NPU 还在算就把下一步排好，空等没了（横向只示意先后，不是实测时长）">
+  <title>同步时 NPU 每算完一步都要空等 CPU 排下一步；异步时 CPU 趁 NPU 还在算就把下一步排好，空等没了（横向只示意先后，不是实测时长）</title>
+  <defs></defs>
+  <rect x="130" y="50" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="362" y="50" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="594" y="50" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="188" y="82" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="362" y="82" width="56" height="26" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="390" y="100" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">空等</text>
+  <rect x="420" y="82" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="594" y="82" width="56" height="26" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <rect x="652" y="82" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="130" y="150" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="188" y="150" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="362" y="150" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="536" y="150" width="56" height="26" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="188" y="182" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="362" y="182" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="536" y="182" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="710" y="182" width="172" height="26" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="30" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">同步</text>
+  <text x="30" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">异步</text>
+  <text x="60" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">CPU</text>
+  <text x="60" y="100" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">NPU</text>
+  <text x="60" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">CPU</text>
+  <text x="60" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">NPU</text>
+  <text x="188" y="142" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652">排第 2 步</text>
 </svg>

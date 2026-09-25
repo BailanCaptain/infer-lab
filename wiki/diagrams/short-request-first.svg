@@ -1,59 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="上游的 schedule() 一行没改；换掉的只有 scheduler.waiting 这一个对象，它从一条队变成三条车道">
-  <title>上游的 schedule() 一行没改；换掉的只有 scheduler.waiting 这一个对象，它从一条队变成三条车道</title>
-  <rect width="900" height="600" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="24" width="860" height="168" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="38" width="189.9" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="56.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 vLLM 的 schedule()</text>
-  <text x="38" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">扫 waiting 队列那段循环只用 peek / pop 两个方法取请求，队列对象长什么样它不问——这正是不用改它一行的理由。</text>
-  <rect x="20" y="246" width="860" height="280" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="260" width="238" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="278.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">vllm-ascend 换进去的三车道队列</text>
-  <text x="38" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一份 RequestQueue 契约，里面藏着三条用 create_request_queue 造出来的普通 FCFS 队列。</text>
-  <line x1="20" y1="218" x2="880" y2="218" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="876" y="209" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">换掉的只有 scheduler.waiting 这一个引用</text>
-  <rect x="52" y="312" width="34" height="34" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <text x="52" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">immediate · 被抢占的先回来</text>
-  <rect x="52" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="92" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="132" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="172" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="212" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="252" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="292" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="332" y="380" width="34" height="34" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="52" y="432" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">short · 8 条 37 token 的短请求</text>
-  <rect x="52" y="448" width="34" height="34" rx="3" fill="var(--color-canvas, #f5f2ea)" stroke="var(--color-ink-faint, #8a928f)" stroke-width="1.1"/>
-  <text x="52" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">long · 一条 5000 token 的长 prompt</text>
-  <rect x="44" y="108" width="252" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="56" y="126" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(62.4 132.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
-  <text x="96" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">先看一眼队头</text>
-  <text x="96" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">不出队，先判断收不收</text>
-  <text x="96" y="165" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">peek_request</text>
-  <rect x="316" y="108" width="252" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="328" y="126" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(334.4 132.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="368" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">收下才出队</text>
-  <text x="368" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">名额 = min(还差多少, 预算)</text>
-  <text x="368" y="165" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">pop_request</text>
-  <rect x="588" y="108" width="268" height="68" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="600" y="126" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(606.4 132.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z M3 7l9 5 9-5M12 12v10"/></g>
-  <text x="640" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">队列由策略造出来</text>
-  <text x="640" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">FCFS 时是一条 deque</text>
-  <text x="640" y="165" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">create_request_queue</text>
-  <rect x="420" y="316" width="436" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
-  <rect x="432" y="338" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(438.4 344.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="472" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">分车道只看一个数</text>
-  <text x="472" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">num_prompt_tokens 大于阈值就是 long</text>
-  <text x="472" y="377" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">_classify_queue</text>
-  <rect x="420" y="408" width="436" height="76" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="432" y="430" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(438.4 436.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
-  <text x="472" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">等够了才准插队</text>
-  <text x="472" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">long_max_wait_ms 默认 0.0，也就是永不提升</text>
-  <text x="472" y="469" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">_select_schedulable_queue</text>
-  <path d="M298 142 L314 142" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M314 142 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
-  <path d="M570 142 L586 142" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
-  <path d="M586 142 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
-  <path d="M366 244 L366 196" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
-  <path d="M366 196 l-5.5 11 l11 0 z" fill="var(--color-weight, #b87a00)"/>
-  <text x="52" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">车道的长短表示排着几条，不表示 token 数。</text>
-  <text x="20" y="552" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">派发顺序 immediate &gt; 等够了的 long &gt; short &gt; long。装上去有两条路：异步调度把 scheduler_cls 指到 ShortRequestFirstAsyncScheduler；同</text>
-  <text x="20" y="570.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">步调度一个字都不设，被 patch 换掉的那个默认 Scheduler 在构造时自己装。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230" role="img" aria-label="先到两条 1024 个 token 的长问题，再到 8 条 37 个 token 的短问题。先到先得时，第 1 步被两条长的占满，短的等到第 2 步；短请求优先时，短的先挑走 296 个名额，第 1 步就吐出第一个 token，长 B 这一步只算到 728 个">
+  <title>先到两条 1024 个 token 的长问题，再到 8 条 37 个 token 的短问题。先到先得时，第 1 步被两条长的占满，短的等到第 2 步；短请求优先时，短的先挑走 296 个名额，第 1 步就吐出第一个 token，长 B 这一步只算到 728 个</title>
+  <defs></defs>
+  <rect x="150" y="76" width="348.2" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="166" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长 A 1024</text>
+  <rect x="498.2" y="76" width="348.2" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="514.2" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长 B 1024</text>
+  <rect x="150" y="156" width="100.6" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="166" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">8 条短 296</text>
+  <rect x="250.6" y="156" width="348.2" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="266.6" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长 A 1024</text>
+  <rect x="598.8" y="156" width="247.5" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="614.8" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长 B 728</text>
+  <text x="30" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步的 2048 个名额给了谁</text>
+  <text x="30" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">先到先得</text>
+  <text x="30" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">短请求优先</text>
 </svg>

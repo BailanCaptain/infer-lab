@@ -1,27 +1,26 @@
-layout: scene
+layout: figure
 id: token-budget
-caption: 同一条规则，两种形状：token 预算条上，prefill 是一小截，decode 细到画不出来
-size: [900, 436]
+caption: 一步有 2048 个名额。那条请求第 1 步还差 37 个，就拿 37 个；第 2 步只差 1 个，就拿 1 个。两步用的是同一条规则
+size: [900, 250]
 
-bands:
-  - { label: 第 1 步 · 那条请求的 prompt, sub: "num_computed_tokens：0 → 37", at: [20, 56], size: [860, 76], tone: neutral, icon: split }
-  - { label: 第 2 步 · 同一段代码, sub: "num_computed_tokens：37 → 38", at: [20, 146], size: [860, 76], tone: ascend, icon: split }
-  - { label: 换一条 4096 token 的问题, sub: 预算不够，被切成两步, at: [20, 236], size: [860, 76], tone: muted, icon: split }
+texts:
+  - { at: [30, 40], text: 每一步：还差几个 token，就给几个名额, size: 14, strong: true }
+  - { at: [30, 92], text: 第 1 步, size: 13.5, strong: true }
+  - { at: [110, 130], text: 还差 37 个 → 拿 37 个名额, size: 13, tone: token }
+  - { at: [30, 180], text: 第 2 步, size: 13.5, strong: true }
+  - { at: [110, 218], text: 还差 1 个 → 拿 1 个名额, size: 13, tone: token }
+  - { at: [878, 130], text: 剩下 2011 个空着, size: 13, note: true, anchor: end }
+  - { at: [878, 218], text: 剩下 2047 个空着, size: 13, note: true, anchor: end }
 
-strips:
-  - { at: [386, 80], cells: 1, cell: 460.0, h: 22, tone: muted }
-  - { at: [386, 80], cells: 1, cell: 8.3, h: 22, highlight: 0, overlay: true, tone: neutral }
-  - { at: [386, 170], cells: 1, cell: 460.0, h: 22, tone: muted }
-  - { at: [386, 170], cells: 1, cell: 1.5, h: 22, highlight: 0, overlay: true, tone: ascend }
-  - { at: [386, 260], cells: 1, cell: 460.0, h: 22, highlight: 0, tone: muted }
-
-notes:
-  - { at: [386, 118], text: "37 / 2048 —— 就是左边这一小截", size: 12.5 }
-  - { at: [386, 208], text: "1 / 2048 —— 那条竖线已经是画得出来的最细了", size: 12.5 }
-  - { at: [386, 298], text: "2048 / 2048 全满，剩下的 2048 个 token 留到下一步算", size: 12.5 }
-  - { at: [20, 348], text: "预算条的长度是 max_num_batched_tokens，默认 2048。它不是「一次最多几条请求」，是「一次最多算几个 token」。", size: 13, strong: true, width: 860 }
-  - { at: [20, 374], text: "看懂这张图就知道两件事：一，一条请求根本填不满预算条，批处理是为了把它填满；二，prefill 和 decode 在代码里不是两个分支，只是同一个减法得到的两个数。", size: 12.5, width: 860 }
-  - { at: [20, 408], text: "那条请求的 37 个 token 之所以一步算完，只是因为 37 < 2048。prompt 再长一点就会被切开，走的还是这段代码。", size: 12.5, width: 860 }
+bars:
+  - at: [110, 74]
+    scale: 0.375
+    frame: { value: 2048, label: 2048 个名额, tone: control }
+    segments: [{ value: 37, tone: token }]
+  - at: [110, 162]
+    scale: 0.375
+    frame: { value: 2048, label: 2048 个名额, tone: control }
+    segments: [{ value: 1, tone: token }]
 
 pins:
   - source: vllm@0fc695fc:vllm/config/scheduler.py#L42-L49

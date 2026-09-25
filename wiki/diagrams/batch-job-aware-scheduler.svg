@@ -1,102 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="换掉的只有等待队列：先替在跑的请求扣下下一轮要的块，剩下的预算才拿去按 job 挑人">
-  <title>换掉的只有等待队列：先替在跑的请求扣下下一轮要的块，剩下的预算才拿去按 job 挑人</title>
-  <rect width="900" height="660" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="126" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="581.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">上游 Scheduler 原样继承：两个 while、token 预算、chunked prefill、抢占都没动</text>
-  <rect x="20" y="194" width="860" height="452" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="208" width="428.6" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="226.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">BatchJobAwareRequestQueue：被换掉的那条 self.waiting</text>
-  <text x="38" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先扣预留，再按 job 挑人；挑不出人这一步就不接新请求</text>
-  <line x1="60" y1="470" x2="845" y2="470" stroke="var(--color-weight, #b87a00)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-  <path d="M845 470 l-14 -7 l0 14 z" fill="var(--color-weight, #b87a00)"/>
-  <line x1="20" y1="172" x2="880" y2="172" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="876" y="163" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="end">被替换的只有 self.waiting；skipped_waiting 仍是上游 FCFS 队列</text>
-  <rect x="42" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="62" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="82" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="102" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="122" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="142" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="162" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="182" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="202" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="222" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="242" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="262" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="282" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="302" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="322" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="342" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="362" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="382" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="402" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="422" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="442" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="462" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="482" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="502" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="522" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="542" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="562" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="582" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="602" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="622" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="642" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="662" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="682" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="702" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="722" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="742" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="762" y="272" width="17" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="782" y="272" width="17" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="802" y="272" width="17" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="822" y="272" width="17" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="42" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">block_pool 里 40 个空闲块；最右 3 块替在跑的请求预留，剩下 37 块 × 128 = 4736 token 才是准入预算</text>
-  <rect x="36" y="78" width="268" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="48" y="93" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(54.4 99.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></g>
-  <text x="88" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">先扫 running 再扫 waiting</text>
-  <text x="88" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两个 while 的顺序没动</text>
-  <text x="88" y="132" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">token_budget</text>
-  <rect x="316" y="78" width="268" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="328" y="93" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(334.4 99.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="368" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">waiting 这条 while 的出口</text>
-  <text x="368" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">队列说挑不出人就停</text>
-  <text x="368" y="132" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">peek_request</text>
-  <rect x="596" y="78" width="268" height="62" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
-  <rect x="608" y="93" width="32" height="32" rx="9" fill="var(--color-surface-sunken, #ece9df)"/><g transform="translate(614.4 99.4) scale(0.8)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="648" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">抢占的请求退回 waiting</text>
-  <text x="648" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">在新队列里等于重新入桶</text>
-  <text x="648" y="132" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">prepend_request</text>
-  <line x1="132" y1="470" x2="132" y2="442" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="132" cy="470" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="132" cy="470" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="112" y="401" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(120 409) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="132" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算准入预算</text>
-  <text x="132" y="371" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">(空闲块 − 预留块) × 128</text>
-  <rect x="59.3" y="331.5" width="145.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="132" y="349" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">_admission_budget</text>
-  <line x1="336" y1="470" x2="336" y2="498" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="336" cy="470" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="336" cy="470" r="5.5" fill="var(--color-accent, #e85b32)"/>
-  <rect x="316" y="499" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
-  <g transform="translate(324 507) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="336" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">冷启动的先上</text>
-  <text x="336" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">每个 job 的前 3 条</text>
-  <rect x="240.8" y="579.5" width="190.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="336" y="597" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">_get_cold_start_request</text>
-  <line x1="556" y1="470" x2="556" y2="442" stroke="var(--color-weight, #b87a00)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="556" cy="470" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="556" cy="470" r="5.5" fill="var(--color-weight, #b87a00)"/>
-  <rect x="536" y="401" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.4"/>
-  <g transform="translate(544 409) scale(1)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="556" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">排 job 的先后</text>
-  <text x="556" y="371" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">4736 &gt; 4096，长 decode 的在前</text>
-  <rect x="509.5" y="331.5" width="93" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="556" y="349" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">_sort_jobs</text>
-  <line x1="750" y1="470" x2="750" y2="498" stroke="var(--color-accent, #e85b32)" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="750" cy="470" r="9" fill="var(--color-surface, #fbfaf6)"/>
-  <circle cx="750" cy="470" r="5.5" fill="var(--color-accent, #e85b32)"/>
-  <rect x="730" y="499" width="40" height="40" rx="12" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.4"/>
-  <g transform="translate(738 507) scale(1)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5"/></g>
-  <text x="750" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">桶内挑一条</text>
-  <text x="750" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">取 ≤ 4736 的最长 prompt</text>
-  <rect x="662.3" y="579.5" width="175.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="750" y="597" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">peek_best_fit_request</text>
-  <text x="42" y="630" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">预留的那 3 块不是省下来的——它替已经在跑的请求先占住下一轮要写的格子。少接几条新请求，换的是少一次「抢占 → 清空 KV → 从头重算」。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" width="900" height="250" role="img" aria-label="先替在跑的请求留出下一步要的块，剩下的才拿去放新请求">
+  <title>先替在跑的请求留出下一步要的块，剩下的才拿去放新请求</title>
+  <defs></defs>
+  <rect x="60" y="64" width="88" height="56" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="156" y="64" width="88" height="56" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="252" y="64" width="88" height="56" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="348" y="64" width="88" height="56" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="444" y="64" width="88" height="56" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="540" y="64" width="88" height="56" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="636" y="64" width="88" height="56" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="680" y="96.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">预留</text>
+  <rect x="732" y="64" width="88" height="56" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="776" y="96.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">预留</text>
+  <path d="M60 140 v8 h568 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="344" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6 块 × 2048 = 12288 个 token，拿去放新请求</text>
+  <path d="M636 140 v8 h184 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="728" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">留给在跑的请求</text>
+  <text x="30" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">这一步还空着的块（假设 8 块，每块 2048 个位置）</text>
+  <text x="60" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" font-style="italic">扣完是 0，这一步一条新请求都不放</text>
 </svg>

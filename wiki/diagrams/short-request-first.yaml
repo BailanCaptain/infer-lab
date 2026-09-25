@@ -1,115 +1,32 @@
-layout: scene
+layout: figure
 id: short-request-first
-caption: 上游的 schedule() 一行没改；换掉的只有 scheduler.waiting 这一个对象，它从一条队变成三条车道
-size: [900, 600]
+caption: 先到两条 1024 个 token 的长问题，再到 8 条 37 个 token 的短问题。先到先得时，第 1 步被两条长的占满，短的等到第 2 步；短请求优先时，短的先挑走 296 个名额，第 1 步就吐出第一个 token，长 B 这一步只算到 728 个
+size: [900, 230]
 
-regions:
-  - label: 上游 vLLM 的 schedule()
-    note: 扫 waiting 队列那段循环只用 peek / pop 两个方法取请求，队列对象长什么样它不问——这正是不用改它一行的理由。
-    at: [20, 24]
-    size: [860, 168]
-    tone: upstream
-  - label: vllm-ascend 换进去的三车道队列
-    note: 同一份 RequestQueue 契约，里面藏着三条用 create_request_queue 造出来的普通 FCFS 队列。
-    at: [20, 246]
-    size: [860, 280]
-    tone: ascend
+texts:
+  - { at: [30, 40], text: 第 1 步的 2048 个名额给了谁, size: 14, strong: true }
+  - { at: [30, 97], text: 先到先得, size: 13.5, strong: true }
+  - { at: [30, 177], text: 短请求优先, size: 13.5, strong: true }
 
-boxes:
-  - at: [44, 108]
-    size: [252, 68]
-    title: 先看一眼队头
-    sub: 不出队，先判断收不收
-    fn: peek_request
-    tone: upstream
-    icon: queue
-  - at: [316, 108]
-    size: [252, 68]
-    title: 收下才出队
-    sub: 名额 = min(还差多少, 预算)
-    fn: pop_request
-    tone: upstream
-    icon: pick
-  - at: [588, 108]
-    size: [268, 68]
-    title: 队列由策略造出来
-    sub: FCFS 时是一条 deque
-    fn: create_request_queue
-    tone: upstream
-    icon: box
-  - at: [420, 316]
-    size: [436, 76]
-    title: 分车道只看一个数
-    sub: num_prompt_tokens 大于阈值就是 long
-    fn: _classify_queue
-    tone: ascend
-    icon: split
-  - at: [420, 408]
-    size: [436, 76]
-    title: 等够了才准插队
-    sub: long_max_wait_ms 默认 0.0，也就是永不提升
-    fn: _select_schedulable_queue
-    tone: accent
-    icon: clock
-
-arrows:
-  - { from: [298, 142], to: [314, 142], tone: upstream }
-  - { from: [570, 142], to: [586, 142], tone: upstream }
-  - { from: [366, 244], to: [366, 196], tone: ascend }
-
-boundaries:
-  - at: 218
-    from: 20
-    to: 880
-    vertical: false
-    label: 换掉的只有 scheduler.waiting 这一个引用
-
-strips:
-  - at: [52, 312]
-    cells: 1
-    cell: 34
+bars:
+  - at: [150, 76]
     h: 34
-    gap: 6
-    highlight: 0
-    tone: accent
-    label: immediate · 被抢占的先回来
-  - at: [52, 380]
-    cells: 8
-    cell: 34
+    scale: 0.34
+    segments:
+      - { value: 1024, tone: control, text: 长 A 1024 }
+      - { value: 1024, tone: control, text: 长 B 1024 }
+  - at: [150, 156]
     h: 34
-    gap: 6
-    highlights: [0, 1, 2, 3, 4, 5, 6, 7]
-    tone: ascend
-    label: short · 8 条 37 token 的短请求
-  - at: [52, 448]
-    cells: 1
-    cell: 34
-    h: 34
-    gap: 6
-    tone: muted
-    label: long · 一条 5000 token 的长 prompt
-
-notes:
-  - at: [52, 520]
-    text: 车道的长短表示排着几条，不表示 token 数。
-    size: 12.5
-    width: 340
-  - at: [20, 552]
-    text: 派发顺序 immediate > 等够了的 long > short > long。装上去有两条路：异步调度把 scheduler_cls 指到 ShortRequestFirstAsyncScheduler；同步调度一个字都不设，被 patch 换掉的那个默认 Scheduler 在构造时自己装。
-    size: 12.5
-    width: 860
-    strong: true
+    scale: 0.34
+    segments:
+      - { value: 296, tone: token, text: 8 条短 296 }
+      - { value: 1024, tone: control, text: 长 A 1024 }
+      - { value: 728, tone: control, text: 长 B 728 }
 
 pins:
   - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L693
     symbols: [peek_request, pop_request]
-  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L176-L185
-    symbols: [create_request_queue]
   - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L148-L153
     symbols: [_classify_queue, num_prompt_tokens]
   - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L155-L182
-    symbols: [_select_schedulable_queue, long_max_wait_ms]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L329-L335
-    symbols: [is_recovery_request]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L370-L384
-    symbols: [ShortRequestFirstAsyncScheduler]
+    symbols: [_select_schedulable_queue]

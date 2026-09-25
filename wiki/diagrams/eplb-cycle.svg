@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 190" width="900" height="190" role="img" aria-label="默认配置下 Qwen3.6-35B-A3B 的一个 EPLB 周期：数 600 步、算 50 步、搬 40 步，全摊在正常推理的每一步里">
+  <title>默认配置下 Qwen3.6-35B-A3B 的一个 EPLB 周期：数 600 步、算 50 步、搬 40 步，全摊在正常推理的每一步里</title>
+  <defs></defs>
+  <text x="128" y="69.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">推理进程</text>
+  <path d="M140 80H864.5" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="140" y="50" width="630" height="30" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="455" y="69.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">数：每个专家分到几个 token</text>
+  <rect x="770" y="50" width="52.5" height="30" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="822.5" y="50" width="42" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="843.5" y="69.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">搬</text>
+  <text x="128" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">EPLB 子进程</text>
+  <rect x="770" y="94" width="52.5" height="30" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="796.3" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <path d="M140 136H864.5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M140 136v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="140" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M864.5 136v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="864.5" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">690 步</text>
+  <text x="600" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">搬：40 层，一步搬一层</text>
+</svg>

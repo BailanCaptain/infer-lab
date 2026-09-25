@@ -1,49 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="TP=2 开 SP 的一层：两次 all-reduce 换成 reduce-scatter 加 all-gather，中间那两段 token 只剩一半">
-  <title>TP=2 开 SP 的一层：两次 all-reduce 换成 reduce-scatter 加 all-gather，中间那两段 token 只剩一半</title>
-  <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="26" width="860" height="196" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="36" y="40" width="349.8" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">token 维度（TP=2，2049 个 token 的 prefill）</text>
-  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">先补 1 个零凑成 2050，再沿 token 维度对半切；切开的那一半才是本卡真正要算 norm 的部分。</text>
-  <rect x="20" y="244" width="860" height="386" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="258" width="251.5" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="276.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">一层跑一遍：橙色两段是被切开的区间</text>
-  <text x="38" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">上下顺序就是数据流向。逐 token 的算子落在橙色段里就只算 1025 个 token，落在别处仍是 2050 个。</text>
-  <rect x="40" y="318" width="820" height="48" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="40" y="318" width="5" height="48" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(63.8 331.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
-  <text x="98" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 进层的 RMSNorm：只在本卡那 1025 个 token 上算</text>
-  <text x="98" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">残差要跟着切一刀，否则和 hidden 对不上形状</text>
-  <rect x="673" y="329.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="757" y="347" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">maybe_chunk_residual</text>
-  <rect x="40" y="374" width="820" height="48" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="40" y="374" width="5" height="48" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(63.8 387.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="98" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② all_gather：收齐 2050 个 token 再进 qkv_proj</text>
-  <text x="98" y="415" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">切开的那一段到此为止，下面和不开 SP 时一样</text>
-  <rect x="643" y="385.5" width="198" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="742" y="403" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">SequenceColumnParallelOp</text>
-  <rect x="40" y="430" width="820" height="48" rx="10" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="40" y="430" width="5" height="48" rx="2.5" fill="var(--color-kv, #4c65b6)"/>
-  <g transform="translate(63.8 443.8) scale(0.85)" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10H7z M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></g>
-  <text x="98" y="451" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ attention 全长算，o_proj 吐出两份部分和</text>
-  <text x="98" y="471" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这一段每卡都在 2050 个 token 上做，省不掉</text>
-  <text x="844" y="459" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">不受 SP 影响</text>
-  <rect x="40" y="486" width="820" height="48" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="40" y="486" width="5" height="48" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(63.8 499.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
-  <text x="98" y="507" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">④ reduce_scatter：边加边切，落地就是 1025 个</text>
-  <text x="98" y="527" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">原来这里是一次 all_reduce，落地是 2050 个</text>
-  <rect x="673" y="497.5" width="168" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="757" y="515" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">maybe_pad_and_reduce</text>
-  <rect x="40" y="542" width="820" height="48" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="40" y="542" width="5" height="48" rx="2.5" fill="var(--color-weight, #b87a00)"/>
-  <g transform="translate(63.8 555.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
-  <text x="98" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑤ MLP 再重复一遍 ②③④：一层于是换掉两处</text>
-  <text x="98" y="583" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">gate_up_proj 前 all_gather，down_proj 后 reduce_scatter</text>
-  <rect x="665.5" y="553.5" width="175.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="753.3" y="571" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">SequenceRowParallelOp</text>
-  <line x1="390" y1="166" x2="390" y2="202" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="390" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">切在这里</text>
-  <rect x="40" y="108" width="700" height="30" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <text x="40" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">all_gather 之后：全长 2050 个 token</text>
-  <rect x="40" y="166" width="348" height="30" rx="3" fill="var(--color-accent, #e85b32)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <rect x="392" y="166" width="348" height="30" rx="3" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-accent, #e85b32)" stroke-width="1.1"/>
-  <text x="40" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">reduce_scatter 之后：卡 0 只留左边 1025 个</text>
-  <text x="20" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">字节没省：ring all-reduce 本来就是 reduce-scatter 加 all-gather 两段。省的是橙色段里 norm 的算力与激活长度，以及④能和前面的 matmul 融成</text>
-  <text x="20" y="664.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">npu_mm_reduce_scatter_base 一个算子。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="NPU 0 看一层里的一处接缝：all-reduce 拆成 reduce-scatter 加 all-gather，夹在中间的逐 token 计算只做 1025 个">
+  <title>NPU 0 看一层里的一处接缝：all-reduce 拆成 reduce-scatter 加 all-gather，夹在中间的逐 token 计算只做 1025 个</title>
+  <defs><marker id="sequence-parallel-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M279 106 L279 164" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-ah-comm)"/>
+  <path d="M279 252 L279 304" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-ah-comm)"/>
+  <rect x="60" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="104" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="148" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="192" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="236" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="280" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="324" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="368" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="412" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="456" y="64" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="60" y="172" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="104" y="172" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="148" y="172" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="192" y="172" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="236" y="172" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="280" y="172" width="42" height="34" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="324" y="172" width="42" height="34" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="368" y="172" width="42" height="34" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="412" y="172" width="42" height="34" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="456" y="172" width="42" height="34" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <rect x="60" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="104" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="148" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="192" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="236" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="280" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="324" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="368" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="412" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="456" y="312" width="42" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <path d="M60 214 v8 h218 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="169" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU 0 只算这 1025 个</text>
+  <text x="530" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">矩阵吐出的部分和：全长 2050 个 token</text>
+  <text x="530" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">reduce-scatter：先加总，再切开，各留一段</text>
+  <text x="530" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">归一化、残差这些逐 token 的活只做一半</text>
+  <text x="530" y="282" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">all-gather：各段发给所有 NPU，凑回全长</text>
+  <text x="530" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">进下一个大矩阵：又是全长 2050 个</text>
+  <text x="60" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">两段通信搬的字节＝原来那一次 all-reduce；省下的是中间那一行的活</text>
 </svg>

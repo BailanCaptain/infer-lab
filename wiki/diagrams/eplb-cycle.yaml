@@ -1,0 +1,36 @@
+layout: figure
+id: eplb-cycle
+caption: 默认配置下 Qwen3.6-35B-A3B 的一个 EPLB 周期：数 600 步、算 50 步、搬 40 步，全摊在正常推理的每一步里
+size: [900, 190]
+
+timelines:
+  - at: [30, 50]
+    scale: 1.05
+    start: 0
+    end: 690
+    unit: 步
+    labelW: 110
+    laneH: 30
+    gap: 14
+    lanes:
+      - label: 推理进程
+        spans:
+          - { from: 0, to: 600, tone: token, text: 数：每个专家分到几个 token }
+          - { from: 600, to: 650, tone: token, style: faded }
+          - { from: 650, to: 690, tone: comm, text: 搬 }
+      - label: EPLB 子进程
+        spans:
+          - { from: 600, to: 650, tone: control, text: 算 }
+
+texts:
+  - { at: [600, 150], text: 搬：40 层，一步搬一层, size: 13, note: true }
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L831-L845
+    symbols: [expert_heat_collection_interval, algorithm_execution_interval]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L79-L101
+    symbols: [num_moe_layers, update_expert_weight_flag]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L102-L155
+    symbols: [planner_q.put, forward_before, forward_end]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_worker.py#L337-L410
+    symbols: [EplbProcess, planner_q, block_update_q]

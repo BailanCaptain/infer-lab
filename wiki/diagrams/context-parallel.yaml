@@ -1,107 +1,42 @@
-layout: scene
+layout: figure
 id: context-parallel
-caption: 两刀都切在序列维上，但切的东西不同：PCP 切这一步要算的 token 并为此加卡，DCP 切写进 KV Cache 的那一份、卡数不变
-size: [900, 612]
+caption: DCP 取 2 时，一条请求的 KV 按 token 轮流写到两颗 NPU 上：谁也没有完整的一份，合起来正好一份
+size: [900, 200]
 
-regions:
-  - label: PCP：加卡，切 prefill 这一步要算的 token
-    note: 每条请求的 token 数先补齐到 2 × pcp 的整数倍，切成 2 × pcp 段，第 i 段与倒数第 i 段配一对发给同一张卡——头段短尾段长，配成对算量才相等
-    at: [20, 26]
-    size: [860, 226]
-    tone: accent
-  - label: DCP：不加卡，切写进 KV Cache 的那一份
-    note: 同一条序列的 token 按 cp_kv_cache_interleave_size 交错落到各个 rank 上，默认值 1 就是 token 级交错，于是谁也没有完整的 KV
-    at: [20, 272]
-    size: [860, 212]
-    tone: neutral
+texts:
+  - { at: [20, 28], text: 前 16 个 token 的 KV, size: 15, strong: true }
+  - { at: [880, 28], text: 每颗只存一半, size: 14, tone: kv, anchor: end }
+  - { at: [120, 182], text: 空格：这个 token 不归这颗存, size: 13, note: true }
 
-boundaries:
-  - at: 262
-    from: 20
-    to: 880
-    vertical: false
-    label: 过了这条线，卡数不再变
-
-strips:
-  - at: [160, 116]
-    cells: 8
-    cell: 44
-    h: 30
-    gap: 6
-    highlights: [0, 1, 6, 7]
-    tone: accent
-    label: PCP rank 0 算 0 1 6 7 —— 头一段配尾一段
-  - at: [160, 176]
-    cells: 8
-    cell: 44
-    h: 30
-    gap: 6
-    highlights: [2, 3, 4, 5]
-    tone: accent
-    label: PCP rank 1 算 2 3 4 5 —— 中间那两段
-  - at: [60, 348]
-    cells: 16
-    cell: 22
-    h: 22
-    gap: 3
-    highlights: [0, 2, 4, 6, 8, 10, 12, 14]
-    tone: neutral
-    label: cp_rank 0 只写 0 2 4 6 8 10 12 14 这 8 格
-  - at: [60, 400]
-    cells: 16
-    cell: 22
-    h: 22
-    gap: 3
-    highlights: [1, 3, 5, 7, 9, 11, 13, 15]
-    tone: neutral
-    label: cp_rank 1 只写 1 3 5 7 9 11 13 15 这 8 格
-
-boxes:
-  - at: [580, 112]
-    size: [280, 100]
-    title: 先补齐，再头尾配对
-    sub: 补到 2 × pcp 的整数倍
-    fn: update_tokens_for_pcp
-    tone: accent
-  - at: [520, 340]
-    size: [340, 104]
-    title: 不属于本卡的 token，槽位填 −1
-    sub: 各卡跑同一张块表，只是写的格子不同
-    fn: _compute_pcp_dcp_slot_mapping
-    tone: neutral
-
-bands:
-  - label: "凑 KV：PCP 的 prefill"
-    sub: 逐层 all-gather KV，用完立刻扔
-    fn: get_pcp_group
-    icon: layers
-    at: [20, 500]
-    size: [424, 82]
-    tone: accent
-  - label: "合结果：decode 那一路"
-    sub: 各卡出 out 与 lse，不凑 KV
-    fn: _update_out_and_lse
-    icon: calc
-    at: [456, 500]
-    size: [424, 82]
-    tone: neutral
-
-notes:
-  - at: [60, 466]
-    text: 把它设成 block_size 就变成块级交错——前一张卡的这一块写满了，才轮到下一张；PD 分离与 KV 池要求必须这么设
-    size: 12.5
-    width: 800
-  - at: [20, 600]
-    text: 两条路的分水岭在于「有没有把 KV 凑齐过」：凑齐那条省的是时间，不凑那条省的才是显存
-    size: 12.5
-    width: 860
+grids:
+  # 默认交错粒度是 1：第 i 个 token 归 i mod 2 号
+  - at: [120, 64]
+    rows: 2
+    cols: 16
+    cell: [44, 36]
+    gap: 4
+    tone: kv
+    style: empty
+    rowLabels: [NPU 0, NPU 1]
+    colLabels: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 2], style: solid }
+      - { at: [0, 4], style: solid }
+      - { at: [0, 6], style: solid }
+      - { at: [0, 8], style: solid }
+      - { at: [0, 10], style: solid }
+      - { at: [0, 12], style: solid }
+      - { at: [0, 14], style: solid }
+      - { at: [1, 1], style: solid }
+      - { at: [1, 3], style: solid }
+      - { at: [1, 5], style: solid }
+      - { at: [1, 7], style: solid }
+      - { at: [1, 9], style: solid }
+      - { at: [1, 11], style: solid }
+      - { at: [1, 13], style: solid }
+      - { at: [1, 15], style: solid }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L231-L263
     symbols: [_compute_pcp_dcp_slot_mapping, cp_kv_cache_interleave_size]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/pcp_utils.py#L663-L688
-    symbols: [update_tokens_for_pcp]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/common_cp.py#L186-L197
-    symbols: [_update_out_and_lse]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/context_parallel/attention_cp.py#L830-L839
-    symbols: [get_pcp_group]

@@ -1,170 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="同样是 16 张卡的一台机器，P 侧切成 2 个 DP rank、D 侧切成 16 个——每个 rank 就是一个独立的 server 进程，挑哪个由 vLLM 外面那层 proxy 决定（v0.23 维护分支）">
-  <title>同样是 16 张卡的一台机器，P 侧切成 2 个 DP rank、D 侧切成 16 个——每个 rank 就是一个独立的 server 进程，挑哪个由 vLLM 外面那层 proxy 决定（v0.23 维护分支）</title>
-  <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="20" y="176" width="420" height="250" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
-  <rect x="36" y="190" width="201" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="208.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">P 侧 · 4 台 Atlas 800T A3</text>
-  <text x="38" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每台 2 个 DP rank，每个 rank 吃 8 张卡</text>
-  <rect x="460" y="176" width="420" height="250" rx="12" fill="var(--color-kv-soft, #e8edff)"/>
-  <rect x="476" y="190" width="201" height="26.5" rx="13.3" fill="var(--color-kv, #4c65b6)"/><text x="487" y="208.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">D 侧 · 4 台 Atlas 800T A3</text>
-  <text x="478" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每台 16 个 DP rank，每个 rank 1 张卡</text>
-  <rect x="20" y="448" width="860" height="62" rx="10" fill="var(--color-surface-sunken, #ece9df)"/>
-  <rect x="20" y="448" width="5" height="62" rx="2.5" fill="var(--color-control, #5b6763)"/>
-  <g transform="translate(43.8 468.8) scale(0.85)" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z M4 9h16M8 5v4"/></g>
-  <text x="78" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">一个 DP rank 里面是整套引擎</text>
-  <text x="78" y="496" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">给出 data_parallel_rank 之后，api_server_count 与 data_parallel_size_local 都成 1</text>
-  <rect x="655.5" y="466.5" width="205.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1"/><text x="758.3" y="484" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)" text-anchor="middle">data_parallel_external_lb</text>
-  <rect x="20" y="522" width="860" height="62" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
-  <rect x="20" y="522" width="5" height="62" rx="2.5" fill="var(--color-accent, #e85b32)"/>
-  <g transform="translate(43.8 542.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
-  <text x="78" y="550" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">所以分发这件事只能在外面做</text>
-  <text x="78" y="570" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">vLLM 只替你管本地这一个引擎，rank 之间谁忙谁闲它不看</text>
-  <text x="864" y="558" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="end">local_engines_only 为真</text>
-  <rect x="44" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="65" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="86" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="107" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="128" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="149" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="170" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="191" y="256" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="212" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="233" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="254" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="275" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="296" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="317" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="338" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="359" y="256" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="44" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="65" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="86" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="107" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="128" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="149" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="170" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="191" y="292" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="212" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="233" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="254" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="275" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="296" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="317" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="338" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="359" y="292" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="44" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="65" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="86" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="107" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="128" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="149" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="170" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="191" y="328" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="212" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="233" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="254" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="275" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="296" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="317" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="338" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="359" y="328" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="44" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="65" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="86" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="107" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="128" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="149" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="170" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="191" y="364" width="18" height="26" rx="3" fill="var(--color-weight, #b87a00)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="212" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="233" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="254" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="275" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="296" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="317" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="338" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <rect x="359" y="364" width="18" height="26" rx="3" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #b87a00)" stroke-width="1.1"/>
-  <text x="44" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一台 16 卡 = 2 个 rank，实心那 8 张是一个</text>
-  <rect x="484" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="505" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="526" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="547" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="568" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="589" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="610" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="631" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="652" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="673" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="694" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="715" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="736" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="757" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="778" y="256" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="799" y="256" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="484" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="505" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="526" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="547" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="568" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="589" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="610" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="631" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="652" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="673" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="694" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="715" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="736" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="757" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="778" y="292" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="799" y="292" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="484" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="505" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="526" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="547" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="568" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="589" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="610" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="631" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="652" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="673" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="694" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="715" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="736" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="757" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="778" y="328" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="799" y="328" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="484" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="505" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="526" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="547" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="568" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="589" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="610" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="631" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="652" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="673" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="694" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="715" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="736" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="757" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="778" y="364" width="18" height="26" rx="3" fill="var(--color-kv, #4c65b6)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <rect x="799" y="364" width="18" height="26" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.1"/>
-  <text x="484" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">一台 16 卡 = 16 个 rank，一格就是一个</text>
-  <rect x="250" y="52" width="400" height="72" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
-  <rect x="262" y="72" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(268.4 78.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 5v8l-8 5-8-5V8z M12 3v18"/></g>
-  <text x="302" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">外置 proxy：vLLM 外面的一层</text>
-  <text x="302" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">每个后端记 active_tokens，每次挑最小的那个</text>
-  <text x="302" y="111" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">_priority</text>
-  <path d="M380 128 L240 170" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
-  <path d="M240 170 l11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
-  <rect x="279.3" y="139" width="61.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="310" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">8 个端点</text>
-  <path d="M520 128 L660 170" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
-  <path d="M660 170 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
-  <rect x="555.8" y="139" width="68.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="590" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">64 个端点</text>
-  <text x="20" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="600" fill="var(--color-ink, #17211f)">大规模 EP 的部署形态：一个 MoE 模型摊成 72 个互不相干的 server 进程</text>
-  <text x="20" y="604" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">为什么非得摊这么大：A2 上要走 MC2，得同时满足每卡专家数不超过 24、EP 卡数不少于 16。DeepSeek-R1 有 256 个路由专家，单台 8 卡的 A2 算出来 </text>
-  <text x="20" y="622.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">num_experts_per_device 是 32，两条都不过，只能退回 all-gather。</text>
-  <text x="20" y="650" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">四台 prefiller 各自当自己的 DP 主节点，四台 decoder 共用一个；64 个 decode 引擎写同一个 kv_port 也不会撞，因为 side_channel_port 先按</text>
-  <text x="20" y="668.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">全局 DP rank 偏移一次。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" width="900" height="350" role="img" aria-label="官方示例的 8 台 Atlas A3（模型 DeepSeek-R1），各画一台：P 节点每台切 2 个 DP rank，D 节点每台切 16 个。每个 rank 是一个独立的 server，8 台一共 72 个；请求交给哪个 server，由 vLLM 外面的 proxy 决定">
+  <title>官方示例的 8 台 Atlas A3（模型 DeepSeek-R1），各画一台：P 节点每台切 2 个 DP rank，D 节点每台切 16 个。每个 rank 是一个独立的 server，8 台一共 72 个；请求交给哪个 server，由 vLLM 外面的 proxy 决定</title>
+  <defs><marker id="large-scale-ep-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="20" y="140" width="420" height="190" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P 节点 · 画 1 台，共 4 台</text>
+  <rect x="460" y="140" width="420" height="190" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="476" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">D 节点 · 画 1 台，共 4 台</text>
+  <path d="M400 70 L300 140" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#large-scale-ep-ah-control)"/>
+  <path d="M500 70 L720 140" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#large-scale-ep-ah-control)"/>
+  <rect x="480" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="504" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="528" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="552" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="576" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="600" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="624" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="648" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="672" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="696" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="720" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="744" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="768" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="792" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="816" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="840" y="165" width="21" height="48" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="40" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="64" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="88" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="112" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="136" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="160" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="184" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="208" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="232" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="256" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="280" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="304" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="328" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="352" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="376" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="400" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="480" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="504" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="528" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="552" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="576" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="600" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="624" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="648" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="672" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="696" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="720" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="744" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="768" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="792" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="816" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="840" y="235" width="21" height="28" rx="4" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="300" y="20" width="300" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="50" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">外面的 proxy：挑最闲的</text>
+  <rect x="40" y="165" width="189" height="48" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134.5" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1 个 server</text>
+  <rect x="232" y="165" width="189" height="48" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="326.5" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1 个 server</text>
+  <path d="M40 275 v8 h189 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">8 颗 NPU 一个 server</text>
+  <path d="M480 275 v8 h381 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="670.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">1 颗 NPU 一个 server</text>
 </svg>

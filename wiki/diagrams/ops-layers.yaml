@@ -1,25 +1,31 @@
-layout: scene
+layout: figure
 id: ops-layers
-caption: 那条请求里的一次矩阵乘，从 Python 一路掉到 AI Core 要穿过四层
-size: [900, 510]
+caption: 一个算子从上往下穿四层：替换层换实现，绝大多数到「现成算子」为止，很少下到自定义算子
+size: [900, 330]
 
-bands:
-  - { label: "vllm_ascend/ops/", sub: "v0.23 上 89 个文件、23484 行。走 CustomOp 注册，不是 patch。", right: 上游算子在昇腾上实现不优时改这里, at: [64, 56], size: [816, 74], tone: ascend, icon: layers }
-  - { label: torch_npu, sub: CANN 已经提供的算子，直接调，不改。, right: 绝大多数算子停在这一层, at: [64, 144], size: [816, 74], tone: neutral, icon: box }
-  - { label: "csrc/ 编出来的自定义 aclnn 算子", sub: "装进 vllm_ascend/cann_ops_custom/，绑到 torch.ops._C_ascend", right: CANN 里没有、或要做特定融合时才下来, at: [64, 232], size: [816, 74], tone: accent, icon: bolt }
-  - { label: CANN / AI Core, sub: 真正的乘加发生在这里。不改。, right: 一次矩阵乘的终点, at: [64, 320], size: [816, 74], tone: muted, icon: chip }
+texts:
+  - { at: [30, 40], text: 那条请求的一次归一化，往下穿四层, size: 14, strong: true }
+  - { at: [700, 152], text: 绝大多数算子到这层为止, size: 13, tone: token }
+  - { at: [700, 212], text: 那条请求多半一次都没碰到, size: 12.5, note: true }
 
-arrows:
-  - { from: [40, 60], to: [40, 392], via: [[40, 392]], tone: accent }
+layers:
+  - at: [200, 64]
+    width: 460
+    h: 50
+    gap: 10
+    bands:
+      - { text: 替换层, sub: 把上游算子换成昇腾版本, tone: control, style: plain }
+      - { text: 现成算子, sub: 昇腾插件已经提供，直接调, tone: token, style: solid }
+      - { text: 自定义算子, sub: 现成的没有、要做融合时才自己编, tone: comm, style: faded }
+      - { text: 昇腾软件栈 / AI Core, sub: 真正的乘加在这里, tone: ink, style: plain }
 
-notes:
-  - { at: [20, 424], text: "判断顺序自上而下：能在 ops/ 里用现成 torch_npu 算子拼出来的，就不要下到 csrc/——后者要过完整 CMake 构建，而 COMPILE_CUSTOM_KERNELS 关掉时这一层根本不编。v0.26 分支起 ops/ 是 96 个 .py、25737 行。", size: 12.5, width: 860 }
-  - { at: [20, 462], text: "register_dummy_fusion_op 往 torch.ops._C_ascend 上挂了 8 个占位算子，让上游引用融合算子的代码路径有东西可调。看到 dummyFusionOp 不是没写完。", size: 12.5, width: 860 }
+links:
+  - { from: [170, 70], to: [170, 288], tone: ink }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L415
-    symbols: [enable_custom_op]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L113-L118
+  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L112-L118
     symbols: [register_ascend_customop]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L54
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L51
     symbols: [register_dummy_fusion_op]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L419
+    symbols: [enable_custom_op]

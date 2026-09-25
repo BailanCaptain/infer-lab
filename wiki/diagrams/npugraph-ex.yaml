@@ -1,138 +1,45 @@
-layout: scene
+layout: figure
 id: npugraph-ex
-caption: 开关造 pattern，pattern 注册两遍，编译时才二选一——所以「关掉 npugraph_ex」换的是执行者，不是这批融合本身
-size: [900, 720]
+caption: 融合规则造出来只有一份，同时交给两个执行者；开关只决定谁来跑——关掉 npugraph_ex，换的是执行者，不是融合
+size: [900, 470]
 
-bands:
-  - label: "ascend_compilation_config：三个 fuse_* 开关"
-    sub: "fuse_norm_quant / fuse_qknorm_rope / fuse_muls_add；v0.23 另有 fuse_allreduce_rms"
-    fn: ascend_compilation_config
-    at: [20, 20]
-    size: [860, 50]
-    tone: neutral
-  - label: "GraphFusionPassManager.configure()：按开关造 pattern"
-    sub: "register() 注册两遍：一遍给 torch 的 PatternMatcherPass，一遍给 npugraph_ex"
-    fn: register_replacement
-    at: [20, 82]
-    size: [860, 62]
-    tone: ascend
+items:
+  - { at: [280, 24], size: [340, 48], text: 四条融合规则, sub: 造出来只有一份, tone: control }
 
-boxes:
-  - at: [20, 158]
-    size: [425, 56]
-    title: fuse_norm_quant
-    sub: "npu_add_rms_norm 接量化 → 一个算子"
-    fn: npu_add_rms_norm_dynamic_quant
-    tone: ascend
-  - at: [455, 158]
-    size: [425, 56]
-    title: fuse_qknorm_rope
-    sub: "qkv 切分 + 按头 RMSNorm + RoPE → 一个算子"
-    fn: split_qkv_rmsnorm_rope
-    tone: ascend
-  - at: [20, 226]
-    size: [425, 56]
-    title: fuse_muls_add
-    sub: "x * scale + y → 一个 Triton 算子"
-    fn: muls_add
-    tone: ascend
-  - at: [455, 226]
-    size: [425, 56]
-    title: "fuse_allreduce_rms（只有 v0.23 有）"
-    sub: "matmul + AllReduce + 残差 + RMSNorm → 一个算子"
-    fn: MatmulAllReduceAddRMSNormPass
-    tone: muted
+  - { at: [90, 140], size: [310, 62], text: 昇腾自带的匹配器, tone: ink, style: plain }
+  - { at: [500, 140], size: [310, 62], text: npugraph_ex 外部后端, sub: 代码在 torchair 仓库, tone: control }
 
-  - at: [36, 394]
-    size: [380, 54]
-    title: "fusion_pass_compile()"
-    sub: 自己的匹配器逐条跑这批 pattern
-    tone: neutral
-  - at: [36, 462]
-    size: [380, 54]
-    title: 改完的图交回 torch.compile
-    sub: 只在匹配到的地方发生替换
-    tone: neutral
-  - at: [36, 530]
-    size: [380, 62]
-    title: 静态 kernel 与 super kernel 都用不上
-    sub: 两级加码都挂在 npugraph_ex 下面
-    tone: muted
+  - { at: [110, 282], size: [120, 42], text: 归一化, tone: weight, style: faded }
+  - { at: [244, 282], size: [120, 42], text: 归一化, tone: weight, style: faded }
+  - { at: [378, 282], size: [160, 42], text: 旋转位置编码, tone: weight, style: faded }
+  - { at: [640, 280], size: [170, 46], text: 一个融合算子, tone: weight }
 
-  - at: [484, 394]
-    size: [380, 54]
-    title: "npugraph_ex_compile()"
-    sub: 装不上就回落 torchair，不报错
-    tone: ascend
-  - at: [484, 462]
-    size: [380, 54]
-    title: 整张图交给外部后端优化
-    sub: 自带默认融合清单 + 注册进来的 pattern
-    fn: force_eager
-    tone: ascend
-  - at: [484, 530]
-    size: [380, 62]
-    title: 再往上两级加码
-    sub: 按 batch_size 编定形算子，再合成 super kernel
-    fn: static_kernel_compile
-    tone: accent
+  - { at: [280, 392], size: [340, 50], text: 然后才轮到捕获，录成更短的图, tone: ink, style: plain }
 
-boundaries:
-  - at: 450
-    from: 322
-    to: 620
-    vertical: true
-    label: "AscendCompiler.compile() 在这里二选一"
+dividers:
+  - { from: [450, 118], to: [450, 224], sides: [开关关着, 开关开着] }
 
-regions:
-  - label: "npugraph_ex 关着（PIECEWISE / NONE / 310P）"
-    note: "那条请求在这边：默认模式就把它写回了 False"
-    at: [20, 320]
-    size: [412, 300]
-    tone: neutral
-  - label: "npugraph_ex 开着（FULL / FULL_DECODE_ONLY）"
-    note: "cudagraph_mode 必须显式换成这两个之一"
-    at: [468, 320]
-    size: [412, 300]
-    tone: ascend
+fans:
+  - { from: [450, 72], to: [[245, 140], [655, 140]], tone: control }
+  - { from: [[245, 202], [655, 202]], to: [450, 254], tone: ink }
 
-notes:
-  - at: [20, 636]
-    text: "两条路吃的是同一批 pattern：pattern 由 fuse_* 开关决定造不造，enable_npugraph_ex 只决定由谁来匹配。"
-    size: 12.5
-    width: 860
-  - at: [20, 664]
-    text: "默认的 FULL_AND_PIECEWISE 要走 piecewise 编译，平台层在那条分支里把 enable_npugraph_ex 与 enable_static_kernel 写回 False。"
-    size: 12.5
-    width: 860
-  - at: [20, 692]
-    text: "四条 pass 里只有 fuse_qknorm_rope 在那条请求上有东西可匹配：28 层各中一次，每层 3 个算子并成 1 个。"
-    size: 12.5
-    width: 860
+links:
+  - { from: [548, 303], to: [636, 303], tone: weight }
+  - { from: [450, 332], to: [450, 388], tone: ink }
+
+brackets:
+  - { from: 110, to: 538, y: 334, label: 背靠背的三个小算子 }
+
+texts:
+  - { at: [96, 258], text: 被选中的那一边做同一种替换, size: 13, note: true }
+  - { at: [640, 340], text: 图里少两个算子，每步少两次下发, size: 13, note: true, width: 240 }
 
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L282-L301
-    symbols: [fusion_pass_compile, npugraph_ex_compile, AscendCompiler]
   - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/base_pattern.py#L41-L63
     symbols: [register_replacement, PatternMatcherPass]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L282-L301
+    symbols: [AscendCompiler, fusion_pass_compile, npugraph_ex_compile]
   - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L79
-    symbols:
-      [
-        ascend_compilation_config,
-        GraphFusionPassManager,
-        fuse_norm_quant,
-        fuse_qknorm_rope,
-        fuse_allreduce_rms,
-        fuse_muls_add,
-        MatmulAllReduceAddRMSNormPass,
-      ]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/norm_quant_fusion_pass.py#L296-L321
-    symbols: [npu_add_rms_norm, npu_add_rms_norm_dynamic_quant]
+    symbols: [GraphFusionPassManager, fuse_qknorm_rope, fuse_norm_quant, fuse_muls_add]
   - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L52-L102
     symbols: [split_qkv_rmsnorm_rope]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/muls_add_pass.py#L54-L94
-    symbols: [muls_add]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L110-L146
-    symbols: [force_eager, static_kernel_compile]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L589-L643
-    symbols: [enable_npugraph_ex, enable_static_kernel, cudagraph_mode]

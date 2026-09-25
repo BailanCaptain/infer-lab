@@ -1,39 +1,44 @@
-layout: scene
+layout: figure
 id: op-to-ai-core
-caption: 一次 RMSNorm 从 Python 掉到 AI Core：中间那个 if 就是第三层和第二层的分界
-size: [900, 604]
+caption: 一次归一化从上游落到 AI Core：分岔一边是自己编的融合算子（要过构建），一边是 CANN 现成算子
+size: [900, 600]
 
-bands:
-  - { label: 上游决定「这个算子归谁」, sub: "is_out_of_tree() 为真，于是分派到 forward_oot", fn: dispatch_forward, at: [20, 56], size: [860, 68], tone: upstream, icon: split }
-  - { label: 昇腾接住它, sub: "ops/layernorm.py 里的 AscendRMSNorm", fn: forward_oot, at: [20, 138], size: [860, 68], tone: ascend, icon: layers }
+items:
+  - { at: [230, 24], size: [440, 64], text: 上游 vLLM 分派, sub: 平台自报「树外」，调用交给昇腾, tone: control }
+  - { at: [230, 116], size: [440, 64], text: 昇腾接住这次归一化, sub: 带着残差进来，走到一处分岔, tone: control }
+  - { at: [60, 244], size: [360, 88], text: 自己编的融合算子, sub: 加残差、归一化、加偏置一次做完, tone: token }
+  - { at: [480, 244], size: [380, 88], text: CANN 现成算子, sub: 加残差、归一化；偏置另跑一趟, tone: ink, style: plain }
+  - { at: [60, 420], size: [360, 64], text: 切分计划（CPU 上现算）, sub: 一趟往片上缓存搬多少个数, tone: control }
+  - { at: [60, 512], size: [360, 64], text: 核函数（AI Core 上跑）, sub: 按切分的号码挑一条模板, tone: control }
 
-boxes:
-  - { at: [20, 252], size: [420, 96], title: "enable_custom_op() 为真", sub: 一次调用把 add、norm、bias 一起算完, fn: "torch.ops._C_ascend", tone: accent, icon: bolt }
-  - { at: [460, 252], size: [420, 96], title: 为假，退回 CANN 现成算子, sub: 先 npu_add_rms_norm，再单独加一次 bias, fn: torch_npu, tone: neutral, icon: box }
+badges:
+  - { at: [200, 56], n: 1 }
+  - { at: [200, 148], n: 2 }
+  - { at: [36, 452], n: 3 }
+  - { at: [36, 544], n: 4 }
 
-  - { at: [20, 386], size: [420, 76], title: "csrc/…/op_host", sub: tiling 在 CPU 上算：一次往 UB 里塞多少个元素, tone: accent }
-  - { at: [20, 476], size: [420, 76], title: "csrc/…/op_kernel", sub: "__global__ __aicore__，真正跑在 AI Core 上", tone: accent }
+dividers:
+  - { from: [20, 388], to: [440, 388], sides: [Python，改了就生效, 构建产物，改了要重编] }
 
-  - { at: [460, 386], size: [420, 166], title: CANN 已经编好的算子, sub: 不用自己编，但 bias 要多走一趟 elementwise, tone: neutral }
+links:
+  - { from: [450, 88], to: [450, 112], tone: control }
+  - { from: [450, 180], to: [240, 240], tone: token }
+  - { from: [450, 180], to: [670, 240], tone: ink }
+  - { from: [240, 332], to: [240, 416], tone: token }
+  - { from: [240, 484], to: [240, 508], tone: token }
 
-arrows:
-  - { from: [230, 206], to: [230, 248], tone: accent }
-  - { from: [670, 206], to: [670, 248], tone: muted, label: 够用就停在这 }
-  - { from: [230, 348], to: [230, 382], tone: accent }
-  - { from: [230, 462], to: [230, 472], tone: accent }
+tags:
+  - { at: [480, 340], text: 带偏置的模型多一趟搬运, tone: danger }
 
-boundaries:
-  - { at: 368, from: 20, to: 880, vertical: false, label: 这条线以下要过完整的 CMake 构建 }
-
-notes:
-  - { at: [20, 232], text: "同一个方法体里的一个 if，两条路的代价完全不同", size: 13, strong: true }
-  - { at: [20, 578], text: "那条请求每一步 forward 要跑 28 层，每层两次 RMSNorm——一步 56 次，200 步 11200 次。省下的那一趟 elementwise 是乘以 11200 的。", size: 12.5, width: 860 }
-  - { at: [20, 598], text: "判断顺序自上而下：能用现成算子拼出来就别往下走。COMPILE_CUSTOM_KERNELS 关掉时，下面那两层根本不编。", size: 12.5, width: 860 }
+texts:
+  - { at: [480, 382], text: 偏置只有带量化偏置的模型才有；这条 bf16 请求两边等价, size: 12.5, width: 400, note: true }
+  - { at: [480, 430], text: CANN 算子已经编好，停在这一侧不用碰构建, size: 12.5, width: 400, note: true }
+  - { at: [480, 560], text: 一步 80 次、200 步 16000 次，都从最上面进来, size: 12.5, width: 400 }
 
 pins:
-  - source: vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207
+  - source: vllm@0fc695fc:vllm/model_executor/custom_op.py#L186-L196
     symbols: [dispatch_forward, forward_oot]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88
-    symbols: [forward_oot, npu_add_rms_norm]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L111
+    symbols: [forward_oot, npu_add_rms_norm_bias]
   - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432
     symbols: [enable_custom_op]

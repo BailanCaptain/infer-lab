@@ -2,8 +2,8 @@
 id: graph-mode-layer
 title: 图模式层
 type: feature
-summary: 昇腾不走上游的 torch.compile 默认路径，而是用自己的编译后端加 ACLGraphWrapper；捕获在启动最后一步发生。
-aliases: [ACL Graph, ACLGraphWrapper, AscendCompiler, 图模式, graph mode, piecewise, xlite]
+summary: 图模式把一整趟计算提前录下来，之后照着回放，省掉一个一个下发算子的开销；它分单算子、分段、整趟几档，录像在启动的最后一步做完。
+aliases: [ACL Graph, ACLGraphWrapper, AscendCompiler, 图模式, graph mode, piecewise, xlite, 单算子模式, eager 模式]
 chapters: ["16"]
 order: 30
 sources:
@@ -19,6 +19,8 @@ sources:
   - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_worker.py#L16-L30
   - vllm-ascend@2c59ff10:vllm_ascend/xlite/xlite_model_runner.py#L19-L36
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L768-L778
+  - vllm@0fc695fc:vllm/config/compilation.py#L53-L69
+  - https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/main/config.json
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "S"
 relations:
@@ -29,75 +31,112 @@ relations:
     kind: builds-on
     note: 那条请求的 199 步 decode 形状一样，回放的是同一张图——图模式的收益几乎全在这里
 contradicts: []
-updated: "2026-09-21"
+updated: "2026-09-25"
 origin: seed
 ---
 
-## 一句话
+## 199 步，每一步都在重复同一串下发
 
-`NPUPlatform` 里 `simple_compile_backend` 被写成 `"eager"`，紧跟的注释就是 `# Disable torch.compile()` [C1]。这不代表昇腾没有图模式——它换成了自己的两个接入点 [D]：`get_compile_backend` 给编译后端，`get_static_graph_wrapper_cls` 给静态图包装器。
+[那条请求](one-request.md)：Qwen3.6-35B-A3B 跑在两颗昇腾 NPU 上，问题 37 个 token，回答 200 个 token。第一步把 37 个 token 一起算完，之后 199 步每步只算 1 个。
+
+每一步都要把 40 层从头走一遍，每层里有注意力、挑专家、算专家、归一化等好几个[算子](matmul-and-weights.md)（算子就是 NPU 上真正执行的一小段计算，比如一次矩阵乘）。NPU 自己不知道下一个该算什么，得由 CPU 一个一个告诉它：「现在算这个，数据在这里」。这叫**下发**。
+
+问题就出在这里：decode 那 199 步每步只算 1 个 token，NPU 上每个算子都很快就算完了，反倒是 CPU 下发的那点时间开始显眼——NPU 算完一个，还要等 CPU 把下一个递过来。而这 199 步，下发的是一模一样的一串东西。
+
+**图模式**的办法是：把这一整串下发提前录下来（叫**捕获**），之后每一步不再一个一个下发，而是一句话让 NPU 照录好的那串从头播一遍（叫**回放**）。录下来的那一串就叫一张「图」。
+
+## 三档：一个一个下发、按段回放、整趟回放
 
 ```wiki-diagram
 file: graph-mode
 ```
 
+同一趟前向，按「录多少」分成三档：
+
+- **单算子模式**（也叫 eager 模式）：什么都不录，每个算子由 CPU 单独下发。最慢，但最好排查，什么形状都能跑。
+- **分段回放**（piecewise）：把一趟前向在注意力那里切开，注意力之外的部分各录成一段图；注意力自己每步照常下发。注意力留在外面，是因为它最依赖「这一步有几个 token、每个 token 前面有多长」这些每步都在变的东西。
+- **整趟回放**（full）：连注意力一起，整趟前向录成一张图。下发最省，但对注意力要求最高——这一步的注意力参数必须能在回放前塞进录好的图里。
+
+还有两种组合档：「decode 步整趟回放，其他步单算子」，以及「decode 步整趟回放，其他步分段回放」。后一种是什么都不配时的默认档。之所以把 decode 单独拎出来，是因为 decode 步的形状最整齐——批里每条请求都只有 1 个 token——整趟录最划算。
+
 ## 那条请求走到这里
 
-那条请求的 200 步在图模式眼里只有两类：
+那条请求的 200 步，在图模式眼里只有两类：
 
-- **第 1 步**，批里有 37 个 token。这个形状多半不在捕获列表里，要么被 padding 到某个捕获过的尺寸，要么就按 eager 跑。
-- **第 2 到第 200 步**，每步 1 个 token，**199 步的批形状一模一样**。于是 `batch_descriptor` 也一模一样，查到同一个 key，回放同一张图 [C5]。
+- **第 1 步**，批里有 37 个 token。录像是按批里 token 数分档录的，37 不在档位表里，要么补到一个录过的档，要么不走整趟图。
+- **第 2 到第 200 步**，每步 1 个 token，**199 步的形状一模一样**，查到的是同一个档、回放的是同一张图。
 
-这解释了图模式的收益结构：**它几乎全部来自 decode** [D]。prefill 的形状千变万化，捕获不划算；decode 的形状高度重复，捕获一次能用上千次。那条请求 199 次回放同一张图，省掉的是 199 次把算子逐个下发的开销。
+这解释了图模式的收益结构：**它几乎全部来自 decode**。prefill 的形状千变万化，每种都录不划算；decode 的形状高度重复，录一次能用上千次。那条请求 199 次回放同一张图，省掉的是 199 次把 40 层的算子一个一个递给 NPU。
 
-也解释了为什么启动慢：那 199 次回放的前提，是启动期把每个可能的尺寸都真跑一遍录下来。
+档位表本身怎么来的，在 [ACL Graph](acl-graph.md) 里有完整推算：默认配置下从 1 到 256 一共 35 档。
 
-## 官方文档把边界划得很清楚
+## 录像在启动的最后一步
 
-ACL Graph 的设计文档开门见山：ACL Graph 是 vLLM 静态图执行在昇腾上的实现；上游 vLLM 与 PyTorch 的文档已经描述了通用图模型（`CUDAGraphMode`、运行时分派、batch descriptor、分桶与 padding、full graph 与 piecewise graph 的定义），这份文档只讲昇腾特有的部分——**平台接入点、ACL 图捕获引入的额外约束、以及回放期间保证注意力参数正确的机制** [S8]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html)）。
+那 199 次回放有个前提：启动时就得把每个档位真跑一遍录下来。所以 vLLM 启动的最后一段是「按每个档位跑一遍假批并录像」，档位越多、这一段越久。开图模式启动慢，钱主要花在这里。
 
-同一段还写明了实现边界：vLLM 提供通用分派路径，`vllm-ascend` 提供平台包装器、捕获尺寸裁剪、以及 ACL 图回放所需的注意力更新逻辑 [S8]。读这一层之前先接受这个分工，否则会在昇腾仓库里找通用图概念而找不到 [A]。
+录像不是第一次来请求时才做的——等你发出第一条请求时，所有档位早已录好。
 
-## 两个接入点
+打开「强制单算子模式」的开关，录像这一步整个跳过，每一步都一个一个下发。这是排查图模式问题最快的一刀：打开之后问题消失，范围就锁在图模式这一层。
 
-`get_compile_backend()` 返回 `"vllm_ascend.compilation.compiler_interface.AscendCompiler"`，docstring 说明了动因：以前默认用 EagerAdaptor，为了做图融合才定义了自己的后端编译器 [C2]。
+## 谁决定这一步走哪档
 
-`get_static_graph_wrapper_cls()` 返回 `"vllm_ascend.compilation.acl_graph.ACLGraphWrapper"`，docstring 写的是「piecewise 图用的 piecewise backend 类」[C3]。
+负责捕获和回放的那个包装，自己**不做任何判断**。每一步开始前，上游已经算好「这一步走哪档、查哪个 key」并放在一个公共的地方；包装只照单执行：档位对不上就直接调原函数，对得上就按 key 查——没录过就现场录，录过就回放。
 
-## 包装器自己把工作流程写在 docstring 里
+所以「为什么这一步没走图」，要查的是上游怎么给这一步定的档，不是查这个包装。
 
-`ACLGraphWrapper` 的类注释给了四步 [C5]：
+## 上游管通用，昇腾管三件事
 
-1. 初始化时给这个包装器指定一个运行模式（`FULL` 或 `PIECEWISE`）；
-2. 运行时从 forward context 拿到 `runtime_mode` 与 `batch_descriptor`（作为 key），**并且无条件信任它们**；
-3. 如果 `runtime_mode` 是 `NONE`，或者与本包装器的模式不匹配，就直接调用被包裹的 runnable；
-4. 匹配时才做捕获（key 不存在就新建缓存项）或回放（key 已存在）。
+图模式的大部分概念——几档怎么定义、每一步怎么选档、按批大小分档和补齐——都是 vLLM 通用的，昇腾照用。昇腾仓库只补三件事：接到昇腾平台的入口、昇腾录像带来的额外限制（比如档位要裁剪）、以及回放时让注意力参数保持正确的那套机制。
 
-第 2 步那句「blindly trust them」是这一层最需要记住的一条：**分派决策不在包装器里**，它只按上游给的 key 查缓存。所以「为什么这一步没走图」要去查 forward context 怎么定的模式，不是查这个类 [D]。
+读这一层前先接受这个分工，否则会在昇腾仓库里找通用的图概念而找不到。
 
-配套的 `ACLGraphEntry` 是缓存项的结构 [C4]。
+## 旁边还有别的图路径
 
-## 捕获发生在启动的最后一步
+- **xlite** 是另一条图执行路径，默认关着，要在额外配置里单独打开。它的执行进程和模型运行器只是在昇腾原有的那两个上薄薄包一层，不是另起一套。第一遍读可以跳过，但要知道它存在，否则看到两套运行器会困惑。
+- 昇腾还有另外几条图路径（名字见下半「怎么开」），它们不是本页讲的这三档，别混为一谈。
 
-`compile_or_warm_up_model` 里的逻辑 [C6]：先从 `compilation_config` 取 `compile_sizes` 与 `cudagraph_capture_sizes`；`cudagraph_mode` 不是 `NONE` 时，把已在捕获列表里的尺寸从 warmup 列表中剔除，避免重复；再按 compile range 补齐区间端点，保证每个区间至少有一个尺寸被编译或 warmup。
+## 常见误解
 
-这段里有两处 `if not self.model_config.enforce_eager`：**为真时，上面那段尺寸裁剪和函数末尾那句 `capture_model()` 都跳过**；但 `compile_sizes` 里的尺寸照样逐个 `_dummy_run` 一遍，那个循环在 `if` 外面 [C6]。这是排查图模式问题最快的一刀：开 `enforce_eager` 如果问题消失，范围就锁在这一层 [A]。
+- **「平台配置里写着关掉编译，说明昇腾只能单算子跑。」**——它关掉的只是上游默认的那条编译路径；昇腾换成了自己的编译后端和自己的图包装，图模式照样有。
+- **「图包装自己决定这一步用不用图。」**——它不决定，它无条件照上游给的档位和 key 执行。
+- **「录像是第一次请求来时才做的。」**——启动期就按档位全部录好了，这也是启动慢的主要来源之一。
 
-## `xlite/` 是另一条路
+## 对照源码
 
-`xlite/` 在 v0.23 上有 5 个文件 1227 行，分量在 `xlite.py`（747 行）和 `utils.py`（395 行）；`xlite_worker.py` 与 `xlite_model_runner.py` 各只有几十行，是 `NPUWorker` 和 `NPUModelRunner` 的薄子类，不是另起一套 [C10][C11]。开关是 `additional_config` 里的 `xlite_graph_config`，对应 `XliteGraphConfig` 类 [C7]。第一遍读可以跳过，但要知道它存在，否则看到两套 runner 会困惑。
+### 怎么开
 
-## v0.23 与 v0.26 起的差异
+- 昇腾不走上游 `torch.compile` 的默认路径：`NPUPlatform` 里 `simple_compile_backend: str = "eager"`，同行注释 `# Disable torch.compile()` [C1]。图模式换成两个接入点 [D]：`get_compile_backend()` 返回 `"vllm_ascend.compilation.compiler_interface.AscendCompiler"`，docstring 说以前默认用 EagerAdaptor、为做图融合才定义了自己的后端 [C2]；`get_static_graph_wrapper_cls()` 返回 `"vllm_ascend.compilation.acl_graph.ACLGraphWrapper"`，docstring 写「Get piecewise backend class for piecewise graph」[C3]。
+- 三档加两个组合档对应上游 `CUDAGraphMode`：`NONE = 0`、`PIECEWISE = 1`、`FULL = 2`、`FULL_DECODE_ONLY = (FULL, NONE)`、`FULL_AND_PIECEWISE = (FULL, PIECEWISE)`；类注释说明前三个同时充当运行时分派用的具体模式 [C13]。组合档元组的第一位是 decode 步用的档、第二位是混合批用的档。
+- 不配任何东西时，默认优化级 `-O2` 的预设是 `cudagraph_mode = FULL_AND_PIECEWISE`；`vllm serve` 下 `max_num_seqs` 实际默认是 256（`SchedulerConfig` 字段上的 128 只是没有 usage context 时的兜底），于是捕获尺寸表是 `[1, 2, 4] + range(8, 256, 8) + [256]`，共 35 档；A5 走 piecewise 时还会等距采样砍到 4 档（1、72、168、256）。推导与出处都在 [ACL Graph](acl-graph.md)，这里不重复钉行号。
+- `ACLGraphWrapper` 类注释的四步 [C5]：① 初始化时指定模式（`FULL` 或 `PIECEWISE`）；② 运行时从 forward context 拿 `runtime_mode` 与 `batch_descriptor`（作 key），原话「blindly trust them」；③ `runtime_mode` 是 `NONE` 或与本包装器不匹配，直接调被包裹的 runnable；④ 匹配时，key 不在就新建缓存项并捕获，在就回放。缓存项结构是 `ACLGraphEntry`（`batch_descriptor`、`aclgraph`、`output`、调试用的 `input_addresses`）[C4]。
+- 捕获发生在 `compile_or_warm_up_model` [C6]：先取 `compile_sizes` 作 warmup 列表；`enforce_eager` 为假且 `cudagraph_mode` 不是 `NONE` 时，把已在 `cudagraph_capture_sizes` 里的尺寸从 warmup 列表剔掉；再按 `get_compile_ranges()` 给没有任何尺寸落进去的区间补上区间端点；然后按尺寸从大到小逐个 `_dummy_run`；最后 `enforce_eager` 为假才 `capture_model()`。
+- 强制单算子模式就是 `enforce_eager`（命令行 `--enforce-eager`）。注意 里两处 `if not self.model_config.enforce_eager`：为真时尺寸裁剪和末尾的 `capture_model()` 都跳过，但 `compile_sizes` 里的尺寸照样逐个 `_dummy_run`，那个循环在 `if` 外面。
+- 官方设计文档划的边界 [S8]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/ACL_Graph.html)）：通用图模型（`CUDAGraphMode`、运行时分派、batch descriptor、分桶与 padding、full 与 piecewise 的定义）看上游；这份只讲平台接入点、ACL 图捕获的额外约束、回放期间保证注意力参数正确的机制。实现分工：vLLM 提供通用分派路径，`vllm-ascend` 提供平台包装器、捕获尺寸裁剪、ACL 图回放所需的注意力更新逻辑 [S8]。
+- xlite：开关是 `additional_config` 里的 `xlite_graph_config`，对应 `XliteGraphConfig`，`enabled` 与 `full_mode` 默认都是 `False` [C7]。`xlite_worker.py` 与 `xlite_model_runner.py` 是 `NPUWorker`、`NPUModelRunner` 的薄子类 [C10][C11]。
+- npugraph_ex、torchair 是另外的图路径，不属于上面 `CUDAGraphMode` 这几档，别混为一谈；npugraph_ex 见 [ACL Graph](acl-graph.md)。
 
-两个接入点、包装器那四步、`enforce_eager` 那两刀在 v0.26 上逐行一致；ACLGraph 自己那一摊的版本差异在 [ACL Graph](acl-graph.md)。这一页范围内只差两处。
+### 开销和什么时候别开
+
+- 启动代价：每个捕获尺寸都要在启动期跑一遍假批录下来；默认 35 档、`FULL_AND_PIECEWISE` 两套 key，piecewise 那套每个 descriptor 还要按 `splitting_ops` 切成多段各录一张（推算见 [ACL Graph](acl-graph.md)）[D]。
+- 收益几乎全在 decode：decode 步形状一致、`batch_descriptor` 一致，命中同一缓存项回放[D]；prefill 形状多变，按 token 数分档后大多要补齐或落回非整趟图 [D]。
+- 排查时先开 `enforce_eager`：问题消失就锁在图模式这一层[A]。
+
+### 版本差异
+
+两个接入点、包装器那四步、`enforce_eager` 那两处判断在 v0.26 上逐行一致；ACL Graph 自己那一摊的版本差异在 [ACL Graph](acl-graph.md)。这一页范围内只差两处。
 
 | 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
 |---|---|---|---|
 | warmup 跑完到捕获之间 | `_dummy_run` 循环跑完直接 `capture_model()` | 中间多插一步 `kernel_warmup(self)` [C12] | 启动日志里 warmup 之后、捕获之前多出一段耗时，不是卡住 |
 | `xlite/` 的大小 | 5 个文件 1227 行，`xlite.py` 747 行、`utils.py` 395 行 | 还是 5 个文件，1220 行，`xlite.py` 722 行、`utils.py` 413 行 [D] | 分量在这两个文件之间挪了一点，两个薄子类和整体结构没变 |
 
-## 常见误解
+### 源码位置
 
-- **「`simple_compile_backend = "eager"` 说明昇腾只能 eager 跑」**——它只说明不走上游 `torch.compile` 那条默认路径；昇腾的图模式在另外两个方法里 [C1][C2][C3]。
-- **「`ACLGraphWrapper` 决定要不要用图」**——它不决定，它无条件信任 forward context 给的 mode 与 key [C5]。
-- **「捕获是第一次请求时懒加载的」**——是启动期 `compile_or_warm_up_model` 就按尺寸捕获好的 [C6]；这也是启动慢的一个主要来源。
+| 看什么 | 位置 |
+|---|---|
+| 关掉上游编译、两个接入点 | `vllm_ascend/platform.py`：`simple_compile_backend`、`get_compile_backend`、`get_static_graph_wrapper_cls` |
+| 捕获与回放的包装 | `vllm_ascend/compilation/acl_graph.py`：`ACLGraphEntry`、`ACLGraphWrapper` |
+| 启动期 warmup 与捕获 | `vllm_ascend/worker/worker.py`：`compile_or_warm_up_model` |
+| 几档的定义 | 上游 `vllm/config/compilation.py`：`CUDAGraphMode` |
+| xlite 开关与薄子类 | `vllm_ascend/ascend_config.py`：`XliteGraphConfig`；`vllm_ascend/xlite/` |
+| 官方设计文档 | `docs/source/developer_guide/Design_Documents/ACL_Graph.md` [S8] |

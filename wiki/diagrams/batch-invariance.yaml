@@ -1,114 +1,39 @@
-layout: scene
+layout: figure
 id: batch-invariance
-caption: 批不变换掉的是「一个和分几份来加」：K 方向不再切给别人，外加一张 aten 派发表和三处直接赋值（vllm-ascend v0.23 维护分支）
-size: [900, 782]
+caption: 同一个和：分几份加，默认由这一批有多少 token 说了算，末位跟着批变；批不变把分块写死成 32 段一条链，顺序与批无关（末位数字为示意）
+size: [900, 470]
 
-regions:
-  - label: 默认：一个和分几份加，由这一批多少 token 说了算
-    note: K = 1024 是 Qwen3-0.6B 的 hidden size。分组一变，浮点加法的顺序就变，末位跟着变。
-    at: [20, 26]
-    size: [860, 292]
-    tone: neutral
-  - label: 开了之后：两条供应链抢同一张 aten 派发表
-    note: AscendC 的 batch_invariant_ops 包在场就用它，只有 Triton 时用 Triton 的核，两条都缺只打一条 warning。
-    at: [20, 338]
-    size: [860, 292]
-    tone: ascend
+texts:
+  - { at: [28, 30], text: "一个输出数 = 2048 个乘积相加", strong: true }
+  - { at: [28, 64], text: "单独跑，批里只有 1 条：拆成 4 段并行" }
+  - { at: [28, 162], text: "四个部分和再合并，末位 …41" }
+  - { at: [28, 196], text: "混在大批里：不拆，一条链加到底" }
+  - { at: [28, 284], text: "同样的 2048 个数，末位 …43", tone: danger }
+  - { at: [28, 352], text: "固定切 32 段，一条链从头加到尾" }
+  - { at: [28, 430], text: "批大小只决定同时铺多少条链", note: true }
+
+rows:
+  - { at: [28, 84], count: 32, w: 22, h: 22, gap: 3, tone: weight }
+  - { at: [28, 216], count: 32, w: 22, h: 22, gap: 3, tone: weight }
+  - { at: [28, 360], count: 32, w: 22, h: 22, gap: 3, tone: weight }
 
 brackets:
-  - { at: [44, 130], span: 196, dir: up, label: "部分和 1", tone: muted }
-  - { at: [252, 130], span: 196, dir: up, label: "部分和 2", tone: muted }
-  - { at: [460, 130], span: 196, dir: up, label: "部分和 3", tone: muted }
-  - { at: [668, 130], span: 196, dir: up, label: "部分和 4", tone: muted }
-  - { at: [44, 228], span: 820, dir: up, label: "同一条累加链，从第 0 段到第 15 段", tone: accent }
+  - { from: 28, to: 225, y: 112, label: "部分和 1" }
+  - { from: 228, to: 425, y: 112, label: "部分和 2" }
+  - { from: 428, to: 625, y: 112, label: "部分和 3" }
+  - { from: 628, to: 825, y: 112, label: "部分和 4" }
+  - { from: 28, to: 825, y: 244, label: "一条累加链，从头加到尾" }
+  - { from: 28, to: 825, y: 388, label: "顺序永远这一条，与批无关" }
 
-strips:
-  - at: [44, 138]
-    cells: 16
-    cell: 46
-    h: 26
-    gap: 6
-    tone: muted
-    highlights: [0, 1, 2, 3, 8, 9, 10, 11]
-    label: "K = 1024 切成 16 段，每段 BLOCK_K = 64；分成几组各自求和，默认内核按 M 自己挑"
-  - at: [44, 236]
-    cells: 16
-    cell: 46
-    h: 26
-    gap: 6
-    tone: accent
-    highlights: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    label: "matmul_bias_persistent_kernel：一个 fp32 累加器从头加到尾，grid 只按 M、N 铺"
+dividers:
+  - { from: [20, 312], to: [880, 312], sides: ["默认：分几份加，批说了算", "开了批不变"] }
 
-bands:
-  - label: aten 派发表
-    sub: "mm / matmul / addmm / bmm / softmax / sum 挂到 NPU 派发键"
-    fn: enable_batch_invariant_mode
-    at: [44, 420]
-    size: [812, 60]
-    tone: ascend
-    icon: split
-  - label: 派发拦不到的三处，直接赋值覆盖
-    sub: "npu_fused_infer_attention_score · npu_add_rms_norm · torch.sum"
-    fn: add_rms_norm
-    at: [44, 490]
-    size: [812, 60]
-    tone: accent
-    icon: patch
-  - label: 连带关掉的一整层
-    sub: "enable_custom_op 返回 False，_C_ascend 那层全部不参与"
-    fn: enable_custom_op
-    at: [44, 560]
-    size: [812, 60]
-    tone: muted
-    icon: chip
-
-boundaries:
-  - at: 648
-    from: 20
-    to: 880
-    vertical: false
-    label: 过了这条线，本进程后续每一次 forward 用的都是换过的实现
-
-boxes:
-  - at: [24, 686]
-    size: [250, 72]
-    title: 读环境变量
-    sub: 默认 0，不设就整段不进
-    fn: VLLM_BATCH_INVARIANT
-    tone: upstream
-    icon: gear
-  - at: [300, 686]
-    size: [300, 72]
-    title: 钉死跨卡与权重格式
-    sub: "确定性集合通信，weight_nz_mode = 0"
-    fn: override_envs_for_invariance
-    tone: ascend
-    icon: plug
-  - at: [626, 686]
-    size: [250, 72]
-    title: 排在分布式初始化之前
-    sub: 每个 rank 各跑一次
-    fn: init_batch_invariance
-    tone: ascend
-    icon: proc
-
-arrows:
-  - { from: [276, 722], to: [298, 722], tone: ascend }
-  - { from: [602, 722], to: [624, 722], tone: ascend }
+tags:
+  - { at: [700, 280], text: "末位不同", tone: danger }
+  - { at: [660, 426], text: "末位每次都相同", tone: token }
 
 pins:
   - source: vllm-ascend@2c59ff10:vllm_ascend/ops/triton/batch_invariant/matmul.py#L63-L82
-    symbols: [matmul_bias_persistent_kernel, BLOCK_K]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L99-L138
-    symbols: [enable_batch_invariant_mode, npu_fused_infer_attention_score, npu_add_rms_norm, matmul, addmm, bmm, softmax]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L50-L73
-    symbols: [add_rms_norm]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L76-L93
-    symbols: [override_envs_for_invariance, weight_nz_mode]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/batch_invariant.py#L140-L163
-    symbols: [init_batch_invariance, VLLM_BATCH_INVARIANT]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L421-L428
-    symbols: [enable_custom_op]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L70-L80
-    symbols: [_C_ascend]
+    symbols: [matmul_bias_persistent_kernel]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/triton/batch_invariant/matmul.py#L132-L140
+    symbols: [BLOCK_K]

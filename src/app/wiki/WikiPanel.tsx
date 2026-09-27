@@ -86,8 +86,15 @@ export function WikiPanel({
 
   if (!open) {
     return (
-      <button type="button" className="wiki-chat-fab" data-testid="chat-open" onClick={() => setOpen(true)}>
-        <MessageSquare size={14} /> 问知识库
+      <button
+        type="button"
+        className="wiki-chat-fab"
+        data-testid="chat-open"
+        title="问知识库"
+        onClick={() => setOpen(true)}
+      >
+        {/* 桌面上缩成图标时字只给读屏（wiki.css 的按钮道），按钮的名字始终是「问知识库」 */}
+        <MessageSquare size={14} /> <span className="wiki-fab-label">问知识库</span>
         {pending > 0 && (
           <span className="wiki-panel-badge" title={`${pending} 份变更待审`}>
             {pending}

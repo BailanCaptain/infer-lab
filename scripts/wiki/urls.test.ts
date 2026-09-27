@@ -39,6 +39,22 @@ describe("verdictOf", () => {
 });
 
 describe("checkUrls", () => {
+  it.each([
+    [200, "ok"],
+    [404, "dead"],
+    [410, "dead"],
+    [503, "unknown"],
+  ] as const)("HEAD 404 用 GET 确认：GET %i 判为 %s", async (status, verdict) => {
+    const calls: string[] = [];
+    const url = "https://models.example.com/repo/files?Revision=fixed";
+    const results = await checkUrls(new Map([[url, ["sources/model.md"]]]), async (_url, method) => {
+      calls.push(method);
+      return { status: method === "HEAD" ? 404 : status };
+    });
+    expect(calls).toEqual(["HEAD", "GET"]);
+    expect(results).toEqual([{ url, files: ["sources/model.md"], verdict, detail: `HTTP ${status}` }]);
+  });
+
   it("HEAD 不被允许时退回 GET；并发受限；结果带上引用页", async () => {
     const calls: string[] = [];
     let live = 0;

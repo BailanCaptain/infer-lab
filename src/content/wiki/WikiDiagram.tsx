@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CollectiveDemo } from "./CollectiveDemo";
 
 /**
  * 渲染正文里的 ```wiki-diagram 围栏。
@@ -124,9 +125,36 @@ function captionOf(svg: string): string {
   return /<title>([\s\S]*?)<\/title>/.exec(svg)?.[1]?.trim() ?? "";
 }
 
+/**
+ * 画布放不下整张图时要让读者知道能横拖：手机上图按 1:1 显示（缩到容器宽只有 316px，
+ * 图里的字会掉到 4 px 左右，根本读不了），放不下的部分留在画布里横向滚。
+ * 是否真的放不下要量出来——窄图在手机上也放得下，不该挂提示。
+ */
+function useScrollHint() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState({ scrollable: false, atEnd: false });
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const slack = el.scrollWidth - el.clientWidth;
+    setState({ scrollable: slack > 1, atEnd: slack > 1 && el.scrollLeft >= slack - 1 });
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    for (const child of el.children) observer.observe(child);
+    return () => observer.disconnect();
+  }, [measure]);
+  return { ref, ...state, onScroll: measure };
+}
+
 export function WikiDiagram({ id, svg }: { id: string; svg: string | undefined }) {
   const safe = useMemo(() => (svg ? sanitizeDiagram(svg) : null), [svg]);
   const caption = svg ? captionOf(svg) : "";
+  const hint = useScrollHint();
   if (!safe) {
     // 图缺了要看得出来，不能静静地少一张图
     return (
@@ -136,9 +164,32 @@ export function WikiDiagram({ id, svg }: { id: string; svg: string | undefined }
     );
   }
   return (
-    <figure className="wiki-diagram" data-diagram={id} data-status="ok">
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: sanitizeDiagram 按白名单重建，只留几何与排版 */}
-      <div className="wiki-diagram-svg" dangerouslySetInnerHTML={{ __html: safe }} />
+    <figure
+      className="wiki-diagram"
+      data-diagram={id}
+      data-status="ok"
+      data-scrollable={hint.scrollable || undefined}
+      data-at-end={hint.atEnd || undefined}
+    >
+      {hint.scrollable && (
+        // 提示放在画布上方：读者先看到它，才不会以为图被裁了
+        <p className="wiki-diagram-hint" data-testid="diagram-scroll-hint">
+          <span aria-hidden="true">⇄</span> 图比屏幕宽，左右滑动看全图
+        </p>
+      )}
+      {/* 画布外再包一层：右边缘那道渐隐挂在这一层上，只压住画布，不盖提示和图说明 */}
+      <div className="wiki-diagram-canvas">
+        <div
+          className="wiki-diagram-svg"
+          ref={hint.ref}
+          onScroll={hint.onScroll}
+          // 画布能横滚时它就是一个可聚焦的滚动区：键盘用户也要能左右看
+          {...(hint.scrollable ? { tabIndex: 0, role: "group", "aria-label": caption || id } : {})}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitizeDiagram 按白名单重建，只留几何与排版
+          dangerouslySetInnerHTML={{ __html: safe }}
+        />
+      </div>
+      {id === "collective-communication" ? <CollectiveDemo /> : null}
       {caption ? <figcaption>{caption}</figcaption> : null}
     </figure>
   );

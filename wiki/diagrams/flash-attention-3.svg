@@ -1,33 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-label="FA3 的前向不看批的状态，只按条数把一批切成 decode 段和 prefill 段，同一个算子各调一次再拼回；默认后端不切，按批的状态挑分支一次算完">
-  <title>FA3 的前向不看批的状态，只按条数把一批切成 decode 段和 prefill 段，同一个算子各调一次再拼回；默认后端不切，按批的状态挑分支一次算完</title>
-  <defs><marker id="flash-attention-3-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <path d="M250 44 L250 140" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
-  <text x="238" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)" text-anchor="end">decode 段</text>
-  <text x="262" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">prefill 段</text>
-  <path d="M88 102 L150 166" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-token)"/>
-  <path d="M148 102 L150 166" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-token)"/>
-  <path d="M474 102 L450 166" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-token)"/>
-  <path d="M150 218 L320 264" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-token)"/>
-  <path d="M450 218 L320 264" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-token)"/>
-  <rect x="320" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="359" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="398" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="437" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="476" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="515" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="554" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="593" y="64" width="36" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="70" y="64" width="36" height="36" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="130" y="64" width="36" height="36" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="40" y="170" width="220" height="48" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="150" y="199" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调一次：不挡后文</text>
-  <rect x="320" y="170" width="260" height="48" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="199" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">再调一次：挡住后文</text>
-  <rect x="190" y="268" width="260" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="320" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼回一批，交给下一层</text>
-  <text x="30" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">一批里 3 条请求，只按条数切一刀</text>
-  <text x="70" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">2 条 decode：这一步各 1 个 token</text>
-  <text x="320" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">1 条 prefill：整段问题一起</text>
-  <text x="600" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">同一个算子，训练侧也用它</text>
-  <text x="30" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">默认后端不切：按批的状态挑分支，一次算完</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="8×8 的分数关系与 2×4 的工作块：分块改变中间结果的存放和消费方式，仍按密集注意力规则处理所有有效位置。尺寸为教学示例。">
+  <title>8×8 的分数关系与 2×4 的工作块：分块改变中间结果的存放和消费方式，仍按密集注意力规则处理所有有效位置。尺寸为教学示例。</title>
+  <defs><marker id="flash-attention-3-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="flash-attention-3-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M280 215 L452 175" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-ink)"/>
+  <path d="M559 215 L559 282" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-ink)"/>
+  <path d="M559 327 L559 355" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-ink)"/>
+  <path d="M643 385 L665 385 L665 175 L660 175" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#flash-attention-3-ah-control)"/>
+  <rect x="475" y="300" width="80" height="25" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="558" y="300" width="80" height="25" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="65" y="110" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="119" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="146" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="173" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="200" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="227" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="254" y="110" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="137" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="137" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="137" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="146" y="137" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="173" y="137" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="200" y="137" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="227" y="137" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="254" y="137" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="164" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="164" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="164" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="146" y="164" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="173" y="164" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="200" y="164" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="227" y="164" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="254" y="164" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="191" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="191" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="191" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="146" y="191" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="173" y="191" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="200" y="191" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="227" y="191" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="254" y="191" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="218" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="218" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="218" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="146" y="218" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="173" y="218" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="200" y="218" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="227" y="218" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="254" y="218" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="245" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="245" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="245" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="146" y="245" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="173" y="245" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="200" y="245" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="227" y="245" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="254" y="245" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="146" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="173" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="200" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="227" y="272" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="254" y="272" width="27" height="27" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="65" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="92" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="119" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="146" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="173" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="200" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="227" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <rect x="254" y="299" width="27" height="27" fill="var(--color-token, #087f73)"/>
+  <path d="M92 110v216M119 110v216M146 110v216M173 110v216M200 110v216M227 110v216M254 110v216M65 137h216M65 164h216M65 191h216M65 218h216M65 245h216M65 272h216M65 299h216" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="65" y="110" width="216" height="216" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="475" y="135" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="517" y="135" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="559" y="135" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="601" y="135" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="475" y="175" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="517" y="175" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="559" y="175" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <rect x="601" y="175" width="42" height="40" fill="var(--color-token, #087f73)"/>
+  <path d="M517 135v80M559 135v80M601 135v80M475 175h168" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="475" y="135" width="168" height="80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="475" y="355" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="517" y="355" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="559" y="355" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="601" y="355" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="475" y="385" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="517" y="385" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="559" y="385" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <rect x="601" y="385" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <path d="M517 355v60M559 355v60M601 355v60M475 385h168" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="475" y="355" width="168" height="60" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="65" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">完整分数关系</text>
+  <text x="65" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">8 个 query × 8 个 key</text>
+  <text x="173" y="362" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">因果有效位置：36 个</text>
+  <text x="65" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">朴素稠密存储：64 个元素</text>
+  <text x="475" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">一次工作块</text>
+  <text x="475" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">2 个 query × 4 个 key</text>
+  <text x="675" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">读取下一个 K/V 块</text>
+  <text x="675" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">更新归一化统计量</text>
+  <text x="475" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">累计输出与每行统计量</text>
+  <text x="475" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">复用工作空间，继续处理后续块</text>
+  <text x="450" y="547" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各块共享在线 softmax 状态；不能各自归一化后直接相加。</text>
 </svg>

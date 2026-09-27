@@ -1,0 +1,73 @@
+layout: figure
+id: concurrent-request-inputs
+caption: 场景 M 第 2 步 DP0 的输入：12 条 decode 各 4 个 token（1 个确定的加 3 个草稿），N 的 6000 个提示词接在后面，共 6048 行；位置编号按各请求自己的进度写。下方是本步开始时各自的历史状态，矩阵只示意归属，不按比例
+size: [900, 530]
+grids:
+  - at: [150, 76]
+    rows: 1
+    cols: 13
+    cell: [50, 40]
+    gap: 6
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: y }
+      - { at: [0, 1], text: d₁, style: faded }
+      - { at: [0, 2], text: d₂, style: faded }
+      - { at: [0, 3], text: d₃, style: faded }
+      - { at: [0, 4], text: ⋯, style: plain }
+      - { at: [0, 5], text: y }
+      - { at: [0, 6], text: d₁, style: faded }
+      - { at: [0, 7], text: d₂, style: faded }
+      - { at: [0, 8], text: d₃, style: faded }
+      - { at: [0, 9], text: p₀ }
+      - { at: [0, 10], text: p₁ }
+      - { at: [0, 11], text: ⋯, style: plain }
+      - { at: [0, 12], text: p₅₉₉₉ }
+  - at: [150, 146]
+    rows: 1
+    cols: 13
+    cell: [50, 32]
+    gap: 6
+    tone: control
+    style: plain
+    cells:
+      - { at: [0, 0], text: L₁ }
+      - { at: [0, 1], text: L₁+1 }
+      - { at: [0, 2], text: L₁+2 }
+      - { at: [0, 3], text: L₁+3 }
+      - { at: [0, 4], text: ⋯ }
+      - { at: [0, 5], text: L₁₂ }
+      - { at: [0, 6], text: L₁₂+1 }
+      - { at: [0, 7], text: L₁₂+2 }
+      - { at: [0, 8], text: L₁₂+3 }
+      - { at: [0, 9], text: '0' }
+      - { at: [0, 10], text: '1' }
+      - { at: [0, 11], text: ⋯ }
+      - { at: [0, 12], text: '5999' }
+brackets:
+  - { from: 150, to: 368, y: 196, label: 'D₁：[0, 4)' }
+  - { from: 430, to: 648, y: 196, label: 'D₁₂：[44, 48)' }
+  - { from: 654, to: 872, y: 196, label: 'N：[48, 6048)' }
+frames:
+  - { at: [60, 300], size: [380, 140], label: D₁…D₁₂ · 接着自己的历史 }
+  - { at: [480, 300], size: [380, 140], label: N · 从零开始 }
+matrices:
+  - { at: [95, 343], w: 120, h: 48, rows: 3, cols: 5, tone: kv, label: KDA 状态 }
+  - { at: [275, 343], w: 120, h: 48, rows: 3, cols: 5, tone: kv, label: MLA 历史约 2 万位置 }
+  - { at: [515, 343], w: 120, h: 48, rows: 3, cols: 5, tone: kv, style: faded, label: KDA 状态清零 }
+  - { at: [695, 343], w: 120, h: 48, rows: 3, cols: 5, tone: kv, style: faded, label: MLA 新写 6000 位置 }
+links:
+  - { from: [330, 238], to: [330, 296], tone: kv }
+  - { from: [810, 238], to: [810, 296], tone: kv }
+texts:
+  - { at: [24, 36], text: 第 2 步 · DP0 的 13 条请求拼成 6048 行, strong: true }
+  - { at: [24, 101], text: 输入 token, strong: true }
+  - { at: [24, 167], text: 请求内位置, strong: true }
+  - { at: [82, 492], text: 本步：Dₖ 的位置数 Lₖ → Lₖ + 4, tone: kv }
+  - { at: [502, 492], text: 本步：N 的位置数 0 → 6000, tone: kv }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1018-L1040
+    symbols: [query_start_loc]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1817-L1864
+    symbols: [has_initial_state]

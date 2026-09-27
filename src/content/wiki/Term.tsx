@@ -1,5 +1,6 @@
 import { type ReactNode, useId, useState } from "react";
-import { findByAlias, pageHref } from "./index";
+import { Link } from "react-router";
+import { findByAlias } from "./index";
 
 /**
  * 七档证据等级，定义抄自 PLAN.md §1.4，是全站唯一来源。
@@ -28,6 +29,10 @@ const EVIDENCE_SHORT: Record<string, string> = Object.fromEntries(
 /**
  * 术语悬停卡。id 命中 registry 才渲染成可交互元素；命中不到就退化成纯文本，
  * 不给学习者一个点了没反应的链接。
+ *
+ * 链接走路由的 <Link>，和正文里的站内链接一样：原生 <a href="#/wiki/…"> 只改 hash，hash 路由
+ * 把它当成后退（POP），ScrollRestoration 于是去「恢复」位置，读者落在新页面的末尾（P3 验收：
+ * 从 glm-5-3-flash 的「接着看」点阅读指南，停在 scrollY 2986）。
  */
 export function Term({ id, children }: { id: string; children?: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -41,9 +46,9 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
 
   return (
     <span className="wiki-term-wrap">
-      <a
+      <Link
         className="wiki-term"
-        href={pageHref(page.id)}
+        to={`/wiki/${page.id}`}
         aria-describedby={open ? cardId : undefined}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
@@ -51,7 +56,7 @@ export function Term({ id, children }: { id: string; children?: ReactNode }) {
         onBlur={() => setOpen(false)}
       >
         {children ?? page.title}
-      </a>
+      </Link>
       {open && (
         <span className="wiki-term-card" role="tooltip" id={cardId}>
           <span className="wiki-term-card-head">

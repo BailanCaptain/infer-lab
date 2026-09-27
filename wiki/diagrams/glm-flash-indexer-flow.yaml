@@ -1,0 +1,31 @@
+layout: figure
+id: glm-flash-indexer-flow
+caption: 索引器先写状态并压池，再同时得到选中的完整池位置和因果尾部。两部分合起来交给主 attention；彩色区域标出 GLM 在 DSA 结构上增加的按池处理。
+size: [880, 630]
+frames:
+  - { at: [20, 212], size: [840, 212], label: 两项都执行 · GLM 的按池选择与补尾 }
+items:
+  - { at: [210, 16], size: [460, 64], text: 索引器投影, sub: Q（32 头）、共用 K、每头权重；另算压池门控, style: plain }
+  - { at: [210, 112], size: [460, 64], text: 写状态；每 4 个位置压成一个池, sub: 每个通道在 4 个位置间做 softmax 加权, tone: kv }
+  - { at: [40, 252], size: [450, 64], text: 给完整池打分，选最多 512 个, sub: 池分 = Σ 头权重 ×（q · 池 K）, tone: weight }
+  - { at: [40, 348], size: [450, 56], text: 展开池编号 → 最多 2048 个位置, sub: 每个选中的池对应 4 个位置, tone: token }
+  - { at: [540, 290], size: [300, 70], text: 取未成池的因果尾部, sub: 当前及之前的 0–3 个位置, tone: token }
+  - { at: [210, 464], size: [460, 58], text: 合并读取位置, sub: 完整池位置 + 尾部，最多 2051 个, tone: token }
+  - { at: [210, 562], size: [460, 54], text: 稀疏 MLA 主 attention, sub: 读取对应的压缩 KV，汇合并投影, style: plain }
+links:
+  - { from: [440, 80], to: [440, 112] }
+  - { from: [440, 176], to: [440, 212] }
+  - { from: [265, 316], to: [265, 348] }
+  - { from: [440, 424], to: [440, 464] }
+  - { from: [440, 522], to: [440, 562] }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1235-L1400
+    symbols: [AscendGlm5NextIndexer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1140-L1232
+    symbols: [forward_ascend, glm5_next_kpool_state_compress_and_write_cache, glm5_next_lightning_indexer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_kpool_state_compress.py#L139-L293
+    symbols: [glm5_next_kpool_state_compress_and_write_cache]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_lightning_indexer.py#L166-L504
+    symbols: [glm5_next_lightning_indexer, _can_use_triton]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L23-L237
+    symbols: [glm5_next_lightning_indexer_triton, _glm5_next_lightning_indexer_score_kernel]

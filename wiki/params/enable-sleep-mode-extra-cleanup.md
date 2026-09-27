@@ -73,7 +73,7 @@ RL 后训练里推理引擎和训练进程抢同一张卡，`sleep()` 默认只�
 
 配置写法只在 main 上变了：**v0.23.0 与 v0.26 分支**（2026-09-17 的源码快照）都是顶层键 `enable_sleep_mode_extra_cleanup`，照旧 `additional_config.get(..., False)` 读取 [C24]，`sleep()` / `wake_up()` 里那对守卫也只是挪了行号、逻辑一字未改 [C25]；到 main 这个顶层键才**被移除**，功能搬进 `rl_config.sleep_mode_extra_cleanup`，还得和 `rl_config.enabled: true` 一起给 [C9] [C10]。搬家的只是开关——做清理的 `sleep_mem_optimized.py` 三版逐字相同。
 
-[那条请求](../concepts/one-request.md)走不到这里：单卡起 Qwen3-0.6B 答一个 37 token 的问题，既没给 `--enable-sleep-mode`，也没有训练进程来抢卡，这段代码一次都不会被调用。要它生效，得先有个 RL 训练循环和推理引擎在同一张卡上轮流上场。
+本页旧算例走不到这里：单卡起 Qwen3-0.6B 答一个 37 token 的问题，既没给 `--enable-sleep-mode`，也没有训练进程来抢卡，这段代码一次都不会被调用。要它生效，得先有个 RL 训练循环和推理引擎在同一张卡上轮流上场。
 
 ## 事实表
 

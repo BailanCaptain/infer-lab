@@ -1,38 +1,24 @@
 layout: figure
 id: plugin-registration
-caption: 装包时写下两组入口；两颗 NPU 跑起来的四个进程，每个都把这张清单读一遍
-size: [900, 360]
-
+caption: 安装元数据经发现与过滤后进入两类注册路径；注册表就绪与设备初始化是不同阶段
+size: [900, 400]
 items:
-  - { at: [50, 88], size: [220, 56], text: 平台入口 ×1, tone: control }
-  - { at: [50, 206], size: [220, 56], text: 通用入口 ×4, tone: control, depth: 3 }
-
-  - { at: [580, 50], size: [230, 56], text: Main, style: plain }
-  - { at: [580, 150], size: [230, 56], text: EngineCore, style: plain }
-  - { at: [580, 250], size: [230, 56], text: Worker ×2, style: plain, depth: 1 }
-
-dividers:
-  - { from: [390, 20], to: [390, 340], sides: [装包时写下, 每个进程起来都读] }
-
-fans:
-  - { from: [[270, 116], [270, 234]], to: [372, 175], tone: control }
-  - { from: [408, 175], to: [[580, 78], [580, 178], [580, 278]], tone: control }
-
-nodes:
-  - { at: [390, 175], r: 18, text: 读 }
-
+  - { at: [20, 155], size: [160, 64], text: 安装元数据, sub: entry points, tone: control }
+  - { at: [215, 155], size: [170, 64], text: 发现与过滤, sub: 入口白名单, tone: control }
+  - { at: [430, 65], size: [170, 64], text: 平台入口, sub: 返回类路径, tone: control }
+  - { at: [430, 245], size: [170, 64], text: 通用入口, sub: 执行登记函数, tone: weight }
+  - { at: [645, 65], size: [230, 64], text: 当前平台, sub: 唯一有效 OOT 优先, tone: control }
+  - { at: [645, 245], size: [230, 64], text: 模型等注册结果, sub: GLM 架构 → 实现类, tone: weight }
+links:
+  - { from: [180, 187], to: [215, 187] }
+  - { from: [385, 187], to: [430, 97], via: [[408, 187], [408, 97]], tone: control }
+  - { from: [385, 187], to: [430, 277], via: [[408, 187], [408, 277]], tone: weight }
+  - { from: [600, 97], to: [645, 97], tone: control }
+  - { from: [600, 277], to: [645, 277], tone: weight }
+texts:
+  - { at: [20, 36], text: 安装提供入口，执行入口才产生注册结果, size: 16 }
+  - { at: [645, 160], text: 多个外部平台激活会冲突, note: true }
+  - { at: [20, 364], text: 进程内登记：前端 / EngineCore / Worker, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:setup.py#L543-L551
-    symbols: [vllm.platform_plugins, vllm.general_plugins]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42
-    symbols: [register]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L44-L77
-    symbols: [register_connector, register_model_loader, register_service_profiling, register_model]
-  - source: vllm@0fc695fc:vllm/plugins/__init__.py#L12-L22
-    symbols: [DEFAULT_PLUGINS_GROUP, PLATFORM_PLUGINS_GROUP]
-  - source: vllm@0fc695fc:vllm/engine/arg_utils.py#L744-L747
-    symbols: [load_general_plugins]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L106-L109
-    symbols: [load_general_plugins]
-  - source: vllm@0fc695fc:vllm/v1/worker/worker_base.py#L245-L247
-    symbols: [load_general_plugins]
+  - { source: 'vllm@0fc695fc:vllm/plugins/__init__.py#L28-L82', symbols: [load_plugins_by_group, load_general_plugins] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L24', symbols: [register_model] }

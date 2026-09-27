@@ -14,6 +14,7 @@ import { createBlobReader } from "./wiki/git";
 import { loadPages, parsePage, type WikiPage } from "./wiki/pages";
 import { readPageRaw, readRawSnapshot } from "./wiki/raw";
 import { configuredRepoRoots } from "./wiki/repo-roots";
+import { auditStandard, bodyLineOffset, formatStandard, loadStandardConfig } from "./wiki/standard";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -56,6 +57,17 @@ warmPageSources(pages, repoRoots);
 const all: RefAudit[] = [];
 const symbolProblems = [...diagramProblems, ...pages.flatMap((page) => auditDiagram(page, deps))];
 for (const p of symbolProblems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
+// 写作标准：只对 scripts/wiki/standard-pages.json 名单里的页强制，其余页只统计
+const standardConfig = loadStandardConfig();
+const standard = auditStandard(
+  pages.map((p) => ({
+    ...p,
+    lineOffset: bodyLineOffset(readFileSync(join(wikiRoot, p.file), "utf8"), p.body),
+  })),
+  standardConfig,
+  diagrams,
+);
+const standardByFile = new Map(standard.enforced.map((e) => [e.file, e]));
 for (const page of pages) {
   const audits = auditPage(page, deps);
   all.push(...audits);
@@ -65,6 +77,8 @@ for (const page of pages) {
     `\n${page.file}  ${page.fm.title}  evidence=${page.fm.evidence}  章节=${page.fm.chapters.join(",") || "无"}  正文 ${page.body.length} 字 / ${h2} 节  来源 ${audits.length} 条${bad.length ? `  ✗ ${bad.length} 条有问题` : ""}`,
   );
   console.log(`  ${page.fm.summary}`);
+  const std = standardByFile.get(page.file);
+  if (std) console.log(`  写作标准 ${formatStandard(std.measure, standardConfig, std.skip)}`);
   for (const a of audits) {
     const mark = a.verdict === "ok" ? "✓" : a.verdict === "url" ? "·" : "✗";
     const note = a.verdict === "ok" ? `文件 ${a.totalLines} 行` : a.verdict;
@@ -79,16 +93,26 @@ console.log(`\n审计 ${pages.length} 页，来源 ${all.length} 条`);
 console.log(
   `  行号有效 ${s.ok}，URL 未联网验证 ${s.url}，无效 commit ${s["invalid-commit"]}，文件不存在 ${s["missing-file"]}，行号越界 ${s["out-of-range"]}，未知仓库 ${s["unknown-repo"]}，raw 引用待核对 ${s.notInRaw}`,
 );
+const standardPassed = standard.enforced.filter((e) => !e.problems.length).length;
+const unlistedFailing = Object.entries(standard.unlisted.failing).map(([rule, n]) => `${rule} ${n} 页`);
+console.log(
+  `写作标准：名单 ${standard.enforced.length} 页，达标 ${standardPassed} 页；名单外 ${standard.unlisted.pages} 页只统计不报错（${unlistedFailing.join("，") || "无超标"}）`,
+);
+if (standard.missing.length) console.log(`  名单里这些页本次没有读到：${standard.missing.join("、")}`);
 for (const p of schemaProblems) console.error(`x ${p}`);
+for (const p of standard.problems) console.error(`x ${p.file} [${p.rule}] ${p.message}`);
 const failed =
   s["invalid-commit"] +
   s["missing-file"] +
   s["out-of-range"] +
   s["unknown-repo"] +
   schemaProblems.length +
-  symbolProblems.length;
+  symbolProblems.length +
+  standard.problems.length;
 if (failed) {
   console.error(`\nwiki:audit 失败：${failed} 处`);
   process.exit(1);
 }
-console.log("ok wiki:audit 本地引用与行号校验通过（URL、raw 摘录内容和结论语义不在本次通过范围内）");
+console.log(
+  "ok wiki:audit 本地引用与行号校验、名单页写作标准通过（URL、raw 摘录内容和结论语义不在本次通过范围内）",
+);

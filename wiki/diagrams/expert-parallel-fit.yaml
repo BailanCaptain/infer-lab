@@ -1,28 +1,30 @@
 layout: figure
 id: expert-parallel-fit
-caption: 光是专家就占满了一颗 NPU；分给两颗后，每颗只占一半
-size: [900, 200]
-
+caption: 本部署开启 EP 后的 A2 通信选择。两组使用同一个最大 token 数；每卡 18 个专家和 EP16 已满足规模条件，实际分界是当前配置的容量 128。固定源码提交见页末。
+size: [900, 656]
+items:
+  - { at: [180, 20], size: [540, 60], text: 读取本步两个 DP 组的 token 数, sub: 已经过 capture size 与 DP 对齐, style: plain }
+  - { at: [180, 122], size: [540, 60], text: 取两组最大值, sub: 'R1：4；纯 decode：64；场景 M：6048', tone: token }
+  - { at: [180, 234], size: [540, 70], text: EP ≥16 且每卡专家 ≤24？, sub: '本部署：EP16、18 个/卡 → 是', style: plain }
+  - { at: [180, 368], size: [540, 70], text: 最大 token 数 ≤128？, sub: 当前配置的 MC2 容量门槛, style: plain }
+  - { at: [60, 526], size: [340, 68], text: MC2, sub: 按专家目的地派发与回收, tone: comm }
+  - { at: [500, 526], size: [340, 68], text: AllGather, sub: 先收集输入，再算本卡专家并归约, tone: comm }
+links:
+  - { from: [450, 80], to: [450, 122] }
+  - { from: [450, 182], to: [450, 234] }
+  - { from: [450, 304], to: [450, 368] }
+  - { from: [720, 269], to: [840, 560], via: [[864, 269], [864, 560]], tone: comm }
+  - { from: [330, 438], to: [230, 526], via: [[330, 480], [230, 480]], tone: comm }
+  - { from: [570, 438], to: [670, 526], via: [[570, 480], [670, 480]], tone: comm }
 texts:
-  - { at: [20, 64], text: 只用一颗, size: 15, strong: true }
-  - { at: [748, 64], text: "+ 其他权重约 5 GiB", size: 13, note: true }
-  - { at: [20, 152], text: 用两颗，每颗, size: 15, strong: true }
-  - { at: [436, 153], text: 空出来的放其他权重和 KV Cache, tone: kv }
-  - { at: [150, 190], text: 长度按比例画，1 GiB 约 9 像素, size: 13, note: true }
-
-bars:
-  # 9 像素 = 1 GiB；64 GB 约 59.6 GiB。「其他权重」按总参数约 35B、BF16 估算，约 5 GiB
-  - at: [150, 46]
-    scale: 9
-    frame: { value: 59.6, label: 一颗 NPU 的显存：64 GB }
-    segments:
-      - { value: 60, text: 全部专家 60 GiB }
-      - { value: 5.2, style: hatch }
-  - at: [150, 134]
-    scale: 9
-    frame: { value: 59.6 }
-    segments:
-      - { value: 30, text: 128 个专家 30 GiB }
-
-tags:
-  - { at: [780, 84], text: 装不下 }
+  - { at: [468, 340], text: 是 }
+  - { at: [285, 465], text: 是 }
+  - { at: [610, 465], text: 否 }
+  - { at: [736, 254], text: 否, tone: comm }
+  - { at: [230, 631], text: R1 与 64 行纯 decode, anchor: middle }
+  - { at: [670, 631], text: 场景 M；单机 EP8 也走此路, anchor: middle }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L96-L101
+    symbols: [max_num_tokens, select_moe_comm_method]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252
+    symbols: [set_mc2_tokens_capacity, _select_a2_moe_comm_method]

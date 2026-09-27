@@ -1,0 +1,34 @@
+﻿layout: figure
+id: kv-cache-lifecycle
+caption: A2 管分配，Worker 在 A4 读写设备状态，A6 按接受结果更新进度。MLA 与 KDA 是逐层选择；继续请求回到下一步调度
+size: [880, 805]
+frames:
+  - { at: [24, 34], size: [832, 130], label: EngineCore · CPU 上的请求与块引用 }
+  - { at: [24, 206], size: [832, 322], label: Worker · 设备缓存张量与本步计算 }
+  - { at: [24, 573], size: [832, 208], label: EngineCore · CPU 上的有效进度 }
+items:
+  - { at: [150, 60], size: [580, 68], text: A2 · 给本步和候选保留槽位, sub: 块号随调度计划送给 Worker, tone: kv }
+  - { at: [150, 230], size: [580, 56], text: A3 · 把块号转成设备可用的地址与状态索引, sub: 缓存张量已在启动时分配, style: plain }
+  - { at: [70, 329], size: [335, 70], text: A4 · 走到 MLA 层, sub: 追加主历史和索引，更新尾状态, tone: kv }
+  - { at: [475, 329], size: [335, 70], text: A4 · 走到 KDA 层, sub: 读写递推矩阵与近期卷积状态, tone: kv }
+  - { at: [150, 447], size: [580, 56], text: 继续逐层前向 → A5 采样与候选处理, sub: 把确定的输出与接受信息返回引擎, tone: control }
+  - { at: [150, 599], size: [580, 62], text: A6 · 更新请求与已计算进度, sub: 按拒绝数量回退计数, style: plain }
+  - { at: [70, 712], size: [335, 48], text: 继续：返回 A2，用有效历史接着算, tone: kv }
+  - { at: [475, 712], size: [335, 48], text: 结束：A7 归还请求的块引用, tone: kv }
+links:
+  - { from: [440, 128], to: [440, 230], tone: comm }
+  - { from: [300, 286], to: [237, 329], via: [[237, 307]] }
+  - { from: [580, 286], to: [642, 329], via: [[642, 307]] }
+  - { from: [237, 399], to: [300, 447], via: [[237, 422], [300, 422]] }
+  - { from: [642, 399], to: [580, 447], via: [[642, 422], [580, 422]] }
+  - { from: [440, 503], to: [440, 599], tone: comm }
+  - { from: [300, 661], to: [237, 712], via: [[237, 687]] }
+  - { from: [580, 661], to: [642, 712], via: [[642, 687]] }
+texts:
+  - { at: [456, 188], text: 调度计划，不搬整份历史, size: 13, tone: comm }
+  - { at: [456, 552], text: 本步结果，不回传整份缓存, size: 13, tone: comm }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L198-L269
+    symbols: [allocate_slots]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1436
+    symbols: [num_computed_tokens]

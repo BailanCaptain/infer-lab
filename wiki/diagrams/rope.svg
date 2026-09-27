@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="同一对数字，K 和 Q 各按自己的位置转；位置整体往后挪 100 格，两根箭头都转到了别处，但夹角不变（每格转多少是示意）">
-  <title>同一对数字，K 和 Q 各按自己的位置转；位置整体往后挪 100 格，两根箭头都转到了别处，但夹角不变（每格转多少是示意）</title>
-  <desc>一对数字当成平面上的一个点，箭头方向就是按位置转过的角度；每格按 20 度示意；同一对数字，位置整体往后挪 100 格：两根箭头转到了别处，夹角和左边一样</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="固定旋转前的 q/k，取同向单位向量示意；每个位置旋转 20°，两组位置均相差 2，因此旋转后的夹角均为 40°，这不是 GLM 配置">
+  <title>固定旋转前的 q/k，取同向单位向量示意；每个位置旋转 20°，两组位置均相差 2，因此旋转后的夹角均为 40°，这不是 GLM 配置</title>
+  <desc>单个二维旋转平面，K 从水平轴转 60 度，Q 转 100 度，夹角 40 度；位置整体增加 100，K 转角等效为 260 度，Q 为 300 度，夹角仍为 40 度</desc>
   <defs><marker id="rope-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="rope-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
   <circle cx="230" cy="230" r="120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <path d="M90 230 L370 230" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>

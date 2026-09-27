@@ -1,26 +1,247 @@
 layout: figure
 id: gqa
-caption: 同样 16 个 Q 头，每个 token 每层存几份 K/V：各配一份是 16 份，本模型 2 份，最省 1 份（bf16，单颗 NPU）
-size: [900, 290]
-
+caption: 四个查询头的通用共享示意；连线表示 KV 向查询头提供数据，每个蓝块代表一组 K 与 V，头数不是 GLM 配置
+size:
+- 900
+- 400
+frames:
+- at:
+  - 25
+  - 60
+  size:
+  - 265
+  - 310
+  label: MHA · 4 个 KV 头
+- at:
+  - 317
+  - 60
+  size:
+  - 265
+  - 310
+  label: GQA · 2 个 KV 头
+- at:
+  - 610
+  - 60
+  size:
+  - 265
+  - 310
+  label: MQA · 1 个 KV 头
+items:
+- at:
+  - 707
+  - 245
+  size:
+  - 68
+  - 40
+  text: KV₀
+  tone: kv
+links:
+- from:
+  - 72
+  - 245
+  to:
+  - 72
+  - 145
+  tone: kv
+- from:
+  - 128
+  - 245
+  to:
+  - 128
+  - 145
+  tone: kv
+- from:
+  - 184
+  - 245
+  to:
+  - 184
+  - 145
+  tone: kv
+- from:
+  - 240
+  - 245
+  to:
+  - 240
+  - 145
+  tone: kv
+fans:
+- from:
+  - 394
+  - 245
+  to:
+  - - 364
+    - 145
+  - - 420
+    - 145
+  tone: kv
+- from:
+  - 506
+  - 245
+  to:
+  - - 476
+    - 145
+  - - 532
+    - 145
+  tone: kv
+- from:
+  - 741
+  - 245
+  to:
+  - - 657
+    - 145
+  - - 713
+    - 145
+  - - 769
+    - 145
+  - - 825
+    - 145
+  tone: kv
 texts:
-  - { at: [30, 34], text: 16 个 Q 头不变，只改存几份 K/V, size: 14, strong: true }
-  - { at: [30, 77], text: Q 头, size: 13.5 }
-  - { at: [30, 137], text: MHA, size: 13.5, note: true }
-  - { at: [30, 197], text: GQA（本模型）, size: 13.5, strong: true, tone: kv }
-  - { at: [30, 257], text: MQA, size: 13.5, note: true }
-  - { at: [830, 137], text: 16 KiB, size: 13.5, note: true }
-  - { at: [244, 197], text: 2 KiB, size: 14, strong: true, tone: kv }
-  - { at: [198, 257], text: 1 KiB, size: 13.5, note: true }
-
-rows:
-  - { at: [150, 58], count: 16, w: 38, h: 28, gap: 4, tone: token }
-  - { at: [150, 118], count: 16, w: 38, h: 28, gap: 4, tone: kv, faded: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] }
-  - { at: [150, 178], count: 2, w: 38, h: 28, gap: 4, tone: kv }
-  - { at: [150, 238], count: 1, w: 38, h: 28, gap: 4, tone: kv, faded: [0] }
-
-pins:
-  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3_next.py#L219-L235
-    symbols: [total_num_kv_heads, num_kv_heads, head_dim, kv_size]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L105-L112
-    symbols: [get_kv_cache_shape, num_kv_heads, head_size]
+- at:
+  - 157
+  - 332
+  text: 每头一组
+  anchor: middle
+- at:
+  - 449
+  - 332
+  text: 每两头共享一组
+  anchor: middle
+- at:
+  - 742
+  - 332
+  text: 四头共享一组
+  anchor: middle
+grids:
+- at:
+  - 50
+  - 105
+  cols: 4
+  rows: 1
+  cell:
+  - 44
+  - 40
+  gap: 12
+  tone: token
+  style: solid
+  cells:
+  - at:
+    - 0
+    - 0
+    text: Q₀
+  - at:
+    - 0
+    - 1
+    text: Q₁
+  - at:
+    - 0
+    - 2
+    text: Q₂
+  - at:
+    - 0
+    - 3
+    text: Q₃
+- at:
+  - 342
+  - 105
+  cols: 4
+  rows: 1
+  cell:
+  - 44
+  - 40
+  gap: 12
+  tone: token
+  style: solid
+  cells:
+  - at:
+    - 0
+    - 0
+    text: Q₀
+  - at:
+    - 0
+    - 1
+    text: Q₁
+  - at:
+    - 0
+    - 2
+    text: Q₂
+  - at:
+    - 0
+    - 3
+    text: Q₃
+- at:
+  - 635
+  - 105
+  cols: 4
+  rows: 1
+  cell:
+  - 44
+  - 40
+  gap: 12
+  tone: token
+  style: solid
+  cells:
+  - at:
+    - 0
+    - 0
+    text: Q₀
+  - at:
+    - 0
+    - 1
+    text: Q₁
+  - at:
+    - 0
+    - 2
+    text: Q₂
+  - at:
+    - 0
+    - 3
+    text: Q₃
+- at:
+  - 50
+  - 245
+  cols: 4
+  rows: 1
+  cell:
+  - 44
+  - 40
+  gap: 12
+  tone: kv
+  style: solid
+  cells:
+  - at:
+    - 0
+    - 0
+    text: KV₀
+  - at:
+    - 0
+    - 1
+    text: KV₁
+  - at:
+    - 0
+    - 2
+    text: KV₂
+  - at:
+    - 0
+    - 3
+    text: KV₃
+- at:
+  - 360
+  - 245
+  cols: 2
+  rows: 1
+  cell:
+  - 68
+  - 40
+  gap: 44
+  tone: kv
+  style: solid
+  cells:
+  - at:
+    - 0
+    - 0
+    text: KV₀
+  - at:
+    - 0
+    - 1
+    text: KV₁

@@ -84,7 +84,9 @@
     "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --font-display:
     "Inter Variable", "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Consolas", "Menlo", monospace;
+  /* 等宽字体没有中文字形：接上正文的中文字体，否则 Windows 上代码里的「层」「卷积」落到新宋体 */
+  --font-mono:
+    "JetBrains Mono", "Consolas", "Menlo", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
 
   /* 字阶：10px 是地板 */
   --text-micro: 10px;
@@ -97,6 +99,9 @@
   --text-compact--line-height: 19px;
   --text-body: 14px;
   --text-body--line-height: 22px;
+  /* 知识页正文（长文阅读）：15/26 */
+  --text-prose: 15px;
+  --text-prose--line-height: 26px;
   --text-lead: 16px;
   --text-lead--line-height: 26px;
   --text-title: 20px;

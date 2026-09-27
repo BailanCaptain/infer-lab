@@ -85,7 +85,7 @@ rawSources:
 
 `profiling_chunk_config` 打开的是上游叫 **CPP（Dynamic Chunked Pipeline Parallel）** 的东西：启动时真跑几十次 forward，量出「这台机器上一段长 `l` 的 prefill 要多久」，运行时按这条曲线反解出每一步该切多少 token，好让流水线各级的每块耗时尽量相等。默认 `enabled: False` [C3]。
 
-**它不是通用调优项。** 官方把它定位成 PD 分离部署里 **P（Prefiller）节点**上的长序列优化，D 节点不用配 [S13]；硬条件是 `pipeline_parallel_size > 1`、开着 chunked prefill、且不能与 balance scheduling 同开。[那条请求](../concepts/one-request.md)是单卡 Qwen3-0.6B、37 个 token 的问题——**连 PP > 1 这条门槛都够不到，也根本切不出第二块**，这一页对它完全用不上。
+**它不是通用调优项。** 官方把它定位成 PD 分离部署里 **P（Prefiller）节点**上的长序列优化，D 节点不用配 [S13]；硬条件是 `pipeline_parallel_size > 1`、开着 chunked prefill、且不能与 balance scheduling 同开。本页旧算例是单卡 Qwen3-0.6B、37 个 token 的问题——**连 PP > 1 这条门槛都够不到，也根本切不出第二块**，这一页对它完全用不上。
 
 **三个版本上都有这个参数**，差别不在能力。**配置写在哪**从 v0.26 分支（2026-09-17 的源码快照）起变了：要写进 `additional_config.scheduler_config`，顶层写法还认但会打弃用告警，两边都写以嵌套的为准，main 沿用这一套——这段写法上的账在[动态切块配置的机制页](../concepts/dynamic-chunked-pp.md)，这页不重抄。参数本身的默认值与校验，v0.26 与 v0.23 逐条相同 [C26]；两处真分叉都只在 main 上：`enabled=False` 却显式写 `need_timing=True` 时 main 告警并强制改回 `False`，以及下面第 8 条那个与 ShortRequestFirst 的关系 [!]。
 

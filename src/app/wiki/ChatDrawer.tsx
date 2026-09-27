@@ -1,8 +1,9 @@
 import { ArrowUp, BookOpen } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { Link } from "react-router";
 import remarkGfm from "remark-gfm";
-import { rewriteRelativeLink } from "../../content/wiki/index";
+import { rewriteRelativeLink, routePathOf } from "../../content/wiki/index";
 import { AnswerSave } from "./AnswerSave";
 
 /** 服务端贴报错时的在线 GitHub 搜索（F003 AC4）；形状见 scripts/wiki/chat-trace.ts 的 publicTrace */
@@ -397,7 +398,12 @@ export function ChatPane({
                   skipHtml
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    a: ({ href, children }) => <a href={rewriteRelativeLink(href ?? "")}>{children}</a>,
+                    // 站内链接走 <Link>，理由同 WikiPage：原生 hash 链接会被当成后退
+                    a: ({ href, children }) => {
+                      const to = rewriteRelativeLink(href ?? "");
+                      const route = routePathOf(to);
+                      return route ? <Link to={route}>{children}</Link> : <a href={to}>{children}</a>;
+                    },
                   }}
                 >
                   {m.text}

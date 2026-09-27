@@ -89,14 +89,14 @@
       "requiredFacts": [
         "块表将逻辑块映射到物理块，slot_mapping 用物理块和块内偏移得到写入槽位。",
         "注意力读 KV 的算子使用 block_table；reshape_and_cache 写入使用 slot_mapping。",
-        "应连接 block-table 与 paged-attention 两页的依据。"
+        "应给出 block-table 页（含并入的分页布局一节）的依据。"
       ],
       "forbiddenClaims": [
         "把 block_table 与 slot_mapping 当成同一个张量。",
         "声称所有注意力后端都具有完全相同路径。"
       ],
       "evidenceIds": ["slot", "cache-read", "cache-write"],
-      "expectedPages": ["block-table", "paged-attention"]
+      "expectedPages": ["block-table"]
     },
     {
       "id": "timing-version",

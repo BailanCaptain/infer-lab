@@ -1,48 +1,79 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" width="880" height="480" role="img" aria-label="一串隐藏向量从下往上穿过一叠一模一样的层，每层自带一份权重，顶上出下一个 token">
-  <title>一串隐藏向量从下往上穿过一叠一模一样的层，每层自带一份权重，顶上出下一个 token</title>
-  <defs><marker id="layers-stack-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="layers-stack-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <path d="M430 408 L430 388" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
-  <path d="M430 338 L430 324" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
-  <path d="M430 274 L430 260" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
-  <path d="M430 210 L430 196" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
-  <path d="M430 146 L430 132" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
-  <path d="M430 82 L430 54" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
-  <path d="M592 107 L564 107" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
-  <path d="M592 171 L564 171" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
-  <path d="M592 299 L564 299" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
-  <path d="M592 363 L564 363" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
-  <rect x="332" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="357" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="382" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="407" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="432" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="457" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="482" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="507" y="410" width="22" height="16" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="300" y="84" width="260" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="318" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 40 层</text>
-  <text x="542" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">注意力 + 一组专家</text>
-  <rect x="300" y="148" width="260" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="318" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 39 层</text>
-  <text x="542" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">注意力 + 一组专家</text>
-  <rect x="300" y="212" width="260" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="318" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">⋯ 中间 36 层，同样的套路 ⋯</text>
-  <rect x="300" y="276" width="260" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="318" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 2 层</text>
-  <text x="542" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">注意力 + 一组专家</text>
-  <rect x="300" y="340" width="260" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="318" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 1 层</text>
-  <text x="542" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">注意力 + 一组专家</text>
-  <rect x="368" y="20" width="130" height="30" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="433" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一个 token</text>
-  <rect x="594" y="93" width="28" height="28" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="594" y="157" width="28" height="28" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="594" y="285" width="28" height="28" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="594" y="349" width="28" height="28" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <path d="M332 436 v8 h197 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="430.5" y="466" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">一个 token 的隐藏向量：2048 个数字（画 8 格示意）</text>
-  <text x="30" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">同一套加工做 40 遍</text>
-  <text x="40" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56">每过一层，这串数字被改一次</text>
-  <text x="594" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#936300">每层自带一份权重</text>
-  <text x="594" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">套路一样，数字不同</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 820" width="900" height="820" role="img" aria-label="GLM 文本主干的逻辑数据流；四个青色小块代表四路残差表示，每路形状为 [T, 4096]。中间 43 层合并绘制，权重图形不表示实际参数量">
+  <title>GLM 文本主干的逻辑数据流；四个青色小块代表四路残差表示，每路形状为 [T, 4096]。中间 43 层合并绘制，权重图形不表示实际参数量</title>
+  <defs><marker id="layers-stack-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="layers-stack-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="layers-stack-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M450 99 L450 120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#layers-stack-ah-ink)"/>
+  <path d="M190 150 L320 150" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
+  <path d="M190 320 L320 320" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
+  <path d="M190 480 L320 480" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#layers-stack-ah-weight)"/>
+  <path d="M362 243 L362 271" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M420 243 L420 271" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M478 243 L478 271" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M536 243 L536 271" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M362 408 L362 450" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M420 408 L420 450" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M478 408 L478 450" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M536 408 L536 450" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 660 L450 710" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 176 L362 225" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 176 L420 225" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 176 L478 225" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 176 L536 225" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 349 L362 390" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 349 L420 390" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 349 L478 390" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 349 L536 390" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 506 L362 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 506 L420 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 506 L478 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M450 506 L536 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M362 568 L450 620" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M420 568 L450 620" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M478 568 L450 620" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <path d="M536 568 L450 620" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#layers-stack-ah-token)"/>
+  <rect x="336" y="225" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="394" y="225" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="452" y="225" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="510" y="225" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="336" y="390" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="394" y="390" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="452" y="390" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="510" y="390" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="336" y="550" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="394" y="550" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="452" y="550" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="510" y="550" width="52" height="18" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="360" y="28" width="180" height="24" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M390 28v24M420 28v24M450 28v24M480 28v24M510 28v24" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="450" y="72" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">嵌入表示</text>
+  <text x="450" y="92" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[T, 4096]</text>
+  <rect x="80" y="130" width="110" height="40" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 130v40M124 130v40M146 130v40M168 130v40M80 150h110" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="135" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">第 0 层权重</text>
+  <rect x="80" y="300" width="110" height="40" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 300v40M124 300v40M146 300v40M168 300v40M80 320h110" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="135" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">第 1–43 层各自权重</text>
+  <rect x="80" y="460" width="110" height="40" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 460v40M124 460v40M146 460v40M168 460v40M80 480h110" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="135" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">第 44 层权重</text>
+  <rect x="360" y="710" width="180" height="24" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M390 710v24M420 710v24M450 710v24M480 710v24M510 710v24" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="450" y="754" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">末层汇合后的表示</text>
+  <text x="450" y="774" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[T, 4096]</text>
+  <rect x="320" y="120" width="260" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="144" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 0 层</text>
+  <text x="450" y="163" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">KDA · Dense FFN</text>
+  <rect x="334" y="271" width="260" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="327" y="278" width="260" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="320" y="285" width="260" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 1–43 层</text>
+  <text x="450" y="332" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按层号配置注意力与前馈</text>
+  <rect x="320" y="450" width="260" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 44 层</text>
+  <text x="450" y="493" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">KDA · MoE</text>
+  <rect x="320" y="620" width="260" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">沿四路求平均</text>
+  <text x="623" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">入口展开为四路</text>
+  <text x="623" y="238" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56">[T, 4, 4096]</text>
+  <text x="623" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">层间继续传递四路</text>
+  <text x="450" y="800" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">后续：最终 RMSNorm → 词表投影 → token 选择</text>
 </svg>

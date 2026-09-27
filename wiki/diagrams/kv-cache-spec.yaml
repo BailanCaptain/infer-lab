@@ -1,55 +1,25 @@
 layout: figure
 id: kv-cache-spec
-caption: Qwen3.6-35B-A3B 的 40 层各交一份规格：10 层全注意力、30 层线性注意力，两种页最后补成一样大
-size: [900, 320]
-
+caption: GLM 状态规格参与分组与页规划：主潜向量、KDA、索引池和尾状态保留各自语义，图中块形状仅作类别示意，不按字节比例绘制
+size: [900, 460]
+matrices:
+  - { at: [60, 85], w: 110, h: 55, rows: 3, cols: 5, tone: kv, label: MLA 潜向量 }
+  - { at: [60, 245], w: 80, h: 80, rows: 4, cols: 4, tone: kv, label: KDA 状态 }
+  - { at: [340, 85], w: 100, h: 40, rows: 2, cols: 4, tone: kv, label: 索引池 }
+  - { at: [340, 245], w: 100, h: 40, rows: 2, cols: 4, tone: kv, label: 索引尾状态 }
+items:
+  - { at: [545, 145], size: [135, 95], text: 缓存规格, sub: '形状 / dtype / 页', tone: control }
+  - { at: [730, 90], size: [120, 55], text: 缓存组, tone: kv }
+  - { at: [730, 210], size: [120, 55], text: 页容量与预算, tone: kv }
+  - { at: [730, 330], size: [120, 55], text: 张量与块表, tone: kv }
+links:
+  - { from: [170, 110], to: [545, 165], via: [[240, 110], [240, 190], [500, 190], [500, 165]], tone: kv }
+  - { from: [140, 280], to: [545, 215], via: [[220, 280], [220, 370], [500, 370], [500, 215]], tone: kv }
+  - { from: [440, 105], to: [545, 180], via: [[480, 105], [480, 180]], tone: kv }
+  - { from: [440, 265], to: [545, 230], via: [[465, 265], [465, 230]], tone: kv }
+  - { from: [680, 175], to: [730, 117], via: [[705, 175], [705, 117]] }
+  - { from: [790, 145], to: [790, 210] }
+  - { from: [790, 265], to: [790, 330] }
 texts:
-  - { at: [30, 40], text: 40 层，每层交一份规格, size: 14, strong: true }
-  - { at: [30, 124], text: 全注意力 10 层：第 4、8……40 层, size: 13, tone: kv }
-  - { at: [330, 124], text: 线性注意力 30 层：其余各层, size: 13, tone: control }
-  - { at: [30, 178], text: 一页多大（TP=2，每颗 NPU）, size: 14, strong: true }
-  - { at: [30, 300], text: 两种页补成一样长，才能共用一套块编号, size: 13, note: true }
+  - { at: [450, 425], text: 实际分配还取决于请求引用、预留、并行复制与可用内存, anchor: middle, size: 13 }
 
-grids:
-  - at: [30, 60]
-    rows: 1
-    cols: 40
-    cell: [19, 36]
-    gap: 2
-    tone: control
-    style: faded
-    cells:
-      - { at: [0, 3], tone: kv, style: solid }
-      - { at: [0, 7], tone: kv, style: solid }
-      - { at: [0, 11], tone: kv, style: solid }
-      - { at: [0, 15], tone: kv, style: solid }
-      - { at: [0, 19], tone: kv, style: solid }
-      - { at: [0, 23], tone: kv, style: solid }
-      - { at: [0, 27], tone: kv, style: solid }
-      - { at: [0, 31], tone: kv, style: solid }
-      - { at: [0, 35], tone: kv, style: solid }
-      - { at: [0, 39], tone: kv, style: solid }
-
-bars:
-  - at: [30, 198]
-    h: 30
-    scale: 0.4
-    segments:
-      - { value: 2048, tone: kv, text: 全注意力 KV 2 MiB }
-      - { value: 24, tone: kv, style: hatch }
-  - at: [30, 244]
-    h: 30
-    scale: 0.4
-    segments:
-      - { value: 1048, tone: control, text: 线性注意力状态约 1 MiB }
-      - { value: 1024, tone: control, style: hatch, text: 补出来的空白 }
-
-pins:
-  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L167-L200
-    symbols: [real_page_size_bytes]
-  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L616-L625
-    symbols: [page_size_bytes]
-  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L5982-L5995
-    symbols: [page_size_padded]
-  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L127-L153
-    symbols: [mamba_page_size_padded]

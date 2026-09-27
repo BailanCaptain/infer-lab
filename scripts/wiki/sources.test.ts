@@ -42,6 +42,21 @@ describe("classifySource", () => {
     expect(classifySource("https://github.com/randomuser/whatever")).toBe("unlisted");
   });
 
+  it("官方教程指定的 Ascend 镜像元数据可引，其他仓库及伪装域名不可引", () => {
+    for (const path of ["api/v1/repository", "v2"]) {
+      expect(classifySource(`https://quay.io/${path}/ascend/vllm-ascend/manifest/sha256:abc`)).toBe(
+        "official",
+      );
+      for (const url of [
+        `https://quay.io/${path}/someone/vllm-ascend/manifest/sha256:abc`,
+        `https://quay.io/${path}/ascend/vllm-ascend-fork/manifest/sha256:abc`,
+        `https://quay.io.evil.com/${path}/ascend/vllm-ascend/manifest/sha256:abc`,
+      ]) {
+        expect(classifySource(url), url).toBe("unlisted");
+      }
+    }
+  });
+
   it("论文单独一档", () => {
     expect(classifySource("https://arxiv.org/abs/2309.06180")).toBe("paper");
   });
@@ -49,9 +64,11 @@ describe("classifySource", () => {
   it("生态一手：能引，但撑不起 S", () => {
     for (const u of [
       "https://pytorch.org/docs/stable/x.html",
+      "https://docs.pytorch.org/docs/2.14/distributed.html",
       "https://triton-lang.org/main/x.html",
       "https://huggingface.co/Qwen/Qwen3-0.6B",
       "https://modelscope.cn/models/Qwen/Qwen3-0.6B",
+      "https://www.modelscope.cn/models/Eco-Tech/GLM-5.3-Flash-w8a8",
     ]) {
       expect(classifySource(u), u).toBe("ecosystem");
     }
@@ -78,6 +95,7 @@ describe("classifySource", () => {
   });
 
   it("子域名不能靠后缀蒙混过关", () => {
+    expect(classifySource("https://docs.pytorch.org.evil.com/docs/2.14/distributed.html")).toBe("unlisted");
     expect(classifySource("https://arxiv.org.evil.com/abs/1")).toBe("unlisted");
     expect(classifySource("https://notdocs.vllm.ai/x")).toBe("unlisted");
   });

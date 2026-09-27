@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="R1 第一步在 node0 每张卡上的前向（T = 4）。实线框是计算，标签是这一段的集合通信及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；除 MoE 的派发与组合走 16 张卡的 EP 组外，其余都在机内 8 张卡的 TP 组里">
+  <title>R1 第一步在 node0 每张卡上的前向（T = 4）。实线框是计算，标签是这一段的集合通信及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；除 MoE 的派发与组合走 16 张卡的 EP 组外，其余都在机内 8 张卡的 TP 组里</title>
+  <defs><marker id="one-request-forward-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="410" y="64" width="462" height="230" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="426" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每一层，共 45 层</text>
+  <path d="M174 128 L214 128" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-forward-ah-ink)"/>
+  <path d="M374 128 L430 128" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-forward-ah-ink)"/>
+  <path d="M620 128 L664 128" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-forward-ah-ink)"/>
+  <path d="M854 128 L888 128 L888 358 L854 358" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-forward-ah-ink)"/>
+  <path d="M664 358 L620 358" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-forward-ah-ink)"/>
+  <path d="M430 358 L374 358" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-forward-ah-ink)"/>
+  <rect x="24" y="100" width="150" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="99" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词嵌入</text>
+  <text x="99" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[4] → [4, 4096]</text>
+  <rect x="214" y="100" width="160" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="294" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">展开四路残差</text>
+  <text x="294" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">[4, 4, 4096]</text>
+  <rect x="430" y="100" width="190" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="525" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">注意力</text>
+  <text x="525" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KDA 34 层 · MLA 11 层</text>
+  <rect x="664" y="100" width="190" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="759" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP</text>
+  <text x="759" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">稠密 3 层 · MoE 42 层</text>
+  <rect x="664" y="330" width="190" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="759" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">四路求均值与归一化</text>
+  <text x="759" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">[4, 4096]</text>
+  <rect x="430" y="330" width="190" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="525" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表投影</text>
+  <text x="525" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">最后 1 行 → [1, 154880]</text>
+  <rect x="214" y="330" width="160" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="294" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">采样</text>
+  <text x="294" y="373" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">选出 y₀</text>
+  <text x="24" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每卡每步 218 次集合通信，数据量不超过 7.3 MiB</text>
+  <rect x="40" y="180" width="112.4" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
+  <text x="96.2" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce ×1</text>
+  <rect x="446" y="180" width="119.7" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
+  <text x="505.8" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce ×45</text>
+  <rect x="680" y="180" width="147.8" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
+  <text x="753.9" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce ×3 + ×42</text>
+  <rect x="680" y="216" width="185.7" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
+  <text x="772.9" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MC2 派发与组合 ×84 · EP16</text>
+  <rect x="680" y="252" width="119.7" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
+  <text x="739.8" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Gather ×42</text>
+  <rect x="446" y="410" width="112.4" height="24" rx="12" fill="var(--color-comm, #9a4b86)"/>
+  <text x="502.2" y="427" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Gather ×1</text>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 890" width="900" height="890" role="img" aria-label="官方 FULL_DECODE_ONLY 配置下，先选本地图模式与宽度，再跨 DP 同步。同一次同步同时确定模式与宽度，最后按商定结果重新选图。">
+  <title>官方 FULL_DECODE_ONLY 配置下，先选本地图模式与宽度，再跨 DP 同步。同一次同步同时确定模式与宽度，最后按商定结果重新选图。</title>
+  <defs><marker id="concurrent-request-graph-decision-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="24" y="518" width="852" height="120" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">同时确定两项 · 每组都执行</text>
+  <path d="M450 78 L450 124" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M330 196 L216 226 L216 258" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M570 196 L684 226 L684 258" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M216 328 L216 366 L330 366 L330 402" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M684 328 L684 366 L570 366 L570 402" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M450 472 L450 518" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M450 638 L450 694" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M330 758 L216 784 L216 814" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <path d="M570 758 L684 784 L684 814" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-graph-decision-ah-ink)"/>
+  <rect x="200" y="18" width="500" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">决定本地图模式与宽度</text>
+  <text x="450" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">输入本轮真实 token 数与每条请求的进度</text>
+  <rect x="200" y="124" width="500" height="72" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">提示词都算完，且是整齐的 decode 批次？</text>
+  <text x="450" y="175" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每条 4 个；总数 = 4 × 请求数；尺寸在捕获范围内</text>
+  <rect x="24" y="258" width="384" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="216" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是：向上选最近的捕获尺寸</text>
+  <text x="216" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地模式 FULL；允许 DP 补齐</text>
+  <rect x="492" y="258" width="384" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="684" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">否：按真实宽度执行</text>
+  <text x="684" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本地模式 NONE，也就是 eager</text>
+  <rect x="200" y="402" width="500" height="70" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="433" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">跨 DP 同步</text>
+  <text x="450" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce 交换各组的本地宽度与模式</text>
+  <rect x="40" y="552" width="368" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="581" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模式：取两组较低值</text>
+  <text x="224" y="600" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">两组都能用图 → FULL；其余 → NONE</text>
+  <rect x="492" y="552" width="368" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="676" y="581" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">宽度：按本地补齐条件决定</text>
+  <text x="676" y="600" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">允许 → 两组最大值；其余 → 本地宽度</text>
+  <rect x="200" y="694" width="500" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="722" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按商定的模式和宽度重新选一次图</text>
+  <text x="450" y="741" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">确认实际批次宽度与商定值一致</text>
+  <rect x="24" y="814" width="384" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="216" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">FULL → 回放相应尺寸的图</text>
+  <rect x="492" y="814" width="384" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="684" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">NONE → eager 执行</text>
+</svg>

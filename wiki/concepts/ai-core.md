@@ -1,52 +1,50 @@
 ---
 id: ai-core
-title: "AI Core、Cube 与 Vector：设备里面谁在算"
+title: AI Core：计算单元与数据搬运
 type: concept
-summary: AI Core 不是 NPU 的别名。矩阵、向量和标量计算有不同单元，Cube 与 Vector 可能耦合在一起，也可能分成独立的核心。
+summary: 从矩阵乘和逐项运算认识 Cube、Vector、Scalar，沿设备内存到片上缓冲区的数据路径理解计算与访存的配合。
 aliases: [AI Core, AICore, Cube, Vector, Scalar, AIC, AIV, AI Cube, AI Vector]
 chapters: ["07"]
 order: 120
 sources:
   - https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
-  - https://www.hiascend.com/developer/techArticles/20240914-1
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
 verified: []
-evidence: "S"
+evidence: "C"
 relations:
-  - to: matmul-and-weights
-    kind: builds-on
-    note: 模型的大量矩阵乘需要硬件执行；本页把执行单元与整个设备分开
+  - {to: hardware-devices, kind: builds-on, note: 先区分设备与设备内部的核心}
+  - {to: device-memory, kind: builds-on, note: 理解设备内存与数据访问}
+  - {to: matmul-and-weights, kind: builds-on, note: 认识矩阵计算需要的输入与权重}
 contradicts: []
-updated: "2026-09-25"
+updated: "2026-09-26"
 origin: seed
 ---
 
-## 一个 NPU 能算矩阵乘，是里面每个部件都在做同一件事吗
+## 从一个矩阵乘进入设备内部
 
-不是。**NPU 是整个计算设备的叫法，AI Core 是其中承担计算的一类核心**。往核心里再看，矩阵、向量与标量计算有不同的执行单元，旁边还有存储、数据搬运和控制部件。
+[矩阵乘](matmul-and-weights.md)把输入 X 与权重 W 相乘得到 Y。执行时既要计算乘加，也要把 X、W 搬到计算单元能够使用的位置，再保存结果。**AI Core 是 NPU 内承担计算的一类核心**；整个 NPU 还包含其他资源。
 
-可以先记住分工：**Cube** 处理矩阵运算；**Vector** 处理向量运算，例如一批数的逐项计算；**Scalar** 处理标量运算与控制。它们配合完成工作，所以不能把 Cube、Vector、AI Core 当成三个完全相同的名字。
+Cube 承担矩阵计算，Vector 承担向量计算，Scalar 处理标量与控制；MTE 等搬运部件连接存储与计算单元。[S1] 矩阵乘后的激活或归一化涉及另一组运算，因此一个模型子层可能经过不同单元。
 
 ```wiki-diagram
 file: ai-core
 ```
 
-## Cube 和 Vector 是邻居，还是各有一间房，要看架构
+## 数据必须先到达计算单元
 
-官方开发指南区分两种组织形式。**耦合模式**把 Cube 与 Vector 放在同一个 AI Core 内；**分离模式**中，矩阵计算一侧称 AIC（AI Cube），向量计算一侧称 AIV（AI Vector），两侧各有自己的 Scalar 部件，独立执行并由系统调度。
+图按官方分离架构画两条典型路径，省略部分控制与搬运细节。[S1]
 
-这张图只画层级关系，不表达某款设备有几个核心，也不表达 AIC 与 AIV 的数量比例。看到「A2」也不能直接选右图：所引指南将 Atlas A2 训练产品与 Atlas 800I A2 推理产品列为分离模式，而 Atlas 200I/500 A2 推理产品列为耦合模式。
+| 路径 | 输入在哪里准备 | 计算与结果 |
+|---|---|---|
+| 向量路径 | 全局内存 GM → 片上 Unified Buffer（UB） | Vector 使用缓冲数据，结果再写回 GM |
+| 矩阵路径 | GM → L1 → L0A/L0B | Cube 计算，结果经 L0C、Fixpipe 写回 GM 或 L1 |
 
-## 看懂这层分工，才能读懂算子优化
+这里的 GM 表示设备侧全局内存空间；片上缓冲容量有限，较大的张量通常分块处理。[算子到 AI Core](op-to-ai-core.md)中的融合归一化 kernel 就有 CopyIn、Compute、CopyOut 三段。[C2] 它们解释了为什么只计算 FLOPs 不足以预测耗时：等待输入和保存结果也会占用执行时间。
 
-一个模型算子可能包含矩阵计算，也包含激活、归一化或搬运。优化时要看每段实际落在哪类单元，以及它们怎样交接数据；不能只用「矩阵乘快」判断整段一定快。更具体的算子路径见 [算子与执行实现](ops-and-kernels.md)。
+一个简化教学块含 4 个 FP32 数，装入需要 16 字节，输出同样大小又有 16 字节写回。这是逻辑数据量；真实访问还取决于复用、对齐和实现，不能直接换算成一次硬件测量。
 
-## 对照源码
+## 核心组织与产品条件
 
-### 版本差异
+耦合架构在同一核心内组织 Cube 和 Vector；分离架构由 AIC、AIV 分别承担矩阵和向量计算，各有标量控制，跨两侧的数据交接需要相应存储与同步。[S1] 图中的一对 AIC/AIV 不代表实际数量比例。
 
-本页依据 CANN 商用版 8.0.RC2 的 AI Core 架构指南，核读于 2026-09-25。型号归类严格限于该文档列出的产品；不据此推断 A3 或后续芯片的核数、比例、缓存容量。
-
-### 源码位置
-
-- AI Core 的计算、存储、搬运和控制组成，以及耦合/分离模式、AIC/AIV 的定义和上述产品归类，均见官方架构指南 [S1]。
-- CANN 官方概述进一步说明异构单元与软件调度的分工 [S2]。本页为文档证据 S，没有做硬件性能测量。
+本页依据 CANN 8.0.RC2 架构指南解释组织方式，不推断 A3 或后续产品的核数、面积、缓冲容量。这里 **UB 是 Unified Buffer**；[CANN 与 HCCL](cann-hccl.md)里 AI QoS 一节的 UB 指 Unified Bus，二者属于不同层次。

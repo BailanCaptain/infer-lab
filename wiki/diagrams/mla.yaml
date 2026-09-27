@@ -1,48 +1,34 @@
 layout: figure
 id: mla
-caption: DeepSeek-V2-Lite 一层、一个 token：照普通做法要存 16 个头的 K 和 V 共 10240 字节；MLA 只存一份潜向量加一小段 RoPE，1152 字节，用的时候再展开
-size: [900, 340]
-
-texts:
-  - { at: [30, 40], text: "普通做法：16 个头各存一份 K、一份 V", size: 13.5 }
-  - { at: [849, 40], text: "10240 B", size: 13.5, strong: true, anchor: end }
-  - { at: [30, 136], text: "MLA：只存一份潜向量，外加 64 维 RoPE 段", size: 13.5, tone: kv }
-  - { at: [140, 169], text: "1152 B", size: 13.5, strong: true, tone: kv }
-  - { at: [200, 322], text: "prefill 时临时展开回 16 个头的 K 和 V，不写回缓存", size: 13, note: true }
-
-bars:
-  - at: [30, 54]
-    h: 34
-    scale: 0.08
-    segments:
-      - { value: 6144, tone: kv, text: K }
-      - { value: 4096, tone: kv, text: V }
-  - at: [30, 150]
-    h: 34
-    scale: 0.08
-    segments:
-      - { value: 1024, tone: kv, text: 潜向量 }
-      - { value: 128, style: hatch }
-
-rows:
-  - at: [200, 240]
-    count: 16
-    w: 36
-    h: 24
-    tone: kv
-    faded: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-  - at: [200, 270]
-    count: 16
-    w: 36
-    h: 24
-    tone: kv
-    faded: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-
+caption: GLM 稀疏 MLA 的逻辑数据流：查询变换后与选中的历史潜向量评分，在潜空间汇合再投影；索引器负责选择历史位置，图中仅画一个查询头
+size: [900, 560]
+matrices:
+  - { at: [40, 90], w: 100, h: 28, rows: 1, cols: 5, tone: token, label: 当前隐藏表示, dims: '4096' }
+  - { at: [45, 380], w: 90, h: 120, rows: 6, cols: 4, tone: kv, label: 历史 C, dims: '[n, 512]' }
+  - { at: [340, 380], w: 90, h: 80, rows: 4, cols: 4, tone: kv, label: 选中位置, dims: '[m, 512]' }
+  - { at: [580, 100], w: 100, h: 28, rows: 1, cols: 5, tone: token, label: 潜空间查询, dims: '512' }
+  - { at: [730, 390], w: 100, h: 28, rows: 1, cols: 5, tone: token, label: 单头输出, dims: '256' }
+items:
+  - { at: [200, 75], size: [130, 58], text: Q 分支, sub: '1536 → 256', tone: weight }
+  - { at: [390, 75], size: [130, 58], text: 吸收 K 投影, sub: 'q Wₖᵀ', tone: weight }
+  - { at: [210, 215], size: [150, 58], text: 索引器, sub: '评分与候选选择', tone: control }
+  - { at: [550, 225], size: [160, 58], text: 评分 + softmax, sub: '因果与有效范围', tone: control }
+  - { at: [550, 375], size: [130, 58], text: 潜向量汇合, sub: 'p C', tone: kv }
 links:
-  - { from: [71, 188], to: [192, 267], via: [[71, 267]], tone: kv, dashed: true }
+  - { from: [140, 104], to: [200, 104], tone: token }
+  - { from: [330, 104], to: [390, 104], tone: token }
+  - { from: [520, 104], to: [580, 114], tone: token }
+  - { from: [90, 118], to: [210, 244], via: [[90, 244]], tone: control }
+  - { from: [285, 273], to: [385, 380], via: [[285, 332], [385, 332]], tone: control }
+  - { from: [135, 420], to: [340, 420], tone: kv }
+  - { from: [630, 128], to: [630, 225], tone: token }
+  - { from: [430, 400], to: [550, 254], via: [[470, 400], [470, 254]], tone: kv }
+  - { from: [630, 283], to: [615, 375], via: [[630, 330], [615, 330]], tone: control }
+  - { from: [430, 440], to: [550, 412], via: [[500, 440], [500, 412]], tone: kv }
+  - { from: [680, 404], to: [730, 404], tone: token }
+texts:
+  - { at: [730, 490], text: 经 V 投影, size: 13 }
+  - { at: [450, 530], text: 主缓存每位置 512 维 BF16；索引缓存与尾状态另计, anchor: middle, size: 13 }
 
-pins:
-  - source: vllm@0fc695fc:vllm/model_executor/layers/attention/mla_attention.py#L357-L368
-    symbols: [kv_lora_rank, qk_rope_head_dim, num_kv_heads]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L1274-L1301
-    symbols: [block_table]
+
+

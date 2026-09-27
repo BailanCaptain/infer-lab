@@ -1,0 +1,22 @@
+layout: figure
+id: hardware-device-startup
+caption: A0 先选定设备、建立通信与执行环境，才进入 A1 请求入口；失败分支停在设备检查，图中是固定 GLM 执行侧的依赖顺序。
+size: [820, 540]
+items:
+  - { at: [35, 45], size: [460, 60], text: A0 · 读取平台与可见设备配置, sub: 确定 NPU 设备类型和本机可见范围, tone: control, style: plain }
+  - { at: [35, 140], size: [460, 64], text: 选择设备并检查启动显存, sub: 本地编号映射 → 绑定设备 → 读取内存快照, tone: kv, style: solid }
+  - { at: [550, 140], size: [230, 64], text: 初始化退出, sub: 编号越界或空闲显存不足, tone: control, style: faded }
+  - { at: [35, 240], size: [460, 64], text: 建立 HCCL 与模型并行组, sub: 决定本设备和哪些参与者协作, tone: comm, style: solid }
+  - { at: [35, 340], size: [460, 64], text: 创建 ModelRunner, sub: 设备已就绪，执行组件才能引用它, tone: control, style: plain }
+  - { at: [35, 440], size: [460, 64], text: 完成权重、状态池与预热 → A1, sub: 此后才能接收请求并进入逐轮执行, tone: token, style: plain }
+links:
+  - { from: [265, 105], to: [265, 140], ends: end }
+  - { from: [495, 172], to: [550, 172], ends: end }
+  - { from: [265, 204], to: [265, 240], ends: end }
+  - { from: [265, 304], to: [265, 340], ends: end }
+  - { from: [265, 404], to: [265, 440], ends: end }
+texts:
+  - { at: [517, 128], text: 失败, note: true }
+  - { at: [284, 226], text: 通过, note: true }
+  - { at: [555, 285], text: 主机负责组织, strong: true }
+  - { at: [555, 318], text: 设备负责存储与计算, note: true }

@@ -1,0 +1,46 @@
+layout: figure
+id: glm-flash-layer
+caption: 一层的两段：attention 段后接 MLP 段；每段入口把四条 residual 流合成一条送进子层，出口再把结果写回四条
+size: [900, 630]
+frames:
+  - { at: [32, 72], size: [385, 486], label: attention 段 }
+  - { at: [482, 72], size: [385, 486], label: MLP 段 }
+rows:
+  - { at: [96, 95], count: 4, w: 35, h: 24, gap: 5, tone: token }
+  - { at: [546, 95], count: 4, w: 35, h: 24, gap: 5, tone: token }
+  - { at: [96, 518], count: 4, w: 35, h: 24, gap: 5, tone: token }
+  - { at: [546, 518], count: 4, w: 35, h: 24, gap: 5, tone: token }
+items:
+  - { at: [78, 161], size: [193, 44], text: mHC 入口混合, style: plain }
+  - { at: [78, 250], size: [193, 40], text: RMSNorm, style: plain }
+  - { at: [78, 326], size: [193, 57], text: KDA 或稀疏 MLA, sub: 按层号选择, tone: token }
+  - { at: [78, 441], size: [193, 44], text: mHC 出口混合, style: plain }
+  - { at: [528, 161], size: [193, 44], text: mHC 入口混合, style: plain }
+  - { at: [528, 250], size: [193, 40], text: RMSNorm, style: plain }
+  - { at: [528, 326], size: [193, 57], text: 稠密 MLP 或 MoE, sub: 按层号选择, tone: token }
+  - { at: [528, 441], size: [193, 44], text: mHC 出口混合, style: plain }
+fans:
+  - { from: [[113, 119], [153, 119], [193, 119], [233, 119]], to: [174, 161], tone: token }
+  - { from: [[563, 119], [603, 119], [643, 119], [683, 119]], to: [624, 161], tone: token }
+  - { from: [174, 485], to: [[113, 518], [153, 518], [193, 518], [233, 518]], tone: token }
+  - { from: [624, 485], to: [[563, 518], [603, 518], [643, 518], [683, 518]], tone: token }
+links:
+  - { from: [174, 205], to: [174, 250] }
+  - { from: [174, 290], to: [174, 326] }
+  - { from: [174, 383], to: [174, 441] }
+  - { from: [251, 107], to: [271, 465], via: [[387, 107], [387, 465]], tone: token }
+  - { from: [271, 183], to: [271, 451], via: [[305, 183], [305, 451]], dashed: true }
+  - { from: [174, 546], to: [624, 91], via: [[174, 587], [451, 587], [451, 27], [624, 27]] }
+  - { from: [624, 205], to: [624, 250] }
+  - { from: [624, 290], to: [624, 326] }
+  - { from: [624, 383], to: [624, 441] }
+  - { from: [701, 107], to: [721, 465], via: [[837, 107], [837, 465]], tone: token }
+  - { from: [721, 183], to: [721, 451], via: [[755, 183], [755, 451]], dashed: true }
+texts:
+  - { at: [326, 134], text: 原四条流 }
+  - { at: [316, 229], text: 混合系数, size: 12.5 }
+  - { at: [776, 134], text: 原四条流 }
+  - { at: [766, 229], text: 混合系数, size: 12.5 }
+  - { at: [78, 612], text: 青色旁路 = 原来的四条流, note: true }
+  - { at: [340, 612], text: 虚线 = 混合系数, note: true }
+  - { at: [610, 612], text: 子层输入宽度 4096, note: true }

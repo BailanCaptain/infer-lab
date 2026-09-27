@@ -1,38 +1,122 @@
 layout: figure
 id: model-runner-layout
-caption: 每一步都是这五件事：前三件在第一次叫它时做完，后两件等第二次叫它
-size: [900, 220]
-
+caption: A/C 第三轮的逻辑形状：四个输入位置完成模型计算，选出两行形成生成 logits；未画填充、TP 分片或投机分支
+size:
+- 900
+- 465
 items:
-  - { at: [20, 60], size: [150, 60], text: 收下调度结果, tone: control, style: faded }
-  - { at: [197, 60], size: [150, 60], text: 摆好输入, tone: token }
-  - { at: [374, 60], size: [150, 60], text: 跑 40 层, tone: weight, depth: 3 }
-  - { at: [551, 60], size: [150, 60], text: 挑出 1 个 token, tone: token }
-  - { at: [728, 60], size: [150, 60], text: 交回去, tone: control, style: faded }
-
+- at:
+  - 35
+  - 85
+  size:
+  - 180
+  - 60
+  text: 4 个输入位置
+  tone: token
+- at:
+  - 315
+  - 85
+  size:
+  - 240
+  - 60
+  text: GLM 层栈 / 汇合
+  tone: weight
+  sub: 45 层 → [4, 4096]
+- at:
+  - 670
+  - 85
+  size:
+  - 195
+  - 60
+  text: 选行 0、3
+  tone: token
+  sub: '[2, 4096]'
+- at:
+  - 670
+  - 305
+  size:
+  - 195
+  - 65
+  text: 词表 logits
+  tone: token
+  sub: '[2, 154880]'
+- at:
+  - 355
+  - 305
+  size:
+  - 195
+  - 65
+  text: 采样 / 请求映射
+  tone: control
+- at:
+  - 35
+  - 305
+  size:
+  - 195
+  - 65
+  text: A 与 C 输出
+  tone: token
+hardware:
+- kind: memory
+  at:
+  - 320
+  - 190
+  size:
+  - 235
+  - 62
+  label: 各层历史状态
 links:
-  - { from: [170, 90], to: [197, 90] }
-  - { from: [347, 90], to: [374, 90] }
-  - { from: [524, 90], to: [551, 90] }
-  - { from: [701, 90], to: [728, 90] }
-
-badges:
-  - { at: [20, 60], n: 1 }
-  - { at: [197, 60], n: 2 }
-  - { at: [374, 60], n: 3 }
-  - { at: [551, 60], n: 4 }
-  - { at: [728, 60], n: 5 }
-
-brackets:
-  - { from: 20, to: 524, y: 150, label: 第一次叫它 }
-  - { from: 551, to: 878, y: 150, label: 第二次叫它 }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L729-L760
-    symbols: [_update_states]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880
-    symbols: [_prepare_inputs]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1970
-    symbols: [execute_model]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2428
-    symbols: [sample_tokens]
+- from:
+  - 215
+  - 115
+  to:
+  - 315
+  - 115
+  tone: token
+- from:
+  - 555
+  - 115
+  to:
+  - 670
+  - 115
+  tone: token
+- from:
+  - 767
+  - 145
+  to:
+  - 767
+  - 305
+  tone: weight
+- from:
+  - 670
+  - 338
+  to:
+  - 550
+  - 338
+  tone: token
+- from:
+  - 355
+  - 338
+  to:
+  - 230
+  - 338
+  tone: token
+- from:
+  - 435
+  - 145
+  to:
+  - 435
+  - 190
+  tone: kv
+  ends: both
+texts:
+- at:
+  - 35
+  - 423
+  text: 执行状态连接前向与采样接口；持久请求状态继续跨轮保留
+  note: true
+- at:
+  - 790
+  - 225
+  text: 输出投影
+  tone: weight

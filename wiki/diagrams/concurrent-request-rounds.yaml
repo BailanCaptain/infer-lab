@@ -1,0 +1,48 @@
+layout: figure
+id: concurrent-request-rounds
+caption: 场景 M 的三步：N 在第 1 步调度后到达，第 2 步和 DP0 的 12 条 decode 一起算，第 3 步转入 decode。每列一步，列宽不代表耗时；下两行是两组对齐后的执行宽度和 MoE 通信方式
+size: [900, 446]
+timelines:
+  - at: [24, 72]
+    labelW: 120
+    scale: 240
+    start: 0
+    end: 3
+    ticks: 1
+    unit: 步
+    laneH: 44
+    gap: 18
+    lanes:
+      - label: DP0 · 12 条
+        spans:
+          - { from: 0, to: 1, text: decode 12 × 4 = 48, tone: token }
+          - { from: 1, to: 2, text: decode 48, tone: token }
+          - { from: 2, to: 3, text: decode 48, tone: token }
+      - label: DP0 · 新请求 N
+        spans:
+          - { from: 0, to: 1, text: 到达 · 在 waiting 等, tone: control, style: faded }
+          - { from: 1, to: 2, text: prefill 6000, tone: token }
+          - { from: 2, to: 3, text: decode 4, tone: token }
+      - label: DP1 · 7 条
+        spans:
+          - { from: 0, to: 1, text: decode 7 × 4 = 28, tone: token }
+          - { from: 1, to: 2, text: decode 28, tone: token }
+          - { from: 2, to: 3, text: decode 28, tone: token }
+      - label: 两组执行宽度
+        spans:
+          - { from: 0, to: 1, text: 64 · 回放图, tone: control, style: faded }
+          - { from: 1, to: 2, text: 6048 · eager, tone: danger }
+          - { from: 2, to: 3, text: 64 · 回放图, tone: control, style: faded }
+      - label: MoE 通信
+        spans:
+          - { from: 0, to: 1, text: MC2, tone: comm, style: faded }
+          - { from: 1, to: 2, text: all-gather, tone: danger }
+          - { from: 2, to: 3, text: MC2, tone: comm, style: faded }
+texts:
+  - { at: [264, 42], text: 第 1 步, strong: true, anchor: middle }
+  - { at: [504, 42], text: 第 2 步, strong: true, anchor: middle }
+  - { at: [744, 42], text: 第 3 步, strong: true, anchor: middle }
+  - { at: [144, 428], text: 每组每步最多 8192 个 token、32 条请求, strong: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L570
+    symbols: [max_num_running_reqs, token_budget]

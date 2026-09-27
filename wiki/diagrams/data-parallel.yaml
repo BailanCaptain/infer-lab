@@ -1,34 +1,262 @@
-layout: figure
-id: data-parallel
-caption: DP=2：注意力每个副本各存一整套，256 个专家却摊到全部 4 颗 NPU 上，所以两个副本每一步都得一起走
-size: [900, 350]
-
-texts:
-  - { at: [40, 30], text: 这条请求只进 DP rank 0, size: 14, strong: true, tone: token }
-  - { at: [470, 30], text: DP rank 1 没活干，每步也陪跑 1 个 token, size: 14, tone: control }
-  - { at: [450, 330], text: 专家层每一步都要跨副本收发, size: 13.5, tone: comm, anchor: middle }
-
-frames:
-  - { label: DP rank 0 · 2 颗 NPU, at: [40, 70], size: [390, 180] }
-  - { label: DP rank 1 · 2 颗 NPU, at: [470, 70], size: [390, 180] }
-
-items:
-  - { at: [60, 92], size: [350, 56], text: 注意力：一整套, tone: weight, style: solid }
-  - { at: [490, 92], size: [350, 56], text: 注意力：一整套, tone: weight, style: solid }
-  - { at: [60, 172], size: [165, 56], tone: weight, style: faded }
-  - { at: [245, 172], size: [165, 56], tone: weight, style: faded }
-  - { at: [490, 172], size: [165, 56], tone: weight, style: faded }
-  - { at: [675, 172], size: [165, 56], tone: weight, style: faded }
-
-links:
-  - { from: [410, 200], to: [490, 200], tone: comm }
-  - { from: [490, 214], to: [410, 214], tone: comm }
-
-brackets:
-  - { from: 60, to: 840, y: 270, label: 256 个专家按编号摊给 4 颗，每颗 64 个 }
-
-pins:
-  - source: vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1155-L1168
-    symbols: [use_ep]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1152-L1164
-    symbols: [DPEngineCoreProc]
+{
+  "size": [
+    900,
+    535
+  ],
+  "caption": "DP 先分请求：两个执行副本分别管理队列、批次与状态；图中路由结果只是一次教学分配",
+  "frames": [
+    {
+      "at": [
+        30,
+        215
+      ],
+      "size": [
+        385,
+        270
+      ],
+      "label": "DP 副本 0"
+    },
+    {
+      "at": [
+        485,
+        215
+      ],
+      "size": [
+        385,
+        270
+      ],
+      "label": "DP 副本 1"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        280,
+        55
+      ],
+      "size": [
+        340,
+        65
+      ],
+      "text": "请求入口与路由",
+      "tone": "control",
+      "sub": "A、B、C、D"
+    },
+    {
+      "at": [
+        65,
+        320
+      ],
+      "size": [
+        310,
+        50
+      ],
+      "text": "调度 → 执行",
+      "tone": "control"
+    },
+    {
+      "at": [
+        520,
+        320
+      ],
+      "size": [
+        310,
+        50
+      ],
+      "text": "调度 → 执行",
+      "tone": "control"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        105,
+        266
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        85,
+        32
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "A"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "B"
+        }
+      ]
+    },
+    {
+      "at": [
+        560,
+        266
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        85,
+        32
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "C"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "D"
+        }
+      ]
+    }
+  ],
+  "hardware": [
+    {
+      "kind": "memory",
+      "at": [
+        105,
+        400
+      ],
+      "size": [
+        230,
+        55
+      ],
+      "label": "A / B 历史状态"
+    },
+    {
+      "kind": "memory",
+      "at": [
+        560,
+        400
+      ],
+      "size": [
+        230,
+        55
+      ],
+      "label": "C / D 历史状态"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        190,
+        266
+      ],
+      "tone": "token",
+      "via": [
+        [
+          360,
+          170
+        ],
+        [
+          190,
+          170
+        ]
+      ],
+      "from": [
+        360,
+        120
+      ]
+    },
+    {
+      "to": [
+        645,
+        266
+      ],
+      "tone": "token",
+      "via": [
+        [
+          540,
+          170
+        ],
+        [
+          645,
+          170
+        ]
+      ],
+      "from": [
+        540,
+        120
+      ]
+    },
+    {
+      "to": [
+        190,
+        320
+      ],
+      "tone": "token",
+      "from": [
+        190,
+        298
+      ]
+    },
+    {
+      "to": [
+        645,
+        320
+      ],
+      "tone": "token",
+      "from": [
+        645,
+        298
+      ]
+    },
+    {
+      "to": [
+        220,
+        400
+      ],
+      "tone": "kv",
+      "ends": "both",
+      "from": [
+        220,
+        370
+      ]
+    },
+    {
+      "to": [
+        675,
+        400
+      ],
+      "tone": "kv",
+      "ends": "both",
+      "from": [
+        675,
+        370
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        30,
+        516
+      ],
+      "text": "副本内部还可使用 TP；是否跨副本通信取决于模型与并行组合",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "data-parallel"
+}

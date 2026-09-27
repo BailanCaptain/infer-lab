@@ -1,46 +1,179 @@
-layout: figure
-id: dyntra-lb
-caption: 每个 rank 最多同时跑 4 条请求。DP0 被一条 128 块的长对话压着，DP1 只有 4 块；计划让 DP1 暂停一条 1 块的短问答、换进候补里那条 64 块的请求，DP0 这一步不放新请求进来。条长按块数等比例画
-size: [900, 270]
-
-texts:
-  - { at: [30, 34], text: 算计划前, size: 14, strong: true }
-  - { at: [30, 72], text: DP0, size: 13.5, strong: true }
-  - { at: [30, 110], text: DP1, size: 13.5, strong: true }
-  - { at: [30, 166], text: 按计划执行后, size: 14, strong: true }
-  - { at: [30, 204], text: DP0, size: 13.5, strong: true }
-  - { at: [30, 242], text: DP1, size: 13.5, strong: true }
-  - { at: [716, 204], text: 冻结：不放新请求, size: 13, note: true }
-  - { at: [430, 242], text: 暂停 1 条短的，KV 留着, size: 13, note: true }
-
-bars:
-  - at: [110, 54]
-    scale: 4.5
-    segments:
-      - { value: 128, tone: kv, text: 长对话 128 块 }
-      - { value: 3, tone: token }
-  - at: [110, 92]
-    scale: 4.5
-    segments:
-      - { value: 4, tone: token }
-      - { value: 64, tone: kv, style: hatch, text: 候补 64 块 }
-  - at: [110, 186]
-    scale: 4.5
-    segments:
-      - { value: 128, tone: kv, text: 长对话 128 块 }
-      - { value: 3, tone: token }
-  - at: [110, 224]
-    scale: 4.5
-    segments:
-      - { value: 3, tone: token }
-      - { value: 64, tone: kv, text: 换进来 64 块 }
-
-pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L240-L302
-    symbols: [fill_running_from_waiting, find_best_swap, try_drop_for_throughput, calc_bubble]
-  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L304-L322
-    symbols: [out_blk, in_blk, freeze]
-  - source: vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L41-L52
-    symbols: [get_dyntra_lb_request_block_num, block_size]
-  - source: vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L250-L289
-    symbols: [_apply_load_balance_modifications, lb_freeze]
+{
+  "id": "dyntra-lb",
+  "size": [
+    900,
+    440
+  ],
+  "caption": "块数代理的教学输入：DP0[128,1,1,1]，DP1[1,1,1,1]并有候选64。计划在DP1本地暂停1并准入64，运行负载从[131,4]变[131,67]；暂停请求的缓存仍占空间。",
+  "bars": [
+    {
+      "at": [
+        110,
+        75
+      ],
+      "h": 34,
+      "scale": 4.3,
+      "segments": [
+        {
+          "value": 128,
+          "text": "128 块",
+          "tone": "kv"
+        },
+        {
+          "value": 3,
+          "tone": "kv"
+        }
+      ]
+    },
+    {
+      "at": [
+        110,
+        125
+      ],
+      "h": 34,
+      "scale": 4.3,
+      "segments": [
+        {
+          "value": 4,
+          "tone": "kv"
+        }
+      ]
+    },
+    {
+      "at": [
+        110,
+        270
+      ],
+      "h": 34,
+      "scale": 4.3,
+      "segments": [
+        {
+          "value": 128,
+          "text": "128 块",
+          "tone": "kv"
+        },
+        {
+          "value": 3,
+          "tone": "kv"
+        }
+      ]
+    },
+    {
+      "at": [
+        110,
+        320
+      ],
+      "h": 34,
+      "scale": 4.3,
+      "segments": [
+        {
+          "value": 3,
+          "tone": "kv"
+        },
+        {
+          "value": 64,
+          "text": "准入候选 64 块",
+          "tone": "kv"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        540,
+        130
+      ],
+      "size": [
+        230,
+        42
+      ],
+      "text": "DP1 候选：64 块",
+      "tone": "control"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        30,
+        35
+      ],
+      "text": "当前运行集合",
+      "strong": true
+    },
+    {
+      "at": [
+        30,
+        99
+      ],
+      "text": "DP0"
+    },
+    {
+      "at": [
+        30,
+        149
+      ],
+      "text": "DP1"
+    },
+    {
+      "at": [
+        710,
+        99
+      ],
+      "text": "合计 131"
+    },
+    {
+      "at": [
+        140,
+        149
+      ],
+      "text": "合计 4"
+    },
+    {
+      "at": [
+        30,
+        230
+      ],
+      "text": "计划生效后的运行集合",
+      "strong": true
+    },
+    {
+      "at": [
+        30,
+        294
+      ],
+      "text": "DP0"
+    },
+    {
+      "at": [
+        30,
+        344
+      ],
+      "text": "DP1"
+    },
+    {
+      "at": [
+        710,
+        294
+      ],
+      "text": "合计 131"
+    },
+    {
+      "at": [
+        430,
+        344
+      ],
+      "text": "合计 67"
+    },
+    {
+      "at": [
+        450,
+        410
+      ],
+      "text": "DP1 本地暂停 1 块请求；没有跨 rank 搬迁",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure"
+}

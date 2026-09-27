@@ -1,21 +1,25 @@
 layout: figure
 id: matmul-weights-share
-caption: 权重只有一份：37 个 token 排着队，谁来都乘同一片
-size: [700, 320]
-
+caption: 四行 prefill 与关闭投机解码时的一行普通 decode 共用 up 权重。T 为本轮输入位置数；形状是未分片逻辑维度，矩阵格子不代表实际维度。
+size: [900, 500]
 texts:
-  - { at: [40, 38], text: 这一步要算的 37 个 token, size: 13, tone: token }
-  - { at: [350, 298], text: 每步哪怕只算 1 个 token，整片权重也要重读一遍, note: true, anchor: middle }
-
-rows:
-  - { at: [40, 50], count: 37, w: 14, h: 20, gap: 3, tone: token }
-
-items:
-  - { at: [263, 156], size: [180, 100], text: 一片权重, sub: 只有一份，谁来都乘它, tone: weight }
-
+  - { at: [60, 50], text: Prefill · T = 4, strong: true }
+  - { at: [60, 350], text: 普通 decode · 关闭投机 · T = 1, strong: true }
+  - { at: [610, 242], text: 同一片 up 权重, tone: weight, strong: true }
+  - { at: [610, 274], text: '[4096, 12288]', tone: weight }
+matrices:
+  - { at: [60, 90], w: 110, h: 40, rows: 4, cols: 4, tone: token, label: 输入 X, dims: '[4, 4096]' }
+  - { at: [535, 90], w: 330, h: 40, rows: 4, cols: 12, tone: token, label: 输出 Y, dims: '[4, 12288]' }
+  - { at: [345, 210], w: 210, h: 70, rows: 4, cols: 12, tone: weight }
+  - { at: [60, 380], w: 110, h: 20, rows: 1, cols: 4, tone: token, label: 输入 X, dims: '[1, 4096]' }
+  - { at: [535, 380], w: 330, h: 20, rows: 1, cols: 12, tone: token, label: 输出 Y, dims: '[1, 12288]' }
+nodes:
+  - { at: [450, 110], r: 18, text: '×' }
+  - { at: [450, 390], r: 18, text: '×' }
 links:
-  - { from: [47, 74], to: [293, 152], tone: token }
-  - { from: [200, 74], to: [323, 152], tone: token }
-  - { from: [353, 74], to: [353, 152], tone: token }
-  - { from: [506, 74], to: [383, 152], tone: token }
-  - { from: [659, 74], to: [413, 152], tone: token }
+  - { from: [170, 110], to: [432, 110], tone: token }
+  - { from: [468, 110], to: [535, 110], tone: token }
+  - { from: [450, 210], to: [450, 128], tone: weight }
+  - { from: [450, 280], to: [450, 372], tone: weight }
+  - { from: [170, 390], to: [432, 390], tone: token }
+  - { from: [468, 390], to: [535, 390], tone: token }

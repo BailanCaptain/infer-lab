@@ -35,10 +35,7 @@ evidence: C
 relations:
   - to: rfork-transfer
     kind: builds-on
-    note: 最后一次同步读成功后才进入 TRANSFERRED，此后释放租约与发布 seed 可异步推进
-  - to: rfork-memory
-    kind: builds-on
-    note: 会话结束不能只清掉 Python 状态；还要确认服务与传输内存的清理条件
+    note: 最后一次同步读成功后才进入 TRANSFERRED；会话结束不能只清掉 Python 状态，还要确认服务与传输内存的清理条件
 contradicts: []
 updated: '2026-09-25'
 rawSources:

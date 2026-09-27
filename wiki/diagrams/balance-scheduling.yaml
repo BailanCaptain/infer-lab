@@ -1,59 +1,207 @@
-layout: figure
-id: balance-scheduling
-caption: 4 个 DP rank 每步互报在跑几条；最大的那个数等于上限 8，4 个 rank 这一步都不收新请求
-size: [900, 250]
-
-texts:
-  - { at: [480, 96], text: 互报之后人手一份, size: 13.5, tone: comm }
-
-grids:
-  - at: [110, 60]
-    rows: 4
-    cols: 8
-    cell: [26, 26]
-    gap: 4
-    tone: token
-    style: empty
-    rowLabels: [rank 0, rank 1, rank 2, rank 3]
-    cells:
-      - { at: [0, 0], style: solid }
-      - { at: [0, 1], style: solid }
-      - { at: [0, 2], style: solid }
-      - { at: [0, 3], style: solid }
-      - { at: [0, 4], style: solid }
-      - { at: [0, 5], style: solid }
-      - { at: [0, 6], style: solid }
-      - { at: [0, 7], style: solid }
-      - { at: [1, 0], style: solid }
-      - { at: [1, 1], style: solid }
-      - { at: [1, 2], style: solid }
-      - { at: [2, 0], style: solid }
-      - { at: [2, 1], style: solid }
-      - { at: [2, 2], style: solid }
-      - { at: [2, 3], style: solid }
-      - { at: [2, 4], style: solid }
-      - { at: [3, 0], style: solid }
-      - { at: [3, 1], style: solid }
-  - at: [480, 110]
-    rows: 1
-    cols: 4
-    cell: [36, 36]
-    gap: 4
-    tone: comm
-    style: faded
-    cells:
-      - { at: [0, 0], text: "8", style: solid }
-      - { at: [0, 1], text: "3" }
-      - { at: [0, 2], text: "5" }
-      - { at: [0, 3], text: "2" }
-
-fans:
-  - { from: [[354, 73], [354, 103], [354, 133], [354, 163]], to: [474, 128], tone: comm }
-
-links:
-  - { from: [644, 128], to: [690, 128], tone: control }
-  - { from: [786, 158], to: [786, 178], tone: danger }
-
-items:
-  - { at: [696, 102], size: [180, 52], text: 最大 8 = 上限 8, tone: control, style: plain }
-  - { at: [696, 182], size: [180, 48], text: 4 个 rank 都不收, tone: danger, style: solid }
+{
+  "id": "balance-scheduling",
+  "size": [
+    900,
+    390
+  ],
+  "caption": "两个DP rank的运行上限均为4。上次交换计数为[4,2]时，两边暂停接纳等待请求；已有请求继续运行，未发生请求或缓存迁移。",
+  "texts": [
+    {
+      "at": [
+        35,
+        35
+      ],
+      "text": "已有运行请求",
+      "strong": true
+    },
+    {
+      "at": [
+        530,
+        35
+      ],
+      "text": "所有 rank 得到同一统计",
+      "strong": true
+    },
+    {
+      "at": [
+        450,
+        342
+      ],
+      "text": "后续计数为 [3,2] 时解除此条件，再检查各自预算与缓存",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        115,
+        85
+      ],
+      "rows": 2,
+      "cols": 4,
+      "cell": [
+        52,
+        42
+      ],
+      "gap": 8,
+      "rowLabels": [
+        "DP0",
+        "DP1"
+      ],
+      "tone": "token",
+      "style": "empty",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "运行",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "运行",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "运行",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "运行",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "运行",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            1
+          ],
+          "text": "运行",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "at": [
+        555,
+        85
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        65,
+        42
+      ],
+      "gap": 0,
+      "tone": "comm",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "4"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "2"
+        }
+      ]
+    }
+  ],
+  "fans": [
+    {
+      "from": [
+        [
+          347,
+          106
+        ],
+        [
+          347,
+          156
+        ]
+      ],
+      "to": [
+        535,
+        106
+      ],
+      "tone": "comm"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        505,
+        180
+      ],
+      "size": [
+        280,
+        55
+      ],
+      "text": "最大 4 = 运行上限 4",
+      "tone": "control"
+    },
+    {
+      "at": [
+        505,
+        260
+      ],
+      "size": [
+        280,
+        50
+      ],
+      "text": "本次两边暂停新准入",
+      "tone": "control"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        620,
+        127
+      ],
+      "to": [
+        620,
+        180
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        645,
+        235
+      ],
+      "to": [
+        645,
+        260
+      ],
+      "tone": "control"
+    }
+  ],
+  "layout": "figure"
+}

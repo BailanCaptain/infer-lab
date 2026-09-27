@@ -1,0 +1,40 @@
+layout: figure
+id: glm-two-node-topology
+caption: 官方双机配置下 16 张卡的分工：每台机器 8 张卡组成一个 TP 组，两台机器各是一个 DP 执行组，16 张卡合起来是一个 EP 组。图中数字是全局 rank，不规定板卡布局或网络布线。
+size: [900, 580]
+frames:
+  - { at: [20, 92], size: [860, 330], label: "EP 组：16 张卡合起来放下 288 个路由专家" }
+hardware:
+  - { kind: server, at: [44, 128], size: [376, 268], label: 机器 0 }
+  - { kind: server, at: [480, 128], size: [376, 268], label: 机器 1（headless） }
+  - { kind: chip, at: [68, 190], size: [64, 60], label: 卡 0 }
+  - { kind: chip, at: [152, 190], size: [64, 60], label: 卡 1 }
+  - { kind: chip, at: [236, 190], size: [64, 60], label: 卡 2 }
+  - { kind: chip, at: [320, 190], size: [64, 60], label: 卡 3 }
+  - { kind: chip, at: [68, 290], size: [64, 60], label: 卡 4 }
+  - { kind: chip, at: [152, 290], size: [64, 60], label: 卡 5 }
+  - { kind: chip, at: [236, 290], size: [64, 60], label: 卡 6 }
+  - { kind: chip, at: [320, 290], size: [64, 60], label: 卡 7 }
+  - { kind: chip, at: [504, 190], size: [64, 60], label: 卡 8 }
+  - { kind: chip, at: [588, 190], size: [64, 60], label: 卡 9 }
+  - { kind: chip, at: [672, 190], size: [64, 60], label: 卡 10 }
+  - { kind: chip, at: [756, 190], size: [64, 60], label: 卡 11 }
+  - { kind: chip, at: [504, 290], size: [64, 60], label: 卡 12 }
+  - { kind: chip, at: [588, 290], size: [64, 60], label: 卡 13 }
+  - { kind: chip, at: [672, 290], size: [64, 60], label: 卡 14 }
+  - { kind: chip, at: [756, 290], size: [64, 60], label: 卡 15 }
+items:
+  - { at: [26, 474], size: [200, 52], text: 18 个路由专家, sub: 288 ÷ 16, tone: weight, style: solid }
+  - { at: [238, 474], size: [200, 52], text: attention 的大投影, sub: 按 TP 切 8 份，其余整份, tone: weight, style: faded }
+  - { at: [450, 474], size: [200, 52], text: 1/8 份 MLP, sub: 稠密层与共享专家, tone: weight, style: faded }
+  - { at: [662, 474], size: [200, 52], text: MTP 第 45 层, sub: 每卡 540.75 MiB, tone: token, style: solid }
+links:
+  - { from: [420, 262], to: [480, 262], tone: comm, ends: both }
+texts:
+  - { at: [450, 26], text: 两台 Atlas 800 A2 · 16 张卡, anchor: middle, strong: true }
+  - { at: [450, 108], text: DP：一台机器一个执行组, anchor: middle }
+  - { at: [450, 240], text: 跨机链路, anchor: middle, tone: comm, size: 12 }
+  - { at: [232, 375], text: TP 组：卡 0–7, anchor: middle }
+  - { at: [668, 375], text: TP 组：卡 8–15, anchor: middle }
+  - { at: [26, 452], text: 一张卡上放了什么, strong: true }
+  - { at: [450, 558], text: 每卡权重合计 20.58 GiB, anchor: middle, note: true }

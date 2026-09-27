@@ -1,52 +1,213 @@
-layout: figure
-id: recompute-scheduler
-caption: D 节点上被踢的请求：KV 有地方存就回队列等，没地方存就整条退回 P 节点，问题加已生成的回答重新 prefill
-size: [900, 470]
-
-rows:
-  - at: [40, 40]
-    count: 37
-    w: 5
-    h: 26
-    gap: 1
-    tone: kv
-    faded: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
-  - at: [262, 40]
-    count: 99
-    w: 5
-    h: 26
-    gap: 1
-    tone: kv
-  - at: [40, 392]
-    count: 137
-    w: 5
-    h: 26
-    gap: 1
-    tone: token
-
-brackets:
-  - { from: 40, to: 855, y: 74, label: "D 节点上存着 136 个 token 的 KV：问题 37 + 回答 99" }
-  - { from: 40, to: 861, y: 426, label: "P 节点重新 prefill 137 个 token，原来只要 37 个" }
-
-items:
-  - { at: [330, 118], size: [240, 46], text: 有地方存 KV 吗？, tone: control, style: plain }
-  - { at: [80, 210], size: [240, 52], text: 有：回等待队列, tone: control, style: faded }
-  - { at: [580, 210], size: [240, 52], text: 没有：当场结束, tone: danger }
-  - { at: [580, 322], size: [240, 42], text: 代理整条重投, tone: comm, style: plain }
-
-links:
-  - { from: [400, 164], to: [200, 208], tone: ink }
-  - { from: [500, 164], to: [700, 208], tone: danger }
-  - { from: [700, 262], to: [700, 320], tone: danger }
-  - { from: [700, 364], to: [700, 388], tone: comm }
-
-dividers:
-  - { from: [20, 292], to: [880, 292], sides: [D 节点, D 节点外] }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L280-L316
-    symbols: [allocate_slots, update_state_before_preempt, num_computed_tokens]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/core/recompute_scheduler.py#L330-L345
-    symbols: [_preempt_request, RecomputeReqInfo]
-  - source: vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L1040-L1058
-    symbols: [stop_reason]
+{
+  "id": "recompute-scheduler",
+  "size": [
+    900,
+    625
+  ],
+  "caption": "D consumer增长分配失败后，先询问连接器能否接管保存。成功走状态保存/恢复；否则释放当前块并报告重计算，示例代理据已确认输出重新组织请求。两条分支成本不同。",
+  "items": [
+    {
+      "at": [
+        305,
+        40
+      ],
+      "size": [
+        290,
+        55
+      ],
+      "text": "D 端申请新块失败",
+      "tone": "danger"
+    },
+    {
+      "at": [
+        305,
+        150
+      ],
+      "size": [
+        290,
+        55
+      ],
+      "text": "连接器接管保存是否成功？",
+      "tone": "control"
+    },
+    {
+      "at": [
+        40,
+        285
+      ],
+      "size": [
+        335,
+        60
+      ],
+      "text": "保存状态并进入抢占协议",
+      "tone": "kv"
+    },
+    {
+      "at": [
+        525,
+        285
+      ],
+      "size": [
+        335,
+        60
+      ],
+      "text": "释放当前块，报告重计算",
+      "tone": "danger"
+    },
+    {
+      "at": [
+        525,
+        415
+      ],
+      "size": [
+        335,
+        60
+      ],
+      "text": "代理组织输入与已确认输出",
+      "tone": "control"
+    },
+    {
+      "at": [
+        525,
+        525
+      ],
+      "size": [
+        335,
+        55
+      ],
+      "text": "重新接续 P / D 执行",
+      "tone": "token"
+    }
+  ],
+  "hardware": [
+    {
+      "kind": "memory",
+      "at": [
+        115,
+        415
+      ],
+      "size": [
+        180,
+        95
+      ],
+      "label": "已保存历史"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        450,
+        95
+      ],
+      "to": [
+        450,
+        150
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        355,
+        205
+      ],
+      "to": [
+        205,
+        285
+      ],
+      "tone": "kv",
+      "via": [
+        [
+          205,
+          230
+        ]
+      ]
+    },
+    {
+      "from": [
+        545,
+        205
+      ],
+      "to": [
+        690,
+        285
+      ],
+      "tone": "danger",
+      "via": [
+        [
+          690,
+          230
+        ]
+      ]
+    },
+    {
+      "from": [
+        205,
+        345
+      ],
+      "to": [
+        205,
+        415
+      ],
+      "tone": "kv"
+    },
+    {
+      "from": [
+        690,
+        345
+      ],
+      "to": [
+        690,
+        415
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        690,
+        475
+      ],
+      "to": [
+        690,
+        525
+      ],
+      "tone": "token"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        225,
+        250
+      ],
+      "text": "成功",
+      "tone": "kv"
+    },
+    {
+      "at": [
+        690,
+        250
+      ],
+      "text": "未成功",
+      "tone": "danger"
+    },
+    {
+      "at": [
+        205,
+        550
+      ],
+      "text": "重载后继续",
+      "anchor": "middle",
+      "note": true
+    },
+    {
+      "at": [
+        450,
+        610
+      ],
+      "text": "接口的保存能力与代理续接语义，需要按实际连接器验证",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure"
+}

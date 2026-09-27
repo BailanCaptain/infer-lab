@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 490" width="900" height="490" role="img" aria-label="两个历史分区为同一查询计算局部结果；用 LSE 恢复全局权重，不能直接相加或平均局部 softmax 输出">
+  <title>两个历史分区为同一查询计算局部结果；用 LSE 恢复全局权重，不能直接相加或平均局部 softmax 输出</title>
+  <defs><marker id="context-parallel-merge-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="25" y="65" width="340" height="180" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="41" y="53" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">历史分区 0</text>
+  <rect x="535" y="65" width="340" height="180" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="551" y="53" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">历史分区 1</text>
+  <path d="M195 195 L195 285 L350 285 L350 335" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#context-parallel-merge-ah-comm)"/>
+  <path d="M705 195 L705 285 L550 285 L550 335" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#context-parallel-merge-ah-comm)"/>
+  <rect x="65" y="110" width="260" height="85" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="195" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">O₀ = 10</text>
+  <text x="195" y="167.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Z₀ = 2，L₀ = log 2</text>
+  <rect x="575" y="110" width="260" height="85" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">O₁ = 30</text>
+  <text x="705" y="167.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Z₁ = 6，L₁ = log 6</text>
+  <rect x="230" y="335" width="440" height="75" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="368.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">O = ¼ × 10 + ¾ × 30 = 25</text>
+  <text x="450" y="387.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">L = log(2+6) = log 8</text>
+  <text x="30" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">局部归一化 → 全局归一化</text>
+  <text x="295" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">exp(L₀−L) = ¼</text>
+  <text x="570" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a">exp(L₁−L) = ¾</text>
+  <text x="450" y="460" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">示意用标量 V；向量输出的每个分量按相同分区权重组合</text>
+</svg>

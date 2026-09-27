@@ -1,39 +1,29 @@
 layout: figure
 id: worker-lifecycle
-caption: Worker 从被建出来到能接请求的六步；走到第四步，KV Cache 的预算才第一次存在
-size: [900, 300]
-
+caption: Worker 建立设备、权重与状态池；预算分显式与测算路径，图捕获受配置约束，请求块映射在运行时分配
+size: [900, 620]
 items:
-  - { at: [20, 110], size: [128, 62], text: 换补丁, sub: 改好上游行为, tone: control }
-  - { at: [168, 110], size: [128, 62], text: 选卡, sub: 建好干活的班子, tone: control }
-  - { at: [316, 110], size: [128, 62], text: 装权重, sub: 权重进显存, tone: weight }
-  - { at: [464, 110], size: [128, 62], text: 量显存, sub: 减出 KV 预算, tone: kv }
-  - { at: [612, 110], size: [128, 62], text: 分 KV 块, sub: 池子从此有块, tone: kv }
-  - { at: [760, 110], size: [128, 62], text: 录图, sub: 以后每步回放, tone: control }
-
-badges:
-  - { at: [20, 110], n: 1 }
-  - { at: [168, 110], n: 2 }
-  - { at: [316, 110], n: 3 }
-  - { at: [464, 110], n: 4 }
-  - { at: [612, 110], n: 5 }
-  - { at: [760, 110], n: 6 }
-
+  - { at: [25, 65], size: [215, 65], text: 进程内适配, sub: 补丁、算子、配置, tone: control }
+  - { at: [345, 65], size: [215, 65], text: 设备与通信环境, sub: HCCL 组、Runner, tone: comm }
+  - { at: [660, 65], size: [215, 65], text: 模型与权重, sub: 按加载器与并行分片, tone: weight }
+  - { at: [505, 235], size: [210, 65], text: 已指定字节预算, sub: 准备后返回指定值, tone: kv }
+  - { at: [220, 235], size: [210, 65], text: 自动测算预算, sub: 扣除非缓存开销, tone: kv }
+  - { at: [25, 390], size: [215, 65], text: 状态池分配, sub: 按 KVCacheConfig, tone: kv }
+  - { at: [345, 390], size: [215, 65], text: 预热与编译准备, sub: 按目标尺寸执行, tone: control }
+  - { at: [660, 390], size: [215, 65], text: 条件图捕获, sub: 受 eager 与图模式约束, tone: control }
 links:
-  - { from: [148, 141], to: [168, 141], tone: ink }
-  - { from: [296, 141], to: [316, 141], tone: ink }
-  - { from: [444, 141], to: [464, 141], tone: ink }
-  - { from: [592, 141], to: [612, 141], tone: ink }
-  - { from: [740, 141], to: [760, 141], tone: ink }
-
-dividers:
-  - { from: [602, 60], to: [602, 220], sides: [预算还不存在, 预算已定] }
-
+  - { from: [240, 97], to: [345, 97], tone: control }
+  - { from: [560, 97], to: [660, 97], tone: weight }
+  - { from: [767, 130], to: [610, 235], via: [[767, 180], [610, 180]], tone: kv }
+  - { from: [767, 180], to: [325, 235], via: [[325, 180]], tone: kv }
+  - { from: [325, 300], to: [132, 390], via: [[325, 345], [132, 345]], tone: kv }
+  - { from: [610, 300], to: [325, 345], via: [[610, 345]], tone: kv }
+  - { from: [240, 422], to: [345, 422], tone: control }
+  - { from: [560, 422], to: [660, 422], tone: control }
 texts:
-  - { at: [20, 250], text: 每一步的产物都是下一步的前提，顺序不能换, size: 13, note: true }
-
+  - { at: [25, 520], text: 启动产物：设备环境 / 权重 / 状态池 / 执行资源, size: 16 }
+  - { at: [25, 558], text: 请求到达 → 运行时分配器 → A / C 各自的物理块, note: true }
+  - { at: [25, 590], text: 两条预算路径都有模型准备；捕获与回放有适用条件, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110
-    symbols: [adapt_patch]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
-    symbols: [NPUWorker]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597', symbols: [determine_available_memory] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719', symbols: [compile_or_warm_up_model] }

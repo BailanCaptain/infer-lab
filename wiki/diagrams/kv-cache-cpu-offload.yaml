@@ -1,31 +1,43 @@
 layout: figure
 id: kv-cache-cpu-offload
-caption: 显存里的 KV 块被挤掉之前先拷一份到主机内存；同一段开头再来、显存里已经没了，就从主机内存拷回来，不用重算
-size: [900, 260]
-
-frames:
-  - { label: 显存（一颗 NPU）, at: [30, 60], size: [300, 170] }
-  - { label: 主机内存, at: [570, 60], size: [300, 170] }
-
-rows:
-  - { at: [55, 100], count: 5, w: 44, h: 44, gap: 8, tone: kv, faded: [4] }
-  - { at: [595, 100], count: 5, w: 44, h: 44, gap: 8, tone: kv, ghost: [2, 3, 4] }
-
+caption: 按本批预计完成的完整段规划备份，拷贝等待计算就绪；稍后的请求外部命中时回填到已分配的设备页，两次传输都要等待完成
+size: [900, 350]
+hardware:
+  - {kind: memory, at: [40, 48], size: [200, 65], label: 设备内存}
+  - {kind: memory, at: [660, 48], size: [200, 65], label: 主机内存}
+grids:
+  - at: [40, 162]
+    rows: 1
+    cols: 4
+    cell: [43, 38]
+    gap: 9
+    tone: kv
+    style: solid
+    cells:
+      - {at: [0, 0], text: "0"}
+      - {at: [0, 1], text: "1"}
+      - {at: [0, 2], text: "2"}
+      - {at: [0, 3], text: "3"}
+  - at: [660, 162]
+    rows: 1
+    cols: 4
+    cell: [43, 38]
+    gap: 9
+    tone: kv
+    style: faded
+    cells:
+      - {at: [0, 0], text: "0"}
+      - {at: [0, 1], text: "1"}
+      - {at: [0, 2], text: "2"}
+      - {at: [0, 3], text: "3"}
 links:
-  - { from: [310, 112], to: [590, 112], tone: kv }
-  - { from: [590, 134], to: [310, 134], tone: kv, dashed: true }
-
-tags:
-  - { at: [247, 160], text: 要被挤掉, tone: danger }
-
+  - {from: [250, 168], to: [650, 168], tone: comm}
+  - {from: [650, 244], to: [250, 244], tone: comm, dashed: true}
 texts:
-  - { at: [450, 102], text: 存：挤掉之前拷一份, size: 13, anchor: middle }
-  - { at: [450, 160], text: 取：同样开头再来时拷回, size: 13, anchor: middle }
-  - { at: [55, 205], text: 一个 KV 块 = 2048 个 token，20 MiB, size: 12.5, note: true }
-  - { at: [595, 205], text: 锁页内存，容量自己给, size: 12.5, note: true }
-
+  - {at: [450, 147], text: "① 规划完整段 → 等待计算 → 保存", anchor: middle, tone: comm}
+  - {at: [450, 224], text: "② 后续外部命中 → 回填 → 完成", anchor: middle, tone: comm}
+  - {at: [40, 288], text: "示例：4页组成1段，每页2 MiB", note: true}
+  - {at: [40, 320], text: "保存不以淘汰为唯一触发；回填目标需先分配，完成后才可读", note: true}
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/kv_offload/npu.py#L16-L43
-    symbols: [NPUOffloadingSpec, CPUOffloadingManager]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/kv_offload/cpu_npu.py#L54-L230
-    symbols: [CpuNpuOffloadingHandler, d2h_stream, h2d_stream]
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806
+    symbols: [prepare_store]

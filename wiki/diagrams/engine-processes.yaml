@@ -1,28 +1,144 @@
 layout: figure
 id: engine-processes
-caption: 两颗 NPU 上跑起来是四个进程：Main 把问题切成 token 交给 EngineCore，EngineCore 每一步把同一份清单发给两个 Worker，每个 Worker 守一颗 NPU、手里是一半的模型
-size: [900, 370]
-
+caption: 一种多进程执行布局：进程有各自地址空间，并通过显式通道交接；Worker 中既有长期权重/状态，也有本轮张量
+size:
+- 900
+- 510
 frames:
-  - { label: Main 进程, at: [20, 110], size: [180, 170] }
-  - { label: EngineCore 进程, at: [270, 110], size: [210, 170] }
-  - { label: Worker 进程 · NPU 0, at: [560, 40], size: [320, 130] }
-  - { label: Worker 进程 · NPU 1, at: [560, 220], size: [320, 130] }
-
+- at:
+  - 25
+  - 65
+  size:
+  - 190
+  - 170
+  label: 前端进程
+- at:
+  - 260
+  - 65
+  size:
+  - 240
+  - 170
+  label: EngineCore 进程
+- at:
+  - 555
+  - 65
+  size:
+  - 320
+  - 370
+  label: Worker 进程 · rank r
 items:
-  - { at: [45, 170], size: [130, 50], text: 分词, tone: token }
-  - { at: [305, 170], size: [140, 50], text: 调度器, tone: control }
-  - { at: [620, 80], size: [200, 50], text: 一半的模型, tone: weight }
-  - { at: [620, 260], size: [200, 50], text: 一半的模型, tone: weight }
-
+- at:
+  - 45
+  - 125
+  size:
+  - 150
+  - 65
+  text: 请求 / 输出
+  tone: token
+- at:
+  - 280
+  - 120
+  size:
+  - 200
+  - 65
+  text: 调度与资源记录
+  tone: control
+- at:
+  - 585
+  - 120
+  size:
+  - 260
+  - 65
+  text: Runner / 模型对象
+  tone: weight
+- at:
+  - 585
+  - 340
+  size:
+  - 120
+  - 50
+  text: 持久请求映射
+  tone: control
+- at:
+  - 725
+  - 340
+  size:
+  - 120
+  - 50
+  text: 本轮张量
+  tone: token
+hardware:
+- kind: memory
+  at:
+  - 585
+  - 240
+  size:
+  - 120
+  - 60
+  label: 权重
+- kind: memory
+  at:
+  - 725
+  - 240
+  size:
+  - 120
+  - 60
+  label: 历史状态
 links:
-  - { from: [175, 195], to: [305, 195], tone: token }
-
-fans:
-  - { from: [445, 195], to: [[620, 105], [620, 285]], tone: control }
-
-pins:
-  - source: vllm@0fc695fc:vllm/config/parallel.py#L845-L851
-    symbols: [distributed_executor_backend]
-  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L176-L192
-    symbols: [make_worker_process]
+- from:
+  - 215
+  - 150
+  to:
+  - 260
+  - 150
+  tone: control
+- from:
+  - 500
+  - 150
+  to:
+  - 555
+  - 150
+  tone: control
+- from:
+  - 645
+  - 240
+  to:
+  - 645
+  - 185
+  tone: weight
+- from:
+  - 785
+  - 185
+  to:
+  - 785
+  - 240
+  tone: kv
+  ends: both
+- from:
+  - 555
+  - 405
+  to:
+  - 380
+  - 235
+  tone: token
+  via:
+  - - 380
+    - 405
+- from:
+  - 300
+  - 235
+  to:
+  - 120
+  - 235
+  via:
+  - - 300
+    - 370
+  - - 120
+    - 370
+  tone: token
+texts:
+- at:
+  - 50
+  - 470
+  text: Worker 落位由执行器与启动方式决定
+  note: true

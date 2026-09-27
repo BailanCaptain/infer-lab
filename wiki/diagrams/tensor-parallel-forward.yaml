@@ -1,0 +1,62 @@
+layout: figure
+id: tensor-parallel-forward
+caption: 一个 decoder 层的通信边界：attention 后先归约，再按层型选择稠密 MLP 或 MoE。MoE 两栏互斥，共享分支与外层入口的归约位置互补，每条路径只计一次 TP All-Reduce。按默认关闭共享专家多 stream 重叠的顺序画；embedding 和 lm_head 在层外另计。
+size: [900, 1380]
+frames:
+  - { at: [40, 450], size: [820, 155], label: 前 3 层 · 稠密 MLP }
+  - { at: [40, 666], size: [820, 575], label: 后 42 层 · MoE，按两组最大行数二选一 }
+items:
+  - { at: [270, 28], size: [360, 52], text: '层入口 · 四路 hidden [T,4,4096]', tone: token }
+  - { at: [270, 112], size: [360, 52], text: mHC 入口混合 + 归一化, sub: '本地得到 [T,4096]', style: plain }
+  - { at: [270, 196], size: [360, 52], text: 本卡 KDA 或稀疏 MLA, sub: 各算自己的 8 个头, tone: weight }
+  - { at: [270, 280], size: [360, 58], text: 输出投影 → TP8 All-Reduce, sub: '每卡 [T,4096] BF16', tone: comm }
+  - { at: [270, 365], size: [360, 40], text: mHC 出口 → MLP 入口混合与归一化, style: plain }
+  - { at: [70, 490], size: [220, 66], text: 升维 → SwiGLU, sub: '本地 [T,1536]', tone: weight }
+  - { at: [340, 490], size: [220, 66], text: 降维投影, sub: '部分和 [T,4096]', tone: weight }
+  - { at: [610, 490], size: [220, 66], text: TP8 All-Reduce, sub: '完整 [T,4096]', tone: comm }
+  - { at: [290, 710], size: [320, 42], text: 选择一种 MoE 通信路径, style: plain }
+  - { at: [80, 816], size: [350, 52], text: 路由输入 · 本地补齐并切行, sub: 'R1 每卡 1 行，4 张卡为补齐行', tone: token }
+  - { at: [80, 896], size: [350, 52], text: EP16 dispatch → 专家 → combine, sub: 这两次通信横跨两台机器, tone: comm }
+  - { at: [80, 976], size: [350, 52], text: TP8 All-Gather · finalize, sub: 拼回所有 token 行，去掉补齐, tone: comm }
+  - { at: [80, 1056], size: [350, 52], text: 共享专家 → TP8 All-Reduce, sub: 共享分支在此归约一次, tone: comm }
+  - { at: [80, 1136], size: [350, 64], text: 与路由结果相加, sub: 外层入口直接返回 · 不再归约, style: plain }
+  - { at: [470, 816], size: [350, 52], text: DP2 All-Gather × 2, sub: 收集 hidden 与 router logits, tone: comm }
+  - { at: [470, 896], size: [350, 52], text: 本卡 18 个路由专家, sub: 计算本卡专家的贡献, tone: weight }
+  - { at: [470, 976], size: [350, 52], text: DP2 Reduce-Scatter · 路由结果, sub: 归约并还原本组 token 行, tone: comm }
+  - { at: [470, 1056], size: [350, 52], text: 共享专家 · 完整本组输入, sub: 共享分支暂不归约, tone: weight }
+  - { at: [470, 1136], size: [350, 64], text: 结果相加 → TP8 All-Reduce, sub: 外层入口在此归约一次, tone: comm }
+  - { at: [250, 1285], size: [400, 52], text: 'mHC 出口混合 → 下一层 [T,4,4096]', tone: token }
+links:
+  - { from: [450, 80], to: [450, 112] }
+  - { from: [450, 164], to: [450, 196] }
+  - { from: [450, 248], to: [450, 280] }
+  - { from: [450, 338], to: [450, 365] }
+  - { from: [270, 385], to: [230, 490], via: [[230, 385]] }
+  - { from: [630, 385], to: [610, 731], via: [[884, 385], [884, 731]] }
+  - { from: [290, 523], to: [340, 523] }
+  - { from: [560, 523], to: [610, 523] }
+  - { from: [720, 556], to: [250, 1311], via: [[720, 632], [16, 632], [16, 1311]] }
+  - { from: [360, 752], to: [80, 842], via: [[360, 766], [60, 766], [60, 842]] }
+  - { from: [540, 752], to: [820, 842], via: [[540, 766], [840, 766], [840, 842]] }
+  - { from: [255, 868], to: [255, 896] }
+  - { from: [255, 948], to: [255, 976] }
+  - { from: [255, 1028], to: [255, 1056] }
+  - { from: [255, 1108], to: [255, 1136] }
+  - { from: [255, 1200], to: [370, 1285], via: [[255, 1260], [370, 1260]] }
+  - { from: [645, 868], to: [645, 896] }
+  - { from: [645, 948], to: [645, 976] }
+  - { from: [645, 1028], to: [645, 1056] }
+  - { from: [645, 1108], to: [645, 1136] }
+  - { from: [645, 1200], to: [530, 1285], via: [[645, 1260], [530, 1260]] }
+texts:
+  - { at: [66, 580], text: 稠密层：attention 一次归约 + MLP 一次归约, size: 13 }
+  - { at: [75, 797], text: MC2 · 最大行数 ≤ 128（R1）, strong: true }
+  - { at: [490, 797], text: AllGather · > 128（场景 M）, strong: true }
+  - { at: [205, 1364], text: 两种层型都在第二个子层结束后回到 mHC 出口。, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2195-L2238
+    symbols: [hc_pre, hc_post, self_attn, mlp]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L718
+    symbols: [_forward_shared_experts, tensor_model_parallel_all_reduce, shared_forward_impl]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L208-L290
+    symbols: [all_gather, tensor_split]

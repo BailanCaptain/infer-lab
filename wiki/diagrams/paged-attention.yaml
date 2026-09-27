@@ -1,45 +1,223 @@
 layout: figure
 id: paged-attention
-caption: KV 按定长块分配：写满才要下一块，块在显存里不用挨着；一块 2048 个位置，那条请求写 237 个就答完了——浪费上限是不足一块
-size: [900, 400]
-
-frames:
-  - label: 一颗 NPU 显存里的 KV 块（每块 2048 个位置，大小定死）
-    at: [30, 56]
-    size: [840, 120]
-
-items:
-  - { at: [54, 92], size: [120, 56], text: 请求 B, tone: kv, style: faded }
-  - { at: [189, 92], size: [120, 56], text: 空闲, style: plain }
-  - { at: [324, 92], size: [120, 56], text: 这条请求, tone: kv, style: solid }
-  - { at: [459, 92], size: [120, 56], text: 请求 B, tone: kv, style: faded }
-  - { at: [594, 92], size: [120, 56], text: 空闲, style: plain }
-  - { at: [729, 92], size: [120, 56], text: 空闲, style: plain }
-
-texts:
-  - { at: [30, 28], text: 要一块给一块，谁要给谁——块和块不用挨着，靠块表对回去, size: 14, strong: true }
-  - { at: [54, 200], text: 请求 B 写满了第一块才拿到第二块，两块中间隔着别人, size: 12.5, note: true }
-  - { at: [54, 252], text: 放大「这条请求」的那一块, size: 13.5, strong: true }
-  - { at: [54, 356], text: 237 个 token 一块就装下；空着的 1811 个位置别的请求拿不走, size: 12.5 }
-
+caption: B=4 的普通分页示意：请求 A、B 的逻辑顺序由块表保存，物理块可以分散；图中无共享、无额外预留
+size:
+- 900
+- 430
+rows: []
 links:
-  - { from: [384, 152], to: [384, 268], tone: ink, dashed: true }
-
-bars:
-  - at: [54, 276]
-    h: 30
-    scale: 0.39
-    frame: { value: 2048, label: 一块 = 2048 个位置, tone: kv }
-    segments:
-      - { value: 237, tone: kv, text: 写了 237 }
-
-tags:
-  - { at: [560, 250], text: 浪费上限：不足一块 }
-
-pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L101-L143
-    symbols: [get_kv_cache_shape, get_supported_kernel_block_sizes]
-  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L127-L141
-    symbols: [attn_block_size, kernel_block_size]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L231-L240
-    symbols: [max_num_blocks_per_req]
+- from:
+  - 109
+  - 127
+  to:
+  - 634
+  - 290
+  via:
+  - - 109
+    - 185
+  - - 634
+    - 185
+  tone: token
+- from:
+  - 199
+  - 127
+  to:
+  - 254
+  - 290
+  via:
+  - - 199
+    - 160
+  - - 254
+    - 160
+  tone: token
+- from:
+  - 289
+  - 127
+  to:
+  - 786
+  - 290
+  via:
+  - - 289
+    - 210
+  - - 786
+    - 210
+  tone: token
+- from:
+  - 569
+  - 127
+  to:
+  - 178
+  - 290
+  via:
+  - - 569
+    - 237
+  - - 178
+    - 237
+  tone: control
+  dashed: true
+- from:
+  - 659
+  - 127
+  to:
+  - 406
+  - 290
+  via:
+  - - 659
+    - 262
+  - - 406
+    - 262
+  tone: control
+  dashed: true
+texts:
+- at:
+  - 70
+  - 40
+  text: A 的块表 [7,2,9]
+  strong: true
+- at:
+  - 530
+  - 40
+  text: B 的块表 [1,4]
+  strong: true
+- at:
+  - 450
+  - 370
+  text: 物理块号从左至右 0–9；每个块包含 4 个位置
+  anchor: middle
+  size: 13
+items:
+- at:
+  - 70
+  - 85
+  size:
+  - 78
+  - 42
+  text: A₀
+  tone: token
+  style: solid
+- at:
+  - 160
+  - 85
+  size:
+  - 78
+  - 42
+  text: A₁
+  tone: token
+  style: solid
+- at:
+  - 250
+  - 85
+  size:
+  - 78
+  - 42
+  text: A₂
+  tone: token
+  style: solid
+- at:
+  - 530
+  - 85
+  size:
+  - 78
+  - 42
+  text: B₀
+  tone: control
+  style: solid
+- at:
+  - 620
+  - 85
+  size:
+  - 78
+  - 42
+  text: B₁
+  tone: control
+  style: solid
+- at:
+  - 70
+  - 290
+  size:
+  - 64
+  - 44
+  text: 空
+  tone: kv
+  style: solid
+- at:
+  - 146
+  - 290
+  size:
+  - 64
+  - 44
+  text: B₀
+  tone: kv
+  style: solid
+- at:
+  - 222
+  - 290
+  size:
+  - 64
+  - 44
+  text: A₁
+  tone: kv
+  style: solid
+- at:
+  - 298
+  - 290
+  size:
+  - 64
+  - 44
+  text: 空
+  tone: kv
+  style: solid
+- at:
+  - 374
+  - 290
+  size:
+  - 64
+  - 44
+  text: B₁
+  tone: kv
+  style: solid
+- at:
+  - 450
+  - 290
+  size:
+  - 64
+  - 44
+  text: 空
+  tone: kv
+  style: solid
+- at:
+  - 526
+  - 290
+  size:
+  - 64
+  - 44
+  text: 空
+  tone: kv
+  style: solid
+- at:
+  - 602
+  - 290
+  size:
+  - 64
+  - 44
+  text: A₀
+  tone: kv
+  style: solid
+- at:
+  - 678
+  - 290
+  size:
+  - 64
+  - 44
+  text: 空
+  tone: kv
+  style: solid
+- at:
+  - 754
+  - 290
+  size:
+  - 64
+  - 44
+  text: A₂
+  tone: kv
+  style: solid

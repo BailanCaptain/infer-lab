@@ -1,0 +1,31 @@
+layout: figure
+id: concurrent-request-preempt
+caption: 默认先来先服务策略下，running 请求续块失败才进入这条循环。先回收队尾请求的块，再重试当前请求；若回收的就是当前请求，本轮停止遍历 running。
+size: [840, 760]
+items:
+  - { at: [210, 22], size: [420, 62], text: 为 running 当前请求申请块号, sub: 预留本步计算和后续候选的位置, tone: kv }
+  - { at: [210, 136], size: [420, 56], text: 是否拿到所需的块？, style: plain }
+  - { at: [26, 264], size: [338, 66], text: 成功：记录本步数量并扣预算, sub: → 回到调度图，处理下一条 running, tone: token }
+  - { at: [452, 264], size: [362, 66], text: 失败：从 running 队尾取一条, sub: 让这条请求让出缓存位置, tone: danger }
+  - { at: [452, 388], size: [362, 76], text: 收回 KV 块、清零已计算位置, sub: 清空候选，放回 waiting 队首, tone: kv }
+  - { at: [452, 526], size: [362, 56], text: 被抢占的是当前请求？, style: plain }
+  - { at: [452, 664], size: [362, 58], text: 是：结束 running 遍历, sub: 本轮已有抢占，跳过 waiting 接纳, style: plain }
+links:
+  - { from: [420, 84], to: [420, 136] }
+  - { from: [310, 192], to: [195, 264], via: [[195, 224]] }
+  - { from: [530, 192], to: [633, 264], via: [[633, 224]] }
+  - { from: [633, 330], to: [633, 388] }
+  - { from: [633, 464], to: [633, 526] }
+  - { from: [633, 582], to: [633, 664] }
+  - { from: [452, 554], to: [210, 53], via: [[394, 554], [394, 622], [10, 622], [10, 53]] }
+texts:
+  - { at: [211, 247], text: 是, size: 14 }
+  - { at: [651, 247], text: 否, size: 14 }
+  - { at: [422, 540], text: 否, size: 14 }
+  - { at: [32, 608], text: 重试当前请求；可连续回收多条直到够用, size: 14 }
+  - { at: [651, 628], text: 是, size: 14 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L459-L509
+    symbols: [allocate_slots, _preempt_request]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995
+    symbols: [_preempt_request, num_computed_tokens, spec_token_ids]

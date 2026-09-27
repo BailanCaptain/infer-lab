@@ -65,7 +65,7 @@ rawSources:
 
 官方默认 `False`，理由写在参数表里：与序列并行冲突 [S9]。但 v0.23.0 上真正决定这个 pass 要不要注册的那段代码读的是另一个值、缺省写成 `True`——这个坑单独说，见下文 [!]。
 
-**[那条请求](../concepts/one-request.md)用不到它。** 单卡 TP=1，子图里压根没有那次 TP AllReduce，pattern 无从匹配；就算有，37 个 token 也够不着 512 的门槛 [D]。要碰它得同时满足三件事：TP>1、走图模式、每步 token 数超过 512。
+**本页旧算例用不到它。** 单卡 TP=1，子图里压根没有那次 TP AllReduce，pattern 无从匹配；就算有，37 个 token 也够不着 512 的门槛 [D]。要碰它得同时满足三件事：TP>1、走图模式、每步 token 数超过 512。
 
 **存在范围。** 它到 v0.24.0rc 为止还在，**v0.25.1rc 起**开关、`allreduce_rmsnorm_fusion_pass.py` 与官方表里的那一行一并删除，v0.26 分支（2026-09-17 的源码快照）和 main 上都没有，PR 号见下面「版本谱系」。**这个键是嵌套键，两边失效的方式不一样** [!]：v0.26 的 `AscendCompilationConfig.__init__` 仍带 `**kwargs`，`fuse_allreduce_rms` 被 kwargs 吞掉、没人再读 [C20]，配了不报错也不生效；main 的同一个类改成了 `extra="forbid"` 的类型化配置，同一份配置启动就被当拼写错误拒掉。
 

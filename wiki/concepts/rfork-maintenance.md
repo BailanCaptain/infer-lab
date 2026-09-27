@@ -108,11 +108,11 @@ rawSources:
 | 改到的区域 | 至少回看哪些页 |
 |---|---|
 | 配置、端口、网络端点 | [配置](rfork-config.md)、[排错](rfork-troubleshooting.md)、[总览里的架构图](rfork.md) |
-| 身份、rank、draft 判断 | [身份](rfork-identity.md)、[术语](rfork-terms.md)、[排错](rfork-troubleshooting.md)里找不到来源的那部分 |
-| 权重采集、布局、量化方法 | [布局](rfork-layout.md)、[内存](rfork-memory.md)、[传输](rfork-transfer.md)、输出一致性验收 |
-| 传输内存的登记、注销、收尾 | [内存](rfork-memory.md)、[生命周期](rfork-lifecycle.md)、[排错](rfork-troubleshooting.md)里清理失败的那部分 |
+| 身份、rank、draft 判断 | [身份](rfork-identity.md)、[排错](rfork-troubleshooting.md)里找不到来源的那部分 |
+| 权重采集、布局、量化方法 | [布局](rfork-layout.md)、[传输](rfork-transfer.md)、[传输](rfork-transfer.md)、输出一致性验收 |
+| 传输内存的登记、注销、收尾 | [传输](rfork-transfer.md)、[生命周期](rfork-lifecycle.md)、[排错](rfork-troubleshooting.md)里清理失败的那部分 |
 | 会话、租约、Planner 协议 | [启动](rfork-startup.md)、[生命周期](rfork-lifecycle.md)、[配置](rfork-config.md)、[排错](rfork-troubleshooting.md)里 400/404 的那部分 |
-| 回退、全局模型引用 | [启动](rfork-startup.md)、[内存](rfork-memory.md)、[排错](rfork-troubleshooting.md)里 OOM 的那部分 |
+| 回退、全局模型引用 | [启动](rfork-startup.md)、[传输](rfork-transfer.md)、[排错](rfork-troubleshooting.md)里 OOM 的那部分 |
 
 完整的操作规程只写在一处（位置见下半），包括保存原件、确认基线、先试打再正式打、导出快照、重算哈希和同步来源。知识页不再抄第二套维护步骤。
 

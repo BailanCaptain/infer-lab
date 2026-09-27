@@ -215,31 +215,40 @@ describe("lintPages · HANDBOOK 新规则", () => {
     expect(lintPages([mkRaw("a", {}, fullBody)], opts).map((p) => p.rule)).not.toContain("missing-section");
   });
 
-  describe("两层结构：上半讲给初学者，下半「对照源码」用固定小标题", () => {
+  describe("教学分节按主题组织，证据可就近出现", () => {
     const upper = "## 一个模型装不下\n讲解。";
-    it("对照源码下只用固定的五个小标题、按顺序，用不上的可以不写", () => {
+    it("兼容旧页的五类小标题", () => {
       const body = `${upper}\n## 对照源码\n### 怎么开\n开法 [C1]\n### 版本差异\n差异 [C1]\n### 源码位置\n位置 [C1]`;
       const rules = lintPages([mkRaw("a", {}, body)], opts).map((p) => p.rule);
       expect(rules).not.toContain("source-half-heading");
       expect(rules).not.toContain("mark-in-upper-half");
     });
-    it("自造的小标题、打乱顺序都报 source-half-heading", () => {
+    it("对照源码允许按本页职责组织小节，不强制开关模板和顺序", () => {
       const invented = `${upper}\n## 对照源码\n### 实现细节\nx`;
       const shuffled = `${upper}\n## 对照源码\n### 源码位置\nx\n### 怎么开\ny`;
       for (const body of [invented, shuffled]) {
         const bad = lintPages([mkRaw("a", {}, body)], opts).filter((p) => p.rule === "source-half-heading");
-        expect(bad.length).toBe(1);
+        expect(bad).toEqual([]);
       }
     });
-    it("证据标记出现在上半报 mark-in-upper-half；代码块里的方括号不算", () => {
-      const bad = `## 一个模型装不下\n专家有 60 GiB [C1]。\n## 对照源码\n### 源码位置\n位置 [C1]`;
-      expect(lintPages([mkRaw("a", {}, bad)], opts).map((p) => p.rule)).toContain("mark-in-upper-half");
-      const fenced = `## 一个模型装不下\n\`\`\`text\nx[C1]\n\`\`\`\n## 对照源码\n### 源码位置\n位置 [C1]`;
-      expect(lintPages([mkRaw("a", {}, fenced)], opts).map((p) => p.rule)).not.toContain(
-        "mark-in-upper-half",
+    it("讲解中的引用可就近出现，错误编号仍然拒收", () => {
+      const body = `## 请求交给谁\nScheduler 的职责有来源 [C1]。\n## 对照源码\n### 调度输入与状态\n位置 [C1]`;
+      const formatRules = ["mark-in-upper-half", "source-half-heading", "mark-index"];
+      const problems = lintPages([mkRaw("a", {}, body)], opts);
+      expect(problems.filter((p) => formatRules.includes(p.rule))).toEqual([]);
+      for (const type of ["concept", "feature"] as const) {
+        const invalid = body.replace("来源 [C1]", "来源 [C2]");
+        expect(lintPages([mkRaw("a", { type }, invalid)], opts).map((p) => p.rule)).toContain("mark-index");
+      }
+    });
+    it.each(["```", "~~~~"])("%s 代码围栏里的方括号不是引用，围栏外仍检查", (fence) => {
+      const fenced = `## 一个模型装不下\n${fence}text\nx[C99]\n${fence}\n## 对照源码\n### 源码位置\n位置 [C1]`;
+      expect(lintPages([mkRaw("a", {}, fenced)], opts).map((p) => p.rule)).not.toContain("mark-index");
+      expect(lintPages([mkRaw("a", {}, `${fenced}\n结论 [C99]`)], opts).map((p) => p.rule)).toContain(
+        "mark-index",
       );
     });
-    it("还没改写、没有「对照源码」的旧页不查这两条", () => {
+    it("不强制为概念页另设「对照源码」段", () => {
       const rules = lintPages([mkRaw("a", {}, "## 一句话\n结论 [C1]")], opts).map((p) => p.rule);
       expect(rules).not.toContain("mark-in-upper-half");
       expect(rules).not.toContain("source-half-heading");

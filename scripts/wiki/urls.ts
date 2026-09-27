@@ -64,9 +64,8 @@ export async function checkUrls(
     for (let next = queue.shift(); next; next = queue.shift()) {
       const [url, files] = next;
       let res = await fetcher(url, "HEAD");
-      // 不少站点不认 HEAD（405 / 403 / 501），换 GET 再问一次才算数
-      if (verdictOf(res) !== "ok" && res.status !== 404 && res.status !== 410)
-        res = await fetcher(url, "GET");
+      // 不少站点不认 HEAD，甚至返回 404（如 ModelScope API）；用 GET 确认。
+      if (verdictOf(res) !== "ok" && res.status !== 410) res = await fetcher(url, "GET");
       results.push({
         url,
         files,

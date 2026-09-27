@@ -1,39 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="一次归一化从上游落到 AI Core：分岔一边是自己编的融合算子（要过构建），一边是 CANN 现成算子">
-  <title>一次归一化从上游落到 AI Core：分岔一边是自己编的融合算子（要过构建），一边是 CANN 现成算子</title>
-  <defs><marker id="op-to-ai-core-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="op-to-ai-core-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="op-to-ai-core-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M20 388 L440 388" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
-  <text x="20" y="378" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">Python，改了就生效</text>
-  <text x="20" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">构建产物，改了要重编</text>
-  <path d="M450 88 L450 112" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
-  <path d="M450 180 L240 240" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
-  <path d="M450 180 L670 240" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-ink)"/>
-  <path d="M240 332 L240 416" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
-  <path d="M240 484 L240 508" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
-  <rect x="230" y="24" width="440" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">上游 vLLM 分派</text>
-  <text x="450" y="71" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台自报「树外」，调用交给昇腾</text>
-  <rect x="230" y="116" width="440" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="144" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">昇腾接住这次归一化</text>
-  <text x="450" y="163" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">带着残差进来，走到一处分岔</text>
-  <rect x="60" y="244" width="360" height="88" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="240" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">自己编的融合算子</text>
-  <text x="240" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">加残差、归一化、加偏置一次做完</text>
-  <rect x="480" y="244" width="380" height="88" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">CANN 现成算子</text>
-  <text x="670" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">加残差、归一化；偏置另跑一趟</text>
-  <rect x="60" y="420" width="360" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="240" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">切分计划（CPU 上现算）</text>
-  <text x="240" y="467" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一趟往片上缓存搬多少个数</text>
-  <rect x="60" y="512" width="360" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="240" y="540" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">核函数（AI Core 上跑）</text>
-  <text x="240" y="559" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按切分的号码挑一条模板</text>
-  <text x="480" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">偏置只有带量化偏置的模型才有；这条 bf16 请求两边等价</text>
-  <text x="480" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">CANN 算子已经编好，停在这一侧不用碰构建</text>
-  <text x="480" y="560" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">一步 80 次、200 步 16000 次，都从最上面进来</text>
-  <rect x="480" y="340" width="167" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
-  <text x="563.5" y="357" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">带偏置的模型多一趟搬运</text>
-  <circle cx="200" cy="56" r="11" fill="var(--color-ink, #17211f)"/><text x="200" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
-  <circle cx="200" cy="148" r="11" fill="var(--color-ink, #17211f)"/><text x="200" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
-  <circle cx="36" cy="452" r="11" fill="var(--color-ink, #17211f)"/><text x="36" y="457" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
-  <circle cx="36" cy="544" r="11" fill="var(--color-ink, #17211f)"/><text x="36" y="549" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="上方是 GLM 的无 residual 归一化调用；下方另以可选残差融合扩展展示 Host 分块与设备内存访问">
+  <title>上方是 GLM 的无 residual 归一化调用；下方另以可选残差融合扩展展示 Host 分块与设备内存访问</title>
+  <defs><marker id="op-to-ai-core-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="op-to-ai-core-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="20" y="25" width="860" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="13" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">GLM mHC 路径中的 RMSNorm</text>
+  <rect x="20" y="235" width="860" height="440" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">实现对照：残差相加 + RMSNorm + 可选 bias</text>
+  <rect x="345" y="425" width="220" height="185" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="361" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AI Core 局部计算</text>
+  <g data-hardware="memory">
+  <rect x="50" y="470" width="190" height="80" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M55 542h180M55 546h180" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="145" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">全局内存输入</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="395" y="475" width="120" height="55" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M400 522h110M400 526h110" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="455" y="506.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">局部缓冲区</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="660" y="470" width="190" height="80" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M665 542h180M665 546h180" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="755" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">全局内存输出</text>
+  </g>
+  <path d="M240 110 L305 110" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
+  <path d="M545 110 L610 110" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
+  <path d="M295 335 L365 335" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
+  <path d="M600 335 L655 335" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
+  <path d="M752 365 L752 400 L590 400 L590 450 L565 450" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-control)"/>
+  <path d="M240 510 L290 510 L290 502 L395 502" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
+  <path d="M515 502 L610 502 L610 510 L660 510" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#op-to-ai-core-ah-token)"/>
+  <rect x="45" y="83" width="195" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="142.5" y="106.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">子层输入</text>
+  <text x="142.5" y="125.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[T, 4096]</text>
+  <rect x="305" y="83" width="240" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="425" y="106.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AscendRMSNorm</text>
+  <text x="425" y="125.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">未传入 residual</text>
+  <rect x="610" y="83" width="240" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="106.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已有 RMSNorm 接口</text>
+  <text x="730" y="125.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">归一化并输出同形张量</text>
+  <rect x="45" y="305" width="250" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="170" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Host 分块规划</text>
+  <text x="170" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">形状 / 精度 / 设备约束</text>
+  <rect x="365" y="305" width="235" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="482.5" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">tiling 参数与 key</text>
+  <text x="482.5" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选择核函数模板</text>
+  <rect x="655" y="305" width="195" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="752.5" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">设备 kernel</text>
+  <text x="752.5" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">处理分配的行与块</text>
+  <text x="455" y="560" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">相加 / 归约 / 缩放</text>
+  <text x="45" y="642" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">下方展示访问关系与分块职责，不表示物理封装尺寸或性能比例</text>
 </svg>

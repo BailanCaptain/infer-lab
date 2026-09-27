@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" width="900" height="580" role="img" aria-label="一个 token 在一个 MoE 层：router 从 288 个路由专家中选 8 个，另有 1 个所有 token 都过的共享专家；每个专家 4096 → 2048 → 4096；连线不代表设备放置">
+  <title>一个 token 在一个 MoE 层：router 从 288 个路由专家中选 8 个，另有 1 个所有 token 都过的共享专家；每个专家 4096 → 2048 → 4096；连线不代表设备放置</title>
+  <defs><marker id="glm-flash-moe-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="glm-flash-moe-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="34" y="192" width="555" height="234" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="50" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">路由专家池 · 288 个</text>
+  <rect x="646" y="192" width="220" height="234" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="662" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">共享分支</text>
+  <path d="M326 51 L192 51 L192 114" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M575 51 L756 51 L756 246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M380 72 L380 177 L312 177 L312 227" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M88 135 L19 135 L19 268 L76 268" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M296 135 L612 135 L612 451 L363 451 L363 378 L335 378" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M210 326 L210 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M756 290 L756 518 L469 518" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M210 400 L210 518 L431 518" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M450 537 L450 559" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M312 227 L102 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L162 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L222 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L282 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L342 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L402 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L462 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M312 227 L522 246" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-token)"/>
+  <path d="M102 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M162 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M222 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M282 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M342 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M402 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M462 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <path d="M522 290 L210 326" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-moe-ah-ink)"/>
+  <rect x="76" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="136" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="196" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="256" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="316" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="376" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="436" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="496" y="246" width="52" height="44" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="326" y="30" width="249" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450.5" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前 token 的隐藏向量</text>
+  <rect x="88" y="114" width="208" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="192" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">router 打分，选前 8 个</text>
+  <rect x="390" y="334" width="160" height="66" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="470" y="363" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">其余 280 个</text>
+  <text x="470" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">本 token 不选</text>
+  <rect x="688" y="246" width="136" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="756" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享专家 × 1</text>
+  <rect x="85" y="356" width="250" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="383" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">8 路输出按路由权重组合</text>
+  <circle cx="450" cy="518" r="19" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="524" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text>
+  <text x="390" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56">隐藏向量</text>
+  <text x="404" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">组合权重</text>
+  <text x="75" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">选中的 8 个专家</text>
+  <text x="562" y="566" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">输出宽度仍为 4096</text>
+</svg>

@@ -1,0 +1,30 @@
+layout: figure
+id: platform-startup-contract
+caption: A0 内的平台交接按启动先后展开；配置失败在建卡前退出，成功后由 Worker 加载模型并继续后端相关调整
+size: [880, 670]
+items:
+  - { at: [80, 50], size: [500, 62], text: 取得当前平台, sub: 插件发现 → 当前进程的平台对象, tone: control }
+  - { at: [80, 155], size: [500, 62], text: 平台准备, sub: 参数解析或配置构造前：补丁与类型注册, tone: control }
+  - { at: [80, 260], size: [500, 72], text: VllmConfig → 平台校验, sub: 检查组合、调整配置、选择 Worker 类, tone: control }
+  - { at: [645, 267], size: [205, 58], text: 组合不受支持, sub: 报错并停止启动, tone: danger }
+  - { at: [80, 385], size: [500, 72], text: NPUWorker 启动, sub: 初始化设备与通信 → 加载模型, tone: control }
+  - { at: [80, 510], size: [500, 62], text: 后端相关配置调整入口, sub: 之后量显存、建缓存、捕获执行图, tone: kv }
+links:
+  - { from: [330, 112], to: [330, 155], tone: control }
+  - { from: [330, 217], to: [330, 260], tone: control }
+  - { from: [580, 296], to: [645, 296], tone: danger }
+  - { from: [330, 332], to: [330, 385], tone: control }
+  - { from: [330, 457], to: [330, 510], tone: control }
+badges:
+  - { at: [49, 81], n: 1, tone: control }
+  - { at: [49, 186], n: 2, tone: control }
+  - { at: [49, 296], n: 3, tone: control }
+  - { at: [49, 421], n: 4, tone: control }
+texts:
+  - { at: [356, 359], text: 通过, note: true }
+  - { at: [30, 24], text: A0 部署启动：本图展开平台交接，完整进程链见调用链页 }
+  - { at: [30, 621], text: 就绪后 → A1 接收请求 → 调度与准备输入 → A4 模型计算 }
+pins:
+  - { source: 'vllm@0fc695fc:vllm/config/vllm.py#L1335-L1353', symbols: [VllmConfig, check_and_update_config] }
+  - { source: 'vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L618-L652', symbols: [update_block_size_for_backend] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L678', symbols: [NPUWorker] }

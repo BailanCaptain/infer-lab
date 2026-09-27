@@ -37,11 +37,15 @@ export const CITABLE_DOMAINS: CitableDomain[] = [
   { domain: "gitee.com", prefix: "/ascend/", kind: "official" },
   { domain: "gitcode.com", prefix: "/Ascend/", kind: "official" },
   { domain: "gitcode.com", prefix: "/cann/", kind: "official" },
+  { domain: "quay.io", prefix: "/api/v1/repository/ascend/vllm-ascend/", kind: "official" },
+  { domain: "quay.io", prefix: "/v2/ascend/vllm-ascend/", kind: "official" },
   { domain: "arxiv.org", kind: "paper" },
   { domain: "pytorch.org", kind: "ecosystem" },
+  { domain: "docs.pytorch.org", kind: "ecosystem" },
   { domain: "triton-lang.org", kind: "ecosystem" },
   { domain: "huggingface.co", kind: "ecosystem" },
   { domain: "modelscope.cn", kind: "ecosystem" },
+  { domain: "www.modelscope.cn", kind: "ecosystem" },
   { domain: "modelers.cn", kind: "ecosystem" },
 ];
 

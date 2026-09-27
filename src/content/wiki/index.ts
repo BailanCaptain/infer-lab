@@ -50,12 +50,20 @@ export function sourceUrl(ref: RepoRef): string | null {
     : `${base}#L${ref.lineStart}-L${ref.lineEnd}`;
 }
 
-/** 正文里的相对 markdown 链接改写成 hash 路由；外链与锚点原样返回。 */
-export function rewriteRelativeLink(href: string): string {
-  if (/^[a-z]+:/i.test(href) || href.startsWith("#") || href.startsWith("/")) return href;
-  if (!href.endsWith(".md")) return href;
-  const file = href.slice(href.lastIndexOf("/") + 1, -".md".length);
-  return pageHref(file);
+/**
+ * 正文里的相对 markdown 链接改写成 hash 路由，`#锚点` 跟着带过去（锚点规则见 anchors.ts）。
+ * 站点是 hash 路由，页内的裸 `#锚点` 会被当成路径；传了当前页 id 就挂到当前页上。
+ * 外链、站内路由与绝对路径原样返回。
+ */
+export function rewriteRelativeLink(href: string, currentId?: string): string {
+  if (/^[a-z]+:/i.test(href) || href.startsWith("#/") || href.startsWith("/")) return href;
+  if (href.startsWith("#")) return currentId ? `${pageHref(currentId)}${href}` : href;
+  const cut = href.indexOf("#");
+  const path = cut < 0 ? href : href.slice(0, cut);
+  const fragment = cut < 0 ? "" : href.slice(cut);
+  if (!path.endsWith(".md")) return href;
+  const file = path.slice(path.lastIndexOf("/") + 1, -".md".length);
+  return `${pageHref(file)}${fragment}`;
 }
 
 // ---------- 检索（AC10 的单一入口）----------
@@ -88,6 +96,14 @@ function ensureIndex(): Index {
  */
 export function retrieve(query: string, opts?: RetrieveOptions): Hit[] {
   return retrieveIn(query, ensureIndex(), opts);
+}
+
+/**
+ * `#/wiki/x#frag` → `/wiki/x#frag`：react-router `<Link to>` 要的是路由路径，不带 hash 路由的 `#`。
+ * 不是站内路由（外链、纯页内锚点）就返回 null，调用方照常渲染原生 <a>。
+ */
+export function routePathOf(href: string): string | null {
+  return href.startsWith("#/") ? href.slice(1) : null;
 }
 
 export type { Hit } from "./retrieve";

@@ -1,20 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" width="900" height="330" role="img" aria-label="一个算子从上往下穿四层：替换层换实现，绝大多数到「现成算子」为止，很少下到自定义算子">
-  <title>一个算子从上往下穿四层：替换层换实现，绝大多数到「现成算子」为止，很少下到自定义算子</title>
-  <defs><marker id="ops-layers-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
-  <path d="M170 70 L170 288" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ops-layers-ah-ink)"/>
-  <rect x="200" y="64" width="460" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="218" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">替换层</text>
-  <text x="642" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">把上游算子换成昇腾版本</text>
-  <rect x="200" y="124" width="460" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="218" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">现成算子</text>
-  <text x="642" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="end">昇腾插件已经提供，直接调</text>
-  <rect x="200" y="184" width="460" height="50" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <text x="218" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#7a3a6a">自定义算子</text>
-  <text x="642" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="end">现成的没有、要做融合时才自己编</text>
-  <rect x="200" y="244" width="460" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="218" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">昇腾软件栈 / AI Core</text>
-  <text x="642" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">真正的乘加在这里</text>
-  <text x="30" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">那条请求的一次归一化，往下穿四层</text>
-  <text x="700" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56">绝大多数算子到这层为止</text>
-  <text x="700" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">那条请求多半一次都没碰到</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="数学运算经框架分派或模型直接调用，进入已有设备接口或自定义扩展；两条路径最终组织设备任务">
+  <title>数学运算经框架分派或模型直接调用，进入已有设备接口或自定义扩展；两条路径最终组织设备任务</title>
+  <defs><marker id="ops-layers-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="ops-layers-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="ops-layers-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <g data-hardware="chip">
+  <rect x="395" y="397" width="110" height="74" rx="5" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M418.5 389v8M418.5 471v8M387 411.5h8M505 411.5h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M450 389v8M450 471v8M387 434h8M505 434h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M481.5 389v8M481.5 471v8M387 456.5h8M505 456.5h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU</text>
+  </g>
+  <path d="M380 80 L380 105 L217 105 L217 135" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ops-layers-ah-control)"/>
+  <path d="M520 80 L520 105 L677 105 L677 135" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ops-layers-ah-control)"/>
+  <path d="M217 200 L217 275" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ops-layers-ah-token)"/>
+  <path d="M310 200 L450 200 L450 300 L530 300" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ops-layers-ah-kv)"/>
+  <path d="M677 200 L677 275" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ops-layers-ah-kv)"/>
+  <path d="M217 340 L217 434 L387 434" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ops-layers-ah-token)"/>
+  <path d="M677 340 L677 434 L513 434" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ops-layers-ah-kv)"/>
+  <rect x="315" y="20" width="270" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型中的数学运算</text>
+  <text x="450" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">矩阵乘 / 归一化 / 状态更新</text>
+  <rect x="70" y="135" width="295" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="163.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">框架算子分派</text>
+  <text x="217.5" y="182.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">名称 → 设备实现类</text>
+  <rect x="530" y="135" width="295" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="677.5" y="163.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型直接调用</text>
+  <text x="677.5" y="182.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">例如 GLM 的 mHC 算子</text>
+  <rect x="70" y="275" width="295" height="65" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已有设备接口</text>
+  <text x="217.5" y="322.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">例如普通 RMSNorm</text>
+  <rect x="530" y="275" width="295" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="677.5" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">仓库自定义扩展</text>
+  <text x="677.5" y="322.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按实现组织核函数</text>
+  <text x="55" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">运行库安排任务与依赖</text>
+  <text x="570" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">算子数 ≠ kernel 启动数</text>
 </svg>

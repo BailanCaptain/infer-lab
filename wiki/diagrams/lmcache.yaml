@@ -1,29 +1,38 @@
 layout: figure
 id: lmcache
-caption: 发布分支由 vllm-ascend 替 LMCache 登记名字再转过去；main 把登记交回 LMCache-Ascend 插件
-size: [900, 290]
-
-frames:
-  - { label: v0.23 / v0.26 分支, at: [30, 50], size: [560, 200] }
-  - { label: main, at: [620, 50], size: [250, 200] }
-
-items:
-  - { at: [55, 110], size: [130, 70], text: vllm-ascend 登记, tone: control, style: plain }
-  - { at: [245, 110], size: [130, 70], text: 昇腾包装层, tone: control, style: faded }
-  - { at: [435, 110], size: [130, 70], text: LMCache 存取, tone: kv, style: solid }
-  - { at: [650, 110], size: [190, 70], text: 插件自己登记并存取, tone: kv, style: solid }
-
+caption: 请求A保存共同前缀，请求B稍后在本地缺失且外部命中时加载同一份状态；图描述数据复用，不代表特定插件的存储后端
+size: [900, 330]
+hardware:
+  - {kind: memory, at: [325, 70], size: [250, 72], label: 外部缓存存储}
+grids:
+  - at: [40, 226]
+    rows: 1
+    cols: 3
+    cell: [65, 42]
+    gap: 8
+    tone: kv
+    style: solid
+    cells:
+      - {at: [0, 0], text: P0}
+      - {at: [0, 1], text: P1}
+      - {at: [0, 2], text: A, tone: token}
+  - at: [650, 226]
+    rows: 1
+    cols: 3
+    cell: [65, 42]
+    gap: 8
+    tone: kv
+    style: faded
+    cells:
+      - {at: [0, 0], text: P0}
+      - {at: [0, 1], text: P1}
+      - {at: [0, 2], text: B, tone: token}
 links:
-  - { from: [185, 145], to: [243, 145], tone: control }
-  - { from: [375, 145], to: [433, 145], tone: kv }
-
-tags:
-  - { at: [650, 205], text: 旧名字不再登记, tone: danger }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/__init__.py#L57-L65
-    symbols: [LMCacheAscendConnector, LMCacheConnectorV1]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_pool/lmcache_ascend_connector.py#L1-L5
-    symbols: [lmcache_ascend]
-  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L83-L115
-    symbols: [use_native]
+  - {from: [141, 220], to: [330, 146], tone: comm}
+  - {from: [570, 146], to: [751, 220], tone: comm}
+texts:
+  - {at: [40, 200], text: 请求 A · 首次计算, strong: true}
+  - {at: [650, 200], text: 请求 B · 稍后复用, strong: true}
+  - {at: [225, 145], text: 保存, tone: comm}
+  - {at: [620, 145], text: 加载, tone: comm}
+  - {at: [450, 300], text: "P0、P1为共同前缀段；A、B为各自后续内容", anchor: middle, note: true}

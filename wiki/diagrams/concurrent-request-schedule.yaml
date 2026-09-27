@@ -1,0 +1,48 @@
+layout: figure
+id: concurrent-request-schedule
+caption: 官方文本生成配置下 Scheduler.schedule 的一轮：先处理 running，再用余量接纳 waiting。prefill 只拿到部分预算时，余下的位置留在 running 中供下轮继续。
+size: [880, 960]
+items:
+  - { at: [200, 20], size: [480, 56], text: Scheduler.schedule：重置本轮 token 预算, style: plain }
+  - { at: [200, 118], size: [480, 56], text: running 还有可遍历请求，且预算有余量？, style: plain }
+  - { at: [24, 238], size: [378, 68], text: 取下一条 running；数量为 0 则跳过, sub: 本步数量取进度差、预算、长度上限的最小值, style: plain }
+  - { at: [24, 364], size: [378, 68], text: 申请本步所需块号, sub: 续块失败进入抢占图, tone: kv }
+  - { at: [24, 488], size: [378, 58], text: 分配成功：记录请求并扣预算, sub: 继续遍历 running, tone: token }
+  - { at: [478, 238], size: [378, 68], text: 本轮发生过抢占？, sub: 有抢占就结束本轮接纳, style: plain }
+  - { at: [478, 364], size: [378, 68], text: waiting 有请求、预算有余量且未满员？, sub: 本部署最多 32 条 running 请求, style: plain }
+  - { at: [478, 488], size: [378, 68], text: 取队首：未算完的输入超过余量？, sub: chunked prefill 已开启, style: plain }
+  - { at: [460, 612], size: [178, 58], text: 是：只排剩余预算, tone: token }
+  - { at: [654, 612], size: [202, 58], text: 否：排完剩余输入, tone: token }
+  - { at: [478, 736], size: [378, 66], text: 申请块号：分配成功？, sub: 成功才转入 running，并扣除本轮预算, tone: kv }
+  - { at: [24, 868], size: [378, 58], text: 交出 SchedulerOutput, sub: 本轮清单送去执行，下一轮重新判断, style: plain }
+links:
+  - { from: [440, 76], to: [440, 118] }
+  - { from: [320, 174], to: [213, 238], via: [[213, 200]] }
+  - { from: [560, 174], to: [667, 238], via: [[667, 200]] }
+  - { from: [213, 306], to: [213, 364] }
+  - { from: [213, 432], to: [213, 488] }
+  - { from: [24, 517], to: [200, 146], via: [[8, 517], [8, 146]] }
+  - { from: [667, 306], to: [667, 364] }
+  - { from: [667, 432], to: [667, 488] }
+  - { from: [590, 556], to: [549, 612], via: [[549, 580]] }
+  - { from: [745, 556], to: [755, 612], via: [[755, 580]] }
+  - { from: [549, 670], to: [580, 736], via: [[549, 702], [580, 702]] }
+  - { from: [755, 670], to: [755, 736] }
+  - { from: [856, 769], to: [856, 398], via: [[870, 769], [870, 398]] }
+  - { from: [478, 769], to: [402, 897], via: [[452, 769], [452, 897]] }
+  - { from: [478, 272], to: [213, 868], via: [[422, 272], [422, 836], [213, 836]] }
+  - { from: [478, 398], to: [310, 868], via: [[440, 398], [440, 852], [310, 852]] }
+texts:
+  - { at: [232, 219], text: 是, size: 14 }
+  - { at: [690, 219], text: 否, size: 14 }
+  - { at: [689, 338], text: 否, size: 14 }
+  - { at: [689, 462], text: 是, size: 14 }
+  - { at: [447, 257], text: 是, size: 14 }
+  - { at: [453, 383], text: 否, size: 14 }
+  - { at: [747, 844], text: 成功 → 再看 waiting, size: 13, anchor: middle }
+  - { at: [463, 844], text: 失败, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
+    symbols: [Scheduler, schedule, SchedulerOutput, allocate_slots]
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L398
+    symbols: [allocate_slots]

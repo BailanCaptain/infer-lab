@@ -1,63 +1,400 @@
-layout: figure
-id: acl-graph
-caption: 每步先把 token 数垫到 35 档里的一档，再按整不整齐分进两套图：37 垫到 40 走按段的图，199 步的 1 正好是最小档，回放同一张整趟的图
-size: [900, 470]
-
-items:
-  - { at: [70, 56], size: [320, 62], text: 第 2 到第 200 步, sub: 整齐的 decode：每步 1 个 token, tone: token }
-  - { at: [510, 56], size: [320, 62], text: 第 1 步, sub: 37 个 token 的 prefill，不整齐, tone: token }
-  - { at: [70, 350], size: [320, 62], text: 整趟回放的图, sub: 199 步回放同一张，不垫一个 token, tone: control }
-  - { at: [510, 350], size: [320, 62], text: 按段回放的图, sub: 垫出来的 3 个位置是白工, tone: control }
-
-grids:
-  - at: [70, 206]
-    rows: 1
-    cols: 8
-    cell: [48, 38]
-    gap: 4
-    tone: token
-    style: empty
-    cells:
-      - { at: [0, 0], text: "1", style: solid }
-      - { at: [0, 1], text: "2" }
-      - { at: [0, 2], text: "4" }
-      - { at: [0, 3], text: "8" }
-      - { at: [0, 4], text: "16" }
-      - { at: [0, 5], text: "24" }
-      - { at: [0, 6], text: "32" }
-      - { at: [0, 7], text: "40", style: solid }
-  - at: [524, 206]
-    rows: 1
-    cols: 2
-    cell: [48, 38]
-    gap: 4
-    tone: token
-    style: empty
-    cells:
-      - { at: [0, 0], text: "248" }
-      - { at: [0, 1], text: "256" }
-
-brackets:
-  - { from: 122, to: 430, y: 254, label: 35 档：1、2、4、8，再每 8 一档 }
-
-links:
-  - { from: [230, 118], to: [98, 202], tone: token }
-  - { from: [670, 118], to: [466, 202], tone: token }
-  - { from: [94, 248], to: [230, 346], tone: control }
-  - { from: [458, 248], to: [666, 346], tone: control }
-
-texts:
-  - { at: [40, 156], text: 1 正好是最小档, size: 12.5, note: true }
-  - { at: [548, 156], text: 37 不在档上，垫到 40, size: 12.5, note: true }
-  - { at: [494, 231], text: ⋯, size: 18 }
-  - { at: [524, 268], text: 上限 256（最多同时 256 条请求）, size: 12.5, note: true }
-
-pins:
-  - source: vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L328
-    symbols: [dispatch, uniform_decode]
-  - source: vllm@0fc695fc:vllm/config/vllm.py#L1702-L1729
-    symbols: [cudagraph_capture_sizes, max_num_seqs]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L207-L241
-    symbols: [max_cudagraph_capture_size]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L138-L152
-    symbols: [ACLGraphWrapper, batch_descriptor]
+{
+  "layout": "figure",
+  "id": "acl-graph",
+  "caption": "教学批含 6 个有效 token；在其他描述符条件匹配时补齐到 8，再选择整图、分段或普通执行。档位和补齐不是唯一判据。",
+  "size": [
+    900,
+    590
+  ],
+  "rows": [
+    {
+      "at": [
+        60,
+        90
+      ],
+      "count": 6,
+      "w": 35,
+      "h": 30,
+      "tone": "token"
+    },
+    {
+      "at": [
+        470,
+        90
+      ],
+      "count": 8,
+      "w": 35,
+      "h": 30,
+      "tone": "token",
+      "ghost": [
+        6,
+        7
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        60,
+        55
+      ],
+      "text": "实际输入：6 个 token",
+      "strong": true
+    },
+    {
+      "at": [
+        470,
+        55
+      ],
+      "text": "示例捕获尺寸：4、8",
+      "strong": true
+    },
+    {
+      "at": [
+        60,
+        147
+      ],
+      "text": "新内容写入稳定的输入缓冲"
+    },
+    {
+      "at": [
+        470,
+        147
+      ],
+      "text": "后两格为补齐位置"
+    },
+    {
+      "at": [
+        450,
+        270
+      ],
+      "text": "模式、形状、适配器状态与后端支持共同决定路径",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        450,
+        550
+      ],
+      "text": "FULL 与 PIECEWISE 都可以回放；不满足条件时执行普通路径。",
+      "anchor": "middle"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        240,
+        195
+      ],
+      "size": [
+        420,
+        45
+      ],
+      "text": "按批描述符查找可用捕获条目",
+      "tone": "control"
+    },
+    {
+      "at": [
+        50,
+        335
+      ],
+      "size": [
+        220,
+        48
+      ],
+      "text": "FULL",
+      "tone": "control"
+    },
+    {
+      "at": [
+        340,
+        335
+      ],
+      "size": [
+        220,
+        48
+      ],
+      "text": "PIECEWISE",
+      "tone": "control"
+    },
+    {
+      "at": [
+        630,
+        335
+      ],
+      "size": [
+        220,
+        48
+      ],
+      "text": "NONE",
+      "tone": "control"
+    }
+  ],
+  "frames": [
+    {
+      "at": [
+        45,
+        425
+      ],
+      "size": [
+        240,
+        64
+      ],
+      "label": "整段执行序列"
+    },
+    {
+      "at": [
+        335,
+        425
+      ],
+      "size": [
+        110,
+        64
+      ],
+      "label": "已捕获片段"
+    },
+    {
+      "at": [
+        490,
+        425
+      ],
+      "size": [
+        80,
+        64
+      ],
+      "label": "图外操作"
+    }
+  ],
+  "nodes": [
+    {
+      "at": [
+        83,
+        456
+      ],
+      "r": 20,
+      "text": "A"
+    },
+    {
+      "at": [
+        165,
+        456
+      ],
+      "r": 20,
+      "text": "B"
+    },
+    {
+      "at": [
+        245,
+        456
+      ],
+      "r": 20,
+      "text": "C"
+    },
+    {
+      "at": [
+        363,
+        456
+      ],
+      "r": 20,
+      "text": "A"
+    },
+    {
+      "at": [
+        416,
+        456
+      ],
+      "r": 20,
+      "text": "B"
+    },
+    {
+      "at": [
+        530,
+        456
+      ],
+      "r": 20,
+      "text": "C"
+    },
+    {
+      "at": [
+        660,
+        456
+      ],
+      "r": 20,
+      "text": "A"
+    },
+    {
+      "at": [
+        740,
+        456
+      ],
+      "r": 20,
+      "text": "B"
+    },
+    {
+      "at": [
+        820,
+        456
+      ],
+      "r": 20,
+      "text": "C"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        290,
+        105
+      ],
+      "to": [
+        450,
+        105
+      ]
+    },
+    {
+      "from": [
+        620,
+        163
+      ],
+      "to": [
+        620,
+        195
+      ]
+    },
+    {
+      "from": [
+        450,
+        240
+      ],
+      "to": [
+        160,
+        335
+      ],
+      "via": [
+        [
+          450,
+          295
+        ],
+        [
+          160,
+          295
+        ]
+      ]
+    },
+    {
+      "from": [
+        450,
+        295
+      ],
+      "to": [
+        450,
+        335
+      ]
+    },
+    {
+      "from": [
+        450,
+        295
+      ],
+      "to": [
+        740,
+        335
+      ],
+      "via": [
+        [
+          740,
+          295
+        ]
+      ]
+    },
+    {
+      "from": [
+        160,
+        383
+      ],
+      "to": [
+        160,
+        425
+      ]
+    },
+    {
+      "from": [
+        450,
+        383
+      ],
+      "to": [
+        450,
+        405
+      ]
+    },
+    {
+      "from": [
+        740,
+        383
+      ],
+      "to": [
+        740,
+        430
+      ]
+    },
+    {
+      "from": [
+        103,
+        456
+      ],
+      "to": [
+        143,
+        456
+      ]
+    },
+    {
+      "from": [
+        185,
+        456
+      ],
+      "to": [
+        223,
+        456
+      ]
+    },
+    {
+      "from": [
+        383,
+        456
+      ],
+      "to": [
+        394,
+        456
+      ]
+    },
+    {
+      "from": [
+        436,
+        456
+      ],
+      "to": [
+        508,
+        456
+      ]
+    },
+    {
+      "from": [
+        680,
+        456
+      ],
+      "to": [
+        718,
+        456
+      ]
+    },
+    {
+      "from": [
+        760,
+        456
+      ],
+      "to": [
+        798,
+        456
+      ]
+    }
+  ]
+}

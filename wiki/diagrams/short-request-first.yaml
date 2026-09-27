@@ -1,32 +1,112 @@
-layout: figure
-id: short-request-first
-caption: 先到两条 1024 个 token 的长问题，再到 8 条 37 个 token 的短问题。先到先得时，第 1 步被两条长的占满，短的等到第 2 步；短请求优先时，短的先挑走 296 个名额，第 1 步就吐出第一个 token，长 B 这一步只算到 728 个
-size: [900, 230]
-
-texts:
-  - { at: [30, 40], text: 第 1 步的 2048 个名额给了谁, size: 14, strong: true }
-  - { at: [30, 97], text: 先到先得, size: 13.5, strong: true }
-  - { at: [30, 177], text: 短请求优先, size: 13.5, strong: true }
-
-bars:
-  - at: [150, 76]
-    h: 34
-    scale: 0.34
-    segments:
-      - { value: 1024, tone: control, text: 长 A 1024 }
-      - { value: 1024, tone: control, text: 长 B 1024 }
-  - at: [150, 156]
-    h: 34
-    scale: 0.34
-    segments:
-      - { value: 296, tone: token, text: 8 条短 296 }
-      - { value: 1024, tone: control, text: 长 A 1024 }
-      - { value: 728, tone: control, text: 长 B 728 }
-
-pins:
-  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L693
-    symbols: [peek_request, pop_request]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L148-L153
-    symbols: [_classify_queue, num_prompt_tokens]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L155-L182
-    symbols: [_select_schedulable_queue]
+{
+  "id": "short-request-first",
+  "size": [
+    900,
+    365
+  ],
+  "caption": "抽象准入算例：预算16，阈值2，允许任意分片且无其他资源约束。A/B各8，C/D各2；先选短输入后，B本轮只处理4个位置。不是GLM实际分片配置。",
+  "texts": [
+    {
+      "at": [
+        30,
+        35
+      ],
+      "text": "同一轮的 16 个输入位置预算",
+      "strong": true
+    },
+    {
+      "at": [
+        30,
+        96
+      ],
+      "text": "先到先服务"
+    },
+    {
+      "at": [
+        30,
+        196
+      ],
+      "text": "短请求优先"
+    },
+    {
+      "at": [
+        160,
+        140
+      ],
+      "text": "后续等待：C 2、D 2",
+      "note": true
+    },
+    {
+      "at": [
+        160,
+        240
+      ],
+      "text": "后续等待：B 剩余 4",
+      "note": true
+    },
+    {
+      "at": [
+        450,
+        322
+      ],
+      "text": "改变等待顺序；分片和缓存分配仍由调度器完成",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "bars": [
+    {
+      "at": [
+        160,
+        72
+      ],
+      "h": 34,
+      "scale": 41,
+      "segments": [
+        {
+          "value": 8,
+          "text": "A · 8",
+          "tone": "token"
+        },
+        {
+          "value": 8,
+          "text": "B · 8",
+          "tone": "token",
+          "style": "hatch"
+        }
+      ]
+    },
+    {
+      "at": [
+        160,
+        172
+      ],
+      "h": 34,
+      "scale": 41,
+      "segments": [
+        {
+          "value": 2,
+          "text": "C · 2",
+          "tone": "token"
+        },
+        {
+          "value": 2,
+          "text": "D · 2",
+          "tone": "token"
+        },
+        {
+          "value": 8,
+          "text": "A · 8",
+          "tone": "token"
+        },
+        {
+          "value": 4,
+          "text": "B · 4",
+          "tone": "token",
+          "style": "hatch"
+        }
+      ]
+    }
+  ],
+  "layout": "figure"
+}

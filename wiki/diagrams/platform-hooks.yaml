@@ -1,44 +1,19 @@
 layout: figure
 id: platform-hooks
-caption: 启动路上，上游停下来问硬件插件的五个时刻；第 2 个是唯一一次能整体改配置的机会
-size: [900, 250]
-
+caption: 上游按共同契约提问，当前平台返回设备属性、配置处理结果或实现路径；箭头表示接口调用与回答
+size: [880, 300]
 items:
-  - { at: [20, 104], size: [150, 68], text: 刚起步, sub: 命令行还没解析, tone: ink, style: plain }
-  - { at: [196, 104], size: [150, 68], text: 配置定稿前, sub: 最后一次整体改, tone: control, style: solid }
-  - { at: [372, 104], size: [150, 68], text: 挑注意力实现, sub: 只要一个名字, tone: ink, style: plain }
-  - { at: [548, 104], size: [150, 68], text: 报显存大小, sub: 定 token 预算档位, tone: ink, style: plain }
-  - { at: [724, 104], size: [150, 68], text: Worker 里设卡, sub: 换了进程还在问, tone: ink, style: plain }
-
-badges:
-  - { at: [20, 104], n: 1 }
-  - { at: [196, 104], n: 2, tone: control }
-  - { at: [372, 104], n: 3 }
-  - { at: [548, 104], n: 4 }
-  - { at: [724, 104], n: 5 }
-
+  - { at: [30, 75], size: [220, 90], text: 上游调用方, sub: 构造配置与执行组件, tone: control }
+  - { at: [330, 75], size: [220, 90], text: 平台接口契约, sub: 约定输入、输出与副作用, tone: control }
+  - { at: [630, 75], size: [220, 90], text: 当前平台实现, sub: 按设备回答与选择, tone: control }
 links:
-  - { from: [170, 138], to: [196, 138], tone: ink }
-  - { from: [346, 138], to: [372, 138], tone: ink }
-  - { from: [522, 138], to: [548, 138], tone: ink }
-  - { from: [698, 138], to: [724, 138], tone: ink }
-
-tags:
-  - { at: [240, 76], text: 只问一次, tone: control }
-
-brackets:
-  - { from: 20, to: 874, y: 196, label: 全部发生在启动阶段 }
-
+  - { from: [250, 98], to: [330, 98], tone: control }
+  - { from: [550, 98], to: [630, 98], tone: control }
+  - { from: [630, 145], to: [550, 145], tone: control }
+  - { from: [330, 145], to: [250, 145], tone: control }
+texts:
+  - { at: [30, 32], text: 设备属性？配置能否使用？选哪套执行实现？ }
+  - { at: [30, 217], text: 回答：属性值 ／ 调整配置或报错 ／ 实现路径 }
+  - { at: [30, 267], text: 这些箭头传递调用与结果，矩阵计算由后续执行组件完成, note: true }
 pins:
-  - source: vllm@0fc695fc:vllm/platforms/interface.py#L428-L441
-    symbols: [pre_register_and_update]
-  - source: vllm@0fc695fc:vllm/platforms/interface.py#L458-L462
-    symbols: [check_and_update_config]
-  - source: vllm@0fc695fc:vllm/platforms/interface.py#L259-L266
-    symbols: [get_attn_backend_cls]
-  - source: vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335
-    symbols: [get_device_total_memory]
-  - source: vllm@0fc695fc:vllm/platforms/interface.py#L415-L419
-    symbols: [set_device]
-  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
-    symbols: [update_block_size_for_backend]
+  - { source: 'vllm@0fc695fc:vllm/platforms/interface.py#L428-L468', symbols: [Platform, pre_register_and_update, check_and_update_config] }

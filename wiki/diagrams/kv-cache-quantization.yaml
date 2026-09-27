@@ -1,29 +1,21 @@
 layout: figure
 id: kv-cache-quantization
-caption: 写进 KV 块之前先除以 scale 压成 int8，一份 K、V 从 2 KiB 变 1 KiB（每 token 每层、一颗 NPU 独跑）；读的时候不先解开，连 scale 一起交给注意力算子
-size: [900, 270]
-
-items:
-  - { at: [30, 90], size: [150, 60], text: K、V, sub: bf16 · 2 KiB, tone: kv, style: faded }
-  - { at: [240, 90], size: [170, 60], text: ÷ scale 取整, tone: control, style: plain }
-  - { at: [470, 80], size: [170, 80], text: KV 块, sub: int8 · 1 KiB, tone: kv, depth: 2 }
-  - { at: [700, 90], size: [170, 60], text: 注意力算子, tone: control, style: plain }
-  - { at: [470, 200], size: [170, 40], text: scale, tone: weight, style: faded }
-
+caption: 普通K/V缓存的有效载荷示例：每张形状为100×2×64；BF16主体50 KiB，INT8主体25 KiB，量化元数据与页填充另计
+size: [900, 350]
+matrices:
+  - {at: [45, 85], w: 100, h: 120, rows: 5, cols: 4, tone: kv, style: faded, label: BF16 K}
+  - {at: [170, 85], w: 100, h: 120, rows: 5, cols: 4, tone: kv, style: faded, label: BF16 V}
+  - {at: [555, 85], w: 100, h: 120, rows: 5, cols: 4, tone: kv, label: INT8 K}
+  - {at: [680, 85], w: 100, h: 120, rows: 5, cols: 4, tone: kv, label: INT8 V}
 links:
-  - { from: [180, 120], to: [240, 120], tone: kv }
-  - { from: [410, 120], to: [470, 120], tone: kv }
-  - { from: [640, 120], to: [700, 120], tone: kv }
-
-fans:
-  - { from: [555, 200], to: [[325, 150], [785, 150]], tone: weight }
-
+  - {from: [280, 140], to: [545, 140], tone: kv}
+texts:
+  - {at: [157, 48], text: "50 KiB", anchor: middle, strong: true}
+  - {at: [667, 48], text: "25 KiB + 元数据", anchor: middle, strong: true}
+  - {at: [412, 122], text: 写入时量化, anchor: middle}
+  - {at: [412, 174], text: scale / offset, anchor: middle, tone: weight}
+  - {at: [45, 280], text: "相同元素数，格式改变；网格只示意张量结构", note: true}
+  - {at: [45, 314], text: "读取路径：融合计算 / 临时反量化", note: true}
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1483-L1504
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L1733-L1754
     symbols: [_quantize_kv_to_int8]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1721-L1736
-    symbols: [npu_scatter_pa_kv_cache, slot_mapping]
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L1506-L1542
-    symbols: [npu_fused_infer_attention_score, key_antiquant_scale]
-  - source: vllm-ascend@baa023ad:vllm_ascend/quantization/methods/kv_cache/kv_c8.py#L108-L145
-    symbols: [create_weights, kv_cache_torch_dtype]

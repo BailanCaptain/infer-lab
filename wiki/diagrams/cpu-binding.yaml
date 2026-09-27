@@ -1,44 +1,193 @@
-layout: figure
-id: cpu-binding
-caption: 一台 A3 的 640 个核先按 16 颗 NPU 等分，这次用到的两颗各拿一段 40 个；每段再按用途切成 2 + 36 + 1 + 1
-size: [900, 260]
-
-texts:
-  - { at: [30, 36], text: "一台 A3：640 个核，按 16 颗 NPU 等分", size: 14, strong: true }
-  - { at: [30, 160], text: "NPU 0 那 40 个核，再按用途分", size: 14, strong: true }
-
-grids:
-  - at: [30, 52]
-    rows: 1
-    cols: 16
-    cell: [50, 36]
-    gap: 4
-    tone: control
-    style: faded
-    cells:
-      - { at: [0, 0], text: "0-39", style: solid }
-      - { at: [0, 1], text: "40-79", style: solid }
-  - at: [30, 176]
-    rows: 1
-    cols: 40
-    cell: [19, 34]
-    gap: 2
-    tone: control
-    style: solid
-    cells:
-      - { at: [0, 0], style: plain }
-      - { at: [0, 1], style: plain }
-      - { at: [0, 38], style: faded }
-      - { at: [0, 39], style: faded }
-
-brackets:
-  - { from: 30, to: 134, y: 96, label: 这次的两颗 NPU }
-  - { from: 30, to: 70, y: 218, label: 中断 }
-  - { from: 72, to: 826, y: 218, label: Worker 进程和它的全部子线程：36 个 }
-  - { from: 828, to: 868, y: 218, label: 两条后台线程 }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L466-L517
-    symbols: [base_cpu_count, extra_cpu_count, _slice_for_npu, allowed_cpus]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/cpu_binding.py#L606-L623
-    symbols: [_allocate_default_roles, assign_main, assign_acl, assign_rel]
+{
+  "layout": "figure",
+  "id": "cpu-binding",
+  "caption": "亲和性限制线程可运行的逻辑 CPU 集合；NUMA 页位置是另一状态。图为拓扑示意，不代表服务器规格，也不保证绑核后全是本地访问。",
+  "size": [
+    900,
+    610
+  ],
+  "hardware": [
+    {
+      "kind": "server",
+      "at": [
+        35,
+        65
+      ],
+      "size": [
+        380,
+        305
+      ],
+      "label": "NUMA 域 0"
+    },
+    {
+      "kind": "server",
+      "at": [
+        485,
+        65
+      ],
+      "size": [
+        380,
+        305
+      ],
+      "label": "NUMA 域 1"
+    },
+    {
+      "kind": "memory",
+      "at": [
+        100,
+        265
+      ],
+      "size": [
+        235,
+        65
+      ],
+      "label": "本地主存"
+    },
+    {
+      "kind": "memory",
+      "at": [
+        560,
+        265
+      ],
+      "size": [
+        235,
+        65
+      ],
+      "label": "远端主存"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        355,
+        455
+      ],
+      "size": [
+        190,
+        95
+      ],
+      "label": "NPU"
+    }
+  ],
+  "rows": [
+    {
+      "at": [
+        85,
+        132
+      ],
+      "count": 8,
+      "w": 30,
+      "h": 28,
+      "tone": "control",
+      "faded": [
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "at": [
+        535,
+        132
+      ],
+      "count": 8,
+      "w": 30,
+      "h": 28,
+      "tone": "control",
+      "faded": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ],
+  "brackets": [
+    {
+      "from": 85,
+      "to": 214,
+      "y": 181,
+      "label": "Worker 允许集合"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        225,
+        235
+      ],
+      "text": "线程在允许集合内运行",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        680,
+        235
+      ],
+      "text": "其他逻辑 CPU",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        450,
+        399
+      ],
+      "text": "CPU 提交任务，NPU 执行模型计算",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        450,
+        590
+      ],
+      "text": "已有页可尝试迁移；亲和性不等于 CPU 独占或持久内存绑定。",
+      "anchor": "middle"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        217,
+        245
+      ],
+      "to": [
+        217,
+        265
+      ],
+      "tone": "kv"
+    },
+    {
+      "from": [
+        335,
+        298
+      ],
+      "to": [
+        560,
+        298
+      ],
+      "tone": "comm",
+      "ends": "both"
+    },
+    {
+      "from": [
+        170,
+        355
+      ],
+      "to": [
+        355,
+        495
+      ],
+      "via": [
+        [
+          170,
+          495
+        ]
+      ],
+      "tone": "control"
+    }
+  ]
+}

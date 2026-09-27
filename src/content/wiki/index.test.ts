@@ -78,4 +78,19 @@ describe("读取器", () => {
     expect(rewriteRelativeLink("https://example.com/a")).toBe("https://example.com/a");
     expect(rewriteRelativeLink("#anchor")).toBe("#anchor");
   });
+
+  it("rewriteRelativeLink 保留跨页链接的 #锚点，页内锚点挂到当前页的路由上", () => {
+    // one-request.md 里的真实写法；以前只认结尾是 .md 的链接，这条原样留着，点开是 404
+    expect(rewriteRelativeLink("glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache")).toBe(
+      "#/wiki/glm-5-3-flash-two-node#剩下的显存变成多少-kv-cache",
+    );
+    // react-markdown 交给 <a> 的 href 已经百分号编码过，锚点原样带过去
+    expect(rewriteRelativeLink("../concepts/two-node.md#%E5%89%A9%E4%B8%8B-kv")).toBe(
+      "#/wiki/two-node#%E5%89%A9%E4%B8%8B-kv",
+    );
+    // hash 路由下裸 #frag 会被当成路径；知道当前页时改写成「当前页 + 锚点」
+    expect(rewriteRelativeLink("#对照源码", "one-request")).toBe("#/wiki/one-request#对照源码");
+    // 已经是站内路由的不再动
+    expect(rewriteRelativeLink("#/wiki/kv-cache", "one-request")).toBe("#/wiki/kv-cache");
+  });
 });

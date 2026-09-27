@@ -1,330 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" width="900" height="270" role="img" aria-label="16 份 DP 副本本来各存一整份词表；细粒度 TP 把相邻 8 颗 NPU 编成一组，组里每颗只存其中一段">
-  <title>16 份 DP 副本本来各存一整份词表；细粒度 TP 把相邻 8 颗 NPU 编成一组，组里每颗只存其中一段</title>
-  <defs></defs>
-  <rect x="44" y="170" width="396" height="84" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="60" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">组 0 = DP rank 0–7</text>
-  <rect x="460" y="170" width="396" height="84" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="476" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">组 1 = DP rank 8–15</text>
-  <rect x="54" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="59" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="64" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="69" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="74" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="79" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="84" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="89" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M59 56v34M64 56v34M69 56v34M74 56v34M79 56v34M84 56v34M89 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="54" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="102" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="107" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="112" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="117" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="122" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="127" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="132" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="137" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M107 56v34M112 56v34M117 56v34M122 56v34M127 56v34M132 56v34M137 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="102" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="150" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="155" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="160" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="165" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="170" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="175" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="180" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="185" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M155 56v34M160 56v34M165 56v34M170 56v34M175 56v34M180 56v34M185 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="150" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="198" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="203" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="208" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="213" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="218" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="223" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="228" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="233" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M203 56v34M208 56v34M213 56v34M218 56v34M223 56v34M228 56v34M233 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="198" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="246" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="251" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="256" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="261" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="266" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="271" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="276" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="281" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M251 56v34M256 56v34M261 56v34M266 56v34M271 56v34M276 56v34M281 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="246" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="294" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="299" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="304" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="309" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="314" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="319" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="324" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="329" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M299 56v34M304 56v34M309 56v34M314 56v34M319 56v34M324 56v34M329 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="294" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="342" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="347" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="352" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="357" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="362" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="367" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="372" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="377" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M347 56v34M352 56v34M357 56v34M362 56v34M367 56v34M372 56v34M377 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="342" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="390" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="395" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="400" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="405" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="410" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="415" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="420" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="425" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M395 56v34M400 56v34M405 56v34M410 56v34M415 56v34M420 56v34M425 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="390" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="470" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="475" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="480" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="485" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="490" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="495" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="500" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="505" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M475 56v34M480 56v34M485 56v34M490 56v34M495 56v34M500 56v34M505 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="470" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="518" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="523" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="528" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="533" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="538" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="543" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="548" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="553" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M523 56v34M528 56v34M533 56v34M538 56v34M543 56v34M548 56v34M553 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="518" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="566" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="571" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="576" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="581" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="586" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="591" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="596" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="601" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M571 56v34M576 56v34M581 56v34M586 56v34M591 56v34M596 56v34M601 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="566" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="614" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="619" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="624" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="629" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="634" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="639" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="644" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="649" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M619 56v34M624 56v34M629 56v34M634 56v34M639 56v34M644 56v34M649 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="614" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="662" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="667" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="672" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="677" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="682" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="687" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="692" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="697" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M667 56v34M672 56v34M677 56v34M682 56v34M687 56v34M692 56v34M697 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="662" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="710" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="715" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="720" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="725" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="730" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="735" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="740" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="745" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M715 56v34M720 56v34M725 56v34M730 56v34M735 56v34M740 56v34M745 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="710" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="758" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="763" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="768" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="773" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="778" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="783" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="788" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="793" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M763 56v34M768 56v34M773 56v34M778 56v34M783 56v34M788 56v34M793 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="758" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="806" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="811" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="816" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="821" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="826" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="831" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="836" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="841" y="56" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M811 56v34M816 56v34M821 56v34M826 56v34M831 56v34M836 56v34M841 56v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="806" y="56" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="54" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="59" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="64" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="69" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="74" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="79" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="84" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="89" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M59 204v34M64 204v34M69 204v34M74 204v34M79 204v34M84 204v34M89 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="54" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="102" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="107" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="112" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="117" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="122" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="127" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="132" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="137" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M107 204v34M112 204v34M117 204v34M122 204v34M127 204v34M132 204v34M137 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="102" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="150" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="155" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="160" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="165" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="170" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="175" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="180" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="185" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M155 204v34M160 204v34M165 204v34M170 204v34M175 204v34M180 204v34M185 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="150" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="198" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="203" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="208" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="213" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="218" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="223" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="228" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="233" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M203 204v34M208 204v34M213 204v34M218 204v34M223 204v34M228 204v34M233 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="198" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="246" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="251" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="256" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="261" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="266" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="271" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="276" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="281" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M251 204v34M256 204v34M261 204v34M266 204v34M271 204v34M276 204v34M281 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="246" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="294" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="299" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="304" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="309" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="314" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="319" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="324" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="329" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M299 204v34M304 204v34M309 204v34M314 204v34M319 204v34M324 204v34M329 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="294" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="342" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="347" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="352" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="357" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="362" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="367" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="372" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="377" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M347 204v34M352 204v34M357 204v34M362 204v34M367 204v34M372 204v34M377 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="342" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="390" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="395" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="400" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="405" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="410" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="415" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="420" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="425" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M395 204v34M400 204v34M405 204v34M410 204v34M415 204v34M420 204v34M425 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="390" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="470" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="475" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="480" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="485" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="490" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="495" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="500" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="505" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M475 204v34M480 204v34M485 204v34M490 204v34M495 204v34M500 204v34M505 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="470" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="518" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="523" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="528" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="533" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="538" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="543" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="548" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="553" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M523 204v34M528 204v34M533 204v34M538 204v34M543 204v34M548 204v34M553 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="518" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="566" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="571" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="576" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="581" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="586" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="591" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="596" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="601" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M571 204v34M576 204v34M581 204v34M586 204v34M591 204v34M596 204v34M601 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="566" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="614" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="619" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="624" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="629" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="634" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="639" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="644" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="649" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M619 204v34M624 204v34M629 204v34M634 204v34M639 204v34M644 204v34M649 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="614" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="662" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="667" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="672" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="677" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="682" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="687" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="692" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="697" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M667 204v34M672 204v34M677 204v34M682 204v34M687 204v34M692 204v34M697 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="662" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="710" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="715" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="720" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="725" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="730" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="735" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="740" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="745" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M715 204v34M720 204v34M725 204v34M730 204v34M735 204v34M740 204v34M745 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="710" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="758" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="763" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="768" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="773" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="778" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="783" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="788" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <rect x="793" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <path d="M763 204v34M768 204v34M773 204v34M778 204v34M783 204v34M788 204v34M793 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="758" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="806" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="811" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="816" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="821" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="826" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="831" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="836" y="204" width="5" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <rect x="841" y="204" width="5" height="34" fill="var(--color-weight, #c78300)"/>
-  <path d="M811 204v34M816 204v34M821 204v34M826 204v34M831 204v34M836 204v34M841 204v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="806" y="204" width="40" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="54" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">不开：16 颗 NPU 各存一整份词表，每颗 0.95 GiB</text>
-  <text x="54" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#936300">开，切 8 份：同组 8 颗各存一段，每颗约 0.12 GiB</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" width="900" height="720" role="img" aria-label="词表缩为 8 行、组大小为 2：收集整数编号，再按词表分片查找；归约隐藏向量后回到原请求所属 rank。零行表示非本地词表贡献为零">
+  <title>词表缩为 8 行、组大小为 2：收集整数编号，再按词表分片查找；归约隐藏向量后回到原请求所属 rank。零行表示非本地词表贡献为零</title>
+  <defs><marker id="fine-grained-tp-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="fine-grained-tp-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="20" y="60" width="860" height="245" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">rank 0 · 请求 A</text>
+  <rect x="20" y="410" width="860" height="245" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="398" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">rank 1 · 请求 B</text>
+  <path d="M170 165 L225 340" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M170 515 L225 370" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M274 340 L330 165" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M274 370 L330 515" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M420 165 L450 165" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#fine-grained-tp-ah-token)"/>
+  <path d="M420 515 L450 515" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#fine-grained-tp-ah-token)"/>
+  <path d="M590 165 L640 168" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#fine-grained-tp-ah-token)"/>
+  <path d="M590 515 L640 518" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#fine-grained-tp-ah-token)"/>
+  <path d="M715 168 L751 335" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M715 518 L751 375" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M794 340 L879 340 L879 252 L865 252" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <path d="M794 370 L830 585" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#fine-grained-tp-ah-comm)"/>
+  <rect x="330" y="145" width="45" height="40" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="352.5" y="169.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">1</text>
+  <rect x="375" y="145" width="45" height="40" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="397.5" y="169.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <path d="M375 145v40" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="330" y="145" width="90" height="40" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="375" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">IDs</text>
+  <rect x="330" y="495" width="45" height="40" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="352.5" y="519.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">1</text>
+  <rect x="375" y="495" width="45" height="40" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="397.5" y="519.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">6</text>
+  <path d="M375 495v40" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="330" y="495" width="90" height="40" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="375" y="557" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">IDs</text>
+  <rect x="640" y="140" width="75" height="28" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="677.5" y="158.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">e₁</text>
+  <rect x="640" y="168" width="75" height="28" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="677.5" y="186.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0</text>
+  <path d="M640 168h75" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="640" y="140" width="75" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="677.5" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">部分结果</text>
+  <rect x="640" y="490" width="75" height="28" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="677.5" y="508.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">0</text>
+  <rect x="640" y="518" width="75" height="28" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="677.5" y="536.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">e₆</text>
+  <path d="M640 518h75" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="640" y="490" width="75" height="56" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="677.5" y="568" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">部分结果</text>
+  <rect x="795" y="235" width="70" height="35" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="830" y="257.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">e₁</text>
+  <rect x="795" y="235" width="70" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="830" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">A 的向量</text>
+  <rect x="795" y="585" width="70" height="35" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="830" y="607.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">e₆</text>
+  <rect x="795" y="585" width="70" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="830" y="642" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">B 的向量</text>
+  <rect x="65" y="145" width="105" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="117.5" y="170" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">ID = 1</text>
+  <rect x="65" y="495" width="105" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="117.5" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">ID = 6</text>
+  <rect x="450" y="125" width="140" height="80" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="520" y="161" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表 0–3</text>
+  <text x="520" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">查找 / 掩码</text>
+  <rect x="450" y="475" width="140" height="80" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="520" y="511" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表 4–7</text>
+  <text x="520" y="530" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">查找 / 掩码</text>
+  <circle cx="250" cy="355" r="26" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="361" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">AG</text>
+  <circle cx="770" cy="355" r="26" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="770" y="361" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">RS</text>
+  <text x="185" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="end">All-Gather</text>
+  <text x="710" y="355" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="end">Reduce-Scatter</text>
+  <text x="450" y="700" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">通信对象不同：IDs 是整数，e₁ / e₆ 是 H 维隐藏向量</text>
 </svg>

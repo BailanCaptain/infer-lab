@@ -1,0 +1,211 @@
+{
+  "size": [
+    900,
+    600
+  ],
+  "caption": "固定 Ascend 建组路径：所有分支都会创建 Options 并带 group_name；MC2 分支省略的是 hccl_buffer_size 字段。数值为源码配置值，不是实测设备占用",
+  "items": [
+    {
+      "at": [
+        310,
+        35
+      ],
+      "size": [
+        280,
+        50
+      ],
+      "text": "按通信组构造 Options",
+      "tone": "control"
+    },
+    {
+      "at": [
+        40,
+        190
+      ],
+      "size": [
+        175,
+        70
+      ],
+      "text": "DP",
+      "tone": "comm",
+      "sub": "计算，最低 50"
+    },
+    {
+      "at": [
+        255,
+        190
+      ],
+      "size": [
+        175,
+        70
+      ],
+      "text": "动态 EPLB",
+      "tone": "comm",
+      "sub": "100"
+    },
+    {
+      "at": [
+        470,
+        190
+      ],
+      "size": [
+        175,
+        70
+      ],
+      "text": "其他组",
+      "tone": "comm",
+      "sub": "200"
+    },
+    {
+      "at": [
+        685,
+        190
+      ],
+      "size": [
+        175,
+        70
+      ],
+      "text": "MC2",
+      "tone": "comm",
+      "sub": "不写 buffer 字段"
+    },
+    {
+      "at": [
+        270,
+        385
+      ],
+      "size": [
+        360,
+        60
+      ],
+      "text": "Options + 组名",
+      "tone": "control"
+    },
+    {
+      "at": [
+        270,
+        500
+      ],
+      "size": [
+        360,
+        55
+      ],
+      "text": "创建 / 复用 HCCL 组",
+      "tone": "control"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        127,
+        190
+      ],
+      "tone": "control",
+      "from": [
+        450,
+        85
+      ]
+    },
+    {
+      "to": [
+        342,
+        190
+      ],
+      "tone": "control",
+      "from": [
+        450,
+        85
+      ]
+    },
+    {
+      "to": [
+        557,
+        190
+      ],
+      "tone": "control",
+      "from": [
+        450,
+        85
+      ]
+    },
+    {
+      "to": [
+        772,
+        190
+      ],
+      "tone": "control",
+      "from": [
+        450,
+        85
+      ]
+    },
+    {
+      "to": [
+        315,
+        385
+      ],
+      "tone": "control",
+      "from": [
+        127,
+        260
+      ]
+    },
+    {
+      "to": [
+        405,
+        385
+      ],
+      "tone": "control",
+      "from": [
+        342,
+        260
+      ]
+    },
+    {
+      "to": [
+        495,
+        385
+      ],
+      "tone": "control",
+      "from": [
+        557,
+        260
+      ]
+    },
+    {
+      "to": [
+        585,
+        385
+      ],
+      "tone": "control",
+      "from": [
+        772,
+        260
+      ]
+    },
+    {
+      "to": [
+        450,
+        500
+      ],
+      "tone": "control",
+      "from": [
+        450,
+        445
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        450,
+        587
+      ],
+      "text": "配置预算 ≠ 一次消息的字节数 ≠ 进程总占用",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "hccl-buffer"
+}

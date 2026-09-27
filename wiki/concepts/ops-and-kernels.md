@@ -1,126 +1,66 @@
 ---
 id: ops-and-kernels
-title: 算子层与自定义算子
+title: 算子与 kernel：从数学语义到设备实现
 type: feature
-summary: 上游给每类算子留了换实现的口子，昇腾把自己的版本挂上去；绝大多数换完调的还是现成算子，现成里没有的才自己编译，最底下由昇腾软件栈驱动 AI Core 真正计算。
+summary: 区分模型运算、框架算子与设备核函数，解释 CustomOp 分派、torch_npu 与自定义扩展的关系，并追踪 GLM 的实际算子入口。
 aliases: [ops, register_ascend_customop, aclnn, csrc, torch_npu, 自定义算子, _C_ascend]
 chapters: ["16"]
 order: 10
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L54
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L419
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L766
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L65-L126
-  - vllm-ascend@2c59ff10:csrc/CMakeLists.txt#L191-L246
-  - vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md#L1-L20
-  - https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html
-  - https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/main/config.json
-verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
+  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207
+  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L690-L768
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L101-L120
+  - vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235
+  - vllm-ascend@db701c1f:vllm_ascend/ops/__init__.py#L21-L54
+  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L452
+verified: []
 evidence: "C"
 relations:
-  - to: attention-backend-family
-    kind: builds-on
-    note: 注意力是算子层最大的一个消费方，后端选完之后调到的就是这一层
-  - to: one-request
-    kind: builds-on
-    note: 那条请求每层碰到的算子几乎都停在 torch_npu 那一层，没下到 csrc/
+  - {to: matmul-and-weights, kind: builds-on, note: 先理解矩阵运算的输入输出}
+  - {to: attention-backend-family, kind: builds-on, note: 后端使用设备算子执行具体计算}
 contradicts: []
-updated: "2026-09-25"
+updated: "2026-09-26"
 origin: seed
 ---
 
-## 四十层的计算，在昇腾上是谁算的
+## 同一段数学计算有几层表达
 
-[那条请求](one-request.md)：Qwen3.6-35B-A3B 跑在两颗昇腾 NPU 上。它每走一步都要把 40 层过一遍，每层里有归一化、注意力、挑专家、算专家等好几个[算子](matmul-and-weights.md)（算子就是 NPU 上真正执行的一小段计算，比如一次矩阵乘）。可这些算子最初都是对着别家的卡写的——换到昇腾上，它们是在哪一步被换掉的？换掉之后又是谁在算？
+[模型单层](layers-and-hidden.md)包含矩阵乘、归一化、注意力和前馈等运算。数学公式描述输入如何变成输出；软件还需要决定数据布局、设备实现、任务划分和下发方式。
 
-昇腾仓库里文件最多的那个目录只做一件事：**把上游的算子实现换成昇腾版**。但真正的计算不发生在它里面，而在它下面的三层。这一页讲这一摞四层怎么分工。
-
-顺带说个叫法：有些资料把算子叫「kernel」。本库概念上一律叫**算子**；kernel 这个词只用来指自定义算子的那些实现文件。
-
-## 一摞四层：换、调、编、算
+**算子（operator）**是对一类运算的接口与语义约定，例如矩阵乘或 RMSNorm。**kernel（核函数）**是设备上执行具体任务的程序。一项算子可以启动多个 kernel；多个数学运算也可以融合到一个 kernel。因此“模型有多少个算子”和“设备启动了多少次 kernel”通常不是同一个数量。
 
 ```wiki-diagram
 file: ops-layers
 ```
 
-从上往下：
+图把已有设备算子和仓库自定义扩展画成不同实现路径。自定义扩展不必是已有算子的下一级。
 
-1. **替换层**：昇腾仓库自己的算子目录。上游某个算子在昇腾上语义对但实现不优，就在这里放一个昇腾版本把它换掉。
-2. **现成算子**：PyTorch 的昇腾插件带来的算子，昇腾软件栈已经提供，直接调。**绝大多数替换版往下只到这一层**——它们做的事就是换成更合适的现成算子，或换一种调法。
-3. **自定义算子**：现成的里没有、或者要把几个算子融成一个的时候，才自己写源码编译出一个新算子。
-4. **昇腾软件栈与 AI Core**：真正的乘加发生在这里。上面三层只是在决定「让它算什么」。
+## 框架怎样把算子交给设备实现
 
-所以那条请求的一次归一化，真实路径是：替换层里的昇腾实现 → 现成算子 → 昇腾软件栈 → AI Core。中间「自定义算子」那层，它多半一次都没碰到。
+vLLM 的 `CustomOp` 在构造时查询外部实现登记表，再根据启用条件和平台选择前向方法。外部平台路径使用 `forward_oot`；禁用对应设备路径时，可以改走 native 实现。[C1]
 
-想看一个算子把这四层从头走到尾——包括决定要不要下到最底那层源码的判断长什么样——见[一个算子从 Python 走到 AI Core](op-to-ai-core.md)。
+Ascend 的 `register_ascend_customop` 将 `RMSNorm`、线性层、激活函数等名称映射到设备实现，并用进程内标记避免重复登记。Worker 构造调用这项注册。[C2][C3] 这里的 CustomOp 是**框架的实现分派机制**，不等价于“每个登记项都是仓库自己编译的 C++ kernel”。
 
-## 那条请求的每一层都有东西被换
+以 `AscendRMSNorm` 为例，不带残差输入时调用 `torch_npu.npu_rms_norm`；带残差时还会根据条件选择融合扩展或已有设备接口。[C4] 一个 Python 类里可以组织多种底层路径。
 
-那条请求每走一层，至少有三样已经是昇腾版本：进层的归一化、挑专家加算专家那一整套（见 [MoE](moe.md)），再加上这一层自己的注意力配套——10 层全注意力里的旋转位置编码，或 30 层[线性注意力](linear-attention.md)里的门控状态更新和带门控的归一化。这几样在昇腾的替换名单上都对得上号，名单原文见下半。
+## 已有接口与自定义扩展各提供什么
 
-## 替换靠上游留的口子，不是靠补丁
+`torch_npu` 将 PyTorch 计算接到 NPU 软件栈，提供设备张量与算子接口。仓库自定义扩展则把自身编译的实现登记到 `torch.ops` 等入口。Ascend 的扩展加载采用延迟初始化，以避免过早触发运行时；能否启用还受设备、批不变性和扩展是否成功加载等条件影响。[C8]
 
-上游 vLLM 给「换算子实现」留了一个正规口子：每类算子有一个注册点，硬件插件把自己的版本挂上去，模型建层的时候拿到的就是挂上去的版本。昇腾的替换全走这个口子，在启动早期由每个 worker 自动完成，还带了幂等保护——重复挂不会出事。
+两类实现都需要处理形状、数据类型、布局、临时工作区和执行顺序。使用已有接口可以复用成熟实现；自定义实现可针对融合、特殊布局或新模型需求优化，但也增加构建、兼容和正确性验证成本。哪个路径更快，应由具体形状和设备上的测量判断。
 
-这和[补丁机制](ascend-patch-system.md)是两套东西：算子替换走的是上游留好的口子；补丁是上游没留口子时直接改上游行为的手段。两者机制和时机都不同，别混为一谈。
+## GLM 的两个具体入口
 
-## 有一批占位算子，不是没写完
+固定 GLM 专用代码构造输入 RMSNorm 与注意力后 RMSNorm。在 mHC 路径中，四路残差先经 `hc_pre` 合成子层输入，再调用 RMSNorm，子层结果经 `hc_post` 回到残差流。[C5][C6]
 
-替换层启动时还会挂上 8 个「空壳」算子——只有名字、没有实现。它们的作用是让上游那些引用了融合算子的代码路径有东西可指：真实的融合实现要么由图融合那一步换进来，要么走别的路径。翻源码看到这批空壳，不要以为是没写完的代码。
+这里既有框架算子分派，也有显式设备扩展调用：`hc_pre` 和 `hc_post` 调用 `_C_ascend` 命名空间中的专用算子。[C5] 因此不能把模型计算概括为“都只调用现成 torch_npu 算子”或“所有层都由同一张替换表决定”。KDA 与稀疏 MLA 的调用关系见[后端页](attention-backend-family.md)。
 
-## 看起来空的目录，是编译产物的落点
+本页只追踪源码入口。Python 中出现一个扩展名称不等于已经核实该扩展在专用镜像中的最终安装与运行情况，边界见[来源基线](../sources/glm-5-3-flash-baseline.md)。
 
-仓库里有个装自定义算子的目录，翻进去一个源码文件都没有。这不是特性没用上——它是**编译产物的落点**，不是源码目录。自定义算子的源码在仓库根的另一个目录下，构建时编译出来装进这个落点，再绑到一个统一的调用入口上，Python 代码就能直接调。
+## 占位和真实计算需要分开阅读
 
-## 什么时候该动哪一层
+`register_dummy_fusion_op` 为若干融合名称创建占位对象，其 `default` 为 `None`。[C7] 这些对象支持注册或图处理路径识别名称，不能当成已经具有可执行 kernel 的证据。阅读调用链时还要继续查实际消费者，以及图改写或其他路径如何处理它。
 
-| 层 | 什么时候要改它 |
-|---|---|
-| 替换层 | 上游算子在昇腾上语义对但实现不优 |
-| 现成算子 | 不改；已经提供的直接调 |
-| 自定义算子 | 需要的算子现成的里没有，或要做特定融合 |
-| 昇腾软件栈 / AI Core | 不改 |
-
-判断顺序自上而下：能在替换层里用现成算子拼出来的，就不要往下写自定义算子——下到那层要过完整的编译构建，而且相应的编译开关关掉时那一层根本不编，源码里对此有明确警告（原文见下半）。什么情况下这笔账才划算，见[一个算子从 Python 走到 AI Core](op-to-ai-core.md)。
-
-## 常见误解
-
-- **「算子替换也是补丁。」**——不是。替换走上游留的正规口子，[补丁](ascend-patch-system.md)是上游没留口子时才用的手段。
-- **「那 8 个占位算子是没写完。」**——是有意的占位层，让引用融合算子的上游路径有东西可指。
-- **「装自定义算子的目录是空的，说明这特性没用上。」**——那是编译产物的落点，源码在另一个目录。
-
-## 对照源码
-
-### 怎么开
-
-- 算子替换不需要用户开：`NPUWorker.__init__` 里自动完成，顺序是 `adapt_patch()` → `ops.register_dummy_fusion_op()` → 非 A5 的卡才 `_register_atb_extensions()` → `register_ascend_customop(vllm_config)` [C5]（worker.py#L107-L118）。
-- `register_ascend_customop` 用的是上游 `vllm.model_executor.custom_op.CustomOp` 机制，并带 `_ASCEND_CUSTOMOP_IS_REIGISTERED` 全局量（源码里就是这个拼写）做幂等 [C4]。docstring 给了一条约定：如果注册分支需要模型类型，要用 `vllm.config.get_current_vllm_config`，并保证在 model config 初始化之后执行。
-- 自定义 aclnn 算子要显式启用：`from vllm_ascend.utils import enable_custom_op` 然后 `enable_custom_op()` [S7]（[线上同页](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/Design_Documents/add_custom_aclnn_op.html)）。函数在 `utils.py` 第 409 行，docstring 说做成惰性初始化是为了避免过早初始化 CANN 的 RTS 组件，保证 `ASCEND_RT_VISIBLE_DEVICES` 在 `torch.npu.set_device()` 之前还能改 [C3]。
-- `csrc/` 那层编不编由 `COMPILE_CUSTOM_KERNELS` 控制。
-
-### 会报什么错
-
-- `COMPILE_CUSTOM_KERNELS` 关掉时，`NPUWorker.__init__` 一进来就打 warning，原文：「COMPILE_CUSTOM_KERNELS is set to False. In most scenarios, without custom kernels, vllm-ascend will not function correctly.」（worker.py#L101-L105）。
-
-### 开销和什么时候别开
-
-- 判断顺序自上而下：能在 `ops/` 里用现成 `torch_npu` 算子拼出来的，就不要下到 `csrc/`——后者要过完整的 CMake 构建 [C6]。什么时候这笔账才划算，见[一个算子从 Python 走到 AI Core](op-to-ai-core.md)。
-
-### 版本差异
-
-- 本页讲的四件事——CustomOp 注册口子、`register_dummy_fusion_op` 挂的 8 个名字、`NPUWorker.__init__` 里的调用顺序、`csrc/` 那几个构建目标——在 v0.26 上逐行一致，变的只有规模：
-
-| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
-|---|---|---|---|
-| `ops/` 的大小 | 89 个 `.py`、23484 行 | 96 个 `.py`、25737 行，另多了两份 `.md` 说明 [D] | 半年长了一成，它仍是 `vllm_ascend/` 下文件最多的目录；拿目录规模判断改动面时别用旧数 |
-
-- 替换名单里 `FusedMoE → AscendFusedMoE` 这一条挂在 `vllm_version_is("0.23.0")` 分支下，只在配套上游是 0.23.0 时注册（utils.py#L763-L766）。
-
-### 源码位置
-
-- `vllm_ascend/ops/__init__.py` 顶部把 `fused_moe`、`layernorm`、`register_custom_ops`、`vocab_parallel_embedding` 等模块拉进来（有 Triton 时另加几个 triton 融合模块），并导出 `AscendQuickGELU`、`AscendSiluAndMul`、`AscendRotaryEmbedding`、`AscendDeepseekScalingRotaryEmbedding` 四个类（#L21-L33）。
-- `register_dummy_fusion_op()` 往 `torch.ops._C_ascend` 上挂 8 个 `dummyFusionOp`：`rms_norm`、`fused_add_rms_norm`、三个 fp8 量化、以及三个 rms_norm 与量化的融合算子（#L43-L51）。
-- 替换名单是 `REGISTERED_ASCEND_OPS`（utils.py#L735-L766）。上半那条请求每层碰到的几样对应：`RMSNorm → AscendRMSNorm`（归一化）、`RMSNormGated → AscendRMSNormGated`（线性注意力层带门控的归一化）、`GatedDeltaNetAttention → AscendGatedDeltaNetAttention`（线性注意力的门控状态更新）、`RotaryEmbedding → AscendRotaryEmbedding`（全注意力层的旋转位置编码）、`FusedMoE → AscendFusedMoE`（挑专家加算专家）。
-- 模型侧数字：40 层、每 4 层 1 层全注意力共 10 层、其余 30 层线性注意力，出自官方 config 的 `num_hidden_layers: 40`、`full_attention_interval: 4` [S9]；这套形状的完整拆解见[那条请求](one-request.md)。
-- 自定义 aclnn 算子构建时被编译并安装到 `vllm_ascend/cann_ops_custom` 目录，绑定到 `torch.ops._C_ascend` 模块 [S7]。检出的 `vllm_ascend/_cann_ops_custom/` 里没有任何 `.py` 文件 [D]——落点不是源码目录。源码在仓库根的 `csrc/` 下，每个算子一个文件夹，host 侧代码和 kernel 文件分别放 `op_host/`、`op_kernel/` 目录 [S7]；`CMakeLists.txt` 里建了 `op_host_aclnn`、`op_host_aclnnInner`、`op_host_aclnnExc`、`opsproto` 等目标（#L191-L246）。
+追踪一个算子可按以下顺序：确定数学输入输出，找到模型调用点，确认最终类与方法分派，再进入底层接口或扩展。下一页用[归一化的实际路径](op-to-ai-core.md)演示，并用融合归一化作为内存访问的对照。

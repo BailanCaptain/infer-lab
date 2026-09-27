@@ -1,32 +1,24 @@
 layout: figure
 id: patch-timing
-caption: 服务启动时补丁分两批换：Worker 出生之前换全局补丁，Worker 出生那一刻换 Worker 补丁；请求进来时都已换好
-size: [900, 270]
-
+caption: 平台与通用插件入口加载全局适配，Worker 构造加载执行侧适配；各进程分别维护名称和注册表
+size: [900, 410]
 items:
-  - { at: [30, 50], size: [170, 48], text: 选中平台, tone: control, style: plain }
-  - { at: [250, 50], size: [170, 48], text: EngineCore 起来, tone: control, style: plain }
-  - { at: [480, 50], size: [170, 48], text: Worker 出生, tone: weight, style: plain }
-  - { at: [700, 50], size: [170, 48], text: 接请求, tone: token, style: faded }
-
-  - { at: [30, 170], size: [390, 56], text: 全局补丁, sub: 块大小 2048 在这批里, tone: control }
-  - { at: [480, 170], size: [170, 56], text: Worker 补丁, sub: 40 层怎么算, tone: weight }
-
+  - { at: [25, 55], size: [200, 60], text: 平台准备钩子, sub: 配置使用前准备, tone: control }
+  - { at: [25, 190], size: [200, 60], text: 通用插件入口, sub: 进程内幂等加载, tone: control }
+  - { at: [335, 120], size: [230, 65], text: patch/platform, sub: 配置与全局路径适配, tone: control }
+  - { at: [650, 120], size: [225, 65], text: GLM 配置登记, sub: 类型与架构转换器, tone: control }
+  - { at: [25, 315], size: [200, 60], text: Worker 构造, sub: 加载执行侧适配, tone: weight }
+  - { at: [335, 315], size: [230, 60], text: patch/worker, sub: 执行侧适配, tone: weight }
+  - { at: [650, 315], size: [225, 60], text: 后续初始化, sub: 算子登记、配置、基类, tone: weight }
 links:
-  - { from: [200, 74], to: [250, 74] }
-  - { from: [420, 74], to: [480, 74] }
-  - { from: [650, 74], to: [700, 74] }
-  - { from: [115, 100], to: [115, 168], tone: control }
-  - { from: [335, 100], to: [335, 168], tone: control }
-  - { from: [565, 100], to: [565, 168], tone: weight }
-
-dividers:
-  - { from: [450, 24], to: [450, 250] }
-
+  - { from: [225, 85], to: [335, 140], via: [[280, 85], [280, 140]], tone: control }
+  - { from: [225, 220], to: [335, 165], via: [[280, 220], [280, 165]], tone: control }
+  - { from: [565, 152], to: [650, 152], tone: control }
+  - { from: [225, 345], to: [335, 345], tone: weight }
+  - { from: [565, 345], to: [650, 345], tone: weight }
+texts:
+  - { at: [650, 225], text: 模型类注册、CustomOp 登记, note: true }
+  - { at: [650, 248], text: 是另外两种扩展机制, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L563-L567
-    symbols: [adapt_patch, is_global_patch]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L188
-    symbols: [pre_register_and_update]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L105-L110
-    symbols: [adapt_patch]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L563-L567', symbols: [adapt_patch] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30', symbols: [Glm5NextModelArchConfigConvertor] }

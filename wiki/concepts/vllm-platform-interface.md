@@ -1,124 +1,183 @@
 ---
 id: vllm-platform-interface
-title: Platform：上游留给硬件的那张问卷
+title: Platform：硬件适配的接口契约
 type: concept
-summary: 上游把所有「答案取决于硬件」的问题收成一张问卷，起了个名字叫 Platform，将近八十道题，答案被上游代码在近千个地方引用。所谓 vLLM 支持一种新硬件，就是有人把这张问卷答完了；昇腾插件的本体就是一份答卷。
-aliases: [Platform, current_platform, 平台抽象, platform_plugins, 硬件插件接口, OOT]
+summary: Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿 A0 启动分清平台、Worker 与模型的职责，以及主机内存、设备显存和 token 预算的边界。
+aliases: [Platform, current_platform, 平台抽象, platform_plugins, 硬件插件接口, OOT, 平台契约]
 chapters: ["10"]
 order: 70
 sources:
-  - vllm@0fc695fc:vllm/platforms/interface.py#L105-L140
-  - vllm@0fc695fc:vllm/platforms/interface.py#L428-L441
-  - vllm@0fc695fc:vllm/platforms/interface.py#L458-L462
+  - https://docs.vllm.ai/en/v0.23.0/design/plugin_system/
+  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - vllm@0fc695fc:vllm/platforms/interface.py#L105-L164
   - vllm@0fc695fc:vllm/platforms/interface.py#L259-L266
-  - vllm@0fc695fc:vllm/platforms/__init__.py#L203-L232
-  - vllm@0fc695fc:vllm/platforms/__init__.py#L233-L252
-  - vllm@0fc695fc:vllm/config/vllm.py#L1330-L1342
+  - vllm@0fc695fc:vllm/platforms/interface.py#L428-L468
+  - vllm@0fc695fc:vllm/platforms/__init__.py#L262-L281
+  - vllm@0fc695fc:vllm/config/vllm.py#L1335-L1353
+  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L618-L652
   - vllm@0fc695fc:vllm/engine/arg_utils.py#L2300-L2335
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L640-L650
-  - vllm@568afb3a:vllm/platforms/interface.py#L134-L169
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L462
+  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2492-L2553
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L204
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L275-L282
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L678
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
+  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L67-L84
+  - vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L223-L233
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L282
   - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L659-L671
-verified: ["releases/v0.26.0rc"]
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L281
+  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L621-L633
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L238
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L513
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1232-L1252
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L255-L268
+  - vllm@568afb3a:vllm/platforms/interface.py#L546-L586
+  - vllm@84030bbe:vllm/platforms/interface.py#L546-L586
+  - vllm@568afb3a:vllm/engine/arg_utils.py#L2444-L2479
+  - vllm@84030bbe:vllm/engine/arg_utils.py#L2693-L2738
+verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
-  - to: vllm-v1-shape
-    kind: builds-on
-    note: 这些口子分散在那三个进程的启动路径上，哪一层在哪个进程写在那一页
+  - {to: vllm-v1-shape, kind: builds-on, note: 先看请求调度与设备执行如何分工，再定位平台接口}
+  - {to: platform-plugin-registration, kind: builds-on, note: 继续追踪当前平台如何从已安装插件中被发现和选中}
+  - {to: hardware-devices, kind: builds-on, note: 分清软件设备、板卡和服务器，理解平台报告的设备身份}
+  - {to: request-call-chain, kind: builds-on, note: 平台选定组件后，沿进程和函数链追到真正执行的位置}
+  - {to: glm-5-3-flash-two-node, kind: builds-on, note: A0 启动顺序、卡数与显存预算以双机部署页为准}
 contradicts: []
-updated: "2026-09-25"
+updated: "2026-09-28"
 origin: seed
 ---
 
-## 装上插件，vLLM 怎么就认识昇腾了
+## 换一种设备，vLLM 怎样知道该用哪套实现？
 
-上游 vLLM 是围着 N 卡写起来的，代码里没有一行昇腾。装上昇腾插件之后，上游一行代码都没改，启动时它怎么就知道这台机器该用 NPU？
-
-答案是：上游根本不自己判断。启动时它把内置的几家平台（CUDA、ROCm、CPU、TPU、XPU）和装在环境里的外部插件排成一排，挨个问一句「你能在这台机器上干活吗」，谁答了「能」，谁就当选。规则里还有一条明确的优先级：**外部插件答了能，就用外部插件，内置平台靠边**。所以在一台既插昇腾卡又插 N 卡的机器上，只要昇腾插件装着并且能激活，vLLM 走的就是昇腾这条路——这不是 bug，是写死的顺序。两个外部插件同时说「能」则直接报错：一次只能有一个当家。
-
-当选之后要干的活是什么？上游把所有「答案取决于硬件」的问题收进一个类，名字就叫 Platform。可以把它看成一张问卷：将近八十道题，上游代码在近千个地方引用这些答案。所谓「vLLM 支持一种新硬件」，具体就是有人把这张问卷答完了——昇腾插件的本体，就是一份答卷。
-
-## 问卷上是哪几类题
-
-**一类是填空题**，一行一个答案：你的设备叫什么名字、拿哪个环境变量控制可见设备、分布式通信用哪家。昇腾各写一行就完。
-
-**一类是判断题**：「你是 CUDA 吗」「你是 CPU 吗」「你是外部插件吗」——上游拿这些答案在各处分流。
-
-**真正要写实现的大题**只有几道，但每道都重。启动过程走到不同的地方，上游会停下来问一句，一共五个时刻：
-
-| # | 什么时候被问 | 问什么 |
-|---|---|---|
-| 1 | 进程刚起步，命令行还没解析 | 要不要先做点准备 |
-| 2 | 配置组装完的最后一步 | 这份配置你要改哪些、拦哪些 |
-| 3 | 挑注意力实现的时候 | 你家用哪个注意力后端 |
-| 4 | 定调度默认值的时候 | 你的显存有多大 |
-| 5 | Worker 进程起来之后 | 把你的卡设好 |
+**Platform 是上游与硬件适配代码之间的接口契约：约定怎样询问设备属性、检查配置、选择实现，由当前平台回答。** 设备指执行计算的 GPU、NPU 等；保存计算数据的内存分主机 CPU 使用的内存和设备显存。token 是分词后的基本单位，用编号表示；编号转成向量后参与矩阵（按行列排列的数）计算。平台负责选实现，模型与算子负责算。
 
 ```wiki-diagram
 file: platform-hooks
 ```
 
-## 只被问一次、却能改整份配置的那道题
+箭头上行是提问，下行是回答；图中的“实现路径”告诉上游去哪里创建执行组件。契约约定输入、输出和允许的副作用，具体平台给出设备相关行为。昇腾的实现叫 [NPUPlatform](npu-platform.md)，NPU 是昇腾的 AI 计算设备。本页挂靠 **A0：服务接请求以前的[部署启动](glm-5-3-flash-two-node.md#启动时发生了什么)**。
 
-第 2 题最特殊。整个上游只有一处会问它：所有子配置都组装就位之后、配置被各处读走之前。这个位置是有意挑的——**它是最后一个还能整体改写配置的时刻**，紧接着编译区间就按改完的配置重算，再往后配置就定稿了。
+## 为什么需要这层接口，代价在哪里？
 
-昇腾在这道题里干的事也最多：把块大小顶成自己要的值、把干活的 Worker 换成自己的、拦掉不支持的参数组合。代价是这一处的实现长得很难读——那是插件模式的结构性结果，不是谁写得差。这份答卷本身怎么写的，见[昇腾的答卷](npu-platform.md)那页。
+同一个请求排队框架要能接不同设备，设备名称、支持的数值精度、执行组件和注意力实现却会变化。把这些选择集中到平台，上游就能保留共同流程，插件也有明确的适配入口。
 
-## 答案一路影响到那条请求
+一个实际例子是默认调度预算。固定上游参考在设备查询失败时，在线服务采用 **2048 token 的基础档**，再按运行模式和模型限制调整。这个数限制一轮安排多少输入位置，既不是显存字节，也不是最终部署值。平台查询是否成功，会改变上游如何选默认值；调用方因此必须处理查询失败，插件也必须遵守初始化时机。
 
-[那条请求](one-request.md)还没发出来，问卷就已经答完了——五个时刻全在启动阶段。但答案会影响它后面的每一步：
+**代价主要是兼容和时序约束。** 平台方法按各自职责改写配置、注册类型，或因组合不受支持而报错。上游改了接口签名、调用顺序或返回值要求，插件就要同步适配。返回组件路径本身不增加一次卡间通信；真正的通信和等待发生在后续 Worker 建组及模型计算中，应沿[调用链](request-call-chain.md#vllm-ascend-从六个口子接进-vllm)核对。
 
-- 块大小是平台侧定的。通用模型就在「最后一改」那道题里被顶成 128；我们这个混合模型跳过通用路径，按昇腾自己的对齐规则算成 2048——所以那 237 个 token 一个块就装下了，来龙去脉在[那条请求](one-request.md)那页。
-- 挑中的[注意力](attention-qkv.md)实现，决定这条请求每一步写 KV 时跑的是谁家的算子。
-- 连它每一步能拿到多少 token 名额，都间接取决于平台报上来的显存大小：默认名额是拿显存和设备名查表得来的，报得够大就换大一档。
+| 组件 | 在这条路径上负责什么 |
+|---|---|
+| Platform | 报告设备属性，校验配置，给出设备实现的选择 |
+| Worker | 管设备执行环境，建通信组、加载权重、量显存 |
+| Runner | 组织本轮输入张量和跨轮状态，驱动模型执行 |
+| 模型与算子 | 用权重完成矩阵乘、注意力等计算 |
 
-最后这条最容易被忽略：硬件插件不只是「接上算子」，它连调度器的默认行为都在影响。
+注意力是从历史信息中提取当前所需内容的计算；**后端**是这类计算在某种设备上的具体实现。选择后端和运行后端是两个阶段：返回类路径时，尚未执行这一层的矩阵运算。
 
-## 这张问卷还在变长
+## 放到 GLM 双机：请求到来前，平台先做什么？
 
-从 v0.23 配套的上游到 v0.26 配套的上游，问卷多了四道题，引用答案的地方多了两成多（准确数字在下半的版本差异表里）。这说明平台抽象还在往上游各处渗透，不是一个已经收敛的接口。
+**平台在 A0 确定执行所需的设备适配，后续组件才把它落实成可接收请求的服务。** [官方双机部署](glm-5-3-flash-two-node.md#部署前提)用两台 A2、每台 8 卡；卡如何分组、每卡放什么仍见部署页。这里跟启动时序走，不另算一份双机容量账。
 
-插件跟着上游升版本时，要重新过一遍：自己答过的题里有没有题面变了的，基类新给的默认答案里有没有该覆盖的。好消息是填空题那几行两个版本逐字没动，昇腾的那几行属性不用碰，要盯的是新加的方法。
+### 先确定平台，再准备配置
+
+**上游先取得当前平台，再通过它准备类型注册、汇集并校验配置。** 当前平台是按需解析并保存在当前进程里的对象；它不是独立进程，也不是每来一个 token 就重新选一次硬件。
+
+图中 VllmConfig 是汇集模型、并行、缓存等选项的配置对象，NPUWorker 是管理昇腾设备执行环境的 Worker 实现。图展开平台交接这一段；完整进程创建和函数链见[调用链页](request-call-chain.md#七站逐站从哪个函数进往下调谁)。
+
+```wiki-diagram
+file: platform-startup-contract
+```
+
+1. **取得当前平台。** 插件发现得到平台实现，供当前进程的上游调用点使用；发现与选择规则见[插件注册](platform-plugin-registration.md)。
+2. **做配置前的准备。** 昇腾平台应用全局补丁、准备量化类型，并在带命令行解析器的路径中补入昇腾量化选项。注册让后续配置能识别这些名称，能否执行还要看权重格式与设备实现。
+3. **校验并改写汇总配置。** 上游在配置构造后段调用平台；平台读取跨配置条件，可以拒绝不兼容组合，也可以就地调整对象。自动选择 Worker 时，本部署的常规 A2 路径选择 NPUWorker；其他设备或执行模式可走不同分支。
+4. **让选中的组件继续启动。** Worker 初始化设备、建立 HCCL 通信组，再加载模型。HCCL 是昇腾设备间收发数据和共同计算结果的通信库。模型建层时按需要获取注意力后端；GLM 的一些层还会直接指定自己的后端。
+
+### 校验通过后，配置仍可能继续变化
+
+**平台校验是一个阶段，最终值要追到消费者。** 固定上游在平台校验之后还会重算编译范围；多进程 Worker 初始化并加载模型后，又有依据注意力后端更新块大小的调用点。该调用是否改值取决于平台实现，不能把它当成必然发生的第二次改写。
+
+对一个启动参数，应区分“用户输入”“汇总配置中的值”“Worker 最终使用值”。平台的设备属性是读取结果，昇腾的准备钩子执行类型注册，配置钩子可以原地修改对象，后端选择则返回实现类路径；把这些接口都理解成只读查询，会漏掉启动中真正改变行为的位置。
+
+### 从平台选择走到一个 token 的计算
+
+**token 真正到来时，已经选好的 Worker 和 Runner 接住调度计划。** 文字先在主机上变成编号序列，Runner 把本轮编号、位置和状态索引组织成输入张量，模型再把编号映射为向量，送进各层矩阵计算。具体输入和计算形状沿[一条请求](one-request.md)往下读。
+
+平台有通用注意力选择接口，但模型也能直接绑定专用后端。固定 GLM 实现中，索引器配套的注意力类直接指定自己的后端，KDA（用固定状态概括历史的注意力）也提供专用后端入口。要确认某层最终跑谁，应同时看调用点、平台返回值与模型绑定，细节见[注意力后端](attention-backend-family.md)。
+
+## 主机内存、设备显存和 token 预算怎样分账？
+
+**容量查询、运行时量显存和调度预算回答的是三个问题。** 平台的设备总内存接口约定返回设备容量的字节数；Worker 运行假输入后估计可用于历史状态的显存；调度预算则限制这一轮处理多少 token。KV cache 是留下供后续生成复用的历史计算状态，占的是设备显存。
+
+| 账目 | 记录的内容 | 不能混入的量 |
+|---|---|---|
+| 主机内存 | 请求记录、编号列表、进程间共享队列等 CPU 侧对象 | 不能加到某张卡的可用显存里 |
+| 设备显存 | 本卡权重、运行中间张量、通信缓冲和 KV cache 等 | 不能用主机空闲内存替代 |
+| token 预算 | 本轮允许处理的输入位置数 | 不能当作缓存块大小或内存字节数 |
+
+固定昇腾实现刻意拒绝早期设备总内存查询，以免过早初始化设备运行库。上游捕获异常后写入的容量占位值只供默认档位选择；它不表示卡没有显存。真正的 KV 容量在 Worker 的运行环境就绪、权重加载后，按占用测量与缓存规格确定。
+
+在默认预算路径中，启动顺序是**加载权重 → 用假输入测量占用 → 分配 KV cache → 捕获执行图**。执行图是预先记录、以后可以回放的设备计算步骤。固定代码的激活峰值在捕获图之前记录，图内存不能提前混进这次峰值扣除；完整预算和块数只有[双机部署页](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)推导。主机到设备的数据搬运见[设备内存](device-memory.md)。
 
 ## 常见误解
 
-- **「Platform 是个空壳接口，实际逻辑都在硬件插件里」**——它不空。那近八十道题大部分带着能用的默认答案，插件只覆盖要改的那些。
-- **「插件只在启动时起作用」**——启动时答题，但答案影响运行时的每一步：上游三百多个文件里都在引用这些答案。
-- **「问注意力后端时，插件交回一个现成的实现」**——交回的只是一个名字，上游拿着名字自己去找实现。正因为传的是名字而不是实物，答案才能带到别的进程再兑现。
-- **「机器上检测到 CUDA 就一定走 CUDA」**——不一定，外部插件的分支排在内置平台前面。
+- **“Platform 就是设备驱动，会替模型算矩阵。”** 它提供软件适配契约；Worker、Runner、模型和算子沿选定路径完成执行。
+- **“总内存查询失败，说明 NPU 不可用。”** 固定实现主动拒绝早期查询，上游有默认档位回退；后续初始化和实际分配才检验设备是否可用。
+- **“配置校验结束，参数就冻结了。”** 后端相关调整可以发生得更晚，要核对消费位置及此前的所有写入。
+- **“接口存在，所有设备和配置组合就都支持。”** 接口提供共同调用形式，具体实现决定支持范围；基类方法也可能为空实现或报告不支持。
+- **“选中一个通用注意力后端，就知道 GLM 每层的实现。”** 还需检查模型的专用绑定，尤其是索引器配套注意力和 KDA。
 
 ## 对照源码
 
-这一节给要去核对源码、排查问题的人。上半每个说法的依据都在这里。
-
 ### 怎么开
 
-- 没有开关。装上昇腾插件，它注册的 entry point 就会被 `resolve_current_platform_cls_qualname()` 收进候选名单，和内置平台放在一起逐个调一遍，返回非 None 即算激活 [C5]。注册机制那条线在[插件注册](platform-plugin-registration.md)。
-- 分支顺序写死：先看有没有 OOT（out-of-tree，树外）插件激活，有就直接用；内置平台只在没有 OOT 插件时才轮得上 [C6]。
+Platform 是框架基础设施，没有独立的性能开关。安装与上游版本匹配的硬件插件后，由插件选择得到 `current_platform`。Ascend 使用 `PlatformEnum.OOT` 表示仓库外平台，设备类型为 `npu`；普通 A2 路径在 `worker_cls="auto"` 时选中 `vllm_ascend.worker.worker.NPUWorker`。
+
+| 契约或调用点 | 固定参考中的含义 | 来源序号 |
+|---|---|---|
+| `pre_register_and_update(parser)` | 配置构造或参数解析前准备；Ascend 执行补丁和量化注册 | 5、11 |
+| `check_and_update_config(config)` | 就地校验、调整配置；上游调用后还会重算编译范围 | 5、7、13、14 |
+| `get_attn_backend_cls(...)` | 接收后端选择条件，返回实现类路径 | 4、15 |
+| `get_device_total_memory()` | 约定设备总容量，Ascend 固定实现主动抛错 | 9、12 |
+| `update_block_size_for_backend(config)` | Worker 加载模型后的后端相关调整入口 | 8 |
 
 ### 会报什么错
 
-- 两个 OOT 插件同时激活：`RuntimeError: Only one platform plugin can be activated, but got: [...]` [C6]。
-- 两个内置平台同时激活报同一个错，走的是同一段的下一个分支 [C6]。
-- 一个平台都没激活不报错，落到 `UnspecifiedPlatform` 继续跑 [C6]。
+固定镜像的 `get_device_total_memory()` 无条件抛 `NotImplementedError`；上游默认预算路径会捕获它。若在其他调用点直接调用且没有回退，异常仍会向外传播。main 在设备未初始化时附带原因：`NPU total memory is unavailable before torch_npu initialization`。
+
+配置校验也可能抛 `ValueError`。例如固定 Ascend 的 `enable_balance_scheduling` 只接受未配置 KV 传输或混合角色，显式分离的生产者／消费者角色会被拒绝；定位见来源 14 的角色检查。查错时先判定是属性查询、配置组合、类导入还是设备执行阶段，勿把所有失败都归为硬件故障。
+
+### 开销和什么时候别开
+
+没有可单独关闭的“平台层开销”。应核对注册时机、配置改写和所选组件的运行成本。固定上游在查询失败后，在线服务的基础档是 2048 token、离线 LLM 接口为 8192；只有未显式指定时才参与默认值选择，后续还受 batched DP、吞吐模式、分块处理输入、最大模型长度等约束。不能用这个基础档替换官方启动命令的显式设置。
 
 ### 版本差异
 
-| 项 | vLLM v0.23.0 | vLLM v0.26.0 | 意味着什么 |
-|---|---|---|---|
-| `Platform` 类体里直接定义的 `def` | 78 个 | 82 个 [D] | 半年多出四道题。插件跟着上游升版本时，要重新过一遍自己覆盖了哪些、基类默认实现又换了哪些 |
-| `vllm/` 包里带 `current_platform.` 的行 | 873 行、311 个文件 | 1069 行、362 个文件 [D] | 涨了两成多。平台抽象还在往上游各处渗透 |
+固定 GLM 执行侧为 `db701c1f`，控制流参考 `vllm@0fc695fc`。社区对照采用交接文件的钉点：v0.23 为 `2c59ff10 / 0fc695fc`，v0.26 为 `2ed6cbba / 568afb3a`，main 为 `baa023ad / 84030bbe`（斜线前为 Ascend，后为上游）。下表核对的是接口与本页选择路径，GLM 模型能否部署仍按[来源基线](../sources/glm-5-3-flash-baseline.md)判断。
 
-变长的全是方法：类体顶部那几道填空题（`dispatch_key`、`device_control_env_var`、`simple_compile_backend`、`dist_backend`）两个版本逐字一样 [C10]。
+| 核对项 | v0.23 | v0.26 | main |
+|---|---|---|---|
+| 平台身份与核心契约 | 有 OOT/NPU；准备与配置钩子 | 相同契约 | 相同契约；配置工作拆到辅助函数 |
+| 自动 Worker 选择 | 按设备和 Xlite 分支；常规 A2 用 NPUWorker | 同左 | 从硬件能力档案取默认类；常规 A2 仍用 NPUWorker，Xlite 另判条件 |
+| 设备总内存查询 | 无条件抛错 | 无条件抛错 | 未初始化时抛错；已初始化时返回设备总显存 |
+| 查询失败后的基础默认 | 在线 2048、离线 8192 token | 相同 | 相同；成功查询则按容量、设备名选档 |
+| 独立平台开关 | 无；当前平台随运行环境解析 | 相同 | 相同 |
+
+三版都保留通用后端选择入口；后端映射的完整能力表见[注意力后端页](attention-backend-family.md)。固定镜像的内存查询、A2 Worker 选择与本页所述 v0.23 路径一致，main 的守卫式查询不能倒套到固定镜像。
 
 ### 源码位置
 
-- `Platform` 类体开头、填空题类属性：上游 `vllm/platforms/interface.py#L105-L140` [C1]；v0.26 配套上游的同一段在 `#L134-L169` [C10]。
-- 时刻 1 `pre_register_and_update`（命令行解析前的准备钩子）：`interface.py#L428-L441` [C2]。
-- 时刻 2 `check_and_update_config` 的题面：`interface.py#L458-L462` [C3]。它的唯一调用点在 `VllmConfig.__post_init__` 末尾（L1335），紧接着 L1342 的 `_set_compile_ranges()` 按改完的配置重算编译区间：`vllm/config/vllm.py#L1330-L1342` [C7]。
-- 时刻 3 `get_attn_backend_cls`：`interface.py#L259-L266` [C4]。签名写明返回 `str`——是类路径字符串，不是类。
-- 时刻 4 token 预算查表：`vllm/engine/arg_utils.py#L2300-L2335` [C8]。拿 `get_device_total_memory()` 和设备名当键，显存 ≥ 70 GiB 且设备名不含 a100 时换大一档默认值。
-- 时刻 5 之后 Worker 进程里还在问：Worker 起来后又调平台钩子按注意力后端核块大小：`vllm/v1/executor/multiproc_executor.py#L640-L650` [C9]。
-- 平台探测与激活的循环：`vllm/platforms/__init__.py#L203-L232` [C5]；OOT 优先、双激活抛错、无激活兜底，都在紧随其后的分支里：`#L233-L252` [C6]。
-- 昇腾的答卷入口 `NPUPlatform.check_and_update_config`：`vllm_ascend/platform.py#L450` 起，一路写到 L797（下一个方法定义在 L798）[C11]。
-- 「换 Worker 类、顶块大小」就在其中：`#L659-L671`——`worker_cls` 为 auto 时换成昇腾的 Worker，随后调 `refresh_block_size`；混合模型在这一步直接返回、块大小按页对齐另算，那条线在[那条请求](one-request.md)的对照源码 [C12]。
+下列来源序号对应页头 sources；多文件共同支持的结论按职责归组，便于追到调用方和实现方。
+
+- **插件与契约边界**：官方 Plugin System 的平台插件指南说明平台继承、设备属性、Worker 类选择与后端路径返回；同页还说明多进程加载和插件兼容约束。来源 1。[S1]
+- **双机落点**：官方 GLM 教程规定两台 A2 的启动方式与显式参数；本页仅引用部署结论，容量推导回链部署页。来源 2。[S2]
+- **属性、返回值和副作用**：来源 3–5 是 Platform 定义，来源 6 是当前进程的惰性解析；来源 7–8 给出配置与 Worker 的实际调用点。[C5]
+- **默认预算与回退**：来源 9–10 给出查询异常回退及后续预算调整；固定 Ascend 的主动拒绝见来源 12。[C9]
+- **Ascend 准备与选择**：来源 11、13–15 对照准备钩子、配置检查、Worker 分支与注意力映射。[C14]
+- **显存账与专用绑定**：来源 16 覆盖 profile、显式 KV 字节预算分支及图捕获前的峰值口径；来源 17–18 是 GLM 索引器注意力、KDA 专用后端入口。[C16]
+- **三版本对照**：来源 19–22 核对发布分支，23–26 核对 main 的查询守卫、配置拆分和 A2 默认 Worker；27–28 核对上游契约，29–30 核对默认预算回退。[C23]
+
+**待核**：本页未取得固定镜像内部上游安装产物的对应关系与 NPU 实测日志，因此没有平台钩子耗时或主机／设备实际峰值；版本组合的证据边界保留在来源基线。这里核实的是固定提交的代码路径。

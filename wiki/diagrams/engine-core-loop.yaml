@@ -1,32 +1,112 @@
 layout: figure
 id: engine-core-loop
-caption: 引擎只有这一个圈：挑一批、算一次、每条请求各吐一个 token；转一圈就是一步，那条请求的回答是它转了 200 圈
-size: [900, 330]
-
+caption: EngineCore 的逻辑迭代：计划、执行、更新通过请求状态连接；一轮可以没有生成输出，也可以提交多个 token
+size:
+- 900
+- 430
 items:
-  - { at: [30, 140], size: [140, 64], text: 有活吗, tone: control, style: plain }
-  - { at: [240, 140], size: [160, 64], text: 挑一批, sub: 调度器, tone: control }
-  - { at: [470, 140], size: [160, 64], text: 算一次, sub: 两颗 NPU, tone: weight }
-  - { at: [700, 140], size: [170, 64], text: 各吐一个 token, tone: token }
-
-badges:
-  - { at: [240, 140], n: 1, tone: control }
-  - { at: [470, 140], n: 2, tone: weight }
-  - { at: [700, 140], n: 3, tone: token }
-
+- at:
+  - 30
+  - 65
+  size:
+  - 195
+  - 62
+  text: 接收输入 / 控制
+  tone: control
+- at:
+  - 310
+  - 65
+  size:
+  - 210
+  - 62
+  text: 安排本轮工作
+  tone: control
+- at:
+  - 645
+  - 65
+  size:
+  - 225
+  - 62
+  text: 提交模型执行
+  tone: weight
+- at:
+  - 645
+  - 280
+  size:
+  - 225
+  - 62
+  text: 获取完成结果
+  tone: token
+- at:
+  - 310
+  - 280
+  size:
+  - 210
+  - 62
+  text: 取消处理与更新
+  tone: control
+- at:
+  - 30
+  - 280
+  size:
+  - 195
+  - 62
+  text: 输出返回
+  tone: token
 links:
-  - { from: [170, 172], to: [240, 172], tone: control }
-  - { from: [400, 172], to: [470, 172], tone: control }
-  - { from: [630, 172], to: [700, 172], tone: token }
-  - { from: [785, 204], to: [100, 204], via: [[785, 270], [100, 270]], tone: control }
-  - { from: [70, 140], to: [130, 140], via: [[70, 92], [130, 92]], tone: control, dashed: true }
-
+- from:
+  - 225
+  - 96
+  to:
+  - 310
+  - 96
+  tone: control
+- from:
+  - 520
+  - 96
+  to:
+  - 645
+  - 96
+  tone: control
+- from:
+  - 757
+  - 127
+  to:
+  - 757
+  - 280
+  tone: token
+- from:
+  - 645
+  - 311
+  to:
+  - 520
+  - 311
+  tone: token
+- from:
+  - 310
+  - 311
+  to:
+  - 225
+  - 311
+  tone: token
+- from:
+  - 415
+  - 280
+  to:
+  - 415
+  - 127
+  tone: control
 texts:
-  - { at: [100, 78], text: 没活：睡着等, size: 13, note: true, anchor: middle }
-  - { at: [442, 296], text: 转一圈 = 一步, size: 14, strong: true, anchor: middle }
-
-pins:
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
-    symbols: [run_busy_loop, _process_input_queue]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
-    symbols: [schedule, execute_model, update_from_output]
+- at:
+  - 445
+  - 203
+  text: 下一轮
+- at:
+  - 60
+  - 200
+  text: 请求状态跨轮保存
+- at:
+  - 55
+  - 390
+  text: 批次队列允许多批次在途；图中只展开一次逻辑提交与更新
+  note: true

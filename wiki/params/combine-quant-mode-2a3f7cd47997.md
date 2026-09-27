@@ -52,13 +52,21 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38'
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L486
+  - >-
+    vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L501
+  - >-
+    vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L584
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
+    raw/sha256-b6dee85cabd61a407e769b3afe87cad9ebab694e8557acb71a692aba730e6c8a.md
+  - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
+  - >-
+    raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md
   - >-
     raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md
 ---
@@ -70,7 +78,7 @@ rawSources:
 
 **存在范围。** 在册版本里只有 main 有（上游后来分出的 v0.28/v0.29 rc 分支也带着它，不在册），2026-09-07 由 PR [#15441](https://github.com/vllm-project/vllm-ascend/pull/15441) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）在 `vllm_ascend/` 和 `docs/source/` 下都搜不到这个名字。那两个分支的 `AscendConfig` 还是逐键 `additional_config.get(...)` 的普通类 [C14]，配上它**既不报错也不生效**；main 反过来是 `extra="forbid"` 的 pydantic 模型 [C12]，名字拼错就启动失败（装了 vLLM-Omni 才降成一条 warning）[C13]。
 
-[那条请求](../concepts/one-request.md)用不到它：Qwen3-0.6B 是 dense 模型，没有 MoE 层，MC2 这条通道根本不存在。要走到这里，至少得换成开了 [EP](../concepts/expert-parallel.md) 的 MoE 模型。
+本页旧算例用不到它：Qwen3-0.6B 是 dense 模型，没有 MoE 层，MC2 这条通道根本不存在。要走到这里，至少得换成开了 [EP](../concepts/expert-parallel.md) 的 MoE 模型。
 
 官方参数表：[latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)（v0.23.0 与 v0.26.0rc1 两版的表里没有这一行）。
 
@@ -153,8 +161,8 @@ elif comm_quant_mode is not None:
 | 标识 | `additional_config["combine_quant_mode"]` |
 | 类型 | `Literal[0, 2, 3, 4]` |
 | 默认表达式 | `0` |
-| 定义 | `vllm_ascend/ascend_config.py:486` [C16] |
-| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
+| 定义 | `vllm_ascend/ascend_config.py:584` [C18] |
+| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
 
 字段注释：
 

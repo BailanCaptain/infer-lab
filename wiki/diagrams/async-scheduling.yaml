@@ -1,39 +1,128 @@
-layout: figure
-id: async-scheduling
-caption: 同步时 NPU 每算完一步都要空等 CPU 排下一步；异步时 CPU 趁 NPU 还在算就把下一步排好，空等没了（横向只示意先后，不是实测时长）
-size: [900, 226]
-
-texts:
-  - { at: [30, 38], text: 同步, size: 14, strong: true }
-  - { at: [30, 138], text: 异步, size: 14, strong: true }
-  - { at: [60, 68], text: CPU }
-  - { at: [60, 100], text: NPU }
-  - { at: [60, 168], text: CPU }
-  - { at: [60, 200], text: NPU }
-  - { at: [188, 142], text: 排第 2 步, tone: control }
-
-items:
-  # 同步：CPU 排一步 → NPU 算一步 → NPU 空等 CPU 收结果、排下一步
-  - { at: [130, 50], size: [56, 26], tone: control, style: solid }
-  - { at: [362, 50], size: [56, 26], tone: control, style: solid }
-  - { at: [594, 50], size: [56, 26], tone: control, style: solid }
-  - { at: [188, 82], size: [172, 26], tone: token, style: solid }
-  - { at: [362, 82], size: [56, 26], tone: danger, style: faded, text: 空等 }
-  - { at: [420, 82], size: [172, 26], tone: token, style: solid }
-  - { at: [594, 82], size: [56, 26], tone: danger, style: faded }
-  - { at: [652, 82], size: [172, 26], tone: token, style: solid }
-  # 异步：NPU 还在算第 1 步时 CPU 已排好第 2 步，NPU 一步接一步
-  - { at: [130, 150], size: [56, 26], tone: control, style: solid }
-  - { at: [188, 150], size: [56, 26], tone: control, style: solid }
-  - { at: [362, 150], size: [56, 26], tone: control, style: solid }
-  - { at: [536, 150], size: [56, 26], tone: control, style: solid }
-  - { at: [188, 182], size: [172, 26], tone: token, style: solid }
-  - { at: [362, 182], size: [172, 26], tone: token, style: solid }
-  - { at: [536, 182], size: [172, 26], tone: token, style: solid }
-  - { at: [710, 182], size: [172, 26], tone: token, style: solid }
-
-pins:
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L484-L546
-    symbols: [step_with_batch_queue, batch_queue]
-  - source: vllm@0fc695fc:vllm/config/vllm.py#L497-L507
-    symbols: [max_concurrent_batches]
+{
+  "id": "async-scheduling",
+  "size": [
+    900,
+    480
+  ],
+  "caption": "两批次教学时序：主机准备各1、设备计算各3个时间单位。第二次准备可重叠时总长由8变7；设备的自回归输入仍等待正确token，数值不代表实测。",
+  "timelines": [
+    {
+      "at": [
+        25,
+        70
+      ],
+      "scale": 80,
+      "start": 0,
+      "end": 8,
+      "labelW": 160,
+      "laneH": 32,
+      "gap": 12,
+      "unit": "时间单位",
+      "lanes": [
+        {
+          "label": "串行 · 主机",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "control",
+              "text": "准备1"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "control",
+              "text": "准备2"
+            }
+          ]
+        },
+        {
+          "label": "串行 · 设备",
+          "spans": [
+            {
+              "from": 1,
+              "to": 4,
+              "tone": "token",
+              "text": "计算1"
+            },
+            {
+              "from": 5,
+              "to": 8,
+              "tone": "token",
+              "text": "计算2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": [
+        25,
+        275
+      ],
+      "scale": 80,
+      "start": 0,
+      "end": 8,
+      "labelW": 160,
+      "laneH": 32,
+      "gap": 12,
+      "unit": "时间单位",
+      "lanes": [
+        {
+          "label": "重叠 · 主机",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "control",
+              "text": "准备1"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "control",
+              "text": "准备2"
+            }
+          ]
+        },
+        {
+          "label": "重叠 · 设备",
+          "spans": [
+            {
+              "from": 1,
+              "to": 4,
+              "tone": "token",
+              "text": "计算1"
+            },
+            {
+              "from": 4,
+              "to": 7,
+              "tone": "token",
+              "text": "计算2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        25,
+        35
+      ],
+      "text": "计划准备与模型执行的时间关系",
+      "strong": true
+    },
+    {
+      "at": [
+        450,
+        452
+      ],
+      "text": "输出占位 → 结果确认；执行依赖保持",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure"
+}

@@ -1,30 +1,115 @@
-layout: figure
-id: batch-job-aware-scheduler
-caption: 先替在跑的请求留出下一步要的块，剩下的才拿去放新请求
-size: [900, 250]
-
-texts:
-  - { at: [30, 40], text: 这一步还空着的块（假设 8 块，每块 2048 个位置）, size: 14, strong: true }
-  - { at: [60, 226], text: 扣完是 0，这一步一条新请求都不放, size: 13, note: true, tone: danger }
-
-grids:
-  - at: [60, 64]
-    rows: 1
-    cols: 8
-    cell: [88, 56]
-    gap: 8
-    tone: token
-    style: faded
-    cells:
-      - { at: [0, 6], tone: kv, style: solid, text: 预留 }
-      - { at: [0, 7], tone: kv, style: solid, text: 预留 }
-
-brackets:
-  - { from: 60, to: 628, y: 140, label: "6 块 × 2048 = 12288 个 token，拿去放新请求" }
-  - { from: 636, to: 820, y: 140, label: 留给在跑的请求 }
-
-pins:
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L541
-    symbols: [_admission_budget, block_pool]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L242
-    symbols: [reserve_margin_blocks, reserve_max_blocks]
+{
+  "id": "batch-job-aware-scheduler",
+  "size": [
+    900,
+    395
+  ],
+  "caption": "预算教学例：6个空闲块，预测下一轮新增1块，余量2块、上限8块；从准入预算扣3块，剩3块×4位置=12。预留不是立即分配专属物理块。",
+  "texts": [
+    {
+      "at": [
+        35,
+        35
+      ],
+      "text": "本轮准入前：空闲 6 块",
+      "strong": true
+    },
+    {
+      "at": [
+        35,
+        190
+      ],
+      "text": "预留 = min(1 + 2, 8) = 3 块"
+    },
+    {
+      "at": [
+        35,
+        235
+      ],
+      "text": "准入预算 = (6 − 3) × 4 = 12 个位置"
+    },
+    {
+      "at": [
+        450,
+        345
+      ],
+      "text": "B=4 为教学假设；真实混合缓存不能由此直接换算显存",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        55,
+        85
+      ],
+      "rows": 1,
+      "cols": 6,
+      "cell": [
+        125,
+        50
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "可准入",
+          "tone": "token",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "可准入",
+          "tone": "token",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "可准入",
+          "tone": "token",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "预留预算",
+          "tone": "kv",
+          "style": "faded"
+        },
+        {
+          "at": [
+            0,
+            4
+          ],
+          "text": "预留预算",
+          "tone": "kv",
+          "style": "faded"
+        },
+        {
+          "at": [
+            0,
+            5
+          ],
+          "text": "预留预算",
+          "tone": "kv",
+          "style": "faded"
+        }
+      ]
+    }
+  ],
+  "layout": "figure"
+}

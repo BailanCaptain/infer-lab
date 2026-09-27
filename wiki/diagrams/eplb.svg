@@ -1,16 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="示意：同一层 MoE、同一步里，两颗 NPU 各要算多少次「token 找专家」。数是编的，只为看清形状；这一层要等慢的那颗算完才能往下走">
-  <title>示意：同一层 MoE、同一步里，两颗 NPU 各要算多少次「token 找专家」。数是编的，只为看清形状；这一层要等慢的那颗算完才能往下走</title>
-  <defs><pattern id="eplb-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <rect x="20" y="50" width="585" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="36" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU 0：650 次</text>
-  <rect x="20" y="84" width="315" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="36" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU 1：350 次</text>
-  <rect x="335" y="84" width="270" height="26" rx="4" fill="url(#eplb-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
-  <text x="351" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">算完干等</text>
-  <rect x="20" y="162" width="459" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="36" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU 0：510 次</text>
-  <rect x="20" y="196" width="441" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="36" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPU 1：490 次</text>
-  <text x="20" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">没开 EPLB：热门专家挤在 NPU 0 上</text>
-  <text x="20" y="146" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">开了 EPLB：热门专家挪走一些、多放一份</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="局部教学布局：仅展示四个逻辑专家，调用数[8,8,2,2]。交换E1与E2后两设备各10次分配；其余专家省略，不是GLM全层或规划器最优输出。">
+  <title>局部教学布局：仅展示四个逻辑专家，调用数[8,8,2,2]。交换E1与E2后两设备各10次分配；其余专家省略，不是GLM全层或规划器最优输出。</title>
+  <defs></defs>
+  <rect x="25" y="70" width="405" height="220" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="41" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">调整前 · 设备 0</text>
+  <rect x="470" y="70" width="405" height="220" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="486" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">调整前 · 设备 1</text>
+  <rect x="25" y="380" width="405" height="220" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="41" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">调整后 · 设备 0</text>
+  <rect x="470" y="380" width="405" height="220" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="486" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">调整后 · 设备 1</text>
+  <rect x="70" y="205" width="144" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="86" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">E0:8</text>
+  <rect x="214" y="205" width="144" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="230" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">E1:8</text>
+  <rect x="515" y="205" width="36" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="531" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">2</text>
+  <rect x="551" y="205" width="36" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="567" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">2</text>
+  <rect x="70" y="515" width="144" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="86" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">E0:8</text>
+  <rect x="214" y="515" width="36" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="230" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">2</text>
+  <rect x="515" y="515" width="144" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="531" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">E1:8</text>
+  <rect x="659" y="515" width="36" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="675" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">2</text>
+  <rect x="70" y="110" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="145" y="135.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E0</text>
+  <rect x="220" y="110" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="295" y="135.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E1</text>
+  <path d="M220 110v42" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="70" y="110" width="300" height="42" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="515" y="110" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="590" y="135.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E2</text>
+  <rect x="665" y="110" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="740" y="135.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E3</text>
+  <path d="M665 110v42" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="515" y="110" width="300" height="42" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="70" y="420" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="145" y="445.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E0</text>
+  <rect x="220" y="420" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="295" y="445.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E2</text>
+  <path d="M220 420v42" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="70" y="420" width="300" height="42" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="515" y="420" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="590" y="445.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E1</text>
+  <rect x="665" y="420" width="150" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="740" y="445.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E3</text>
+  <path d="M665 420v42" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="515" y="420" width="300" height="42" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="70" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">总负载 16</text>
+  <text x="515" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">总负载 4</text>
+  <text x="70" y="496" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">总负载 10</text>
+  <text x="515" y="496" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">总负载 10</text>
+  <text x="450" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">改变物理放置；逻辑专家函数与权重内容保持一致</text>
+  <text x="450" y="637" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">条长表示 token–expert 分配次数，不表示延迟</text>
 </svg>

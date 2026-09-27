@@ -1,48 +1,52 @@
 layout: figure
 id: request-call-chain
-caption: 一条请求走过的七站：过了调度器旁边那条线，剩下的路全在昇腾的代码里
-size: [900, 250]
-
-texts:
-  - { at: [20, 44], text: 一步 = 从左到右走一遍，回来接着下一步, size: 14, strong: true }
-  - { at: [330, 220], text: 挑出的 token 交回上游，下一步从调度器再来, size: 12.5, note: true }
-
+caption: 七站分在三种进程里：第 1、7 站在 API server，第 2、6 站在引擎进程，第 3 到第 5 站在每张卡的 worker 里。实线是按先后顺序传请求和结果的通道，虚线是同一步里几个进程一起参与的通信；node1 没接到这条请求，每一步也要跑一次空批次
+size: [900, 620]
+frames:
+  - { at: [24, 64], size: [232, 292], label: API server（node0，1 个） }
+  - { at: [300, 64], size: [232, 292], label: 引擎进程（node0，DP0） }
+  - { at: [596, 64], size: [256, 292], label: worker（node0，每卡 1 个，共 8 个） }
+  - { at: [300, 434], size: [232, 106], label: 引擎进程（node1，DP1） }
+  - { at: [596, 434], size: [256, 106], label: worker（node1，8 个） }
 items:
-  - { at: [20, 84], size: [104, 60], text: 接口, sub: 收下请求, tone: control, style: faded }
-  - { at: [138, 84], size: [104, 60], text: 调度器, sub: 发 token 名额, tone: control, style: faded }
-  - { at: [296, 84], size: [104, 60], text: Worker, sub: 管卡间收发, tone: control }
-  - { at: [414, 84], size: [104, 60], text: 主循环, sub: 算不算它拍板, tone: control }
-  - { at: [532, 84], size: [104, 60], text: 摆张量, sub: 定笔记落哪格, tone: control }
-  - { at: [650, 84], size: [104, 60], text: 走 40 层, sub: 读写 KV 笔记, tone: kv }
-  - { at: [762, 84], size: [116, 60], text: 采样, sub: 挑下一个 token, tone: token }
-
-badges:
-  - { at: [22, 84], n: 1 }
-  - { at: [140, 84], n: 2 }
-  - { at: [298, 84], n: 3 }
-  - { at: [416, 84], n: 4 }
-  - { at: [534, 84], n: 5 }
-  - { at: [652, 84], n: 6 }
-  - { at: [770, 84], n: 7 }
-
-dividers:
-  - { from: [268, 56], to: [268, 224], sides: [上游 vLLM, 昇腾的代码] }
-
+  - { at: [44, 108], size: [192, 52], text: 入口, sub: 套模板、分词、选一组引擎, style: plain }
+  - { at: [44, 268], size: [192, 52], text: 返回与收尾, sub: 还原成文字、流式发回, style: plain }
+  - { at: [320, 108], size: [192, 52], text: 调度, sub: 这一步算谁、各算几个, style: plain }
+  - { at: [320, 268], size: [192, 52], text: 结果更新, sub: 追加、回退、判断结束, style: plain }
+  - { at: [616, 100], size: [216, 48], text: 准备输入, sub: 清单翻成张量, tone: token }
+  - { at: [616, 176], size: [216, 48], text: 逐层前向, sub: 45 层，算出分数, tone: token }
+  - { at: [616, 252], size: [216, 48], text: 采样与草拟, sub: 选 1 个，再猜 3 个, tone: token }
+  - { at: [320, 466], size: [192, 44], text: 空转一圈, style: faded }
+  - { at: [616, 466], size: [216, 44], text: 跑一次空批次, style: faded, tone: token }
 links:
-  - { from: [124, 114], to: [138, 114] }
-  - { from: [242, 114], to: [296, 114] }
-  - { from: [400, 114], to: [414, 114] }
-  - { from: [518, 114], to: [532, 114] }
-  - { from: [636, 114], to: [650, 114] }
-  - { from: [754, 114], to: [768, 114] }
-  - { from: [820, 144], via: [[820, 196], [190, 196]], to: [190, 144], tone: control, dashed: true }
-
+  - { from: [236, 134], to: [320, 134], tone: control }
+  - { from: [512, 134], to: [616, 124], tone: control }
+  - { from: [724, 148], to: [724, 176], tone: token }
+  - { from: [724, 224], to: [724, 252], tone: token }
+  - { from: [616, 288], to: [512, 294], tone: token }
+  - { from: [320, 294], to: [236, 294], tone: token }
+  - { from: [332, 268], to: [332, 160], tone: control }
+  - { from: [500, 356], to: [500, 466], tone: comm, dashed: true, ends: both }
+  - { from: [852, 200], to: [852, 488], via: [[876, 200], [876, 488]], tone: comm, dashed: true, ends: both }
+badges:
+  - { at: [44, 108], n: 1 }
+  - { at: [320, 108], n: 2 }
+  - { at: [616, 100], n: 3 }
+  - { at: [616, 176], n: 4 }
+  - { at: [616, 252], n: 5 }
+  - { at: [320, 268], n: 6 }
+  - { at: [44, 268], n: 7 }
+texts:
+  - { at: [258, 120], text: 网络消息, size: 12, tone: control }
+  - { at: [528, 120], text: 共享内存, size: 12, tone: control }
+  - { at: [344, 200], text: 下一步, size: 12, tone: control }
+  - { at: [490, 398], text: 两组对齐「还有没有活」, size: 12, tone: comm, anchor: end }
+  - { at: [588, 578], text: 专家分散在 16 张卡上，每步都要跨机器交换, size: 13, tone: comm, anchor: middle }
+  - { at: [24, 578], text: node1 每一步陪跑一次完整前向, size: 13 }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L640
-    symbols: [execute_model]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1950-L1968
-    symbols: [execute_model]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880
-    symbols: [_prepare_inputs]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2404-L2410
-    symbols: [sample_tokens]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1118-L1164
+    symbols: [DPEngineCoreProc, run_engine_core]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L1031
+    symbols: [worker_busy_loop, rpc_broadcast_mq]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666
+    symbols: [NPUWorker]

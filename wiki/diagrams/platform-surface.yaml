@@ -1,32 +1,24 @@
 layout: figure
 id: platform-surface
-caption: 上游有硬件问题都来问昇腾的平台类；它答四类，中间两类会动你给的配置
-size: [900, 390]
-
-dividers:
-  - { from: [300, 24], to: [300, 370], sides: [上游问, 平台类答] }
-
+caption: 平台处理配置并参与实现选择；GLM 层的专用后端绑定仍需沿模型实现追踪
+size: [900, 440]
 items:
-  - { at: [50, 160], size: [190, 64], text: vLLM 上游, tone: control, style: plain }
-  - { at: [380, 50], size: [280, 56], text: 报身份, tone: control, style: faded }
-  - { at: [380, 130], size: [280, 56], text: 改配置, tone: control }
-  - { at: [380, 210], size: [280, 56], text: 拦配置, tone: danger }
-  - { at: [380, 290], size: [280, 56], text: 指路, tone: control, style: faded }
-
-fans:
-  - { from: [240, 192], to: [[380, 78], [380, 158], [380, 238], [380, 318]], tone: control }
-
-tags:
-  - { at: [690, 66], text: 显存多大？启动时答不上, tone: danger }
-
+  - { at: [25, 90], size: [200, 65], text: VllmConfig, sub: 模型、并行、缓存配置, tone: control }
+  - { at: [310, 90], size: [250, 65], text: NPUPlatform 校验, sub: 检查组合与调整配置, tone: control }
+  - { at: [650, 35], size: [220, 60], text: Worker 类路径, sub: 进入设备启动流程, tone: weight }
+  - { at: [650, 140], size: [220, 60], text: 配置处理结果, sub: 后续组件继续使用, tone: kv }
+  - { at: [25, 300], size: [200, 65], text: 通用后端选择条件, sub: MLA / sparse / compress, tone: token }
+  - { at: [310, 300], size: [250, 65], text: 平台后端选择接口, sub: 按条件返回类路径, tone: token }
+  - { at: [650, 300], size: [220, 65], text: 使用该接口的层, sub: 创建所选后端, tone: token }
+links:
+  - { from: [225, 122], to: [310, 122], tone: control }
+  - { from: [560, 122], to: [650, 65], via: [[605, 122], [605, 65]], tone: weight }
+  - { from: [560, 122], to: [650, 170], via: [[605, 122], [605, 170]], tone: kv }
+  - { from: [225, 332], to: [310, 332], tone: token }
+  - { from: [560, 332], to: [650, 332], tone: token }
+texts:
+  - { at: [310, 210], text: 组合不受支持时可以直接报错, note: true }
+  - { at: [25, 408], text: GLM 专用绑定：见注意力后端页, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-    symbols: [NPUPlatform, device_name, dispatch_key]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L184-L204
-    symbols: [pre_register_and_update]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L472
-    symbols: [check_and_update_config]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L275-L290
-    symbols: [get_device_total_memory]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
-    symbols: [get_attn_backend_cls]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475', symbols: [check_and_update_config] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831', symbols: [get_attn_backend_cls] }

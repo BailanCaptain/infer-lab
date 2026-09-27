@@ -1,24 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" width="900" height="270" role="img" aria-label="每个 rank 最多同时跑 4 条请求。DP0 被一条 128 块的长对话压着，DP1 只有 4 块；计划让 DP1 暂停一条 1 块的短问答、换进候补里那条 64 块的请求，DP0 这一步不放新请求进来。条长按块数等比例画">
-  <title>每个 rank 最多同时跑 4 条请求。DP0 被一条 128 块的长对话压着，DP1 只有 4 块；计划让 DP1 暂停一条 1 块的短问答、换进候补里那条 64 块的请求，DP0 这一步不放新请求进来。条长按块数等比例画</title>
-  <defs><pattern id="dyntra-lb-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <rect x="110" y="54" width="576" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="126" y="72" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长对话 128 块</text>
-  <rect x="686" y="54" width="13.5" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="110" y="92" width="18" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="128" y="92" width="288" height="26" rx="4" fill="url(#dyntra-lb-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
-  <text x="144" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">候补 64 块</text>
-  <rect x="110" y="186" width="576" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="126" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">长对话 128 块</text>
-  <rect x="686" y="186" width="13.5" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="110" y="224" width="13.5" height="26" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="123.5" y="224" width="288" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="139.5" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">换进来 64 块</text>
-  <text x="30" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">算计划前</text>
-  <text x="30" y="72" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">DP0</text>
-  <text x="30" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">DP1</text>
-  <text x="30" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">按计划执行后</text>
-  <text x="30" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">DP0</text>
-  <text x="30" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">DP1</text>
-  <text x="716" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">冻结：不放新请求</text>
-  <text x="430" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">暂停 1 条短的，KV 留着</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="块数代理的教学输入：DP0[128,1,1,1]，DP1[1,1,1,1]并有候选64。计划在DP1本地暂停1并准入64，运行负载从[131,4]变[131,67]；暂停请求的缓存仍占空间。">
+  <title>块数代理的教学输入：DP0[128,1,1,1]，DP1[1,1,1,1]并有候选64。计划在DP1本地暂停1并准入64，运行负载从[131,4]变[131,67]；暂停请求的缓存仍占空间。</title>
+  <defs></defs>
+  <rect x="110" y="75" width="550.4" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="126" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">128 块</text>
+  <rect x="660.4" y="75" width="12.9" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="110" y="125" width="17.2" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="110" y="270" width="550.4" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="126" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">128 块</text>
+  <rect x="660.4" y="270" width="12.9" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="110" y="320" width="12.9" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="122.9" y="320" width="275.2" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="138.9" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">准入候选 64 块</text>
+  <rect x="540" y="130" width="230" height="42" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="655" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP1 候选：64 块</text>
+  <text x="30" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">当前运行集合</text>
+  <text x="30" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">DP0</text>
+  <text x="30" y="149" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">DP1</text>
+  <text x="710" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">合计 131</text>
+  <text x="140" y="149" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">合计 4</text>
+  <text x="30" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">计划生效后的运行集合</text>
+  <text x="30" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">DP0</text>
+  <text x="30" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">DP1</text>
+  <text x="710" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">合计 131</text>
+  <text x="430" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">合计 67</text>
+  <text x="450" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">DP1 本地暂停 1 块请求；没有跨 rank 搬迁</text>
 </svg>

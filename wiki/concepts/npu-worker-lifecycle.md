@@ -1,149 +1,87 @@
 ---
 id: npu-worker-lifecycle
-title: NPUWorker：从出生到能接请求的六步
+title: NPUWorker 启动：设备、权重与状态池
 type: feature
-summary: 一颗 NPU 上守着一个 Worker。它从被建出来到能接第一条请求要走六步：换补丁、选卡、装权重、量显存、分 KV 块、录图。顺序是固定的——走到第四步，KV Cache 能有多大才第一次有答案。
+summary: 追踪 Worker 从进程内适配到设备通信、权重、缓存预算和预热的依赖，区分显式内存预算与自动测算，以及启动分配池和运行时分配请求块。
 aliases: [NPUWorker, WorkerBase, Worker 生命周期, worker 启动, 启动时序, init_device, compile_or_warm_up_model]
 chapters: ["10"]
 order: 110
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L101-L130
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L505-L523
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L527-L553
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L558-L595
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L681-L704
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L732
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L907-L918
-  - vllm-ascend@2c59ff10:vllm_ascend/patch/worker/__init__.py#L40-L41
-  - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L772-L778
-  - vllm-ascend@2ed6cbba:vllm_ascend/patch/worker/__init__.py#L27-L33
-verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L90-L133
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L524
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L668-L691
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L894-L905
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719
+  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L399-L418
+verified: []
 evidence: "C"
 relations:
-  - to: kv-cache-memory-profiling
-    kind: builds-on
-    note: 第四步那次实测到底怎么算出可用字节数，公式和扣减项在那一页
-  - to: kv-cache-spec
-    kind: builds-on
-    note: 第五步按 KVCacheConfig 分配张量，每层每块的形状由 spec 决定
-  - to: one-request
-    kind: builds-on
-    note: 那条请求写笔记的块、decode 回放的图，都是这六步留下的产物
+  - {to: engine-processes, kind: builds-on, note: Worker 是设备执行角色，其进程位置取决于执行器}
+  - {to: kv-cache-spec, kind: builds-on, note: 池内状态形状来自实际层的规格}
+  - {to: vllm-kv-block-allocation, kind: builds-on, note: 运行时为请求分配与回收块}
 contradicts: []
-updated: "2026-09-25"
+updated: "2026-09-26"
 origin: seed
 ---
 
-一颗 NPU 上守着一个 Worker（守着一颗 NPU 干活的那个进程，模型真正在它手里算）。它从被建出来到能接第一条请求，要按固定顺序走六步：换补丁、选卡、装权重、量显存、分 KV 块、录图。每一步的产物都是下一步的前提，所以顺序不能换——最要紧的一条是：**第四步之前，KV Cache 能有多大还没人知道。**
+## 请求到达前要准备什么
+
+[单请求](one-request.md)与[并发请求](concurrent-requests.md)介绍的是服务已可执行时的计算过程。启动阶段先建立这些计算依赖：设备与通信环境、模型权重、历史状态池以及可选的编译和图执行资源。
+
+`NPUWorker` 管理设备侧生命周期，`NPUModelRunner` 组织模型执行。Worker 是角色，是否占用独立进程由执行器决定；实际实例数量与并行拓扑相关，见[进程与执行器](engine-processes.md)。
 
 ```wiki-diagram
 file: worker-lifecycle
 ```
 
-## 问题：敲下启动命令之后，那一阵子它在干什么
+图展示主要依赖及条件分支；缓存预算既可能来自显式设置，也可能来自测算，预热之后是否捕获图取决于配置与支持路径。
 
-按官方示例把[贯穿例子](one-request.md)的模型（Qwen3.6-35B-A3B，两颗 NPU）拉起来，从敲命令到日志里出现「能接请求」，中间要等上一阵，日志一行行往外滚。这段时间机器没有闲着：两颗 NPU 上各有一个 Worker，各自在走同一条六步的路。等的就是这六步。
+## 进程内准备与设备通信
 
-## 六步各自改变了什么
+Worker 构造函数先加载 Worker 补丁，注册相应算子，初始化 Ascend 配置，再执行基类构造。[C1] 这些动作使后续加载与计算能找到正确的设备实现。
 
-**一、换补丁。** 昇腾的适配有一部分是「把上游代码的某些行为当场换掉」。Worker 一出生先把这些替换做完，再注册昇腾自己的算子（在 NPU 上真正执行的一小段计算）。这一步走完，这个进程里的上游代码已经不是原样了——后面每一步跑的都是换过的版本。为什么每个进程都得各打一遍补丁，见[三个进程与 patch 注入点](engine-processes.md)。
+`init_device()` 完成设备初始化，建立工作区管理器，再创建 ModelRunner，原因是 Runner 构造需要已经确定的设备。[C2] 设备准备还包括分布式环境：相关方法以 `hccl` 初始化通信，并建立模型并行与 Ascend 并行组。[C3]
 
-**二、选卡。** 到这一步 Worker 才真正拿到自己那颗 NPU。也是在这里，它把真正跑模型的那一站——[ModelRunner](npu-model-runner.md)——建出来：建它需要先知道用哪颗卡，所以只能等选完卡再建。
+通信组规定哪些 rank 参加同一个操作。rank 是组内参与者编号，TP/PP 等组表达计算协作关系；它们不是模型的 token 编号。具体数据交接先见[通信基础](collective-communication.md)，再读各并行策略。
 
-**三、装权重。** 把训练好就不再变的那些数字从磁盘搬进这颗 NPU 的显存。两颗 NPU 各装自己分到的那一份，怎么切开的在[张量并行](tensor-parallel.md)。
+## 创建模型并提供权重
 
-**四、量显存。** 装完权重，该给 KV Cache（把算过的 K 和 V 存起来，下一步直接读，不重算）划地盘了。但 Worker 不是看配置文件里写了多少就信多少，而是**实测**：拿一批假数据把整个模型真跑一遍，看这一趟最多占掉多少显存，然后做一道减法——拿到手的显存，减去权重和刚才实测出的运行开销，剩下的才是 KV Cache 的预算。减法的每一项在[KV Cache 显存怎么量出来](kv-cache-memory-profiling.md)。
+`load_model()` 调用 Runner 的加载路径，按配置创建模块和装载权重。[C4] 加载器决定数据从哪里获得，不能把所有路径都简化成从本地磁盘读。启用 sleep mode 时，权重放入带专门标签的内存池；还可以配置后续权重传输引擎。
 
-**五、分 KV 块。** 按第四步的预算，把 KV 池真正划出来。从这一刻起，池子里才有一块块的 KV 块（KV Cache 被切成的小段，一段存固定个数的 token）。贯穿例子那条请求后来写 237 个 token 笔记用的那个 2048 个位置的块，物理位置就是这一步定下的。
+对于 GLM，已注册的模型类决定 45 层混合结构；并行实现决定本 rank 需要持有哪些参数。权重形状和存储格式必须与实际实现相符。本文解释生命周期，没有验证专用镜像与权重在某台设备上的完整加载。
 
-**六、录图。** decode 阶段每步只算 1 个 token，活碎，一次次现场下发指令太亏。所以启动时先热身跑几遍，再把一整趟计算录下来（捕获），之后每步照着回放，见[图模式](graph-mode-layer.md)。贯穿例子那 199 步 decode 回放的，就是这里录下的图。
+## 缓存预算有两条路径
 
-## 顺序为什么不能换
+`determine_available_memory()` 返回可用于历史状态的字节预算。[C5]
 
-下面是顺着六步推出来的，不是源码里的声明：
+**显式设置 `kv_cache_memory_bytes`** 时，Worker 仍调用 `profile_run()` 以完成相应编译准备，随后直接返回指定值；这条路径跳过自动容量测算，并不按 `gpu_memory_utilization` 推导该值。
 
-| 想换的顺序 | 为什么不行 |
+**未显式设置**时，Worker 在权重加载后执行 profiling，估计权重、非 PyTorch 占用和运行峰值等非缓存开销，再从目标内存预算扣除，得到可用缓存预算。测量依赖启动时内存快照；其他进程在期间释放内存可能破坏断言前提。
+
+两条路径都需要后续分配成功。显式填写一个很大的数字不会增加物理容量，自动测算值也必须转换成各层可接受的[缓存规格](kv-cache-spec.md)。GLM 的 MLA 与 KDA 历史状态不同，不能统一按普通逐 token K/V 张量估算。
+
+## 启动分配池，运行时分配请求块
+
+`initialize_from_config(kv_cache_config)` 准备 KV 传输相关状态，并让 Runner 按缓存配置实际分配张量；sleep mode 可使用专门的缓存内存池。[C6]
+
+这一步建立可使用的物理存储。请求 A 到来后分到哪些块、请求 C 是否复用某个完整前缀、何时释放引用，是运行时缓存管理器的工作。[C8] 启动时还不知道这些请求，因而不能说请求的物理块映射已经确定。对应关系见[块表](block-table.md)和[块分配](vllm-kv-block-allocation.md)。
+
+## 预热与条件捕获
+
+`compile_or_warm_up_model()` 根据编译尺寸执行 dummy run，并为捕获尺寸与编译范围处理相应准备；非 `enforce_eager` 路径才调用 `capture_model()`。[C7] 调用捕获入口也仍受实际图模式与支持范围约束，不能推断之后所有批次都回放同一张完整图。
+
+预热使某些延迟到首次执行的准备提前完成，图捕获则服务于可复用的执行模式。运行时的批形状、分支与后端条件决定是否适用，见[图模式](graph-mode-layer.md)。普通单请求每轮输入一个 token 也不代表整个并发批次只有一个 token。
+
+## 从失败位置判断依赖
+
+| 失败阶段 | 先核对什么 |
 |---|---|
-| 先分 KV 块再量显存 | 预算是量出来的产物，没有第四步就没有「分多少」这个数 |
-| 先建 ModelRunner 再选卡 | 建它需要先知道用哪颗卡 |
-| 先装权重再换补丁 | 装权重走的那条路本身就被补丁改过，补丁必须更早 |
-| 先录图再装权重 | 录图要真跑一遍模型，没有权重跑不了 |
+| 模块、补丁或算子初始化 | 固定版本、依赖、导入条件与实际注册对象 |
+| 设备或 HCCL 初始化 | 设备可见性、rank 与通信组配置、运行环境 |
+| 权重加载 | 架构名称、加载器、张量格式与本 rank 的分片 |
+| 预算测算或状态分配 | 显式预算/自动路径、非缓存占用、状态规格 |
+| 预热或图捕获 | 最后成功的阶段、目标尺寸和实际图模式 |
 
-## 那条请求享受到的是六步的产物
-
-贯穿例子那条请求进门时，六步早就走完了。它碰到的一切都是启动期定好的：
-
-- 池子里一共有多少个 KV 块，是第四步减出来的一个**常数**，运行期不会变多；
-- 它的笔记写进哪片显存，是第五步分配时定的；
-- 它 decode 每一步回放的图，是第六步录的。
-
-所以「跑着跑着放不下了」在这套引擎里通常不是显存突然不够，而是**块不够**——块一共有多少，得回启动的第四步查账。
-
-## 排查启动报错，先看挂在第几步
-
-启动期出的错，按挂在第几步就能圈定范围：
-
-- 挂在第一步：补丁或算子注册的问题；
-- 挂在第二步：卡没选到，先查设备可见性的设置；
-- 挂在第四步、且提示可用显存反而变大：实测的前提被打破了，多半是同一台机器上别的进程在这期间释放了显存；
-- 挂在第六步：录图的问题，先切到不录图的模式跑一遍，确认是不是图的事。
-
-具体查哪个开关、报错原文长什么样，见下半。
-
-## 常见误解
-
-- **「第二步只是选卡」**——ModelRunner 也是在那里建出来的；在那之前它根本不存在。
-- **「KV Cache 大小由启动参数直接决定」**——参数只表达意图，实际字节数是第四步实测后减出来的。就算手工指定了大小，那遍假数据也照跑，因为顺带把模型编译了。
-- **「省显存的睡眠功能只影响运行期」**——其实第三步和第五步就按它分了叉：开着它，权重和 KV Cache 各进各的专用内存池，方便以后整池释放。
-
-## 对照源码
-
-### 怎么开
-
-- `NPUWorker` 继承上游 `WorkerBase` [C1]，一张卡一个。六步对应六个方法，行号见「源码位置」。
-- 第一步 `__init__`：先按 `COMPILE_CUSTOM_KERNELS` 决定是否警告，然后 `adapt_patch()` 打 worker 层 patch，接着 `ops.register_dummy_fusion_op()`、非 A5 设备注册 ATB 扩展、`register_ascend_customop(vllm_config)`、`init_ascend_config(vllm_config)`、配置日志、`check_ascend_device_type()`，最后才 `super().__init__()` [C2]。这一步结束时进程内的上游行为已被替换、AscendConfig 单例已有值 [D]。
-- 第二步 `init_device`：`self.device = self._init_device()`，初始化 workspace 管理器，然后才造 model runner——源码注释写明理由：「Init ModelRunner here, so that we have access to self.device」[C3]。按 `use_v2_model_runner` 在 `NPUModelRunnerV2` 与 `NPUModelRunner` 之间选。
-- 第三步 `load_model`：`enable_sleep_mode` 开着就用 `CaMemAllocator` 的 `tag="weights"` 池，否则 `nullcontext()`；之后若配了权重传输就建传输引擎 [C6]。
-- 第四步 `determine_available_memory`：产物是 `self.available_kv_cache_memory_bytes = self.requested_memory - profile_result.non_kv_cache_memory`，中间必须真跑一遍 `self.model_runner.profile_run()` [C5]。配了 `kv_cache_memory_bytes` 走快路径：跳过整段测算、直接返回这个值，但 `profile_run()` 照跑，注释写明那是为了编译模型 [C4]。
-- 第五步 `initialize_from_config(kv_cache_config)`：先 `ensure_kv_transfer_initialized`，再按 sleep mode 选 `tag="kv_cache"` 池，然后 `self.model_runner.initialize_kv_cache(kv_cache_config)` 真正分配张量 [C8]。
-- 第六步 `compile_or_warm_up_model`：从 `compilation_config` 取 `compile_sizes` 与 `cudagraph_capture_sizes`，把已经要捕获的尺寸从 warmup 列表剔掉，再按 compile range 补齐端点，warmup 跑完 `capture_model()` [C7]。
-- 「先装权重再打 patch 不行」的实证：权重加载路径被 `patch_process_weights_after_loading`、`patch_weight_utils` 改过（后者 v0.26 上已删），patch 必须更早 [C9]。
-- 上半排查清单对应的开关：第二步挂 → 查 `ASCEND_RT_VISIBLE_DEVICES`；第六步挂 → 先开 `enforce_eager` 把捕图那段跳过来确认范围[A]。
-
-### 会报什么错
-
-- 第四步的断言：profile 之后的可用显存必须小于初始快照的可用显存，否则报 `Error in memory profiling.`，报错文案直接点名常见原因——同容器里其他进程在 profiling 期间释放了显存。也就是说 profile 没占住显存本身就被当成异常 [D]。
-- 第三步开 sleep mode 时，`CaMemAllocator` 要求当前用量为 0，否则断言失败：`Sleep mode can only be used for one instance per process.`。
-- 第二步选 v2 runner 会打警告（不是错）：`npu model runner v2 is in developing, some features doesn't work for now.`——看到它说明 `use_v2_model_runner` 生效了。
-
-### 开销和什么时候别开
-
-- 启动慢主要慢在第四步（真跑一遍假批）和第六步（逐尺寸 warmup 加捕获）[D]。
-- `enforce_eager` 为真时跳过的是尺寸剔除/补齐和最后的 `capture_model()`，`compile_sizes` 里的 warmup 仍然照跑；代价是运行期回到逐算子下发。
-- v0.26 上 warmup 之后还会无条件插一次 `kernel_warmup(self)`，`enforce_eager` 也拦不住 [C10]——启动慢在第六步时，v0.26 上要多认这一段。
-- 配 `kv_cache_memory_bytes` 能跳过第四步的测算部分，但假批照跑，省不掉编译那份时间。
-
-### 版本差异
-
-六步的划分、顺序和每一步的产物在两个版本上一样，差在第六步里多了一段、以及第一步打的 patch 少了一个：
-
-| 项 | v0.23 维护分支 | v0.26 分支 | 意味着什么 |
-|---|---|---|---|
-| 第六步 warmup 之后 | 跑完 `_dummy_run` 就去 `capture_model()` | 中间无条件插一次 `kernel_warmup(self)`，`enforce_eager` 也拦不住 | 启动慢在第六步时，v0.26 上还要多认一段算子预热，它不在 `compile_sizes` 里 |
-| 改权重加载路径的 worker patch | `patch_process_weights_after_loading` 与 `patch_weight_utils` 两个 | 只剩 `patch_process_weights_after_loading`，`patch_weight_utils` 整个文件已删 [C11] | 「patch 必须早于装权重」这条理由还在；照 v0.23 的印象去 v0.26 上找 `patch_weight_utils` 会扑空 |
-
-### 源码位置
-
-六个方法都在 `vllm_ascend/worker/worker.py`；v0.26 列是在 `2ed6cbba` 上重新数的 [D]。注意文件里的排列顺序不是执行顺序——第四步的方法排在第三步前面。
-
-| 步骤 | 方法 | v0.23 行号 | v0.26 行号 |
-|---|---|---|---|
-| 一、换补丁 | `__init__` | 90 | 99 |
-| 二、选卡、造 runner | `init_device` | 505 | 489 |
-| 三、装权重 | `load_model` | 681 | 723 |
-| 四、量显存 | `determine_available_memory` | 527 | 511 |
-| 五、分 KV 块 | `initialize_from_config` | 907 | 1001 |
-| 六、warmup 与捕获 | `compile_or_warm_up_model` | 706 | 748 |
-
-worker 层 patch 的清单在 `vllm_ascend/patch/worker/__init__.py`（两个版本各一份）。
+这种定位顺序把报错放回架构依赖中。没有 NPU 的读者仍可沿方法和图理解启动过程；设备容量、通信可用性及耗时需要部署实测。

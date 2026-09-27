@@ -1,36 +1,262 @@
-layout: figure
-id: large-scale-ep
-caption: 官方示例的 8 台 Atlas A3（模型 DeepSeek-R1），各画一台：P 节点每台切 2 个 DP rank，D 节点每台切 16 个。每个 rank 是一个独立的 server，8 台一共 72 个；请求交给哪个 server，由 vLLM 外面的 proxy 决定
-size: [900, 350]
-
-items:
-  - { at: [300, 20], size: [300, 50], text: 外面的 proxy：挑最闲的, tone: control, style: solid }
-  - { at: [40, 165], size: [189, 48], text: 1 个 server, tone: control, style: solid }
-  - { at: [232, 165], size: [189, 48], text: 1 个 server, tone: control, style: solid }
-
-frames:
-  - { label: P 节点 · 画 1 台，共 4 台, at: [20, 140], size: [420, 190] }
-  - { label: D 节点 · 画 1 台，共 4 台, at: [460, 140], size: [420, 190] }
-
-rows:
-  - { at: [480, 165], count: 16, w: 21, h: 48, gap: 3, tone: control }
-  - { at: [40, 235], count: 16, w: 21, h: 28, gap: 3, tone: ink }
-  - { at: [480, 235], count: 16, w: 21, h: 28, gap: 3, tone: ink }
-
-links:
-  - { from: [400, 70], to: [300, 140], tone: control }
-  - { from: [500, 70], to: [720, 140], tone: control }
-
-brackets:
-  - { from: 40, to: 229, y: 275, label: 8 颗 NPU 一个 server }
-  - { from: 480, to: 861, y: 275, label: 1 颗 NPU 一个 server }
-
-pins:
-  - source: vllm@0fc695fc:vllm/config/parallel.py#L138-L144
-    symbols: [data_parallel_external_lb]
-  - source: vllm@0fc695fc:vllm/config/parallel.py#L514-L520
-    symbols: [local_engines_only]
-  - source: vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L107
-    symbols: [api_server_count, data_parallel_rank]
-  - source: vllm-ascend@2c59ff10:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L276-L281
-    symbols: [_priority, active_tokens]
+{
+  "size": [
+    900,
+    615
+  ],
+  "caption": "缩小拓扑：P、D 是两个独立专家协作域；代理转交请求与恢复元数据，历史状态由连接器直接传输。每个域只画两个代表 rank，不表示实际组大小",
+  "items": [
+    {
+      "at": [
+        300,
+        30
+      ],
+      "size": [
+        300,
+        55
+      ],
+      "text": "请求路由 / Proxy",
+      "tone": "control"
+    }
+  ],
+  "frames": [
+    {
+      "at": [
+        25,
+        170
+      ],
+      "size": [
+        375,
+        395
+      ],
+      "label": "P 服务池 · 独立 EP 组"
+    },
+    {
+      "at": [
+        500,
+        170
+      ],
+      "size": [
+        375,
+        395
+      ],
+      "label": "D 服务池 · 独立 EP 组"
+    }
+  ],
+  "hardware": [
+    {
+      "kind": "server",
+      "at": [
+        70,
+        240
+      ],
+      "size": [
+        285,
+        105
+      ],
+      "label": "P 执行实例"
+    },
+    {
+      "kind": "server",
+      "at": [
+        545,
+        240
+      ],
+      "size": [
+        285,
+        105
+      ],
+      "label": "D 执行实例"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        65,
+        420
+      ],
+      "size": [
+        90,
+        75
+      ],
+      "label": "rank a"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        265,
+        420
+      ],
+      "size": [
+        90,
+        75
+      ],
+      "label": "rank b"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        540,
+        420
+      ],
+      "size": [
+        90,
+        75
+      ],
+      "label": "rank c"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        740,
+        420
+      ],
+      "size": [
+        90,
+        75
+      ],
+      "label": "rank d"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        70,
+        292
+      ],
+      "tone": "control",
+      "via": [
+        [
+          340,
+          125
+        ],
+        [
+          15,
+          125
+        ],
+        [
+          15,
+          292
+        ]
+      ],
+      "from": [
+        340,
+        85
+      ]
+    },
+    {
+      "to": [
+        830,
+        292
+      ],
+      "tone": "control",
+      "via": [
+        [
+          560,
+          125
+        ],
+        [
+          890,
+          125
+        ],
+        [
+          890,
+          292
+        ]
+      ],
+      "from": [
+        560,
+        85
+      ]
+    },
+    {
+      "to": [
+        545,
+        295
+      ],
+      "tone": "kv",
+      "from": [
+        355,
+        295
+      ]
+    },
+    {
+      "to": [
+        265,
+        457
+      ],
+      "tone": "comm",
+      "ends": "both",
+      "from": [
+        155,
+        457
+      ]
+    },
+    {
+      "to": [
+        740,
+        457
+      ],
+      "tone": "comm",
+      "ends": "both",
+      "from": [
+        630,
+        457
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        450,
+        275
+      ],
+      "text": "历史状态",
+      "anchor": "middle",
+      "tone": "kv"
+    },
+    {
+      "at": [
+        212,
+        395
+      ],
+      "text": "专家执行成员（示意）",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        687,
+        395
+      ],
+      "text": "专家执行成员（示意）",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        210,
+        535
+      ],
+      "text": "dispatch / combine",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        685,
+        535
+      ],
+      "text": "dispatch / combine",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        450,
+        596
+      ],
+      "text": "控制元数据、历史状态、专家激活属于不同数据流",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "large-scale-ep"
+}

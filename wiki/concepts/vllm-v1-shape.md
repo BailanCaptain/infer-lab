@@ -1,127 +1,108 @@
 ---
 id: vllm-v1-shape
-title: vLLM 的形状：三类角色，两道边界
+title: "vLLM 与 Ascend 架构：组件、进程和数据如何协作"
 type: concept
-summary: 敲下 vllm serve 之后跑起来的，是几个分了工的进程：一个管文字，一个管排队，每颗 NPU 再配一个管计算。一条请求要往下穿过两道边界再回来，每过一道，手里拿的东西就换一种：字、整数、张量。
-aliases: [vLLM 的形状, vLLM V1 架构, vLLM 进程结构, AsyncLLM, EngineCore 进程, 前端进程, Executor, 执行器, EngineCoreRequest, SchedulerOutput]
+summary: 从 GLM 单请求与并发批次出发，说明 API、EngineCore、Scheduler、Executor、NPUWorker 和 NPUModelRunner 的输入输出、状态与进程关系。
+aliases: [vLLM 的形状, vLLM V1 架构, vLLM 进程结构, AsyncLLM, Executor, 执行器, SchedulerOutput, 架构总览]
 chapters: ["10"]
 order: 10
 sources:
-  - vllm@0fc695fc:vllm/v1/engine/input_processor.py#L242-L250
-  - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L290
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L341-L350
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L403-L472
-  - vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1231
-  - vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L582
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L625-L650
-  - vllm@0fc695fc:vllm/v1/worker/worker_base.py#L114-L158
-  - vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L346
-  - vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L110-L115
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
-  - vllm@0fc695fc:vllm/v1/engine/__init__.py#L170-L227
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L311-L331
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1369-L1381
-  - vllm@0fc695fc:vllm/config/parallel.py#L889-L890
-  - vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63
-  - vllm@0fc695fc:vllm/config/parallel.py#L845-L851
-  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L176-L191
-verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
-evidence: "C"
+  - vllm@0fc695fc:vllm/v1/engine/async_llm.py#L339-L415
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L95-L160
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L236-L290
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472
+  - vllm@0fc695fc:vllm/v1/executor/abstract.py#L47-L92
+  - vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L386
+  - vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L241
+  - vllm@0fc695fc:vllm/v1/outputs.py#L234-L267
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L520
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L677
+  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2284-L2431
+  - vllm@0fc695fc:vllm/v1/engine/output_processor.py#L612-L690
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L662
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2323
+  - https://docs.vllm.ai/en/v0.23.0/design/arch_overview/
 relations:
-  - to: one-request
+  - to: concurrent-requests
     kind: builds-on
-    note: 这一页讲的是那条 37 个 token 的请求要走过的三类角色，双 NPU 的设定和数都从那一页来
+    note: 将请求进入、批次变化和独立输出对应到实际框架组件
+verified: []
+evidence: C
 contradicts: []
 updated: "2026-09-25"
 origin: seed
 ---
 
-一条请求在 vLLM 里要**下去两层再上来两层**。三类角色各管一种东西：前端只认字，EngineCore 只认整数，Worker 才认张量。跨一次边界就换一种东西——这是理解后面所有事情的地基。
+## 模型计算为什么需要这些组件
+
+[模型介绍](glm-5-3-flash.md)说明了输入张量如何经过 GLM 主干，产生用于预测下一个 token 的隐藏表示。[单请求](one-request.md)和[并发请求](concurrent-requests.md)进一步展示了每轮输入、历史状态与输出的变化。框架负责把这些变化组织成持续运行的服务：接收请求、维护进度、分配资源、调用模型并交付结果。
+
+以并发示例的第 3 轮为例，A 需要处理 1 个 decode 输入，C 需要处理 3 个 prefill 输入。模型计算需要的是这 4 个位置组成的张量和各自的状态；服务还需要知道 A、C 的请求 ID、输出目标、停止条件，以及下一轮谁继续执行。不同组件围绕这些数据承担不同职责。
+
+本页采用 vLLM v0.23.0 的通用引擎接口与 GLM 专用 Ascend 源码快照，分别说明控制流程和 NPU 执行实现。专用镜像内最终安装的上游版本仍待核实，这两个源码快照不构成已验证的部署组合；完整记录见[来源基线](../sources/glm-5-3-flash-baseline.md)。
+
+## 组件职责与进程关系
+
+在线服务的前端处理协议与输出，引擎核心管理执行进度，Worker 负责设备上的执行环境。下图采用多进程执行器的示意部署，只展开一个 Worker；同一执行组中的其他 rank 具有对应的执行角色。rank 是分布式执行中的参与者编号，实际进程数量由并行配置与执行器决定。[C5][C6][S15]
 
 ```wiki-diagram
 file: vllm-v1-shape
 ```
 
-## 装好 vLLM 跑起来，跑的到底是什么
+**API 与 AsyncLLM。** API 层接收聊天消息、处理模板和生成设置；`AsyncLLM` 提供异步引擎接口，将准备好的请求交给核心，并维护输出收集与处理。生成结果按请求关联回调用方；前端也会处理 token 编号和采样参数。[C1][C12]
 
-照[贯穿全库的例子](one-request.md)那样，在一张 Atlas A3 卡的两颗 NPU 上把 Qwen3.6-35B-A3B 启动起来，命令只有一行 `vllm serve`。看上去是「一个程序」，但它起来之后，机器上干活的主要是**四个进程**（进程：操作系统里同时跑着的一份程序，互相不共享内存）：
+**EngineCore、Scheduler 与缓存管理。** `EngineCore` 组织引擎循环，调用 `Scheduler` 生成本轮计划，再把执行结果交回调度器更新。Scheduler 保持等待/运行请求、已计算位置和资源占用；缓存管理器负责状态存储的分配与引用管理。它们通常是同一个引擎核心进程内协作的对象。[C2][C4]
 
-- 一个**前端**进程：守着网络端口收你的提问，把字切成 [token](token.md)，最后再把 token 拼回字；
-- 一个 **EngineCore** 进程：排队、决定这一步算谁、给每条请求分显存；
-- 两个 **Worker** 进程：两颗 NPU 各配一个，模型真正在它们手里算。
+**Executor。** 执行器把引擎操作送到相应 Worker，并收集结果。引擎通过统一接口使用它；单进程、多进程、Ray 等执行方式由配置选择。Executor 是组件角色，在图示多进程方式中，其管理对象属于核心侧，Worker 运行在被管理的进程里。[C5][C6]
 
-所以「vLLM 是什么」最实在的答案是：**一个管文字的、一个管排队的、每颗 NPU 一个管计算的，中间用两道边界隔开。**
+**NPUWorker 与 NPUModelRunner。** Worker 管理本 rank 的设备环境，创建 Runner，并提供模型加载、执行和采样入口。Runner 保持执行侧的请求映射和输入缓冲，将调度结果转成 token、位置、注意力元数据等模型输入，然后组织前向、词表输出与采样。[C9][C10][C11]
 
-## 那条请求在三层里各长什么样
+**模型及设备状态。** 模型定义嵌入、层内运算和层间连接，注意力实现读取和更新历史。GLM 的 KDA 与稀疏注意力使用不同状态，具体结构见模型页；模型权重与注意力状态在执行侧按相应布局保存。引擎维护的资源记录与设备上的状态张量通过块表、状态索引等映射对应起来。[C3][C11][C14]
 
-你那句 37 个 token 的提问，在这三层里是三种完全不同的东西：
+## 一轮执行通过两个接口完成交接
 
-| 在哪一层 | 它长什么样 |
-|---|---|
-| 前端 | 一段中文字符串；往下交之前变成 37 个整数（token 的编号） |
-| EngineCore | 一条请求记录：「这一步要算 37 个」这个数、排在哪条队里、一张显存块的编号清单 |
-| 两个 Worker | 各自手里一份张量：37 个 token 编号、37 个位置、37 个「写进显存哪一格」的地址 |
+调度侧交出的 `SchedulerOutput` 是执行计划。它包含新进入及已有请求的信息、每个请求本轮安排的 token 数，以及状态资源更新所需的信息。Runner 可以结合已有执行侧状态准备本轮输入，因而持续生成时不必把所有历史都重新当作模型输入。[C7]
 
-**同一条请求，三种身份。** 读源码时最容易迷路的地方就在这里：在 EngineCore 里找不到任何张量，在 Worker 里找不到任何字符串，两边都对。
+执行侧返回的 `ModelRunnerOutput` 带有请求 ID、请求到批内位置的映射、采样 token 等信息。Scheduler 据此更新对应请求，输出处理器再把生成结果交回服务调用方。[C8][C12]
 
-两个 Worker 拿到的是同一份安排，各自摊出同样的 37 个位置；真正分开干活，是在模型的[每一层](layers-and-hidden.md)里面——[注意力](attention-qkv.md)对半切、每层的 256 个[专家](moe.md)分成两堆，那是[张量并行](tensor-parallel.md)和[专家并行](expert-parallel.md)两页的事。
+| 第 3 轮的数据 | 谁准备或维护 | 谁消费 | 在 A/C 示例中的作用 |
+|---|---|---|---|
+| 本轮计划：A 处理 1 个、C 处理 3 个位置 | Scheduler | Executor、Worker、Runner | 确定批次计算范围 |
+| 输入 `[A.y₁, C.p₀, C.p₁, C.p₂]` 与位置 `[5, 0, 1, 2]` | Runner | GLM 模型与注意力实现 | 提供实际前向输入 |
+| 请求片段边界与状态索引 | Runner 按本轮请求映射准备 | 注意力实现 | 将每个输入对应到 A 或 C 的历史 |
+| 输出请求映射和 `[A.y₂, C.y₀]` | 执行侧 | Scheduler、输出处理器 | A 达到停止条件，C 继续执行 |
 
-## 为什么非要切成三块
+表中数组沿用并发页的教学设定，并不是实测 trace。[A] 源码中的 EngineCore 普通执行路径可以概括为：调度 → 提交执行 → 必要时调用采样入口 → 根据结果更新请求。异步调度、流水线并行与投机解码会增加重叠或额外状态，本页先说明这些组件共同依赖的交接关系。[C4]
 
-因为这三件事卡在不同的地方，塞在一起会互相拖死：
+## 启动时建立资源，每轮执行时复用资源
 
-- **前端**要同时应付很多个网络连接，时间花在等收发上；
-- **EngineCore** 要尽快把下一步排出来，最怕被别的事情卡住；
-- **Worker** 大部分时间在等 NPU 算完。
+Worker 在设备初始化时创建 Runner，加载模型权重。引擎随后向执行侧查询模型所需的缓存规格与可用内存，形成缓存配置，再要求执行侧建立缓存并预热。这个阶段同时需要模型需求、设备容量和引擎分配规则。[C3][C9][C10]
 
-分开之后，前端接新请求的同时，EngineCore 可以在排下一步，Worker 可以在算上一步。代价是**跨边界交接的东西一律要能打包寄出去**：交给下一层的只是编号、整数和参数，不是「那条请求本身」。后面很多看起来绕的设计，根子都在这里。
+服务就绪后，一轮模型执行主要更新请求进度、批次输入和注意力状态。权重继续被后续请求复用；某个请求结束时释放其资源引用，其他请求可以继续运行。新增请求改变调度和输入集合，通常不需要重新加载整个模型。
 
-## 两道边界上交接什么
+这也解释了缓存管理为什么同时涉及引擎与执行侧：引擎需要决定哪些存储可分配给请求，执行侧需要把对应张量以算子能够访问的形式建立起来。只看其中一侧，都无法说明一个输入位置怎样找到自己的历史状态。
 
-**第一道：前端 ↔ EngineCore。** 下去的是一个小包：37 个 token 编号、怎么挑下一个 token 的参数、请求的编号。上来的是新算出来的 token 编号，以及「是不是结束了」。**两边都不传文字**——把编号拼回文字这件事在前端做，所以只有前端手里有分词器。
+## Ascend 接入贯穿初始化与执行
 
-**第二道：EngineCore ↔ Worker。** 下去的是「这一步的安排」：哪些请求、每条算几个 token、写进显存哪几块。上来的是这一步算出来的结果。这道边界更值得注意：它是**责任边界**——过了这道线，「算哪些 token」已成定局，剩下的全是「怎么算」。这正是 [vLLM 与昇腾各管什么](who-owns-what.md) 那一页讲的那条线。
+vllm-ascend 通过平台注册、配置处理、Worker 选择、模型实现、后端和补丁等入口参与执行。在所引快照中，平台配置会选择 Ascend Worker；该 Worker 创建 NPU Runner，GLM 专用实现也位于 Ascend 包内。[C9][C13][C14]
 
-## 中间那个传话的执行器
+因此，图中的进程边界不能直接当成两个仓库的分界。核心侧的配置和缓存建立会使用平台提供的信息，Worker 内也会复用上游接口与公共功能。接入机制见 [vllm-ascend 的接入位置](vllm-ascend-overview.md)，跨组件状态分工见 [vllm-ascend 的接入位置](vllm-ascend-overview.md)的「职责与状态归属」一节。
 
-第二道边界上还夹着一层容易被误认成主角的东西：**执行器**。
+## 从一个执行组扩展到官方双机实例
 
-排队和分显存都在 EngineCore 里做完了；执行器的活只是**把同一个吩咐同时发给每颗 NPU 上的 Worker，再把回话收回来**。在这个例子里就是一份安排发给两个 Worker。它能发的吩咐是固定的几种：准备好设备、加载模型、跑一步、采样。真正干活的是收到吩咐的 Worker。
+本页展开的是一个引擎与其执行侧的关系。官方 GLM 示例的 DP、TP、EP 配置及设备拓扑集中在[双机来源基线](../sources/glm-5-3-flash-baseline.md)。分析完整部署时，需要把引擎、副本、rank 和机器分别映射：请求可以分配给不同执行副本，一个模型前向也可能需要同组多个 rank 协作。
 
-启动时也是这个顺序：执行器先等两个 Worker 起来、设备准备好、模型加载完，才回头问一句「这块硬件的显存块大小要不要改」。不过块大小其实早在更前面就定下了，这一问在昇腾上只做一件小事；细节在下半。
-
-## 常见误解
-
-- **「EngineCore 里能看到模型」**——看不到。模型只在 Worker 手上，EngineCore 里做调度的那部分只有配置和整数。
-- **「执行器在做调度」**——不做。它只传话；调度在 EngineCore 里、在执行器被叫到之前就做完了。
-- **「这几个进程是靠多线程一起跑的」**——前端靠一个能同时挂着很多网络连接的事件循环，跨进程靠发消息；EngineCore 自己是一个一圈一圈转的普通循环，见[引擎的那个循环](vllm-engine-core.md)。同名的[异步调度](async-scheduling.md)是第三件事：循环照样一圈一圈转，只是不等上一步的结果就排下一步，它默认开着。
-- **「Worker 永远是单独的进程」**——不一定。只用一颗 NPU 时，Worker 默认就住在 EngineCore 进程里，边界还在，只是交接变成了同一个进程里的直接调用。
+双机中的组构造与具体跨机通信仍需继续核对相应实现。本页图中的一个 Worker 是角色展开，不对应一台服务器，也不表示官方双机只使用一个设备。
 
 ## 对照源码
 
-### 怎么开
-
-启动命令与[贯穿例子](one-request.md)的「对照源码」一致（`--tensor-parallel-size 2 --enable-expert-parallel --enable-prefix-caching`）。本页关心的只是它起出几个进程：
-
-- **前端与 EngineCore 分进程**：前端是 `AsyncLLM`，分词在 `InputProcessor` [C1]，`add_request` 把请求打成 `EngineCoreRequest` 经 ZMQ 发给 EngineCore [C2]；反分词在 `OutputProcessor` [C6]。边界 ① 上的两种消息 `EngineCoreRequest` / `EngineCoreOutputs` 定义在 [C12]。
-- **Worker 几个进程由执行器后端决定**：`distributed_executor_backend` 未指定且 `world_size_across_dp > 1` 时默认 `"mp"` [C17]；`MultiprocExecutor` 对每个 local rank 调一次 `WorkerProc.make_worker_process` [C18]。TP=2 → 两个 Worker 进程。`world_size == 1` 时默认 `"uni"` [C15]，`UniProcExecutor` 在 EngineCore 进程里直接持有 worker 对象 [C16]。
-- 「主要四个进程」= 前端 1 + EngineCore 1 + Worker 2 [D]；不含可能存在的辅助进程。
-- 两个 Worker 收到的是同一份 `SchedulerOutput`（执行器按 rank 广播），各自在 `_prepare_inputs` 里摊出 `input_ids` / `positions` / `slot_mapping`，形状都是 `(37,)` [D]；TP 只切层内的权重和头，不切这批 token。37 补成 38、每颗 19 个发生在进专家之前，见[专家并行](expert-parallel.md)。
-
-### 源码位置
-
-| 角色 / 边界 | 位置 |
+| 阅读目的 | 固定位置 |
 |---|---|
-| 前端分词 · 发请求 · 反分词 | `InputProcessor`、`AsyncLLM.add_request`、`OutputProcessor` |
-| 边界 ① 的消息 | `EngineCoreRequest` / `EngineCoreOutputs` |
-| EngineCore 收请求、跑一步 | `EngineCore.add_request`，`step` 一带；`run_busy_loop` 是同步 while 循环 |
-| 调度与分块 | `Scheduler.schedule`、`KVCacheManager`，都在 EngineCore 进程里 |
-| 边界 ② 的消息 | 下去 `SchedulerOutput`、上来 `ModelRunnerOutput`[C8] |
-| 执行器能广播的调用 | `WorkerBase`：`init_device`、`load_model`、`execute_model`、`sample_tokens` 等 |
-| 张量一侧入口 | `NPUModelRunner` |
+| 请求怎样进入异步引擎接口 | `async_llm.py` 339–415 行 [C1] |
+| 核心如何创建执行器、缓存和调度器 | `core.py` 95–160、236–290 行 [C2][C3] |
+| 一轮调度、执行、采样与结果更新 | `core.py` 443–472 行 [C4] |
+| 执行器的选择与多进程调用 | `abstract.py` 47–92、`multiproc_executor.py` 307–386 行 [C5][C6] |
+| 两侧交接的数据结构 | `sched/output.py` 181–241、`outputs.py` 234–267 行 [C7][C8] |
+| NPU Worker、Runner 与模型执行 | `worker.py` 505–520、599–677 行；`model_runner_v1.py` 2284–2431 行 [C9][C10][C11] |
 
-补充几条上半只点到的事实：
-
-- **为什么边界 ② 上全是 id**：跨边界交接一律按「可序列化」设计——多 NPU 时真要序列化发到别的进程，单 NPU 时同一个对象走进程内调用——所以 `SchedulerOutput` 里塞的全是 id、整数和可序列化的参数，没有一条 `Request` 的引用 [A]。
-- **启动顺序与块大小**：`WorkerProc` 先跑完 `init_device` 与 `load_model`，才调 `current_platform.update_block_size_for_backend`。昇腾的这个钩子只在「不开前缀缓存 + 混合 KV 管理 + KV 传输 + mamba align 模式」时对齐 `mamba_block_size`，源码 TODO 写明 block size 仍在更早的 `check_and_update_config` 里定；普通模型在那里经 `refresh_block_size` 默认设成 128。本页例子是混合模型，块大小走另一条路定成 2048，推导见[贯穿例子](one-request.md)的「对照源码」。
-- **前端的并发模型**：前端是 asyncio，跨进程靠 ZMQ；EngineCore 自己是同步循环。
+这些引用用于静态分析，没有设备运行或性能测量结果。各深入专题可能仍引用其他社区维护快照，阅读时以各页声明的版本为准。

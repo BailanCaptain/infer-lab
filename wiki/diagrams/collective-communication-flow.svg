@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 850" width="880" height="850" role="img" aria-label="A0 先建通信组，A4 沿模型执行到 MoE 再按容量分流。左右分支互斥，均有四个通信边界；本地专家计算不另计通信。">
+  <title>A0 先建通信组，A4 沿模型执行到 MoE 再按容量分流。左右分支互斥，均有四个通信边界；本地专家计算不另计通信。</title>
+  <defs><marker id="collective-communication-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="collective-communication-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M440 78 L440 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M440 170 L440 204" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M320 262 L320 286 L215 286 L215 318" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-flow-ah-comm)"/>
+  <path d="M560 262 L560 286 L665 286 L665 318" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-flow-ah-comm)"/>
+  <path d="M215 376 L215 412" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M665 376 L665 412" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M215 470 L215 506" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M665 470 L665 506" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M215 564 L215 600" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M665 564 L665 600" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M215 658 L215 694" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M665 658 L665 694" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M215 752 L215 772 L320 772 L320 793" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <path d="M665 752 L665 772 L560 772 L560 793" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#collective-communication-flow-ah-ink)"/>
+  <rect x="200" y="20" width="480" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="45" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A0 · 启动建立 TP8 / DP2 / EP16</text>
+  <text x="440" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先确定谁和谁通信</text>
+  <rect x="200" y="112" width="480" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="137" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A4 · 嵌入与 attention 输出</text>
+  <text x="440" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Reduce 合齐部分和</text>
+  <rect x="200" y="204" width="480" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">进入 MoE · 两组最大宽度在容量内？</text>
+  <text x="440" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">固定 A2 部署，其余选择条件已满足</text>
+  <rect x="30" y="318" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MC2 · 切 token 行并定向派发</text>
+  <text x="215" y="362" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EP16 dispatch → 专家持有卡</text>
+  <rect x="480" y="318" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AllGather · 收集两组输入</text>
+  <text x="665" y="362" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP2 All-Gather hidden 与分数，共两次</text>
+  <rect x="30" y="412" width="370" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地专家计算</text>
+  <text x="215" y="456" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只处理派发到本卡的有效行</text>
+  <rect x="480" y="412" width="370" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地专家计算</text>
+  <text x="665" y="456" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">筛出路由到本卡专家的工作</text>
+  <rect x="30" y="506" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EP16 combine</text>
+  <text x="215" y="550" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">专家结果返回并加权组合</text>
+  <rect x="480" y="506" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP2 Reduce-Scatter</text>
+  <text x="665" y="550" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">对应卡合齐贡献，再各留本组 token 行</text>
+  <rect x="30" y="600" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="625" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Gather</text>
+  <text x="215" y="644" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼齐 token 行，再去掉补位</text>
+  <rect x="480" y="600" width="370" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="625" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">计算共享专家并加入部分和</text>
+  <text x="665" y="644" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">路由与共享贡献留到最后一并归约</text>
+  <rect x="30" y="694" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="719" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享专家计算 → TP8 All-Reduce</text>
+  <text x="215" y="738" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享结果归约后，与路由结果相加</text>
+  <rect x="480" y="694" width="370" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="719" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Reduce</text>
+  <text x="665" y="738" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">合齐路由与共享专家的全部贡献</text>
+  <rect x="200" y="793" width="480" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="818" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡得到本执行组的完整 hidden → 继续前向</text>
+  <text x="158" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">是</text>
+  <text x="703" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">否</text>
+</svg>

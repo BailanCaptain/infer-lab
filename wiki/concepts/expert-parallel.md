@@ -1,204 +1,459 @@
 ---
 id: expert-parallel
-title: "专家并行（EP）：专家不切开，按编号分给不同的 NPU"
+title: "Expert parallel：16 张卡怎样分专家、发 token、收结果"
 type: feature
-summary: MoE 模型每层有几百个专家，一颗 NPU 放不下时，EP 把每层的专家按编号整份分给参与计算的几颗 NPU；每个 token 被送到它选中的专家所在的 NPU 上算完，再送回来。要写 --enable-expert-parallel，而且参与 MoE 的 NPU 多于一颗才生效。
-aliases: [Expert Parallel, 专家并行, EP, ep_size, enable_expert_parallel, "--enable-expert-parallel", MoECommType, select_moe_comm_method, FusedMoEParallelConfig, MC2, MC2 通信, ALLGATHER, ALLTOALL, FUSED_MC2, token dispatch, combine, 专家切分, determine_expert_map, PrepareAndFinalizeWithMC2]
+summary: EP 把完整专家分放到不同卡上，让 token 去找选中的专家，算完再收回结果。先看这个过程，再沿 GLM 双机部署跟一个 token 走过 MoE，最后核对通信、陪跑与多请求负载。
+aliases: [专家并行, Expert Parallel, EP]
 chapters: ["14"]
 order: 10
 sources:
-  - https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/main/config.json
-  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L5-L5
-  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L174-L174
-  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3.6-35B-A3B.md#L200-L223
-  - vllm-ascend@2c59ff10:docs/source/tutorials/models/Qwen3-30B-A3B.md#L98-L98
-  - vllm@0fc695fc:vllm/model_executor/models/qwen3_5.py#L155-L161
-  - vllm@0fc695fc:vllm/model_executor/models/qwen3_next.py#L104-L108
-  - vllm@0fc695fc:vllm/model_executor/models/qwen3_next.py#L141-L175
-  - vllm@0fc695fc:vllm/model_executor/models/qwen2_moe.py#L90-L103
-  - vllm@0fc695fc:vllm/config/parallel.py#L152-L155
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1073-L1082
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1165-L1168
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1193-L1212
-  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/expert_map_manager.py#L62-L79
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L233-L237
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L937-L943
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L27-L31
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L95-L101
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L185-L188
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L202-L217
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L240-L252
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L255-L282
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L330-L366
-  - vllm-ascend@2c59ff10:vllm_ascend/envs.py#L102-L102
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L249-L300
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L225
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/moe_comm_method.py#L136-L172
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L225-L234
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L391-L412
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L502-L512
-  - vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_utils.py#L48-L49
-  - vllm-ascend@2c59ff10:docs/source/user_guide/support_matrix/supported_models.md#L150-L150
-  - vllm@568afb3a:vllm/model_executor/models/qwen3_5.py#L159-L161
-  - vllm@568afb3a:vllm/model_executor/layers/fused_moe/config.py#L1232-L1240
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L414-L430
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L334-L342
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L488-L495
-  - vllm-ascend@2ed6cbba:docs/source/user_guide/support_matrix/supported_models.md#L133-L133
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L318-L333
-  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L270-L280
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L297-L315
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L366-L370
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L87-L97
-  - vllm@0fc695fc:vllm/config/parallel.py#L167-L173
-  - vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_models.md#L139-L139
+  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1074-L1209
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1539
+  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L188-L289
+  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L96-L101
+  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L164-L252
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L314
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L560
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L102-L339
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L342-L438
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L435-L557
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719
+  - vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L159-L167
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653
+  - vllm@0fc695fc:vllm/config/parallel.py#L154-L178
+  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L817-L875
+  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L139-L177
+  - vllm-ascend@2c59ff10:vllm_ascend/ascend_forward_context.py#L202-L252
+  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L324-L342
+  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_forward_context.py#L482-L497
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L296-L315
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L373-L425
+  - vllm-ascend@baa023ad:vllm_ascend/device/hardware_profile.py#L256-L269
+  - vllm@568afb3a:vllm/config/parallel.py#L163-L187
+  - vllm@84030bbe:vllm/config/parallel.py#L167-L198
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L460-L491
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L292-L309
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_comm_method.py#L122-L221
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L290-L294
+  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L650-L680
+  - vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_stage_params.py#L92-L119
+  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L185
+  - vllm@0fc695fc:vllm/model_executor/layers/fused_moe/expert_map_manager.py#L25-L130
+  - vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L311-L363
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_forward_context.py#L241-L275
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
-evidence: "C"
+evidence: C
 relations:
-  - to: tensor-parallel
-    kind: alternative-to
-    note: 同一批 MoE 权重的两种切法；EP 一开，FusedMoEParallelConfig 把 MoE 的 tp_size 置 1，TP 在 MoE 层里彻底让位，注意力部分照旧按 TP 切
-  - to: who-owns-what
-    kind: builds-on
-    note: ep_size 与 expert_map 由上游 vLLM 算出来，「这一步用哪种通信」全在昇腾侧决定，这条归属线在那一页
-  - to: ops-and-kernels
-    kind: builds-on
-    note: 四种通信方式最后都落到 torch_npu 算子上，FusedMoE 整个类被换成 AscendFusedMoE 走的是那一页的注册表
-  - to: quantization
-    kind: builds-on
-    note: dispatch 要不要顺手把 token 量化成 int8、A3 上能不能走融合的 FUSED_MC2，都由这一层选出的量化类型决定
-  - to: data-parallel
-    kind: builds-on
-    note: ep_size 有一部分是 DP 乘出来的，prepare/finalize 里的 DP all-gather 也建立在 DP rank 齐步走之上
+  - {to: moe, kind: builds-on, note: MoE 解释 router 选专家与加权输出，本页解释这些专家分布到多卡后的执行}
+  - {to: glm-5-3-flash, kind: builds-on, note: 模型总览是 288 选 8、共享专家和各层维度的出处}
+  - {to: concurrent-requests, kind: builds-on, note: 展开场景 M 的 MoE 通信，两组补齐和 dummy run 的推导仍在主线页}
+  - {to: collective-communication, kind: builds-on, note: All-Gather、Reduce-Scatter 与 All-Reduce 是两条 MoE 路径的通信基础}
+  - {to: tensor-parallel, kind: builds-on, note: 路由专家按完整专家分给 EP，共享专家的矩阵仍由机内 TP8 合切}
 contradicts: []
-updated: "2026-09-24"
+updated: "2026-09-27"
 origin: seed
 ---
 
-## 256 个专家，一颗 NPU 放不下
+## EP 是什么，专家怎样分到各卡？
 
-这一页用一个具体的例子来讲：在两颗昇腾 NPU 上部署 Qwen3.6-35B-A3B，发一个 37 个 token 的问题，让它回答 200 个 token。整个知识库用的都是这个例子，完整设定见[贯穿全站的例子](one-request.md)。
+**MoE**（mixture of experts，混合专家）把一层的前馈计算（对每个位置单独做变换）交给许多个小网络，每个小网络叫一个 **expert（专家）**。**路由专家**需要经过 **router** 这个打分网络打分，才可能被选中：GLM-5.3-Flash 每个 MoE 层有 288 个路由专家，每个 token（分词后的一个位置）只选其中 8 个来算（top-8）。每层另有 **1 个共享专家**，不经过 router，每个 token 都会用到；它不参与 EP。
 
-Qwen3.6-35B-A3B 是一个 MoE 模型。MoE 是 Mixture of Experts 的缩写，意思是「混合专家」：模型的每一层里，除了注意力，还有一组「专家」。每个专家是一个小的前馈网络，说白了就是三块矩阵。这个模型每层有 256 个专家。
+**expert parallel（EP，专家并行）把完整专家分放到不同卡上，让 token 去找选中的专家，算完再把结果收回来。**
 
-一个 token（模型处理文字的最小单位，大约一个词或半个词）走到这一层时，并不会让 256 个专家都算一遍。有一个很小的打分网络，叫路由器，先给 256 个专家打分，只挑分最高的 8 个来算这个 token，其余 248 个这次不动。模型名字里的「35B-A3B」说的就是这件事：参数一共约 350 亿，每个 token 实际用到的只有约 30 亿，A 是 activated（被用到的）的意思。
-
-每个 token 只用 8 个专家，但 256 个专家都得放着：路由器下一个 token 会挑谁，事先不知道，所以 256 个专家的权重（训练好的那些矩阵里的数）必须一直待在显存里。算一下有多大。一个专家三块矩阵，每块 2048 × 512 个数，用 BF16 格式存，每个数占 2 字节：
-
-```
-3 × 2048 × 512 × 2 B = 6 MiB     一个专家
-6 MiB × 256          = 1.5 GiB   一层的专家
-1.5 GiB × 40 层      = 60 GiB    整个模型的专家
-```
-
-例子跑在 Atlas A3 上。这里说的一颗 NPU，指 vLLM 看到的一个计算设备，作用相当于 GPU；在 A3 上它就是一颗昇腾芯片，一张 A3 卡上有两颗，每颗 64 GB 显存。60 GiB 换算过来约 64.4 GB，光是专家就比一颗 NPU 的显存还大，这还没算注意力部分的权重，也没留地方存 KV Cache。所以这个模型至少要拆到两颗 NPU 上，例子里用的正是两颗。
+GLM-5.3-Flash 主干的路由专家权重按 8 位整数存储，合计约 **283.5 GiB**，而一张 A2 卡标称显存是 **64 GB**。全部专家要常驻，单卡装不下；分摊后的容量账见[双机部署](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 ```wiki-diagram
-file: expert-parallel-fit
+file: expert-parallel-intuition
 ```
 
-## 两种拆法：把每个专家切开，或者把专家分开
+图用 4 张卡示意分工，每卡只放一部分完整专家；亮色是这个 token 选中的专家，灰色是本次未选中的专家。k 表示每个 token 选中的专家数，这里用 k=2 做示意，GLM 实际是 k=8。搬过去的是 token 当前的 **hidden（隐藏向量）**，也就是模型为这个位置保存的中间表示；专家的权重是训练好的矩阵，一直留在持有它的卡上。
 
-拆到两颗上有两种办法。
+## 为什么要拆，代价是什么？
 
-第一种是[张量并行（TP）](tensor-parallel.md)的办法：每个专家的每块矩阵都从中间切开，两颗 NPU 各拿一半。一个 token 选中的 8 个专家，两颗 NPU 都要各算每个专家的一半，算完再把两半的结果加起来。
+一次 MoE 先把 hidden 发给选中专家的持有卡，叫 **dispatch**；算完再送回原来的卡，按 router 给出的权重加起来，叫 **combine**。这就是 EP 的去、回两次通信：省下每卡存专家权重的空间，付出搬输入、搬结果和等待其他卡的代价。本卡命中的专家就在本卡算。具体实现还会安排额外的收集与归约（把各卡的部分结果相加），后面逐次数。
 
-第二种就是专家并行（EP）：专家本身不切，按编号分成两堆。0 到 127 号专家整份放在 NPU 0 上，128 到 255 号整份放在 NPU 1 上。一个 token 选中的专家在哪颗 NPU 上，这个 token 就到哪颗上去算。
+为什么必须拆到多卡？GLM 每层的 **288 个路由专家**都得常驻，供下一个 token 随时选用；只选少数专家省的是本次计算，全部层的专家权重仍要装进显存。分摊后的实际容量账见[双机部署](glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
-```wiki-diagram
-file: expert-parallel-split
-```
+和 [tensor parallel（TP，张量并行）](tensor-parallel.md)相比，拆法不同：TP 把**每个专家的矩阵切成小片**，多卡共同算同一个专家，再把部分结果相加；EP 把**不同专家整份分开**，每张卡把命中本地专家的 token 集中起来算。卡数多时，TP 会让每个专家的矩阵越来越窄，输出归约却不会跟着缩小；EP 保留完整矩阵宽度，代价转为派发、回收和各卡工作量不均时的等待。两种切法的真实形状与同等权重账留在[对照源码](#开销和什么时候别开)。
 
-只有两颗 NPU 时，两种办法看不出多大差别；颗数一多就不同了。每个专家的矩阵只有 512 列宽，按 TP 切给 16 颗，每颗只剩 32 列，每次乘法都只是很小的一块，而每层最后「把各份结果加起来」那一步要搬的数据量和切成几份无关，并不会因为切得碎而变少。按 EP 分给 16 颗，每颗整份拿 16 个专家，每个专家的矩阵还是原来那么大。官方给这个模型的部署示例用的就是 EP。
+## 放到 GLM 双机：一个 token 走过一层 MoE
 
-例子的启动命令里同时写了 `--tensor-parallel-size 2` 和 `--enable-expert-parallel`。注意力部分照旧按 TP 切成两半，MoE 部分改成按 EP 分专家。两个开关管的是模型里不同的部分，不冲突。
+**EP16 下每卡持有 18 个完整路由专家，一个 token 选中的 8 个专家按持有卡分头计算，跨机命中的工作也会发到另一台机器。** 请求在[一条请求的第 4 站](one-request.md#42-层-moe每卡-18-个专家)，做完本层 attention（汇集历史信息的计算）后进入这里。
 
-## 一个 token 在一层 MoE 里走四步
+本页固定使用[官方双机配置](glm-5-3-flash-two-node.md)：两台 Atlas 800 A2、每台 8 卡。**TP8** 把一个矩阵切给机内 8 卡协作，**DP2** 让两台机器各有一个独立调度请求的执行组；**EP16 横跨这两个执行组**，每卡持有 18 个完整路由专家。
 
-看例子的第一步：问题的 37 个 token 一起进入第 1 层。注意力部分算完时，两颗 NPU 手里都有全部 37 个 token 的数据。进 MoE 之前先分工：37 补一个空位凑成 38，对半分，NPU 0 负责前 19 个，NPU 1 负责后 18 个再加那个空位。
+**rank** 是卡在通信组内的编号。这里 EP rank 与全局 rank 一致：node0 是 0–7，node1 是 8–15；node1 的本机设备号仍从 0 数到 7。每层独立使用 E0–E287 这套专家编号，不同层的 E0 是不同权重。本部署未开专家重排或冗余，按连续编号放置：
+
+| node0 的 rank | 专家编号 | node1 的 rank | 专家编号 |
+| --- | --- | --- | --- |
+| 0 | E0–E17 | 8 | E144–E161 |
+| 1 | E18–E35 | 9 | E162–E179 |
+| 2 | E36–E53 | 10 | E180–E197 |
+| 3 | E54–E71 | 11 | E198–E215 |
+| 4 | E72–E89 | 12 | E216–E233 |
+| 5 | E90–E107 | 13 | E234–E251 |
+| 6 | E108–E125 | 14 | E252–E269 |
+| 7 | E126–E143 | 15 | E270–E287 |
+
+rank r 持有从 E(18r) 开始的连续 18 个专家；专家 e 的目的卡由其编号除以 18 向下取整确定。同一卡上的专家仍是不同网络。
+
+### 1. router 打分，选出 top-8
+
+**机内 8 卡原本各有同一份输入，先分配源 token，让每行只由一张卡负责派发。** 示例请求 R1 的 prompt 有 4 个 token；处理提示词的阶段叫 **prefill**，此时 DP0 的 8 张卡各持有同一份 [4,4096] hidden。下面跟其中任意一个有效 token 走，同时保留整批 R1 的形状。
+
+每张卡的 router 把 [4,4096] 变成 [4,288] 的 **FP32**（32 位浮点）分数。R1 使用按目的卡派发的 **MC2 路径**，两条路径的实现与选择条件见[后文](#mc2-还是-allgather)。它的 prepare（准备阶段）把 4 行补到 8 行，再按 TP rank 切成每卡 [1,4096] hidden 和 [1,288] 分数；这一步只是本地补零和取切片，没有[集合通信](collective-communication.md)（一组卡共同参与的数据交换或求和）。**mask** 是标明有效行的布尔数组：DP0 的 rank 0–3 各负责一个 R1 token，rank 4–7 只有补位。
+
+然后每张卡为自己这一行选择 8 个专家（**top-8**），得到两份 [1,8]：专家编号与组合权重。router 用 sigmoid（把数值映射到 0–1 的函数）打分，加校正偏置后决定选谁，组合时用原分数归一化再乘模型规定的 2.5；偏置与组合权重的区别见[模型的 MoE 结构](glm-5-3-flash.md)。top-8 在卡内完成，没有通信。
+
+### 2. dispatch：源卡负责一行，目的卡接到许多行
+
+**dispatch 按这个 token 选中的 8 个专家编号，把 hidden 送到相应持有卡。** 部署采用 **W8A8**：权重与矩阵乘输入为 8 位整数（**INT8**）；层间 hidden 用 **BF16**（16 位浮点）。hidden 在 dispatch 中量化，每个 token–expert 对（一个 token 交给一个专家的一份工作）携带一条 4096 维 INT8 向量和一个 FP32 scale（恢复数值范围的缩放系数）。本部署的 EP 组与 MC2 专用通信组都覆盖全局 rank 0–15；本卡专家在本卡计算，远端专家经卡间链路接收，目的卡在另一台机器时经过机间链路。
+
+**目的卡的行数不是源卡的一行。** 把 rank r 收到的有效 token–expert 对数记为 N_r，它从两个 DP 执行组的源卡接收，重排成按本地 18 个专家分组的 [N_r,4096]。dispatch 还留下原 token 的位置、接收计数等关联信息，combine 靠它们把结果送回。
+
+rank 4–7 没有自己的 R1 token 要发，**收到多少专家工作由 R1 的 top-8 决定**。node1 没有 R1 的请求状态，也照常接收命中它所持专家的工作。把“源行是补位”误读为“这张卡不算专家”，就会看错 EP 的负载。
+
+同一张卡有两个角色：rank 0 作为源卡，为自己的 token 找专家并收回结果；作为目的卡，接收两个执行组发给 E0–E17 的工作，算完返回。下图把这两个方向分开画；箭头表示可达关系，实际发往哪张卡由这一层的 top-8 决定。
 
 ```wiki-diagram
 file: expert-parallel-assign
 ```
 
-每颗 NPU 对自己负责的每个 token 做四件事，编号和下面那张图里圆圈中的数字一一对应：
+### 3. 各卡计算自己持有的专家
 
-1. **挑专家。** 路由器挑出 8 个专家的编号。挑谁只看 token 本身，和专家放在哪颗 NPU 上无关，所以开不开 EP，每个 token 选中的专家都一样。
-2. **发出去。** 选中的专家有的在本颗，有的在另一颗。在另一颗上的，就把这个 token 发过去。发的是 token 的数据，一个 2048 个数的向量，BF16 下 4 KiB。专家的权重从头到尾待在原地不动。
-3. **各算各的。** 每颗 NPU 只算落到自己那 128 个专家上的 token。
-4. **收回来。** 算完的结果送回负责这个 token 的那颗 NPU，按路由器打的分加权相加，就是这个 token 在这一层 MoE 的输出。
+**每张卡把收到的行按 18 个专家分组，各做一次三段矩阵乘。** 一个专家有 gate、up、down 三个矩阵：gate 和 up 各把 hidden 的 4096 维映射到 2048 维，down 再投影回 4096 维。EP 保留完整的 2048 维；一个完整路由专家的三块矩阵占 **24 MiB**。
+
+**grouped matmul** 把这些矩阵乘组织成分组计算，组与组权重不同、行数也不同；dispatch 返回的分组计数记录 18 组各有多少行。**SwiGLU** 把 gate/up 两半向量经门控相乘，形成专家的中间表示。
+
+| 阶段 | rank r 上的逻辑形状 | 集合通信 |
+| --- | --- | --- |
+| 接收、按专家重排 | [N_r,4096] INT8，附逐行 scale | 已由 EP16 dispatch 完成 |
+| gate/up 投影 | [N_r,4096]，每行使用所属专家的权重 | 无 |
+| SwiGLU 与再量化 | 两半门控相乘，变成 [N_r,2048] INT8 | 无 |
+| down 投影 | [N_r,4096] BF16 | 无 |
+
+这里写逻辑有效形状；实际缓冲按算子容量与布局要求补齐。**trace** 是逐算子、逐次通信的运行记录，各卡 N_r、缓冲分配形状与峰值显存的证据缺口列在页末。权重加载后还会转置、转为昇腾分块格式，上表保留其数学维度。
+
+### 4. combine、拼回 token、加共享输出
+
+**combine 把各专家的结果送回原源卡，加权合成这个 token 的路由输出。** 各专家算出的 BF16 向量通过 EP16 按目的卡交换，回到源卡后得到 [1,4096] 的路由结果。
+
+这一层还有 **1 个共享专家**，让所有 token 都经过同一个 MLP（先投影、做非线性，再投影回 hidden 的前馈网络）。它与选中的路由专家处理同一条 hidden，由每台机器的 **TP8 合切，每卡每层占 3 MiB**；分片形状和字节推导统一见 [tensor-parallel 的共享专家小节](tensor-parallel.md#稠密-mlp-与共享专家每卡各留一段通道)。
+
+接下来 **All-Gather** 在 TP8 内收集各卡的 token 切片，拼成 [8,4096]，去掉尾部补位后恢复 [4,4096]。**combine 合齐的是一个 token 的专家贡献，All-Gather 拼回的是 prepare 切开的不同 token 行。** 共享分支从始至终处理完整 [4,4096]，经 TP8 **All-Reduce**（将各卡部分和逐元素相加，让各卡得到完整结果）得到完整共享输出，再与路由输出逐元素相加。该部署没有开启共享专家多流重叠，实际顺序是路由分支完成后执行共享分支。
+
+```calc
+title: 一个 token 的 MoE 输出
+路由部分 = Σ [8 个选中专家的组合权重 × 各自输出]
+最终输出 = 路由部分 + 共享专家输出
+输出形状 = [4096]
+```
+
+沿途有两种不同的拆分：源卡只负责派发自己的 token 行，目的卡则集中处理命中本卡专家的所有行。combine 先把同一个 token 的专家贡献合齐，收尾阶段才把不同 token 行拼回整批；共享分支始终保留本组完整输入。下表按这条顺序核对每一步的形状与通信。
+
+| R1 每卡的阶段 | 源卡或目的卡形状 | 通信域与本层调用 |
+| --- | --- | --- |
+| router → prepare → top-8 | [4,288] → [1,288] → 两份 [1,8] | 无 |
+| dispatch | 源卡 [1,4096] → 目的卡 [N_r,4096] | EP16，1 次 MC2 dispatch |
+| 本地专家 | [N_r,4096] → [N_r,2048] → [N_r,4096] | 无 |
+| combine | 回到源卡 [1,4096] | EP16，1 次 MC2 combine |
+| finalize（收尾） | [1,4096] → [8,4096] → [4,4096] | TP8，1 次 All-Gather |
+| 共享专家与相加 | 完整 [4,4096] 输入 → 同形状 TP 部分和 | TP8，1 次 All-Reduce；相加在卡内 |
+
+这一层共 4 次集合通信调用；主干 42 层重复这套流程。R1 每层 dispatch ≤32,800 B、combine ≤65,536 B、finalize 每卡贡献 8,192 B、共享归约载荷 32,768 B，计算与整次前向账统一见[一条请求的 MoE 与通信账](one-request.md#42-层-moe每卡-18-个专家)。这些调用数描述程序边界，底层协议可以把一次调用拆成多轮传输。
+
+## 其他层与后续生成也这样算吗？
+
+**主干的 42 个 MoE 层都重复上述过程，前 3 层则用普通前馈网络。** 按从 0 开始的层号，MoE 对应第 3–44 层，每层重新从 288 个路由专家中选 8 个，并加上 1 个共享专家的输出。
+
+后续在已有历史上继续生成的阶段叫 **decode**。本部署用 **MTP**（Multi-Token Prediction，先猜候选 token、再交主模型验证的模块）同时验证一个确定 token 和三个候选，主模型这一步也有 4 行，与 R1 prefill 的 MoE 形状相同。
+
+主干路由专家占 **17.72 GiB/卡**，MTP 另有一层专家，占 **432 MiB/卡**；这两项、整卡 **20.58 GiB** 及占比统一见[部署页权重表](glm-5-3-flash-two-node.md#每张卡上放了什么)。缩放系数、通信缓冲和激活另计。
+
+## MC2 还是 AllGather
+
+在本页 **A2、开启 EP** 的部署里，每步只在 MC2 和 AllGather 两种路径之间选择。**MC2** 是昇腾上协同执行计算与通信的一类实现，本页具体指按目的卡交换数据的 MoE dispatch/combine 算子；**AllGather** 是先收集两组完整输入、各卡筛出本地专家的工作、再归约输出的 MoE 路径。后者名称不带连字符；**All-Gather** 则是收集各卡数据的集合通信操作，MC2 和 AllGather 两条路径都会用到。其他设备、配置与版本的分支见[版本差异](#版本差异)。
+
+选择看两个 DP 执行组的**最大 token 数**，而且是经过本步 capture size 与 DP 对齐之后传入的数。**capture size**（图尺寸）是预先捕获、可供回放的执行 token 宽度；**graph mode**（图模式）复用已记录的算子执行过程，减少逐次提交的开销。三个条件同时满足才使用 MC2：**每卡专家数 ≤24、EP 规模 ≥16、最大 token 数 ≤128**。本部署前两个条件恒成立，128 是当前配置的 MC2 容量门槛，推导只保留在[one-request 的 MoE 小节](one-request.md#42-层-moe每卡-18-个专家)。
+
+后文的[场景 M](#场景-m多请求时的整批账和负载不均)是 DP0 有 12 条 decode 请求并混入 6000-token prefill、DP1 有 7 条 decode 请求的批次。R1 的 4 行、场景 M 加入 prefill 之前的 64 行都走 MC2；混入长 prefill 后最大值变为 6048，两组都走 AllGather。**切换由宽度越过容量门槛触发**：R1 的短 prefill 仍在容量内。graph mode 是否回放是另一套判断，见[并发页的 capture size 与两组对齐](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)。
+
+```wiki-diagram
+file: expert-parallel-fit
+```
+
+**为什么单机 EP8 只能走 AllGather。** 对同一个 GLM 模型，EP8 每卡要放 36 个路由专家：EP 规模不足 16，同时每卡专家数超过 24，两个条件都不满足。即使 token 很少，也无法进入此 A2 MC2 分支。EP8 的权重与容量对照见[部署页的单双机比较](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)。
+
+### AllGather：先拿到所有输入，再只算本卡专家
+
+MC2 先按 token 切片，再按专家目的地发送；AllGather 在本配置下保留本组完整输入，并先与另一个 DP 组交换。这里的 **DP 通信组** 是跨机同一 TP 编号的两张卡，例如 {0,8}；共有 8 对。它与“node0/node1 两个 DP 执行组”的说法区别见[分组说明](glm-5-3-flash-two-node.md#16-张卡怎样分组)。
+
+AllGather 先分别收集 hidden 与 router 分数，再在卡内选专家、重排、计算和加权还原。每卡得到的是本地专家对全部输入的贡献；**Reduce-Scatter** 将两卡的结果逐元素相加，再按 token 所属执行组切回两份。之后加入本组共享专家的 TP 部分和，最后由 TP8 All-Reduce 把全部贡献加齐。场景 M 的双列流程图和逐卡形状放在后面的整批账里。
+
+两种路径都完成“8 个被选中的路由专家输出加权，再加共享输出”，但归约的安排不同：MC2 已在 combine 完成路由汇合，所以共享输出单独 All-Reduce；AllGather 把两种部分和留到最后一起 All-Reduce。**AllGather 每层也只有 4 次集合通信：两次 DP All-Gather、一次 DP Reduce-Scatter、一次 TP All-Reduce。**
+
+两者通信次数相同，搬的数据却不同。下表先对比搬什么；实际批次的载荷与 113 倍差距在场景 M 中展开。
+
+| 路径 | 输入怎样送到专家 | 结果怎样收齐 | 通信量取决于什么 |
+| --- | --- | --- | --- |
+| MC2 | 选中专家对应的 INT8 hidden 与 FP32 scale | EP combine，再拼回 token 行；共享输出单独归约 | 有效 token–expert 对、路由目的地与补齐宽度 |
+| AllGather | 两组完整 BF16 hidden 与 FP32 router 分数 | DP Reduce-Scatter，再把路由与共享贡献一起 TP All-Reduce | 两组补齐后的完整宽度 |
+
+## 两个 DP 组为什么要陪跑
+
+两台机器各有 scheduler（决定本步算哪些请求的组件），请求状态和缓存归所属 DP 执行组管理；专家却分布在一个跨机 EP16 组里。因此“DP1 没有自己的请求”只表示它不用为自己的用户生成结果，**它仍持有供 DP0 路由选择的 E144–E287**。
+
+DP1 空闲时执行 **dummy run**，即用空批次进入同一步模型执行，让通信参与者按相同次序到达。空批次起点为 4 行，纯 decode（在已有历史上继续生成）的对照场景拉到 64 行；场景 M 中 DP1 一条请求都没有的变体 **M′**，混入长 prefill（处理提示词）后拉到 6048 行。对齐、补齐和唤醒的推导统一见[concurrent-requests 的陪跑小节](concurrent-requests.md#空闲的-dp-组为什么还要陪跑变体-m)。
+
+这对 EP 有三个具体含义：
+
+- **空闲组仍处理真实专家工作。** DP1 收到 DP0 的 token 后，用本地专家算出的结果要回到 DP0。被丢弃的是 dummy 请求自身的最终输出；DP1 为 DP0 算的专家贡献必须保留。
+- **两组共用 MoE 通信选择。** DP1 自己只有少量 token，也会因为 DP0 的最大宽度超门槛而进入 AllGather，通信载荷仍由 6048 这个宽度决定。
+- **通信同步形成共同的等待点。** 任一张持有专家的卡慢下来，依赖它输出的 token 就要等；任一成员没有进入相应通信，其他成员可能等待或超时。把两个调度器视作彼此独立的完整模型，会漏掉这个约束。
+
+## 场景 M：多请求时的整批账和负载不均
+
+[场景 M](concurrent-requests.md#示例场景-m-与变体-m)中，DP0 有 12 条 decode 请求并混入 6000-token prefill，DP1 有 7 条 decode 请求。它的纯 decode 对照，就是先去掉新来的长 prefill。
+
+同一组 12 条与 7 条 decode 请求，加入 6000-token prefill 后，MoE 的每卡每步逻辑载荷从 **≤55.1 MiB** 变成 **6.09 GiB**。变化同时来自执行宽度由 64 增至 6048，以及搬运方式从按路由发送 INT8 hidden，改为收集完整 BF16 hidden 与 FP32 分数；两档账面载荷的比值约 **113 倍**。
+
+```wiki-diagram
+file: expert-parallel-split
+```
+
+“每步”在这张图里指**主模型一次前向的 42 个 MoE 层**；MTP 草稿层三次执行另计，一次验证实际接受的候选数决定这一轮最终产出多少 token。图中长短按同一线性比例绘制，55.1 MiB 取源侧上界，113 倍描述这两个不同批次的载荷比；同批次更换算法后的耗时需要另做测量。
+
+**计量口径。** MC2 按源卡负责的 token–expert 对计 dispatch 与返回结果；TP All-Gather 计本卡贡献的切片；DP All-Gather 计接收的另一组切片；Reduce-Scatter 计输出切片；All-Reduce 计输入张量。网卡发送加接收的计数还取决于通信算法、本地命中、协议元数据与重复传输；HCCL（昇腾的集合通信库）与网卡的实测证据缺口统一列在页末。
+
+### 纯 decode：补齐后每卡负责 8 行
+
+从场景 M 去掉新来的 6000-token prefill，两个 DP 组分别有 48、28 行真实 token；capture size 与 DP 对齐后，两边都是 64 行。**64 行的推导**在[并发页](concurrent-requests.md#再补到两组的最大值)，MC2 再沿 TP8 分给每卡 8 行。
+
+一个 token–expert 对的 dispatch 发 INT8 hidden 加 FP32 scale，combine 返回 BF16 hidden。**≤55.1 MiB** 的上界按源卡 8 行全有效、每行 8 个专家副本全部计入。有效行 mask 会排除补位，本卡命中在本地完成；TP All-Gather 与共享 All-Reduce 仍使用补齐后的张量。目的卡接收、计算与返回的量由 N_r 决定；本图按源 token 归属记账，热门专家持有卡的收发量另看路由分布。同目的卡副本是否合并由 CANN（昇腾运行与算子库）实现决定，所需证据列在页末。
+
+### 混入长 prefill：每卡收集 12096 行
+
+场景 M 的 DP0 有 6048 行，DP1 只有 28 行真实数据，但该步执行宽度同为 6048；如何补齐见[并发页](concurrent-requests.md#进入第-4-站之前宽度先按自己补再按对面补)。AllGather 的全局输入宽度为 12096，每卡按下面四步执行。
+
+双列图左边回顾 R1 的 MC2 路径，右边跟场景 M 走 AllGather；两列各自从上往下读。prepare 是准备输入，finalize 是计算后的收尾；Nᵣ 沿用前文定义，表示目的卡 r 收到的有效 token–expert 对数。注意右列的 dispatch/combine 已在卡内完成，跨卡通信安排在它们前后。
 
 ```wiki-diagram
 file: expert-parallel
 ```
 
-最后两颗 NPU 再把各自负责的结果合到一起，两边又都有了全部 37 个 token，接着进下一层。
+1. **先算 router，再收集输入。** 每卡本地 hidden 为 [6048,4096] BF16，router 分数为 [6048,288] FP32。每个 DP 两卡通信组分别对 hidden 和分数做一次 All-Gather，得到 [12096,4096] 与 [12096,288]。因为本机 8 卡原本持有同一份输入，跨机交换后，全部 16 卡都能看到两组输入。
+2. **top-8 和 dispatch 在卡内完成。** 每卡选择出 [12096,8] 专家编号与权重；本地 routing 算子只保留命中本卡 18 个专家的行，按本地专家范围筛选和重排，并在 W8A8 下量化输入。这里名为 dispatch 的步骤没有额外跨卡发送：完整输入已经在 prepare 阶段收到了。
+3. **本地专家与本地 combine。** 专家计算仍是 [N_r,4096] → [N_r,2048] → [N_r,4096]。本地 combine 把行顺序还原，并乘路由权重，形成 [12096,4096]。每卡只贡献自己专家的结果，其他专家贡献为零。
+4. **跨两级组归约。** Reduce-Scatter 先把两卡结果逐元素相加，再按 token 所属 DP 组切回两份：[12096,4096] → [6048,4096]。此时每卡得到一对 EP rank 的专家贡献。共享专家在本组 [6048,4096] 上算出自己的 TP 部分和，加进去后，最后一次 TP8 All-Reduce 把 8 对路由贡献和 8 份共享贡献全部加齐，每卡得到本组完整输出 [6048,4096]。
 
-除了这 8 个挑出来的专家，每层还有 1 个共享专家，所有 token 都要经过它，不需要路由器挑。它不按 EP 分，而是和注意力部分一样按 TP 切在两颗 NPU 上。
+| 场景 | MC2 / AllGather | 每卡每步 MoE 载荷 | 跨机相关载荷 |
+| --- | --- | --- | --- |
+| 12 条与 7 条纯 decode，执行宽度 64 | MC2 | ≤55.1 MiB | dispatch + combine ≤31.5 MiB；实际跨机量还取决于目的地 |
+| DP0 混入 6000-token prefill，执行宽度 6048 | AllGather | 6.09 GiB | 两次 DP All-Gather 加一次 DP Reduce-Scatter，共约 4.15 GiB |
 
-一颗 NPU 负责 19 个 token，每个挑 8 个专家，就是 152 次「token 找专家」。如果路由完全均匀，其中大约一半要发到另一颗上。实际的路由并不均匀，有的专家特别受欢迎，它所在的那颗 NPU 就更忙，这是 [EPLB](eplb.md) 要解决的问题。
+增加通信的两件事都在形状里：DP1 的真实 28 行也被拉到 6048 行；AllGather 跨机收集完整 BF16 hidden 和 FP32 router 分数，MC2 则按选中专家发送 INT8 hidden。
 
-## 代价：每层要在两颗 NPU 之间来回一趟
+AllGather 还要存全量输入：一份 [12096,4096] BF16 hidden 就是 **94.5 MiB/卡/层**，再加 router 分数、重排激活与结果缓冲；94.5 MiB 的换算即下方算式中 47.25 MiB 的两份。层间会复用临时空间，峰值应通过实际分配与 trace 核定。
 
-EP 让每颗 NPU 只放一半专家，也就是 30 GiB。代价是通信：每一层 MoE 都有一次「发出去」和一次「收回来」，也就是上面那张图里紫色的两段。模型有 40 层，模型每往前算一步，两颗 NPU 之间就要来回 80 次。生成回答时每一步只有 1 个新 token，这 80 次通信照样一次不少。
+### 专家数量均分，工作量仍可能不均
 
-有两种情况开了也没用：只有一颗 NPU 参与时，这个开关不起作用，也不报错；模型本身不是 MoE 的，同样不起作用。
+每卡 18 个专家只保证权重均分。每个 token 的 top-8 由自己的 router 分数决定；如果一批请求集中命中某几个专家，持有它们的卡会接收更多行，形成更大的重排缓冲与矩阵乘，并让其他卡在 combine 或归约处等待。
+
+纯 decode 的 76 个真实 token 形成 608 个 token–expert 对，理想均分时每卡 38 行；场景 M 的 AllGather 输入包含补位，routing 面对 12096 行。下面把通信账和**理想均分参考量**放在同一个算式块中，真实 N_r 要看路由结果。
+
+```calc
+title: 场景 M 与纯 decode 对照的每卡账
+纯 decode · MC2 源侧上界
+每对 dispatch = 4096 × 1 B + 4 B = 4,100 B
+每对 combine = 4096 × 2 B = 8,192 B
+本层 dispatch = 8 行 × 8 个专家 × 4,100 B = 262,400 B
+本层 combine = 8 行 × 8 个专家 × 8,192 B = 524,288 B
+本层 TP All-Gather = 8 × 4096 × 2 B = 65,536 B
+本层共享 All-Reduce = 64 × 4096 × 2 B = 524,288 B
+MC2 本层合计 = 262,400 + 524,288 + 65,536 + 524,288 = 1,376,512 B
+MC2 主干合计 = 42 × 1,376,512 B ÷ 1024² ≈ 55.1 MiB
+MC2 的 EP 交换 = 42 × (262,400 + 524,288) B ÷ 1024² ≈ 31.5 MiB
+
+场景 M · AllGather
+DP 收 hidden = 6048 × 4096 × 2 B = 49,545,216 B ≈ 47.25 MiB
+DP 收 router 分数 = 6048 × 288 × 4 B = 6,967,296 B ≈ 6.64 MiB
+DP Reduce-Scatter = 6048 × 4096 × 2 B = 49,545,216 B
+TP All-Reduce = 6048 × 4096 × 2 B = 49,545,216 B
+AllGather 本层合计 = 3 × 49,545,216 + 6,967,296 = 155,602,944 B
+AllGather 主干合计 = 42 × 155,602,944 B ÷ 1024³ ≈ 6.09 GiB
+AllGather 的 DP 交换 = 42 × (49,545,216 + 6,967,296 + 49,545,216) B ÷ 1024³ ≈ 4.15 GiB
+载荷比值 = 155,602,944 ÷ 1,376,512 ≈ 113 倍
+
+理想均分 · 专家计算行数
+纯 decode 的关联 = 76 × 8 = 608 对
+纯 decode 每卡 = 608 ÷ 16 = 38 行
+场景 M 的关联 = 12096 × 8 = 96,768 对
+场景 M 每专家 = 96,768 ÷ 288 = 336 行
+场景 M 每卡 = 336 × 18 = 6,048 行
+```
+
+AllGather 的 6048 行理想计算量同时包含真实请求与补位。热门专家集中到一张卡，会同时增加它的接收、计算和返回工作；延迟还取决于矩阵乘效率与通信等待，需结合页末列出的逐层、逐专家 trace 判断。
+
+### 这套部署有没有开 EPLB
+
+**EPLB**（expert parallel load balancing）通过调整专家的物理放置、必要时配置冗余副本，缓解热门专家集中到少数卡的问题。对照官方两端命令与默认配置，**本部署未开启 EPLB，也没有冗余专家**。router 的校正偏置作为模型参数影响 top-8；运行时 EPLB 则改变物理放置。这里的“未开启”指按教程启动且未额外覆盖配置，逐项默认值与日志核对方法放在[怎么开](#怎么开)。
+
+## 常见误解
+
+- **“EP 是把每个 token 都发到所有卡上吗？”** MC2 按选中的专家找目的卡；多个被选专家在同一卡时，工作就送到同一卡。AllGather 则先让全部卡看到输入，再只算本卡专家。EP 定义权重归属，数据怎样搬由通信实现决定。
+- **“专家越多就一定越慢？”** 固定 top-8 和专家宽度时，单个 token 的专家矩阵乘规模不会随总专家数等比例增加。但更多权重占显存，router 的打分更宽，还要重新核对放置与通信条件；是否变慢要结合批次和路由测量。
+- **“TP8 和 EP16 会把每个专家切成更多小片吗？”** 本部署路由专家在 EP 持有卡上完整计算；共享专家才按 TP8 合切。MC2 对 token 的 TP8 切片与切专家矩阵是两件事。
+- **“rank 4–7 在 R1 中拿到补位，所以这些卡都没活？”** 它们没有源 token，却仍作为目的卡处理 R1 命中的本地专家；收到多少由 top-8 决定，node1 也一样。
+- **“开 EP 就自动均衡，或打开 MC2 就是打开 EPLB？”** EP 决定专家归属，MC2 决定搬运方式，EPLB 才调整负载放置；上节用真实路由行数衡量各卡工作量。
+- **“一有 prefill 就改走 AllGather？”** 本配置看最大 token 数是否超过 128，R1 的 4-token prefill 仍走 MC2。
+- **“每步 55.1 MiB 是每张网卡的实测流量？”** 它是上述纯 decode 场景、主干 42 层、按源 token 与集合通信载荷统计的上界。目的卡负载、机内与机间分布、协议开销需要另测。
 
 ## 对照源码
 
-这一节给要读代码、查配置、排查问题的人。上面讲解里的每个数，依据都在这里。
-
 ### 怎么开
 
-例子用的启动命令（BF16 权重），这也是开 EP 的最小写法：
+两端启动参数的核心组合是 `--tensor-parallel-size 8 --data-parallel-size 2 --data-parallel-size-local 1 --enable-expert-parallel`，模型量化使用 `--quantization ascend`；节点编号、地址和网络配置照[官方双机教程](https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md)填写。
 
-```bash
-vllm serve Qwen/Qwen3.6-35B-A3B \
-    --tensor-parallel-size 2 \
-    --enable-expert-parallel
-```
+`enable_expert_parallel` 默认 `False`，必须显式开启。**EP16 是并行组配置推出来的规模**，并没有另外传一个 `--ep-size 16`。本部署 TP8 与 DP2 被拍平成 EP16，路由专家内部 `tp_size=1`。去掉 EP 开关后，FusedMoE 转到对专家矩阵做 TP 分片的分支，权重归属和通信都要重新核算。[C3]
 
-- `--enable-expert-parallel` 是唯一的开关，默认关 [C10]。官方教程给这个模型的示例用的是 W8A8 权重，多了 `--quantization ascend` 和一组调优参数；EP 的部分就这两行，并注明同一个 MoE 层里不要把 TP 和 EP 混着用 [S4]。教程写明 A3 与 A2 都能部署。
-- 没有单独设 EP 大小的参数。上游先把 `dp_size × pcp_size × tp_size` 压成一个数，开了 EP 且这个乘积大于 1，`use_ep` 才为真；然后 `ep_size` 取压扁后的那个数，MoE 自己的 `tp_size` 置 1 [C13]。所以 TP=2、DP=1 得到 `ep_size = 2`，TP=1、DP=2 也是 2。PP 不算在内。
-- 专家怎么分：默认 `expert_placement_strategy = "linear"`，按编号连续分；`determine_expert_map` 均分，除不尽时余数补给前几个 rank，本卡没有的专家在 `expert_map` 里记 `-1` [C14]。256 ÷ 2 整除，NPU 0 拿 0–127，NPU 1 拿 128–255。
-- 模型侧：文本部分每一层的 MLP 都是 `Qwen3NextSparseMoeBlock`。路由专家交给 `FusedMoE`；共享专家是一个普通 MLP，用 `MergedColumnParallelLinear` 和 `RowParallelLinear` 搭成，所以按 TP 切，不参与 EP [C8]。
-- 模型形状（40 层、每层 256 个专家、每个 token 挑 8 个、专家中间宽 512、隐藏维 2048）来自官方配置 [S1]；「总参数 35B、每 token 约 3B」来自教程 [S2]。A3 一张卡上有两颗芯片，系统里一共 16 个设备 [S5]；vLLM 按设备计数，本页的「一颗 NPU」就是一个设备。
+| 相关参数 | 本部署的状态 | 控制什么 |
+| --- | --- | --- |
+| `expert_placement_strategy` | 默认 `linear` | 连续专家编号的放置；本页以此画 16 卡布局 |
+| `enable_prefill_mc2` | 默认 `False` | 是否用 token 预算扩大 MC2 容量来源；当前 128 的推导链接见上文 |
+| `enable_fused_mc2` | 默认 0 | 另一种融合实现开关；普通 MC2 由 A2 选择器自动选中，开 MC2 不要求把它设为 1 |
+| `multistream_overlap_shared_expert`、`multistream_overlap_gate` | 默认 `False` | 共享专家或 gate 是否切到另一执行流重叠计算 |
+| `enable_eplb`、昇腾 `eplb_config` | 关闭、零冗余 | 专家放置与动态均衡；详见 [EPLB](eplb.md) |
+
+表中昇腾的 MC2 与多流默认值来自昇腾配置初始化。[C19]
+
+**“开了也没用”的边界：**只有一张卡参与 MoE 时，上游 `use_ep=False`；非 MoE 模型没有路由专家可分，昇腾的选择器直接返回 `None`。这两种情况都不会仅因打开 EP 而报错。对于 MoE，未开 EP 或 EP 通信组只有一个成员时，选择器直接返回 AllGather。[C37]
+
+本页 AllGather 走 DP 两卡组的 prepare/finalize，条件包括未开启 FlashComm1（昇腾的通信优化）与 sequence parallel（沿 token 维分片的执行方式）。改变这些配置后，按 `PrepareAndFinalizeWithAllGather` 的 EP-group 分支重新列张量与通信账。
+
+**专家与共享分支怎样落到配置。** 连续编号放置对应 `linear`。上游并行配置把 DP2 与 TP8 拍平成 16，未开 EP 时保留为专家内部 TP，开 EP 时改为 EP16、专家内部 TP1；`FusedMoEParallelConfig.tp_size` 是 1，机内 TP8 通信组仍然存在。共享专家同样挂在 `FusedMoE` 下，按 EP 分的只有 288 个路由专家；共享 MLP 取 `disable_tp=False` 并沿用 TP8，条件与分片推导见前面的 tensor-parallel 链接。
+
+**EPLB 的逐项核对。** 官方教程未覆盖下列默认值，因此本页按关闭、零冗余记账。
+
+| 检查项 | 默认值与教程配置 | 对本页的影响 |
+| --- | --- | --- |
+| vLLM `enable_eplb` | 默认 `False`，教程没有 `--enable-eplb` | 不启用上游 EPLB |
+| `eplb_config.num_redundant_experts` | 默认 0，教程未覆盖 | 物理专家数仍为 288 |
+| 昇腾 `eplb_config.dynamic_eplb` | 默认 `False`，`expert_map_path=None` | 没有动态重排或自定义映射 |
+| `DYNAMIC_EPLB` / `EXPERT_MAP_RECORD` | 教程没有设置，也没有相应 additional-config | 未启用昇腾动态 EPLB 及采集路径 |
+| profile 的强制均分 | `enable_force_load_balance` 取 `in_profile_run` | 启动时用均分负载测显存；线上热度由真实 router 决定 |
+
+实际进程可用 `Dynamic EPLB is ...` 和 `The number of redundant experts is ...` 两行日志核对，并检查页末所列配置转储与环境变量。官方命令与昇腾默认值分别见 [S2]、[C18]。
 
 ### 会报什么错
 
-- 这个开关本身不报错。只有一颗 NPU 参与 MoE 时 `use_ep` 为假，昇腾侧直接选 `ALLGATHER`，也就是不按专家分；只在 debug 级别的日志里记一行 `MoE comm method selected: ...` [C23]。
-- 设备不是 A2、A3、A5、310P 之一时，选通信方式那一步抛 `ValueError: Unsupported soc_version: ...`。
-- 专家数不能被 `ep_size` 整除时不报错，但两处算出的本地专家数会不一样：上游把余数补给前几个 rank，昇腾随后又用整除 `global_num_experts // ep_size` 覆盖了本地专家数 [C15]。`ops/fused_moe/` 和 `eplb/` 下唯一的整除检查属于 EPLB，报错是 `(n_expert + n_redundant) % ep_size must be 0` [C31]，普通 EP 没有这道检查 [!]。256 个专家配 2、4、8 颗 NPU 都整除，踩不到。
-- TP 大小超过专家数时，建层就抛 `Tensor parallel size ... is greater than the number of experts ...` [C7]。这个模型有 256 个专家，实际碰不到。
+以下是本执行快照中的明确检查，便于把错误定位到具体阶段：
+
+| 报错或现象 | 触发条件 | 先核对什么 |
+| --- | --- | --- |
+| `Number of global experts mismatch (excluding redundancy)` | W8A8 方法看到的 router 列数与逻辑专家数不一致 | 模型配置、router 权重、量化描述是否匹配；本模型 router 应有 288 列 |
+| `expert_map is required for MC2 token dispatch.` | MC2 收到的专家映射为空 | 检查 EP 配置与初始化，确认 prepare 已建立实际执行分支需要的映射 |
+| `Missing communication context` [C30] | fused experts 执行时缺少已选通信实现 | 调用是否经过 forward context；自定义直接调用 MoE 的路径是否漏了上下文 |
+| `PTA and CANN version is too old to support mc2 hierarchy comm...` | 开启层级通信但 torch_npu 没有 dispatch v2 接口 | torch_npu（PyTorch 的 NPU 扩展）与 CANN（昇腾运行与算子库）的配套版本 |
+| `The expert_map is not json.` / `The expert_map is not exist.` | 自定义 EPLB 映射扩展名或可读性不满足要求 | 文件格式、路径和权限 |
+| 要求 `DYNAMIC_EPLB or EXPERT_MAP_RECORD ... true` 的断言 | 开动态 EPLB，却未设置所需环境变量 | 按 EPLB 的完整启动条件检查 |
+
+EP8 或超过 128 行**正常返回 AllGather**，不是上述错误。若卡在通信里，先按时间对齐 16 个 worker（每卡执行进程）的日志，检查哪张卡先异常退出、两边是否进入同一轮；定位方法见[请求调用链](request-call-chain.md#出问题时判断它停在哪一站)。
 
 ### 开销和什么时候别开
 
-- 「发出去、收回来」用哪种通信方式，不是启动时定的，而是每一步现选：`set_ascend_forward_context` 拿这一步跨 DP 的最大 token 数调 `select_moe_comm_method` [C18]。可选的只有四种：`ALLGATHER`、`MC2`、`ALLTOALL`、`FUSED_MC2`。
-- 例子在 A3 上：`FUSED_MC2` 默认关，`VLLM_ASCEND_ENABLE_FUSED_MC2` 默认 0 [C24]；于是 token 数不超过 MC2 容量就走 `MC2`，超过就走 `ALLTOALL` [C22]。MC2 容量是 `min(ceil(max_num_tokens / tp_size), 512) × tp_size`，每个 TP rank 封顶 512 [C20]。prefill 那步 37 个 token、decode 每步 1 个，都在容量内，两种步都走 `MC2`，由融合算子 `npu_moe_distribute_dispatch_v2` 把 token 真的发过去。
-- 「对半分」的来历：`padded_num_tokens = ceil(37 / 2) × 2 = 38` [C19]；MC2 的 prepare 先补齐，再按 TP rank 沿 token 维切开；finalize 再 all-gather 回全量，并去掉补的那一行。decode 时 1 补成 2，NPU 1 拿到的那一行是空位。
-- 不管选哪种通信，一层 MoE 的骨架都一样：dispatch、本地专家计算、combine。
-- 换到 A2 上结果不同。A2 要同时满足「每颗专家数 ≤ 24、EP 颗数 ≥ 16、在容量内」才走 `MC2`，否则走 `ALLGATHER` [C21]。这个模型两颗 A2 时每颗 128 个专家，选出来的是 `ALLGATHER`：每颗都拿全部 token，只挑落在自己专家区间里的那些算 [C29]，一个 token 都不按路由发。要在 A2 上走到 `MC2`，得 16 颗以上：256 ÷ 16 = 16 ≤ 24 [D]。
-- `ALLTOALL` 是按路由真发包、去一趟回一趟的通用路径。
-- 负载不均时看 [EPLB](eplb.md)。这个模型的官方教程没有提 EPLB，EPLB 在它上面有没有验证过，教程里查不到。
+EP 的收益是分摊专家权重与计算，代价是每层 dispatch/combine、重排缓冲、同步等待，以及跨 DP 的陪跑。本部署 42 个 MoE 层把这些代价重复付出；R1 很小时源 token 分片大量为空，多请求时则可能由热门专家或长 prefill 拉高开销。
+
+**同一批专家权重的两种分法。** 保持 288 个专家和 16 张卡，TP 一栏是同一模型的矩阵分片对照，当前运行的是 EP 一栏。实现把 gate、up 合为 `w13_weight`；当前 EP 权重在每卡打包成 `w13_weight [18,4096,4096]` 与 `w2_weight [18,4096,2048]`。
+
+| 比较项 | 把每个专家按 TP16 切 | 本部署：按 EP16 分专家 |
+| --- | --- | --- |
+| 每卡持有什么 | 全部 288 个专家各自的 1/16 权重 | 18 个完整专家 |
+| 每卡每个专家的矩阵 | gate/up 各 [128,4096]，down [4096,128] | gate/up 各 [2048,4096]，down [4096,2048] |
+| 一个 token 选中 8 个专家后 | 16 卡都算这 8 个专家的各自分片；每个专家在本卡的中间结果只有 128 维 | 每个选中专家由其持有卡算完整 2048 维；某卡算几个取决于 top-8 命中 |
+| 结果怎样汇合 | 每卡的 down 产生 4096 维部分和，先在本卡按专家权重组合，再跨卡求和；可用 All-Reduce，或按两级通信组分阶段归约 | 把完整专家输出返回源 token 并加权；两条通信路径组织方式不同 |
+| 算子形状与代价 | 单个专家越切越窄，down 输出仍是 4096 维，归约张量没有随中间维一起缩小 | 保留专家矩阵宽度，把命中同一专家的行集中计算，付出派发、回收与负载不均的代价 |
+
+TP 可以先合并本卡 8 个专家的贡献，再做整层归约，因此这里按整层部分和计算。下面用 BF16 输出载荷看清“切小矩阵”与“缩小归约”之间的差别。[D]
+
+```calc
+title: 同一批专家权重的 TP16 与 EP16 分法
+完整专家权重 = 3 × 4096 × 2048 × 1 B = 24 MiB
+TP16 中间宽度 = 2048 ÷ 16 = 128 维
+TP16 每专家每卡 = 24 MiB ÷ 16 = 1.5 MiB
+TP16 每卡每层 = 288 × 1.5 MiB = 432 MiB
+EP16 每卡每层 = 18 × 24 MiB = 432 MiB
+TP 每 token 的归约张量 = 4096 × 2 B = 8,192 B
+TP 的 R1 四行归约张量 = 4 × 4096 × 2 B = 32,768 B
+> 归约张量按逻辑输入计；实际链路字节由集合通信算法决定
+```
+
+两种分法的每卡路由权重一样大；**选 EP 的理由在计算与通信的组织方式**：每个专家保持 2048 维，token 按专家聚集成批，避免让全部卡都参与每个被选专家的窄分片计算。实际收益取决于批次、路由热度与链路。
+
+对于能在更小通信域内容纳权重、目标又是极小批次延迟的部署，应比较 TP 与 EP 的实测吞吐、首 token 延迟、后续 token 延迟和显存余量，再决定是否扩大 EP。单机 EP8 可少一层机间依赖，但失去本文 A2 的 MC2 资格；[部署页](glm-5-3-flash-two-node.md#为什么是两台机器不是一台)给出容量取舍。**待核：缺同负载的单双机及 TP/EP 对照 trace**，需同时记录上述性能指标与通信耗时。
 
 ### 版本差异
 
-| 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
-|---|---|---|---|---|
-| 这个模型的支持状态 | 支持 | 实验性支持 [S38] | 实验性支持 | v0.26 起降为实验性，官方没写原因 |
-| A3 上怎么选 | 按设备代次分支，`_select_a3_moe_comm_method` | 同名函数前面多两条优先分支（MegaMoE、融合 MC2），容量还可能被 dispatch v2 的容量覆盖 [C35] | 改成按硬件画像查策略，A3 挂的是 `FUSED_OR_CAPACITY`，判断顺序和 v0.26 相同 [C39] | 默认配置下三个版本都走 `MC2`；MegaMoE 要 `enable_fused_mc2 == 1` 才会开 |
-| A2 上专家数超过 512 | 无特判 | 直接 `ALLGATHER` [C36] | 无此条 | 这个模型 256 个专家，不受影响 |
-| MoE 模型挂 LoRA 又开 EP | 照常按硬件选 | 强制 `ALLTOALL` [C37] | 同 v0.26 | [!] MC2 那条融合算子的路，LoRA 打不了补丁；v0.23 上这个组合仍会走进去 |
+这里核对的是**EP 基础能力、默认开关与 A2 通信选择**。GLM 贯穿算例固定在专用镜像提交 `db701c1f`；它与社区 v0.23 维护分支不是同一提交。下表三个分支均按知识库固定 commit 阅读，main 配套 vLLM 提交来自该快照的 `.github/vllm-main-verified.commit`。
 
-上游这边，`ep_size` 取压扁后的数、MoE 的 `tp_size` 置 1，在 vLLM v0.23.0 与 v0.26.0 上一字不差 [C34]；Qwen3.5 系列每层用 `Qwen3NextSparseMoeBlock` 这一点，v0.26.0 上也一样。
+执行侧固定为 `vllm-ascend@db701c1f`，控制流为 `vllm@0fc695fc`，与发布分支的对应见[来源基线](../sources/glm-5-3-flash-baseline.md)。执行快照尚无 LoRA（模型的低秩适配模块）优先分支；“无 LoRA”是与 v0.26/main 比较时的共同前提，那两版的 LoRA + EP 会强制走 `ALLTOALL`。枚举中的 `ALLTOALL`（按路由交换）与 `FUSED_MC2`（融合专家计算与通信）由其他设备或配置分支选择。
+
+| 分支 | vllm-ascend commit | vLLM commit |
+| --- | --- | --- |
+| v0.23 | `2c59ff10` | `0fc695fc` |
+| v0.26 | `2ed6cbba` | `568afb3a` |
+| main | `baa023ad` | `84030bbe` |
+
+| 项 | v0.23 | v0.26 | main |
+| --- | --- | --- | --- |
+| EP 与默认值 | 支持；`enable_expert_parallel=False`，`enable_eplb=False`，放置 `linear` | 相同 | 相同 |
+| 普通 A2 的选择 | 每卡 ≤24、EP ≥16、token 在容量内 → MC2，否则 AllGather | 同一主判据；另有总专家数 >512 时直接 AllGather | 硬件策略表选容量与专家密度判据；选择器没有 >512 这一条 |
+| 容量开关 | `enable_prefill_mc2=False` | 默认仍为 `False`，容量函数还兼顾其他融合路径 | 默认仍为 `False`；普通 MC2 与融合路径分别选择每 rank 上限，MegaMoE 分支还区分节点角色 |
+| LoRA + EP | 没有优先覆盖分支，继续按设备选 | 优先强制 `ALLTOALL` | 同 v0.26 |
+| GLM-5.3-Flash 专用实现 | 该维护快照无 `glm5_next` 模型文件 | 该发布快照也无此文件 | 模型在 `models/glm5next/` 目录 |
+
+三版都要显式开 EP，且 EP 不会自动开启 EPLB。本部署 288 专家、18/卡，三版的普通 A2 选择结果一致；128 来自固定配置，升级后应重新核算容量。v0.26/main 加上 LoRA 后会离开本页的 MC2／AllGather 二选一前提。
+
+本页 GLM 的形状与调用次序来自专用镜像；发布分支的模型入口状态见表末行。main 的硬件策略名为 `CAPACITY_AND_EXPERT_DENSITY`，容量函数按普通 MC2、融合算子和 MegaMoE 分别限幅；本配置仍取最大 capture size，再按 TP8 对齐。[C38]
+
+普通选择条件分别见 v0.23 [C20]、v0.26 [C21]、main [C23]；LoRA 优先分支见 [C22] 与 [C24]。main 的 A2 硬件策略映射、三版参数默认值及容量开关也列入下方来源列表。`verified` 表示这些 EP 差异已逐项核对，GLM 专用镜像的模型执行账不扩展成发布分支的运行验证。
 
 ### 源码位置
 
-| 看什么 | 在哪 |
-|---|---|
-| EP 大小怎么算 | 上游 `vllm/model_executor/layers/fused_moe/config.py`，`FusedMoEParallelConfig.make` |
-| 专家分给谁 | 上游 `vllm/model_executor/layers/fused_moe/expert_map_manager.py`，`determine_expert_map` |
-| 这个模型的 MoE 层 | 上游 `vllm/model_executor/models/qwen3_next.py`，`Qwen3NextSparseMoeBlock` |
-| 每步选哪种通信 | `vllm_ascend/ascend_forward_context.py`，`select_moe_comm_method` |
-| token 怎么分给两颗、怎么合回来 | `vllm_ascend/ops/fused_moe/prepare_finalize.py`，`PrepareAndFinalizeWithMC2` |
-| 发和收 | `vllm_ascend/ops/fused_moe/token_dispatcher.py` |
+按“谁持有权重 → 谁选通信 → 谁搬激活 → 谁归约”读，能把本页机制对回实际实现。
+
+**检索名称。** Expert Parallelism 也叫专家切分。源码中 `FusedMoEParallelConfig` 的 `ep_size` 表示 EP 规模，`determine_expert_map` 建立专家到卡的映射；`select_moe_comm_method` 选择 `MoECommType`，其中 `ALLGATHER` 对应本文的 AllGather 路径，`MC2` 对应本文的 MC2 通信。`PrepareAndFinalizeWithMC2` 负责 MC2 的准备与收尾；token dispatch 和 combine 分别是派发与回收。开关 `enable_expert_parallel` / `--enable-expert-parallel` 见「怎么开」，`ALLTOALL` 与 `FUSED_MC2` 的含义和适用分支见「版本差异」。
+
+正文中的专家编号与组合权重分别是 `topk_ids [1,8]`、`topk_weights [1,8]`，router 的校正偏置是 `e_score_correction_bias`。MC2 的有效行由 `mc2_mask` 标记；dispatch 返回的 `group_list` 记录各专家的行数。Python 优先调用 `npu_moe_distribute_dispatch_v2`，环境没有 v2 接口时调用旧接口；combine 对应 `npu_moe_distribute_combine_v2`（或旧接口）。AllGather 本地筛选使用 `active_expert_range`。
+
+| 要核对什么 | 固定源码位置 |
+| --- | --- |
+| 上游 FusedMoE 并行配置与专家映射 | `vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1074-L1209`；`vllm@0fc695fc:vllm/model_executor/layers/fused_moe/expert_map_manager.py#L25-L130` |
+| GLM 的 router、共享 MLP、专家范围 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1539` |
+| 实际昇腾 FusedMoE 分支 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe.py#L290-L294`：配 vLLM 0.23.0 时导入旧接口适配；`vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L435-L557` 是 prepare → apply → finalize |
+| 每步选通信、有效行 mask 与容量 | `vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L96-L101`；`vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L164-L252` |
+| MC2 分 token 与拼回；AllGather 跨 DP 收集与归约 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L314`；`vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L560` |
+| MC2 的 HCCL 通信组、dispatch/combine 调用和恢复元数据 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L102-L339`；AllGather 的本地筛选和还原在 `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L342-L438` |
+| W8A8 权重、选专家、专家矩阵乘与通信量化类型 | `vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L188-L289`；`vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/experts_selector.py#L292-L309`；`vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215`；`vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_stage_params.py#L92-L119` |
+| 共享输出相加与最终归约 | `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719`；`vllm@0fc695fc:vllm/model_executor/layers/fused_moe/runner/moe_runner.py#L650-L680`；`vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L159-L167` |
+| 上游 EP 默认开关与昇腾 EPLB 配置、错误检查 | `vllm@0fc695fc:vllm/config/parallel.py#L154-L178`；`vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L817-L875` |
+| 共享 MLP 的 TP 条件 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L653`；矩阵推导见上文 tensor-parallel 链接 |
+
+**正文证据索引。** 模型的 288 选 8、共享专家与层数见 [S1]；连续专家范围见 [C4]。R1 的补位、切片与 mask 见 [C8]；EP/MC2 组覆盖范围见 [C33]，派发、恢复元数据与回收见 [C10]；共享输出与归约顺序见 [C14]。A2 的通信选择见 [C7]；AllGather 的收集、归约见 [C9]，本地筛选和还原见 [C11]。
+
+正文算式各自采用以下推导口径：
+
+- 一个 token 的输出按 8 个专家的组合权重相加，再加共享贡献。[D]
+- 两档通信载荷按张量形状、精度与主干 42 层的调用次数累计；31.5 MiB 与 4.15 GiB 分别取其中 EP、DP 交换部分。[D]
+- 理想均分把 token–expert 对数平摊到专家与持有卡；真实路由分布决定实际 N_r。[D]
+
+**待核：缺部署权重的 `quant_model_description.json`**，用来逐层核对 W8A8 配方；精度假设及其影响见[模型权重精度](glm-5-3-flash.md#权重精度文件里怎么存加载后变成什么)。
+
+MC2 的 Python 实现给出了传入张量、HCCL 组与 torch_npu 接口。**待核：缺以下运行材料**，用于把逻辑载荷账落到实际显存、流量与延迟：
+
+- 运行实例的版本、配置转储与环境变量：核对实际 EP、EPLB 及通信优化状态。
+- 逐层、逐专家路由与算子 trace：记录各卡 `N_r` 的最大值与平均值、缓冲形状、峰值显存、各阶段耗时与等待时间。
+- HCCL/网卡 trace，以及 CANN 内部实现或对应实测：核对分包、同目的卡专家副本合并、机内与机间实际流量。

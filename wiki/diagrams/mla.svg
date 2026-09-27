@@ -1,49 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" width="900" height="340" role="img" aria-label="DeepSeek-V2-Lite 一层、一个 token：照普通做法要存 16 个头的 K 和 V 共 10240 字节；MLA 只存一份潜向量加一小段 RoPE，1152 字节，用的时候再展开">
-  <title>DeepSeek-V2-Lite 一层、一个 token：照普通做法要存 16 个头的 K 和 V 共 10240 字节；MLA 只存一份潜向量加一小段 RoPE，1152 字节，用的时候再展开</title>
-  <defs><marker id="mla-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><pattern id="mla-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <path d="M71 188 L71 267 L192 267" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#mla-ah-kv)"/>
-  <rect x="30" y="54" width="491.5" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="46" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">K</text>
-  <rect x="521.5" y="54" width="327.7" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="537.5" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">V</text>
-  <rect x="30" y="150" width="81.9" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="46" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">潜向量</text>
-  <rect x="111.9" y="150" width="10.2" height="34" rx="4" fill="url(#mla-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
-  <rect x="200" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="239" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="278" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="317" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="356" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="395" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="434" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="473" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="512" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="551" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="590" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="629" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="668" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="707" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="746" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="785" y="240" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="200" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="239" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="278" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="317" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="356" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="395" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="434" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="473" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="512" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="551" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="590" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="629" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="668" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="707" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="746" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="785" y="270" width="36" height="24" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <text x="30" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">普通做法：16 个头各存一份 K、一份 V</text>
-  <text x="849" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">10240 B</text>
-  <text x="30" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93">MLA：只存一份潜向量，外加 64 维 RoPE 段</text>
-  <text x="140" y="169" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">1152 B</text>
-  <text x="200" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">prefill 时临时展开回 16 个头的 K 和 V，不写回缓存</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="GLM 稀疏 MLA 的逻辑数据流：查询变换后与选中的历史潜向量评分，在潜空间汇合再投影；索引器负责选择历史位置，图中仅画一个查询头">
+  <title>GLM 稀疏 MLA 的逻辑数据流：查询变换后与选中的历史潜向量评分，在潜空间汇合再投影；索引器负责选择历史位置，图中仅画一个查询头</title>
+  <defs><marker id="mla-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="mla-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="mla-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M140 104 L200 104" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#mla-ah-token)"/>
+  <path d="M330 104 L390 104" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#mla-ah-token)"/>
+  <path d="M520 104 L580 114" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#mla-ah-token)"/>
+  <path d="M90 118 L90 244 L210 244" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#mla-ah-control)"/>
+  <path d="M285 273 L285 332 L385 332 L385 380" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#mla-ah-control)"/>
+  <path d="M135 420 L340 420" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#mla-ah-kv)"/>
+  <path d="M630 128 L630 225" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#mla-ah-token)"/>
+  <path d="M430 400 L470 400 L470 254 L550 254" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#mla-ah-kv)"/>
+  <path d="M630 283 L630 330 L615 330 L615 375" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#mla-ah-control)"/>
+  <path d="M430 440 L500 440 L500 412 L550 412" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#mla-ah-kv)"/>
+  <path d="M680 404 L730 404" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#mla-ah-token)"/>
+  <rect x="40" y="90" width="100" height="28" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M60 90v28M80 90v28M100 90v28M120 90v28" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="90" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">当前隐藏表示</text>
+  <text x="90" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">4096</text>
+  <rect x="45" y="380" width="90" height="120" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M67.5 380v120M90 380v120M112.5 380v120M45 400h90M45 420h90M45 440h90M45 460h90M45 480h90" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="90" y="520" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">历史 C</text>
+  <text x="90" y="540" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[n, 512]</text>
+  <rect x="340" y="380" width="90" height="80" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M362.5 380v80M385 380v80M407.5 380v80M340 400h90M340 420h90M340 440h90" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="385" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">选中位置</text>
+  <text x="385" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[m, 512]</text>
+  <rect x="580" y="100" width="100" height="28" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M600 100v28M620 100v28M640 100v28M660 100v28" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="630" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">潜空间查询</text>
+  <text x="630" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">512</text>
+  <rect x="730" y="390" width="100" height="28" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M750 390v28M770 390v28M790 390v28M810 390v28" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="780" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">单头输出</text>
+  <text x="780" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">256</text>
+  <rect x="200" y="75" width="130" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="100" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Q 分支</text>
+  <text x="265" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1536 → 256</text>
+  <rect x="390" y="75" width="130" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="100" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">吸收 K 投影</text>
+  <text x="455" y="119" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">q Wₖᵀ</text>
+  <rect x="210" y="215" width="150" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="285" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">索引器</text>
+  <text x="285" y="259" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">评分与候选选择</text>
+  <rect x="550" y="225" width="160" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="630" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">评分 + softmax</text>
+  <text x="630" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">因果与有效范围</text>
+  <rect x="550" y="375" width="130" height="58" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="615" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">潜向量汇合</text>
+  <text x="615" y="419" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">p C</text>
+  <text x="730" y="490" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">经 V 投影</text>
+  <text x="450" y="530" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">主缓存每位置 512 维 BF16；索引缓存与尾状态另计</text>
 </svg>

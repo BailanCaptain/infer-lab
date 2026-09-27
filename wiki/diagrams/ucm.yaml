@@ -1,31 +1,27 @@
 layout: figure
 id: ucm
-caption: 两种 PD 分离，KV 从 P 节点到 D 节点走的路不一样：集中式经共享存储中转，P2P 由 Mooncake 直传，UCM 只在 P 节点旁管前缀复用
-size: [900, 290]
-
+caption: 集中式PD由共享存储转交请求状态；P2P由Mooncake直接从P发送到D，UCM在P端管理可复用前缀，两图分别表示不同部署模式
+size: [900, 390]
 frames:
-  - { label: 集中式 PD 分离, at: [30, 50], size: [400, 210] }
-  - { label: P2P PD 分离, at: [470, 50], size: [400, 210] }
-
-items:
-  - { at: [60, 82], size: [130, 44], text: P 节点, tone: token }
-  - { at: [270, 82], size: [130, 44], text: D 节点, tone: token }
-  - { at: [135, 190], size: [190, 48], text: 共享存储, tone: kv }
-  - { at: [500, 82], size: [130, 44], text: P 节点, tone: token }
-  - { at: [710, 82], size: [130, 44], text: D 节点, tone: token }
-  - { at: [500, 190], size: [130, 48], text: 前缀存储, tone: kv, style: faded }
-
+  - {label: 集中式 PD, at: [25, 45], size: [410, 310]}
+  - {label: P2P PD, at: [465, 45], size: [410, 310]}
+hardware:
+  - {kind: server, at: [50, 100], size: [150, 70], label: P 节点}
+  - {kind: server, at: [260, 100], size: [150, 70], label: D 节点}
+  - {kind: memory, at: [125, 260], size: [210, 60], label: 共享存储}
+  - {kind: server, at: [490, 100], size: [150, 70], label: P 节点}
+  - {kind: server, at: [700, 100], size: [150, 70], label: D 节点}
+  - {kind: memory, at: [490, 260], size: [190, 60], label: UCM 前缀存储}
 links:
-  - { from: [125, 126], to: [185, 190], tone: kv }
-  - { from: [275, 190], to: [335, 126], tone: kv }
-  - { from: [630, 104], to: [710, 104], tone: kv }
-  - { from: [565, 126], to: [565, 190], tone: kv, dashed: true }
-
+  - {from: [125, 175], to: [180, 255], tone: comm}
+  - {from: [280, 255], to: [335, 175], tone: comm}
+  - {from: [642, 135], to: [698, 135], tone: comm}
+  - {from: [565, 175], to: [565, 255], tone: comm, ends: both}
 texts:
-  - { at: [670, 70], text: Mooncake 直传, anchor: middle, tone: kv }
-
+  - {at: [89, 220], text: 保存, tone: comm}
+  - {at: [326, 220], text: 加载, tone: comm}
+  - {at: [670, 80], text: Mooncake 直传, anchor: middle, tone: comm}
+  - {at: [590, 220], text: 前缀复用, tone: comm}
 pins:
-  - source: vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L270-L294
-    symbols: [MultiConnector, UCMConnector, MooncakeConnectorV1]
-  - source: vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/ucm_deployment.md#L68-L175
-    symbols: [UCMConnector, storage_backends]
+  - source: vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L202-L246
+    symbols: [Mooncake]

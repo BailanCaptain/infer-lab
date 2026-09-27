@@ -1,31 +1,18 @@
 layout: figure
 id: ref-diff
-caption: 同一个文件里的同一个类，在三条分支上分别落在第 128、127、82 行；v0.23 和 v0.26 只差一行，内容却早已不同——对照要按名字找，不能按行号
-size: [900, 260]
-
+caption: 版本对照示意：先固定提交和符号，再比较输入、条件与状态；行号仅定位该快照，不代表行为
+size: [900, 350]
 frames:
-  - { label: v0.23 维护分支, at: [30, 44], size: [240, 196] }
-  - { label: v0.26 分支, at: [330, 44], size: [240, 196] }
-  - { label: main 开发主线, at: [630, 44], size: [240, 196] }
-
+  - { at: [30, 55], size: [350, 250], label: 固定提交 A（示意） }
+  - { at: [520, 55], size: [350, 250], label: 固定提交 B（示意） }
 items:
-  - { at: [56, 64], size: [110, 119], tone: control, style: faded }
-  - { at: [356, 64], size: [110, 118], tone: control, style: faded }
-  - { at: [656, 64], size: [110, 73], tone: control, style: faded }
-
-  - { at: [56, 185], size: [110, 14], tone: control }
-  - { at: [356, 184], size: [110, 14], tone: control }
-  - { at: [656, 139], size: [110, 14], tone: control }
-
+  - { at: [60, 110], size: [290, 55], text: 职责与符号, tone: control }
+  - { at: [550, 110], size: [290, 55], text: 对应职责与符号, tone: control }
+  - { at: [60, 215], size: [290, 55], text: 输入 / 条件 / 状态更新, tone: token }
+  - { at: [550, 215], size: [290, 55], text: 输入 / 条件 / 状态更新, tone: token }
+links:
+  - { from: [350, 137], to: [550, 137], ends: both, tone: control }
+  - { from: [350, 242], to: [550, 242], ends: both, tone: token }
 texts:
-  - { at: [176, 197], text: 第 128 行, size: 13.5, tone: control }
-  - { at: [476, 196], text: 第 127 行, size: 13.5, tone: control }
-  - { at: [776, 151], text: 第 82 行, size: 13.5, tone: control }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-    symbols: [NPUPlatform]
-  - source: vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145
-    symbols: [NPUPlatform]
-  - source: vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L100
-    symbols: [NPUPlatform]
+  - { at: [450, 112], text: 定位, anchor: middle, note: true }
+  - { at: [450, 215], text: 比较行为, anchor: middle, note: true }

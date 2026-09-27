@@ -13,6 +13,12 @@ aliases:
   - Failed to transfer weights chunk
   - get_rfork_transfer_engine_info
   - RFork 元数据校验
+  - RFork 内存注册
+  - RFork storage owner
+  - RFork shared draft
+  - batch_register_memory_ex
+  - RFork registration rollback
+  - RFork tensor range
 chapters: []
 order: 70
 sources:
@@ -26,13 +32,22 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/seed_server.py#L165-L193'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L33-L37'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L40-L118'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L155-L175'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L271-L354'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L356-L461'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L463-L561'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L563-L614'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L492-L501'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L591'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L255-L286'
 verified:
   - 'rfork:main'
 evidence: C
 relations:
-  - to: rfork-memory
+  - to: rfork-layout
     kind: builds-on
-    note: 所有本地接收地址必须先有有效注册与保活，元数据校验不能替代内存安全
+    note: 必须先确定最终可传张量，才能登记它们此刻对应的内存范围
   - to: rfork-identity
     kind: builds-on
     note: key 匹配只负责挑候选来源，选中以后仍必须核验逐张量元数据
@@ -55,7 +70,7 @@ rawSources:
 
 ## 新实例已经找到了 seed，能不能马上往自己的显存里写
 
-新实例 B 通过[身份匹配](rfork-identity.md)找到了一个跑着同一模型的实例 A 当 seed，自己的模型也搭好了、放权重的空位也[登记好了](rfork-memory.md)。下一步是不是直接把 A 的字节拷过来？
+新实例 B 通过[身份匹配](rfork-identity.md)找到了一个跑着同一模型的实例 A 当 seed，自己的模型也搭好了、放权重的空位也登记好了（见下文「登记了地址，权重就能活到传输结束吗」一节）。下一步是不是直接把 A 的字节拷过来？
 
 **不是。拿到 seed 不等于可以直接写内存。** B 要先做三件事：
 
@@ -71,7 +86,7 @@ file: rfork-architecture
 
 ## 要搬多少字节，只看权重清单，不看请求有多长
 
-RFork 在请求到来之前加载权重。对[那条请求](one-request.md)用的模型，要搬的量是把实际收集到的每块权重的“元素个数 × 每个元素几字节”加起来；不能拿那 37 个输入 token、也不能拿 KV Cache 每个 token 占几字节去代入。
+RFork 在请求执行前加载权重。传输量等于实际清单中各张量“元素个数 × 每元素字节数”的总和；请求输入长度和 KV Cache 的每 token 字节数用于另一类状态计算，不参与这里的权重清单求和。
 
 举一个只为演示算法的小清单：W1 是 1024×1024 的 float16（每个元素 2 字节），W2 是 1024 个元素的 float32（每个元素 4 字节）。W1 是 2,097,152 字节，W2 是 4,096 字节，合计 2,101,248 字节，约 2.004 MiB。这不是任何真实模型的权重清单。
 
@@ -143,6 +158,35 @@ key 不对时的表现容易误判。A 的 seed 服务对取说明的请求**不
 - **“元素个数或类型对不上，一定是网络把数据弄坏了”**——这类不一致在读任何字节之前就被发现，先查两端版本和布局。
 - **“吞吐高就说明启动快”**——读取可能只占启动的一部分，要把分段耗时和整个服务就绪的时间放在一起看。
 
+## 登记了地址，权重就能活到传输结束吗（原 rfork-memory 页）
+
+以下内容由原 `rfork-memory` 页并入，2026-09-27 只作搬运，未重写文风。
+
+新实例要从已经跑着的实例那里直接读权重，前提是老实例先把每块权重的地址登记给传输引擎。但**登记一个地址，并不会让地址背后的权重自动活到传输结束**：权重被后处理换掉、被分配器回收，登记表里的地址照样还在，远端读到的就是别人的数据。所以工作版做了三件事——分清「权重自己那一段」和「它所在的整块内存」，把权重和它背后的原始存储一起保住，只有确认注销或整个传输引擎顺利结束后才放手。
+
+**用一小段权重看清两种范围。** 分配器给出一块 `[1000, 2024)` 的内存，共 1024 字节；权重 W 从 1128 开始，64 个 float16 元素、每个 2 字节，所以 W 自己占 `[1128, 1256)`，共 128 字节。登记时要写四个数：`(1128, 128, 1000, 1024)`——前两个是 W 的**逻辑范围**（起点、长度），后两个是它所在那整块的**支撑范围**。传输引擎只读逻辑范围，不会把整块都当权重读走。这些数字只用来演示半开区间，1000 不是真实地址；半开区间包含起点、不包含终点，所以两段相邻范围可以在同一个端点衔接，不会重复一个字节。
+
+**先找所在的块，再登记权重那一段。** 工作版先从 NPU 显存快照里取出所有正在使用的分配块，挑出和要传的权重有交集的那些，排好序，把重叠或紧挨着的块并成一段；为了不让每个权重都把所有块扫一遍，它先给权重范围排序、记下前缀里最远的终点。接着减去主模型已经登记过的块（draft 场景，见下文），再逐个检查每个权重的逻辑范围是否**完整落在**剩下的某一块里；找不到完整覆盖就直接失败，不会把越界的范围硬塞给传输引擎。同一块里相交或相邻的逻辑范围可以合成一项，中间有空洞的就分成几项，每一项都带着那四个数，分批交给带支撑范围的批量注册接口（下文叫 Ex 注册）。这是客户端这边的调用约定；现场的 YuanRong 版本能不能接受「同一个分配块里登记多段逻辑范围」，还要拿真实的 Ex 接口在 NPU 上验证——老接口一次只收（地址、长度）两个数，说不清「这段范围坐落在哪个分配块里」，它能不能注册说明不了 Ex 接口会怎样处理同块多段。
+
+**为什么只保住权重对象还不够。** 设想 W 的地址已经登记好，随后某个后处理步骤把 W 的数据整个换成了新张量：在 Python 里 W 还活着，但它已经指向新的存储，旧地址却还留在传输引擎的登记表里。只保住 W 这个对象，挡不住旧存储被分配器回收再分给别人。所以工作版维护两张保活列表：一张存登记时收集到的张量，另一张单独存**登记那一刻**取到的原始存储；取不到有效的存储持有者就直接失败。这也解释了走普通 checkpoint 加载路径时，后处理结束后为什么要刷新一次登记——之后当种子给别人读的，必须是最终模型当前真正在用的地址。
+
+**draft 和主模型共享的是地址区间。** 投机解码的 draft 模型常和主模型（target）共用一部分权重。draft 加载时会拿到主模型已登记的那些块当作「排除区间」，完全落在这些区间里的 draft 张量就认定主模型已经登记过，不再重复登记。
+
+| 情况 | 工作版怎么处理 | 排查时要确认什么 |
+|---|---|---|
+| 没有共享 | 照常登记全部可传张量 | 两端清单是否一致 |
+| 部分共享 | 跳过完全被主模型块覆盖的张量，只传独立部分 | 共享块和独立块是否真的不重叠 |
+| 所有可传权重都共享 | 判定为可以整体复用，直接进入推理模式返回 | 主模型已正确加载；没有不支持的非 NPU 状态 |
+| 张量只有一部分落在排除区间里 | 不算完全共享；减掉排除区间后可能找不到完整覆盖而失败 | 不能只凭地址相邻就说能安全传输 |
+
+全部共享时连后处理也跳过：后处理可能原地改动共享的存储，或者给共享的参数重新换数据，那样会把主模型弄坏；这个提前返回发生在申请租约和预处理之前。共享判断只看地址区间，它不检查主模型权重的数值对不对。
+
+**登记失败时不能直接清空列表。** 批量注册报错时未必会告诉调用方「前面哪几项其实已经成功了」，所以工作版在**每一批提交之前**就把这一批所有尝试登记的逻辑起点记进待清理列表，存储持有者也继续保着。失败后它会尝试注销这些地址；如果回滚没做干净，就把所有仍说不清状态的地址和持有者都留着，等后面再清理——这时不能当作「什么都没发生」的失败。批量注销时如果返回「查无此地址」，它不会把整批当成已经干净，而是逐个地址重试；单个地址返回查无此地址，才算这一项确实不存在。
+
+**注销登记和结束引擎各管一层。** 注销登记只释放当前登记的这批权重，好让回退路径继续用同一个传输引擎；结束引擎则是把整个传输引擎关掉，只有它成功了才会清掉登记状态和会话编号，并把引擎标成未初始化。种子的 HTTP 服务还在被持有时，会话会拒绝直接注销登记，免得元数据服务还在对外公布已经失效的地址。
+
+内存这一侧还有三个常见误解：「清一下显存缓存，这些权重就释放干净了」——还被持有者、全局登记表或传输资源拿着的存储不会因此变成可释放；「同一个分配块里只能登记一个张量」——客户端明确支持在一块里写多段逻辑范围，运行时是否支持要现场核实；「把保活列表删掉就能解决显存不够」——列表里保着的正是还不能证明可以安全释放的内存，应该先查登记、注销和全局引用。
+
 ## 对照源码
 
 ### 怎么开
@@ -172,6 +216,9 @@ seed 服务端：metadata 与 shape 接口在 `seed_key` 不匹配时返回字�
 
 读取：每批调 `batch_transfer_sync_read(session_id, client_ptrs, seed_ptrs, lengths)`，参数里本地目标地址在前、远端源地址在后，别看反；失败报 `Failed to transfer weights chunk %d/%d, first: %s, last: %s, ret=%s` 后返回 False。[C6]
 
+
+内存登记一侧（原 rfork-memory 页）：逻辑范围找不到完整覆盖的支撑块时，打印 `tensor range ... is not fully covered by a registration block` 后失败，不会把越界范围提交给传输引擎 [C14]；取不到有效的 storage owner 直接失败 [C12]；看到 `registration rollback is incomplete` 说明注册失败后的回滚没做完，要同时检查后面的 `fallback aborted` 和显存状态，不能当作零副作用失败；批量注销返回 `kNotFound` 时逐地址重试，单地址 `kNotFound` 视为该项已不存在，其他错误留在 unresolved addresses [C15]；`finalize_transfer_engine` 只在返回 `kNotReady` 时重试，其他错误或异常直接失败 [C16]；seed HTTP 服务仍被持有时，session 拒绝直接注销 MR [C19]。
+
 ### 开销和什么时候别开
 
 分块：单个 tensor 字节段超过 1 GiB 先拆成不超过 1 GiB 的连续片段，再按累计 ≤ 1 GiB、段数 ≤ 512 分批。[C5] 2.5 GiB 张量切成 1 + 1 + 0.5 GiB 三段、源与目标地址按已传字节偏移，是按该规则的假设例子。[A][D]
@@ -183,6 +230,9 @@ seed 服务端：metadata 与 shape 接口在 `seed_key` 不匹配时返回字�
 教学字节例推导：W1 = 1024 × 1024 × 2 B = 2,097,152 B；W2 = 1024 × 4 B = 4,096 B；合计 2,101,248 B ÷ 1,048,576 ≈ 2.004 MiB。假设清单，不是 Qwen3-0.6B 或任何真实模型的实际权重清单。[A][D]
 
 wire manifest 不携带完整远端 stride，校验是结构与类型核对而非内容 checksum——这是由条目五元组推出的结论。[D]
+
+
+内存登记一侧（原 rfork-memory 页）：每批注册最多 4096 项，是模块常量、不可配置 [C10]；finalize 最多尝试 10 次、间隔 1 秒，也是模块常量，和 lease release 的三次重试是两个独立设置。张量范围索引靠排序加前缀最大终点，避免逐张量扫描全部分配块 [C11]。同一 backing allocation 上多段逻辑范围的 Ex 注册是客户端约定；现场 YuanRong 版本是否支持、`kNotFound` / 部分成功 / 批量中止的语义，都要在真实 NPU 和实际库上验证，源码阅读与 CPU 测试不能替代。W 被 `W.data = 新张量` 替换后旧地址仍在 TransferEngine 注册表里、只保 W 不能保旧 storage，是由保活实现推出的结论 [D]。
 
 ### 版本差异
 
@@ -202,3 +252,17 @@ wire manifest 不携带完整远端 stride，校验是结构与类型核对而�
 | 分段耗时日志 | `session.py` L103–148 |
 | seed 服务端各接口 | `seed_server.py` L165–193 |
 | 分批上限常量 | `transfer_backend.py` L33–37 |
+
+内存登记一侧（原 rfork-memory 页），工作版 `rfork@3284850b`，路径前缀 `vllm_ascend/model_loader/rfork/`：
+
+| 步骤 | 位置 |
+|---|---|
+| 找相交分配块、张量范围索引 | `transfer_backend.py` L40–118 |
+| 保活列表：Tensor 与注册时的 storage | `transfer_backend.py` L155–175 |
+| 按 `exclude_blocks` 排除 target 已覆盖的 draft 张量 | `transfer_backend.py` L271–354 |
+| 检查完整覆盖、合并逻辑范围、`batch_register_memory_ex` 与失败回滚 | `transfer_backend.py` L356–461 |
+| `unregister_memory_region`，`kNotFound` 逐地址重试 | `transfer_backend.py` L463–561 |
+| `finalize_transfer_engine`，成功才清登记状态与 session ID | `transfer_backend.py` L563–614 |
+| draft 加载器取 `registered_weight_blocks` 当 `exclude_blocks` | `rfork_loader.py` L492–501 |
+| `can_reuse_shared_weights` 为真时直接 eval 返回 | `rfork_loader.py` L584–591 |
+| seed HTTP 服务仍被持有时拒绝注销 MR | `session.py` L255–286 |

@@ -1,27 +1,22 @@
 layout: figure
 id: locate-routes
-caption: 三种起点，第一站各不相同：报错先找插件自己的第一帧，配置项先找配置文件，上游名字先找补丁目录；三条路最后都缩到一个方法
-size: [900, 250]
-
+caption: 由学习问题选择数据、配置或实现入口，最后记录可核实的条件和结果；异常位置提供线索，不直接等于根因
+size: [900, 350]
 items:
-  - { at: [50, 30], size: [200, 44], text: 一条报错, tone: ink, style: plain }
-  - { at: [350, 30], size: [200, 44], text: 一个配置项, tone: ink, style: plain }
-  - { at: [650, 30], size: [200, 44], text: 一个上游名字, tone: ink, style: plain }
-
-  - { at: [50, 110], size: [200, 44], text: 插件的第一帧, tone: control }
-  - { at: [350, 110], size: [200, 44], text: 配置文件里的键, tone: control }
-  - { at: [650, 110], size: [200, 44], text: 先查补丁目录, tone: control }
-
-  - { at: [325, 190], size: [250, 44], text: 缩到一个方法, tone: ink }
-
+  - { at: [30, 35], size: [240, 60], text: 请求数据怎样变化, sub: 请求 → 批次 → 模型输出, tone: token }
+  - { at: [330, 35], size: [240, 60], text: 配置为何这样生效, sub: 输入值与实际值, tone: control }
+  - { at: [630, 35], size: [240, 60], text: 实际执行哪个实现, sub: 对象构造与方法调用, tone: weight }
+  - { at: [30, 155], size: [240, 60], text: 追输入输出与状态, sub: 调度 / Runner / 模型, tone: token }
+  - { at: [330, 155], size: [240, 60], text: 追合并、检查与消费者, sub: 包括环境兼容和覆盖, tone: control }
+  - { at: [630, 155], size: [240, 60], text: 追登记与分派条件, sub: 模型 / 后端 / 算子 / 补丁, tone: weight }
+  - { at: [250, 285], size: [400, 50], text: 固定版本 + 条件 + 源码范围 + 结果, tone: ink }
 links:
-  - { from: [150, 74], to: [150, 110] }
-  - { from: [450, 74], to: [450, 110] }
-  - { from: [750, 74], to: [750, 110] }
-
-fans:
-  - { from: [[150, 154], [450, 154], [750, 154]], to: [450, 190], tone: control }
-
+  - { from: [150, 95], to: [150, 155], tone: token }
+  - { from: [450, 95], to: [450, 155], tone: control }
+  - { from: [750, 95], to: [750, 155], tone: weight }
+  - { from: [150, 215], to: [350, 285], via: [[150, 250], [350, 250]], tone: token }
+  - { from: [450, 215], to: [450, 285], tone: control }
+  - { from: [750, 215], to: [550, 285], via: [[750, 250], [550, 250]], tone: weight }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L932-L944
-    symbols: [get_ascend_config]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L335-L346', symbols: [_get_config_value] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768', symbols: [REGISTERED_ASCEND_OPS] }

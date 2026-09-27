@@ -1,19 +1,34 @@
 layout: figure
 id: ai-core
-caption: 两种组织形式；只画层级，不表示核数、物理面积或 AIC 与 AIV 的数量比例
-size: [900, 340]
+caption: 分离架构的典型数据路径；省略部分搬运与控制部件，不表示核数、物理比例或缓冲容量
+size: [1000, 520]
 frames:
-  - { at: [30, 75], size: [360, 195], label: 耦合模式 · 一个 AI Core }
-  - { at: [480, 75], size: [165, 195], label: 分离模式 · AIC }
-  - { at: [690, 75], size: [180, 195], label: 分离模式 · AIV }
+  - { at: [195, 70], size: [610, 160], label: AIC · 矩阵计算与标量控制 }
+  - { at: [195, 325], size: [610, 150], label: AIV · 向量计算与标量控制 }
+hardware:
+  - { kind: memory, at: [25, 123], size: [130, 60], label: GM 输入 }
+  - { kind: memory, at: [225, 123], size: [85, 60], label: L1 }
+  - { kind: memory, at: [340, 123], size: [95, 60], label: L0A/B }
+  - { kind: memory, at: [610, 123], size: [85, 60], label: L0C }
+  - { kind: memory, at: [845, 123], size: [130, 60], label: GM 输出 }
+  - { kind: memory, at: [25, 373], size: [130, 60], label: GM 输入 }
+  - { kind: memory, at: [265, 373], size: [150, 60], label: UB 缓冲 }
+  - { kind: memory, at: [845, 373], size: [130, 60], label: GM 输出 }
 items:
-  - { at: [55, 118], size: [145, 65], text: Cube, sub: 矩阵计算, tone: weight }
-  - { at: [220, 118], size: [145, 65], text: Vector, sub: 向量计算, tone: token }
-  - { at: [55, 203], size: [310, 42], text: Scalar · 标量与控制, tone: control }
-  - { at: [495, 118], size: [135, 65], text: Cube, sub: 矩阵计算, tone: weight }
-  - { at: [705, 118], size: [150, 65], text: Vector, sub: 向量计算, tone: token }
-  - { at: [495, 203], size: [135, 42], text: Scalar, tone: control }
-  - { at: [705, 203], size: [150, 42], text: Scalar, tone: control }
+  - { at: [475, 128], size: [95, 50], text: Cube, tone: weight }
+  - { at: [570, 378], size: [155, 50], text: Vector, tone: token }
+links:
+  - { from: [155, 153], to: [225, 153] }
+  - { from: [310, 153], to: [340, 153] }
+  - { from: [435, 153], to: [475, 153] }
+  - { from: [570, 153], to: [610, 153] }
+  - { from: [695, 153], to: [845, 153] }
+  - { from: [155, 403], to: [265, 403] }
+  - { from: [415, 403], to: [570, 403], ends: both, tone: token }
+  - { from: [340, 433], to: [845, 418], via: [[340, 457], [820, 457], [820, 418]], tone: token }
 texts:
-  - { at: [30, 38], text: AI Core 内部的两种组织形式, strong: true }
-  - { at: [30, 310], text: 存储、搬运和其他控制部件未画出；型号归类见正文来源, note: true }
+  - { at: [25, 35], text: 存储位置 → 搬运 → 计算 → 保存, strong: true }
+  - { at: [735, 140], text: Fixpipe, note: true }
+  - { at: [495, 388], text: 读 / 写, anchor: middle, note: true }
+  - { at: [25, 280], text: 对照：耦合架构中的 Cube / Vector 位于同一核心, note: true }
+  - { at: [25, 505], text: UB = Unified Buffer    矩阵结果另一可选去向：L1, note: true }

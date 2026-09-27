@@ -1,33 +1,15 @@
 layout: figure
 id: token-split
-caption: 一段文字先切成一串 token，每块再换成词表里的一个编号；这里的切法和编号都是示意，真实切法由模型的分词器定
-size: [860, 310]
-
+caption: 一句用户文本先按模板组织，再经配套分词器成为编号序列；符号只表示流向，未指定实际切分或 token 数。
+size: [840, 300]
 items:
-  - { at: [300, 40], size: [260, 44], text: 推理引擎怎么工作, style: plain }
-  - { at: [194, 150], size: [100, 44], text: 推理, tone: token }
-  - { at: [318, 150], size: [100, 44], text: 引擎, tone: token }
-  - { at: [442, 150], size: [100, 44], text: 怎么, tone: token }
-  - { at: [566, 150], size: [100, 44], text: 工作, tone: token }
-  - { at: [194, 250], size: [100, 36], text: "5012", style: faded }
-  - { at: [318, 250], size: [100, 36], text: "233", style: faded }
-  - { at: [442, 250], size: [100, 36], text: "87", style: faded }
-  - { at: [566, 250], size: [100, 36], text: "4090", style: faded }
-
-fans:
-  - from: [430, 84]
-    to: [[244, 150], [368, 150], [492, 150], [616, 150]]
-    tone: token
-
+  - { at: [25, 35], size: [245, 64], text: 用户说：推理引擎怎么工作, sub: 角色 + 正文, tone: token, style: plain }
+  - { at: [320, 35], size: [490, 64], text: 对话模板组织消息, sub: 角色与边界标记 + 正文 + 回答起始格式, tone: control, style: solid }
+  - { at: [320, 150], size: [490, 64], text: 配套分词器 · 切分并查词表, sub: 每个单元得到一个整数编号, tone: token, style: solid }
+  - { at: [25, 150], size: [245, 64], text: p₀　p₁　…　pₙ₋₁, sub: 最终编号序列 · 共 n 个位置, tone: token, style: plain }
 links:
-  - { from: [244, 194], to: [244, 250], dashed: true }
-  - { from: [368, 194], to: [368, 250], dashed: true }
-  - { from: [492, 194], to: [492, 250], dashed: true }
-  - { from: [616, 194], to: [616, 250], dashed: true }
-
+  - { from: [270, 67], to: [320, 67], ends: end }
+  - { from: [565, 99], to: [565, 150], ends: end }
+  - { from: [320, 182], to: [270, 182], ends: end }
 texts:
-  - { at: [690, 66], text: 你打的一段文字, size: 13.5 }
-  - { at: [690, 168], text: 切成一串 token, size: 13.5, tone: token }
-  - { at: [690, 188], text: （这里按词切，只是示意）, size: 12.5, note: true }
-  - { at: [690, 264], text: 每块对应词表里的一个编号, size: 13.5 }
-  - { at: [690, 284], text: （编号是编的，只作示意）, size: 12.5, note: true }
+  - { at: [420, 264], text: 在主机上完成；后续嵌入查表才把编号变成用于计算的向量, anchor: middle, note: true }

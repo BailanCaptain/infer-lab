@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 280" width="840" height="280" role="img" aria-label="continuous batching 发生在每一步的边界：第 2 站重新调度，第 3 站重拼输入，结束请求归还的名额与 KV 块随即复用。">
+  <title>continuous batching 发生在每一步的边界：第 2 站重新调度，第 3 站重拼输入，结束请求归还的名额与 KV 块随即复用。</title>
+  <defs><marker id="concurrent-request-batching-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M250 135 L305 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-batching-ah-ink)"/>
+  <path d="M535 135 L590 135" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-batching-ah-ink)"/>
+  <path d="M705 58 L705 90" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-batching-ah-ink)"/>
+  <rect x="20" y="90" width="230" height="90" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一步一起计算</text>
+  <text x="135" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算提示词的 + 生成输出的</text>
+  <rect x="305" y="90" width="230" height="90" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">步末更新各请求</text>
+  <text x="420" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束的退出 · 归还 KV 块</text>
+  <rect x="590" y="90" width="230" height="90" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705" y="131" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一步重新组批</text>
+  <text x="705" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">未结束的继续 + 新请求加入</text>
+  <rect x="590" y="14" width="230" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="705" y="41" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等待中的新请求</text>
+  <text x="420" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">批次成员和输入长度每步可变；各请求的历史与输出仍各自独立</text>
+</svg>

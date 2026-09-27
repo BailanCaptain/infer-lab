@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680" role="img" aria-label="一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪着跑空批次，只在 MoE 通信里和 node0 交换数据。框的个数不表示进程数">
+  <title>一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪着跑空批次，只在 MoE 通信里和 node0 交换数据。框的个数不表示进程数</title>
+  <defs><marker id="one-request-system-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="one-request-system-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="24" y="48" width="246" height="424" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">node0 前端进程</text>
+  <rect x="323" y="48" width="246" height="424" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="339" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">引擎进程（DP0）</text>
+  <rect x="623" y="48" width="253" height="424" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="639" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">worker 进程（每卡一个）</text>
+  <rect x="623" y="548" width="253" height="108" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="639" y="536" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">node1（DP1）</text>
+  <path d="M245 128 L348 128" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M544 128 L651 128" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M749 156 L749 246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M749 314 L749 390" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M651 417 L544 417" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M348 417 L245 417" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M446 390 L556 358 L556 195 L446 195 L446 156" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-system-ah-ink)"/>
+  <path d="M866 274 L888 274 L888 602 L847 602" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-start="url(#one-request-system-ah-comm)" marker-end="url(#one-request-system-ah-comm)"/>
+  <rect x="49" y="101" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="147" y="124.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">入口</text>
+  <text x="147" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">模板、分词、选 DP 组</text>
+  <rect x="348" y="101" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="446" y="124.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">调度</text>
+  <text x="446" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">4 个 token · 15 个块号</text>
+  <rect x="651" y="101" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="749" y="124.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">准备输入</text>
+  <text x="749" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一份计划发给 8 张卡</text>
+  <rect x="672" y="225" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="665" y="232" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="658" y="239" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <rect x="651" y="246" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="749" y="269.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">45 层前向</text>
+  <text x="749" y="288.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8 张卡并行 · 218 次通信</text>
+  <rect x="651" y="390" width="196" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="749" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样与 MTP 草拟</text>
+  <text x="749" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1 个 token + 3 个候选</text>
+  <rect x="348" y="390" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="446" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结果更新</text>
+  <text x="446" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">追加、回退、检查停止</text>
+  <rect x="49" y="390" width="196" height="55" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="147" y="413.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">还原文字并返回</text>
+  <text x="147" y="432.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">token 编号 → 文字</text>
+  <rect x="651" y="575" width="196" height="55" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="749" y="598.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">8 个 worker 陪跑</text>
+  <text x="749" y="617.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">每步 4 个 token 的空批次</text>
+  <text x="363" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">未结束 → 带候选进下一步</text>
+  <text x="363" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">已结束 → 归还块号</text>
+  <text x="41" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">首次输入：① → ②</text>
+  <text x="347" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">生成循环：② → ③ → ④ → ⑤ → ⑥ → ②</text>
+  <text x="347" y="548" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">每步的新 token 经 ⑥ → ⑦ 流回客户端</text>
+  <text x="606" y="606" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="end">MoE 通信要 16 张卡一起参与</text>
+  <circle cx="49" cy="101" r="11" fill="var(--color-ink, #17211f)"/><text x="49" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
+  <circle cx="348" cy="101" r="11" fill="var(--color-ink, #17211f)"/><text x="348" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <circle cx="651" cy="101" r="11" fill="var(--color-ink, #17211f)"/><text x="651" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <circle cx="651" cy="246" r="11" fill="var(--color-ink, #17211f)"/><text x="651" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <circle cx="651" cy="390" r="11" fill="var(--color-ink, #17211f)"/><text x="651" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
+  <circle cx="348" cy="390" r="11" fill="var(--color-ink, #17211f)"/><text x="348" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
+  <circle cx="49" cy="390" r="11" fill="var(--color-ink, #17211f)"/><text x="49" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7</text>
+</svg>

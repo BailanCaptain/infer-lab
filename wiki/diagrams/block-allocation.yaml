@@ -1,27 +1,109 @@
 layout: figure
 id: block-allocation
-caption: 空闲的 KV 块排成一队；请求从队头取走一块，引用计数 0 → 1；用完计数减回 0，块排回队尾
-size: [900, 300]
-
-texts:
-  - { at: [30, 44], text: 空闲池：全机共用一队, size: 14, strong: true }
-  - { at: [30, 150], text: 从队头取一块, size: 13, note: true }
-  - { at: [620, 150], text: 请求结束，排回队尾, size: 13, note: true }
-
-rows:
-  - { at: [30, 66], count: 24, w: 26, h: 26, gap: 6, tone: kv, faded: [0], ghost: [23] }
-
+caption: 共享完整前缀块的引用变化示例：A 与 B 都持有块 7；A 释放后 B 仍使用，最后一个引用释放后才可回收
+size:
+- 900
+- 450
 items:
-  - { at: [330, 196], size: [240, 64], text: 这条请求的 KV 块, sub: "引用计数 0 → 1 → 0", tone: kv }
-
+- at:
+  - 45
+  - 80
+  size:
+  - 150
+  - 55
+  text: 请求 A
+  tone: token
+- at:
+  - 45
+  - 245
+  size:
+  - 150
+  - 55
+  text: 请求 B
+  tone: token
+- at:
+  - 330
+  - 150
+  size:
+  - 180
+  - 75
+  text: 物理块 7
+  tone: kv
+  sub: 引用计数 2
+- at:
+  - 610
+  - 155
+  size:
+  - 110
+  - 65
+  text: 计数 1
+  tone: kv
+- at:
+  - 765
+  - 155
+  size:
+  - 110
+  - 65
+  text: 计数 0
+  tone: control
 links:
-  - { from: [43, 96], to: [330, 228], curve: [[43, 228], [200, 228]], tone: kv }
-  - { from: [570, 228], to: [779, 96], curve: [[700, 228], [779, 228]], tone: kv, dashed: true }
-
-pins:
-  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L363
-    symbols: [get_new_blocks, free_block_queue]
-  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L441
-    symbols: [free_blocks]
-  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L438-L446
-    symbols: [free]
+- from:
+  - 195
+  - 107
+  to:
+  - 330
+  - 176
+  tone: kv
+  via:
+  - - 260
+    - 107
+  - - 260
+    - 176
+- from:
+  - 195
+  - 272
+  to:
+  - 330
+  - 200
+  tone: kv
+  via:
+  - - 260
+    - 272
+  - - 260
+    - 200
+- from:
+  - 510
+  - 188
+  to:
+  - 610
+  - 188
+  tone: control
+- from:
+  - 720
+  - 188
+  to:
+  - 765
+  - 188
+  tone: control
+texts:
+- at:
+  - 528
+  - 135
+  text: A 释放
+- at:
+  - 745
+  - 120
+  text: B 释放
+- at:
+  - 565
+  - 285
+  text: B 继续读取
+- at:
+  - 750
+  - 330
+  text: 可回收
+- at:
+  - 45
+  - 390
+  text: 释放引用 → 可回收；缓存保留另有条件
+  note: true

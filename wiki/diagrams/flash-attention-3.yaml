@@ -1,34 +1,455 @@
-layout: figure
-id: flash-attention-3
-caption: FA3 的前向不看批的状态，只按条数把一批切成 decode 段和 prefill 段，同一个算子各调一次再拼回；默认后端不切，按批的状态挑分支一次算完
-size: [900, 360]
-
-texts:
-  - { at: [30, 40], text: 一批里 3 条请求，只按条数切一刀, size: 14, strong: true }
-  - { at: [70, 128], text: "2 条 decode：这一步各 1 个 token", size: 13 }
-  - { at: [320, 128], text: "1 条 prefill：整段问题一起", size: 13 }
-  - { at: [600, 198], text: 同一个算子，训练侧也用它, size: 13 }
-  - { at: [30, 330], text: "默认后端不切：按批的状态挑分支，一次算完", size: 12.5 }
-
-items:
-  - { at: [70, 64], size: [36, 36], tone: token }
-  - { at: [130, 64], size: [36, 36], tone: token }
-  - { at: [40, 170], size: [220, 48], text: 调一次：不挡后文, tone: control }
-  - { at: [320, 170], size: [260, 48], text: 再调一次：挡住后文, tone: control }
-  - { at: [190, 268], size: [260, 44], text: 拼回一批，交给下一层, tone: token }
-
-grids:
-  - at: [320, 64]
-    rows: 1
-    cols: 8
-    cell: [36, 36]
-    gap: 3
-    tone: token
-
-dividers:
-  - { from: [250, 44], to: [250, 140], sides: [decode 段, prefill 段] }
-
-fans:
-  - { from: [[88, 102], [148, 102]], to: [150, 166], tone: token }
-  - { from: [[474, 102]], to: [450, 166], tone: token }
-  - { from: [[150, 218], [450, 218]], to: [320, 264], tone: token }
+{
+  "layout": "figure",
+  "id": "flash-attention-3",
+  "caption": "8×8 的分数关系与 2×4 的工作块：分块改变中间结果的存放和消费方式，仍按密集注意力规则处理所有有效位置。尺寸为教学示例。",
+  "size": [
+    900,
+    600
+  ],
+  "grids": [
+    {
+      "at": [
+        65,
+        110
+      ],
+      "rows": 8,
+      "cols": 8,
+      "cell": [
+        27,
+        27
+      ],
+      "tone": "token",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            2,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            2,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            2,
+            2
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            2
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            3
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            4,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            4,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            4,
+            2
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            4,
+            3
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            4,
+            4
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            5,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            5,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            5,
+            2
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            5,
+            3
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            5,
+            4
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            5,
+            5
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            2
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            3
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            4
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            5
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            6,
+            6
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            0
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            1
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            2
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            3
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            4
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            5
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            6
+          ],
+          "style": "solid"
+        },
+        {
+          "at": [
+            7,
+            7
+          ],
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "at": [
+        475,
+        135
+      ],
+      "rows": 2,
+      "cols": 4,
+      "cell": [
+        42,
+        40
+      ],
+      "tone": "token",
+      "style": "solid"
+    },
+    {
+      "at": [
+        475,
+        355
+      ],
+      "rows": 2,
+      "cols": 4,
+      "cell": [
+        42,
+        30
+      ],
+      "tone": "token",
+      "style": "faded"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        65,
+        55
+      ],
+      "text": "完整分数关系",
+      "strong": true
+    },
+    {
+      "at": [
+        65,
+        84
+      ],
+      "text": "8 个 query × 8 个 key"
+    },
+    {
+      "at": [
+        173,
+        362
+      ],
+      "text": "因果有效位置：36 个",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        65,
+        418
+      ],
+      "text": "朴素稠密存储：64 个元素"
+    },
+    {
+      "at": [
+        475,
+        55
+      ],
+      "text": "一次工作块",
+      "strong": true
+    },
+    {
+      "at": [
+        475,
+        84
+      ],
+      "text": "2 个 query × 4 个 key"
+    },
+    {
+      "at": [
+        675,
+        150
+      ],
+      "text": "读取下一个 K/V 块"
+    },
+    {
+      "at": [
+        675,
+        193
+      ],
+      "text": "更新归一化统计量"
+    },
+    {
+      "at": [
+        475,
+        281
+      ],
+      "text": "累计输出与每行统计量"
+    },
+    {
+      "at": [
+        475,
+        453
+      ],
+      "text": "复用工作空间，继续处理后续块"
+    },
+    {
+      "at": [
+        450,
+        547
+      ],
+      "text": "各块共享在线 softmax 状态；不能各自归一化后直接相加。",
+      "anchor": "middle"
+    }
+  ],
+  "rows": [
+    {
+      "at": [
+        475,
+        300
+      ],
+      "count": 2,
+      "w": 80,
+      "h": 25,
+      "tone": "control"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        280,
+        215
+      ],
+      "to": [
+        452,
+        175
+      ]
+    },
+    {
+      "from": [
+        559,
+        215
+      ],
+      "to": [
+        559,
+        282
+      ]
+    },
+    {
+      "from": [
+        559,
+        327
+      ],
+      "to": [
+        559,
+        355
+      ]
+    },
+    {
+      "from": [
+        643,
+        385
+      ],
+      "to": [
+        660,
+        175
+      ],
+      "via": [
+        [
+          665,
+          385
+        ],
+        [
+          665,
+          175
+        ]
+      ],
+      "tone": "control"
+    }
+  ]
+}

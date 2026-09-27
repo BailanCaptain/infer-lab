@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="三层的理想重叠示意：每层计算 1 个时间单位、传输 0.5；传输队列不拥塞并可与计算独立推进。数值仅用于解释等待关系，不是模型性能">
+  <title>三层的理想重叠示意：每层计算 1 个时间单位、传输 0.5；传输队列不拥塞并可与计算独立推进。数值仅用于解释等待关系，不是模型性能</title>
+  <defs></defs>
+  <text x="158" y="85.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">整批 · 计算</text>
+  <path d="M170 97H836" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="170" y="65" width="148" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="244" y="85.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0</text>
+  <rect x="318" y="65" width="148" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="392" y="85.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1</text>
+  <rect x="466" y="65" width="148" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="540" y="85.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2</text>
+  <text x="158" y="129.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">整批 · 传输</text>
+  <rect x="614" y="109" width="222" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="725" y="129.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">各组 / 各任务</text>
+  <path d="M170 153H836" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M170 153v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="170" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M836 153v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="836" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4.5</text>
+  <text x="158" y="265.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">逐层 · 计算</text>
+  <path d="M170 277H836" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="170" y="245" width="148" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="244" y="265.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0</text>
+  <rect x="318" y="245" width="148" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="392" y="265.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1</text>
+  <rect x="466" y="245" width="148" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="540" y="265.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2</text>
+  <text x="158" y="309.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">逐层 · 传输</text>
+  <rect x="318" y="289" width="74" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="355" y="309.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0</text>
+  <rect x="466" y="289" width="74" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="503" y="309.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1</text>
+  <rect x="614" y="289" width="74" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="651" y="309.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2</text>
+  <path d="M170 333H836" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M170 333v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="170" y="353" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M836 333v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="836" y="353" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4.5</text>
+  <text x="25" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">等待所有来源状态可用后再传</text>
+  <text x="25" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每层完成后安排传输</text>
+  <text x="450" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">重叠机会取决于事件依赖、链路和接收侧恢复条件</text>
+</svg>

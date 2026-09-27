@@ -76,7 +76,7 @@ rawSources:
 
 **存在范围。** 这一页讲的整套机制只活在 v0.23 维护分支上：它在那里就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 则因 `extra="forbid"` 在配置解析阶段就拒收。
 
-**[那条请求](../concepts/one-request.md)用不到它。** Qwen3-0.6B 单卡、没有 `kv_transfer_config`，在 v0.23 上把这个键配上连启动都过不去。
+**本页旧算例用不到它。** Qwen3-0.6B 单卡、没有 `kv_transfer_config`，在 v0.23 上把这个键配上连启动都过不去。
 
 官方文档对应页：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)（latest 版下前两者已不存在）。
 

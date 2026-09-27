@@ -1,0 +1,35 @@
+layout: figure
+id: attention-causal
+caption: 普通因果注意力的可见范围：青色格允许访问，虚线格被屏蔽；Prefill 每行边界不同，单位置 Decode 可访问已有历史与自身
+size: [900, 390]
+grids:
+  - at: [110, 90]
+    cols: 4
+    rows: 4
+    cell: [54, 44]
+    gap: 5
+    tone: token
+    style: solid
+    rowLabels: ['Q₀', 'Q₁', 'Q₂', 'Q₃']
+    colLabels: ['K₀', 'K₁', 'K₂', 'K₃']
+    cells:
+      - { at: [0, 1], text: '×', tone: control, style: ghost }
+      - { at: [0, 2], text: '×', tone: control, style: ghost }
+      - { at: [0, 3], text: '×', tone: control, style: ghost }
+      - { at: [1, 2], text: '×', tone: control, style: ghost }
+      - { at: [1, 3], text: '×', tone: control, style: ghost }
+      - { at: [2, 3], text: '×', tone: control, style: ghost }
+  - at: [530, 165]
+    cols: 5
+    rows: 1
+    cell: [48, 44]
+    gap: 5
+    tone: token
+    style: solid
+    rowLabels: ['Q₄']
+    colLabels: ['K₀', 'K₁', 'K₂', 'K₃', 'K₄']
+texts:
+  - { at: [228, 32], text: Prefill · 四个查询位置, anchor: middle, strong: true }
+  - { at: [660, 32], text: Decode · 新增查询位置 4, anchor: middle, strong: true }
+  - { at: [228, 320], text: 行＝查询，列＝键, anchor: middle }
+  - { at: [660, 265], text: 先前位置 0–3 ＋ 当前位置 4, anchor: middle }

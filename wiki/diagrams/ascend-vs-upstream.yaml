@@ -1,41 +1,41 @@
 layout: figure
 id: ascend-vs-upstream
-caption: 上游 vLLM 留了五个口子，昇腾适配层每个口子交一个自己的版本；没留口子的地方，只能启动时把上游的零件换掉
-size: [900, 440]
-
-dividers:
-  - { from: [450, 20], to: [450, 350], sides: [上游 vLLM 留的口子, 昇腾适配层交上来的] }
-
+caption: Ascend 的接入位置：虚线表示注册或配置选择实现，实线表示执行调用；横向分区是职责，不是进程或仓库的硬边界
+size: [900, 680]
+frames:
+  - { at: [25, 70], size: [255, 485], label: 平台与实现选择 }
+  - { at: [345, 70], size: [230, 485], label: 设备执行 }
+  - { at: [640, 70], size: [235, 485], label: 模型与计算 }
 items:
-  - { at: [60, 50], size: [320, 46], text: 平台：硬件的事都问它, tone: control, style: plain }
-  - { at: [60, 112], size: [320, 46], text: Worker：守着一颗 NPU, tone: control, style: plain }
-  - { at: [60, 174], size: [320, 46], text: 执行器：跑一步的主循环, tone: control, style: plain }
-  - { at: [60, 236], size: [320, 46], text: 注意力算子, tone: kv, style: plain }
-  - { at: [60, 298], size: [320, 46], text: 跨卡通信, tone: comm, style: plain }
-
-  - { at: [520, 50], size: [320, 46], text: 昇腾自己的平台, tone: control }
-  - { at: [520, 112], size: [320, 46], text: 昇腾自己的 Worker, tone: control }
-  - { at: [520, 174], size: [320, 46], text: 昇腾自己的主循环, tone: control }
-  - { at: [520, 236], size: [320, 46], text: 昇腾的注意力实现, tone: kv }
-  - { at: [520, 298], size: [320, 46], text: 昇腾的通信实现, tone: comm }
-
-  - { at: [60, 378], size: [780, 44], text: 没留口子的地方：启动时直接换掉上游的零件, tone: danger, style: faded }
-
+  - { at: [48, 110], size: [210, 58], text: 插件入口注册, sub: 平台与通用入口, style: plain }
+  - { at: [48, 260], size: [210, 58], text: NPUPlatform, sub: 配置、Worker 与后端选择, style: plain }
+  - { at: [48, 410], size: [210, 58], text: 平台 / Worker 补丁, style: plain }
+  - { at: [365, 110], size: [190, 58], text: Executor, sub: 引擎提供执行计划, style: plain }
+  - { at: [365, 260], size: [190, 58], text: NPUWorker, style: plain }
+  - { at: [365, 410], size: [190, 58], text: NPUModelRunner, style: plain }
+  - { at: [660, 110], size: [195, 58], text: 模型注册, sub: 架构名称 → 实现, style: plain }
+  - { at: [660, 260], size: [195, 58], text: GLM 专用模型, tone: token }
+  - { at: [660, 410], size: [195, 58], text: 注意力 / 算子 / 通信, tone: token }
 links:
-  - { from: [520, 73], to: [384, 73], tone: control }
-  - { from: [520, 135], to: [384, 135], tone: control }
-  - { from: [520, 197], to: [384, 197], tone: control }
-  - { from: [520, 259], to: [384, 259], tone: kv }
-  - { from: [520, 321], to: [384, 321], tone: comm }
-
+  - { from: [153, 168], to: [153, 260], dashed: true }
+  - { from: [258, 289], to: [365, 289], dashed: true }
+  - { from: [460, 168], to: [460, 260] }
+  - { from: [460, 318], to: [460, 410] }
+  - { from: [555, 439], to: [660, 289], via: [[607, 439], [607, 289]], tone: token }
+  - { from: [757, 168], to: [757, 260], dashed: true }
+  - { from: [757, 318], to: [757, 410], tone: token }
+  - { from: [855, 468], to: [460, 468], via: [[855, 525], [460, 525]], tone: token }
+texts:
+  - { at: [48, 205], text: 启动时发现实现 }
+  - { at: [48, 360], text: 按导入路径调整公共行为, size: 12.5 }
+  - { at: [45, 610], text: 配置与注册建立执行路径；每轮请求沿选定路径执行, strong: true }
+  - { at: [45, 650], text: 专用模型、公共接口、继承逻辑与补丁共同决定当前版本的行为, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
+  - source: vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L75
     symbols: [NPUPlatform]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L89-L92
+  - source: vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L92
+    symbols: [Executor]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L96
     symbols: [NPUWorker]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L287-L310
     symbols: [NPUModelRunner]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L78-L79
-    symbols: [AscendAttentionBackend]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/device_communicators/npu_communicator.py#L23-L23
-    symbols: [NPUCommunicator]

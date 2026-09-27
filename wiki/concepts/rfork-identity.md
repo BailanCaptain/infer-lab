@@ -24,12 +24,9 @@ sources:
 verified:
   - 'rfork:main'
 evidence: C
-relations:
-  - to: rfork-terms
-    kind: builds-on
-    note: 必须先区分组内 rank、global rank、world size 与模型角色，才能理解 key 的组成
+relations: []
 contradicts: []
-updated: '2026-09-25'
+updated: '2026-09-26'
 rawSources:
   - >-
     raw/sha256-59591a4419847f7e688d941665e517ceeff58268f61c79d46d5e2398c4b5e7ce.md
@@ -43,7 +40,7 @@ rawSources:
 
 ## 同一个模型，B 为什么还是借不到 A 的权重
 
-继续[总览](rfork.md)里的 A、B 场景：两边都跑同一份 Qwen3-0.6B，都只用一张卡（TP=1），张量并行编号都是 0。看上去 B 理所当然能借到 A 的权重——可只要 B 的数值类型、模型版本或者权重在卡上的排布方式和 A 不一样，Planner 就不会把 A 交给 B。
+沿用[总览](rfork.md)的来源 A 与加载方 B，本页另设两个 Qwen3-0.6B 实例作为身份匹配例子；两边使用相同版本，各用一张卡（TP=1），张量并行编号都是 0。[A] 若 B 的数值类型、模型版本或设备内存布局与 A 不同，兼容性指纹会不同，Planner 不会把 A 作为匹配来源。
 
 原因是 Planner 不按「这个目录看起来是同一个模型」来找来源，而是按一把钥匙精确匹配：这把钥匙叫 **seed key**，A 和 B 各自独立算出来，一个字节都不能差。它分两次算：
 

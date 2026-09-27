@@ -8,6 +8,9 @@
 
 | 文件 | 是什么 |
 |---|---|
+| [wiki-teaching-redesign-plan.md](wiki-teaching-redesign-plan.md) | 教学体系改版：目录、存量页面迁移、模型与硬件配图、实施顺序及验收入口 |
+| [wiki-ingestion-boundary-2026-09-26.md](wiki-ingestion-boundary-2026-09-26.md) | 教学规则在现有入库流程中的能力与人工审阅边界 |
+| [wiki-teaching-discussion-2026-09-25.md](wiki-teaching-discussion-2026-09-25.md) | 教学改版的讨论、用户取舍与前期调研依据 |
 | [llm-wiki-plan.md](llm-wiki-plan.md) | F001 实施计划 |
 | [param-lineage-plan.md](param-lineage-plan.md) | F002 实施计划 |
 | [github-corpus-plan.md](github-corpus-plan.md) | F003 实施计划 |

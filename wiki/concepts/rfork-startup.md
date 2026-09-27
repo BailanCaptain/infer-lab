@@ -25,6 +25,7 @@ sources:
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L373-L382'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148'
   - 'rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L64-L80'
+  - 'rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109'
 verified:
   - 'rfork:main'
 evidence: C
@@ -32,11 +33,8 @@ relations:
   - to: rfork
     kind: builds-on
     note: 总览先分清 Planner、元数据 HTTP 与字节传输，这里按真实调用顺序串起来
-  - to: rfork-terms
-    kind: builds-on
-    note: 初始化、processed layout、draft 和 lease 是这条启动路径的几个关键对象
 contradicts: []
-updated: '2026-09-25'
+updated: '2026-09-26'
 rawSources:
   - >-
     raw/sha256-280c501d0e376e2b74d0e921324d49b1ce5a99025fb3935c1e55f50fa73111da.md
@@ -62,7 +60,7 @@ file: rfork-startup
 
 B 要读 A 的权重，得先有地方放。它必须先知道自己有哪些层、每个张量分配多大、是什么数据类型和布局，才能告诉远端「读到我这里的这些地址」。RFork 没法只拿一个模型名字，就凭空把远端的模型「挂」进 B。
 
-所以用了 RFork，模型初始化这一步的成本仍然要付。对[贯穿例子](one-request.md)里那条 37 个 token 的请求来说，RFork 的收益是「B 更早有机会开始接请求」，不是让每一步 decode 变快。整个服务什么时候真正就绪，还取决于 RFork 之后的启动环节，不能拿权重读取那一段的耗时代替。
+所以用了 RFork，模型初始化这一步的成本仍然要付。RFork 的目标是缩短本地模型加载的等待，使 B 更早进入后续准备阶段；它不直接优化模型的逐步 decode。整个服务什么时候真正就绪，还取决于 RFork 之后的启动环节，不能拿权重读取那一段的耗时代替。
 
 ## 主路径上的十步
 
@@ -123,7 +121,7 @@ B 要读 A 的权重，得先有地方放。它必须先知道自己有哪些层
 - **开了 EPLB 就整个绕过 RFork。** 判断条件有三个，任何一个成立都算：并行配置里开了 EPLB、额外配置里开了动态 EPLB、或者额外配置里填了导出专家映射用的记录路径。也就是说，只开了普通 EPLB、或者只是想导出专家映射，RFork 同样不会跑：它在建会话之前就直接走普通加载，之后也不会按 RFork 流程发布 seed。偏偏这时的日志只说「开了动态 EPLB 时关闭 RFork 传输」，照字面读，会以为自己没开「动态」就不受影响。
 - **draft 模型整份共用主模型权重。** 所有要传的权重都已经被主模型登记过的内存覆盖，而且没有不支持的非 NPU 状态时，直接复用现有权重、切到推理模式返回；不再申请租约，也不重复做布局后处理。
 
-只共用一部分的 draft 模型会继续走后面的流程：跳过共用的部分，只传它自己独有的张量，细节见[内存与共享](rfork-memory.md)。
+只共用一部分的 draft 模型会继续走后面的流程：跳过共用的部分，只传它自己独有的张量，细节见[传输与内存](rfork-transfer.md)。
 
 ## 「没有可用 seed」有两种来源，日志长得一样
 
@@ -131,10 +129,10 @@ B 要读 A 的权重，得先有地方放。它必须先知道自己有哪些层
 
 | 哪一类 | 发生了什么 | 先查什么 |
 |---|---|---|
-| 真的没有匹配的来源 | 会话自检通过，向 Planner 发了查询，收到「找不到」或不完整的响应 | 两端的 seed key、来源有没有上报、[身份匹配](rfork-identity.md) |
+| 已尝试申请，但未取得可用租约 | 自检通过后尝试查询，可能没有匹配来源，也可能发生网络异常、非200响应或响应信息不完整 | 客户端 warning、HTTP状态、连接情况，再查两端的 seed key 与[身份匹配](rfork-identity.md) |
 | 会话自己拒绝申请 | 上一份租约的归还线程还活着、归还已停止、或会话状态不对，**这次查询根本没发出去** | 本进程更早的租约归还日志，见[生命周期](rfork-lifecycle.md) |
 
-分辨方法：第一类在 Planner 那边有一条请求记录，第二类没有。先确认 Planner 收没收到请求，再决定是查匹配，还是查上一次的租约。
+先结合客户端 warning 与 session 状态判断：是否通过本地自检，查询是否成功，响应是否完整。Planner 的请求记录可以辅助定位；连接失败可能使请求未到达 Planner，因此没有服务端记录不能单独证明会话拒绝了申请。[C11][C12]
 
 ## 常见误解
 
@@ -161,7 +159,7 @@ EPLB 绕过的判定函数叫 `_is_dynamic_eplb_enabled`，但三个条件任一
 | `RFork fallback aborted ... Refusing to allocate a second model while old weights are pinned.` | 停服务或注销 MR 仍失败，拒绝分配第二份模型 [C4] |
 | `RFork fallback default loader failed.` | 默认加载器自己失败；要同时保留原 RFork 原因 |
 
-「没有可用 seed」的两类来源对应 `session.acquire_seed()` 返回 False 的两条路径：第一类是通过自检后发了 `GET /get_seed`，收到 404 或不完整响应；第二类是上一份租约的释放线程还活着、释放已停、或会话状态不是 `INITIALIZED`，HTTP 请求没发出。「先看 Planner 收没收到请求」是据此推出的排查顺序 [I]。
+`session.acquire_seed()` 返回 False 可能发生在本地自检，也可能发生在调用 Planner 客户端之后。客户端对连接异常、非200状态及缺少必要响应字段均返回空结果；404只是其中一种情况。[C12] 自检拒绝则包括上一份租约的释放线程仍活着、释放已停止或会话状态不是 `INITIALIZED`。[C11] 应据客户端异常、状态与服务端记录共同定位，不能把统一的 fallback 日志当成“没有匹配来源”的证明。
 
 回退清理：session 存在时先调 `prepare_for_fallback`，包含停止 seed 服务、安排释放 source lease、注销本次注册的 MR；加载器最多尝试两轮；`can_schedule_seed` 实际检查的是服务停止与内存重置，不要求异步 lease 已确认释放。[C7][C8]
 
@@ -198,4 +196,4 @@ EPLB 绕过的判定函数叫 `_is_dynamic_eplb_enabled`，但三个条件任一
 
 回退清理恢复的五类全局引用在代码里的名字：`static_forward_context`、`static_all_moe_layers`、Ascend MoE registry、RoPE cache、Dynamo bytecode hooks；第六类是 TransferEngine 持有的 Tensor / storage owners，由传输后端管理。
 
-draft 全量共享时复用现有权重直接 `eval`，不重新 `acquire_seed`、不重复布局后处理；部分共享的细节见[内存与共享](rfork-memory.md)。
+draft 全量共享时复用现有权重直接 `eval`，不重新 `acquire_seed`、不重复布局后处理；部分共享的细节见[传输与内存](rfork-transfer.md)。

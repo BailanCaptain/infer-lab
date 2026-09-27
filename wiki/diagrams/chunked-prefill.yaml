@@ -1,37 +1,221 @@
 layout: figure
 id: chunked-prefill
-caption: 6037 个 token 的问题按每步 2048 切成三段；每一步新算的只有本段，注意力却要把前面存好的 KV 全读一遍
-size: [900, 250]
-
+caption: 教学假设每轮预算 6：A 各推进一个 Decode 位置，C 的 12 个输入分成 5+5+2；C 在第三轮完成输入并产生首 token
+size:
+- 900
+- 350
+rows: []
+links:
+- from:
+  - 660
+  - 113
+  to:
+  - 660
+  - 188
+  tone: kv
+- from:
+  - 660
+  - 188
+  to:
+  - 660
+  - 263
+  tone: kv
 texts:
-  - { at: [30, 38], text: 每一步最多算 2048 个 token, size: 14, strong: true }
-  - { at: [30, 91], text: 第 1 步, size: 13.5 }
-  - { at: [30, 151], text: 第 2 步, size: 13.5 }
-  - { at: [30, 211], text: 第 3 步, size: 13.5 }
-
-bars:
-  - at: [100, 70]
-    h: 32
-    scale: 0.128
-    segments:
-      - { value: 2048, tone: token, text: 新算 2048 }
-  - at: [100, 130]
-    h: 32
-    scale: 0.128
-    segments:
-      - { value: 2048, tone: kv, style: hatch, text: 已存 2048 }
-      - { value: 2048, tone: token, text: 新算 2048 }
-  - at: [100, 190]
-    h: 32
-    scale: 0.128
-    segments:
-      - { value: 4096, tone: kv, style: hatch, text: 已存 4096 }
-      - { value: 1941, tone: token, text: 新算 1941 }
-
-pins:
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L410
-    symbols: [num_new_tokens, num_computed_tokens, long_prefill_token_threshold, token_budget]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1174-L1232
-    symbols: [_get_fia_params, block_tables, seq_lens_list, actual_seq_lengths_q]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L907-L916
-    symbols: [positions_np, num_computed_tokens_cpu]
+- at:
+  - 200
+  - 45
+  text: 本轮处理的输入位置
+  strong: true
+- at:
+  - 70
+  - 119
+  text: 第 1 轮
+- at:
+  - 70
+  - 194
+  text: 第 2 轮
+- at:
+  - 70
+  - 269
+  text: 第 3 轮
+- at:
+  - 700
+  - 118
+  text: C 累计 5
+- at:
+  - 700
+  - 193
+  text: C 累计 10
+- at:
+  - 700
+  - 268
+  text: C 累计 12 → 首 token
+- at:
+  - 450
+  - 325
+  text: 每轮延续各请求自己的状态；空闲预算不强制填满
+  anchor: middle
+  size: 13
+items:
+- at:
+  - 200
+  - 95
+  size:
+  - 62
+  - 36
+  text: A
+  tone: token
+  style: solid
+- at:
+  - 270
+  - 95
+  size:
+  - 62
+  - 36
+  text: C₀
+  tone: token
+  style: solid
+- at:
+  - 340
+  - 95
+  size:
+  - 62
+  - 36
+  text: C₁
+  tone: token
+  style: solid
+- at:
+  - 410
+  - 95
+  size:
+  - 62
+  - 36
+  text: C₂
+  tone: token
+  style: solid
+- at:
+  - 480
+  - 95
+  size:
+  - 62
+  - 36
+  text: C₃
+  tone: token
+  style: solid
+- at:
+  - 550
+  - 95
+  size:
+  - 62
+  - 36
+  text: C₄
+  tone: token
+  style: solid
+- at:
+  - 200
+  - 170
+  size:
+  - 62
+  - 36
+  text: A
+  tone: token
+  style: solid
+- at:
+  - 270
+  - 170
+  size:
+  - 62
+  - 36
+  text: C₅
+  tone: token
+  style: solid
+- at:
+  - 340
+  - 170
+  size:
+  - 62
+  - 36
+  text: C₆
+  tone: token
+  style: solid
+- at:
+  - 410
+  - 170
+  size:
+  - 62
+  - 36
+  text: C₇
+  tone: token
+  style: solid
+- at:
+  - 480
+  - 170
+  size:
+  - 62
+  - 36
+  text: C₈
+  tone: token
+  style: solid
+- at:
+  - 550
+  - 170
+  size:
+  - 62
+  - 36
+  text: C₉
+  tone: token
+  style: solid
+- at:
+  - 200
+  - 245
+  size:
+  - 62
+  - 36
+  text: A
+  tone: token
+  style: solid
+- at:
+  - 270
+  - 245
+  size:
+  - 62
+  - 36
+  text: C₁₀
+  tone: token
+  style: solid
+- at:
+  - 340
+  - 245
+  size:
+  - 62
+  - 36
+  text: C₁₁
+  tone: token
+  style: solid
+- at:
+  - 410
+  - 245
+  size:
+  - 62
+  - 36
+  text: 空
+  tone: token
+  style: faded
+- at:
+  - 480
+  - 245
+  size:
+  - 62
+  - 36
+  text: 空
+  tone: token
+  style: faded
+- at:
+  - 550
+  - 245
+  size:
+  - 62
+  - 36
+  text: 空
+  tone: token
+  style: faded

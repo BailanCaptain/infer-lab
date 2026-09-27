@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 760" width="880" height="760" role="img" aria-label="R1 的两步沿同一主干前进，调度来源、图模式与采样器分别判断。图中 decode 回放图以两组对齐后可用为前提；MTP 草拟在这两步都走 eager。">
+  <title>R1 的两步沿同一主干前进，调度来源、图模式与采样器分别判断。图中 decode 回放图以两组对齐后可用为前提；MTP 草拟在这两步都走 eager。</title>
+  <defs><marker id="request-call-chain-branches-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M330 64 L223 78 L223 122" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M550 64 L657 78 L657 122" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M223 180 L223 244" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M657 180 L657 244" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M223 302 L223 366" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M657 302 L657 366" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M223 424 L223 488" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M657 424 L657 488" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M223 564 L223 636 L330 636 L330 666" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <path d="M657 564 L657 636 L550 636 L550 666" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-branches-ah-ink)"/>
+  <rect x="214" y="16" width="452" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="45" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Scheduler.schedule：请求来自哪个队列？</text>
+  <rect x="48" y="122" width="350" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="223" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">waiting → 首次分块</text>
+  <text x="223" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">R1 开始计算提示词</text>
+  <rect x="482" y="122" width="350" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="657" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">running → 续算与续块</text>
+  <text x="657" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">上一步已安排，继续推进</text>
+  <rect x="48" y="244" width="350" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="223" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">提示词尚未算完</text>
+  <text x="223" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">判为 eager，按本地输入宽度执行</text>
+  <rect x="482" y="244" width="350" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="657" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">提示词已完成且每条 4 个 token</text>
+  <text x="657" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">两组满足图条件 → 选捕获尺寸</text>
+  <rect x="48" y="366" width="350" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="223" y="391" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">直接执行前向</text>
+  <text x="223" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">逐个下发模型算子</text>
+  <rect x="482" y="366" width="350" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="657" y="391" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">回放捕获图</text>
+  <text x="657" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按选定尺寸完成模型前向</text>
+  <rect x="48" y="488" width="350" height="76" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="223" y="522" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步没有待验证候选</text>
+  <text x="223" y="541" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AscendSampler → 首 token</text>
+  <rect x="482" y="488" width="350" height="76" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="657" y="522" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步带候选</text>
+  <text x="657" y="541" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AscendRejectionSampler → 接受或修正</text>
+  <rect x="214" y="666" width="452" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="695" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">草拟下一步候选 → 更新结果</text>
+  <text x="440" y="714" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">两路都草拟；按拒绝数回退计数在第 6 站</text>
+  <text x="48" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步 · prefill</text>
+  <text x="482" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">第 2 步 · decode</text>
+  <text x="440" y="215" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">准备输入后判断图模式，并跨 DP 对齐</text>
+  <text x="440" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">主模型前向</text>
+  <text x="440" y="459" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">sample_tokens 中选择采样器</text>
+</svg>

@@ -1,25 +1,41 @@
 import { ArrowLeft, ArrowRight, BookOpen } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import ReactMarkdown from "react-markdown";
-import { Link, useParams } from "react-router";
-import remarkCjkFriendly from "remark-cjk-friendly";
-import remarkGfm from "remark-gfm";
+import { Link, useLocation, useParams } from "react-router";
+import { fragmentId } from "../../content/wiki/anchors";
+import { alignCalcLabels, CalcBlock } from "../../content/wiki/CalcBlock";
+import { parseCalcFence, textFenceAsCalc } from "../../content/wiki/calc";
 import { CHAPTER_TITLES } from "../../content/wiki/chapters";
-import { remarkEvidenceMarks } from "../../content/wiki/evidenceMarks";
 import {
   getPage,
   getReaderState,
   refreshReaderSnapshot,
   rewriteRelativeLink,
+  routePathOf,
   sourceUrl,
   subscribeReader,
 } from "../../content/wiki/index";
+import {
+  plainFenceCode,
+  textOf,
+  WIKI_REHYPE_PLUGINS,
+  WIKI_REMARK_PLUGINS,
+} from "../../content/wiki/markdown";
 import { groupRelations } from "../../content/wiki/relations";
 import { parseRepoRef, type RegistryEntry, rawSourceHref } from "../../content/wiki/schema";
 import { EVIDENCE_LEVELS_INFO, EvidenceBadge, EvidenceLegend, Term } from "../../content/wiki/Term";
-import { buildToc } from "../../content/wiki/toc";
+import { buildToc, partNumeral } from "../../content/wiki/toc";
 import { WikiDiagram } from "../../content/wiki/WikiDiagram";
 import { wikiRequest } from "../wiki/api";
+import { hasPageToc, type PageHeading, PageTocFab, PageTocSide, readHeadings } from "../wiki/PageToc";
 import { WikiPanel } from "../wiki/WikiPanel";
 import "../../design/wiki.css";
 
@@ -59,6 +75,18 @@ function fenceSource(node: unknown, language: string): string | null {
   if (!Array.isArray(cls) || !cls.includes(`language-${language}`)) return null;
   const text = code.children?.[0];
   return text?.type === "text" && text.value ? text.value.trim() : null;
+}
+
+/** 滚到 `#锚点` 对应的标题（id 由 anchors.ts 生成）；找不到就不动 */
+function scrollToFragment(hash: string): void {
+  document.getElementById(fragmentId(hash))?.scrollIntoView({ block: "start" });
+}
+
+/** 不标语言或标 text 的代码块正文；算式块识别只看这两种。字已被 rehypeTextGrid 分进字格，按拼起来的原文认 */
+function plainFenceSource(node: unknown): string | null {
+  const code = plainFenceCode(node as HastNode | undefined);
+  const text = code ? textOf(code) : "";
+  return text ? text.replace(/\n$/, "") : null;
 }
 
 /** ```wiki-diagram 围栏里的 `file:` 就是 wiki/diagrams/<id>.yaml 的 id */
@@ -128,7 +156,7 @@ export function WikiPage() {
           ));
           const head = (
             <>
-              <span className="wiki-toc-chapter">{"一二三四五六"[i]}</span>
+              <span className="wiki-toc-chapter">{partNumeral(i + 1)}</span>
               {part.title}
               <small className="wiki-toc-count">{count}</small>
             </>
@@ -158,7 +186,7 @@ export function WikiPage() {
       </nav>
 
       <main className="wiki-main">
-        {!id && <Landing count={pages.length} />}
+        {!id && <Landing count={pages.length} guide={getPage(GUIDE_ID)?.fm} />}
         {id && !page && (
           <div className="wiki-empty" data-testid="wiki-notfound">
             <BookOpen size={28} />
@@ -186,30 +214,28 @@ export function WikiPage() {
   );
 }
 
-function Landing({ count }: { count: number }) {
+/** 首页「从这里开始」的入口页：标题与导语都取它的 frontmatter，不在这里复写一遍 */
+const GUIDE_ID = "learning-guide";
+
+function Landing({ count, guide }: { count: number; guide: RegistryEntry | undefined }) {
   return (
     <div className="wiki-landing">
       <span className="eyebrow">KNOWLEDGE BASE</span>
       <h1 className="display">知识库</h1>
       <p>知识来自钉住版本的源码、归档资料与有引用的推断；证据等级帮助你区分它们。目前 {count} 页。</p>
 
-      <section className="wiki-start">
-        <h2>从这里开始</h2>
-        <p>
-          全库只跟<strong>一条</strong>请求：Qwen3-0.6B、单卡昇腾、37 个 token 的问题、200 个 token
-          的回答。每一页都是「这条请求走到某一刻，发生了什么」。
-          先读它，它底下那张行程表会把你送到其余每一页。
-        </p>
-        <Link className="wiki-start-link" to="/wiki/one-request">
-          贯穿全书的那条请求 <ArrowRight size={14} />
-        </Link>
-        <p className="wiki-start-hint">
-          左侧目录分六部分：<strong>推理基础知识</strong>、<strong>代码全流程</strong>、<strong>特性</strong>
-          、<strong>RFork 工作版</strong>、<strong>参数</strong>、<strong>知识库长出来的</strong>
-          。前两部分从上到下就是该读的顺序；后面几部分是用到再查的，最后一部分是问答、PR
-          和缺口补写产生、经人审入库的页。
-        </p>
-      </section>
+      {guide && (
+        <section className="wiki-start" data-testid="wiki-start">
+          <h2>从这里开始</h2>
+          <p>{guide.summary}</p>
+          <Link className="wiki-start-link" to={`/wiki/${GUIDE_ID}`}>
+            {guide.title} <ArrowRight size={14} />
+          </Link>
+          <p className="wiki-start-hint">
+            左侧目录按知识主题分组，不按主线顺序排；阅读指南里有一张表，把每个分组接回主线的某一步。
+          </p>
+        </section>
+      )}
 
       <section className="wiki-legend-block">
         <h2>每页角上的字母是什么</h2>
@@ -233,7 +259,52 @@ function Article({
   /** 图跟着同一份知识快照传下来，不另起一次订阅 */
   diagrams: Map<string, string>;
 }) {
-  return (
+  // hash 路由下 `#/wiki/<id>#锚点` 的锚点在 location.hash。跨页链接、页内链接、直接打开
+  // 带锚点的地址都走这里；换页时新正文和标题 id 已在同一次提交里渲染好。
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash || !page.id) return;
+    scrollToFragment(hash);
+    // 直接打开时中文字体的子集随后才下载完，重排会把标题挤出视口：字体就绪后再对一次
+    let live = true;
+    void document.fonts?.ready.then(() => live && scrollToFragment(hash));
+    return () => {
+      live = false;
+    };
+  }, [hash, page.id]);
+  // 本页目录的条目从渲染好的正文里读（id 由 anchors.ts 生成），在绘制前拿到，不闪一下
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [headings, setHeadings] = useState<PageHeading[]>([]);
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    setHeadings(el && body ? readHeadings(el) : []);
+  }, [body]);
+  // 整页的算式块标签栏对齐（CalcBlock.tsx）：换页、正文变宽变窄、字体就绪后各量一次
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !body) return;
+    let width = -1;
+    const align = () => {
+      width = el.clientWidth;
+      alignCalcLabels(el);
+    };
+    align();
+    // 只跟宽度走：对齐本身会改变正文高度，按高度触发会自己追自己
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth !== width) align();
+    });
+    observer.observe(el);
+    let live = true;
+    void document.fonts?.ready.then(() => live && align());
+    return () => {
+      live = false;
+      observer.disconnect();
+    };
+  }, [body]);
+  // 只给长页（H2 ≥ 4）；短页一屏半就读完，导航只是噪音
+  const withToc = hasPageToc(headings);
+  const tocProps = { pageId: page.id, headings, scrollTo: scrollToFragment };
+  const article = (
     <article className="wiki-article">
       <header className="wiki-article-head">
         <div className="wiki-article-meta">
@@ -271,20 +342,27 @@ function Article({
         {page.aliases.length > 0 && <p className="wiki-aliases">也叫：{page.aliases.join("、")}</p>}
       </header>
 
-      <div className="wiki-body" data-testid="wiki-body">
+      <div className="wiki-body" data-testid="wiki-body" ref={bodyRef}>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkCjkFriendly, remarkEvidenceMarks]}
+          remarkPlugins={WIKI_REMARK_PLUGINS}
+          rehypePlugins={WIKI_REHYPE_PLUGINS}
           components={{
             // 图的围栏渲染成图。HANDBOOK 要求讲结构关系时必须画图，不接这一段
             // 就会以源码形式显示。在 pre 而不是 code 上拦，否则 <figure> 会落进
             // <pre> 里。wiki-diagram 是唯一的图载体；存量 mermaid 已于 2026-09-20 全部迁完，渲染器随之删除。
             pre: ({ children, node }) => {
               const diagram = diagramId(node);
-              return diagram ? (
-                <WikiDiagram id={diagram} svg={diagrams.get(diagram)} />
-              ) : (
-                <pre>{children}</pre>
-              );
+              if (diagram) return <WikiDiagram id={diagram} svg={diagrams.get(diagram)} />;
+              // 算式块（calc.ts / CalcBlock.tsx）：```calc 围栏，和每行都是「标签 = …」的纯文本块。
+              // 现有页面的 ```text 算式块不用改写就能认出来；认不出的照旧是代码块
+              const source = fenceSource(node, "calc");
+              if (source) {
+                const { title, rows } = parseCalcFence(source);
+                return <CalcBlock rows={rows} title={title} />;
+              }
+              const plain = plainFenceSource(node);
+              const rows = plain ? textFenceAsCalc(plain) : null;
+              return rows ? <CalcBlock rows={rows} /> : <pre>{children}</pre>;
             },
             // 事实表比正文列宽，不包一层会溢出到侧栏底下，把「来源」整列裁掉
             table: ({ children }) => (
@@ -308,6 +386,8 @@ function Article({
                   target="_blank"
                   rel="noreferrer"
                   title={`来源 ${idx}`}
+                  // 角标的编号就是「查看来源」列表里的第几条，两边必须对得上
+                  data-source={idx}
                 >
                   <EvidenceBadge level={level} />
                 </a>
@@ -316,7 +396,22 @@ function Article({
               );
             },
             a: ({ href, children }) => {
-              const to = rewriteRelativeLink(href ?? "");
+              const to = rewriteRelativeLink(href ?? "", page.id);
+              const route = routePathOf(to);
+              const fragment = to.startsWith("#/") ? to.indexOf("#", 1) : -1;
+              // 地址没变时浏览器不发 hashchange，再点一次同一个锚点也要滚回去
+              const again = () => {
+                if (fragmentId(window.location.hash) === fragmentId(to)) scrollToFragment(to.slice(fragment));
+              };
+              // 站内链接走 <Link>：原生 <a href="#/..."> 只改 hash，hash 路由把它当成后退（POP），
+              // 于是「恢复」上一页的滚动位置——读者落在新页面的末尾，而不是开头。
+              if (route) {
+                return (
+                  <Link to={route} {...(fragment > 0 ? { onClick: again } : {})}>
+                    {children}
+                  </Link>
+                );
+              }
               const external = /^https?:/i.test(to);
               return (
                 <a href={to} {...(external ? { target: "_blank", rel: "noreferrer" } : {})}>
@@ -363,6 +458,17 @@ function Article({
         </section>
       )}
     </article>
+  );
+  // 正文与右侧导航并排；放不下时（wiki.css 的容器查询）导航收起、改用右下角按钮。
+  // 外框短页也套着：长短页结构相同，量完标题后加上导航时正文不会被卸载重挂
+  return (
+    <div className="wiki-reading-frame">
+      <div className="wiki-reading" data-page-toc={withToc || undefined}>
+        {article}
+        {withToc && <PageTocSide {...tocProps} />}
+      </div>
+      {withToc && <PageTocFab {...tocProps} />}
+    </div>
   );
 }
 

@@ -1,52 +1,237 @@
-layout: figure
-id: pipeline-parallel
-caption: 示意：PP=2 把 Qwen3.6-35B-A3B 的 40 层切成前 20、后 20，各放一颗 NPU；界线上一步只传一次
-size: [900, 232]
-
-frames:
-  - { label: NPU 0, at: [28, 56], size: [402, 72] }
-  - { label: NPU 1, at: [470, 56], size: [402, 72] }
-
-grids:
-  - at: [40, 72]
-    rows: 1
-    cols: 20
-    cell: [17, 40]
-    gap: 2
-    tone: token
-    style: faded
-    cells:
-      - { at: [0, 3], tone: kv, style: solid }
-      - { at: [0, 7], tone: kv, style: solid }
-      - { at: [0, 11], tone: kv, style: solid }
-      - { at: [0, 15], tone: kv, style: solid }
-      - { at: [0, 19], tone: kv, style: solid }
-  - at: [482, 72]
-    rows: 1
-    cols: 20
-    cell: [17, 40]
-    gap: 2
-    tone: token
-    style: faded
-    cells:
-      - { at: [0, 3], tone: kv, style: solid }
-      - { at: [0, 7], tone: kv, style: solid }
-      - { at: [0, 11], tone: kv, style: solid }
-      - { at: [0, 15], tone: kv, style: solid }
-      - { at: [0, 19], tone: kv, style: solid }
-
-links:
-  - { from: [424, 92], to: [476, 92], tone: comm }
-
-brackets:
-  - { from: 40, to: 418, y: 142, label: 第 1–20 层 · 5 层全注意力 }
-  - { from: 482, to: 860, y: 142, label: 第 21–40 层 · 5 层全注意力 }
-
-texts:
-  - { at: [450, 200], text: "一步只传一次：hidden 和残差两份，每个 token 8 KiB", size: 13.5, strong: true, tone: comm, anchor: middle }
-
-pins:
-  - source: vllm@0fc695fc:vllm/distributed/utils.py#L109-L154
-    symbols: [get_pp_indices]
-  - source: vllm@0fc695fc:vllm/model_executor/models/qwen3_5.py#L236-L241
-    symbols: [make_layers, hidden_states, residual]
+{
+  "size": [
+    900,
+    500
+  ],
+  "caption": "GLM 层分段教学示意：中间层保留四路表示，末层汇合后计算输出；反馈箭头表示下一轮的数据依赖",
+  "frames": [
+    {
+      "at": [
+        35,
+        70
+      ],
+      "size": [
+        370,
+        290
+      ],
+      "label": "阶段 0"
+    },
+    {
+      "at": [
+        495,
+        70
+      ],
+      "size": [
+        370,
+        290
+      ],
+      "label": "阶段 1"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        65,
+        120
+      ],
+      "size": [
+        305,
+        50
+      ],
+      "text": "嵌入",
+      "tone": "token"
+    },
+    {
+      "at": [
+        530,
+        265
+      ],
+      "size": [
+        305,
+        50
+      ],
+      "text": "最终归一化 / 词表 / 采样",
+      "tone": "token"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        65,
+        230
+      ],
+      "rows": 1,
+      "cols": 3,
+      "cell": [
+        100,
+        46
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "label": "本地层",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "0"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "…"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "22"
+        }
+      ]
+    },
+    {
+      "at": [
+        530,
+        135
+      ],
+      "rows": 1,
+      "cols": 3,
+      "cell": [
+        100,
+        46
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "label": "本地层",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "23"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "…"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "44"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        217,
+        230
+      ],
+      "tone": "token",
+      "from": [
+        217,
+        170
+      ]
+    },
+    {
+      "to": [
+        530,
+        158
+      ],
+      "tone": "token",
+      "via": [
+        [
+          450,
+          253
+        ],
+        [
+          450,
+          158
+        ]
+      ],
+      "from": [
+        365,
+        253
+      ]
+    },
+    {
+      "to": [
+        790,
+        265
+      ],
+      "tone": "token",
+      "from": [
+        790,
+        181
+      ]
+    },
+    {
+      "to": [
+        65,
+        145
+      ],
+      "tone": "token",
+      "via": [
+        [
+          680,
+          414
+        ],
+        [
+          15,
+          414
+        ],
+        [
+          15,
+          145
+        ]
+      ],
+      "from": [
+        680,
+        315
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        440,
+        220
+      ],
+      "text": "中间表示",
+      "anchor": "end",
+      "size": 12
+    },
+    {
+      "at": [
+        450,
+        445
+      ],
+      "text": "下一轮输入依赖本轮 token（逻辑反馈）",
+      "anchor": "middle",
+      "tone": "token"
+    },
+    {
+      "at": [
+        35,
+        480
+      ],
+      "text": "45 层示意分为 23 + 22；尚未验证 GLM 的这一 PP 部署组合",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "pipeline-parallel"
+}

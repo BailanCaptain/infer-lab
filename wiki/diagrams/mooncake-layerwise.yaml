@@ -1,0 +1,146 @@
+{
+  "size": [
+    900,
+    420
+  ],
+  "caption": "三层的理想重叠示意：每层计算 1 个时间单位、传输 0.5；传输队列不拥塞并可与计算独立推进。数值仅用于解释等待关系，不是模型性能",
+  "timelines": [
+    {
+      "at": [
+        25,
+        65
+      ],
+      "scale": 148,
+      "start": 0,
+      "end": 4.5,
+      "labelW": 145,
+      "laneH": 32,
+      "gap": 12,
+      "lanes": [
+        {
+          "label": "整批 · 计算",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "token",
+              "text": "层 0"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "text": "层 1"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "text": "层 2"
+            }
+          ]
+        },
+        {
+          "label": "整批 · 传输",
+          "spans": [
+            {
+              "from": 3,
+              "to": 4.5,
+              "tone": "comm",
+              "text": "各组 / 各任务"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": [
+        25,
+        245
+      ],
+      "scale": 148,
+      "start": 0,
+      "end": 4.5,
+      "labelW": 145,
+      "laneH": 32,
+      "gap": 12,
+      "lanes": [
+        {
+          "label": "逐层 · 计算",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "token",
+              "text": "层 0"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "text": "层 1"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "text": "层 2"
+            }
+          ]
+        },
+        {
+          "label": "逐层 · 传输",
+          "spans": [
+            {
+              "from": 1,
+              "to": 1.5,
+              "tone": "comm",
+              "text": "层 0"
+            },
+            {
+              "from": 2,
+              "to": 2.5,
+              "tone": "comm",
+              "text": "层 1"
+            },
+            {
+              "from": 3,
+              "to": 3.5,
+              "tone": "comm",
+              "text": "层 2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        25,
+        35
+      ],
+      "text": "等待所有来源状态可用后再传",
+      "strong": true
+    },
+    {
+      "at": [
+        25,
+        215
+      ],
+      "text": "每层完成后安排传输",
+      "strong": true
+    },
+    {
+      "at": [
+        450,
+        399
+      ],
+      "text": "重叠机会取决于事件依赖、链路和接收侧恢复条件",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "mooncake-layerwise"
+}

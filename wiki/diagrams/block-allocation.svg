@@ -1,36 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="空闲的 KV 块排成一队；请求从队头取走一块，引用计数 0 → 1；用完计数减回 0，块排回队尾">
-  <title>空闲的 KV 块排成一队；请求从队头取走一块，引用计数 0 → 1；用完计数减回 0，块排回队尾</title>
-  <defs><marker id="block-allocation-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <path d="M43 96 C 43 228, 200 228, 330 228" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#block-allocation-ah-kv)"/>
-  <path d="M570 228 C 700 228, 779 228, 779 96" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#block-allocation-ah-kv)"/>
-  <rect x="30" y="66" width="26" height="26" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.35" stroke-width="1.2"/>
-  <rect x="62" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="94" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="126" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="158" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="190" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="222" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="254" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="286" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="318" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="350" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="382" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="414" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="446" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="478" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="510" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="542" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="574" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="606" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="638" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="670" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="702" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="734" y="66" width="26" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
-  <rect x="766" y="66" width="26" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5" stroke-dasharray="3 3"/>
-  <rect x="330" y="196" width="240" height="64" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="224" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这条请求的 KV 块</text>
-  <text x="450" y="243" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引用计数 0 → 1 → 0</text>
-  <text x="30" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">空闲池：全机共用一队</text>
-  <text x="30" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">从队头取一块</text>
-  <text x="620" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">请求结束，排回队尾</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="共享完整前缀块的引用变化示例：A 与 B 都持有块 7；A 释放后 B 仍使用，最后一个引用释放后才可回收">
+  <title>共享完整前缀块的引用变化示例：A 与 B 都持有块 7；A 释放后 B 仍使用，最后一个引用释放后才可回收</title>
+  <defs><marker id="block-allocation-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="block-allocation-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <path d="M195 107 L260 107 L260 176 L330 176" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#block-allocation-ah-kv)"/>
+  <path d="M195 272 L260 272 L260 200 L330 200" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#block-allocation-ah-kv)"/>
+  <path d="M510 188 L610 188" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#block-allocation-ah-control)"/>
+  <path d="M720 188 L765 188" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#block-allocation-ah-control)"/>
+  <rect x="45" y="80" width="150" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="112.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求 A</text>
+  <rect x="45" y="245" width="150" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="277.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求 B</text>
+  <rect x="330" y="150" width="180" height="75" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">物理块 7</text>
+  <text x="420" y="202.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引用计数 2</text>
+  <rect x="610" y="155" width="110" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="192.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">计数 1</text>
+  <rect x="765" y="155" width="110" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="820" y="192.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">计数 0</text>
+  <text x="528" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">A 释放</text>
+  <text x="745" y="120" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">B 释放</text>
+  <text x="565" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">B 继续读取</text>
+  <text x="750" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">可回收</text>
+  <text x="45" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">释放引用 → 可回收；缓存保留另有条件</text>
 </svg>

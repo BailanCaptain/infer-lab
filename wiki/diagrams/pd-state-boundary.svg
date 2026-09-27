@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="need_truncate 且 N=4 的教学路径：P 处理前三个输入形成 S₃；D 从这一边界处理 p₃ 得到 S₄。S 表示完整所需历史，不表示某一层或一块 KV">
+  <title>need_truncate 且 N=4 的教学路径：P 处理前三个输入形成 S₃；D 从这一边界处理 p₃ 得到 S₄。S 表示完整所需历史，不表示某一层或一块 KV</title>
+  <defs><marker id="pd-state-boundary-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="pd-state-boundary-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <g data-hardware="memory">
+  <rect x="290" y="185" width="155" height="100" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M295 277h145M295 281h145" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="367.5" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">S₃</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="675" y="185" width="155" height="100" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M680 277h145M680 281h145" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="752.5" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">S₄</text>
+  </g>
+  <path d="M145 111 L145 210" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-token)"/>
+  <path d="M215 237 L290 237" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-kv)"/>
+  <path d="M445 237 L490 237" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-kv)"/>
+  <path d="M647 111 L647 157 L565 157 L565 210" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-token)"/>
+  <path d="M635 237 L675 237" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#pd-state-boundary-ah-kv)"/>
+  <rect x="50" y="75" width="65" height="36" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="82.5" y="97.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₀</text>
+  <rect x="115" y="75" width="65" height="36" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="147.5" y="97.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₁</text>
+  <rect x="180" y="75" width="65" height="36" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="212.5" y="97.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₂</text>
+  <path d="M115 75v36M180 75v36" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="50" y="75" width="195" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="615" y="75" width="65" height="36" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="647.5" y="97.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">p₃</text>
+  <rect x="615" y="75" width="65" height="36" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="70" y="210" width="145" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="142.5" y="242.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P 前向</text>
+  <rect x="490" y="210" width="145" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="562.5" y="242.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 前向</text>
+  <text x="450" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">状态边界：处理了 3 个输入 → 处理了 4 个输入</text>
+  <text x="450" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">实际状态包含对应注意力历史与递推状态；此图不是张量布局图</text>
+  <text x="147" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56" text-anchor="middle">P 的输入</text>
+  <text x="647" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56" text-anchor="middle">D 继续输入</text>
+</svg>

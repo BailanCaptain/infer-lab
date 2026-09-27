@@ -1,35 +1,240 @@
-layout: figure
-id: epd-disaggregation
-caption: E 节点把图算成 embedding 放进共享目录，PD 节点直接读，自己的视觉编码器不再跑
-size: [900, 300]
-
-frames:
-  - { label: E 节点, at: [240, 80], size: [200, 130] }
-  - { label: PD 节点, at: [660, 40], size: [220, 210] }
-
-items:
-  - { at: [30, 113], size: [150, 64], text: 文字 + 一张图, tone: token, style: solid }
-  - { at: [260, 113], size: [160, 64], text: 视觉编码器, tone: weight, style: solid }
-  - { at: [480, 113], size: [140, 64], text: 共享目录, sub: 图的 embedding, tone: comm, style: solid }
-  - { at: [680, 70], size: [180, 56], text: 视觉编码器（跳过）, tone: weight, style: faded }
-  - { at: [680, 170], size: [180, 56], text: 语言模型, tone: weight, style: solid }
-
-links:
-  - { from: [180, 145], to: [260, 145] }
-  - { from: [420, 145], to: [480, 145], tone: comm }
-  - { from: [620, 145], to: [680, 198], via: [[650, 145], [650, 198]], tone: comm }
-  - { from: [105, 177], to: [770, 226], via: [[105, 280], [770, 280]], dashed: true }
-
-pins:
-  - source: vllm-ascend@2c59ff10:examples/disaggregated_encoder/disagg_epd_proxy.py#L312-L321
-    symbols: [has_mm_input]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2051-L2058
-    symbols: [_execute_mm_encoder, has_ec_transfer, is_producer]
-  - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L98-L118
-    symbols: [save_caches, is_producer]
-  - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L52-L57
-    symbols: [shared_storage_path]
-  - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/example_connector.py#L120-L133
-    symbols: [has_cache_item]
-  - source: vllm@0fc695fc:vllm/distributed/ec_transfer/ec_connector/base.py#L139-L148
-    symbols: [start_load_caches, _gather_mm_embeddings]
+{
+  "size": [
+    900,
+    645
+  ],
+  "caption": "上：E+PD 只分离编码器；下：E+P+D 进一步分离语言模型两个阶段。编码结果是输入表示，P/D 之间传的是模型历史状态",
+  "frames": [
+    {
+      "at": [
+        30,
+        100
+      ],
+      "size": [
+        235,
+        180
+      ],
+      "label": "E"
+    },
+    {
+      "at": [
+        400,
+        100
+      ],
+      "size": [
+        465,
+        180
+      ],
+      "label": "PD"
+    },
+    {
+      "at": [
+        30,
+        385
+      ],
+      "size": [
+        235,
+        180
+      ],
+      "label": "E"
+    },
+    {
+      "at": [
+        400,
+        385
+      ],
+      "size": [
+        200,
+        180
+      ],
+      "label": "P"
+    },
+    {
+      "at": [
+        680,
+        385
+      ],
+      "size": [
+        185,
+        180
+      ],
+      "label": "D"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        60,
+        155
+      ],
+      "size": [
+        175,
+        55
+      ],
+      "text": "视觉编码",
+      "tone": "weight"
+    },
+    {
+      "at": [
+        450,
+        155
+      ],
+      "size": [
+        165,
+        55
+      ],
+      "text": "Prefill",
+      "tone": "token"
+    },
+    {
+      "at": [
+        655,
+        155
+      ],
+      "size": [
+        165,
+        55
+      ],
+      "text": "Decode",
+      "tone": "token"
+    },
+    {
+      "at": [
+        60,
+        440
+      ],
+      "size": [
+        175,
+        55
+      ],
+      "text": "视觉编码",
+      "tone": "weight"
+    },
+    {
+      "at": [
+        425,
+        440
+      ],
+      "size": [
+        150,
+        55
+      ],
+      "text": "Prefill",
+      "tone": "token"
+    },
+    {
+      "at": [
+        700,
+        440
+      ],
+      "size": [
+        145,
+        55
+      ],
+      "text": "Decode",
+      "tone": "token"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        450,
+        182
+      ],
+      "tone": "token",
+      "from": [
+        235,
+        182
+      ]
+    },
+    {
+      "to": [
+        655,
+        182
+      ],
+      "tone": "kv",
+      "from": [
+        615,
+        182
+      ]
+    },
+    {
+      "to": [
+        425,
+        467
+      ],
+      "tone": "token",
+      "from": [
+        235,
+        467
+      ]
+    },
+    {
+      "to": [
+        700,
+        467
+      ],
+      "tone": "kv",
+      "from": [
+        575,
+        467
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        30,
+        45
+      ],
+      "text": "E + PD",
+      "strong": true
+    },
+    {
+      "at": [
+        30,
+        330
+      ],
+      "text": "E + P + D",
+      "strong": true
+    },
+    {
+      "at": [
+        332,
+        159
+      ],
+      "text": "媒体 embedding",
+      "anchor": "middle",
+      "tone": "token"
+    },
+    {
+      "at": [
+        330,
+        442
+      ],
+      "text": "媒体 embedding",
+      "anchor": "middle",
+      "tone": "token"
+    },
+    {
+      "at": [
+        637,
+        435
+      ],
+      "text": "历史状态",
+      "anchor": "middle",
+      "tone": "kv"
+    },
+    {
+      "at": [
+        450,
+        610
+      ],
+      "text": "文本表示在 P / PD 与媒体表示共同进入语言模型",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "epd-disaggregation"
+}

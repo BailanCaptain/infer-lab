@@ -1,152 +1,82 @@
 ---
 id: vllm-ascend-repo-map
-title: vllm_ascend 目录地图
+title: 源码目录地图：把文件放回推理架构
 type: concept
-summary: 昇腾插件有十几万行 Python，按职责能分成六组。第一遍只用读其中三组，其余等碰到具体问题再去翻。
+summary: 用启动、调度、执行、模型、状态与通信职责定位目录，沿 GLM 的执行路径选择阅读入口，区分上游框架和 Ascend 适配。
 aliases: [目录结构, 代码结构, 仓库结构, repo map, vllm_ascend 目录]
 chapters: ["20"]
 order: 10
 sources:
-  - vllm-ascend@2c59ff10:vllm_ascend/__init__.py#L38-L42
-  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L128-L146
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L21-L33
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L82-L100
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L127-L145
-  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L1001-L1001
-  - vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L95-L96
-  - vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/token_dispatcher.py#L34-L34
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L740-L766
-verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
-evidence: "D"
+  - vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L77
+  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666
+  - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235
+  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988
+  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768
+  - vllm@0fc695fc:vllm/v1/engine/core.py#L443-L482
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105
+  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L78-L84
+  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L545
+verified: []
+evidence: "C"
 relations:
-  - to: vllm-ascend-overview
-    kind: builds-on
-    note: 看地图之前要先知道这个仓库为什么存在，边界在哪里
-  - to: one-request
-    kind: builds-on
-    note: 那条请求会走进五个目录；量化、投机解码、310P 专用这三个目录里的文件它一个都不碰
+  - {to: vllm-ascend-overview, kind: builds-on, note: 先认识上游框架和设备适配的协作}
+  - {to: request-call-chain, kind: builds-on, note: 用实际数据交接定位源文件}
 contradicts: []
-updated: "2026-09-25"
+updated: "2026-09-26"
 origin: seed
 ---
 
-## 第一次打开这个仓库，从哪读起
+## 目录是职责的入口
 
-你想弄清楚昇腾插件到底做了什么，于是打开了它的代码目录，看到的是：v0.23 维护分支上 23 个子目录、442 个 Python 文件、约 13 万行；v0.26 分支上涨到 24 个子目录、500 个文件、约 15 万行。
-
-从头读一遍不现实，也没必要。按「这个目录负责什么」分成六组之后，第一遍真正要读的只有三组；两个版本上都是这三组。下面这张图按真实行数把最大的几个目录排了一遍。
+阅读仓库之前，先明确要解释的是启动、调度、模型计算、状态管理还是通信。[框架总览](vllm-v1-shape.md)给出这些职责；目录地图将它们对应到源文件。目录大小和文件行数不表示一个组件在请求路径中的重要程度。
 
 ```wiki-diagram
 file: vllm-ascend-repo-map
 ```
 
-## 六组里只有第一组是主干
+图中的运行时主线连接 EngineCore、Worker/Runner、模型和算子。启动配置与注册为它们提供实现选择；通信和图执行参与具体路径，不是每次请求额外依次经过的固定站点。
 
-**第一组 · 主干（三个目录）。** 「单卡执行」管一张卡上从拿到一批请求到算出结果的全部流程；「注意力」管注意力怎么算、KV Cache 长什么形状；「算子替换」把上游的线性层、归一化、专家层等换成昇腾实现。读懂这三个就能跟完一次请求。其中单卡执行那组有一个文件就五千多行，占了整组的三分之一以上，是全仓库最该精读的一个文件，见 [NPUModelRunner 怎么读](npu-model-runner.md)。
+## 上游保留哪些职责
 
-**第二组 · 接缝（三个目录）。** 这一组不实现推理逻辑，只负责「怎么接进上游 vLLM」。最大的是「接上游的补丁」，六十多个文件，都是在运行时把上游的对象换掉，见 [Patch 机制](ascend-patch-system.md)。
+vLLM 的 `v1/engine` 组织引擎迭代，`v1/core` 中有调度与缓存管理，`v1/executor` 封装执行方式。一次迭代由 EngineCore 调度、提交执行并更新结果。[C8] 这些共同框架与 Ascend 插件协作；找完整调用链时需要同时打开两个仓库。
 
-**第三组 · 并行与通信（四个目录）。** 「跨卡通信」单独就有两万多行，是除算子替换外第二大的目录，覆盖[张量并行（TP）](tensor-parallel.md)、流水并行、数据并行、[专家并行（EP）](expert-parallel.md)的通信，以及 KV 传输、权重传输。第一遍可以不进去，但排查跨卡问题一定会回到这里。
+Ascend 的 `core/` 提供部分调度或资源机制适配，不能因名称相同就把它当成整个 EngineCore，也不能断言它完全没有运行时推理逻辑。阅读时以实际类、派生关系和调用点确定职责。
 
-**第四组 · 图与编译（两个目录）。** 两条路径：一条是 ACL Graph 加昇腾自己的编译后端，另一条是实验性的，见 [图模式层](graph-mode-layer.md)。
+## Ascend 目录与学习问题
 
-**第五组 · 模型、权重与采样（六个目录）。** [量化](quantization.md)、模型加载、[投机解码](speculative-decoding.md)都在这一组。共同点是「用到这个模型或这个特性时才会走到」。
+以下路径相对固定专用代码中的 `vllm_ascend/`；仓库根的 `csrc/` 另行标出。
 
-**第六组 · 专用与周边。** 最大的是 310P 专用目录：310P 这一代硬件的专用实现，形状上是整套主干的平行副本。另有一个目录里没有 Python 文件，只是编译出的算子放置的地方。这一组第一遍**应该跳过**，尤其是 310P 那个目录，它会让人误以为同一个类有两套互相矛盾的实现。
+| 路径 | 主要阅读问题 | 从哪里接入 |
+|---|---|---|
+| `__init__.py`、`platform.py`、`ascend_config.py` | 实现怎样注册，配置怎样检查和解析 | 插件发现与启动配置 |
+| `worker/` | 设备如何初始化，调度结果怎样变成输入张量 | `NPUWorker`、`NPUModelRunner` |
+| `models/`、`transformers_utils/` | 特定模型的结构与配置类型如何表达 | GLM 架构登记及 `glm5_next.py` |
+| `attention/`、`ops/` | 各层怎样解释状态并执行设备计算 | 层的后端绑定、算子分派或直接调用 |
+| `distributed/` | rank 与组怎样组织，数据怎样传递 | Worker 通信初始化、并行层与连接器 |
+| `compilation/`、`xlite/` | 如何进行图变换与执行结构复用 | 配置选择、Runner 与图包装 |
+| `patch/` | 哪些已加载的行为或登记表被适配 | 平台与 Worker 导入路径 |
+| `model_loader/`、`quantization/` | 权重从哪里来，以何种布局解释 | 实际加载器与量化实现 |
+| `spec_decode/`、`sample/` | 候选生成、验证与采样怎样执行 | 对应生成模式的执行路径 |
+| `kv_offload/`、`simple_kv_offload/` | 状态在设备内外怎样搬运 | 所选卸载与缓存机制 |
+| `_310p/`、`device/`、`device_allocator/` | 设备专用实现与资源分配 | 硬件条件和分配器选择 |
+| 根目录 `csrc/` | 自定义设备扩展如何构建与计算 | `torch.ops` 等扩展调用 |
 
-## 文件多不等于重要
+这是按职责组织的阅读索引，不是完整目录清单。某段功能可以跨多个目录，同一目录也可包含互斥的实现。
 
-把各目录的文件数和行数放在一起看，会发现两种完全不同的形状：
+## 沿 GLM 执行路径读一组文件
 
-- **算子替换和补丁**：文件多，单个文件小。一个文件管一个算子或一处替换，靠目录名和文件名就能定位。
-- **单卡执行和注意力**：文件少，单个文件极大。靠文件名定位不到，必须按函数名跳转。
+先从 `worker/worker.py` 的执行入口看 Worker 接收什么，再进入 `worker/model_runner_v1.py` 的输入准备、模型前向和采样交接。[C3][C4] 对照[并发输入页](prepare-inputs-flow.md)，记录 token 行、位置与块表如何对应。
 
-这决定了两种读法。第一次跟请求路径时，算子替换是被动的一层：它是模型往前算时被调到的实现，不是你要追的入口。单卡执行那组的文件数只有它的三分之一，却是主干。
+模型前向进入已注册的 GLM 类；`models/glm5_next.py` 负责选择混合层，并连接 mHC、注意力与前馈计算。[C5][C9] 进入具体层后再追 `attention/` 或 `ops/`。例如 GLM 的索引压缩注意力在 `ops/` 中包装注意力层并绑定后端，后端类则定义在 `attention/` 中；阅读时沿对象的构造和调用继续追踪。[C10][C11]
 
-## 那条请求会走进哪几组
+如果张量在设备间分片，接着读并行层与 `distributed/`；Worker 初始化为这些计算建立通信组。[C6] 若要解释某个算子为何走 Ascend 实现，回查 `utils.py` 的 CustomOp 登记和相应启用条件。[C7]
 
-拿[贯穿全库的例子](one-request.md)来对照：Qwen3.6-35B-A3B 跑在一张 Atlas A3 卡的两颗 NPU 上，bf16 权重，注意力对半切（TP=2），专家按编号分给两颗 NPU。它会走进五个目录：
+启动时的插件与平台准备则沿 `__init__.py → platform.py` 另行展开。[C1][C2] 把启动和运行时分开追踪，才不会把注册动作误写成每轮模型计算的一部分。
 
-- **单卡执行**：每颗 NPU 上的整个执行流程，启动时也在这里把两颗 NPU 之间的通信组建好；
-- **注意力**：40 层里那 10 层全注意力要算注意力、写 KV Cache；
-- **算子替换**：线性层、归一化、专家层都被换成了昇腾实现，模型往前算时会被调到；
-- **跨卡通信**：两颗 NPU 之间的通信组在这里定义，专家层把 token 发出去、收回来也要用到其中的一个组；
-- **接上游的补丁**：这个模型每个块 2048 个位置，就是补丁按线性注意力状态的大小换算出来的。
+## 先确认正在读哪份代码
 
-另外三个目录里的文件它一个都不碰：
+本页按[GLM 固定来源基线](../sources/glm-5-3-flash-baseline.md)定位 Ascend 专用代码，通用上游作为明确标记的参考。部署使用的已安装代码、源码工作树和某个社区发布分支不自动等价。
 
-- **量化**：用的是 bf16 权重，没开量化；
-- **投机解码**：没开；
-- **310P 专用**：跑在 A3 上，不是 310P。
-
-**「13 万行」之所以吓人，是因为它把所有场景的代码加在了一起。** 任何一条具体的请求只会走过其中一部分，而且就算在走进的五个目录里，它也只经过少数几个文件。先钉死一条请求，再决定读哪几个目录，是读这个仓库唯一可行的办法。
-
-## 版本之间：目录几乎没变，代码变了很多
-
-v0.23 维护分支和 main 开发主线在目录层面差 8 项，各有 4 个对方没有的；其余 21 个子目录两边同名。**同名不等于同内容**：同一个类，在两个分支上的行号能差出四十多行。
-
-v0.26 分支比 v0.23 只差两项：少了一个文件，多了一个目录；v0.23 的 23 个子目录在 v0.26 上一个不少。可文件数和行数涨了一大截：442 个文件变成 500 个，13 万行变成 15 万行，**涨的部分全在同名目录内部**。所以「目录没变」千万别读成「代码没变」。
-
-唯一改了名次的是单卡执行那组：v0.26 上文件多了十个，行数反而少了一千，补丁那组因此在行数上越过了它。它仍然是第一遍就该读的那个。
-
-## 常见误解
-
-- **「目录名能直接推出职责」**——大部分能，有两个例外要记住：名字叫「核心」的那个目录不是核心推理逻辑，而是接上游调度与 KV Cache 管理的接缝；名字叫「模型执行」的那个在 v0.23 上只有 3 个文件，远比名字听起来小。两者的目录名见下半的表。
-- **「310P 专用目录是旧代码」**——它是 310P 这一代硬件的专用实现，在 v0.23 与 v0.26 两个分支上都是活的。看到同名类有两套实现，先确认自己在看哪一套。
-- **「文件多的目录最重要」**——算子替换文件最多，但第一次读请求路径时它是被动的一层；单卡执行文件只有它的三分之一，却是主干。
-
-## 对照源码
-
-这一节给要自己去读源码的人：目录名、文件数、行数和行号都在这里。
-
-### 版本差异
-
-- **v0.23 与 main 在目录层面差 8 项** [D]：v0.23 维护分支独有 `flash_common3_context.py`、`kv_offload/`、`memcache_comm_fence.py`、`simple_kv_offload/`；main 独有 `config_utils.py`、`ec_manager/`、`observability/`、`weight_switch/`。其余 21 个子目录两边同名，但内容不同：`platform.py` 里 `class NPUPlatform` 在 v0.23 上是第 128 行 [C2]、在 main 上是第 82 行 [C5]。对照方法见[怎么读这个仓库](reading-vllm-ascend.md)。
-- **v0.26（`2ed6cbba`）比 v0.23（`2c59ff10`）只差两项** [D]：`flash_common3_context.py` 没了，多出一个 `transformers_utils/`。增长全在同名目录内部 [A]；`class NPUPlatform` 在 v0.26 上是第 127 行，只比 v0.23 差一行 [C6]。
-- **`worker/` 在 v0.26 上掉了名次** [D]：文件 31 → 41，行数 14486 → 13481。原因是 `pcp_utils.py`（2387 行）与 `kvcomp_utils.py` 这两个大文件没了，新增的十来个小文件多半落在 `worker/v2/spec_decode/` 下。`worker/model_runner_v1.py` 在 v0.23 上 5251 行，占 `worker/` 的三分之一；v0.26 上 5314 行，占五分之二 [D]。
-- `model_executor/` 在 v0.23 上 3 个文件 263 行，v0.26 上 9 个文件 876 行 [D]。
-- 把 `ops/fused_moe/fused_moe.py` 的 `AscendFusedMoE` 登记进替换表的那段带版本判断，只在 `vllm_version_is("0.23.0")` 时生效 [C10]；其他版本上专家层怎么接进来，见[专家并行](expert-parallel.md)。
-
-### 源码位置
-
-**六组与目录的对应**（v0.23 维护分支 `2c59ff10`）：
-
-| 组 | 目录 |
-|---|---|
-| 主干 | `worker/`（单卡执行）、`attention/`（注意力）、`ops/`（算子替换） |
-| 接缝 | `patch/`（接上游的补丁）、`core/`、`model_executor/` |
-| 并行与通信 | `distributed/`（跨卡通信）等四个目录 |
-| 图与编译 | `compilation/`（ACL Graph 与自有编译后端）、`xlite/`（实验性） |
-| 模型、权重与采样 | `quantization/`、`model_loader/`（16 个文件，含 netloader 与 rfork 两个加载器）、`spec_decode/`（12 个文件）等六个目录 |
-| 专用与周边 | `_310p/`（49 个文件）、`_cann_ops_custom/`（没有 `.py`，是构建产物的落点） |
-
-**按规模排**（两列都实测于 `2c59ff10` 与 `2ed6cbba` [D]）：
-
-| 目录 | 文件数 v0.23 → v0.26 | 行数 v0.23 → v0.26 | 什么时候读 |
-|---|---|---|---|
-| `ops/` | 89 → 96 | 23484 → 25737 | 追一个具体算子时 |
-| `distributed/` | 46 → 53 | 20985 → 25547 | 排查跨卡问题时 |
-| `attention/` | 17 → 17 | 14732 → 15188 | 第一遍就读 |
-| `worker/` | 31 → 41 | 14486 → 13481 | 第一遍就读 |
-| `patch/` | 64 → 76 | 10546 → 14058 | 怀疑上游行为被改过时 |
-| `_310p/` | 49 → 49 | 6838 → 6648 | 只在 310P 上跑时 |
-| `quantization/` | 27 → 27 | 6578 → 6748 | 开量化时 |
-
-图里最长那条「其余 16 个目录」是 v0.23 上除表中 7 个目录外的另外 16 个子目录，连同 `vllm_ascend/` 根下 13 个 `.py`，合计 119 个文件、33012 行 [D]。
-
-**入口与主干的几个钉点**：
-
-- 插件入口：`vllm_ascend/__init__.py` 的 `register()` 返回 `"vllm_ascend.platform.NPUPlatform"`；`NPUPlatform` 定义在 `platform.py` 第 128 行起。
-- 单卡执行主干：`worker/model_runner_v1.py` 的 `class NPUModelRunner(GPUModelRunner)` 在第 268 行。
-- 算子替换的注册：`ops/__init__.py` 开头依次导入 `fused_moe`、`layernorm`、`register_custom_ops` 等模块；上游层到昇腾实现的替换表在 `utils.py` 的 `REGISTERED_ASCEND_OPS`，含 `ColumnParallelLinear`、`RowParallelLinear`、`QKVParallelLinear`、`RMSNorm`、`GatedDeltaNetAttention` 等。
-
-**那条请求走进的五个目录，各自的一处证据**（例子设定见[贯穿全库的例子](one-request.md)的对照源码一节）：
-
-- `worker/`：`worker.py` 第 1001 行调 `init_ascend_model_parallel(self.parallel_config)` 建昇腾自己的通信组。
-- `distributed/`：`parallel_state.py` 第 95–96 行建 `mc2` 通信组；专家层的 `ops/fused_moe/token_dispatcher.py` 第 34 行导入 `get_mc2_group`。
-- `ops/`：见上面的替换表；「37 个 token 补成 38、每颗 19 个」发生在 `ops/fused_moe/prepare_finalize.py`，行号见[贯穿全库的例子](one-request.md)。
-- `patch/`：块大小 2048 由 `patch/platform/patch_mamba_config.py` 算出，推导见[贯穿全库的例子](one-request.md)。
-- `attention/`：10 层全注意力走这里的注意力后端 [A]。
-- 这个模型的线性注意力层是上游的 `QwenGatedDeltaNetAttention`，它是 `GatedDeltaNetAttention` 的子类；替换表按 `GatedDeltaNetAttention` 这个名字登记了 `ops/gdn.py` 的昇腾实现，但子类是否也被换掉本页没有核到，所以上半没写。
-- 五个目录在 v0.23 上合计 31 + 17 + 89 + 64 + 46 = 247 个文件；不碰的三个目录 `quantization/`、`spec_decode/`、`_310p/` 合计 27 + 12 + 49 = 88 个文件 [D]。
+版本变化可能迁移文件或改变同名函数。稳定的阅读线索是职责、符号、输入输出与调用关系；行号用于定位某份固定快照。下一页给出[问题驱动的阅读方法](reading-vllm-ascend.md)，包括配置追踪、异常边界和版本对照。

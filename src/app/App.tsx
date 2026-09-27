@@ -13,6 +13,18 @@ const router = createHashRouter([
       { path: "wiki", Component: WikiPage },
       { path: "wiki/:id", Component: WikiPage },
       { path: "dev/spike-c", Component: SpikeCPage },
+      // 样式试样只给开发时挑方案用：构建里 DEV 是 false，整段被摇掉
+      ...(import.meta.env.DEV
+        ? [
+            {
+              path: "dev/wiki-specimen",
+              HydrateFallback: () => null,
+              lazy: async () => ({
+                Component: (await import("./pages/dev/WikiSpecimenPage")).WikiSpecimenPage,
+              }),
+            },
+          ]
+        : []),
     ],
   },
 ]);

@@ -1,35 +1,38 @@
 layout: figure
 id: linear-attention-state
-caption: 全注意力每来一个新 token 都要跟前面每个连一遍，笔记也跟着变长；线性注意力只跟一份固定大小的状态打交道
-size: [900, 240]
-
-dividers:
-  - { from: [450, 20], to: [450, 226], sides: [全注意力, 线性注意力] }
-
-rows:
-  - { at: [40, 110], count: 7, w: 30, h: 30, gap: 8, tone: token }
-  - { at: [480, 110], count: 7, w: 30, h: 30, gap: 8, tone: token, faded: [0, 1, 2, 3, 4, 5, 6] }
-
+caption: 单头 KDA 的数学递推：按 key 通道衰减旧状态，用当前键和值预测误差修正，再以查询读出；图中采用 [K,V] 数学布局，省略批次、缩放和外层投影
+size: [900, 660]
+matrices:
+  - { at: [40, 110], w: 100, h: 100, rows: 4, cols: 4, tone: kv, label: 'Sₜ₋₁', dims: '[dₖ, dᵥ]' }
+  - { at: [390, 110], w: 100, h: 100, rows: 4, cols: 4, tone: kv, label: 'S̄ = D Sₜ₋₁' }
+  - { at: [730, 300], w: 100, h: 100, rows: 4, cols: 4, tone: kv, label: 'Sₜ' }
+  - { at: [730, 545], w: 100, h: 28, rows: 1, cols: 4, tone: token, label: 输出 o, dims: 'Sₜᵀ q' }
 items:
-  - { at: [147, 44], size: [44, 34], text: 新, tone: token, style: solid }
-  - { at: [803, 40], size: [44, 34], text: 新, tone: token, style: solid }
-  - { at: [780, 98], size: [90, 56], text: 状态, sub: 固定大小, tone: kv, style: solid }
-
-fans:
-  - from: [169, 78]
-    to: [[55, 110], [93, 110], [131, 110], [169, 110], [207, 110], [245, 110], [283, 110]]
-
+  - { at: [215, 130], size: [115, 60], text: 通道衰减 D, tone: control }
+  - { at: [385, 300], size: [150, 60], text: 预测 v̂ = S̄ᵀ k, tone: control }
+  - { at: [210, 425], size: [140, 58], text: 当前值 v, tone: token }
+  - { at: [385, 425], size: [150, 58], text: 误差 e = v − v̂, tone: token }
+  - { at: [570, 425], size: [125, 58], text: 'β k eᵀ', sub: 外积更新, tone: control }
+  - { at: [730, 455], size: [100, 50], text: 查询 q, tone: token }
+  - { at: [210, 300], size: [120, 58], text: 当前键 k, tone: token }
+nodes:
+  - { at: [635, 350], r: 20, text: '+' }
 links:
-  - { from: [744, 125], to: [774, 125] }
-  - { from: [825, 74], to: [825, 96] }
-
-bars:
-  - at: [40, 176]
-    h: 26
-    scale: 38
-    segments:
-      - { value: 7, tone: kv, text: 笔记 }
-      - { value: 2, tone: kv, style: hatch }
-
+  - { from: [140, 160], to: [215, 160], tone: kv }
+  - { from: [330, 160], to: [390, 160], tone: kv }
+  - { from: [440, 210], to: [460, 300], via: [[440, 260], [460, 260]], tone: kv }
+  - { from: [490, 160], to: [635, 330], via: [[635, 160]], tone: kv }
+  - { from: [330, 329], to: [385, 329], tone: token }
+  - { from: [460, 360], to: [460, 425], tone: token }
+  - { from: [350, 454], to: [385, 454], tone: token }
+  - { from: [535, 454], to: [570, 454], tone: token }
+  - { from: [632, 425], to: [635, 370], tone: control }
+  - { from: [655, 350], to: [730, 350], tone: kv }
+  - { from: [830, 350], to: [780, 545], via: [[865, 350], [865, 530], [780, 530]], tone: kv }
+  - { from: [780, 505], to: [780, 545], tone: token }
+  - { from: [830, 320], to: [90, 110], via: [[870, 320], [870, 42], [90, 42]], tone: kv, dashed: true }
 texts:
-  - { at: [480, 170], text: 汇入递推状态, size: 13.5 }
+  - { at: [450, 28], text: 写回请求状态，供下个位置继续使用, anchor: middle, size: 13 }
+  - { at: [450, 623], text: Q/K/V 由投影与短卷积产生；短卷积另有历史缓存, anchor: middle, size: 13 }
+
+

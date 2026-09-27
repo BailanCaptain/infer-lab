@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 465" width="900" height="465" role="img" aria-label="六位置教学对照：左为密集因果范围，右仅保留当前位置、前一位置和位置0；实色格参与主注意力，虚线格不参与。右侧模式不是GLM实际索引策略">
+  <title>六位置教学对照：左为密集因果范围，右仅保留当前位置、前一位置和位置0；实色格参与主注意力，虚线格不参与。右侧模式不是GLM实际索引策略</title>
+  <defs></defs>
+  <rect x="110" y="95" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="202" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="248" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="294" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="340" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="110" y="141" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="141" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="202" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="248" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="294" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="340" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="110" y="187" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="187" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="202" y="187" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="248" y="187" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="294" y="187" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="340" y="187" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="110" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="202" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="248" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="294" y="233" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="340" y="233" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="110" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="202" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="248" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="294" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="340" y="279" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="110" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="202" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="248" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="294" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="340" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="100" y="120.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q0</text>
+  <text x="100" y="166.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q1</text>
+  <text x="100" y="212.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q2</text>
+  <text x="100" y="258.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q3</text>
+  <text x="100" y="304.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q4</text>
+  <text x="100" y="350.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q5</text>
+  <text x="131" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K0</text>
+  <text x="177" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K1</text>
+  <text x="223" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K2</text>
+  <text x="269" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K3</text>
+  <text x="315" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K4</text>
+  <text x="361" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K5</text>
+  <rect x="530" y="95" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="622" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="668" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="714" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="760" y="95" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="530" y="141" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="141" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="622" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="668" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="714" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="760" y="141" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="530" y="187" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="187" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="622" y="187" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="668" y="187" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="714" y="187" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="760" y="187" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="530" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="233" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="622" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="668" y="233" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="714" y="233" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="760" y="233" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="530" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="279" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="622" y="279" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="668" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="714" y="279" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="760" y="279" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="530" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="325" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="622" y="325" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="668" y="325" width="42" height="42" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="714" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="760" y="325" width="42" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="520" y="120.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q0</text>
+  <text x="520" y="166.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q1</text>
+  <text x="520" y="212.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q2</text>
+  <text x="520" y="258.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q3</text>
+  <text x="520" y="304.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q4</text>
+  <text x="520" y="350.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q5</text>
+  <text x="551" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K0</text>
+  <text x="597" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K1</text>
+  <text x="643" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K2</text>
+  <text x="689" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K3</text>
+  <text x="735" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K4</text>
+  <text x="781" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K5</text>
+  <text x="245" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">密集因果：21 个位置对</text>
+  <text x="665" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">局部＋固定位置：15 个位置对</text>
+  <text x="450" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">两者都禁止访问未来；稀疏选择进一步减少允许历史中的参与位置</text>
+</svg>

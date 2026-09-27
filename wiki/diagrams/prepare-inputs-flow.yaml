@@ -1,30 +1,150 @@
 layout: figure
 id: prepare-inputs-flow
-caption: 第 1 步问题的 37 个 token 写进这个 KV 块的前 37 格；第 2 步的 1 个 token 在位置 37，就写进第 37 格。之后每步往后挪一格，237 个 token 都在这一块里
-size: [900, 330]
-
-rows:
-  - { at: [40, 56], count: 37, w: 13, h: 24, gap: 3, tone: token }
-
-items:
-  - { at: [680, 44], size: [190, 50], text: 第 2 步：1 个 token, sub: 位置 37, tone: token }
-
+caption: A/C 第三轮的三套坐标：批次行、所属请求的序列位置、教学 B=4 下的物理槽位；GLM 各状态组仍有专门布局
+size:
+- 900
+- 445
 grids:
-  - { at: [40, 150], rows: 1, cols: 48, cell: [16, 32], tone: kv, fill: 37, cells: [{ at: [0, 37], tone: token, style: solid }], label: 一个 KV 块 2048 格，画出前 48 格 }
-
-links:
-  - { from: [335, 86], to: [335, 146], tone: token }
-  - { from: [700, 96], to: [641, 146], tone: token }
-
+- at:
+  - 245
+  - 90
+  cols: 4
+  rows: 1
+  cell:
+  - 100
+  - 45
+  gap: 4
+  tone: token
+  cells:
+  - at:
+    - 0
+    - 0
+    text: A
+  - at:
+    - 0
+    - 1
+    text: C
+  - at:
+    - 0
+    - 2
+    text: C
+  - at:
+    - 0
+    - 3
+    text: C
+- at:
+  - 245
+  - 185
+  cols: 4
+  rows: 1
+  cell:
+  - 100
+  - 45
+  gap: 4
+  tone: kv
+  cells:
+  - at:
+    - 0
+    - 0
+    text: '5'
+  - at:
+    - 0
+    - 1
+    text: '0'
+  - at:
+    - 0
+    - 2
+    text: '1'
+  - at:
+    - 0
+    - 3
+    text: '2'
+- at:
+  - 245
+  - 280
+  cols: 4
+  rows: 1
+  cell:
+  - 100
+  - 45
+  gap: 4
+  tone: control
+  cells:
+  - at:
+    - 0
+    - 0
+    text: '9'
+  - at:
+    - 0
+    - 1
+    text: '36'
+  - at:
+    - 0
+    - 2
+    text: '37'
+  - at:
+    - 0
+    - 3
+    text: '38'
 texts:
-  - { at: [40, 38], text: 第 1 步：37 个 token，位置 0–36, size: 13, strong: true }
-  - { at: [820, 172], text: ⋯, size: 20 }
-  - { at: [48, 202], text: "0", size: 12.5, anchor: middle }
-  - { at: [640, 202], text: "37", size: 12.5, anchor: middle }
-  - { at: [40, 290], text: 写进第几格 = 块号 × 2048 + 位置, size: 15, strong: true }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L862-L880
-    symbols: [_prepare_inputs]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/block_table.py#L148-L180
-    symbols: [compute_slot_mapping]
+- at:
+  - 45
+  - 115
+  text: 本轮输入
+- at:
+  - 45
+  - 210
+  text: 序列位置
+- at:
+  - 45
+  - 305
+  text: 物理槽位
+- at:
+  - 245
+  - 45
+  text: 行 0
+- at:
+  - 355
+  - 45
+  text: 行 1
+- at:
+  - 460
+  - 45
+  text: 行 2
+- at:
+  - 565
+  - 45
+  text: 行 3
+- at:
+  - 245
+  - 380
+  text: 请求边界：[0, 1, 4]；预测选行：0、3
+links:
+- from:
+  - 295
+  - 135
+  to:
+  - 295
+  - 185
+  tone: kv
+- from:
+  - 500
+  - 135
+  to:
+  - 500
+  - 185
+  tone: kv
+- from:
+  - 295
+  - 230
+  to:
+  - 295
+  - 280
+  tone: control
+- from:
+  - 500
+  - 230
+  to:
+  - 500
+  - 280
+  tone: control

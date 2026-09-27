@@ -2,7 +2,7 @@
 id: rfork
 title: RFork：工作版机制与排错总览
 type: feature
-summary: 新实例起来时不从磁盘读权重，而是直接去一台已经跑着的实例的 NPU 上把权重读过来，省下加载时间。这一章只讲用户指定的工作版，这页是总图、阅读顺序和排错入口。
+summary: 新实例可从兼容的已有 Worker 读取权重，复用其已加载的数据。以独立 RFork 工作版解释模型加载、身份匹配、传输与资源生命周期，区分传输成功和服务就绪。
 aliases:
   - RFork
   - rfork
@@ -37,7 +37,7 @@ relations:
     kind: builds-on
     note: RFork 在 Worker 加载模型时运行，推理请求开始前就要把权重准备好
 contradicts: []
-updated: '2026-09-25'
+updated: '2026-09-26'
 rawSources:
   - >-
     raw/sha256-073796cbe486e20d214f38511765d39c6eeadc44ccf5568f0097b54b2d1dc28e.md
@@ -53,9 +53,9 @@ rawSources:
 
 ## 集群里已经有一台跑着同一个模型，新实例还要从磁盘再读一遍权重吗
 
-扩容时要再起一个实例 B。常规做法是 B 从磁盘把整份权重读进来、搬上 NPU，模型越大等得越久。可集群里已经有一个实例 A 跑着同一个模型，权重就摆在 A 的 NPU 上。RFork（Tensor Remote Fork）做的就是这件事：让 B 向 A 借一份**权重的数据来源**。
+模型启动通常要读取 checkpoint、构建模型并准备设备上的权重；随后才能分配推理状态、预热并接收请求，基础过程见 [Worker 生命周期](npu-worker-lifecycle.md)。扩容时，新实例 B 可以重复这套加载过程，也可以从兼容的已有实例 A 获取已经加载的权重字节。RFork（Tensor Remote Fork）为后一种方式提供来源选择、身份与清单核对、内存注册和远端读取。
 
-借的只是数据。B 先在自己的 NPU 上把模型搭好、把放权重的空位分配好，然后把 A 那边的权重字节读进这些空位。它加速的只是模型加载这一步；B 仍然有自己的一份模型内存、自己的推理请求和自己的 KV Cache，和 A 不共用。
+B 先构建本地模型并分配目标存储，再读取 A 的权重字节。因此它复用的是加载数据来源，仍然保留自己的模型存储、请求状态与 KV Cache。它针对模型加载阶段；收益取决于原存储速度、网络传输、布局准备和其他启动成本，不由“远端读取成功”直接保证。
 
 **这一章只讲用户确认的 RFork 工作版**——它有自己独立的代码历史，行为结论不从社区 v0.23 / v0.26 / main 那几页继承。社区版也带一份 RFork，但只合进了一小部分补丁，差别见下一节。
 
@@ -63,9 +63,9 @@ rawSources:
 file: rfork-architecture
 ```
 
-## 社区版也有 RFork，但只拿到了三个补丁，而且只在 main
+## 固定社区快照与独立工作版的差异
 
-社区三个在册版本都带一份 RFork，所以在社区版上查 RFork 报错的人也会翻到这一章，然后发现代码对不上。简单说：
+下述固定快照中的社区三个在册版本都带一份 RFork，所以在社区版上查 RFork 报错的人也会翻到这一章，然后发现代码对不上。简单说：
 
 - 工作版一共七个补丁加一份衔接差异。**社区只合进了前三个，而且只在 main 开发主线上**；v0.23 和 v0.26 一个都没有。
 - 这三个里最该在意的是第一个：等权重布局转换做完再传。v0.23、v0.26 上的量化模型和 MoE 模型，可能读到还没转换完的权重，输出是坏的。
@@ -77,11 +77,11 @@ file: rfork-architecture
 
 RFork 发生在推理请求到达之前。B 用 RFork 把模型准备好，之后请求来了，照常走分词、调度、前向和采样。RFork 不负责给请求挑机器，也不会把 A 已经服务过的对话迁到 B。
 
-要搬多少字节，由模型有哪些要传的权重、怎么切分来决定，跟请求长短没关系。[贯穿例子](one-request.md)的问题是 37 个 token 还是 100 个 token，搬的量都一样。
+要搬多少字节，由模型有哪些要传的权重、怎么切分来决定，跟请求长短没关系。在权重清单及配置不变时，后续请求包含 37 个还是 100 个 token，不改变本次加载清单的字节数。
 
 搬的时候按字节分批：一批最多 1 GiB，或者最多 512 段。这里的「批」只是权重传输的批次，和 [KV Cache](kv-cache.md) 里按 token 分的块不是一回事。
 
-拿一个小模型算一遍：一个 6 亿参数的模型（Qwen3-0.6B），每个参数 2 字节，整份权重约 1.12 GiB。单卡不切分，B 就要从 A 读回这 1.12 GiB，按 1 GiB 一批，大约分成 2 批。
+用 6 亿个 BF16 标量作容量教学假设，每元素 2 字节，不计额外张量与别名重复，数据量为 1.2 GB，约 1.12 GiB。[A][D] 按 1 GiB 字节上限至少需要两批；实际批数还受每批 512 段限制和装批顺序影响，不能从参数量单独算出。这个小算例不代表 GLM 或某个真实 checkpoint 的传输清单。
 
 ## 图里三条通道，出了问题要找不同的地方
 
@@ -97,20 +97,38 @@ Planner 和 seed 的 HTTP 接口都不搬权重本身。B 从元数据里拿到 
 
 | 阅读顺序 | 这一篇回答什么 |
 |---|---|
-| 1. [术语](rfork-terms.md) | seed、rank、layout、storage、MR、manifest、lease 分别指什么 |
+| 1. 术语 | seed、rank、layout、storage、MR、manifest、lease 分别指什么：词表见 `wiki/TERMS.md` 第五节，分层说明见本页下一节 |
 | 2. [启动路径](rfork-startup.md) | 从选中加载器到模型返回，先做什么，什么时候申请租约 |
 | 3. [身份匹配](rfork-identity.md) | 为什么有实例却找不到 seed，怎样避免拿错分片 |
 | 4. [张量布局](rfork-layout.md) | 量化和 NZ 为什么改变传输时机，patch7 为什么排除 topk 缓冲区 |
-| 5. [内存与共享](rfork-memory.md) | 地址背后的对象谁保活，main / draft 怎样避免重复注册 |
-| 6. [元数据与传输](rfork-transfer.md) | manifest 怎样验收，一次 read 怎样形成，什么叫传完 |
-| 7. [租约与生命周期](rfork-lifecycle.md) | 为什么传完了还不能成为 seed，什么时候允许回退或销毁 |
-| 8. [配置与部署](rfork-config.md) | 参数放哪、默认值、地址与端口、限制、怎样测启动收益 |
-| 9. [报错排查](rfork-troubleshooting.md) | 按原始日志找阶段，区分证据、候选原因与下一步 |
-| 10. [版本维护](rfork-maintenance.md) | 本地代码在哪，补丁来了怎样更新，怎样留下可核对的历史 |
+| 5. [传输与内存](rfork-transfer.md) | manifest 怎样验收，一次 read 怎样形成，什么叫传完；地址背后的对象谁保活，main / draft 怎样避免重复注册 |
+| 6. [租约与生命周期](rfork-lifecycle.md) | 为什么传完了还不能成为 seed，什么时候允许回退或销毁 |
+| 7. [配置与部署](rfork-config.md) | 参数放哪、默认值、地址与端口、限制、怎样测启动收益 |
+| 8. [报错排查](rfork-troubleshooting.md) | 按原始日志找阶段，区分证据、候选原因与下一步 |
+| 9. [版本维护](rfork-maintenance.md) | 本地代码在哪，补丁来了怎样更新，怎样留下可核对的历史 |
 
 每篇只回答一个问题。专业词先在术语页找入口，到机制页再结合具体的地址、状态和调用展开。
 
 另附[官网全文与原图核读](../sources/rfork-official-guide.md)：按用户指定的英文 latest 指南逐节对照，解释官方架构图、列出官方测试范围，并标出它和工作版在申请时机、key、端口和依赖上的差异。排错时先确认是哪个版本，再用对应的规则。
+
+
+## 读 RFork 前先分清谁在哪一层（原 rfork-terms 页）
+
+以下内容由原 `rfork-terms` 页并入，2026-09-27 只作搬运，未重写文风；逐词的词表已并进 `wiki/TERMS.md` 第五节「RFork 工作版」。
+
+读 RFork 最容易混淆的是**同一个词分属不同层**：一个 seed 不是整个模型集群，一个地址不是一个张量的身份，一个 lease 不是内存锁。
+
+先把软件栈分层：**NPU** 是实际存放和计算张量的加速设备；**PyTorch** 提供 Tensor、Parameter、Module 等模型对象；**torch_npu** 把 PyTorch 接到昇腾设备；**CANN** 是昇腾计算相关的软件栈。**YuanRong / `yr.datasystem`** 提供 RFork 所调用的数据传输能力，它不负责模型逐 token 推理。反复出现的 `TransferEngine`、`MemoryRegistration`、`ErrorCode` 三个名字都是从 `yr.datasystem` 导入的，导入不到就直接报 `RFork requires the YuanRong TransferEngine, MemoryRegistration, and ErrorCode APIs.`——传输本身不是 RFork 自己实现的。排错模板要求分别提供这些版本，因为 RFork 的 Python 代码并不能单独决定底层设备调用的行为。
+
+文中的 **native** 指 Python 调用下层本地库或设备接口的部分；**同步**表示这次调用返回前要等待对应操作完成，**异步**表示把工作交给后台继续执行。它们必须带对象来理解：同步的权重 read 和异步的 lease release 出现在同一条加载流程里——前者返回就代表这批字节已经到位，后者只是把归还名额的请求交给后台线程，两件事的「完成」不在同一个时刻。
+
+角色会复用在同一个 Worker 中：先是 receiver，模型就绪且租约释放后又可成为 seed；角色变化不等于新建另一个模型。这些身份最终进入[匹配规则](rfork-identity.md)，但并非每个 rank 都直接写进 key——例如 global rank 不在 seed key 中，DP 组大小却在指纹里。
+
+和普通加载比，RFork 只改变权重数据的来源，仍需完成本地模型构建，并多出三个条件：来源与目标必须拥有兼容的模型分片；地址在传输期间有效；传输完成或失败后资源能够正确回收。其中涉及的[张量与权重](matmul-and-weights.md)、[设备内存](device-memory.md)、[量化](quantization.md)和[并行组](collective-communication.md)沿用基础页含义。
+
+会话状态（`RForkLifecycleState`）和三种返回结果——`LeaseReleaseResult`、`RForkSeedServiceStartResult` 两个枚举，外加 `RForkFallbackCleanupResult` 这个 dataclass——在[生命周期页](rfork-lifecycle.md)按真实调用展开；看见 `DEFERRED` 时先查延期的是什么，不要直接翻译成「模型不可用」。
+
+官网图与量化说明里还会遇到的词：NIC、RDMA、RoCE、HBM 以及 BF16、W8A8、W4A8 的含义和图中位置，见[官网核读页](../sources/rfork-official-guide.md)，避免把网络协议、网卡和内存混为一层。官网提到的 **SFA** 是稀疏注意力实现路径，RFork 不执行它的注意力计算，只需要确保其推理用张量也被采集；`W_UV` / `W_UK_T` 是相关实现的派生权重名称，分别用于 Value 上投影、Key 上投影的转置表示，不是某条请求的 V/K Cache，为什么不能漏搬见[布局页](rfork-layout.md)。
 
 ## 「成功」至少有四种，不能压成一个开关
 
@@ -166,7 +184,7 @@ Planner 和 seed 的 HTTP 接口都不搬权重本身。B 从元数据里拿到 
 
 一批传输的上限是 1 GiB 或 512 个字节段，和 KV block 按 token 分块无关。[C9]
 
-小模型的搬运量推导：Qwen3-0.6B 参数以 bf16 存放，每元素 2 字节，`0.6e9 × 2 B ≈ 1.2 GB ≈ 1.12 GiB`；单卡不切分即 B 要读回的量，按 1 GiB 批上限约 2 批同步读，与请求 token 数无关。[D]
+容量算例为 `0.6e9 × 2 B = 1.2 GB ≈ 1.12 GiB`，仅是显式假设下的标量存储量。传输清单还可能包含派生张量、量化状态或重复别名；实际传输字节与批数由清单、单批字节和段数限制共同决定。[D]
 
 ### 版本差异
 

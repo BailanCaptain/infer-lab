@@ -1,35 +1,235 @@
-layout: figure
-id: mooncake-connector
-caption: 整块拉要等 P 节点 28 层全算完才开始搬；逐层推把前 27 层的搬运藏进 P 还在算的时间里。两条路 D 节点都要等 28 层到齐（示意，搬运时长按每层四分之一层计算时间画）
-size: [900, 250]
-
-timelines:
-  - at: [30, 50]
-    scale: 18
-    start: 0
-    end: 35
-    ticks: 7
-    unit: 层的计算时间
-    labelW: 130
-    lanes:
-      - label: 整块拉 · P 算
-        spans:
-          - { from: 0, to: 28, tone: token, style: faded }
-      - label: 整块拉 · 搬
-        spans:
-          - { from: 28, to: 35, tone: comm, text: D 一次读走 28 层 }
-      - label: 逐层推 · P 算
-        spans:
-          - { from: 0, to: 28, tone: token, style: faded }
-      - label: 逐层推 · 搬
-        spans:
-          - { from: 1, to: 28.25, tone: comm, text: P 每算完一层就推一层 }
-    marks:
-      - { t: 28.25, label: 逐层推：到齐 }
-      - { t: 35, label: 整块拉：到齐 }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L962-L969
-    symbols: [batch_transfer_sync_read]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L494-L519
-    symbols: [batch_transfer_sync_write]
+{
+  "size": [
+    900,
+    660
+  ],
+  "caption": "调度侧管理块身份与生命周期，执行侧把各缓存组映射到地址并传输；控制元数据和完成事件连接两层职责，传输引擎不替代调度器",
+  "frames": [
+    {
+      "at": [
+        25,
+        75
+      ],
+      "size": [
+        385,
+        505
+      ],
+      "label": "P 来源侧"
+    },
+    {
+      "at": [
+        490,
+        75
+      ],
+      "size": [
+        385,
+        505
+      ],
+      "label": "D 目的侧"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        65,
+        130
+      ],
+      "size": [
+        305,
+        75
+      ],
+      "text": "调度侧",
+      "tone": "control",
+      "sub": "保留块 / 来源元数据"
+    },
+    {
+      "at": [
+        530,
+        130
+      ],
+      "size": [
+        305,
+        75
+      ],
+      "text": "调度侧",
+      "tone": "control",
+      "sub": "分配块 / 接收计划"
+    },
+    {
+      "at": [
+        65,
+        315
+      ],
+      "size": [
+        305,
+        55
+      ],
+      "text": "执行侧：地址 / 布局注册",
+      "tone": "control"
+    },
+    {
+      "at": [
+        530,
+        315
+      ],
+      "size": [
+        305,
+        55
+      ],
+      "text": "执行侧：映射 / 传输任务",
+      "tone": "control"
+    }
+  ],
+  "hardware": [
+    {
+      "kind": "memory",
+      "at": [
+        80,
+        440
+      ],
+      "size": [
+        275,
+        80
+      ],
+      "label": "来源缓存组"
+    },
+    {
+      "kind": "memory",
+      "at": [
+        545,
+        440
+      ],
+      "size": [
+        275,
+        80
+      ],
+      "label": "目的缓存组"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        530,
+        168
+      ],
+      "tone": "control",
+      "from": [
+        370,
+        168
+      ]
+    },
+    {
+      "to": [
+        215,
+        315
+      ],
+      "tone": "control",
+      "dashed": true,
+      "from": [
+        215,
+        205
+      ]
+    },
+    {
+      "to": [
+        682,
+        315
+      ],
+      "tone": "control",
+      "dashed": true,
+      "from": [
+        682,
+        205
+      ]
+    },
+    {
+      "to": [
+        215,
+        440
+      ],
+      "tone": "kv",
+      "from": [
+        215,
+        370
+      ]
+    },
+    {
+      "to": [
+        682,
+        440
+      ],
+      "tone": "kv",
+      "from": [
+        682,
+        370
+      ]
+    },
+    {
+      "to": [
+        545,
+        480
+      ],
+      "tone": "comm",
+      "from": [
+        355,
+        480
+      ]
+    },
+    {
+      "to": [
+        835,
+        205
+      ],
+      "tone": "control",
+      "via": [
+        [
+          852,
+          480
+        ],
+        [
+          852,
+          242
+        ],
+        [
+          835,
+          242
+        ]
+      ],
+      "from": [
+        820,
+        480
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        450,
+        140
+      ],
+      "text": "元数据",
+      "anchor": "middle",
+      "tone": "control"
+    },
+    {
+      "at": [
+        450,
+        461
+      ],
+      "text": "数据传输",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        450,
+        620
+      ],
+      "text": "完成事件 → D 可继续；P 按发送完成释放保留块",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "mooncake-connector"
+}

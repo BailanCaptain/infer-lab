@@ -1,36 +1,298 @@
-layout: figure
-id: eplb-cycle
-caption: 默认配置下 Qwen3.6-35B-A3B 的一个 EPLB 周期：数 600 步、算 50 步、搬 40 步，全摊在正常推理的每一步里
-size: [900, 190]
-
-timelines:
-  - at: [30, 50]
-    scale: 1.05
-    start: 0
-    end: 690
-    unit: 步
-    labelW: 110
-    laneH: 30
-    gap: 14
-    lanes:
-      - label: 推理进程
-        spans:
-          - { from: 0, to: 600, tone: token, text: 数：每个专家分到几个 token }
-          - { from: 600, to: 650, tone: token, style: faded }
-          - { from: 650, to: 690, tone: comm, text: 搬 }
-      - label: EPLB 子进程
-        spans:
-          - { from: 600, to: 650, tone: control, text: 算 }
-
-texts:
-  - { at: [600, 150], text: 搬：40 层，一步搬一层, size: 13, note: true }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L831-L845
-    symbols: [expert_heat_collection_interval, algorithm_execution_interval]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L79-L101
-    symbols: [num_moe_layers, update_expert_weight_flag]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/eplb_updator.py#L102-L155
-    symbols: [planner_q.put, forward_before, forward_end]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/eplb/core/eplb_worker.py#L337-L410
-    symbols: [EplbProcess, planner_q, block_update_q]
+{
+  "layout": "figure",
+  "id": "eplb-cycle",
+  "size": [
+    900,
+    650
+  ],
+  "caption": "负载统计形成放置计划后，发送端把本层E1权重传到接收缓冲；等待传输完成，再更新目标槽位和映射。只画一个专家的一次迁移，其他传输省略，图不按真实耗时绘制。",
+  "grids": [
+    {
+      "at": [
+        70,
+        60
+      ],
+      "rows": 1,
+      "cols": 4,
+      "cell": [
+        55,
+        35
+      ],
+      "tone": "token",
+      "style": "solid",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "8"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "8"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "2"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "2"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        525,
+        52
+      ],
+      "size": [
+        290,
+        52
+      ],
+      "text": "后台生成本层放置计划",
+      "tone": "control"
+    },
+    {
+      "at": [
+        525,
+        527
+      ],
+      "size": [
+        290,
+        50
+      ],
+      "text": "后续路由使用新映射",
+      "tone": "control"
+    }
+  ],
+  "hardware": [
+    {
+      "kind": "server",
+      "at": [
+        35,
+        210
+      ],
+      "size": [
+        310,
+        270
+      ],
+      "label": "发送端 · 设备 0"
+    },
+    {
+      "kind": "server",
+      "at": [
+        470,
+        210
+      ],
+      "size": [
+        395,
+        270
+      ],
+      "label": "接收端 · 设备 1"
+    }
+  ],
+  "frames": [
+    {
+      "at": [
+        495,
+        269
+      ],
+      "size": [
+        150,
+        132
+      ],
+      "label": "接收缓冲"
+    },
+    {
+      "at": [
+        688,
+        269
+      ],
+      "size": [
+        150,
+        132
+      ],
+      "label": "目标槽位"
+    }
+  ],
+  "matrices": [
+    {
+      "at": [
+        90,
+        285
+      ],
+      "w": 160,
+      "h": 76,
+      "rows": 4,
+      "cols": 4,
+      "tone": "weight",
+      "label": "E1 权重"
+    },
+    {
+      "at": [
+        520,
+        295
+      ],
+      "w": 100,
+      "h": 60,
+      "rows": 4,
+      "cols": 4,
+      "tone": "weight",
+      "label": "E1"
+    },
+    {
+      "at": [
+        713,
+        295
+      ],
+      "w": 100,
+      "h": 60,
+      "rows": 4,
+      "cols": 4,
+      "tone": "weight",
+      "label": "E1"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        70,
+        34
+      ],
+      "text": "专家调用统计",
+      "strong": true
+    },
+    {
+      "at": [
+        355,
+        308
+      ],
+      "text": "传输权重",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        496,
+        449
+      ],
+      "text": "等待完成 → 更新权重与映射"
+    },
+    {
+      "at": [
+        67,
+        439
+      ],
+      "text": "同一逻辑专家，权重内容保持"
+    },
+    {
+      "at": [
+        450,
+        621
+      ],
+      "text": "接收缓冲与已生效槽位分开；后台传输仍会占用链路和内存。",
+      "anchor": "middle"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        292,
+        78
+      ],
+      "to": [
+        520,
+        78
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        620,
+        104
+      ],
+      "to": [
+        80,
+        210
+      ],
+      "via": [
+        [
+          620,
+          155
+        ],
+        [
+          80,
+          155
+        ]
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        735,
+        104
+      ],
+      "to": [
+        735,
+        210
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        250,
+        323
+      ],
+      "to": [
+        495,
+        323
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        645,
+        325
+      ],
+      "to": [
+        688,
+        325
+      ],
+      "tone": "weight"
+    },
+    {
+      "from": [
+        765,
+        402
+      ],
+      "to": [
+        765,
+        428
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        670,
+        480
+      ],
+      "to": [
+        670,
+        522
+      ],
+      "tone": "control"
+    }
+  ]
+}

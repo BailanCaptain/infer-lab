@@ -81,6 +81,6 @@ describe("pageFrontmatterSchema", () => {
 describe("CHAPTER_TITLES", () => {
   it("00 到 21 共 22 章", () => {
     expect(Object.keys(CHAPTER_TITLES)).toHaveLength(22);
-    expect(CHAPTER_TITLES["11"]).toBe("KV Cache 内存系统");
+    expect(CHAPTER_TITLES["11"]).toBe("KV cache 内存系统");
   });
 });

@@ -1,53 +1,385 @@
-layout: figure
-id: lora
-caption: 同一批 12 行，每行带一个槽号：挂了的行各查各的小矩阵，−1 的行什么都不加；基座权重始终只有一份
-size: [900, 300]
-
-texts:
-  - { at: [30, 30], text: 请求甲 · 挂客服版, size: 13, tone: token }
-  - { at: [340, 30], text: 请求乙 · 挂法务版, size: 13, tone: token }
-  - { at: [586, 30], text: 请求丙 · 不挂, size: 13 }
-  - { at: [30, 124], text: 数字＝槽号, note: true }
-  - { at: [120, 262], text: 名额开 2，槽就只有 2 个, note: true }
-  - { at: [620, 262], text: 12 行共用这一份, note: true }
-
-grids:
-  - at: [30, 58]
-    rows: 1
-    cols: 12
-    cell: [58, 40]
-    gap: 4
-    tone: token
-    cells:
-      - { at: [0, 0], text: "0" }
-      - { at: [0, 1], text: "0" }
-      - { at: [0, 2], text: "0" }
-      - { at: [0, 3], text: "0" }
-      - { at: [0, 4], text: "0" }
-      - { at: [0, 5], text: "1" }
-      - { at: [0, 6], text: "1" }
-      - { at: [0, 7], text: "1" }
-      - { at: [0, 8], text: "1" }
-      - { at: [0, 9], text: "−1", style: faded }
-      - { at: [0, 10], text: "−1", style: faded }
-      - { at: [0, 11], text: "−1", style: faded }
-
-items:
-  - { at: [120, 170], size: [200, 64], text: 槽 0, sub: 客服版的两个小矩阵, tone: weight }
-  - { at: [360, 170], size: [200, 64], text: 槽 1, sub: 法务版的两个小矩阵, tone: weight }
-  - { at: [620, 170], size: [240, 64], text: 基座权重, sub: 只有一份，谁都用它, tone: weight, style: faded }
-
-fans:
-  - { from: [[59, 98], [121, 98], [183, 98], [245, 98], [307, 98]], to: [220, 170], tone: token }
-  - { from: [[369, 98], [431, 98], [493, 98], [555, 98]], to: [460, 170], tone: token }
-  - { from: [[617, 98], [679, 98], [741, 98]], to: [740, 170], tone: control }
-
-pins:
-  - source: vllm@0fc695fc:vllm/lora/model_manager.py#L273-L308
-    symbols: [activate_adapter, lora_index_to_id, max_loras]
-  - source: vllm@0fc695fc:vllm/lora/punica_wrapper/punica_base.py#L249-L256
-    symbols: [token_lora_indices]
-  - source: vllm-ascend@2c59ff10:csrc/kernels/bgmv_shrink.cpp#L66-L71
-    symbols: [reqLoRAIndex_]
-  - source: vllm@0fc695fc:vllm/lora/layers/base_linear.py#L99-L145
-    symbols: [lora_a_stacked, lora_b_stacked]
+{
+  "layout": "figure",
+  "id": "lora",
+  "caption": "同一个输入同时经过基座与低秩更新分支，再逐元素相加。W保持不变，A、B表示训练得到的适配器；示例秩为1、比例为1。",
+  "size": [
+    900,
+    620
+  ],
+  "matrices": [
+    {
+      "at": [
+        315,
+        85
+      ],
+      "w": 170,
+      "h": 100,
+      "rows": 3,
+      "cols": 4,
+      "label": "基座 W：3×4",
+      "tone": "weight"
+    },
+    {
+      "at": [
+        255,
+        322
+      ],
+      "w": 150,
+      "h": 34,
+      "rows": 1,
+      "cols": 4,
+      "label": "A：1×4",
+      "tone": "weight"
+    },
+    {
+      "at": [
+        530,
+        293
+      ],
+      "w": 42,
+      "h": 110,
+      "rows": 3,
+      "cols": 1,
+      "label": "B：3×1",
+      "tone": "weight"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        45,
+        223
+      ],
+      "rows": 1,
+      "cols": 4,
+      "cell": [
+        36,
+        36
+      ],
+      "tone": "token",
+      "style": "solid",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "2"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "1"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "1"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "0"
+        }
+      ]
+    },
+    {
+      "at": [
+        675,
+        110
+      ],
+      "rows": 1,
+      "cols": 3,
+      "cell": [
+        44,
+        36
+      ],
+      "tone": "token",
+      "style": "solid",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "3"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "4"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "5"
+        }
+      ]
+    },
+    {
+      "at": [
+        675,
+        322
+      ],
+      "rows": 1,
+      "cols": 3,
+      "cell": [
+        44,
+        36
+      ],
+      "tone": "token",
+      "style": "solid",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "1"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "2"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "-1"
+        }
+      ]
+    },
+    {
+      "at": [
+        675,
+        530
+      ],
+      "rows": 1,
+      "cols": 3,
+      "cell": [
+        44,
+        36
+      ],
+      "tone": "token",
+      "style": "solid",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "4"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "6"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "4"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "at": [
+        741,
+        462
+      ],
+      "r": 23,
+      "text": "+"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        45,
+        192
+      ],
+      "text": "输入 x",
+      "strong": true
+    },
+    {
+      "at": [
+        260,
+        50
+      ],
+      "text": "基座分支：xWᵀ",
+      "strong": true
+    },
+    {
+      "at": [
+        260,
+        270
+      ],
+      "text": "更新分支：(xAᵀ)Bᵀ",
+      "strong": true
+    },
+    {
+      "at": [
+        447,
+        382
+      ],
+      "text": "1 维"
+    },
+    {
+      "at": [
+        674,
+        84
+      ],
+      "text": "基座输出"
+    },
+    {
+      "at": [
+        674,
+        295
+      ],
+      "text": "更新量"
+    },
+    {
+      "at": [
+        420,
+        531
+      ],
+      "text": "适配器：4 + 3 = 7 个参数",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        420,
+        569
+      ],
+      "text": "完整更新：4 × 3 = 12 个参数",
+      "anchor": "middle"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        191,
+        241
+      ],
+      "to": [
+        315,
+        135
+      ],
+      "via": [
+        [
+          220,
+          241
+        ],
+        [
+          220,
+          135
+        ]
+      ]
+    },
+    {
+      "from": [
+        485,
+        135
+      ],
+      "to": [
+        670,
+        128
+      ]
+    },
+    {
+      "from": [
+        220,
+        241
+      ],
+      "to": [
+        255,
+        339
+      ],
+      "via": [
+        [
+          220,
+          339
+        ]
+      ]
+    },
+    {
+      "from": [
+        405,
+        339
+      ],
+      "to": [
+        524,
+        339
+      ]
+    },
+    {
+      "from": [
+        572,
+        339
+      ],
+      "to": [
+        670,
+        339
+      ]
+    },
+    {
+      "from": [
+        807,
+        128
+      ],
+      "to": [
+        764,
+        462
+      ],
+      "via": [
+        [
+          846,
+          128
+        ],
+        [
+          846,
+          462
+        ]
+      ]
+    },
+    {
+      "from": [
+        741,
+        358
+      ],
+      "to": [
+        741,
+        437
+      ]
+    },
+    {
+      "from": [
+        741,
+        487
+      ],
+      "to": [
+        741,
+        525
+      ]
+    }
+  ]
+}

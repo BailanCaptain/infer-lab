@@ -8,7 +8,7 @@
  *
  * 这个版式把这些做法写死在渲染器里，作者只能说「这是什么」，改不了线粗、字号、留白：
  * - 颜色只有语义色（token 青、权重琥珀、KV 蓝、通信紫、调度灰、出错红，和 src/design 同一套）；
- * - 设备不占颜色，画成一道浅框（frames）；
+ * - 硬件用中性轮廓，内存与接口沿用语义色；
  * - 物体（items / rows / matrices）一律描深边，选中是实色、没选中是淡色虚线；
  * - 跨设备的线用通信色，其余用墨色。
  * 这样后面的图不管谁画，长得都一样。坐标仍然手写，重叠和出界照样能失败。
@@ -133,6 +133,28 @@ export const figureSpecSchema = z
     id: z.string().min(1),
     caption: z.string().min(1),
     size: point,
+    /** 硬件轮廓；板卡、服务器、机柜是可嵌套容器。端口数须由作者明确给出。 */
+    hardware: z
+      .array(
+        z
+          .object({
+            kind: z.enum(["chip", "board", "server", "switch", "rack", "memory", "port"]),
+            at: point,
+            size: z.tuple([z.number().positive(), z.number().positive()]),
+            label: z.string().min(1),
+            ports: int.min(1).max(32).optional(),
+          })
+          .strict()
+          .superRefine((h, ctx) => {
+            if ((h.kind === "switch") !== (h.ports !== undefined))
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "只有交换机需要 ports，且必须明确端口数量",
+                path: ["ports"],
+              });
+          }),
+      )
+      .default([]),
     /** 设备或分组：一道浅框，不铺底色。名字默认写在框的左上角外面 */
     frames: z
       .array(
@@ -421,6 +443,7 @@ export const figureSpecSchema = z
             to: point,
             via: z.array(point).default([]),
             curve: z.tuple([point, point]).optional(),
+            ends: z.enum(["none", "end", "both"]).default("end"),
             tone: tone.default("ink"),
             dashed: z.boolean().default(false),
           })
@@ -713,6 +736,75 @@ function paint(spec: FigureSpec): Run {
     else text(r, x + 16, y - 12, f.label, { size: 15, weight: 700 });
   }
 
+  // 硬件轮廓保持中性色，内存与接口沿用内存蓝、通信紫。
+  // 容器只登记实际边缘的墨迹，内部可放芯片、内存或另一层设备。
+  for (const [i, hw] of spec.hardware.entries()) {
+    r.where = `hardware[${i}]`;
+    const [x, y] = hw.at;
+    const [w, h] = hw.size;
+    const container = ["board", "server", "rack"].includes(hw.kind);
+    const rect = (dx: number, dy: number, rw: number, rh: number, fill = "none", color = INK, radius = 2) =>
+      `<rect x="${round(x + dx)}" y="${round(y + dy)}" width="${round(rw)}" height="${round(rh)}" rx="${radius}" fill="${fill}" stroke="${color}" stroke-width="1.5"/>`;
+    const path = (d: string, color = INK) =>
+      `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.5"/>`;
+    const minW = hw.kind === "chip" ? 52 : 60;
+    if (w < minW || h < 40) r.tight.push(`${r.where}：硬件轮廓至少需要 ${minW}×40px`);
+    r.parts.push(`<g data-hardware="${hw.kind}">`);
+    if (container) {
+      r.parts.push(rect(0, 0, w, h, "none", INK, hw.kind === "rack" ? 3 : 8));
+      const side = hw.kind === "rack" ? 14 : 8;
+      const bottom = hw.kind === "board" ? 14 : 8;
+      box(r, hw.label, x, y, w, 8);
+      box(r, hw.label, x, y + h - bottom, w, bottom);
+      box(r, hw.label, x, y, side, h);
+      box(r, hw.label, x + w - side, y, side, h);
+      if (hw.kind === "rack") {
+        r.parts.push(path(`M${x + 14} ${y}v${h}M${x + w - 14} ${y}v${h}`));
+        for (let sy = 18; sy < h - 10; sy += 20) {
+          r.parts.push(rect(5, sy, 4, 4, SOFT.control), rect(w - 9, sy, 4, 4, SOFT.control));
+        }
+      } else if (hw.kind === "board") {
+        for (let sx = 20; sx < w - 20; sx += 12) r.parts.push(rect(sx, h - 12, 6, 10, SOFT.control));
+      } else {
+        r.parts.push(path(`M${x + 4} ${y + 12}v${h - 24}M${x + w - 4} ${y + 12}v${h - 24}`));
+      }
+    } else {
+      box(r, hw.label, x, y, w, h);
+      if (hw.kind === "chip") {
+        r.parts.push(rect(8, 8, w - 16, h - 16, SURFACE, INK, 5));
+        for (let t = 0.25; t <= 0.75; t += 0.25) {
+          const px = round(x + w * t);
+          const py = round(y + h * t);
+          r.parts.push(path(`M${px} ${y}v8M${px} ${y + h - 8}v8M${x} ${py}h8M${x + w - 8} ${py}h8`));
+        }
+      } else if (hw.kind === "memory") {
+        r.parts.push(rect(0, 0, w, h, SOFT.kv, COLOR.kv, 3));
+        r.parts.push(path(`M${x + 5} ${y + h - 8}h${w - 10}M${x + 5} ${y + h - 4}h${w - 10}`, COLOR.kv));
+      } else if (hw.kind === "port") {
+        r.parts.push(rect(0, 0, w, h, SURFACE, COLOR.comm, 4));
+        r.parts.push(rect(8, 8, w - 16, h - 16, SOFT.comm, COLOR.comm));
+      } else {
+        r.parts.push(rect(0, 0, w, h, SURFACE, INK, 6));
+        const pitch = (w - 24) / hw.ports!;
+        if (pitch < 16) r.tight.push(`${r.where}：${hw.ports} 个端口放不下`);
+        for (let port = 0; port < hw.ports!; port++)
+          r.parts.push(
+            `<g data-port="${port}">${rect(12 + port * pitch, h * 0.35, pitch - 6, h * 0.4, SOFT.comm, COLOR.comm)}</g>`,
+          );
+        r.parts.push(`<circle cx="${x + w - 10}" cy="${y + 10}" r="2.5" fill="${INK}"/>`);
+      }
+    }
+    const inside = hw.kind === "chip" || hw.kind === "memory";
+    fitted(r, r.where, hw.label, 13, w - (inside ? 22 : 0));
+    text(r, x + w / 2, inside ? y + h / 2 + 4 : y - 10, hw.label, {
+      size: 13,
+      weight: 700,
+      anchor: "middle",
+      ink: !inside,
+    });
+    r.parts.push("</g>");
+  }
+
   // ---- 分界线：淡灰虚线，两侧的名字写在线头旁边
   for (const [i, d] of spec.dividers.entries()) {
     r.where = `dividers[${i}]`;
@@ -744,17 +836,18 @@ function paint(spec: FigureSpec): Run {
     curve: number[][] | undefined,
     t: FigureTone,
     dashed: boolean,
+    ends: "none" | "end" | "both" = "end",
   ) => {
     const d = curve
       ? `M${from[0]} ${from[1]} C ${curve[0]![0]} ${curve[0]![1]}, ${curve[1]![0]} ${curve[1]![1]}, ${to[0]} ${to[1]}`
       : [from, ...via, to].map(([x, y], k) => `${k === 0 ? "M" : "L"}${x} ${y}`).join(" ");
-    lines.push(stroke(r, id, d, t, dashed, "end"));
+    lines.push(stroke(r, id, d, t, dashed, ends));
     const pts = curve ? cubicPoints(from, curve[0]!, curve[1]!, to) : [from, ...via, to];
     for (const p of pts) r.points.push({ where: r.where, x: p[0]!, y: p[1]! });
   };
   for (const [i, l] of spec.links.entries()) {
     r.where = `links[${i}]`;
-    arrow(l.from, l.to, l.via, l.curve, l.tone, l.dashed);
+    arrow(l.from, l.to, l.via, l.curve, l.tone, l.dashed, l.ends);
   }
   for (const [i, f] of spec.fans.entries()) {
     r.where = `fans[${i}]`;
@@ -1452,6 +1545,7 @@ function figureWords(spec: FigureSpec): string[] {
     ...spec.texts.map((t) => t.text),
     ...spec.items.flatMap((it) => [it.text, it.sub]),
     ...spec.frames.map((f) => f.label),
+    ...spec.hardware.map((h) => h.label),
     ...spec.matrices.flatMap(matrixWords),
     ...spec.equations.flatMap((e) => e.terms.flatMap((t) => ("op" in t ? [] : matrixWords(t)))),
     ...spec.brackets.map((b) => b.label),

@@ -58,7 +58,7 @@ rawSources:
 
 `multistream_overlap_gate` 是 v0.23.0 上的 bool 开关（默认 `False`），把 MoE 层里的**共享专家前向**和 **`select_experts` 路由**整体搬到一条副流 `gate_stream` 上，让它们与主线里的「动态量化 + all-gather 隐藏态」并行跑。上游管它叫 **FlashComm3 multistream-overlap gate** [S17]。
 
-它挑食得厉害：模型得有共享专家、MoE 得是 W8A8-dynamic 或 MXFP8 量化的、FlashComm1 / 序列并行得开着——三条少一条，要么白开，要么第一次前向直接断言失败。[那条请求](../concepts/one-request.md)跑的是稠密的 Qwen3-0.6B、单卡、没有 EP，**三条一条都不沾，这一页对它完全用不上**。
+它挑食得厉害：模型得有共享专家、MoE 得是 W8A8-dynamic 或 MXFP8 量化的、FlashComm1 / 序列并行得开着——三条少一条，要么白开，要么第一次前向直接断言失败。本页旧算例跑的是稠密的 Qwen3-0.6B、单卡、没有 EP，**三条一条都不沾，这一页对它完全用不上**。
 
 **存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起这个开关连同整套 FlashComm3 实现被删干净，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩一处引用，是哪个 PR 删的见下面「版本谱系」。**升级前都得从启动命令里删掉，但两边留着的后果不同** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C23]，服务照常起来、重叠一次都不会发生；main 的 `extra="forbid"` 则把它当错别字拒绝，进程直接起不来（唯一的例外见「开了的代价」第 8 条）。
 
@@ -67,7 +67,7 @@ rawSources:
 | 项 | v0.23.0 | v0.26.0rc | main | 意味着什么 |
 |---|---|---|---|---|
 | 配置键与默认值 | `additional_config.multistream_overlap_gate`，bool，`False` | 不存在，未知键静默忽略 | 不存在，被当未知键拒掉 | 升级前两边都要删：v0.26 上留着是白留，main 上留着起不来（装了 `vllm_omni` 才降成 warning）[C22] |
-| [那条请求](../concepts/one-request.md)上 | 用不上：稠密模型、单卡、无 EP、未量化 | 用不上 | 用不上 | 这一页讲的是 MoE 专属的重叠，和那条请求的 28 层稠密前向不沾边 |
+| 本页旧算例上 | 用不上：稠密模型、单卡、无 EP、未量化 | 用不上 | 用不上 | 这一页讲的是 MoE 专属的重叠，和那条请求的 28 层稠密前向不沾边 |
 | 上游状态 | 发版时即列入 Ready to Deprecate | 已移除 | 已移除 | 不要往新部署里投入，v0.23.0 上也只当短期手段 |
 | 搬到副流的计算 | 共享专家前向（含 TP all-reduce）+ `select_experts` | 不存在 | 不存在 | 省的是这两段，**不是**路由专家的 GEMM |
 | 与之并行的主线 | `_prepare_with_ep_group` 的动态量化 + all-gather | 不存在 | 不存在 | 重叠窗口只有 `prepare()` 这一段，见「开了的代价」 |

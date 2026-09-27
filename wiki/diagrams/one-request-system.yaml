@@ -1,0 +1,42 @@
+layout: figure
+id: one-request-system
+caption: 一条请求的七站：上面三列分别在 node0 的前端进程、DP0 的引擎进程和 node0 每张卡的 worker 进程里；最下面是 node1，它的 8 个 worker 每步陪着跑空批次，只在 MoE 通信里和 node0 交换数据。框的个数不表示进程数
+size: [900, 680]
+frames:
+  - { at: [24, 48], size: [246, 424], label: node0 前端进程 }
+  - { at: [323, 48], size: [246, 424], label: 引擎进程（DP0） }
+  - { at: [623, 48], size: [253, 424], label: worker 进程（每卡一个） }
+  - { at: [623, 548], size: [253, 108], label: node1（DP1） }
+items:
+  - { at: [49, 101], size: [196, 55], text: 入口, sub: 模板、分词、选 DP 组, style: plain }
+  - { at: [348, 101], size: [196, 55], text: 调度, sub: 4 个 token · 15 个块号, style: plain }
+  - { at: [651, 101], size: [196, 55], text: 准备输入, sub: 同一份计划发给 8 张卡, style: plain }
+  - { at: [651, 246], size: [196, 55], text: 45 层前向, sub: 8 张卡并行 · 218 次通信, tone: token, depth: 3 }
+  - { at: [651, 390], size: [196, 55], text: 采样与 MTP 草拟, sub: 1 个 token + 3 个候选, tone: token }
+  - { at: [348, 390], size: [196, 55], text: 结果更新, sub: 追加、回退、检查停止, style: plain }
+  - { at: [49, 390], size: [196, 55], text: 还原文字并返回, sub: token 编号 → 文字, style: plain }
+  - { at: [651, 575], size: [196, 55], text: 8 个 worker 陪跑, sub: 每步 4 个 token 的空批次, style: faded, tone: token }
+links:
+  - { from: [245, 128], to: [348, 128] }
+  - { from: [544, 128], to: [651, 128] }
+  - { from: [749, 156], to: [749, 246] }
+  - { from: [749, 314], to: [749, 390] }
+  - { from: [651, 417], to: [544, 417] }
+  - { from: [348, 417], to: [245, 417] }
+  - { from: [446, 390], to: [446, 156], via: [[556, 358], [556, 195], [446, 195]] }
+  - { from: [866, 274], to: [847, 602], via: [[888, 274], [888, 602]], ends: both, tone: comm, dashed: true }
+badges:
+  - { at: [49, 101], n: 1 }
+  - { at: [348, 101], n: 2 }
+  - { at: [651, 101], n: 3 }
+  - { at: [651, 246], n: 4 }
+  - { at: [651, 390], n: 5 }
+  - { at: [348, 390], n: 6 }
+  - { at: [49, 390], n: 7 }
+texts:
+  - { at: [363, 256], text: 未结束 → 带候选进下一步, strong: true }
+  - { at: [363, 294], text: 已结束 → 归还块号 }
+  - { at: [41, 514], text: 首次输入：① → ②, strong: true }
+  - { at: [347, 514], text: 生成循环：② → ③ → ④ → ⑤ → ⑥ → ②, strong: true }
+  - { at: [347, 548], text: 每步的新 token 经 ⑥ → ⑦ 流回客户端 }
+  - { at: [606, 606], text: MoE 通信要 16 张卡一起参与, tone: comm, anchor: end }

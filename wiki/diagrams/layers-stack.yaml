@@ -1,52 +1,43 @@
 layout: figure
 id: layers-stack
-caption: 一串隐藏向量从下往上穿过一叠一模一样的层，每层自带一份权重，顶上出下一个 token
-size: [880, 480]
-
-texts:
-  - { at: [30, 40], text: 同一套加工做 40 遍, size: 15, strong: true }
-  - { at: [40, 210], text: 每过一层，这串数字被改一次, size: 13.5, tone: token, width: 190 }
-  - { at: [594, 80], text: 每层自带一份权重, size: 13.5, tone: weight }
-  - { at: [594, 402], text: 套路一样，数字不同, size: 13, note: true, width: 240 }
-
+caption: GLM 文本主干的逻辑数据流；四个青色小块代表四路残差表示，每路形状为 [T, 4096]。中间 43 层合并绘制，权重图形不表示实际参数量
+size: [900, 820]
+matrices:
+  - { at: [360, 28], w: 180, h: 24, rows: 1, cols: 6, tone: token, label: 嵌入表示, dims: '[T, 4096]' }
+  - { at: [80, 130], w: 110, h: 40, rows: 2, cols: 5, tone: weight, label: 第 0 层权重 }
+  - { at: [80, 300], w: 110, h: 40, rows: 2, cols: 5, tone: weight, label: 第 1–43 层各自权重 }
+  - { at: [80, 460], w: 110, h: 40, rows: 2, cols: 5, tone: weight, label: 第 44 层权重 }
+  - { at: [360, 710], w: 180, h: 24, rows: 1, cols: 6, tone: token, label: 末层汇合后的表示, dims: '[T, 4096]' }
 items:
-  # 顶上出来的结果
-  - { at: [368, 20], size: [130, 30], text: 下一个 token, tone: token }
-  # 每层旁边那一小块：这一层自己的权重
-  - { at: [594, 93], size: [28, 28], tone: weight }
-  - { at: [594, 157], size: [28, 28], tone: weight }
-  - { at: [594, 285], size: [28, 28], tone: weight }
-  - { at: [594, 349], size: [28, 28], tone: weight }
-
-layers:
-  - at: [300, 84]
-    width: 260
-    h: 46
-    gap: 18
-    bands:
-      - { text: 第 40 层, sub: 注意力 + 一组专家 }
-      - { text: 第 39 层, sub: 注意力 + 一组专家 }
-      - { text: "⋯ 中间 36 层，同样的套路 ⋯" }
-      - { text: 第 2 层, sub: 注意力 + 一组专家 }
-      - { text: 第 1 层, sub: 注意力 + 一组专家 }
-
+  - { at: [320, 120], size: [260, 56], text: 第 0 层, sub: KDA · Dense FFN, style: plain }
+  - { at: [320, 285], size: [260, 64], text: 第 1–43 层, sub: 按层号配置注意力与前馈, style: plain, depth: 2 }
+  - { at: [320, 450], size: [260, 56], text: 第 44 层, sub: KDA · MoE, style: plain }
+  - { at: [320, 620], size: [260, 40], text: 沿四路求平均, style: plain }
 rows:
-  # 进第 1 层之前的那串隐藏向量（画 8 格示意）
-  - { at: [332, 410], count: 8, w: 22, h: 16, tone: token }
-
+  - { at: [336, 225], count: 4, w: 52, h: 18, gap: 6, tone: token }
+  - { at: [336, 390], count: 4, w: 52, h: 18, gap: 6, tone: token }
+  - { at: [336, 550], count: 4, w: 52, h: 18, gap: 6, tone: token }
 links:
-  # 向量从下往上，一层一层穿过去
-  - { from: [430, 408], to: [430, 388], tone: token }
-  - { from: [430, 338], to: [430, 324], tone: token }
-  - { from: [430, 274], to: [430, 260], tone: token }
-  - { from: [430, 210], to: [430, 196], tone: token }
-  - { from: [430, 146], to: [430, 132], tone: token }
-  - { from: [430, 82], to: [430, 54], tone: token }
-  # 每层的权重进这一层
-  - { from: [592, 107], to: [564, 107], tone: weight }
-  - { from: [592, 171], to: [564, 171], tone: weight }
-  - { from: [592, 299], to: [564, 299], tone: weight }
-  - { from: [592, 363], to: [564, 363], tone: weight }
-
-brackets:
-  - { from: 332, to: 529, y: 436, label: 一个 token 的隐藏向量：2048 个数字（画 8 格示意） }
+  - { from: [450, 99], to: [450, 120] }
+  - { from: [190, 150], to: [320, 150], tone: weight }
+  - { from: [190, 320], to: [320, 320], tone: weight }
+  - { from: [190, 480], to: [320, 480], tone: weight }
+  - { from: [362, 243], to: [362, 271], tone: token }
+  - { from: [420, 243], to: [420, 271], tone: token }
+  - { from: [478, 243], to: [478, 271], tone: token }
+  - { from: [536, 243], to: [536, 271], tone: token }
+  - { from: [362, 408], to: [362, 450], tone: token }
+  - { from: [420, 408], to: [420, 450], tone: token }
+  - { from: [478, 408], to: [478, 450], tone: token }
+  - { from: [536, 408], to: [536, 450], tone: token }
+  - { from: [450, 660], to: [450, 710], tone: token }
+fans:
+  - { from: [450, 176], to: [[362, 225], [420, 225], [478, 225], [536, 225]], tone: token }
+  - { from: [450, 349], to: [[362, 390], [420, 390], [478, 390], [536, 390]], tone: token }
+  - { from: [450, 506], to: [[362, 550], [420, 550], [478, 550], [536, 550]], tone: token }
+  - { from: [[362, 568], [420, 568], [478, 568], [536, 568]], to: [450, 620], tone: token }
+texts:
+  - { at: [623, 143], text: 入口展开为四路, size: 13 }
+  - { at: [623, 238], text: '[T, 4, 4096]', size: 13, tone: token }
+  - { at: [623, 396], text: 层间继续传递四路, size: 13 }
+  - { at: [450, 800], text: 后续：最终 RMSNorm → 词表投影 → token 选择, anchor: middle }

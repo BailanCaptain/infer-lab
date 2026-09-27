@@ -1,27 +1,46 @@
 layout: figure
 id: kv-pool
-caption: 显存里命中的块直接用，池只补上多出来的那一块；连一块都凑不满的问题根本不去问池
-size: [900, 320]
-
-texts:
-  - { at: [60, 50], text: 问题 4096 个 token = 2 个 KV 块, size: 14, strong: true }
-
-items:
-  - { at: [60, 70], size: [200, 64], text: 第 1 块 · 显存里有, tone: kv }
-  - { at: [300, 70], size: [200, 64], text: 第 2 块, tone: kv, style: faded }
-  - { at: [300, 226], size: [200, 64], text: 第 2 块 · 池里有, tone: kv, depth: 2 }
-  - { at: [630, 70], size: [230, 64], text: 37 个 token, sub: 凑不满一块，不问池, tone: token, style: faded }
-
-dividers:
-  - { from: [30, 180], to: [540, 180], sides: [本卡显存, 外部池] }
-
+caption: 普通非逐层路径的24位置请求：本地复用前8位置、外部补充到20，剩余4位置计算；每格4位置，仅为范围示意
+size: [900, 350]
+grids:
+  - at: [185, 70]
+    rows: 1
+    cols: 6
+    cell: [92, 45]
+    gap: 12
+    tone: kv
+    style: empty
+    cells:
+      - {at: [0, 0], text: 0–3, style: solid}
+      - {at: [0, 1], text: 4–7, style: solid}
+      - {at: [0, 2], text: 8–11, style: faded}
+      - {at: [0, 3], text: 12–15, style: faded}
+      - {at: [0, 4], text: 16–19, style: faded}
+      - {at: [0, 5], text: 20–23, tone: token, style: faded}
+  - at: [185, 205]
+    rows: 1
+    cols: 5
+    cell: [92, 45]
+    gap: 12
+    tone: kv
+    style: solid
+    cells:
+      - {at: [0, 0], text: 0–3, style: faded}
+      - {at: [0, 1], text: 4–7, style: faded}
+      - {at: [0, 2], text: 8–11}
+      - {at: [0, 3], text: 12–15}
+      - {at: [0, 4], text: 16–19}
 links:
-  - { from: [400, 226], to: [400, 134], tone: comm }
-
+  - {from: [439, 198], to: [439, 120], tone: comm}
+  - {from: [543, 198], to: [543, 120], tone: comm}
+  - {from: [647, 198], to: [647, 120], tone: comm}
+texts:
+  - {at: [30, 99], text: 本地请求范围, strong: true}
+  - {at: [30, 234], text: 外部可供范围, strong: true}
+  - {at: [275, 154], text: 已有8位置, anchor: middle}
+  - {at: [751, 154], text: 计算4位置, anchor: middle, tone: token}
+  - {at: [543, 294], text: "外部新增20−8=12位置", anchor: middle, tone: comm}
+  - {at: [30, 327], text: "命中计划 → 分配本地页 → 加载完成 → 模型读取", note: true}
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L591-L626
-    symbols: [get_num_new_matched_tokens, LookupKeyClient, cache_transfer_granularity]
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/metadata.py#L278-L286
-    symbols: [infer_cache_transfer_granularity]
-  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_mamba_config.py#L175-L185
-    symbols: [mamba_cache_mode, mamba_block_size]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L584
+    symbols: [get_num_new_matched_tokens]

@@ -1,64 +1,190 @@
-layout: figure
-id: pipeline-parallel-bubble
-caption: 示意：只有一条请求时两颗 NPU 轮流空等；两批请求同时在路上，两颗就都忙起来
-size: [900, 300]
-
-texts:
-  - { at: [30, 34], text: 只有一条请求：总有一颗在空等, size: 14, strong: true }
-  - { at: [30, 170], text: A、B 两批同时在路上：两颗都在忙, size: 14, strong: true }
-
-timelines:
-  - at: [30, 50]
-    scale: 120
-    start: 0
-    end: 6
-    labelW: 110
-    laneH: 28
-    gap: 10
-    lanes:
-      - label: NPU 0 · 前 20 层
-        spans:
-          - { from: 0, to: 1, tone: token }
-          - { from: 1, to: 2, tone: danger, style: hatch, text: 空等 }
-          - { from: 2, to: 3, tone: token }
-          - { from: 3, to: 4, tone: danger, style: hatch }
-          - { from: 4, to: 5, tone: token }
-          - { from: 5, to: 6, tone: danger, style: hatch }
-      - label: NPU 1 · 后 20 层
-        spans:
-          - { from: 0, to: 1, tone: danger, style: hatch }
-          - { from: 1, to: 2, tone: token }
-          - { from: 2, to: 3, tone: danger, style: hatch }
-          - { from: 3, to: 4, tone: token }
-          - { from: 4, to: 5, tone: danger, style: hatch }
-          - { from: 5, to: 6, tone: token }
-  - at: [30, 186]
-    scale: 120
-    start: 0
-    end: 6
-    labelW: 110
-    laneH: 28
-    gap: 10
-    lanes:
-      - label: NPU 0 · 前 20 层
-        spans:
-          - { from: 0, to: 1, tone: token, text: A }
-          - { from: 1, to: 2, tone: kv, text: B }
-          - { from: 2, to: 3, tone: token, text: A }
-          - { from: 3, to: 4, tone: kv, text: B }
-          - { from: 4, to: 5, tone: token, text: A }
-          - { from: 5, to: 6, tone: kv, text: B }
-      - label: NPU 1 · 后 20 层
-        spans:
-          - { from: 0, to: 1, tone: danger, style: hatch }
-          - { from: 1, to: 2, tone: token, text: A }
-          - { from: 2, to: 3, tone: kv, text: B }
-          - { from: 3, to: 4, tone: token, text: A }
-          - { from: 4, to: 5, tone: kv, text: B }
-          - { from: 5, to: 6, tone: token, text: A }
-
-pins:
-  - source: vllm@0fc695fc:vllm/config/vllm.py#L495-L506
-    symbols: [max_concurrent_batches, pipeline_parallel_size]
-  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L484-L499
-    symbols: [step_with_batch_queue]
+{
+  "size": [
+    900,
+    390
+  ],
+  "caption": "等时阶段的理想时序，横轴为任意时间单位，省略传输/采样开销；A₁、A₂ 是相邻生成轮次，B 为独立批次",
+  "texts": [
+    {
+      "at": [
+        30,
+        35
+      ],
+      "text": "单请求：后一轮等待前一轮输出",
+      "strong": true
+    },
+    {
+      "at": [
+        30,
+        214
+      ],
+      "text": "两个独立批次：中间时段可以重叠",
+      "strong": true
+    }
+  ],
+  "timelines": [
+    {
+      "at": [
+        30,
+        60
+      ],
+      "scale": 118,
+      "start": 0,
+      "end": 6,
+      "labelW": 110,
+      "laneH": 30,
+      "gap": 13,
+      "lanes": [
+        {
+          "label": "阶段 0",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "token",
+              "text": "A1"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "text": "A2"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "text": "A3"
+            }
+          ]
+        },
+        {
+          "label": "阶段 1",
+          "spans": [
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "text": "A1"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "text": "A2"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "text": "A3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "at": [
+        30,
+        238
+      ],
+      "scale": 118,
+      "start": 0,
+      "end": 6,
+      "labelW": 110,
+      "laneH": 30,
+      "gap": 13,
+      "lanes": [
+        {
+          "label": "阶段 0",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "token",
+              "style": "solid",
+              "text": "A1"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "style": "hatch",
+              "text": "B1"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "style": "solid",
+              "text": "A2"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "style": "hatch",
+              "text": "B2"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "style": "solid",
+              "text": "A3"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "style": "hatch",
+              "text": "B3"
+            }
+          ]
+        },
+        {
+          "label": "阶段 1",
+          "spans": [
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "style": "solid",
+              "text": "A1"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "style": "hatch",
+              "text": "B1"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "style": "solid",
+              "text": "A2"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "style": "hatch",
+              "text": "B2"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "style": "solid",
+              "text": "A3"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "layout": "figure",
+  "id": "pipeline-parallel-bubble"
+}

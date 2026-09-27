@@ -1,31 +1,41 @@
 layout: figure
 id: token-budget
-caption: 一步有 2048 个名额。那条请求第 1 步还差 37 个，就拿 37 个；第 2 步只差 1 个，就拿 1 个。两步用的是同一条规则
-size: [900, 250]
-
-texts:
-  - { at: [30, 40], text: 每一步：还差几个 token，就给几个名额, size: 14, strong: true }
-  - { at: [30, 92], text: 第 1 步, size: 13.5, strong: true }
-  - { at: [110, 130], text: 还差 37 个 → 拿 37 个名额, size: 13, tone: token }
-  - { at: [30, 180], text: 第 2 步, size: 13.5, strong: true }
-  - { at: [110, 218], text: 还差 1 个 → 拿 1 个名额, size: 13, tone: token }
-  - { at: [878, 130], text: 剩下 2011 个空着, size: 13, note: true, anchor: end }
-  - { at: [878, 218], text: 剩下 2047 个空着, size: 13, note: true, anchor: end }
-
+caption: 沿用并发第三轮：教学预算 6，A 安排 1、C 安排 3，剩余 2；无额外对齐要求且资源足够
+size:
+- 900
+- 310
 bars:
-  - at: [110, 74]
-    scale: 0.375
-    frame: { value: 2048, label: 2048 个名额, tone: control }
-    segments: [{ value: 37, tone: token }]
-  - at: [110, 162]
-    scale: 0.375
-    frame: { value: 2048, label: 2048 个名额, tone: control }
-    segments: [{ value: 1, tone: token }]
-
-pins:
-  - source: vllm@0fc695fc:vllm/config/scheduler.py#L42-L49
-    symbols: [DEFAULT_MAX_NUM_BATCHED_TOKENS, max_num_batched_tokens]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L358-L362
-    symbols: [token_budget]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L403-L411
-    symbols: [num_new_tokens, long_prefill_token_threshold]
+- at:
+  - 100
+  - 110
+  scale: 110
+  h: 62
+  segments:
+  - value: 1
+    text: A · 1
+    tone: token
+  - value: 3
+    text: C · 3
+    tone: token
+  - value: 2
+    text: 剩余 · 2
+    tone: control
+    style: hatch
+texts:
+- at:
+  - 100
+  - 55
+  text: 本轮输入预算：6
+- at:
+  - 100
+  - 220
+  text: A：已计算 5 → 本轮位置 5
+- at:
+  - 420
+  - 220
+  text: C：已计算 0 → 本轮位置 0、1、2
+- at:
+  - 100
+  - 270
+  text: 预算限制输入工作量，不等于输出 token 数
+  note: true

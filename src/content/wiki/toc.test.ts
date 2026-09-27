@@ -1,101 +1,219 @@
 import { describe, expect, it } from "vitest";
 import registry from "./registry.json";
-import { buildToc, type TocPage } from "./toc";
+import { buildToc, partNumeral, type TocPage } from "./toc";
 
-const page = (id: string, type: string, chapters: string[] = [], order = 500): TocPage => ({
+const page = (id: string, type = "concept", chapters: string[] = [], order = 500): TocPage => ({
   id,
   title: id,
   type,
   chapters,
   order,
 });
+const locations = (pages: TocPage[]) =>
+  buildToc(pages).flatMap((part) =>
+    part.sections.flatMap((section) =>
+      section.pages.map((p) => ({
+        id: p.id,
+        part: part.id,
+        section: section.title,
+      })),
+    ),
+  );
 
-describe("buildToc", () => {
-  it("RFork 工作版独立成章，新增 rfork 子页自动按顺序归入且不重复", () => {
+describe("buildToc · 知识主题目录", () => {
+  it("先学密集注意力再学稀疏变体，先学通信再学并行", () => {
+    const rows = locations([
+      page("tensor-parallel"),
+      page("collective-communication"),
+      page("mla"),
+      page("sparse-attention"),
+      page("attention-qkv"),
+    ]);
+    expect(rows.filter((p) => p.part === "models").map((p) => p.id)).toEqual([
+      "attention-qkv",
+      "sparse-attention",
+      "mla",
+    ]);
+    expect(rows.filter((p) => p.part === "distributed").map((p) => p.id)).toEqual([
+      "collective-communication",
+      "tensor-parallel",
+    ]);
+  });
+  it("双机案例在通信和并行基础之后，保持唯一入口", () => {
+    const rows = locations([
+      page("glm-5-3-flash-two-node"),
+      page("collective-communication"),
+      page("expert-parallel"),
+    ]);
+    expect(rows.map((p) => p.id)).toEqual([
+      "collective-communication",
+      "expert-parallel",
+      "glm-5-3-flash-two-node",
+    ]);
+    expect(rows[2]).toMatchObject({ part: "distributed", section: "贯穿案例" });
+  });
+  it("阅读指南先于模型和请求，框架总览保持唯一主题位置", () => {
+    const input = [
+      page("vllm-v1-shape"),
+      page("concurrent-requests"),
+      page("learning-guide"),
+      page("one-request"),
+      page("glm-5-3-flash"),
+    ];
+    const rows = locations(input);
+    expect(rows.filter((p) => p.part === "guide").map((p) => p.id)).toEqual([
+      "learning-guide",
+      "glm-5-3-flash",
+      "one-request",
+      "concurrent-requests",
+    ]);
+    expect(rows.filter((p) => p.id === "vllm-v1-shape")).toEqual([
+      { id: "vllm-v1-shape", part: "architecture", section: "组件、职责与进程" },
+    ]);
+  });
+  it("GQA/MLA 与位置编码有明确的模型主题，硬件只放硬件内容", () => {
+    const rows = locations([
+      page("gqa", "concept", ["04"]),
+      page("mla", "concept", ["04"]),
+      page("rope"),
+      page("hardware-devices"),
+      page("ai-core"),
+    ]);
+    expect(rows.filter((p) => p.part === "models").map((p) => p.id)).toEqual(["rope", "gqa", "mla"]);
+    expect(rows.filter((p) => p.part === "models").every((p) => p.section === "Attention 与位置编码")).toBe(
+      true,
+    );
+    expect(rows.filter((p) => p.part === "hardware").map((p) => p.id)).toEqual([
+      "hardware-devices",
+      "ai-core",
+    ]);
+  });
+  it("学习入口、模型、推理、架构、硬件、分布式、性能按主题排序，不按页型或课程章号", () => {
+    const toc = buildToc([
+      page("quantization", "feature", ["17"]),
+      page("acl-graph"),
+      page("tensor-parallel", "feature", ["13"]),
+      page("ai-core"),
+      page("vllm-v1-shape"),
+      page("prefix-caching", "feature", ["11"]),
+      page("kv-cache"),
+      page("token"),
+      page("one-request"),
+    ]);
+    expect(toc.map((p) => p.id)).toEqual([
+      "guide",
+      "models",
+      "inference",
+      "architecture",
+      "hardware",
+      "distributed",
+      "performance",
+    ]);
+    expect(toc.find((p) => p.id === "inference")?.title).toBe("推理过程");
+    expect(toc.find((p) => p.id === "inference")?.sections.flatMap((s) => s.pages.map((p) => p.id))).toEqual([
+      "kv-cache",
+      "prefix-caching",
+    ]);
+    expect(locations([page("gqa", "feature", ["08"])])[0]?.part).toBe("models");
+  });
+  it("RFork 新子页保持独立与排序；参数保留独立入口并按名称排序", () => {
     const toc = buildToc([
       page("rfork-troubleshooting", "feature", [], 90),
       page("rfork", "feature", [], 10),
-      page("rfork-terms", "concept", [], 20),
-      page("rfork-new-topic", "feature", [], 80),
-      page("some-param", "param"),
-      page("kv-pool", "feature", ["11"]),
+      page("rfork-new-topic", "concept", [], 80),
+      page("rfork-startup", "concept", [], 20),
+      page("b-param", "param"),
+      page("a-param", "param"),
+      page("kv-pool", "feature"),
     ]);
-    expect(toc.map((p) => p.id)).toEqual(["features", "rfork", "params"]);
+    expect(toc.map((p) => p.id)).toEqual(["inference", "rfork", "params"]);
     expect(toc.find((p) => p.id === "rfork")?.sections.flatMap((s) => s.pages.map((p) => p.id))).toEqual([
       "rfork",
-      "rfork-terms",
+      "rfork-startup",
       "rfork-new-topic",
       "rfork-troubleshooting",
     ]);
-    expect(toc.flatMap((p) => p.sections.flatMap((s) => s.pages))).toHaveLength(6);
-  });
-  it("四部分按「基础 → 全流程 → 特性 → 参数」排，人排的顺序原样保留", () => {
-    const toc = buildToc([
-      page("some-param", "param"),
-      page("kv-pool", "feature", ["11"]),
-      page("vllm-scheduler", "concept", ["12"]),
-      page("vllm-v1-shape", "concept", ["10"]),
-      page("kv-cache", "concept", ["05", "11"]),
-      page("one-request", "concept", ["00"]),
-    ]);
-    expect(toc.map((p) => p.title)).toEqual(["推理基础知识", "代码全流程", "特性", "参数"]);
-    expect(toc[0]!.sections.map((s) => [s.title, s.pages.map((p) => p.id)])).toEqual([
-      ["", ["one-request"]],
-      ["", ["kv-cache"]],
-    ]);
-    expect(toc[1]!.sections.map((s) => [s.title, s.pages.map((p) => p.id)])).toEqual([
-      ["先看全貌", ["vllm-v1-shape"]],
-      ["每一步：调度、分块、准备输入、前向", ["vllm-scheduler"]],
+    expect(toc.find((p) => p.id === "params")?.sections[0]?.pages.map((p) => p.id)).toEqual([
+      "a-param",
+      "b-param",
     ]);
   });
-
-  it("没被点名的新页自动归位，不出现「未归类」", () => {
-    const toc = buildToc([
-      page("softmax", "concept", ["04"], 30),
-      page("causal-mask", "concept", ["01"], 10),
-      page("new-engine-thing", "concept", ["10"]),
-      page("no-chapter-concept", "concept"),
+  it("已编排的生成教学页进入主题，保留原始身份；未编排内容和资料都有可见入口", () => {
+    const gap = { ...page("gap-a5164fe10fa9184412f8"), origin: "gap" };
+    const input = [
+      gap,
+      { ...page("answer-new", "source"), origin: "chat" },
+      { ...page("pr-new", "pr"), origin: "pr" },
+      { ...page("gap-new"), origin: "gap" },
+      page("new-model", "concept", ["04"]),
       page("new-feature", "feature", ["17"]),
-      page("bare-feature", "feature"),
-      page("b-param", "param"),
-      page("a-param", "param"),
-    ]);
-    const ids = (part: string) =>
-      toc.find((p) => p.id === part)!.sections.map((s) => [s.title, s.pages.map((p) => p.id)]);
-    expect(ids("basics")).toEqual([["", ["causal-mask", "softmax"]]]);
-    expect(ids("flow")).toEqual([["其他", ["new-engine-thing", "no-chapter-concept"]]]);
-    expect(ids("features")).toEqual([
-      ["量化与投机解码", ["new-feature"]],
-      ["其他", ["bare-feature"]],
-    ]);
-    expect(ids("params")).toEqual([["", ["a-param", "b-param"]]]);
-  });
-
-  it("闭环长出来的页单独成部分、按来源分组，不落进「其他」", () => {
-    // 2026-09-23 闭环真跑通：发布的问答记录与 PR 记录没有人排的位置，掉进了「全流程 · 其他」
-    const toc = buildToc([
-      page("one-request", "concept", ["00"]),
-      { ...page("answer-abc", "source", ["11"]), origin: "chat" },
-      { ...page("pr-11953", "pr", ["21"], 10), origin: "pr" },
-      { ...page("gap-hccl", "concept", ["13"]), origin: "gap" },
-      { ...page("seeded", "concept", ["12"]), origin: "seed" },
-    ]);
-    expect(toc.map((p) => p.id)).toEqual(["basics", "flow", "grown"]);
+      page("official-new", "source"),
+      page("glm-5-3-flash-baseline", "source"),
+    ];
+    const rows = locations(input);
+    expect(rows.find((p) => p.id === gap.id)).toMatchObject({
+      part: "distributed",
+      section: "集合通信与 HCCL",
+    });
     expect(
-      toc.find((p) => p.id === "grown")!.sections.map((s) => [s.title, s.pages.map((p) => p.id)]),
-    ).toEqual([
-      ["补写的缺口", ["gap-hccl"]],
-      ["问答记录", ["answer-abc"]],
-      ["PR 记录", ["pr-11953"]],
-    ]);
-    expect(toc.find((p) => p.id === "flow")!.sections.map((s) => s.title)).toEqual(["其他"]);
+      buildToc(input)
+        .flatMap((p) => p.sections.flatMap((s) => s.pages))
+        .find((p) => p.id === gap.id),
+    ).toBe(gap);
+    for (const id of ["new-model", "new-feature", "gap-new"]) {
+      expect(rows.find((p) => p.id === id)).toMatchObject({
+        part: "references",
+        section: "新增教学页（待编排）",
+      });
+    }
+    expect(rows.find((p) => p.id === "answer-new")?.section).toBe("问答记录");
+    expect(rows.find((p) => p.id === "pr-new")?.section).toBe("PR 记录");
+    expect(rows.find((p) => p.id === "official-new")?.section).toBe("来源与版本依据");
   });
-
-  it("真实知识库：每一页恰好出现一次，全流程里没有落进「其他」的页", () => {
+  it("专题按机制归类，量化、状态、调度与服务不都堆到性能区", () => {
+    const expected: Record<string, string> = {
+      quantization: "models",
+      "kv-cache-quantization": "inference",
+      "kv-cache-cpu-offload": "inference",
+      "kv-cache-layerwise-offload": "distributed",
+      "async-scheduling": "inference",
+      eplb: "distributed",
+      "kv-cache-memory-profiling": "architecture",
+      "acl-graph": "performance",
+      lora: "serving",
+      "structured-output": "serving",
+    };
+    for (const row of locations(Object.keys(expected).map((id) => page(id)))) {
+      expect(row.part, row.id).toBe(expected[row.id]);
+    }
+  });
+  it("真实知识库每页恰好出现一次，所有现有教学页都有主题，全部分组有名称", () => {
     const toc = buildToc(registry.pages);
-    const listed = toc.flatMap((part) => part.sections.flatMap((s) => s.pages.map((p) => p.id)));
-    expect(listed.slice().sort()).toEqual(registry.pages.map((p) => p.id).sort());
-    expect(new Set(listed).size).toBe(listed.length);
-    expect(toc.find((p) => p.id === "flow")!.sections.map((s) => s.title)).not.toContain("其他");
+    const rows = locations(registry.pages);
+    expect(rows.map((p) => p.id).sort()).toEqual(registry.pages.map((p) => p.id).sort());
+    expect(new Set(rows.map((p) => p.id)).size).toBe(rows.length);
+    expect(rows.filter((p) => p.section === "新增教学页（待编排）")).toEqual([]);
+    expect(toc.every((p) => p.sections.every((s) => s.title.length > 0 && s.pages.length > 0))).toBe(true);
+    expect(buildToc([])).toEqual([]);
+  });
+});
+
+describe("partNumeral · 目录分组的中文序号", () => {
+  it("第十组以后接着数，不会断成 undefined", () => {
+    expect([1, 5, 10, 11, 12, 19, 20, 21, 99].map(partNumeral)).toEqual([
+      "一",
+      "五",
+      "十",
+      "十一",
+      "十二",
+      "十九",
+      "二十",
+      "二十一",
+      "九十九",
+    ]);
+    const parts = buildToc(registry.pages);
+    expect(parts.length).toBeGreaterThanOrEqual(11);
+    expect(partNumeral(11)).toBe("十一");
+    expect(parts.every((_, i) => /^[一二三四五六七八九十]+$/.test(partNumeral(i + 1)))).toBe(true);
   });
 });

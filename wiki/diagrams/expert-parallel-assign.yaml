@@ -1,17 +1,27 @@
 layout: figure
 id: expert-parallel-assign
-caption: 进 MoE 之前先分工，每颗 NPU 负责一半 token
-size: [900, 190]
-
+caption: 同一张 rank 0 的两个角色：上行是它为自己的 token 找专家，下行是它为两个 DP 组的源卡计算 E0–E17。箭头表示可达关系，实际目的地由每层 top-8 决定。
+size: [900, 380]
+frames:
+  - { at: [18, 48], size: [288, 312], label: 同一张卡 · rank 0 }
+items:
+  - { at: [38, 84], size: [246, 78], text: 源卡角色, sub: 负责的 token → 发出与收回, tone: token }
+  - { at: [38, 246], size: [246, 78], text: 目的卡角色, sub: E0–E17 → 收到工作并计算, tone: weight }
+  - { at: [628, 84], size: [236, 78], text: top-8 专家的持有卡, sub: 可在本机或另一台机器, tone: weight }
+  - { at: [628, 246], size: [236, 78], text: 两个 DP 组的源卡, sub: token 命中 E0–E17, tone: token }
+links:
+  - { from: [284, 102], to: [628, 102], tone: comm }
+  - { from: [628, 149], to: [284, 149], tone: comm }
+  - { from: [628, 264], to: [284, 264], tone: comm }
+  - { from: [284, 311], to: [628, 311], tone: comm }
 texts:
-  - { at: [34, 30], text: 37 个 token + 1 个空位 = 38, size: 14, strong: true }
-  - { at: [34, 152], text: 每颗 19 × 8 = 152 次「token 找专家」, size: 14 }
-  - { at: [34, 176], text: 路由均匀时，约一半要发到对面, size: 14, tone: comm }
-
-rows:
-  - { at: [34, 48], count: 19, w: 19, h: 26, gap: 3, tone: token }
-  - { at: [460, 48], count: 19, w: 19, h: 26, gap: 3, tone: token, ghost: [18] }
-
-brackets:
-  - { from: 34, to: 449, y: 84, label: NPU 0 负责前 19 个 }
-  - { from: 460, to: 875, y: 84, label: NPU 1 负责后 18 个，外加补的空位 }
+  - { at: [580, 30], text: 'EP16 · 每层每卡 18 个完整专家', anchor: middle, strong: true }
+  - { at: [456, 87], text: 'dispatch：INT8 hidden + scale', anchor: middle, tone: comm }
+  - { at: [456, 181], text: 'combine：BF16 结果，回到 rank 0', anchor: middle, tone: comm }
+  - { at: [456, 249], text: 'dispatch：接收命中本卡专家的行', anchor: middle, tone: comm }
+  - { at: [456, 343], text: 'combine：算完送回原源卡', anchor: middle, tone: comm }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1493-L1522
+    symbols: [n_local_physical_experts, physical_expert_start, physical_expert_end]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339
+    symbols: [token_dispatch, token_combine]

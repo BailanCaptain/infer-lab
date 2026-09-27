@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 570" width="880" height="570" role="img" aria-label="MTP 先拼接 embedding 与隐藏向量，再经过一个预测层。下一遍接收的是 RMSNorm 后的隐藏向量和本遍选出的 token；候选数量由部署配置决定。">
+  <title>MTP 先拼接 embedding 与隐藏向量，再经过一个预测层。下一遍接收的是 RMSNorm 后的隐藏向量和本遍选出的 token；候选数量由部署配置决定。</title>
+  <defs><marker id="glm-flash-mtp-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="glm-flash-mtp-flow-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M290 103 L320 103 L320 158 L350 158" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M290 245 L332 245 L332 188 L350 188" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M480 210 L480 252" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M480 322 L480 364" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M610 393 L650 393" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M750 422 L750 478" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M650 511 L610 511" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-ink)"/>
+  <path d="M850 511 L866 511 L866 32 L160 32 L160 66" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-mtp-flow-ah-token)"/>
+  <path d="M350 393 L160 393 L160 282" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-mtp-flow-ah-token)"/>
+  <rect x="30" y="66" width="260" height="74" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="160" y="99" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一 token 的 embedding</text>
+  <text x="160" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">enorm：归一化</text>
+  <rect x="30" y="208" width="260" height="74" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="160" y="241" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">上一位置的隐藏向量</text>
+  <text x="160" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">hnorm：归一化</text>
+  <rect x="350" y="136" width="260" height="74" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="169" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼接 → eh_proj</text>
+  <text x="480" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">embedding 在前，8192 → 4096</text>
+  <rect x="350" y="252" width="260" height="70" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">预测层：稀疏 MLA → MoE</text>
+  <text x="480" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">单条 residual 流，随后 TP 合并</text>
+  <rect x="350" y="364" width="260" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">RMSNorm</text>
+  <text x="480" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">此处的隐藏向量供下一遍使用</text>
+  <rect x="650" y="364" width="200" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="750" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">× 主模型 lm_head</text>
+  <text x="750" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">得到词表 logits</text>
+  <rect x="650" y="478" width="200" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="750" y="507" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">取最高分 token</text>
+  <text x="750" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">候选数量已满？</text>
+  <rect x="350" y="478" width="260" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是：交给主模型验证</text>
+  <text x="480" y="20" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#065f56" text-anchor="middle">否：位置 +1，候选成为新输入</text>
+  <text x="42" y="437" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#065f56">虚线：反馈隐藏向量</text>
+</svg>

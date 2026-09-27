@@ -1,29 +1,26 @@
 layout: figure
 id: kv-cache-memory-profiling
-caption: 一颗 NPU 的 64 GiB：九成里减掉权重和临时数据，剩下的给 KV；录图那一块落在九成之外
-size: [900, 220]
-
+caption: 假设设备总内存64 GiB，使用比例0.9；缓存预算等于57.6 GiB减去36 GiB非缓存用量，图捕获的额外需求尚需评估
+size: [900, 270]
 texts:
-  - { at: [30, 58], text: 一颗 NPU 显存 64 GiB, size: 14, strong: true }
-  - { at: [440, 64], text: 临时数据等 3.5, size: 12.5, note: true }
-  - { at: [742, 64], text: 录图 1.8, size: 12.5, tone: danger }
-
+  - {at: [50, 48], text: "教学假设 · 单位 GiB", strong: true}
+  - {at: [433, 84], text: 激活, anchor: middle}
+  - {at: [469, 63], text: 其他, anchor: middle}
+  - {at: [779, 84], text: 份额外, anchor: middle}
+  - {at: [50, 244], text: "图捕获和运行峰值仍需留足空间；缓存预算不是全部空闲内存", note: true}
 bars:
-  - at: [30, 84]
-    h: 46
-    scale: 12.5
-    frame: { value: 64, tone: ink }
+  - at: [50, 100]
+    h: 48
+    scale: 12
+    frame: {value: 64, tone: ink}
     segments:
-      - { value: 32.6, tone: weight, text: 权重 32.6 }
-      - { value: 3.5, tone: control }
-      - { value: 21.5, tone: kv, text: KV 预算 21.5 }
-      - { value: 1.8, tone: danger }
-      - { value: 4.6, style: hatch }
-
+      - {value: 30, tone: weight, text: 权重 30}
+      - {value: 4, tone: token, text: "4"}
+      - {value: 2, tone: control, text: "2"}
+      - {value: 21.6, tone: kv, text: 缓存预算 21.6}
+      - {value: 6.4, tone: control, style: hatch, text: "6.4"}
 brackets:
-  - { from: 30, to: 750, y: 156, label: 九成 57.6 GiB：减法只在这里面算 }
-  - { from: 750, to: 830, y: 156, label: 留出的一成 }
-
+  - {from: 50, to: 741.2, y: 180, label: "请求份额：64 × 0.9 = 57.6 GiB"}
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L445-L458
-    symbols: [total_memory, gpu_memory_utilization]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
+    symbols: [determine_available_memory]

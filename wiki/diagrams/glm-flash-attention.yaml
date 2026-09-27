@@ -1,0 +1,107 @@
+layout: figure
+id: glm-flash-attention
+caption: 两类 attention 利用历史的方式。上半图是 KDA 的一步：旧状态按遗忘门衰减，再写入当前 token；下半图是稀疏 MLA 的一步：索引器给自己缓存里的池 K 打分（每 4 个位置一个池），选中的池落到下面对应的潜向量上，未满一池的尾巴总会读。示意只画 1 个池的预算，头数与维度在正文
+size: [900, 720]
+matrices:
+  - { at: [65, 150], w: 110, h: 80, rows: 4, cols: 5, tone: kv, label: 上一步状态, dims: 每头 128 × 128 }
+  - { at: [355, 150], w: 110, h: 80, rows: 4, cols: 5, tone: kv, label: 更新后的状态 }
+nodes:
+  - { at: [260, 190], r: 28, text: 更新 }
+  - { at: [595, 190], r: 28, text: 读取 }
+  - { at: [260, 100], r: 24, text: k/v }
+  - { at: [595, 100], r: 24, text: q }
+  - { at: [125, 422], r: 24, text: h }
+  - { at: [265, 610], r: 24, text: Q }
+  - { at: [125, 536], r: 28, text: 索引 }
+  - { at: [588, 610], r: 28, text: Σ }
+items:
+  - { at: [737, 170], size: [110, 40], text: 当前输出, tone: token }
+  - { at: [737, 590], size: [110, 40], text: 当前输出, tone: token }
+grids:
+  - at: [300, 420]
+    rows: 1
+    cols: 1
+    cell: [172, 30]
+    tone: control
+    style: faded
+    cells:
+      - { at: [0, 0], text: 池 0 的池 K }
+  - at: [492, 420]
+    rows: 1
+    cols: 1
+    cell: [172, 30]
+    tone: control
+    style: solid
+    cells:
+      - { at: [0, 0], text: 池 1 的池 K }
+  - at: [684, 420]
+    rows: 1
+    cols: 1
+    cell: [128, 30]
+    tone: control
+    style: empty
+    cells:
+      - { at: [0, 0], text: 尾巴 · 未成池 }
+  - at: [300, 475]
+    rows: 1
+    cols: 4
+    cell: [40, 45]
+    gap: 4
+    tone: kv
+    style: faded
+    label: 池 0 潜向量 · 未选
+    cells:
+      - { at: [0, 0], text: "0" }
+      - { at: [0, 1], text: "1" }
+      - { at: [0, 2], text: "2" }
+      - { at: [0, 3], text: "3" }
+  - at: [492, 475]
+    rows: 1
+    cols: 4
+    cell: [40, 45]
+    gap: 4
+    tone: kv
+    style: solid
+    label: 池 1 潜向量 · 选中
+    cells:
+      - { at: [0, 0], text: "4" }
+      - { at: [0, 1], text: "5" }
+      - { at: [0, 2], text: "6" }
+      - { at: [0, 3], text: "7" }
+  - at: [684, 475]
+    rows: 1
+    cols: 3
+    cell: [40, 45]
+    gap: 4
+    tone: kv
+    style: solid
+    label: 尾巴潜向量 · 总读
+    cells:
+      - { at: [0, 0], text: "8" }
+      - { at: [0, 1], text: "9" }
+      - { at: [0, 2], text: "10" }
+links:
+  - { from: [175, 190], to: [232, 190], tone: kv }
+  - { from: [260, 124], to: [260, 162], tone: token }
+  - { from: [288, 190], to: [355, 190], tone: kv }
+  - { from: [465, 190], to: [567, 190], tone: kv }
+  - { from: [595, 124], to: [595, 162], tone: token }
+  - { from: [623, 190], to: [737, 190], tone: token }
+  - { from: [465, 220], to: [65, 220], via: [[495, 220], [495, 291], [38, 291], [38, 220]], dashed: true, tone: kv }
+  - { from: [125, 446], to: [125, 508], tone: token }
+  - { from: [149, 422], to: [265, 586], via: [[265, 422]], tone: token }
+  - { from: [289, 610], to: [560, 610], tone: token }
+  - { from: [153, 536], to: [300, 435], via: [[220, 536], [220, 435]], dashed: true }
+  - { from: [578, 450], to: [578, 475], dashed: true }
+  - { from: [650, 520], to: [588, 582], via: [[650, 568], [588, 568]], tone: kv }
+  - { from: [806, 520], to: [588, 582], via: [[806, 568], [588, 568]], tone: kv }
+  - { from: [616, 610], to: [737, 610], tone: token }
+texts:
+  - { at: [38, 32], text: KDA · 历史攒在固定大小的状态里, strong: true }
+  - { at: [310, 105], text: 写入强度 β 与遗忘门 α }
+  - { at: [525, 294], text: 状态留给下一个位置, tone: kv }
+  - { at: [38, 362], text: 稀疏 MLA · 按池挑选历史位置再读, strong: true }
+  - { at: [300, 408], text: 索引器缓存：每池一条池 K, tone: control }
+  - { at: [38, 396], text: 当前隐藏向量 }
+  - { at: [426, 665], text: 只在选中的位置上算 attention, anchor: middle }
+  - { at: [38, 708], text: 实线：数据    虚线：状态传递 / 打分与按池选择, note: true }

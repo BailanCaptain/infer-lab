@@ -1,30 +1,29 @@
 layout: figure
 id: ai-qos
-caption: 同一个 SDMA 标签，交换机靠入口车道把集合通信和 KV 搬运分进两条优先级不同的车道
-size: [900, 280]
-
-dividers:
-  - { from: [345, 30], to: [345, 260], sides: ["NPU 端：脚本写进驱动", "UB 交换机：人去敲命令"] }
-
+caption: 固定 db701c1f 的默认 SDMA 映射；端点写入和交换机命令是两部分操作，图不表示所有 NPU 的网络拓扑
+size: [1000, 440]
+hardware:
+  - { kind: chip, at: [30, 147], size: [120, 105], label: NPU 端点 }
+  - { kind: switch, at: [445, 145], size: [145, 90], ports: 4, label: UB 交换机 }
+frames:
+  - { at: [650, 70], size: [315, 105], label: 目标 VL 2 · 优先级 3 }
+  - { at: [650, 260], size: [315, 105], label: 目标 VL 3 · 优先级 1 }
 items:
-  - { at: [30, 70], size: [190, 48], text: 集合通信（入口 0）, tone: comm, style: solid }
-  - { at: [30, 180], size: [190, 48], text: KV 搬到主机（入口 1）, tone: kv, style: solid }
-  - { at: [250, 122], size: [70, 46], text: 标签 2, tone: control, style: plain }
-  - { at: [380, 118], size: [170, 54], text: 按标签和入口查表, tone: control, style: faded }
-  - { at: [620, 60], size: [250, 52], text: 车道 2 · 优先级 3, tone: comm, style: solid }
-  - { at: [620, 180], size: [250, 52], text: 车道 3 · 优先级 1, tone: kv, style: faded }
-
+  - { at: [230, 75], size: [175, 55], text: D2D · 初始 VL 0, sub: SDMA 集合通信, tone: comm }
+  - { at: [230, 280], size: [175, 55], text: H2D · 初始 VL 1, sub: SDMA 状态搬运, tone: kv }
+  - { at: [680, 115], size: [245, 35], text: 优先服务, tone: comm }
+  - { at: [680, 305], size: [245, 35], text: 等待更高优先级队列, tone: kv, style: plain }
 links:
-  - { from: [220, 94], to: [250, 138], tone: comm }
-  - { from: [220, 204], to: [250, 152], tone: kv }
-  - { from: [320, 145], to: [380, 145] }
-  - { from: [550, 135], to: [620, 86], tone: comm }
-  - { from: [550, 155], to: [620, 206], tone: kv }
-
+  - { from: [150, 177], to: [230, 102], via: [[190, 177], [190, 102]], tone: comm }
+  - { from: [150, 225], to: [230, 307], via: [[190, 225], [190, 307]], tone: kv }
+  - { from: [405, 102], to: [445, 170], via: [[423, 102], [423, 170]], tone: comm }
+  - { from: [405, 307], to: [445, 220], via: [[423, 307], [423, 220]], tone: kv }
+  - { from: [590, 172], to: [650, 125], via: [[620, 172], [620, 125]], tone: comm }
+  - { from: [590, 218], to: [650, 315], via: [[620, 218], [620, 315]], tone: kv }
+texts:
+  - { at: [30, 35], text: 同一源标签 2 + 不同初始 VL → 不同队列优先级, strong: true }
+  - { at: [515, 262], text: 标签与 VL 联合映射, anchor: middle, size: 12 }
+  - { at: [30, 405], text: 作用位置：共享出口的网络队列    端点设置与交换机设置分别执行, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:tools/ai_qos.py#L1-L26
-    symbols: [MASTER_ID_SDMA, D2D_VL_INIT, H2D_VL_INIT]
-  - source: vllm-ascend@2c59ff10:tools/ai_qos.py#L326-L338
-    symbols: [aiqos_table, SDMA_H2D]
-  - source: vllm-ascend@2c59ff10:tools/ai_qos.py#L379-L402
-    symbols: [generate_command, cmd_set]
+  - { source: 'vllm-ascend@db701c1f:tools/ai_qos.py#L326-L338', symbols: [aiqos_table, SDMA_H2D] }
+  - { source: 'vllm-ascend@db701c1f:tools/ai_qos.py#L359-L402', symbols: [sdma_qos, generate_command] }

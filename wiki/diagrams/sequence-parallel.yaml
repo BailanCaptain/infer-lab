@@ -1,53 +1,496 @@
-layout: figure
-id: sequence-parallel
-caption: NPU 0 看一层里的一处接缝：all-reduce 拆成 reduce-scatter 加 all-gather，夹在中间的逐 token 计算只做 1025 个
-size: [900, 440]
-
-grids:
-  - at: [60, 64]
-    rows: 1
-    cols: 10
-    cell: [42, 34]
-    gap: 2
-    tone: token
-
-  - at: [60, 172]
-    rows: 1
-    cols: 10
-    cell: [42, 34]
-    gap: 2
-    tone: token
-    cells:
-      - { at: [0, 5], style: faded }
-      - { at: [0, 6], style: faded }
-      - { at: [0, 7], style: faded }
-      - { at: [0, 8], style: faded }
-      - { at: [0, 9], style: faded }
-
-  - at: [60, 312]
-    rows: 1
-    cols: 10
-    cell: [42, 34]
-    gap: 2
-    tone: token
-
-links:
-  - { from: [279, 106], to: [279, 164], tone: comm }
-  - { from: [279, 252], to: [279, 304], tone: comm }
-
-brackets:
-  - { from: 60, to: 278, y: 214, label: NPU 0 只算这 1025 个 }
-
-texts:
-  - { at: [530, 88], text: 矩阵吐出的部分和：全长 2050 个 token, size: 13 }
-  - { at: [530, 138], text: reduce-scatter：先加总，再切开，各留一段, size: 13, tone: comm }
-  - { at: [530, 196], text: 归一化、残差这些逐 token 的活只做一半, size: 13, strong: true }
-  - { at: [530, 282], text: all-gather：各段发给所有 NPU，凑回全长, size: 13, tone: comm }
-  - { at: [530, 336], text: 进下一个大矩阵：又是全长 2050 个, size: 13 }
-  - { at: [60, 404], text: 两段通信搬的字节＝原来那一次 all-reduce；省下的是中间那一行的活, size: 13, strong: true }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/register_custom_ops.py#L23-L91
-    symbols: [maybe_pad_and_reduce, maybe_all_gather_and_maybe_unpad]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L80
-    symbols: [maybe_chunk_residual]
+{
+  "size": [
+    900,
+    650
+  ],
+  "caption": "TP=2、T=4 的局部激活布局：部分和先归约分片，逐行计算后收集；深浅区分 token 身份，均为有效行",
+  "frames": [
+    {
+      "at": [
+        20,
+        60
+      ],
+      "size": [
+        860,
+        230
+      ],
+      "label": "rank 0"
+    },
+    {
+      "at": [
+        20,
+        355
+      ],
+      "size": [
+        860,
+        230
+      ],
+      "label": "rank 1"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        55,
+        105
+      ],
+      "rows": 4,
+      "cols": 1,
+      "cell": [
+        145,
+        30
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "label": "部分和 [4,H]",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "p₀(A.y₁)",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "p₀(C.p₀)",
+          "style": "faded"
+        },
+        {
+          "at": [
+            2,
+            0
+          ],
+          "text": "p₀(C.p₁)",
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            0
+          ],
+          "text": "p₀(C.p₂)",
+          "style": "faded"
+        }
+      ]
+    },
+    {
+      "at": [
+        55,
+        400
+      ],
+      "rows": 4,
+      "cols": 1,
+      "cell": [
+        145,
+        30
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "label": "部分和 [4,H]",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "p₁(A.y₁)",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "p₁(C.p₀)",
+          "style": "faded"
+        },
+        {
+          "at": [
+            2,
+            0
+          ],
+          "text": "p₁(C.p₁)",
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            0
+          ],
+          "text": "p₁(C.p₂)",
+          "style": "faded"
+        }
+      ]
+    },
+    {
+      "at": [
+        395,
+        130
+      ],
+      "rows": 2,
+      "cols": 1,
+      "cell": [
+        145,
+        35
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "label": "本地 [2,H]",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "A.y₁",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "C.p₀",
+          "style": "faded"
+        }
+      ]
+    },
+    {
+      "at": [
+        395,
+        425
+      ],
+      "rows": 2,
+      "cols": 1,
+      "cell": [
+        145,
+        35
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "label": "本地 [2,H]",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "C.p₁",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "C.p₂",
+          "style": "faded"
+        }
+      ]
+    },
+    {
+      "at": [
+        710,
+        105
+      ],
+      "rows": 4,
+      "cols": 1,
+      "cell": [
+        145,
+        30
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "label": "收集后 [4,H]",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "A.y₁",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "C.p₀",
+          "style": "faded"
+        },
+        {
+          "at": [
+            2,
+            0
+          ],
+          "text": "C.p₁",
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            0
+          ],
+          "text": "C.p₂",
+          "style": "faded"
+        }
+      ]
+    },
+    {
+      "at": [
+        710,
+        400
+      ],
+      "rows": 4,
+      "cols": 1,
+      "cell": [
+        145,
+        30
+      ],
+      "gap": 0,
+      "tone": "token",
+      "style": "plain",
+      "label": "收集后 [4,H]",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "A.y₁",
+          "style": "solid"
+        },
+        {
+          "at": [
+            1,
+            0
+          ],
+          "text": "C.p₀",
+          "style": "faded"
+        },
+        {
+          "at": [
+            2,
+            0
+          ],
+          "text": "C.p₁",
+          "style": "solid"
+        },
+        {
+          "at": [
+            3,
+            0
+          ],
+          "text": "C.p₂",
+          "style": "faded"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        570,
+        140
+      ],
+      "size": [
+        105,
+        50
+      ],
+      "text": "RMSNorm",
+      "tone": "control"
+    },
+    {
+      "at": [
+        570,
+        435
+      ],
+      "size": [
+        105,
+        50
+      ],
+      "text": "RMSNorm",
+      "tone": "control"
+    }
+  ],
+  "nodes": [
+    {
+      "at": [
+        290,
+        320
+      ],
+      "r": 25,
+      "text": "Σ"
+    },
+    {
+      "at": [
+        650,
+        320
+      ],
+      "r": 25,
+      "text": "AG"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        265,
+        312
+      ],
+      "tone": "comm",
+      "from": [
+        200,
+        160
+      ]
+    },
+    {
+      "to": [
+        265,
+        328
+      ],
+      "tone": "comm",
+      "from": [
+        200,
+        455
+      ]
+    },
+    {
+      "to": [
+        395,
+        165
+      ],
+      "tone": "comm",
+      "from": [
+        315,
+        312
+      ]
+    },
+    {
+      "to": [
+        395,
+        460
+      ],
+      "tone": "comm",
+      "from": [
+        315,
+        328
+      ]
+    },
+    {
+      "to": [
+        570,
+        165
+      ],
+      "tone": "token",
+      "from": [
+        540,
+        165
+      ]
+    },
+    {
+      "to": [
+        570,
+        460
+      ],
+      "tone": "token",
+      "from": [
+        540,
+        460
+      ]
+    },
+    {
+      "from": [
+        620,
+        190
+      ],
+      "to": [
+        637,
+        298
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        620,
+        435
+      ],
+      "to": [
+        637,
+        342
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        675,
+        312
+      ],
+      "to": [
+        710,
+        165
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        675,
+        328
+      ],
+      "to": [
+        710,
+        460
+      ],
+      "tone": "comm"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        290,
+        36
+      ],
+      "text": "Reduce-Scatter",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        795,
+        36
+      ],
+      "text": "All-Gather",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        745,
+        330
+      ],
+      "text": "完整行集合",
+      "note": true,
+      "size": 12
+    },
+    {
+      "at": [
+        25,
+        625
+      ],
+      "text": "H 维保持完整；位置、残差等关联数据采用相同的 token 归属",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "sequence-parallel"
+}

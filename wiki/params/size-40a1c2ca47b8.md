@@ -16,7 +16,7 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: "2026-09-22"
+updated: '2026-09-22'
 relations:
   - to: kvpp-config-0445bd352140
     kind: builds-on
@@ -38,9 +38,13 @@ sources:
   - >-
     https://docs.vllm.ai/projects/ascend/en/latest/user_guide/feature_guide/kvpp.html
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1629-L1634'
+  - >-
+    vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L66
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
+  - >-
+    raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md
   - >-
     raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md
 ---
@@ -113,17 +117,17 @@ rawSources:
 | releases/v0.27.1rc | 有（341 个文件） |
 | releases/v0.28.0rc | 有（389 个文件） |
 | releases/v0.29.0rc | 有（417 个文件） |
-| main | 有（416 个文件） |
+| main | 有（426 个文件） |
 
 - **引入**：2025-02-05 · d5e7756028bd5884ade96b654555c375770a2f64 · PR [#3](https://github.com/vllm-project/vllm-ascend/pull/3) —— [Core] Init vllm-ascend (#3)
-  包含该提交的 tag：v0.7.1rc1、v0.7.3、v0.7.3.post1、v0.7.3rc1、v0.7.3rc2、v0.8.4rc1、v0.8.4rc2、v0.8.5rc1、v0.9.0rc1、v0.9.0rc2、v0.9.1、v0.9.1rc1、v0.9.1rc2、v0.9.1rc3、v0.9.2rc1、v0.10.0rc1、v0.10.1rc1、v0.10.2rc1、v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev、origin/v0.7.1-dev、origin/v0.7.3-dev、origin/v0.9.1-dev
+  包含该提交的 tag：v0.7.1rc1、v0.7.3、v0.7.3.post1、v0.7.3rc1、v0.7.3rc2、v0.8.4rc1、v0.8.4rc2、v0.8.5rc1、v0.9.0rc1、v0.9.0rc2、v0.9.1、v0.9.1rc1、v0.9.1rc2、v0.9.1rc3、v0.9.2rc1、v0.10.0rc1、v0.10.1rc1、v0.10.2rc1、v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1；分支：main、origin/dependabot/github_actions/actions/labeler-7、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.13.0、origin/releases/v0.18.0、origin/releases/v0.20.2rc、origin/releases/v0.21.0rc、origin/releases/v0.22.1rc、origin/releases/v0.23.0、origin/releases/v0.24.0rc、origin/releases/v0.25.1rc、origin/releases/v0.26.0rc、origin/releases/v0.27.1rc、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl、origin/revert-15210-glm52_v2_dspark、origin/revert-15908-new-refactor、origin/rfc/0.26.0rc1-bugfix、origin/rfc/community-contrib、origin/rfc/megakernel、origin/rfc/vllm_cann、origin/v0.11.0-dev、origin/v0.7.1-dev、origin/v0.7.3-dev、origin/v0.9.1-dev
   - `vllm_ascend/__init__.py` +21 / −0（文本行变化）
   - `vllm_ascend/attention.py` +678 / −0（文本行变化）
   - `vllm_ascend/communicator.py` +28 / −0（文本行变化）
   - `vllm_ascend/model_runner.py` +620 / −0（文本行变化）
   - `vllm_ascend/ops/__init__.py` +18 / −0（文本行变化）
 
-当前含该标识符的 tag：v0.7.1rc1、v0.7.3、v0.7.3.post1、v0.7.3rc1、v0.7.3rc2、v0.8.4rc1、v0.8.4rc2、v0.8.5rc1、v0.9.0rc1、v0.9.0rc2、v0.9.1、v0.9.1rc1、v0.9.1rc2、v0.9.1rc3、v0.9.2rc1、v0.10.0rc1、v0.10.1rc1、v0.10.2rc1、v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2
+当前含该标识符的 tag：v0.7.1rc1、v0.7.3、v0.7.3.post1、v0.7.3rc1、v0.7.3rc2、v0.8.4rc1、v0.8.4rc2、v0.8.5rc1、v0.9.0rc1、v0.9.0rc2、v0.9.1、v0.9.1rc1、v0.9.1rc2、v0.9.1rc3、v0.9.2rc1、v0.10.0rc1、v0.10.1rc1、v0.10.2rc1、v0.11.0、v0.11.0rc0、v0.11.0rc1、v0.11.0rc2、v0.11.0rc3、v0.12.0rc1、v0.13.0、v0.13.0rc1、v0.13.0rc2、v0.13.0rc3、v0.14.0rc1、v0.15.0rc1、v0.16.0rc1、v0.17.0rc1、v0.18.0、v0.18.0rc1、v0.19.1rc1、v0.20.2rc1、v0.21.0rc1、v0.22.1rc1、v0.23.0、v0.23.0.post1、v0.23.0rc1、v0.24.0rc1、v0.25.1rc1、v0.26.0rc1、v0.26.0rc2、v0.27.1rc1
 
 ## 参数定义（自动生成）
 
@@ -134,8 +138,8 @@ rawSources:
 | 标识 | `additional_config["kvpp_config"]["size"]` |
 | 类型 | `int` |
 | 默认表达式 | `1` |
-| 定义 | `vllm_ascend/ascend_config.py:64` [C1] |
-| 版本 | main · baa023ada41a5b889cac6249845a688aab130892 |
+| 定义 | `vllm_ascend/ascend_config.py:66` [C12] |
+| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
 
 字段注释：
 

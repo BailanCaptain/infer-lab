@@ -61,7 +61,8 @@
     "wiki:drift": "tsx scripts/wiki-drift.ts",
     "wiki:retest": "tsx scripts/wiki-retest.ts",
     "wiki:trace": "tsx scripts/wiki-trace.ts",
-    "wiki:github-trace": "tsx scripts/wiki-github-trace.ts"
+    "wiki:github-trace": "tsx scripts/wiki-github-trace.ts",
+    "wiki:refusal-probe": "tsx scripts/wiki-refusal-probe.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -91,8 +92,11 @@
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
     "gray-matter": "^4.0.3",
+    "katex": "^0.18.9",
+    "rehype-katex": "^7.0.1",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "remark-mdx-frontmatter": "^5.2.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",

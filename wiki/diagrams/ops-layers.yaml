@@ -1,31 +1,26 @@
 layout: figure
 id: ops-layers
-caption: 一个算子从上往下穿四层：替换层换实现，绝大多数到「现成算子」为止，很少下到自定义算子
-size: [900, 330]
-
-texts:
-  - { at: [30, 40], text: 那条请求的一次归一化，往下穿四层, size: 14, strong: true }
-  - { at: [700, 152], text: 绝大多数算子到这层为止, size: 13, tone: token }
-  - { at: [700, 212], text: 那条请求多半一次都没碰到, size: 12.5, note: true }
-
-layers:
-  - at: [200, 64]
-    width: 460
-    h: 50
-    gap: 10
-    bands:
-      - { text: 替换层, sub: 把上游算子换成昇腾版本, tone: control, style: plain }
-      - { text: 现成算子, sub: 昇腾插件已经提供，直接调, tone: token, style: solid }
-      - { text: 自定义算子, sub: 现成的没有、要做融合时才自己编, tone: comm, style: faded }
-      - { text: 昇腾软件栈 / AI Core, sub: 真正的乘加在这里, tone: ink, style: plain }
-
+caption: 数学运算经框架分派或模型直接调用，进入已有设备接口或自定义扩展；两条路径最终组织设备任务
+size: [900, 500]
+items:
+  - { at: [315, 20], size: [270, 60], text: 模型中的数学运算, sub: 矩阵乘 / 归一化 / 状态更新, tone: weight }
+  - { at: [70, 135], size: [295, 65], text: 框架算子分派, sub: 名称 → 设备实现类, tone: control }
+  - { at: [530, 135], size: [295, 65], text: 模型直接调用, sub: 例如 GLM 的 mHC 算子, tone: control }
+  - { at: [70, 275], size: [295, 65], text: 已有设备接口, sub: 例如普通 RMSNorm, tone: token }
+  - { at: [530, 275], size: [295, 65], text: 仓库自定义扩展, sub: 按实现组织核函数, tone: kv }
+hardware:
+  - { kind: chip, at: [387, 389], size: [126, 90], label: NPU }
 links:
-  - { from: [170, 70], to: [170, 288], tone: ink }
-
+  - { from: [380, 80], to: [217, 135], via: [[380, 105], [217, 105]], tone: control }
+  - { from: [520, 80], to: [677, 135], via: [[520, 105], [677, 105]], tone: control }
+  - { from: [217, 200], to: [217, 275], tone: token }
+  - { from: [310, 200], to: [530, 300], via: [[450, 200], [450, 300]], tone: kv }
+  - { from: [677, 200], to: [677, 275], tone: kv }
+  - { from: [217, 340], to: [387, 434], via: [[217, 434]], tone: token }
+  - { from: [677, 340], to: [513, 434], via: [[677, 434]], tone: kv }
+texts:
+  - { at: [55, 472], text: 运行库安排任务与依赖, note: true }
+  - { at: [570, 472], text: 算子数 ≠ kernel 启动数, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L112-L118
-    symbols: [register_ascend_customop]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/__init__.py#L43-L51
-    symbols: [register_dummy_fusion_op]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L419
-    symbols: [enable_custom_op]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88', symbols: [AscendRMSNorm] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169', symbols: [hc_pre, hc_post] }

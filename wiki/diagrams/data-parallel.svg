@@ -1,23 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" width="900" height="350" role="img" aria-label="DP=2：注意力每个副本各存一整套，256 个专家却摊到全部 4 颗 NPU 上，所以两个副本每一步都得一起走">
-  <title>DP=2：注意力每个副本各存一整套，256 个专家却摊到全部 4 颗 NPU 上，所以两个副本每一步都得一起走</title>
-  <defs><marker id="data-parallel-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <rect x="40" y="70" width="390" height="180" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="56" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP rank 0 · 2 颗 NPU</text>
-  <rect x="470" y="70" width="390" height="180" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="486" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP rank 1 · 2 颗 NPU</text>
-  <path d="M410 200 L490 200" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#data-parallel-ah-comm)"/>
-  <path d="M490 214 L410 214" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#data-parallel-ah-comm)"/>
-  <rect x="60" y="92" width="350" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="235" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">注意力：一整套</text>
-  <rect x="490" y="92" width="350" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="665" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">注意力：一整套</text>
-  <rect x="60" y="172" width="165" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <rect x="245" y="172" width="165" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <rect x="490" y="172" width="165" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <rect x="675" y="172" width="165" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <path d="M60 270 v8 h780 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">256 个专家按编号摊给 4 颗，每颗 64 个</text>
-  <text x="40" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#065f56">这条请求只进 DP rank 0</text>
-  <text x="470" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#4d5652">DP rank 1 没活干，每步也陪跑 1 个 token</text>
-  <text x="450" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">专家层每一步都要跨副本收发</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 535" width="900" height="535" role="img" aria-label="DP 先分请求：两个执行副本分别管理队列、批次与状态；图中路由结果只是一次教学分配">
+  <title>DP 先分请求：两个执行副本分别管理队列、批次与状态；图中路由结果只是一次教学分配</title>
+  <defs><marker id="data-parallel-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="data-parallel-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <rect x="30" y="215" width="385" height="270" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 副本 0</text>
+  <rect x="485" y="215" width="385" height="270" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="501" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 副本 1</text>
+  <g data-hardware="memory">
+  <rect x="105" y="400" width="230" height="55" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M110 447h220M110 451h220" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="220" y="431.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A / B 历史状态</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="560" y="400" width="230" height="55" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M565 447h220M565 451h220" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="675" y="431.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C / D 历史状态</text>
+  </g>
+  <path d="M360 120 L360 170 L190 170 L190 266" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
+  <path d="M540 120 L540 170 L645 170 L645 266" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
+  <path d="M190 298 L190 320" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
+  <path d="M645 298 L645 320" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
+  <path d="M220 370 L220 400" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-start="url(#data-parallel-ah-kv)" marker-end="url(#data-parallel-ah-kv)"/>
+  <path d="M675 370 L675 400" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-start="url(#data-parallel-ah-kv)" marker-end="url(#data-parallel-ah-kv)"/>
+  <rect x="105" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="147.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A</text>
+  <rect x="190" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="232.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">B</text>
+  <path d="M190 266v32" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="105" y="266" width="170" height="32" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="560" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="602.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="645" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="687.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D</text>
+  <path d="M645 266v32" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="560" y="266" width="170" height="32" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="280" y="55" width="340" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="83.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求入口与路由</text>
+  <text x="450" y="102.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A、B、C、D</text>
+  <rect x="65" y="320" width="310" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度 → 执行</text>
+  <rect x="520" y="320" width="310" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度 → 执行</text>
+  <text x="30" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">副本内部还可使用 TP；是否跨副本通信取决于模型与并行组合</text>
 </svg>

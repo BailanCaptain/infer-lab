@@ -1,72 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" width="900" height="260" role="img" aria-label="一台 A3 的 640 个核先按 16 颗 NPU 等分，这次用到的两颗各拿一段 40 个；每段再按用途切成 2 + 36 + 1 + 1">
-  <title>一台 A3 的 640 个核先按 16 颗 NPU 等分，这次用到的两颗各拿一段 40 个；每段再按用途切成 2 + 36 + 1 + 1</title>
-  <defs></defs>
-  <rect x="30" y="52" width="50" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="55" y="74.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0-39</text>
-  <rect x="84" y="52" width="50" height="36" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="109" y="74.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">40-79</text>
-  <rect x="138" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="192" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="246" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="300" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="354" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="408" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="462" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="516" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="570" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="624" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="678" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="732" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="786" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="840" y="52" width="50" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="30" y="176" width="19" height="34" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="51" y="176" width="19" height="34" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="72" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="93" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="114" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="135" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="156" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="177" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="198" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="219" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="240" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="261" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="282" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="303" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="324" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="345" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="366" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="387" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="408" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="429" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="450" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="471" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="492" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="513" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="534" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="555" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="576" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="597" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="618" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="639" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="660" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="681" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="702" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="723" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="744" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="765" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="786" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="807" y="176" width="19" height="34" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="828" y="176" width="19" height="34" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <rect x="849" y="176" width="19" height="34" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <path d="M30 96 v8 h104 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="82" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这次的两颗 NPU</text>
-  <path d="M30 218 v8 h40 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="50" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">中断</text>
-  <path d="M72 218 v8 h754 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="449" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Worker 进程和它的全部子线程：36 个</text>
-  <path d="M828 218 v8 h40 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="848" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两条后台线程</text>
-  <text x="30" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">一台 A3：640 个核，按 16 颗 NPU 等分</text>
-  <text x="30" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">NPU 0 那 40 个核，再按用途分</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="亲和性限制线程可运行的逻辑 CPU 集合；NUMA 页位置是另一状态。图为拓扑示意，不代表服务器规格，也不保证绑核后全是本地访问。">
+  <title>亲和性限制线程可运行的逻辑 CPU 集合；NUMA 页位置是另一状态。图为拓扑示意，不代表服务器规格，也不保证绑核后全是本地访问。</title>
+  <defs><marker id="cpu-binding-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="cpu-binding-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="cpu-binding-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <g data-hardware="server">
+  <rect x="35" y="65" width="380" height="305" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M39 77v281M411 77v281" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NUMA 域 0</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="485" y="65" width="380" height="305" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M489 77v281M861 77v281" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NUMA 域 1</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="100" y="265" width="235" height="65" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M105 322h225M105 326h225" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="217.5" y="301.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本地主存</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="560" y="265" width="235" height="65" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M565 322h225M565 326h225" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="677.5" y="301.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">远端主存</text>
+  </g>
+  <g data-hardware="chip">
+  <rect x="363" y="463" width="174" height="79" rx="5" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M402.5 455v8M402.5 542v8M355 478.8h8M537 478.8h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M450 455v8M450 542v8M355 502.5h8M537 502.5h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M497.5 455v8M497.5 542v8M355 526.3h8M537 526.3h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="506.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU</text>
+  </g>
+  <path d="M217 245 L217 265" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-kv)"/>
+  <path d="M335 298 L560 298" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-start="url(#cpu-binding-ah-comm)" marker-end="url(#cpu-binding-ah-comm)"/>
+  <path d="M170 355 L170 495 L355 495" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-ah-control)"/>
+  <rect x="85" y="132" width="30" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="118" y="132" width="30" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="151" y="132" width="30" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="184" y="132" width="30" height="28" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="217" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="250" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="283" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="316" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="535" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="568" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="601" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="634" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="667" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="700" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="733" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <rect x="766" y="132" width="30" height="28" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.35" stroke-width="1.2"/>
+  <path d="M85 181 v8 h129 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149.5" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Worker 允许集合</text>
+  <text x="225" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">线程在允许集合内运行</text>
+  <text x="680" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">其他逻辑 CPU</text>
+  <text x="450" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">CPU 提交任务，NPU 执行模型计算</text>
+  <text x="450" y="590" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">已有页可尝试迁移；亲和性不等于 CPU 独占或持久内存绑定。</text>
 </svg>

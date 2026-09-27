@@ -51,8 +51,8 @@ describe("renderIndex", () => {
     const md = renderIndex(pages);
     expect(md).toContain("## 概念（concept）\n- [B](concepts/b.md) — b 摘要");
     expect(md).toContain("## 特性（feature）\n- [A](concepts/a.md) — a 摘要");
-    expect(md).toContain("### 11 KV Cache 内存系统\n- [A](concepts/a.md)\n- [B](concepts/b.md)");
-    expect(md).toContain("### 12 调度\n- [A](concepts/a.md)");
+    expect(md).toContain("### 11 KV cache 内存系统\n- [A](concepts/a.md)\n- [B](concepts/b.md)");
+    expect(md).toContain("### 12 Scheduler 与调度策略\n- [A](concepts/a.md)");
     expect(md).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     expect(renderIndex([...pages].reverse())).toBe(md);
   });

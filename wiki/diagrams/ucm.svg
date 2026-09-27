@@ -1,25 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 290" width="900" height="290" role="img" aria-label="两种 PD 分离，KV 从 P 节点到 D 节点走的路不一样：集中式经共享存储中转，P2P 由 Mooncake 直传，UCM 只在 P 节点旁管前缀复用">
-  <title>两种 PD 分离，KV 从 P 节点到 D 节点走的路不一样：集中式经共享存储中转，P2P 由 Mooncake 直传，UCM 只在 P 节点旁管前缀复用</title>
-  <defs><marker id="ucm-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <rect x="30" y="50" width="400" height="210" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="46" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">集中式 PD 分离</text>
-  <rect x="470" y="50" width="400" height="210" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="486" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P2P PD 分离</text>
-  <path d="M125 126 L185 190" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ucm-ah-kv)"/>
-  <path d="M275 190 L335 126" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ucm-ah-kv)"/>
-  <path d="M630 104 L710 104" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#ucm-ah-kv)"/>
-  <path d="M565 126 L565 190" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#ucm-ah-kv)"/>
-  <rect x="60" y="82" width="130" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="125" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P 节点</text>
-  <rect x="270" y="82" width="130" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="335" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 节点</text>
-  <rect x="135" y="190" width="190" height="48" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="230" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享存储</text>
-  <rect x="500" y="82" width="130" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="565" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P 节点</text>
-  <rect x="710" y="82" width="130" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="775" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 节点</text>
-  <rect x="500" y="190" width="130" height="48" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="565" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">前缀存储</text>
-  <text x="670" y="70" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93" text-anchor="middle">Mooncake 直传</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="集中式PD由共享存储转交请求状态；P2P由Mooncake直接从P发送到D，UCM在P端管理可复用前缀，两图分别表示不同部署模式">
+  <title>集中式PD由共享存储转交请求状态；P2P由Mooncake直接从P发送到D，UCM在P端管理可复用前缀，两图分别表示不同部署模式</title>
+  <defs><marker id="ucm-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="25" y="45" width="410" height="310" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="41" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">集中式 PD</text>
+  <rect x="465" y="45" width="410" height="310" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="481" y="33" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P2P PD</text>
+  <g data-hardware="server">
+  <rect x="50" y="100" width="150" height="70" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M54 112v46M196 112v46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="125" y="90" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 节点</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="260" y="100" width="150" height="70" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M264 112v46M406 112v46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="335" y="90" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 节点</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="125" y="260" width="210" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M130 312h200M130 316h200" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="230" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">共享存储</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="490" y="100" width="150" height="70" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M494 112v46M636 112v46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="565" y="90" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 节点</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="700" y="100" width="150" height="70" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M704 112v46M846 112v46" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="775" y="90" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 节点</text>
+  </g>
+  <g data-hardware="memory">
+  <rect x="490" y="260" width="190" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M495 312h180M495 316h180" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="585" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">UCM 前缀存储</text>
+  </g>
+  <path d="M125 175 L180 255" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ucm-ah-comm)"/>
+  <path d="M280 255 L335 175" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ucm-ah-comm)"/>
+  <path d="M642 135 L698 135" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#ucm-ah-comm)"/>
+  <path d="M565 175 L565 255" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-start="url(#ucm-ah-comm)" marker-end="url(#ucm-ah-comm)"/>
+  <text x="89" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">保存</text>
+  <text x="326" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">加载</text>
+  <text x="670" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">Mooncake 直传</text>
+  <text x="590" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">前缀复用</text>
 </svg>

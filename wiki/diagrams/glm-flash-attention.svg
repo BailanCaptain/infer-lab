@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" width="900" height="720" role="img" aria-label="两类 attention 利用历史的方式。上半图是 KDA 的一步：旧状态按遗忘门衰减，再写入当前 token；下半图是稀疏 MLA 的一步：索引器给自己缓存里的池 K 打分（每 4 个位置一个池），选中的池落到下面对应的潜向量上，未满一池的尾巴总会读。示意只画 1 个池的预算，头数与维度在正文">
+  <title>两类 attention 利用历史的方式。上半图是 KDA 的一步：旧状态按遗忘门衰减，再写入当前 token；下半图是稀疏 MLA 的一步：索引器给自己缓存里的池 K 打分（每 4 个位置一个池），选中的池落到下面对应的潜向量上，未满一池的尾巴总会读。示意只画 1 个池的预算，头数与维度在正文</title>
+  <defs><marker id="glm-flash-attention-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="glm-flash-attention-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="glm-flash-attention-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M175 190 L232 190" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-kv)"/>
+  <path d="M260 124 L260 162" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <path d="M288 190 L355 190" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-kv)"/>
+  <path d="M465 190 L567 190" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-kv)"/>
+  <path d="M595 124 L595 162" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <path d="M623 190 L737 190" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <path d="M465 220 L495 220 L495 291 L38 291 L38 220 L65 220" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-attention-ah-kv)"/>
+  <path d="M125 446 L125 508" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <path d="M149 422 L265 422 L265 586" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <path d="M289 610 L560 610" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <path d="M153 536 L220 536 L220 435 L300 435" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-attention-ah-ink)"/>
+  <path d="M578 450 L578 475" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-attention-ah-ink)"/>
+  <path d="M650 520 L650 568 L588 568 L588 582" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-kv)"/>
+  <path d="M806 520 L806 568 L588 568 L588 582" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-kv)"/>
+  <path d="M616 610 L737 610" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#glm-flash-attention-ah-token)"/>
+  <rect x="65" y="150" width="110" height="80" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M87 150v80M109 150v80M131 150v80M153 150v80M65 170h110M65 190h110M65 210h110" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="120" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">上一步状态</text>
+  <text x="120" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">每头 128 × 128</text>
+  <rect x="355" y="150" width="110" height="80" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M377 150v80M399 150v80M421 150v80M443 150v80M355 170h110M355 190h110M355 210h110" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="410" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">更新后的状态</text>
+  <rect x="300" y="420" width="172" height="30" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="386" y="439.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">池 0 的池 K</text>
+  <rect x="300" y="420" width="172" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="492" y="420" width="172" height="30" fill="var(--color-control, #66716d)"/>
+  <text x="578" y="439.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">池 1 的池 K</text>
+  <rect x="492" y="420" width="172" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="684" y="420" width="128" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="748" y="439.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">尾巴 · 未成池</text>
+  <rect x="684" y="420" width="128" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="300" y="475" width="40" height="45" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="320" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">0</text>
+  <rect x="344" y="475" width="40" height="45" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="364" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">1</text>
+  <rect x="388" y="475" width="40" height="45" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="408" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">2</text>
+  <rect x="432" y="475" width="40" height="45" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="452" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">3</text>
+  <text x="386" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">池 0 潜向量 · 未选</text>
+  <rect x="492" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="512" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <rect x="536" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="556" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
+  <rect x="580" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="600" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
+  <rect x="624" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="644" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7</text>
+  <text x="578" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">池 1 潜向量 · 选中</text>
+  <rect x="684" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="704" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8</text>
+  <rect x="728" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="748" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">9</text>
+  <rect x="772" y="475" width="40" height="45" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="792" y="502.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">10</text>
+  <text x="748" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">尾巴潜向量 · 总读</text>
+  <rect x="737" y="170" width="110" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="792" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前输出</text>
+  <rect x="737" y="590" width="110" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="792" y="615" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前输出</text>
+  <circle cx="260" cy="190" r="28" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="260" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">更新</text>
+  <circle cx="595" cy="190" r="28" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="595" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">读取</text>
+  <circle cx="260" cy="100" r="24" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="260" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k/v</text>
+  <circle cx="595" cy="100" r="24" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="595" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">q</text>
+  <circle cx="125" cy="422" r="24" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="125" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">h</text>
+  <circle cx="265" cy="610" r="24" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="616" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Q</text>
+  <circle cx="125" cy="536" r="28" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="125" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">索引</text>
+  <circle cx="588" cy="610" r="28" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="588" y="616" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Σ</text>
+  <text x="38" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">KDA · 历史攒在固定大小的状态里</text>
+  <text x="310" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">写入强度 β 与遗忘门 α</text>
+  <text x="525" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93">状态留给下一个位置</text>
+  <text x="38" y="362" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">稀疏 MLA · 按池挑选历史位置再读</text>
+  <text x="300" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652">索引器缓存：每池一条池 K</text>
+  <text x="38" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">当前隐藏向量</text>
+  <text x="426" y="665" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">只在选中的位置上算 attention</text>
+  <text x="38" y="708" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">实线：数据    虚线：状态传递 / 打分与按池选择</text>
+</svg>

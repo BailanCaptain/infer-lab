@@ -93,12 +93,17 @@ decode 每步最多往一行块表里追加一个块号，老实现却把整张 
 | releases/v0.27.1rc | 无 |
 | releases/v0.28.0rc | 无 |
 | releases/v0.29.0rc | 无 |
-| main | 有（2 个文件） |
+| main | 无 |
 
 - **引入**：2026-09-23 · ad7a731b9c0db2592bbe1f568a776207745017ed · PR [#17066](https://github.com/vllm-project/vllm-ascend/pull/17066) —— [Performance][MRV1] Commit only dirty block-table ranges (#17066)
   包含该提交的 tag：未找到；分支：origin/main
   - `vllm_ascend/worker/block_table.py` +124 / −2（文本行变化）
   - `vllm_ascend/ascend_config.py` +3 / −0（文本行变化）
   - `vllm_ascend/ops/triton/block_table_scatter.py` +43 / −0（文本行变化）
+- **移除**：2026-09-24 · 4b4da9fae9cdbde1248b196681c86dbb7ffca9e1 · PR [#17470](https://github.com/vllm-project/vllm-ascend/pull/17470) —— [nightly][bugfix] Revert MRV1 dirty block-table optimization (#17066) (#17470)
+  包含该提交的 tag：未找到；分支：origin/main
+  - `vllm_ascend/worker/block_table.py` +2 / −124（文本行变化）
+  - `vllm_ascend/ops/triton/block_table_scatter.py` +0 / −43（文本行变化）
+  - `vllm_ascend/ascend_config.py` +0 / −3（文本行变化）
 
 当前含该标识符的 tag：未找到

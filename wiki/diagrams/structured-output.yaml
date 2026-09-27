@@ -1,53 +1,463 @@
-layout: figure
-id: structured-output
-caption: 位图里一格管一个 token：开关为 0 的那些，分数在采样前被改成负无穷，只能从剩下的里挑
-size: [900, 320]
-
-texts:
-  - { at: [30, 38], text: 这一步挑 token 之前，先按位图划掉不合规矩的, size: 14, strong: true }
-  - { at: [30, 84], text: 模型给的分 }
-  - { at: [30, 144], text: 位图：1 = 允许, tone: control }
-  - { at: [30, 204], text: 采样时的分 }
-  - { at: [190, 300], text: "这个模型一整行：248320 个 token，7760 个整数", size: 12.5, note: true }
-
-grids:
-  - at: [190, 62]
-    rows: 1
-    cols: 32
-    cell: [19, 30]
-    gap: 2
-    tone: token
-    style: faded
-  - at: [190, 122]
-    rows: 1
-    cols: 32
-    cell: [19, 30]
-    gap: 2
-    tone: control
-    style: empty
-    cells:
-      - { at: [0, 3], style: solid }
-      - { at: [0, 4], style: solid }
-      - { at: [0, 5], style: solid }
-      - { at: [0, 18], style: solid }
-  - at: [190, 182]
-    rows: 1
-    cols: 32
-    cell: [19, 30]
-    gap: 2
-    tone: danger
-    style: faded
-    cells:
-      - { at: [0, 3], tone: token, style: solid }
-      - { at: [0, 4], tone: token, style: solid }
-      - { at: [0, 5], tone: token, style: solid }
-      - { at: [0, 18], tone: token, style: solid }
-
-brackets:
-  - { from: 190, to: 862, y: 226, label: "一个 32 位整数 = 32 个开关" }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2448-L2455
-    symbols: [apply_grammar_bitmask]
-  - source: vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L220-L229
-    symbols: [allocate_token_bitmask]
+{
+  "layout": "figure",
+  "id": "structured-output",
+  "caption": "文法状态给出允许集合；mask先排除不合法token，再由采样器选择。确认后的token反馈到文法，形成下一步的约束。",
+  "size": [
+    900,
+    640
+  ],
+  "grids": [
+    {
+      "at": [
+        195,
+        165
+      ],
+      "rows": 1,
+      "cols": 8,
+      "cell": [
+        70,
+        38
+      ],
+      "tone": "token",
+      "style": "plain",
+      "colLabels": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "1",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "4",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "2",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "6",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            4
+          ],
+          "text": "0",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            5
+          ],
+          "text": "3",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            6
+          ],
+          "text": "5",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            7
+          ],
+          "text": "-1",
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "at": [
+        195,
+        259
+      ],
+      "rows": 1,
+      "cols": 8,
+      "cell": [
+        70,
+        38
+      ],
+      "tone": "control",
+      "style": "empty",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "0",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "1",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "0",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "0",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            4
+          ],
+          "text": "1",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            5
+          ],
+          "text": "0",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            6
+          ],
+          "text": "1",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            7
+          ],
+          "text": "0",
+          "style": "empty"
+        }
+      ]
+    },
+    {
+      "at": [
+        195,
+        353
+      ],
+      "rows": 1,
+      "cols": 8,
+      "cell": [
+        70,
+        38
+      ],
+      "tone": "token",
+      "style": "empty",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "−∞",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "4",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            2
+          ],
+          "text": "−∞",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            3
+          ],
+          "text": "−∞",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            4
+          ],
+          "text": "0",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            5
+          ],
+          "text": "−∞",
+          "style": "empty"
+        },
+        {
+          "at": [
+            0,
+            6
+          ],
+          "text": "5",
+          "style": "solid"
+        },
+        {
+          "at": [
+            0,
+            7
+          ],
+          "text": "−∞",
+          "style": "empty"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        55,
+        40
+      ],
+      "size": [
+        235,
+        50
+      ],
+      "text": "当前文法状态",
+      "tone": "control"
+    },
+    {
+      "at": [
+        545,
+        455
+      ],
+      "size": [
+        210,
+        45
+      ],
+      "text": "贪心选择：ID 6",
+      "tone": "token"
+    },
+    {
+      "at": [
+        545,
+        555
+      ],
+      "size": [
+        210,
+        45
+      ],
+      "text": "确认 token",
+      "tone": "control"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        167,
+        190
+      ],
+      "text": "logits",
+      "anchor": "end"
+    },
+    {
+      "at": [
+        167,
+        284
+      ],
+      "text": "允许位",
+      "anchor": "end"
+    },
+    {
+      "at": [
+        167,
+        378
+      ],
+      "text": "mask 后",
+      "anchor": "end"
+    },
+    {
+      "at": [
+        430,
+        116
+      ],
+      "text": "token ID"
+    },
+    {
+      "at": [
+        323,
+        64
+      ],
+      "text": "允许集合 {1, 4, 6}"
+    },
+    {
+      "at": [
+        325,
+        228
+      ],
+      "text": "按 token ID 从低位到高位展示"
+    },
+    {
+      "at": [
+        205,
+        462
+      ],
+      "text": "8 位编码：01010010 = 82"
+    },
+    {
+      "at": [
+        205,
+        490
+      ],
+      "text": "实际使用 32 位整数打包"
+    },
+    {
+      "at": [
+        180,
+        570
+      ],
+      "text": "推进文法",
+      "anchor": "middle"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        172,
+        90
+      ],
+      "to": [
+        172,
+        278
+      ],
+      "via": [
+        [
+          172,
+          112
+        ],
+        [
+          80,
+          112
+        ],
+        [
+          80,
+          235
+        ],
+        [
+          172,
+          235
+        ]
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        475,
+        203
+      ],
+      "to": [
+        475,
+        250
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        475,
+        297
+      ],
+      "to": [
+        475,
+        344
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        650,
+        391
+      ],
+      "to": [
+        650,
+        450
+      ]
+    },
+    {
+      "from": [
+        650,
+        500
+      ],
+      "to": [
+        650,
+        550
+      ],
+      "tone": "control"
+    },
+    {
+      "from": [
+        545,
+        577
+      ],
+      "to": [
+        55,
+        65
+      ],
+      "via": [
+        [
+          45,
+          577
+        ],
+        [
+          45,
+          65
+        ]
+      ],
+      "tone": "control"
+    }
+  ]
+}

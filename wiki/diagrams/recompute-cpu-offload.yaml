@@ -1,31 +1,34 @@
 layout: figure
 id: recompute-cpu-offload
-caption: 被踢掉的请求先把 16 个 KV 块和状态搬进主机内存，重新排上再搬回来；主机内存没空位时，才退回 P 节点从头重算
+caption: 抢占时先保护请求A的状态，原页不再被拷贝读取后才可复用；恢复时回填完成后继续计算，时间长度仅为示意
 size: [900, 320]
-
-frames:
-  - { label: D 节点显存, at: [20, 40], size: [390, 130] }
-  - { label: 主机内存, at: [490, 40], size: [390, 130] }
-
-rows:
-  - { at: [40, 64], count: 16, w: 18, h: 40, gap: 3, tone: kv }
-  - { at: [510, 64], count: 16, w: 18, h: 40, gap: 3, tone: kv }
-
-items:
-  - { at: [40, 120], size: [90, 32], text: 状态, tone: kv }
-  - { at: [510, 120], size: [90, 32], text: 状态, tone: kv }
-  - { at: [20, 234], size: [390, 50], text: 没空位：退回 P 节点重算, tone: danger, style: faded }
-
-links:
-  - { from: [410, 84], to: [490, 84], tone: kv }
-  - { from: [490, 136], to: [410, 136], tone: kv, dashed: true }
-  - { from: [215, 170], to: [215, 234], tone: danger, dashed: true }
-
+timelines:
+  - at: [30, 65]
+    scale: 70
+    start: 0
+    end: 10
+    ticks: 2
+    unit: 示意时间
+    labelW: 130
+    lanes:
+      - label: 请求 A
+        spans:
+          - {from: 0, to: 1.5, tone: token, text: 执行}
+          - {from: 1.5, to: 8.5, tone: control, style: hatch, text: 暂停}
+          - {from: 8.5, to: 10, tone: token, text: 继续}
+      - label: 状态搬运
+        spans:
+          - {from: 1.5, to: 3.5, tone: comm, text: 保存}
+          - {from: 6.5, to: 8.5, tone: comm, text: 回填}
+      - label: 主机副本
+        spans:
+          - {from: 3.5, to: 8.5, tone: kv, text: 已保存，可恢复}
+    marks:
+      - {t: 3.5, label: 保存完成}
+      - {t: 8.5, label: 回填完成}
 texts:
-  - { at: [420, 74], text: ① 搬出去, size: 13 }
-  - { at: [420, 160], text: ② 搬回来, size: 13 }
-  - { at: [490, 264], text: 一条 32K 请求：16 块 + 状态，约 381 MiB, size: 13, note: true }
-
+  - {at: [30, 264], text: "源设备页在保存完成前保持有效；加载目标在回填完成后才可读", note: true}
+  - {at: [30, 294], text: "主机容量不足或保存不可用时，由调度器选择相应恢复路径", note: true}
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/kv_offload/preempt_offload/manager.py#L262-L334
-    symbols: [_create_preempt_state]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L166
+    symbols: [start_load_kv]

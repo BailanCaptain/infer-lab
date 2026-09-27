@@ -458,3 +458,39 @@ vllm-ascend@main a71b766ce6fc0a9669a412e15a5cf53f7f827093 → 39fef3f8fe71e71a8b
 ## [2026-09-24] build | 版本谱系刷新
 
 确定性更新 21 页；教学正文保留。
+
+## [2026-09-24] ingest | 参数增量
+
+vllm-ascend@main 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f → bea70ab8fa233a06a7483337f42a1e3f2c8a117c；新增 4 / 删除 1 / 变更 3。
+
+- finegrained_tp_config: 默认表达式 "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())" → "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())"
+- scheduler_config: 默认表达式 "dataclasses.field(default_factory=lambda: SchedulerConfig())" → "dataclasses.field(default_factory=lambda: SchedulerConfig())"
+- do_remote_decode: 默认表达式 "None" → "False"
+
+## [2026-09-24] ingest | 参数增量
+
+vllm-ascend@releases/v0.26.0rc 16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2 → 57179dd3e5d05a547a9fdea8b6958f66717e6098；新增 0 / 删除 0 / 变更 0。
+
+## [2026-09-24] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-09-25] ingest | 参数增量
+
+vllm-ascend@main bea70ab8fa233a06a7483337f42a1e3f2c8a117c → 2bb3f44716f3505d2723a4e5badb10211a6c5589；新增 0 / 删除 0 / 变更 0。
+
+## [2026-09-25] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-09-26] ingest | 参数增量
+
+vllm-ascend@main 2bb3f44716f3505d2723a4e5badb10211a6c5589 → 4d1412d102c16669af3ec73174fc5f8b359b56d9；新增 10 / 删除 0 / 变更 3。
+
+- topk_buffer_size: 默认表达式 "4096" → "4096"
+- topk: 默认表达式 "dataclasses.field(default=0, init=False)" → "dataclasses.field(default=0, init=False)"
+- use_fused_overlap: 默认表达式 "False" → "False"
+
+## [2026-09-26] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

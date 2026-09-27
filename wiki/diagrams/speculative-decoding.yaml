@@ -1,29 +1,117 @@
 layout: figure
 id: speculative-decoding
-caption: 每步猜 3 个：4 个位置一次算完，第一个对不上的地方换成模型自己的答案，后面作废
-size: [900, 240]
-
+caption: Greedy、三个候选的教学例子：输入与后继预测错开一位；前两个候选被接受，第三个用目标预测 z 替代，未接受分支不提交
+size:
+- 900
+- 320
+rows: []
 items:
-  - { at: [120, 36], size: [150, 44], text: 已确定, tone: token, style: solid }
-  - { at: [300, 36], size: [150, 44], text: 猜 1, tone: token, style: faded }
-  - { at: [480, 36], size: [150, 44], text: 猜 2, tone: token, style: faded }
-  - { at: [660, 36], size: [150, 44], text: 猜 3, tone: token, style: faded }
-  - { at: [120, 132], size: [150, 44], text: 猜 1 对, tone: token, style: solid }
-  - { at: [300, 132], size: [150, 44], text: 猜 2 对, tone: token, style: solid }
-  - { at: [480, 132], size: [150, 44], text: 猜 3 错，换掉, tone: danger, style: solid }
-  - { at: [660, 132], size: [150, 44], tone: control, style: faded }
-
+- at:
+  - 170
+  - 190
+  size:
+  - 135
+  - 42
+  text: d₁ · 接受
+  tone: token
+- at:
+  - 330
+  - 190
+  size:
+  - 135
+  - 42
+  text: d₂ · 接受
+  tone: token
+- at:
+  - 490
+  - 190
+  size:
+  - 135
+  - 42
+  text: z · 替代 d₃
+  tone: danger
+- at:
+  - 650
+  - 190
+  size:
+  - 135
+  - 42
+  text: 不提交
+  tone: control
+  style: faded
+- at:
+  - 170
+  - 75
+  size:
+  - 135
+  - 42
+  text: 已确定 token
+  tone: token
+  style: solid
+- at:
+  - 330
+  - 75
+  size:
+  - 135
+  - 42
+  text: 候选 d₁
+  tone: token
+  style: solid
+- at:
+  - 490
+  - 75
+  size:
+  - 135
+  - 42
+  text: 候选 d₂
+  tone: token
+  style: solid
+- at:
+  - 650
+  - 75
+  size:
+  - 135
+  - 42
+  text: 候选 d₃
+  tone: token
+  style: solid
 links:
-  - { from: [195, 80], to: [195, 132] }
-  - { from: [375, 80], to: [375, 132] }
-  - { from: [555, 80], to: [555, 132] }
-  - { from: [735, 80], to: [735, 132], dashed: true, tone: control }
-
+- from:
+  - 237
+  - 117
+  to:
+  - 237
+  - 190
+- from:
+  - 397
+  - 117
+  to:
+  - 397
+  - 190
+- from:
+  - 557
+  - 117
+  to:
+  - 557
+  - 190
+- from:
+  - 717
+  - 117
+  to:
+  - 717
+  - 190
+  dashed: true
 brackets:
-  - { from: 120, to: 630, y: 192, label: 这一步出 3 个 token }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1525-L1543
-    symbols: [_calc_spec_decode_metadata, num_draft_tokens, num_sampled_tokens]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/sample/rejection_sampler.py#L928-L979
-    symbols: [rejection_greedy_sample_pytorch, bonus_token_ids]
+- from: 170
+  to: 625
+  y: 258
+  label: 本轮提交 3 个新输出
+texts:
+- at:
+  - 40
+  - 101
+  text: 验证输入
+- at:
+  - 40
+  - 216
+  text: 后继预测

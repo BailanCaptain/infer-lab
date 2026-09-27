@@ -1,15 +1,19 @@
 layout: figure
 id: device-memory
-caption: 容量按位置分别计算；跨位置访问或搬运都需要对应的硬件与软件路径
-size: [900, 275]
+caption: 同一段权重 W 从主机复制到一张卡；两份数据各占本侧容量，复制不等于释放源数据
+size: [860, 290]
 frames:
-  - { at: [30, 50], size: [320, 165], label: CPU 一侧 }
-  - { at: [540, 50], size: [330, 165], label: NPU 一侧 }
-items:
-  - { at: [65, 103], size: [250, 70], text: 主机内存, sub: CPU 内存, tone: control }
-  - { at: [570, 103], size: [270, 70], text: 设备内存（显存）, sub: 权重、KV、临时结果, tone: kv }
+  - { at: [35, 65], size: [270, 160], label: 主机内存 · CPU 一侧 }
+  - { at: [475, 65], size: [270, 160], label: 设备内存 · 一张卡 }
+matrices:
+  - { at: [100, 115], w: 140, h: 65, cols: 5, rows: 3, label: 权重 W, tone: weight }
+  - { at: [540, 115], w: 140, h: 65, cols: 5, rows: 3, label: 权重 W, tone: weight }
 links:
-  - { from: [350, 130], to: [535, 130], tone: comm }
+  - { from: [305, 150], to: [475, 150], tone: comm }
+  - { from: [745, 150], to: [817, 150], tone: weight }
 texts:
-  - { at: [445, 112], text: 访问或搬运, anchor: middle, size: 13, tone: comm }
-  - { at: [30, 250], text: 容量：能放多少字节    带宽：每秒能传多少字节, note: true }
+  - { at: [390, 123], text: 复制本卡所需部分, anchor: middle, tone: comm, size: 15 }
+  - { at: [825, 132], text: NPU, anchor: middle, size: 15 }
+  - { at: [825, 177], text: 计算, anchor: middle, size: 15 }
+  - { at: [170, 257], text: 主机账：源数据, anchor: middle, note: true }
+  - { at: [610, 257], text: 设备账：本地副本, anchor: middle, note: true }

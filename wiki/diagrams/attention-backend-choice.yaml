@@ -1,46 +1,134 @@
 layout: figure
 id: attention-backend-choice
-caption: 一层注意力怎么找到它的后端——全注意力层过三道闸去查表，线性注意力层自己带着后端进场
-size: [900, 470]
-
-dividers:
-  - { from: [634, 20], to: [634, 440], sides: [启动时查表的路, 层自带后端的路] }
-
+caption: GLM 的两类层连接不同实现与状态：模型机制决定计算语义，Runner 按后端与缓存规格组织元数据
+size:
+- 900
+- 525
 items:
-  - { at: [40, 36], size: [560, 48], text: 全注意力层, sub: 例子里 10 层, tone: kv }
-
-  - { at: [40, 128], size: [560, 42], text: 闸一：有人点名 FA3 吗？——例子没点名，往下, style: plain }
-  - { at: [40, 182], size: [560, 42], text: 闸二：是 310p 老硬件吗？——例子不是，往下, style: plain }
-  - { at: [40, 236], size: [560, 46], text: 闸三：查主表——是 MLA 吗？稀疏吗？压缩吗？, tone: control }
-
-  - { at: [40, 340], size: [130, 56], text: 普通后端, sub: GQA / MHA, tone: control }
-  - { at: [183, 340], size: [130, 56], text: MLA 后端, tone: control, style: faded }
-  - { at: [326, 340], size: [130, 56], text: 稀疏 MLA 后端, tone: control, style: faded }
-  - { at: [469, 340], size: [130, 56], text: DSA 后端, tone: control, style: faded }
-
-  - { at: [664, 36], size: [216, 48], text: 线性注意力层, sub: 例子里 30 层, tone: token }
-  - { at: [664, 340], size: [216, 56], text: GDN 后端, sub: 线性注意力专用, tone: token }
-
+- at:
+  - 310
+  - 25
+  size:
+  - 280
+  - 65
+  text: Runner 元数据构建
+  sub: 按后端与缓存规格分组
+  tone: control
+- at:
+  - 35
+  - 165
+  size:
+  - 180
+  - 65
+  text: 稀疏 MLA 层
+  tone: weight
+- at:
+  - 35
+  - 355
+  size:
+  - 180
+  - 65
+  text: KDA 层
+  tone: weight
+- at:
+  - 320
+  - 165
+  size:
+  - 250
+  - 65
+  text: Indexer / KPool MLA
+  sub: 候选访问与主注意力
+  tone: control
+- at:
+  - 320
+  - 355
+  size:
+  - 250
+  - 65
+  text: Ascend Kimi KDA
+  sub: 投影 → 递推算子 → 输出
+  tone: control
+hardware:
+- kind: memory
+  at:
+  - 675
+  - 165
+  size:
+  - 190
+  - 70
+  label: 历史 / 索引状态
+- kind: memory
+  at:
+  - 675
+  - 355
+  size:
+  - 190
+  - 70
+  label: 递推 / 卷积状态
 links:
-  - { from: [320, 84], to: [320, 128], tone: control }
-  - { from: [320, 170], to: [320, 182], tone: control }
-  - { from: [320, 224], to: [320, 236], tone: control }
-  - { from: [772, 84], to: [772, 340], tone: token }
-
-fans:
-  - { from: [320, 282], to: [[105, 340], [248, 340], [391, 340], [534, 340]], tone: control }
-
-tags:
-  - { at: [469, 306], text: 查不到＝直接报错，不回落 }
-
+- from:
+  - 215
+  - 197
+  to:
+  - 320
+  - 197
+  tone: weight
+- from:
+  - 215
+  - 387
+  to:
+  - 320
+  - 387
+  tone: weight
+- from:
+  - 445
+  - 90
+  to:
+  - 445
+  - 165
+  tone: control
+- from:
+  - 590
+  - 57
+  to:
+  - 445
+  - 355
+  via:
+  - - 885
+    - 57
+  - - 885
+    - 290
+  - - 445
+    - 290
+  tone: control
+- from:
+  - 570
+  - 205
+  to:
+  - 675
+  - 205
+  tone: kv
+  ends: both
+- from:
+  - 570
+  - 397
+  to:
+  - 675
+  - 397
+  tone: kv
+  ends: both
 texts:
-  - { at: [40, 316], text: 例子三个开关全是「否」，查到最左这格, size: 13, note: true }
-  - { at: [664, 200], text: 不查表：层生下来就带着自己的后端，昇腾把这层换成了自家版本, size: 13, note: true, width: 216 }
-  - { at: [40, 428], text: 例子的 10 层全走它, size: 13, strong: true }
-  - { at: [664, 428], text: 例子的 30 层全走它, size: 13, strong: true }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841
-    symbols: [get_attn_backend_cls]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/gdn.py#L64-L65
-    symbols: [get_attn_backend]
+- at:
+  - 45
+  - 110
+  text: 层确定机制与实现对象
+- at:
+  - 430
+  - 135
+  text: 元数据
+  anchor: end
+- at:
+  - 40
+  - 482
+  text: 实现调用设备算子；状态按各自布局访问
+  note: true

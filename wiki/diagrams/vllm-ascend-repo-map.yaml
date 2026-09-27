@@ -1,18 +1,29 @@
 layout: figure
 id: vllm-ascend-repo-map
-caption: 条的长度就是 v0.23 上的真实行数。实色三条是第一遍就读的主干；最长那条是其余 16 个目录连同根下 13 个文件加起来
-size: [900, 340]
-
-bars:
-  - { at: [40, 20], scale: 0.017, segments: [{ value: 23484, tone: control, text: 算子替换 }] }
-  - { at: [40, 58], scale: 0.017, segments: [{ value: 14732, tone: kv, text: 注意力 }] }
-  - { at: [40, 96], scale: 0.017, segments: [{ value: 14486, tone: control, text: 单卡执行 }] }
-  - { at: [40, 144], scale: 0.017, segments: [{ value: 20985, tone: comm, style: hatch, text: 跨卡通信 }] }
-  - { at: [40, 182], scale: 0.017, segments: [{ value: 10546, tone: control, style: hatch, text: 接上游的补丁 }] }
-  - { at: [40, 220], scale: 0.017, segments: [{ value: 6838, tone: ink, style: hatch, text: 310P 专用 }] }
-  - { at: [40, 258], scale: 0.017, segments: [{ value: 6578, tone: weight, style: hatch, text: 量化 }] }
-  - { at: [40, 296], scale: 0.017, segments: [{ value: 33012, tone: ink, style: hatch, text: 其余 16 个目录 }] }
-
+caption: 按职责定位目录：运行时主线从引擎进入执行、模型与算子；配置注册、通信及图执行提供相应支持
+size: [900, 560]
+frames:
+  - { at: [20, 50], size: [225, 195], label: 上游 vLLM }
+  - { at: [285, 50], size: [590, 195], label: Ascend 运行时路径 }
+items:
+  - { at: [40, 115], size: [185, 65], text: EngineCore / Executor, sub: v1/engine · v1/executor, tone: control }
+  - { at: [305, 115], size: [155, 65], text: Worker / Runner, sub: worker/, tone: control }
+  - { at: [485, 115], size: [160, 65], text: GLM 模型, sub: models/, tone: weight }
+  - { at: [670, 115], size: [185, 65], text: 后端与算子, sub: attention/ · ops/, tone: token }
+  - { at: [30, 335], size: [245, 65], text: 配置与实现选择, sub: platform · config · patch, tone: control }
+  - { at: [330, 335], size: [245, 65], text: 分片与数据传递, sub: distributed/, tone: comm }
+  - { at: [630, 335], size: [245, 65], text: 图变换与执行复用, sub: compilation/, tone: kv }
+links:
+  - { from: [225, 147], to: [305, 147], tone: control }
+  - { from: [460, 147], to: [485, 147], tone: token }
+  - { from: [645, 147], to: [670, 147], tone: token }
+  - { from: [152, 335], to: [382, 180], via: [[152, 275], [382, 275]], tone: control }
+  - { from: [452, 335], to: [565, 180], via: [[452, 295], [565, 295]], tone: comm }
+  - { from: [752, 335], to: [762, 180], via: [[752, 275], [762, 275]], tone: kv }
+texts:
+  - { at: [30, 465], text: 权重加载：model_loader/     精度与布局：quantization/, size: 15 }
+  - { at: [30, 500], text: 候选与采样：spec_decode/ · sample/     设备扩展：根目录 csrc/, size: 15 }
+  - { at: [30, 535], text: 同一职责可跨目录；箭头为主要协作关系，非完整调用栈, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L268-L269
-    symbols: [NPUModelRunner]
+  - { source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L482', symbols: [step] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427', symbols: [execute_model] }

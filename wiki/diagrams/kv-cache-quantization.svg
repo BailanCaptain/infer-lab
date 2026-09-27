@@ -1,23 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" width="900" height="270" role="img" aria-label="写进 KV 块之前先除以 scale 压成 int8，一份 K、V 从 2 KiB 变 1 KiB（每 token 每层、一颗 NPU 独跑）；读的时候不先解开，连 scale 一起交给注意力算子">
-  <title>写进 KV 块之前先除以 scale 压成 int8，一份 K、V 从 2 KiB 变 1 KiB（每 token 每层、一颗 NPU 独跑）；读的时候不先解开，连 scale 一起交给注意力算子</title>
-  <defs><marker id="kv-cache-quantization-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-quantization-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <path d="M180 120 L240 120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
-  <path d="M410 120 L470 120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
-  <path d="M640 120 L700 120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
-  <path d="M555 200 L325 150" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-weight)"/>
-  <path d="M555 200 L785 150" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-weight)"/>
-  <rect x="30" y="90" width="150" height="60" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="105" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">K、V</text>
-  <text x="105" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">bf16 · 2 KiB</text>
-  <rect x="240" y="90" width="170" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="325" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">÷ scale 取整</text>
-  <rect x="484" y="66" width="170" height="80" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="477" y="73" width="170" height="80" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <rect x="470" y="80" width="170" height="80" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="555" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV 块</text>
-  <text x="555" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">int8 · 1 KiB</text>
-  <rect x="700" y="90" width="170" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="785" y="125" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">注意力算子</text>
-  <rect x="470" y="200" width="170" height="40" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="555" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">scale</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" width="900" height="350" role="img" aria-label="普通K/V缓存的有效载荷示例：每张形状为100×2×64；BF16主体50 KiB，INT8主体25 KiB，量化元数据与页填充另计">
+  <title>普通K/V缓存的有效载荷示例：每张形状为100×2×64；BF16主体50 KiB，INT8主体25 KiB，量化元数据与页填充另计</title>
+  <defs><marker id="kv-cache-quantization-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M280 140 L545 140" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-quantization-ah-kv)"/>
+  <rect x="45" y="85" width="100" height="120" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M70 85v120M95 85v120M120 85v120M45 109h100M45 133h100M45 157h100M45 181h100" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="95" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">BF16 K</text>
+  <rect x="170" y="85" width="100" height="120" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M195 85v120M220 85v120M245 85v120M170 109h100M170 133h100M170 157h100M170 181h100" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="220" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">BF16 V</text>
+  <rect x="555" y="85" width="100" height="120" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M580 85v120M605 85v120M630 85v120M555 109h100M555 133h100M555 157h100M555 181h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="605" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">INT8 K</text>
+  <rect x="680" y="85" width="100" height="120" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M705 85v120M730 85v120M755 85v120M680 109h100M680 133h100M680 157h100M680 181h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="730" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">INT8 V</text>
+  <text x="157" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">50 KiB</text>
+  <text x="667" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">25 KiB + 元数据</text>
+  <text x="412" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">写入时量化</text>
+  <text x="412" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#936300" text-anchor="middle">scale / offset</text>
+  <text x="45" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">相同元素数，格式改变；网格只示意张量结构</text>
+  <text x="45" y="314" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">读取路径：融合计算 / 临时反量化</text>
 </svg>

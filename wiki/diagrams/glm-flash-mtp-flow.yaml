@@ -1,0 +1,33 @@
+layout: figure
+id: glm-flash-mtp-flow
+caption: MTP 先拼接 embedding 与隐藏向量，再经过一个预测层。下一遍接收的是 RMSNorm 后的隐藏向量和本遍选出的 token；候选数量由部署配置决定。
+size: [880, 570]
+items:
+  - { at: [30, 66], size: [260, 74], text: 下一 token 的 embedding, sub: enorm：归一化, tone: token }
+  - { at: [30, 208], size: [260, 74], text: 上一位置的隐藏向量, sub: hnorm：归一化, tone: token }
+  - { at: [350, 136], size: [260, 74], text: 拼接 → eh_proj, sub: embedding 在前，8192 → 4096, tone: weight }
+  - { at: [350, 252], size: [260, 70], text: 预测层：稀疏 MLA → MoE, sub: 单条 residual 流，随后 TP 合并, tone: weight }
+  - { at: [350, 364], size: [260, 58], text: RMSNorm, sub: 此处的隐藏向量供下一遍使用, tone: weight }
+  - { at: [650, 364], size: [200, 58], text: × 主模型 lm_head, sub: 得到词表 logits, tone: weight }
+  - { at: [650, 478], size: [200, 66], text: 取最高分 token, sub: 候选数量已满？, style: plain }
+  - { at: [350, 478], size: [260, 66], text: 是：交给主模型验证, tone: token }
+links:
+  - { from: [290, 103], to: [350, 158], via: [[320, 103], [320, 158]] }
+  - { from: [290, 245], to: [350, 188], via: [[332, 245], [332, 188]] }
+  - { from: [480, 210], to: [480, 252] }
+  - { from: [480, 322], to: [480, 364] }
+  - { from: [610, 393], to: [650, 393] }
+  - { from: [750, 422], to: [750, 478] }
+  - { from: [650, 511], to: [610, 511] }
+  - { from: [850, 511], to: [160, 66], via: [[866, 511], [866, 32], [160, 32]], tone: token }
+  - { from: [350, 393], to: [160, 282], via: [[160, 393]], tone: token, dashed: true }
+texts:
+  - { at: [480, 20], text: 否：位置 +1，候选成为新输入, anchor: middle, size: 14, tone: token }
+  - { at: [42, 437], text: 虚线：反馈隐藏向量, size: 14, tone: token }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L94-L191
+    symbols: [hnorm, enorm, eh_proj, mtp_block, shared_head, compute_logits]
+  - source: vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L589-L596
+    symbols: [lm_head]
+  - source: vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1173-L1454
+    symbols: [_run_merged_draft, argmax]

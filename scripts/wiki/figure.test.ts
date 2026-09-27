@@ -85,6 +85,74 @@ it("文字太多、整句进图、代码名进图，列为不阻塞的提醒", (
 const fig = (extra: Record<string, unknown>, size: [number, number] = [600, 400]) =>
   figureSpecSchema.parse({ ...BASE, size, ...extra });
 
+it("连接可以表达单向数据流、双向通路与无向关系，旧图默认保留单向箭头", () => {
+  const link = { from: [30, 50], to: [200, 50], tone: "comm" };
+  const one = renderFigure(fig({ links: [link] }));
+  const both = renderFigure(fig({ links: [{ ...link, ends: "both" }] }));
+  const none = renderFigure(fig({ links: [{ ...link, ends: "none" }] }));
+  expect(one).toContain('marker-end="url(#f-ah-comm)"');
+  expect(one).not.toContain("marker-start=");
+  expect(both).toContain('marker-start="url(#f-ah-comm)"');
+  expect(both).toContain('marker-end="url(#f-ah-comm)"');
+  expect(none).not.toContain("marker-start=");
+  expect(none).not.toContain("marker-end=");
+  expect(
+    figureProblems(fig({ links: [{ ...link, to: [700, 50], ends: "none" }] })).some((p) =>
+      p.includes("出了画布"),
+    ),
+  ).toBe(true);
+});
+
+it("硬件标签仍参与源码符号提示", () => {
+  expect(
+    figureAdvisories(
+      fig({
+        hardware: [{ kind: "server", at: [30, 50], size: [320, 150], label: "select_moe_comm_method" }],
+      }),
+    ).some((a) => a.includes("代码名")),
+  ).toBe(true);
+});
+
+it("硬件零件可以表达机柜内的服务器与芯片，同时检查边框碰撞和出界", () => {
+  const hardware = [
+    { kind: "rack", at: [20, 40], size: [400, 310], label: "机柜" },
+    { kind: "server", at: [55, 100], size: [330, 190], label: "服务器" },
+    { kind: "chip", at: [95, 160], size: [100, 80], label: "NPU" },
+  ];
+  expect(figureProblems(fig({ hardware }))).toEqual([]);
+  expect(renderFigure(fig({ hardware }))).toContain(">NPU</text>");
+  expect(
+    figureProblems(
+      fig({ hardware: [...hardware, { kind: "memory", at: [375, 150], size: [70, 55], label: "HBM" }] }),
+    ).some((p) => p.includes("重叠")),
+  ).toBe(true);
+  expect(
+    figureProblems(fig({ hardware: [{ ...hardware[0], at: [300, 40] }] })).some((p) => p.includes("画布外")),
+  ).toBe(true);
+});
+
+it("硬件类型与端口数量有约束，文字转义并检查标签空间", () => {
+  expect(
+    figureSpecSchema.safeParse({
+      ...BASE,
+      hardware: [{ kind: "unknown", at: [20, 40], size: [100, 60], label: "x" }],
+    }).success,
+  ).toBe(false);
+  const sw = { kind: "switch", at: [20, 40], size: [260, 80], label: "交换机 <A>", ports: 4 };
+  const spec = fig({ hardware: [sw] });
+  expect(figureProblems(spec)).toEqual([]);
+  const svg = renderFigure(spec);
+  expect(svg).toContain("交换机 &lt;A&gt;");
+  expect(svg.match(/data-port=/g)).toHaveLength(4);
+  expect(figureSpecSchema.safeParse({ ...BASE, hardware: [{ ...sw, ports: 0 }] }).success).toBe(false);
+  expect(figureSpecSchema.safeParse({ ...BASE, hardware: [{ ...sw, ports: undefined }] }).success).toBe(
+    false,
+  );
+  expect(
+    figureProblems(fig({ hardware: [{ ...sw, size: [60, 50] }] })).some((p) => p.includes("放不下")),
+  ).toBe(true);
+});
+
 it("多行格子：前 fill 格实色、格子里能写字；字放不下、格子坐标越界都会报", () => {
   const ok = fig({
     grids: [{ at: [60, 40], rows: 2, cols: 4, cell: [40, 30], fill: 5, cells: [{ at: [0, 0], text: "0" }] }],

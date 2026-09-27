@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 760" width="880" height="760" role="img" aria-label="每步结果先在第 6 站检查 token 与长度，再在第 7 站检查 stop string。前端先命中时，通知引擎终止；紫色回线指向第 6 站内的回收操作。">
+  <title>每步结果先在第 6 站检查 token 与长度，再在第 7 站检查 stop string。前端先命中时，通知引擎终止；紫色回线指向第 6 站内的回收操作。</title>
+  <defs><marker id="one-request-finish-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="one-request-finish-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="24" y="44" width="832" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑥ EngineCore · 更新请求</text>
+  <rect x="24" y="412" width="832" height="326" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑦ API server · 还原文字</text>
+  <path d="M263 116 L263 152" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M482 181 L550 181" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M263 210 L263 272" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M691 210 L691 238 L410 238 L410 272" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M263 322 L263 378 L440 378 L440 446" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#one-request-finish-flow-ah-comm)"/>
+  <path d="M440 504 L440 542" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M330 600 L263 624 L263 652" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M550 600 L691 624 L691 652" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#one-request-finish-flow-ah-ink)"/>
+  <path d="M832 681 L868 681 L868 364 L691 364 L691 322" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#one-request-finish-flow-ah-comm)"/>
+  <rect x="44" y="58" width="438" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="263" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">scheduler 更新请求</text>
+  <text x="263" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按拒绝数回退，再逐个追加确定的 token</text>
+  <rect x="44" y="152" width="438" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="263" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">结束 token、停止 token 或长度到限？</text>
+  <rect x="550" y="152" width="282" height="58" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="691" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">截断本步余下 token</text>
+  <text x="691" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">归还请求的块号</text>
+  <rect x="44" y="272" width="438" height="50" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="263" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">把本步输出与结束状态发回前端</text>
+  <rect x="550" y="272" width="282" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="691" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收到前端终止：回收 KV block</text>
+  <rect x="194" y="446" width="492" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">增量反分词并检查 stop string</text>
+  <rect x="194" y="542" width="492" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="576" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">命中 stop string 且引擎仍未结束？</text>
+  <rect x="550" y="652" width="282" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="691" y="686" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通知引擎终止，流式收尾</text>
+  <rect x="44" y="652" width="438" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="263" y="677" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按当前结束状态返回文字</text>
+  <text x="263" y="696" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已结束则收尾；仍在运行则下一步继续</text>
+  <text x="503" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="280" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">否：继续</text>
+  <text x="460" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#7a3a6a">ZMQ · 每一步的输出</text>
+  <text x="224" y="628" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="708" y="628" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+</svg>

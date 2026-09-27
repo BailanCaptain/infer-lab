@@ -1,28 +1,311 @@
-layout: figure
-id: eplb
-caption: 示意：同一层 MoE、同一步里，两颗 NPU 各要算多少次「token 找专家」。数是编的，只为看清形状；这一层要等慢的那颗算完才能往下走
-size: [900, 240]
-
-texts:
-  - { at: [20, 34], text: 没开 EPLB：热门专家挤在 NPU 0 上, size: 14, strong: true }
-  - { at: [20, 146], text: 开了 EPLB：热门专家挪走一些、多放一份, size: 14, strong: true }
-
-bars:
-  # 1 次 = 0.9 像素
-  - at: [20, 50]
-    scale: 0.9
-    segments:
-      - { value: 650, tone: token, text: NPU 0：650 次 }
-  - at: [20, 84]
-    scale: 0.9
-    segments:
-      - { value: 350, tone: token, text: NPU 1：350 次 }
-      - { value: 300, tone: danger, style: hatch, text: 算完干等 }
-  - at: [20, 162]
-    scale: 0.9
-    segments:
-      - { value: 510, tone: token, text: NPU 0：510 次 }
-  - at: [20, 196]
-    scale: 0.9
-    segments:
-      - { value: 490, tone: token, text: NPU 1：490 次 }
+{
+  "id": "eplb",
+  "size": [
+    900,
+    660
+  ],
+  "caption": "局部教学布局：仅展示四个逻辑专家，调用数[8,8,2,2]。交换E1与E2后两设备各10次分配；其余专家省略，不是GLM全层或规划器最优输出。",
+  "frames": [
+    {
+      "at": [
+        25,
+        70
+      ],
+      "size": [
+        405,
+        220
+      ],
+      "label": "调整前 · 设备 0"
+    },
+    {
+      "at": [
+        470,
+        70
+      ],
+      "size": [
+        405,
+        220
+      ],
+      "label": "调整前 · 设备 1"
+    },
+    {
+      "at": [
+        25,
+        380
+      ],
+      "size": [
+        405,
+        220
+      ],
+      "label": "调整后 · 设备 0"
+    },
+    {
+      "at": [
+        470,
+        380
+      ],
+      "size": [
+        405,
+        220
+      ],
+      "label": "调整后 · 设备 1"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        70,
+        110
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        150,
+        42
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "E0"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "E1"
+        }
+      ]
+    },
+    {
+      "at": [
+        515,
+        110
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        150,
+        42
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "E2"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "E3"
+        }
+      ]
+    },
+    {
+      "at": [
+        70,
+        420
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        150,
+        42
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "E0"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "E2"
+        }
+      ]
+    },
+    {
+      "at": [
+        515,
+        420
+      ],
+      "rows": 1,
+      "cols": 2,
+      "cell": [
+        150,
+        42
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "cells": [
+        {
+          "at": [
+            0,
+            0
+          ],
+          "text": "E1"
+        },
+        {
+          "at": [
+            0,
+            1
+          ],
+          "text": "E3"
+        }
+      ]
+    }
+  ],
+  "bars": [
+    {
+      "at": [
+        70,
+        205
+      ],
+      "h": 34,
+      "scale": 18,
+      "segments": [
+        {
+          "value": 8,
+          "text": "E0:8",
+          "tone": "token"
+        },
+        {
+          "value": 8,
+          "text": "E1:8",
+          "tone": "token"
+        }
+      ]
+    },
+    {
+      "at": [
+        515,
+        205
+      ],
+      "h": 34,
+      "scale": 18,
+      "segments": [
+        {
+          "value": 2,
+          "text": "2",
+          "tone": "token"
+        },
+        {
+          "value": 2,
+          "text": "2",
+          "tone": "token"
+        }
+      ]
+    },
+    {
+      "at": [
+        70,
+        515
+      ],
+      "h": 34,
+      "scale": 18,
+      "segments": [
+        {
+          "value": 8,
+          "text": "E0:8",
+          "tone": "token"
+        },
+        {
+          "value": 2,
+          "text": "2",
+          "tone": "token"
+        }
+      ]
+    },
+    {
+      "at": [
+        515,
+        515
+      ],
+      "h": 34,
+      "scale": 18,
+      "segments": [
+        {
+          "value": 8,
+          "text": "E1:8",
+          "tone": "token"
+        },
+        {
+          "value": 2,
+          "text": "2",
+          "tone": "token"
+        }
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        70,
+        186
+      ],
+      "text": "总负载 16"
+    },
+    {
+      "at": [
+        515,
+        186
+      ],
+      "text": "总负载 4"
+    },
+    {
+      "at": [
+        70,
+        496
+      ],
+      "text": "总负载 10"
+    },
+    {
+      "at": [
+        515,
+        496
+      ],
+      "text": "总负载 10"
+    },
+    {
+      "at": [
+        450,
+        336
+      ],
+      "text": "改变物理放置；逻辑专家函数与权重内容保持一致",
+      "anchor": "middle",
+      "strong": true
+    },
+    {
+      "at": [
+        450,
+        637
+      ],
+      "text": "条长表示 token–expert 分配次数，不表示延迟",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure"
+}

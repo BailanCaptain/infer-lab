@@ -1,34 +1,234 @@
-layout: figure
-id: pd-disaggregation
-caption: KV 怎么从 P 节点到 D 节点：P 算完问题留下 1 块 KV，D 把整块拉过去；D 说收完了，P 才放块，D 再重算最后 1 个 token 开始吐字（Qwen3-0.6B，1P1D）
-size: [900, 240]
-
-frames:
-  - { label: P 节点, at: [30, 64], size: [360, 150] }
-  - { label: D 节点, at: [510, 64], size: [360, 150] }
-
-items:
-  - { at: [55, 100], size: [130, 44], text: 算 37 个 token, tone: token }
-  - { at: [225, 100], size: [130, 44], text: 1 块 KV, tone: kv }
-  - { at: [545, 100], size: [130, 44], text: 1 块 KV, tone: kv }
-  - { at: [715, 100], size: [130, 44], text: 重算最后 1 个, tone: token }
-
-links:
-  - { from: [185, 122], to: [225, 122] }
-  - { from: [355, 122], to: [545, 122], tone: kv }
-  - { from: [675, 122], to: [715, 122] }
-  - { from: [610, 144], to: [290, 144], via: [[610, 180], [290, 180]], tone: control, dashed: true }
-
-texts:
-  - { at: [450, 110], text: D 整块拉过来, anchor: middle, tone: kv }
-  - { at: [450, 202], text: 收完了，P 才放块, anchor: middle, tone: control }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1882-L1928
-    symbols: [request_finished, FINISHED_LENGTH_CAPPED]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L951-L969
-    symbols: [batch_transfer_sync_read]
-  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L804-L824
-    symbols: [WAITING_FOR_REMOTE_KVS]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L2072-L2075
-    symbols: [kv_connector_no_forward]
+{
+  "size": [
+    900,
+    660
+  ],
+  "caption": "状态交接的逻辑顺序：P 保留来源状态，D 分配目的块并接收；完成信息分别触发继续执行和源块释放。图不表示固定耗时或 GLM 已验证部署",
+  "frames": [
+    {
+      "at": [
+        30,
+        60
+      ],
+      "size": [
+        340,
+        540
+      ],
+      "label": "P 执行组"
+    },
+    {
+      "at": [
+        530,
+        60
+      ],
+      "size": [
+        340,
+        540
+      ],
+      "label": "D 执行组"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        65,
+        105
+      ],
+      "size": [
+        270,
+        55
+      ],
+      "text": "计算到交接位置",
+      "tone": "token"
+    },
+    {
+      "at": [
+        65,
+        270
+      ],
+      "size": [
+        270,
+        65
+      ],
+      "text": "保留来源状态",
+      "tone": "kv",
+      "sub": "发布块 / 位置元数据"
+    },
+    {
+      "at": [
+        65,
+        510
+      ],
+      "size": [
+        270,
+        55
+      ],
+      "text": "释放传输保留块",
+      "tone": "control"
+    },
+    {
+      "at": [
+        565,
+        260
+      ],
+      "size": [
+        270,
+        55
+      ],
+      "text": "分配目的块",
+      "tone": "control"
+    },
+    {
+      "at": [
+        565,
+        405
+      ],
+      "size": [
+        270,
+        55
+      ],
+      "text": "接收状态完成",
+      "tone": "kv"
+    },
+    {
+      "at": [
+        565,
+        510
+      ],
+      "size": [
+        270,
+        55
+      ],
+      "text": "继续模型计算",
+      "tone": "token"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        200,
+        270
+      ],
+      "tone": "kv",
+      "from": [
+        200,
+        160
+      ]
+    },
+    {
+      "to": [
+        565,
+        287
+      ],
+      "tone": "control",
+      "from": [
+        335,
+        287
+      ]
+    },
+    {
+      "to": [
+        565,
+        430
+      ],
+      "tone": "kv",
+      "via": [
+        [
+          445,
+          325
+        ],
+        [
+          445,
+          430
+        ]
+      ],
+      "from": [
+        335,
+        325
+      ]
+    },
+    {
+      "to": [
+        700,
+        405
+      ],
+      "tone": "control",
+      "from": [
+        700,
+        315
+      ]
+    },
+    {
+      "to": [
+        700,
+        510
+      ],
+      "tone": "token",
+      "from": [
+        700,
+        460
+      ]
+    },
+    {
+      "to": [
+        335,
+        537
+      ],
+      "tone": "control",
+      "via": [
+        [
+          470,
+          450
+        ],
+        [
+          470,
+          537
+        ]
+      ],
+      "from": [
+        565,
+        450
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        450,
+        264
+      ],
+      "text": "控制元数据",
+      "anchor": "middle",
+      "tone": "control"
+    },
+    {
+      "at": [
+        437,
+        377
+      ],
+      "text": "按组搬运",
+      "anchor": "end",
+      "tone": "kv"
+    },
+    {
+      "at": [
+        450,
+        577
+      ],
+      "text": "完成通知后释放",
+      "anchor": "middle",
+      "tone": "control"
+    },
+    {
+      "at": [
+        450,
+        634
+      ],
+      "text": "源块编号和目的块编号分别属于各自的块池",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "layout": "figure",
+  "id": "pd-disaggregation"
+}

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 650" width="860" height="650" role="img" aria-label="A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后">
+  <title>A0 启动的设备账；先检查本卡空间并加载权重，试跑后定缓存预算，图捕获在缓存分配之后</title>
+  <defs><marker id="device-memory-startup-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="device-memory-startup-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="device-memory-startup-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="device-memory-startup-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M290 117 L290 159" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-control)"/>
+  <path d="M540 190 L615 190" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-danger)"/>
+  <path d="M290 221 L290 270" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-weight)"/>
+  <path d="M290 332 L290 355 L217 355 L217 389" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-kv)"/>
+  <path d="M290 355 L642 355 L642 389" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-kv)"/>
+  <path d="M217 461 L217 491 L355 491 L355 519" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-kv)"/>
+  <path d="M642 461 L642 491 L505 491 L505 519" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#device-memory-startup-ah-kv)"/>
+  <rect x="40" y="55" width="500" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="290" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A0 · Worker 选择并初始化设备</text>
+  <text x="290" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取得本卡总量与空闲量</text>
+  <rect x="40" y="159" width="500" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="290" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">检查空闲量是否够请求份额</text>
+  <text x="290" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">份额按本卡总量取比例</text>
+  <rect x="615" y="159" width="205" height="62" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="717.5" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">空间不足：停止</text>
+  <text x="717.5" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">检查同卡占用与配置</text>
+  <rect x="40" y="270" width="500" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="290" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">load_model：加载主模型与草稿</text>
+  <text x="290" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机权重 → 本卡分片 → 设备后处理</text>
+  <rect x="40" y="389" width="355" height="72" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="217.5" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">自动预算：试跑并扣非缓存占用</text>
+  <text x="217.5" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">determine_available_memory</text>
+  <rect x="465" y="389" width="355" height="72" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="642.5" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">显式预算：仍试跑以准备模型</text>
+  <text x="642.5" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">返回指定的缓存字节数</text>
+  <rect x="160" y="519" width="540" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="546" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分配 KV／状态池 → 预热 → 条件录图</text>
+  <text x="430" y="565" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">compile_or_warm_up_model</text>
+  <text x="575" y="175" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#8f3229" text-anchor="middle">不足</text>
+  <text x="307" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#936300">足够 → 建立通信环境与执行器</text>
+  <text x="430" y="625" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">A1 接收请求 → A3 准备设备输入 → A4 用常驻权重计算</text>
+</svg>

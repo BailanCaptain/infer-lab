@@ -2,7 +2,10 @@
 id: enable-pcp-embedding-lmhead-weight-sharding-91c5a17a08c9
 title: enable_pcp_embedding_lmhead_weight_sharding
 type: param
-summary: PCP>1 时把 embedding 与 LM Head 的权重按 TP×PCP 网格再切一份，每卡只留 1/(TP×PCP)。bool 默认 true——开着 PCP 升级到含它的 main，行为自动就是切开的；要旧行为得显式写 false。与细粒度 TP 的 embedding/lmhead 两键互斥。只在 main 上有。
+summary: >-
+  PCP>1 时把 embedding 与 LM Head 的权重按 TP×PCP 网格再切一份，每卡只留 1/(TP×PCP)。bool 默认
+  true——开着 PCP 升级到含它的 main，行为自动就是切开的；要旧行为得显式写 false。与细粒度 TP 的 embedding/lmhead
+  两键互斥。只在 main 上有。
 aliases:
   - enable_pcp_embedding_lmhead_weight_sharding
   - PCP embedding/LM-head 权重切分
@@ -14,10 +17,14 @@ verified:
 relations:
   - to: context-parallel
     kind: builds-on
-    note: PCP 是那一页讲的 prefill 上下文并行；这个键管权重侧——PCP 组里 embedding 和 LM Head 还要不要每卡各存一份完整的 TP 切片
+    note: >-
+      PCP 是那一页讲的 prefill 上下文并行；这个键管权重侧——PCP 组里 embedding 和 LM Head 还要不要每卡各存一份完整的
+      TP 切片
   - to: fine-grained-tp
     kind: conflicts-with
-    note: 和它的 embedding_tensor_parallel_size / lmhead_tensor_parallel_size 切的是同一批权重，撞上在权重构建期直接 ValueError，二选一
+    note: >-
+      和它的 embedding_tensor_parallel_size / lmhead_tensor_parallel_size
+      切的是同一批权重，撞上在权重构建期直接 ValueError，二选一
 sources:
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L480
@@ -35,9 +42,17 @@ sources:
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:docs/source/user_guide/configuration/additional_config.md#L80-L80
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:docs/source/user_guide/feature_guide/context_parallel.md#L67-L67
+  - >-
+    vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L495
+  - >-
+    vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L578
 rawSources:
   - >-
     raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
+  - >-
+    raw/sha256-b6dee85cabd61a407e769b3afe87cad9ebab694e8557acb71a692aba730e6c8a.md
+  - >-
+    raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md
 ---
 ## 一句话
 
@@ -52,8 +67,8 @@ rawSources:
 | 标识 | `additional_config["enable_pcp_embedding_lmhead_weight_sharding"]` |
 | 类型 | `bool` |
 | 默认表达式 | `True` |
-| 定义 | `vllm_ascend/ascend_config.py:480` [C1] |
-| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
+| 定义 | `vllm_ascend/ascend_config.py:578` [C10] |
+| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
 
 字段注释：
 

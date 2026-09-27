@@ -1,17 +1,35 @@
 layout: figure
 id: attention-cost
-caption: 同一个模型里两种层：全注意力的 KV 随 token 数一路涨，线性注意力的状态从头到尾一样大
-size: [900, 380]
-
-charts:
-  - at: [120, 70]
-    size: [560, 210]
-    x: { label: 已经记住的 token 数, min: 0, max: 3000, ticks: [0, 1000, 2000, 3000] }
-    y: { label: 每颗 NPU 上一层存了多少（KiB）, min: 0, max: 3000, ticks: [0, 1000, 2000, 3000] }
-    series:
-      - { kind: line, tone: kv, points: [[0, 0], [1048, 1048], [3000, 3000]], label: 全注意力层：KV Cache }
-      - { kind: line, tone: kv, dashed: true, points: [[0, 1048], [3000, 1048]], label: 线性注意力层：状态 }
-    source: Qwen3.6-35B-A3B 官方配置，两颗 NPU 部署；算式见本页下半
-
+caption: 单层、单请求、未分片的逻辑容量推导：MLA 主潜向量为 BF16；KDA 矩阵状态假设 FP32。条长只表示字节数，未包含索引、卷积、分页与其他开销，也不是速度比较
+size: [900, 420]
+bars:
+  - at: [220, 90]
+    h: 32
+    scale: 125
+    segments:
+      - { value: 1, text: 1 MiB, tone: kv }
+  - at: [220, 160]
+    h: 32
+    scale: 125
+    segments:
+      - { value: 4, text: 4 MiB, tone: kv }
+  - at: [220, 270]
+    h: 32
+    scale: 125
+    segments:
+      - { value: 4, text: 4 MiB, tone: control }
+  - at: [220, 340]
+    h: 32
+    scale: 125
+    segments:
+      - { value: 4, text: 4 MiB, tone: control }
 texts:
-  - { at: [700, 165], text: 约 1048 个 token 时追平, size: 13 }
+  - { at: [35, 45], text: MLA 主潜向量, strong: true }
+  - { at: [35, 111], text: 1024 个位置 }
+  - { at: [35, 181], text: 4096 个位置 }
+  - { at: [35, 237], text: KDA 当前矩阵状态, strong: true }
+  - { at: [35, 291], text: 已处理 1024 个位置 }
+  - { at: [35, 361], text: 已处理 4096 个位置 }
+  - { at: [620, 45], text: 512 × 2 B / 位置, size: 13 }
+  - { at: [620, 237], text: 64 × 128 × 128 × 4 B, size: 13 }
+

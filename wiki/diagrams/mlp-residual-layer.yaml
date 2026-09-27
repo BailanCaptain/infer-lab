@@ -1,38 +1,21 @@
 layout: figure
 id: mlp-residual-layer
-caption: 一层的完整顺序：归一化 → 注意力 → 加回去 → 归一化 → MLP（或专家）→ 加回去；重点是两条绕过去再汇合的旁路
-size: [980, 230]
-
-texts:
-  - { at: [24, 30], text: 每段算出的只是「修改量」，原来那串数字走旁路，末尾加回来, size: 14, strong: true }
-  - { at: [265, 50], text: 原样绕过去, size: 12.5, tone: token, anchor: middle }
-  - { at: [610, 50], text: 再绕一次, size: 12.5, tone: token, anchor: middle }
-  - { at: [418, 196], text: 修改量加回原件, size: 12.5, note: true, anchor: middle }
-  - { at: [770, 196], text: 加回, size: 12.5, note: true, anchor: middle }
-  - { at: [24, 190], text: 进：每个 token 一串 2048 个数, size: 12.5, note: true }
-  - { at: [966, 190], text: 出：同一串数，改过两次, size: 12.5, note: true, anchor: end }
-
-rows:
-  - { at: [24, 136], count: 6, w: 11, h: 28, gap: 2, tone: token }
-  - { at: [890, 136], count: 6, w: 11, h: 28, gap: 2, tone: token, faded: [0, 1, 2, 3, 4, 5] }
-
+caption: 通用单路 Pre-Norm 残差子层：Y = X + F(Norm(X))。旁路与子层输出逐元素相加；GLM 主干的实际四路连接见模型单层图
+size: [900, 310]
+matrices:
+  - { at: [40, 175], w: 110, h: 34, rows: 1, cols: 5, tone: token, label: 输入 X, dims: '[T, H]' }
+  - { at: [775, 175], w: 90, h: 34, rows: 1, cols: 5, tone: token, label: 输出 Y, dims: '[T, H]' }
 items:
-  - { at: [130, 125], size: [64, 50], text: 归一化, tone: control }
-  - { at: [228, 113], size: [136, 74], text: 注意力, sub: token 互相看, tone: kv }
-  - { at: [468, 125], size: [64, 50], text: 归一化, tone: control }
-  - { at: [566, 113], size: [150, 74], text: MLP（或专家）, sub: 各算各的, tone: weight }
-
+  - { at: [230, 166], size: [145, 52], text: 归一化, style: plain }
+  - { at: [430, 166], size: [180, 52], text: 子层 F, sub: 注意力或前馈, style: plain }
 nodes:
-  - { at: [418, 150], r: 16, text: "+" }
-  - { at: [770, 150], r: 16, text: "+" }
-
+  - { at: [700, 192], r: 20, text: '+' }
 links:
-  - { from: [104, 150], to: [130, 150] }
-  - { from: [194, 150], to: [228, 150] }
-  - { from: [364, 150], to: [402, 150] }
-  - { from: [434, 150], to: [468, 150] }
-  - { from: [532, 150], to: [566, 150] }
-  - { from: [716, 150], to: [754, 150] }
-  - { from: [786, 150], to: [886, 150] }
-  - { from: [112, 150], via: [[112, 62], [418, 62]], to: [418, 134], tone: token }
-  - { from: [450, 150], via: [[450, 62], [770, 62]], to: [770, 134], tone: token }
+  - { from: [150, 192], to: [230, 192], tone: token }
+  - { from: [375, 192], to: [430, 192] }
+  - { from: [610, 192], to: [680, 192], tone: token }
+  - { from: [720, 192], to: [775, 192], tone: token }
+  - { from: [180, 192], to: [700, 172], via: [[180, 75], [700, 75]], tone: token }
+texts:
+  - { at: [440, 56], text: 输入 X 的残差旁路, anchor: middle, strong: true }
+  - { at: [440, 284], text: 相加的两路具有相同形状, anchor: middle }

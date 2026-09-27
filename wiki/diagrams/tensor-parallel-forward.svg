@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1380" width="900" height="1380" role="img" aria-label="一个 decoder 层的通信边界：attention 后先归约，再按层型选择稠密 MLP 或 MoE。MoE 两栏互斥，共享分支与外层入口的归约位置互补，每条路径只计一次 TP All-Reduce。按默认关闭共享专家多 stream 重叠的顺序画；embedding 和 lm_head 在层外另计。">
+  <title>一个 decoder 层的通信边界：attention 后先归约，再按层型选择稠密 MLP 或 MoE。MoE 两栏互斥，共享分支与外层入口的归约位置互补，每条路径只计一次 TP All-Reduce。按默认关闭共享专家多 stream 重叠的顺序画；embedding 和 lm_head 在层外另计。</title>
+  <defs><marker id="tensor-parallel-forward-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="40" y="450" width="820" height="155" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="56" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">前 3 层 · 稠密 MLP</text>
+  <rect x="40" y="666" width="820" height="575" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="56" y="654" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">后 42 层 · MoE，按两组最大行数二选一</text>
+  <path d="M450 80 L450 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M450 164 L450 196" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M450 248 L450 280" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M450 338 L450 365" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M270 385 L230 385 L230 490" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M630 385 L884 385 L884 731 L610 731" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M290 523 L340 523" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M560 523 L610 523" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M720 556 L720 632 L16 632 L16 1311 L250 1311" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M360 752 L360 766 L60 766 L60 842 L80 842" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M540 752 L540 766 L840 766 L840 842 L820 842" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M255 868 L255 896" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M255 948 L255 976" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M255 1028 L255 1056" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M255 1108 L255 1136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M255 1200 L255 1260 L370 1260 L370 1285" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M645 868 L645 896" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M645 948 L645 976" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M645 1028 L645 1056" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M645 1108 L645 1136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <path d="M645 1200 L645 1260 L530 1260 L530 1285" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#tensor-parallel-forward-ah-ink)"/>
+  <rect x="270" y="28" width="360" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="59" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层入口 · 四路 hidden [T,4,4096]</text>
+  <rect x="270" y="112" width="360" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">mHC 入口混合 + 归一化</text>
+  <text x="450" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本地得到 [T,4096]</text>
+  <rect x="270" y="196" width="360" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡 KDA 或稀疏 MLA</text>
+  <text x="450" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">各算自己的 8 个头</text>
+  <rect x="270" y="280" width="360" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输出投影 → TP8 All-Reduce</text>
+  <text x="450" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡 [T,4096] BF16</text>
+  <rect x="270" y="365" width="360" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">mHC 出口 → MLP 入口混合与归一化</text>
+  <rect x="70" y="490" width="220" height="66" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="180" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">升维 → SwiGLU</text>
+  <text x="180" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 [T,1536]</text>
+  <rect x="340" y="490" width="220" height="66" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">降维投影</text>
+  <text x="450" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">部分和 [T,4096]</text>
+  <rect x="610" y="490" width="220" height="66" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="720" y="519" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Reduce</text>
+  <text x="720" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">完整 [T,4096]</text>
+  <rect x="290" y="710" width="320" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="736" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选择一种 MoE 通信路径</text>
+  <rect x="80" y="816" width="350" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="255" y="838" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">路由输入 · 本地补齐并切行</text>
+  <text x="255" y="857" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R1 每卡 1 行，4 张卡为补齐行</text>
+  <rect x="80" y="896" width="350" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="255" y="918" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EP16 dispatch → 专家 → combine</text>
+  <text x="255" y="937" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这两次通信横跨两台机器</text>
+  <rect x="80" y="976" width="350" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="255" y="998" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Gather · finalize</text>
+  <text x="255" y="1017" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼回所有 token 行，去掉补齐</text>
+  <rect x="80" y="1056" width="350" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="255" y="1078" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享专家 → TP8 All-Reduce</text>
+  <text x="255" y="1097" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享分支在此归约一次</text>
+  <rect x="80" y="1136" width="350" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="255" y="1164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">与路由结果相加</text>
+  <text x="255" y="1183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">外层入口直接返回 · 不再归约</text>
+  <rect x="470" y="816" width="350" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="838" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP2 All-Gather × 2</text>
+  <text x="645" y="857" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收集 hidden 与 router logits</text>
+  <rect x="470" y="896" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="918" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡 18 个路由专家</text>
+  <text x="645" y="937" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">计算本卡专家的贡献</text>
+  <rect x="470" y="976" width="350" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="998" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP2 Reduce-Scatter · 路由结果</text>
+  <text x="645" y="1017" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">归约并还原本组 token 行</text>
+  <rect x="470" y="1056" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="1078" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享专家 · 完整本组输入</text>
+  <text x="645" y="1097" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享分支暂不归约</text>
+  <rect x="470" y="1136" width="350" height="64" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="1164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果相加 → TP8 All-Reduce</text>
+  <text x="645" y="1183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">外层入口在此归约一次</text>
+  <rect x="250" y="1285" width="400" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="1316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">mHC 出口混合 → 下一层 [T,4,4096]</text>
+  <text x="66" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">稠密层：attention 一次归约 + MLP 一次归约</text>
+  <text x="75" y="797" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">MC2 · 最大行数 ≤ 128（R1）</text>
+  <text x="490" y="797" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">AllGather · &gt; 128（场景 M）</text>
+  <text x="205" y="1364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">两种层型都在第二个子层结束后回到 mHC 出口。</text>
+</svg>

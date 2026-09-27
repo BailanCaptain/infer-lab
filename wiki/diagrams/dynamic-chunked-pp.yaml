@@ -1,87 +1,408 @@
-layout: figure
-id: dynamic-chunked-pp
-caption: 示意：128k 长文在两段流水线里走完。固定块越往后越慢，第 2 段越等越久；每块耗时相同时，第 2 段一块接一块、没有空等
-size: [900, 300]
-
-texts:
-  - { at: [30, 34], text: "固定块：4 块一样大，耗时 T、3T、5T、7T", size: 14, strong: true }
-  - { at: [30, 170], text: "动态块：16 块，每块都花 T", size: 14, strong: true }
-
-timelines:
-  - at: [30, 50]
-    scale: 60
-    start: 0
-    end: 11.5
-    labelW: 80
-    laneH: 28
-    gap: 10
-    lanes:
-      - label: 段 1
-        spans:
-          - { from: 0, to: 0.5, tone: token }
-          - { from: 0.5, to: 2, tone: token, style: faded }
-          - { from: 2, to: 4.5, tone: token }
-          - { from: 4.5, to: 8, tone: token, style: faded }
-      - label: 段 2
-        spans:
-          - { from: 0.5, to: 1, tone: token }
-          - { from: 1, to: 2, tone: danger, style: hatch }
-          - { from: 2, to: 3.5, tone: token, style: faded }
-          - { from: 3.5, to: 4.5, tone: danger, style: hatch }
-          - { from: 4.5, to: 7, tone: token }
-          - { from: 7, to: 8, tone: danger, style: hatch }
-          - { from: 8, to: 11.5, tone: token, style: faded }
-    marks:
-      - { t: 11.5, label: 11.5T }
-  - at: [30, 186]
-    scale: 60
-    start: 0
-    end: 11.5
-    labelW: 80
-    laneH: 28
-    gap: 10
-    lanes:
-      - label: 段 1
-        spans:
-          - { from: 0, to: 0.5, tone: token }
-          - { from: 0.5, to: 1, tone: token, style: faded }
-          - { from: 1, to: 1.5, tone: token }
-          - { from: 1.5, to: 2, tone: token, style: faded }
-          - { from: 2, to: 2.5, tone: token }
-          - { from: 2.5, to: 3, tone: token, style: faded }
-          - { from: 3, to: 3.5, tone: token }
-          - { from: 3.5, to: 4, tone: token, style: faded }
-          - { from: 4, to: 4.5, tone: token }
-          - { from: 4.5, to: 5, tone: token, style: faded }
-          - { from: 5, to: 5.5, tone: token }
-          - { from: 5.5, to: 6, tone: token, style: faded }
-          - { from: 6, to: 6.5, tone: token }
-          - { from: 6.5, to: 7, tone: token, style: faded }
-          - { from: 7, to: 7.5, tone: token }
-          - { from: 7.5, to: 8, tone: token, style: faded }
-      - label: 段 2
-        spans:
-          - { from: 0.5, to: 1, tone: token }
-          - { from: 1, to: 1.5, tone: token, style: faded }
-          - { from: 1.5, to: 2, tone: token }
-          - { from: 2, to: 2.5, tone: token, style: faded }
-          - { from: 2.5, to: 3, tone: token }
-          - { from: 3, to: 3.5, tone: token, style: faded }
-          - { from: 3.5, to: 4, tone: token }
-          - { from: 4, to: 4.5, tone: token, style: faded }
-          - { from: 4.5, to: 5, tone: token }
-          - { from: 5, to: 5.5, tone: token, style: faded }
-          - { from: 5.5, to: 6, tone: token }
-          - { from: 6, to: 6.5, tone: token, style: faded }
-          - { from: 6.5, to: 7, tone: token }
-          - { from: 7, to: 7.5, tone: token, style: faded }
-          - { from: 7.5, to: 8, tone: token }
-          - { from: 8, to: 8.5, tone: token, style: faded }
-    marks:
-      - { t: 8.5, label: 8.5T }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/core/profiling_chunk_predictor.py#L237-L271
-    symbols: [discriminant, smooth_factor, min_chunk]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/core/scheduler_profiling_chunk.py#L313-L342
-    symbols: [predicted_chunk, num_new_tokens]
+{
+  "size": [
+    900,
+    390
+  ],
+  "caption": "理想耗时假设：每阶段总工作量均为 16；阶段等速且忽略通信、调度和取整开销。23 与 17 是推导时间，不是设备测量",
+  "texts": [
+    {
+      "at": [
+        25,
+        35
+      ],
+      "text": "四块：每阶段耗时 1、3、5、7",
+      "strong": true
+    },
+    {
+      "at": [
+        25,
+        210
+      ],
+      "text": "重新切成十六块：每阶段每块耗时 1",
+      "strong": true
+    },
+    {
+      "at": [
+        450,
+        370
+      ],
+      "text": "阶段间传递隐藏表示；图中省略传输耗时",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "timelines": [
+    {
+      "at": [
+        25,
+        62
+      ],
+      "scale": 31,
+      "start": 0,
+      "end": 23,
+      "labelW": 100,
+      "laneH": 32,
+      "gap": 14,
+      "lanes": [
+        {
+          "label": "阶段 0",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 1,
+              "to": 4,
+              "tone": "token",
+              "style": "hatch",
+              "text": "2"
+            },
+            {
+              "from": 4,
+              "to": 9,
+              "tone": "token",
+              "style": "solid",
+              "text": "3"
+            },
+            {
+              "from": 9,
+              "to": 16,
+              "tone": "token",
+              "style": "hatch",
+              "text": "4"
+            }
+          ]
+        },
+        {
+          "label": "阶段 1",
+          "spans": [
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 4,
+              "to": 7,
+              "tone": "token",
+              "style": "hatch",
+              "text": "2"
+            },
+            {
+              "from": 9,
+              "to": 14,
+              "tone": "token",
+              "style": "solid",
+              "text": "3"
+            },
+            {
+              "from": 16,
+              "to": 23,
+              "tone": "token",
+              "style": "hatch",
+              "text": "4"
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "t": 23,
+          "label": "23"
+        }
+      ]
+    },
+    {
+      "at": [
+        25,
+        238
+      ],
+      "scale": 31,
+      "start": 0,
+      "end": 23,
+      "labelW": 100,
+      "laneH": 32,
+      "gap": 14,
+      "lanes": [
+        {
+          "label": "阶段 0",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 8,
+              "to": 9,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 9,
+              "to": 10,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 10,
+              "to": 11,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 11,
+              "to": 12,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 12,
+              "to": 13,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 13,
+              "to": 14,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            },
+            {
+              "from": 14,
+              "to": 15,
+              "tone": "token",
+              "style": "solid",
+              "text": ""
+            },
+            {
+              "from": 15,
+              "to": 16,
+              "tone": "token",
+              "style": "hatch",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "label": "阶段 1",
+          "spans": [
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 8,
+              "to": 9,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 9,
+              "to": 10,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 10,
+              "to": 11,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 11,
+              "to": 12,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 12,
+              "to": 13,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 13,
+              "to": 14,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 14,
+              "to": 15,
+              "tone": "token",
+              "style": "hatch"
+            },
+            {
+              "from": 15,
+              "to": 16,
+              "tone": "token",
+              "style": "solid"
+            },
+            {
+              "from": 16,
+              "to": 17,
+              "tone": "token",
+              "style": "hatch"
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "t": 17,
+          "label": "17"
+        }
+      ]
+    }
+  ],
+  "layout": "figure",
+  "id": "dynamic-chunked-pp",
+  "links": [
+    {
+      "from": [
+        156,
+        94
+      ],
+      "to": [
+        156,
+        108
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        249,
+        94
+      ],
+      "to": [
+        249,
+        108
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        404,
+        94
+      ],
+      "to": [
+        404,
+        108
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        621,
+        94
+      ],
+      "to": [
+        621,
+        108
+      ],
+      "tone": "comm"
+    }
+  ]
+}

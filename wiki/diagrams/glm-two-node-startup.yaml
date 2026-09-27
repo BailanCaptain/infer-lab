@@ -1,0 +1,23 @@
+layout: figure
+id: glm-two-node-startup
+caption: 从敲下启动命令到服务能接请求，两台机器上依次发生的七件事。第 1 步两端不一样，第 2–7 步两台机器同时做；第 4–6 步串成一条账：每卡权重（算例里取整到 21 GiB）定下来，才知道还剩多少显存，才切得出块数。
+size: [900, 350]
+items:
+  - { at: [26, 70], size: [196, 64], text: 两机各起引擎进程, sub: 机器 0 还有前端和协调器, tone: control, style: plain }
+  - { at: [248, 70], size: [196, 64], text: 每张卡一个 worker, sub: 两机共 16 个, tone: control, style: plain }
+  - { at: [470, 70], size: [196, 64], text: 建 process group, sub: TP 8 · DP 2 · EP 16, tone: comm, style: solid }
+  - { at: [692, 70], size: [196, 64], text: 加载 W8A8 权重, sub: 每卡 20.58 GiB, tone: weight, style: solid }
+  - { at: [26, 206], size: [196, 64], text: 量出剩余显存, sub: 剩 30.0 GiB 给 KV, tone: control, style: plain }
+  - { at: [248, 206], size: [196, 64], text: 切 KV cache 块, sub: "3,855 块 × 7.969 MiB", tone: kv, style: solid }
+  - { at: [470, 206], size: [196, 64], text: 捕获 decode 图, sub: 7 个尺寸：4 到 128, tone: token, style: solid }
+links:
+  - { from: [222, 102], to: [248, 102], ends: end }
+  - { from: [444, 102], to: [470, 102], ends: end }
+  - { from: [666, 102], to: [692, 102], ends: end }
+  - { from: [790, 134], via: [[790, 170], [124, 170]], to: [124, 206], ends: end }
+  - { from: [222, 238], to: [248, 238], ends: end }
+  - { from: [444, 238], to: [470, 238], ends: end }
+texts:
+  - { at: [450, 28], text: 启动时按顺序做的七件事, anchor: middle, strong: true }
+  - { at: [692, 232], text: 第 2–7 步两台机器同时做, note: true }
+  - { at: [450, 320], text: "第 4–6 步：21（取整）→ 30.0 → 3,855", anchor: middle, note: true }

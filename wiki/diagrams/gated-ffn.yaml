@@ -1,0 +1,28 @@
+layout: figure
+id: gated-ffn
+caption: GLM 门控前馈的逻辑分支：gate 截断后经 SiLU，与截断后的 up 分支逐元素相乘，再经 down 投影。H 为隐藏宽度、F 为中间宽度；两投影可以合并执行
+size: [900, 650]
+matrices:
+  - { at: [40, 235], w: 110, h: 30, rows: 1, cols: 5, tone: token, label: 输入 X, dims: '[T, H]' }
+  - { at: [675, 560], w: 110, h: 30, rows: 1, cols: 5, tone: token, label: 输出 Y, dims: '[T, H]' }
+items:
+  - { at: [280, 110], size: [160, 60], text: gate 投影, sub: '权重 [H, F]', tone: weight }
+  - { at: [280, 350], size: [160, 60], text: up 投影, sub: '权重 [H, F]', tone: weight }
+  - { at: [500, 110], size: [180, 60], text: 上界截断 + SiLU, sub: 'gate ≤ 10', style: plain }
+  - { at: [500, 350], size: [180, 60], text: 双侧截断, sub: '−10 ≤ up ≤ 10', style: plain }
+  - { at: [650, 450], size: [160, 60], text: down 投影, sub: '权重 [F, H]', tone: weight }
+nodes:
+  - { at: [730, 250], r: 22, text: '⊙' }
+links:
+  - { from: [150, 250], to: [280, 140], via: [[210, 250], [210, 140]], tone: token }
+  - { from: [150, 250], to: [280, 380], via: [[210, 250], [210, 380]], tone: token }
+  - { from: [440, 140], to: [500, 140] }
+  - { from: [440, 380], to: [500, 380] }
+  - { from: [680, 140], to: [730, 228], via: [[730, 140]], tone: token }
+  - { from: [680, 380], to: [730, 272], via: [[730, 380]], tone: token }
+  - { from: [752, 250], to: [730, 450], via: [[854, 250], [854, 426], [730, 426]], tone: token }
+  - { from: [730, 510], to: [730, 560], tone: token }
+texts:
+  - { at: [280, 63], text: 同一输入的两条分支, strong: true }
+  - { at: [570, 255], text: 逐元素相乘, anchor: middle }
+  - { at: [570, 283], text: '中间表示 [T, F]', anchor: middle, size: 13 }

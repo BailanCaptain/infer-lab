@@ -1,45 +1,264 @@
-layout: figure
-id: npugraph-ex
-caption: 融合规则造出来只有一份，同时交给两个执行者；开关只决定谁来跑——关掉 npugraph_ex，换的是执行者，不是融合
-size: [900, 470]
-
-items:
-  - { at: [280, 24], size: [340, 48], text: 四条融合规则, sub: 造出来只有一份, tone: control }
-
-  - { at: [90, 140], size: [310, 62], text: 昇腾自带的匹配器, tone: ink, style: plain }
-  - { at: [500, 140], size: [310, 62], text: npugraph_ex 外部后端, sub: 代码在 torchair 仓库, tone: control }
-
-  - { at: [110, 282], size: [120, 42], text: 归一化, tone: weight, style: faded }
-  - { at: [244, 282], size: [120, 42], text: 归一化, tone: weight, style: faded }
-  - { at: [378, 282], size: [160, 42], text: 旋转位置编码, tone: weight, style: faded }
-  - { at: [640, 280], size: [170, 46], text: 一个融合算子, tone: weight }
-
-  - { at: [280, 392], size: [340, 50], text: 然后才轮到捕获，录成更短的图, tone: ink, style: plain }
-
-dividers:
-  - { from: [450, 118], to: [450, 224], sides: [开关关着, 开关开着] }
-
-fans:
-  - { from: [450, 72], to: [[245, 140], [655, 140]], tone: control }
-  - { from: [[245, 202], [655, 202]], to: [450, 254], tone: ink }
-
-links:
-  - { from: [548, 303], to: [636, 303], tone: weight }
-  - { from: [450, 332], to: [450, 388], tone: ink }
-
-brackets:
-  - { from: 110, to: 538, y: 334, label: 背靠背的三个小算子 }
-
-texts:
-  - { at: [96, 258], text: 被选中的那一边做同一种替换, size: 13, note: true }
-  - { at: [640, 340], text: 图里少两个算子，每步少两次下发, size: 13, note: true, width: 240 }
-
-pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/base_pattern.py#L41-L63
-    symbols: [register_replacement, PatternMatcherPass]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/compiler_interface.py#L282-L301
-    symbols: [AscendCompiler, fusion_pass_compile, npugraph_ex_compile]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L79
-    symbols: [GraphFusionPassManager, fuse_qknorm_rope, fuse_norm_quant, fuse_muls_add]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/compilation/passes/qknorm_rope_fusion_pass.py#L52-L102
-    symbols: [split_qkv_rmsnorm_rope]
+{
+  "layout": "figure",
+  "id": "npugraph-ex",
+  "caption": "未融合时中间张量写入并读出全局内存；符合条件的融合实现可在内部消费中间结果。T=4、H=8、每元素2字节为教学假设。",
+  "size": [
+    900,
+    560
+  ],
+  "texts": [
+    {
+      "at": [
+        45,
+        48
+      ],
+      "text": "未融合：跨算子保存中间张量",
+      "strong": true
+    },
+    {
+      "at": [
+        45,
+        308
+      ],
+      "text": "融合：内部继续计算",
+      "strong": true
+    },
+    {
+      "at": [
+        360,
+        256
+      ],
+      "text": "64 B 写入 + 64 B 读出 = 128 B",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        445,
+        478
+      ],
+      "text": "可能省去这次往返，实际访存由 kernel 实现决定",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        445,
+        525
+      ],
+      "text": "匹配需要形状、精度与连接关系；节点相邻不代表一定可以融合。",
+      "anchor": "middle"
+    }
+  ],
+  "nodes": [
+    {
+      "at": [
+        100,
+        130
+      ],
+      "r": 25,
+      "text": "A"
+    },
+    {
+      "at": [
+        685,
+        130
+      ],
+      "r": 25,
+      "text": "B"
+    },
+    {
+      "at": [
+        325,
+        390
+      ],
+      "r": 25,
+      "text": "A"
+    },
+    {
+      "at": [
+        495,
+        390
+      ],
+      "r": 25,
+      "text": "B"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        235,
+        86
+      ],
+      "rows": 4,
+      "cols": 8,
+      "cell": [
+        30,
+        24
+      ],
+      "tone": "token",
+      "style": "solid"
+    }
+  ],
+  "frames": [
+    {
+      "at": [
+        205,
+        63
+      ],
+      "size": [
+        330,
+        168
+      ],
+      "label": "设备全局内存"
+    },
+    {
+      "at": [
+        245,
+        341
+      ],
+      "size": [
+        330,
+        105
+      ],
+      "label": "融合实现"
+    }
+  ],
+  "rows": [
+    {
+      "at": [
+        30,
+        200
+      ],
+      "count": 3,
+      "w": 18,
+      "h": 20,
+      "tone": "token"
+    },
+    {
+      "at": [
+        756,
+        119
+      ],
+      "count": 4,
+      "w": 22,
+      "h": 24,
+      "tone": "token"
+    },
+    {
+      "at": [
+        60,
+        377
+      ],
+      "count": 4,
+      "w": 22,
+      "h": 24,
+      "tone": "token"
+    },
+    {
+      "at": [
+        690,
+        377
+      ],
+      "count": 4,
+      "w": 22,
+      "h": 24,
+      "tone": "token"
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        60,
+        200
+      ],
+      "to": [
+        80,
+        147
+      ]
+    },
+    {
+      "from": [
+        125,
+        130
+      ],
+      "to": [
+        205,
+        130
+      ]
+    },
+    {
+      "from": [
+        535,
+        130
+      ],
+      "to": [
+        658,
+        130
+      ]
+    },
+    {
+      "from": [
+        710,
+        130
+      ],
+      "to": [
+        750,
+        130
+      ]
+    },
+    {
+      "from": [
+        160,
+        390
+      ],
+      "to": [
+        298,
+        390
+      ]
+    },
+    {
+      "from": [
+        350,
+        390
+      ],
+      "to": [
+        370,
+        390
+      ]
+    },
+    {
+      "from": [
+        448,
+        390
+      ],
+      "to": [
+        468,
+        390
+      ]
+    },
+    {
+      "from": [
+        520,
+        390
+      ],
+      "to": [
+        684,
+        390
+      ]
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        374,
+        366
+      ],
+      "size": [
+        74,
+        48
+      ],
+      "text": "暂存",
+      "tone": "token",
+      "style": "plain"
+    }
+  ]
+}

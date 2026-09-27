@@ -13428,5 +13428,2341 @@
       }
     ],
     "state": "static-facts-refreshed-prose-needs-review"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "39fef3f8fe71e71a8b7a684ae0f62b85ff18661f",
+    "after": "bea70ab8fa233a06a7483337f42a1e3f2c8a117c",
+    "added": [
+      {
+        "name": "enable_early_kernel_warmup",
+        "type": "bool",
+        "default": "False",
+        "class": "AscendWarmupConfig",
+        "json_path": "additional_config[\"ascend_warmup_config\"][\"enable_early_kernel_warmup\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 192,
+        "comment": "",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 192
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 381
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/early_kernel_warmup.py",
+            "line": 9
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/early_kernel_warmup.py",
+            "line": 31
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "enable_early_nz_warmup",
+        "type": "bool",
+        "default": "False",
+        "class": "AscendWarmupConfig",
+        "json_path": "additional_config[\"ascend_warmup_config\"][\"enable_early_nz_warmup\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 193,
+        "comment": "",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 193
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 382
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/nz_warmup.py",
+            "line": 9
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/nz_warmup.py",
+            "line": 47
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "ascend_warmup_config",
+        "type": "AscendWarmupConfig",
+        "default": "dataclasses.field(default_factory=AscendWarmupConfig)",
+        "class": "AscendConfig",
+        "json_path": "additional_config[\"ascend_warmup_config\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 533,
+        "comment": "",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 380
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 533
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/early_kernel_warmup.py",
+            "line": 9
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/early_kernel_warmup.py",
+            "line": 31
+          },
+          {
+            "file": "vllm_ascend/model_executor/warmup/nz_warmup.py",
+            "line": 9
+          }
+        ],
+        "occurrenceCount": 6
+      },
+      {
+        "name": "do_remote_decode",
+        "type": "unknown",
+        "default": "None",
+        "class": "",
+        "json_path": "params[\"do_remote_decode\"]",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py",
+        "line": 184,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py",
+            "line": 184
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 559
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 635
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+            "line": 662
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+            "line": 1911
+          }
+        ],
+        "occurrenceCount": 21
+      }
+    ],
+    "removed": [
+      {
+        "name": "block_table_no_commit_optimize",
+        "type": "Literal[0, 1]",
+        "default": "0",
+        "class": "AscendConfig",
+        "json_path": "additional_config[\"block_table_no_commit_optimize\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 514,
+        "comment": "MRv1 only: 0 uses dirty-range commits; 1 restores a full-table H2D copy.",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 353
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 514
+          },
+          {
+            "file": "vllm_ascend/worker/block_table.py",
+            "line": 456
+          }
+        ],
+        "occurrenceCount": 3
+      }
+    ],
+    "changed": [
+      {
+        "before": {
+          "name": "finegrained_tp_config",
+          "type": "FinegrainedTPConfig",
+          "default": "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"finegrained_tp_config\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 527,
+          "comment": "",
+          "constraints": [
+            "if finegrained_tp_enabled and (not self.scheduler_config.recompute_scheduler_enable):\n    raise AssertionError('finegrained_tp_config requires recompute_scheduler_enable=true: it keeps decode-node steps decode-shaped.')",
+            "if self.enable_reduce_sample:\n    logger.warning_once('enable_reduce_sample is an experimental feature. Use with caution.')\n    if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:\n        raise ValueError('enable_reduce_sample is incompatible with finegrained_tp_config.lmhead_tensor_parallel_size. Please disable one of them.')\n    if self.enable_pcp_embedding_lmhead_weight_sharding and vc.parallel_config.prefill_context_parallel_size > 1:\n        raise ValueError('enable_reduce_sample is incompatible with enable_pcp_embedding_lmhead_weight_sharding when PCP is enabled. Please disable one of them.')\n    kv_transfer_config = getattr(vc, 'kv_transfer_config', None)\n    kv_role = getattr(kv_transfer_config, 'kv_role', None)\n    if kv_role == 'kv_producer':\n        raise ValueError('enable_reduce_sample is not supported on PD-disaggregated scenarios. Please disable enable_reduce_sample.')",
+            "if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:\n    raise ValueError('enable_reduce_sample is incompatible with finegrained_tp_config.lmhead_tensor_parallel_size. Please disable one of them.')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 396
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 527
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 698
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 699
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 700
+            }
+          ],
+          "occurrenceCount": 31
+        },
+        "after": {
+          "name": "finegrained_tp_config",
+          "type": "FinegrainedTPConfig",
+          "default": "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"finegrained_tp_config\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 541,
+          "comment": "",
+          "constraints": [
+            "if self.enable_reduce_sample:\n    logger.warning_once('enable_reduce_sample is an experimental feature. Use with caution.')\n    if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:\n        raise ValueError('enable_reduce_sample is incompatible with finegrained_tp_config.lmhead_tensor_parallel_size. Please disable one of them.')\n    if self.enable_pcp_embedding_lmhead_weight_sharding and vc.parallel_config.prefill_context_parallel_size > 1:\n        raise ValueError('enable_reduce_sample is incompatible with enable_pcp_embedding_lmhead_weight_sharding when PCP is enabled. Please disable one of them.')\n    kv_transfer_config = getattr(vc, 'kv_transfer_config', None)\n    kv_role = getattr(kv_transfer_config, 'kv_role', None)\n    if kv_role == 'kv_producer':\n        raise ValueError('enable_reduce_sample is not supported on PD-disaggregated scenarios. Please disable enable_reduce_sample.')",
+            "if self.finegrained_tp_config.lmhead_tensor_parallel_size > 0:\n    raise ValueError('enable_reduce_sample is incompatible with finegrained_tp_config.lmhead_tensor_parallel_size. Please disable one of them.')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 411
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 541
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 712
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 713
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 835
+            }
+          ],
+          "occurrenceCount": 28
+        }
+      },
+      {
+        "before": {
+          "name": "scheduler_config",
+          "type": "SchedulerConfig",
+          "default": "dataclasses.field(default_factory=lambda: SchedulerConfig())",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"scheduler_config\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 528,
+          "comment": "",
+          "constraints": [
+            "if self.scheduler_config.profiling_chunk_config.enabled:\n    max_batched = vc.scheduler_config.max_num_batched_tokens\n    if max_batched < self.scheduler_config.profiling_chunk_config.min_chunk:\n        logger.warning('max_num_batched_tokens is smaller than profiling_chunk_config.min_chunk. max_num_batched_tokens=%d, min_chunk=%d. Clamping min_chunk to %d to avoid it being silently ignored.', max_batched, self.scheduler_config.profiling_chunk_config.min_chunk, max_batched)\n        self.scheduler_config.profiling_chunk_config.min_chunk = max_batched",
+            "if self.scheduler_config.profiling_chunk_config.enabled and vc.parallel_config.pipeline_parallel_size <= 1:\n    raise ValueError('profiling_chunk_config requires pipeline parallelism (pp > 1). Please set --pipeline-parallel-size to a value greater than 1, or disable profiling_chunk_config.')",
+            "if self.scheduler_config.profiling_chunk_config.enabled and self.scheduler_config.enable_balance_scheduling:\n    raise ValueError('profiling_chunk_config and balance scheduling (enable_balance_scheduling) cannot be enabled at the same time. Please disable one of them.')",
+            "if vc.parallel_config.prefill_context_parallel_size > 1 and enable_sp(vllm_config=vc):\n    tp_pcp_size = vc.parallel_config.tensor_parallel_size * vc.parallel_config.prefill_context_parallel_size\n    if vc.scheduler_config.max_num_batched_tokens % tp_pcp_size != 0:\n        vc.scheduler_config.max_num_batched_tokens = cdiv(vc.scheduler_config.max_num_batched_tokens, tp_pcp_size) * tp_pcp_size\n        logger.warning_once('When using sequence parallelism, the max_num_batched_tokens should be divisible by tp_size * pcp_size (%s). It has been adjusted to %s.', str(tp_pcp_size), str(vc.scheduler_config.max_num_batched_tokens))",
+            "if finegrained_tp_enabled and (not self.scheduler_config.recompute_scheduler_enable):\n    raise AssertionError('finegrained_tp_config requires recompute_scheduler_enable=true: it keeps decode-node steps decode-shaped.')",
+            "if max_batched < self.scheduler_config.profiling_chunk_config.min_chunk:\n    logger.warning('max_num_batched_tokens is smaller than profiling_chunk_config.min_chunk. max_num_batched_tokens=%d, min_chunk=%d. Clamping min_chunk to %d to avoid it being silently ignored.', max_batched, self.scheduler_config.profiling_chunk_config.min_chunk, max_batched)\n    self.scheduler_config.profiling_chunk_config.min_chunk = max_batched",
+            "if vc.scheduler_config.max_num_batched_tokens % tp_pcp_size != 0:\n    vc.scheduler_config.max_num_batched_tokens = cdiv(vc.scheduler_config.max_num_batched_tokens, tp_pcp_size) * tp_pcp_size\n    logger.warning_once('When using sequence parallelism, the max_num_batched_tokens should be divisible by tp_size * pcp_size (%s). It has been adjusted to %s.', str(tp_pcp_size), str(vc.scheduler_config.max_num_batched_tokens))"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/_310p/attention/metadata_builder.py",
+              "line": 85
+            },
+            {
+              "file": "vllm_ascend/_310p/model_runner_310p.py",
+              "line": 552
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 402
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 463
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 528
+            }
+          ],
+          "occurrenceCount": 234
+        },
+        "after": {
+          "name": "scheduler_config",
+          "type": "SchedulerConfig",
+          "default": "dataclasses.field(default_factory=lambda: SchedulerConfig())",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"scheduler_config\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 542,
+          "comment": "",
+          "constraints": [
+            "if self.scheduler_config.profiling_chunk_config.enabled:\n    max_batched = vc.scheduler_config.max_num_batched_tokens\n    if max_batched < self.scheduler_config.profiling_chunk_config.min_chunk:\n        logger.warning('max_num_batched_tokens is smaller than profiling_chunk_config.min_chunk. max_num_batched_tokens=%d, min_chunk=%d. Clamping min_chunk to %d to avoid it being silently ignored.', max_batched, self.scheduler_config.profiling_chunk_config.min_chunk, max_batched)\n        self.scheduler_config.profiling_chunk_config.min_chunk = max_batched",
+            "if self.scheduler_config.profiling_chunk_config.enabled and vc.parallel_config.pipeline_parallel_size <= 1:\n    raise ValueError('profiling_chunk_config requires pipeline parallelism (pp > 1). Please set --pipeline-parallel-size to a value greater than 1, or disable profiling_chunk_config.')",
+            "if self.scheduler_config.profiling_chunk_config.enabled and self.scheduler_config.enable_balance_scheduling:\n    raise ValueError('profiling_chunk_config and balance scheduling (enable_balance_scheduling) cannot be enabled at the same time. Please disable one of them.')",
+            "if vc.parallel_config.prefill_context_parallel_size > 1 and enable_sp(vllm_config=vc):\n    tp_pcp_size = vc.parallel_config.tensor_parallel_size * vc.parallel_config.prefill_context_parallel_size\n    if vc.scheduler_config.max_num_batched_tokens % tp_pcp_size != 0:\n        vc.scheduler_config.max_num_batched_tokens = cdiv(vc.scheduler_config.max_num_batched_tokens, tp_pcp_size) * tp_pcp_size\n        logger.warning_once('When using sequence parallelism, the max_num_batched_tokens should be divisible by tp_size * pcp_size (%s). It has been adjusted to %s.', str(tp_pcp_size), str(vc.scheduler_config.max_num_batched_tokens))",
+            "if finegrained_tp_enabled and (not self.scheduler_config.recompute_scheduler_enable):\n    raise AssertionError('oproj_tensor_parallel_size / mlp_tensor_parallel_size require recompute_scheduler_enable=true: it keeps decode-node steps decode-shaped.')",
+            "if max_batched < self.scheduler_config.profiling_chunk_config.min_chunk:\n    logger.warning('max_num_batched_tokens is smaller than profiling_chunk_config.min_chunk. max_num_batched_tokens=%d, min_chunk=%d. Clamping min_chunk to %d to avoid it being silently ignored.', max_batched, self.scheduler_config.profiling_chunk_config.min_chunk, max_batched)\n    self.scheduler_config.profiling_chunk_config.min_chunk = max_batched",
+            "if vc.scheduler_config.max_num_batched_tokens % tp_pcp_size != 0:\n    vc.scheduler_config.max_num_batched_tokens = cdiv(vc.scheduler_config.max_num_batched_tokens, tp_pcp_size) * tp_pcp_size\n    logger.warning_once('When using sequence parallelism, the max_num_batched_tokens should be divisible by tp_size * pcp_size (%s). It has been adjusted to %s.', str(tp_pcp_size), str(vc.scheduler_config.max_num_batched_tokens))"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/_310p/attention/metadata_builder.py",
+              "line": 85
+            },
+            {
+              "file": "vllm_ascend/_310p/model_runner_310p.py",
+              "line": 553
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 417
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 478
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 542
+            }
+          ],
+          "occurrenceCount": 233
+        }
+      },
+      {
+        "before": {
+          "name": "do_remote_decode",
+          "type": "unknown",
+          "default": "None",
+          "class": "",
+          "json_path": "params[\"do_remote_decode\"]",
+          "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+          "line": 544,
+          "comment": "",
+          "constraints": [],
+          "confidence": "suspect",
+          "form": "string-lookup",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 544
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 562
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 638
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 665
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+              "line": 1935
+            }
+          ],
+          "occurrenceCount": 21
+        },
+        "after": {
+          "name": "do_remote_decode",
+          "type": "unknown",
+          "default": "False",
+          "class": "",
+          "json_path": "params[\"do_remote_decode\"]",
+          "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+          "line": 559,
+          "comment": "",
+          "constraints": [],
+          "confidence": "suspect",
+          "form": "string-lookup",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py",
+              "line": 184
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 559
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 635
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+              "line": 662
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+              "line": 1911
+            }
+          ],
+          "occurrenceCount": 21
+        }
+      }
+    ],
+    "skipped": [
+      {
+        "name": "do_remote_decode",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "finegrained_tp_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "scheduler_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_decode",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_eplb",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "expert_map_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "expert_heat_collection_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "algorithm_execution_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "expert_map_record_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "num_redundant_experts",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "eplb_policy_type",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "eplb_heat_collection_stage",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "load_collection_phase",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_block_verify",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_entropy_verify",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "posterior_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "posterior_alpha",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "sleep_mode_extra_cleanup",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_training_consistency",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_batch_invariant",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_cpu_binding",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "multistream_dsv4_dsa_overlap",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_prefill_mc2",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "multistream_overlap_shared_expert",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_kv_nz",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_mc2_hierarchy_comm",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_reduce_sample",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_dsa_cp",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "draft_window_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mix_placement",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pa_shape_list",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mega_moe_max_tokens",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_log_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dump_config_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mc2_comm_alg",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_fused_mc2",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_mlapo",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mlapo_keep_prefill_weights",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "msmonitor_use_daemon",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_transpose_kv_cache_by_block",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "weight_nz_mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_compilation_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_fusion_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "eplb_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rejection_sampler_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rl_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "xlite_graph_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_spec_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "sparse_kv_offload_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_shared_expert_dp",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_sp_by_pass",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_sparse_sfa_c8",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_sparse_li_c8",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pd_tp_ratio",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pd_head_ratio",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "num_head_replica",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_flashcomm1",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dump_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "SUPPORTED_METHODS",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "method",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "method_params",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "budget_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "budget_update_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "initial_verify_budget_per_req",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "oproj_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lmhead_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "embedding_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mlp_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "full_mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "smooth_factor",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "min_chunk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "need_timing",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "max_fit_chunk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "max_jobs",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "reserve_margin_blocks",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "reserve_max_blocks",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "low_available_tokens_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "short_decode_token_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "long_max_wait_ms",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_diagnostics",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "start_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "end_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "bubble_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "long_req_block_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_max_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_balance_scheduling",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "recompute_scheduler_enable",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "short_request_first_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "profiling_chunk_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "batch_job_sched_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dyntra_lb_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "topk_buffer_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dram_size_per_dp_GB",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "keep_device_kv_cache",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "topk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "refresh",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_block_ids",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_host",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_request_id",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_decode",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_prefill",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "num_computed_tokens",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_block_ids",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pp_layer_partition",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "original_max_position_embeddings",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "beta",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "model_type",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "text_config",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_local_comm_res_path",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "architectures",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "group_name",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "use_aux_hidden_state",
+        "file": "vllm_ascend/worker/model_runner_v1.py",
+        "reason": "unreviewed-or-no-existing-page"
+      }
+    ],
+    "state": "static-facts-refreshed-prose-needs-review"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "releases/v0.26.0rc",
+    "before": "16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2",
+    "after": "57179dd3e5d05a547a9fdea8b6958f66717e6098",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "skipped": [],
+    "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "bea70ab8fa233a06a7483337f42a1e3f2c8a117c",
+    "after": "2bb3f44716f3505d2723a4e5badb10211a6c5589",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "skipped": [],
+    "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "2bb3f44716f3505d2723a4e5badb10211a6c5589",
+    "after": "4d1412d102c16669af3ec73174fc5f8b359b56d9",
+    "added": [
+      {
+        "name": "load_window_bins",
+        "type": "int",
+        "default": "64",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"load_window_bins\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 218,
+        "comment": "",
+        "constraints": [
+          "if not 2 <= self.load_window_bins <= 256:\n    raise ValueError('stair_config.load_window_bins must be between 2 and 256')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 194
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 218
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 242
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 243
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 1003
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "load_risk_quantile",
+        "type": "float",
+        "default": "0.75",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"load_risk_quantile\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 219,
+        "comment": "",
+        "constraints": [
+          "if not math.isfinite(self.load_risk_quantile) or not 0.5 < self.load_risk_quantile < 1:\n    raise ValueError('stair_config.load_risk_quantile must be between 0.5 and one')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 197
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 219
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 231
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 244
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 245
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "relative_balance_threshold",
+        "type": "float",
+        "default": "0.95",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"relative_balance_threshold\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 220,
+        "comment": "",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 199
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 220
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 246
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 219
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "absolute_balance_threshold",
+        "type": "float",
+        "default": "0.9",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"absolute_balance_threshold\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 221,
+        "comment": "",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 201
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 221
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 246
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 220
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "rank_transfer_limit",
+        "type": "int",
+        "default": "1",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"rank_transfer_limit\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 222,
+        "comment": "",
+        "constraints": [
+          "if self.rank_transfer_limit != -1 and self.rank_transfer_limit < 1:\n    raise ValueError('stair_config.rank_transfer_limit must be -1 or positive')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 203
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 222
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 250
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 251
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 472
+          }
+        ],
+        "occurrenceCount": 27
+      },
+      {
+        "name": "cross_node_transfer_limit",
+        "type": "int",
+        "default": "1",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"cross_node_transfer_limit\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 223,
+        "comment": "",
+        "constraints": [
+          "if self.cross_node_transfer_limit < -1:\n    raise ValueError('stair_config.cross_node_transfer_limit must be at least -1')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 205
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 223
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 252
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 253
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 473
+          }
+        ],
+        "occurrenceCount": 26
+      },
+      {
+        "name": "replica_search_beam_size",
+        "type": "int",
+        "default": "64",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"replica_search_beam_size\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 226,
+        "comment": "",
+        "constraints": [
+          "if not 1 <= self.replica_search_beam_size <= 128:\n    raise ValueError('stair_config.replica_search_beam_size must be between 1 and 128')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 212
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 226
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 258
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 259
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 931
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "placement_search_backtrack_limit",
+        "type": "int",
+        "default": "32",
+        "class": "StairConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"][\"placement_search_backtrack_limit\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 227,
+        "comment": "",
+        "constraints": [
+          "if not 0 <= self.placement_search_backtrack_limit <= 64:\n    raise ValueError('stair_config.placement_search_backtrack_limit must be between 0 and 64')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 214
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 227
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 260
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 261
+          },
+          {
+            "file": "vllm_ascend/distributed/eplb/policy/stair.py",
+            "line": 945
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "stair_config",
+        "type": "StairConfig",
+        "default": "dataclasses.field(default_factory=StairConfig)",
+        "class": "EplbConfig",
+        "json_path": "additional_config[\"eplb_config\"][\"stair_config\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 300,
+        "comment": "",
+        "constraints": [],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 243
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 245
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 249
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 251
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 253
+          }
+        ],
+        "occurrenceCount": 11
+      },
+      {
+        "name": "fused_op_type",
+        "type": "str",
+        "default": "'none'",
+        "class": "SparseKVOffloadConfig",
+        "json_path": "additional_config[\"sparse_kv_offload_config\"][\"fused_op_type\"]",
+        "file": "vllm_ascend/ascend_config.py",
+        "line": 1633,
+        "comment": "Generalized Q1/MTP LIM + copy-SFA. The C8 operator is built separately\nbut is not selected by this serving path.",
+        "constraints": [
+          "if self.fused_op_type not in ('none', 'fused_copy_sfa'):\n    raise ValueError('sparse_kv_offload_config.fused_op_type must be none or fused_copy_sfa')"
+        ],
+        "confidence": "certain",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 1633
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 1637
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 1641
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 1642
+          }
+        ],
+        "occurrenceCount": 4
+      }
+    ],
+    "removed": [],
+    "changed": [
+      {
+        "before": {
+          "name": "topk_buffer_size",
+          "type": "int",
+          "default": "4096",
+          "class": "SparseKVOffloadConfig",
+          "json_path": "additional_config[\"sparse_kv_offload_config\"][\"topk_buffer_size\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 1543,
+          "comment": "",
+          "constraints": [
+            "if self.topk_buffer_size <= 0:\n    raise ValueError('sparse_kv_offload_config.topk_buffer_size must be positive')",
+            "if self.topk_buffer_size < self.topk:\n    raise ValueError(f'sparse_kv_offload_config.topk_buffer_size must be >= topk, got topk_buffer_size={self.topk_buffer_size}, topk={self.topk}')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 457
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1543
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1551
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1552
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1598
+            }
+          ],
+          "occurrenceCount": 27
+        },
+        "after": {
+          "name": "topk_buffer_size",
+          "type": "int",
+          "default": "4096",
+          "class": "SparseKVOffloadConfig",
+          "json_path": "additional_config[\"sparse_kv_offload_config\"][\"topk_buffer_size\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 1626,
+          "comment": "",
+          "constraints": [
+            "if self.topk_buffer_size <= 0:\n    raise ValueError('sparse_kv_offload_config.topk_buffer_size must be positive')",
+            "if self.use_fused_copy_sfa:\n    if vllm_config.speculative_config and vllm_config.speculative_config.method == 'dspark':\n        raise ValueError('fused_copy_sfa does not support DSpark speculative decoding')\n    width = 1 + (vllm_config.speculative_config.num_speculative_tokens if vllm_config.speculative_config else 0)\n    if self.topk != 2048 or not 1 <= width <= 7:\n        raise ValueError('fused_copy_sfa serving requires TopK=2048 and 1–7 query rows per request')\n    if not width * self.topk <= self.topk_buffer_size <= 16256 or self.topk_buffer_size % 256:\n        raise ValueError('fused_copy_sfa hot budget must be 256-aligned in [Q_max*2048, 16128]: the dense short-sequence layout only lines up with the circular tail slots when topk_buffer_size is a multiple of 256')",
+            "if self.topk_buffer_size < self.topk:\n    raise ValueError(f'sparse_kv_offload_config.topk_buffer_size must be >= topk, got topk_buffer_size={self.topk_buffer_size}, topk={self.topk}')",
+            "if not width * self.topk <= self.topk_buffer_size <= 16256 or self.topk_buffer_size % 256:\n    raise ValueError('fused_copy_sfa hot budget must be 256-aligned in [Q_max*2048, 16128]: the dense short-sequence layout only lines up with the circular tail slots when topk_buffer_size is a multiple of 256')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 540
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1626
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1645
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1646
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1698
+            }
+          ],
+          "occurrenceCount": 37
+        }
+      },
+      {
+        "before": {
+          "name": "topk",
+          "type": "int",
+          "default": "dataclasses.field(default=0, init=False)",
+          "class": "SparseKVOffloadConfig",
+          "json_path": "additional_config[\"sparse_kv_offload_config\"][\"topk\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 1546,
+          "comment": "",
+          "constraints": [
+            "if self.topk_buffer_size < self.topk:\n    raise ValueError(f'sparse_kv_offload_config.topk_buffer_size must be >= topk, got topk_buffer_size={self.topk_buffer_size}, topk={self.topk}')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/_310p/fused_moe/token_dispatcher.py",
+              "line": 50
+            },
+            {
+              "file": "vllm_ascend/_310p/fused_moe/token_dispatcher.py",
+              "line": 51
+            },
+            {
+              "file": "vllm_ascend/_310p/fused_moe/token_dispatcher.py",
+              "line": 52
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1546
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1597
+            }
+          ],
+          "occurrenceCount": 219
+        },
+        "after": {
+          "name": "topk",
+          "type": "int",
+          "default": "dataclasses.field(default=0, init=False)",
+          "class": "SparseKVOffloadConfig",
+          "json_path": "additional_config[\"sparse_kv_offload_config\"][\"topk\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 1629,
+          "comment": "",
+          "constraints": [
+            "if self.use_fused_copy_sfa:\n    if vllm_config.speculative_config and vllm_config.speculative_config.method == 'dspark':\n        raise ValueError('fused_copy_sfa does not support DSpark speculative decoding')\n    width = 1 + (vllm_config.speculative_config.num_speculative_tokens if vllm_config.speculative_config else 0)\n    if self.topk != 2048 or not 1 <= width <= 7:\n        raise ValueError('fused_copy_sfa serving requires TopK=2048 and 1–7 query rows per request')\n    if not width * self.topk <= self.topk_buffer_size <= 16256 or self.topk_buffer_size % 256:\n        raise ValueError('fused_copy_sfa hot budget must be 256-aligned in [Q_max*2048, 16128]: the dense short-sequence layout only lines up with the circular tail slots when topk_buffer_size is a multiple of 256')",
+            "if self.topk_buffer_size < self.topk:\n    raise ValueError(f'sparse_kv_offload_config.topk_buffer_size must be >= topk, got topk_buffer_size={self.topk_buffer_size}, topk={self.topk}')",
+            "if self.topk != 2048 or not 1 <= width <= 7:\n    raise ValueError('fused_copy_sfa serving requires TopK=2048 and 1–7 query rows per request')",
+            "if not width * self.topk <= self.topk_buffer_size <= 16256 or self.topk_buffer_size % 256:\n    raise ValueError('fused_copy_sfa hot budget must be 256-aligned in [Q_max*2048, 16128]: the dense short-sequence layout only lines up with the circular tail slots when topk_buffer_size is a multiple of 256')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/_310p/fused_moe/token_dispatcher.py",
+              "line": 50
+            },
+            {
+              "file": "vllm_ascend/_310p/fused_moe/token_dispatcher.py",
+              "line": 51
+            },
+            {
+              "file": "vllm_ascend/_310p/fused_moe/token_dispatcher.py",
+              "line": 52
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1629
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1691
+            }
+          ],
+          "occurrenceCount": 231
+        }
+      },
+      {
+        "before": {
+          "name": "use_fused_overlap",
+          "type": "bool",
+          "default": "False",
+          "class": "SparseKVOffloadConfig",
+          "json_path": "additional_config[\"sparse_kv_offload_config\"][\"use_fused_overlap\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 1547,
+          "comment": "",
+          "constraints": [],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1547
+            },
+            {
+              "file": "vllm_ascend/attention/sfa_kv_offload.py",
+              "line": 17
+            },
+            {
+              "file": "vllm_ascend/attention/sfa_kv_offload.py",
+              "line": 203
+            },
+            {
+              "file": "vllm_ascend/attention/sfa_kv_offload.py",
+              "line": 1035
+            },
+            {
+              "file": "vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py",
+              "line": 493
+            }
+          ],
+          "occurrenceCount": 16
+        },
+        "after": {
+          "name": "use_fused_overlap",
+          "type": "bool",
+          "default": "False",
+          "class": "SparseKVOffloadConfig",
+          "json_path": "additional_config[\"sparse_kv_offload_config\"][\"use_fused_overlap\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 1630,
+          "comment": "",
+          "constraints": [
+            "if self.use_fused_copy_sfa and self.use_fused_overlap:\n    raise ValueError('fused_copy_sfa and use_fused_overlap are mutually exclusive')"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1630
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1643
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 1644
+            },
+            {
+              "file": "vllm_ascend/attention/sfa_kv_offload.py",
+              "line": 17
+            },
+            {
+              "file": "vllm_ascend/attention/sfa_kv_offload.py",
+              "line": 495
+            }
+          ],
+          "occurrenceCount": 18
+        }
+      }
+    ],
+    "skipped": [
+      {
+        "name": "topk_buffer_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "topk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_kvpp",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_npugraph_ex",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_static_kernel",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "fuse_norm_quant",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "fuse_qknorm_rope",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "fuse_muls_add",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "fusion_ops_gmmswigluquant",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_eplb",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "expert_map_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "expert_heat_collection_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "algorithm_execution_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "expert_map_record_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "num_redundant_experts",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "eplb_policy_type",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "eplb_heat_collection_stage",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "load_collection_phase",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_block_verify",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_entropy_verify",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "posterior_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "posterior_alpha",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "sleep_mode_extra_cleanup",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_training_consistency",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_batch_invariant",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_cpu_binding",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "multistream_dsv4_dsa_overlap",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_prefill_mc2",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "multistream_overlap_shared_expert",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_kv_nz",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_mc2_hierarchy_comm",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_reduce_sample",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_dsa_cp",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "draft_window_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mix_placement",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pa_shape_list",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mega_moe_max_tokens",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_log_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dump_config_path",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mc2_comm_alg",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_fused_mc2",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_mlapo",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mlapo_keep_prefill_weights",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "msmonitor_use_daemon",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_transpose_kv_cache_by_block",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "weight_nz_mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_compilation_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_fusion_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "eplb_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rejection_sampler_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "rl_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "xlite_graph_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "finegrained_tp_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "scheduler_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_spec_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "sparse_kv_offload_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_shared_expert_dp",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_sp_by_pass",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_sparse_sfa_c8",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_sparse_li_c8",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pd_tp_ratio",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "pd_head_ratio",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "num_head_replica",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_flashcomm1",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dump_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "SUPPORTED_METHODS",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "method",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "method_params",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "budget_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "budget_update_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "initial_verify_budget_per_req",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "oproj_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lmhead_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "embedding_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mlp_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "full_mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "smooth_factor",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "min_chunk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "need_timing",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "max_fit_chunk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "max_jobs",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "reserve_margin_blocks",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "reserve_max_blocks",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "low_available_tokens_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "short_decode_token_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "long_max_wait_ms",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_diagnostics",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "start_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "end_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "bubble_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "long_req_block_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_max_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_balance_scheduling",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "recompute_scheduler_enable",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "short_request_first_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "profiling_chunk_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "batch_job_sched_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dyntra_lb_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dram_size_per_dp_GB",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "keep_device_kv_cache",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "refresh",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_decode",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_cached_tokens",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_host",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_tp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_cached_tokens",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_host",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "remote_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_remote_prefill",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "metaserver",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "do_virtual",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/sfa_pd_rd2h/scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "min_verify_tokens",
+        "file": "vllm_ascend/spec_decode/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "use_aux_hidden_state",
+        "file": "vllm_ascend/worker/model_runner_v1.py",
+        "reason": "unreviewed-or-no-existing-page"
+      }
+    ],
+    "state": "static-facts-refreshed-prose-needs-review"
   }
 ]

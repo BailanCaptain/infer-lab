@@ -62,7 +62,7 @@ rawSources:
 
 TP>1 时，RowParallelLinear 默认是先把本 rank 的矩阵乘算完、再发一次 AllReduce，两件事严格串行。打开 `enable_matmul_allreduce`，这一对被换成昇腾 MC2 通算融合算子 `torch_npu.npu_mm_all_reduce_base`，在算子内部按块流水，让通信藏进计算背后 [C6]。`bool`，默认 `False`，纯加速开关，不改变计算语义。
 
-该碰它的是在 A2 上跑长 prefill、大 chunk、高并发的人，而且要用 `--enforce-eager`。**[那条请求](../concepts/one-request.md)用不到它**：单卡 TP=1，融合分支的前提 `reduce_results and tp_size > 1` 不成立，开了等于没开 [C5]。
+该碰它的是在 A2 上跑长 prefill、大 chunk、高并发的人，而且要用 `--enforce-eager`。**本页旧算例用不到它**：单卡 TP=1，融合分支的前提 `reduce_results and tp_size > 1` 不成立，开了等于没开 [C5]。
 
 **存在范围。** v0.23.0 上它是官方参数表里的一个开关，迁移期还能用环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 配 [S9]；它比同批的几个开关多活了一个版本，到 v0.24.0rc 还在，**v0.25.1rc 起**开关、环境变量、背后的 `MatmulAllreduceRowParallelOp` 才一起被删干净，v0.26 分支（2026-09-17 的源码快照）与 main 上都不剩一处引用，PR 号见下面「版本谱系」。**两边留着这个键的后果不一样** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C24]，服务起得来、融合算子一次都不会被调到；main 的 `extra="forbid"` 则直接拒收。
 

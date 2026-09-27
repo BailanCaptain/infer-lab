@@ -1,0 +1,23 @@
+{
+  "note": "写作标准的已达标页名单与阈值。只对 pages 里的页强制（wiki:audit 失败），其余页只统计不报错。skip 写某页不适用的检查项。",
+  "pages": [
+    "tensor-parallel",
+    "expert-parallel",
+    "one-request",
+    "concurrent-requests",
+    "request-call-chain",
+    "glm-5-3-flash",
+    "glm-5-3-flash-two-node",
+    "learning-guide"
+  ],
+  "skip": {
+    "learning-guide": ["source-sections", "diagram-first"]
+  },
+  "sourceSection": "对照源码",
+  "sourceSubsections": ["怎么开", "会报什么错", "开销和什么时候别开", "版本差异", "源码位置"],
+  "maxInlineCodePerK": 13,
+  "maxCalcPerK": 1.2,
+  "maxHedgeRatio": 0.03,
+  "hedgeWords": ["待核", "尚未核实", "未验证", "可能", "不确定"],
+  "maxDiagramWidth": 900
+}

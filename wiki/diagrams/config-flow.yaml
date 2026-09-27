@@ -1,27 +1,22 @@
 layout: figure
 id: config-flow
-caption: 一个昇腾开关的旅程：写在启动命令附带的一段 JSON 里，上游原样带着不解释，启动时按键拆成八组配置对象，各组件都从进程里唯一的一份里取
-size: [900, 300]
-
+caption: 对支持兼容映射的字段，显式 JSON 键优先，否则使用环境读取值；解析后还需通过配置检查
+size: [900, 415]
 items:
-  - { at: [30, 100], size: [190, 64], text: 启动命令, sub: 附带的一段 JSON, tone: control }
-  - { at: [280, 100], size: [210, 64], text: 上游原样带着, sub: 不解释也不检查, tone: control, style: faded }
-  - { at: [570, 204], size: [296, 56], text: 各组件随取随用, sub: 整个进程只有一份, tone: token }
-
-rows:
-  - { at: [560, 110], count: 8, w: 36, h: 44, gap: 4, tone: control }
-
+  - { at: [25, 70], size: [205, 65], text: JSON 扩展配置, sub: 显式键，包含 false, tone: control }
+  - { at: [25, 245], size: [205, 65], text: 环境读取结果, sub: 含读取器默认值, tone: kv }
+  - { at: [315, 150], size: [225, 75], text: 字典里存在该键？, sub: 按字段兼容规则解析, tone: control }
+  - { at: [630, 60], size: [240, 65], text: 使用 JSON 值, tone: control }
+  - { at: [630, 235], size: [240, 65], text: 使用环境读取值, tone: kv }
 links:
-  - { from: [220, 132], to: [280, 132] }
-  - { from: [490, 132], to: [552, 132] }
-  - { from: [718, 158], to: [718, 204] }
-
+  - { from: [230, 102], to: [315, 170], via: [[270, 102], [270, 170]], tone: control }
+  - { from: [230, 277], to: [315, 205], via: [[270, 277], [270, 205]], tone: kv }
+  - { from: [540, 175], to: [630, 92], via: [[585, 175], [585, 92]], tone: control }
+  - { from: [540, 205], to: [630, 267], via: [[585, 205], [585, 267]], tone: kv }
 texts:
-  - { at: [560, 92], text: 启动时按键拆成八组，缺的键用默认值补上, size: 13, note: true }
-
-tags:
-  - { at: [30, 216], text: 拼错的键在拆的时候被直接略过，不报错 }
-
+  - { at: [550, 142], text: 是, tone: control }
+  - { at: [550, 252], text: 否, tone: kv }
+  - { at: [25, 365], text: 兼容字段示例：JSON false 优先于环境 true, size: 15 }
+  - { at: [25, 397], text: 其他字段查各自解析规则；得到字段值后继续检查组合和实际消费者, note: true }
 pins:
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L27-L33
-    symbols: [AscendConfig]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L335-L346', symbols: [_get_config_value] }

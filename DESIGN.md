@@ -31,10 +31,11 @@ colors:
 typography:
   display: { fontFamily: "Inter 800 / Noto Sans SC 900", letterSpacing: "-0.04em" }
   body: { fontFamily: "Inter / Noto Sans SC", fontSize: 14px, lineHeight: 22px }
+  prose: { fontFamily: "Inter / Noto Sans SC", fontSize: 15px, lineHeight: 26px }
   label: { fontFamily: "Inter / Noto Sans SC", fontSize: 12px, lineHeight: 16px, fontWeight: 500 }
   caption: { fontSize: 11px, lineHeight: 15px }
   micro: { fontSize: 10px, lineHeight: 14px, fontWeight: 500 }
-  mono: { fontFamily: "JetBrains Mono / Consolas", fontSize: 13px }
+  mono: { fontFamily: "JetBrains Mono / Consolas，中文回退 Noto Sans SC", fontSize: 13px }
 rounded:
   field: 10px
   card: 16px
@@ -65,7 +66,7 @@ rounded:
 
 Inter + Noto Sans SC（自托管），代码与数字 JetBrains Mono。
 
-- 字阶 `micro(10) < caption(11) < label(12) < compact(13) < body(14) < lead(16) < title(20) < display(34) < hero(48)`。**10px 是地板**。禁止 `text-[Npx]`。
+- 字阶 `micro(10) < caption(11) < label(12) < compact(13) < body(14) < prose(15) < lead(16) < title(20) < display(34) < hero(48)`。prose 只给知识页正文这类长文阅读（行高 26）。**10px 是地板**。禁止 `text-[Npx]`。
 - 显示体（`.display`）：Inter 800 / Noto Sans SC 900，字距 −0.04em，只用于章节标题与首屏。眉题（`.eyebrow`）：橙色等宽大写 10px，`CH.03 · MODEL LAYER`。
 - **等宽 = 机器可核对的事实**（shape、公式、rank、字节、来源号），**比例字体 = 解释性叙述**。所有数字 `tabular-nums`。
 - 层级靠字重与颜色（ink / ink-muted / ink-faint 三档），不靠猛加字号。

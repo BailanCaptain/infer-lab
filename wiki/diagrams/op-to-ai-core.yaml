@@ -1,44 +1,33 @@
 layout: figure
 id: op-to-ai-core
-caption: 一次归一化从上游落到 AI Core：分岔一边是自己编的融合算子（要过构建），一边是 CANN 现成算子
-size: [900, 600]
-
+caption: 上方是 GLM 的无 residual 归一化调用；下方另以可选残差融合扩展展示 Host 分块与设备内存访问
+size: [900, 700]
+frames:
+  - { at: [20, 25], size: [860, 150], label: GLM mHC 路径中的 RMSNorm }
+  - { at: [20, 235], size: [860, 440], label: 实现对照：残差相加 + RMSNorm + 可选 bias }
+  - { at: [345, 425], size: [220, 185], label: AI Core 局部计算 }
 items:
-  - { at: [230, 24], size: [440, 64], text: 上游 vLLM 分派, sub: 平台自报「树外」，调用交给昇腾, tone: control }
-  - { at: [230, 116], size: [440, 64], text: 昇腾接住这次归一化, sub: 带着残差进来，走到一处分岔, tone: control }
-  - { at: [60, 244], size: [360, 88], text: 自己编的融合算子, sub: 加残差、归一化、加偏置一次做完, tone: token }
-  - { at: [480, 244], size: [380, 88], text: CANN 现成算子, sub: 加残差、归一化；偏置另跑一趟, tone: ink, style: plain }
-  - { at: [60, 420], size: [360, 64], text: 切分计划（CPU 上现算）, sub: 一趟往片上缓存搬多少个数, tone: control }
-  - { at: [60, 512], size: [360, 64], text: 核函数（AI Core 上跑）, sub: 按切分的号码挑一条模板, tone: control }
-
-badges:
-  - { at: [200, 56], n: 1 }
-  - { at: [200, 148], n: 2 }
-  - { at: [36, 452], n: 3 }
-  - { at: [36, 544], n: 4 }
-
-dividers:
-  - { from: [20, 388], to: [440, 388], sides: [Python，改了就生效, 构建产物，改了要重编] }
-
+  - { at: [45, 83], size: [195, 55], text: 子层输入, sub: '[T, 4096]', tone: token }
+  - { at: [305, 83], size: [240, 55], text: AscendRMSNorm, sub: 未传入 residual, tone: control }
+  - { at: [610, 83], size: [240, 55], text: 已有 RMSNorm 接口, sub: 归一化并输出同形张量, tone: token }
+  - { at: [45, 305], size: [250, 60], text: Host 分块规划, sub: 形状 / 精度 / 设备约束, tone: control }
+  - { at: [365, 305], size: [235, 60], text: tiling 参数与 key, sub: 选择核函数模板, tone: control }
+  - { at: [655, 305], size: [195, 60], text: 设备 kernel, sub: 处理分配的行与块, tone: weight }
+hardware:
+  - { kind: memory, at: [50, 470], size: [190, 80], label: 全局内存输入 }
+  - { kind: memory, at: [395, 475], size: [120, 55], label: 局部缓冲区 }
+  - { kind: memory, at: [660, 470], size: [190, 80], label: 全局内存输出 }
 links:
-  - { from: [450, 88], to: [450, 112], tone: control }
-  - { from: [450, 180], to: [240, 240], tone: token }
-  - { from: [450, 180], to: [670, 240], tone: ink }
-  - { from: [240, 332], to: [240, 416], tone: token }
-  - { from: [240, 484], to: [240, 508], tone: token }
-
-tags:
-  - { at: [480, 340], text: 带偏置的模型多一趟搬运, tone: danger }
-
+  - { from: [240, 110], to: [305, 110], tone: token }
+  - { from: [545, 110], to: [610, 110], tone: token }
+  - { from: [295, 335], to: [365, 335], tone: control }
+  - { from: [600, 335], to: [655, 335], tone: control }
+  - { from: [752, 365], to: [565, 450], via: [[752, 400], [590, 400], [590, 450]], tone: control }
+  - { from: [240, 510], to: [395, 502], via: [[290, 510], [290, 502]], tone: token }
+  - { from: [515, 502], to: [660, 510], via: [[610, 502], [610, 510]], tone: token }
 texts:
-  - { at: [480, 382], text: 偏置只有带量化偏置的模型才有；这条 bf16 请求两边等价, size: 12.5, width: 400, note: true }
-  - { at: [480, 430], text: CANN 算子已经编好，停在这一侧不用碰构建, size: 12.5, width: 400, note: true }
-  - { at: [480, 560], text: 一步 80 次、200 步 16000 次，都从最上面进来, size: 12.5, width: 400 }
-
+  - { at: [455, 560], text: 相加 / 归约 / 缩放, anchor: middle, size: 13 }
+  - { at: [45, 642], text: 下方展示访问关系与分块职责，不表示物理封装尺寸或性能比例, note: true }
 pins:
-  - source: vllm@0fc695fc:vllm/model_executor/custom_op.py#L186-L196
-    symbols: [dispatch_forward, forward_oot]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L111
-    symbols: [forward_oot, npu_add_rms_norm_bias]
-  - source: vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L432
-    symbols: [enable_custom_op]
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235', symbols: [input_layernorm] }
+  - { source: 'vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155', symbols: [SubProcess, CopyIn] }

@@ -1,0 +1,36 @@
+layout: figure
+id: cann-hccl-flow
+caption: A0 先初始化 HCCL 后端与模型并行组；A4 再按算子进入普通通信或 MC2 等专用路径，普通 All-to-All 另有切片与拼接
+size: [860, 710]
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988
+    symbols: [_init_worker_distributed_environment, init_distributed_environment, ensure_model_parallel_initialized, init_ascend_model_parallel]
+  - source: vllm@0fc695fc:vllm/distributed/device_communicators/base_device_communicator.py#L180-L207
+    symbols: [all_reduce, all_gather]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/device_communicators/npu_communicator.py#L40-L68
+    symbols: [all_to_all]
+items:
+  - { at: [240, 30], size: [380, 55], text: A0 · Worker 初始化通信, sub: init_distributed_environment · hccl, tone: control }
+  - { at: [240, 115], size: [380, 55], text: 建立模型并行组, sub: 上游分组 → Ascend 专用分组, tone: comm }
+  - { at: [240, 235], size: [380, 55], text: A4 · 算子需要远端数据, sub: 确定张量、参与组与操作, tone: token }
+  - { at: [70, 350], size: [310, 55], text: 普通设备通信器, sub: 张量 + device_group, tone: comm }
+  - { at: [540, 350], size: [260, 55], text: MC2 等专用入口, sub: 计算与通信协同, tone: comm }
+  - { at: [30, 465], size: [215, 55], text: All-Reduce / All-Gather, sub: 直接提交操作, tone: comm }
+  - { at: [280, 465], size: [210, 55], text: All-to-All, sub: 先按发送维切片, tone: comm }
+  - { at: [150, 560], size: [290, 55], text: torch.distributed, sub: 在指定设备组中执行通信, tone: comm }
+  - { at: [240, 645], size: [380, 45], text: 取得结果 · 继续本地计算, tone: token }
+links:
+  - { from: [430, 85], to: [430, 115], tone: control }
+  - { from: [430, 170], to: [430, 235], tone: control }
+  - { from: [340, 290], to: [225, 350], via: [[340, 318], [225, 318]], tone: comm }
+  - { from: [520, 290], to: [670, 350], via: [[520, 318], [670, 318]], tone: comm }
+  - { from: [160, 405], to: [137, 465], via: [[160, 435], [137, 435]], tone: comm }
+  - { from: [290, 405], to: [385, 465], via: [[290, 435], [385, 435]], tone: comm }
+  - { from: [137, 520], to: [215, 560], via: [[137, 540], [215, 540]], tone: comm }
+  - { from: [385, 520], to: [385, 560], tone: comm }
+  - { from: [295, 615], to: [295, 645], tone: token }
+  - { from: [670, 405], to: [620, 667], via: [[670, 667]], tone: token }
+texts:
+  - { at: [640, 206], text: 完成加载与预热后执行, note: true }
+  - { at: [515, 585], text: All-to-All 返回后, note: true }
+  - { at: [515, 609], text: 按接收维拼接, note: true }

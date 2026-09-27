@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 760" width="860" height="760" role="img" aria-label="A4 中 attention 之后按层型进入稠密 MLP 或 MoE；稠密分支的逻辑顺序是合并投影、门控、降维、归约，再回到残差流。">
+  <title>A4 中 attention 之后按层型进入稠密 MLP 或 MoE；稠密分支的逻辑顺序是合并投影、门控、降维、归约，再回到残差流。</title>
+  <defs><marker id="matmul-forward-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="matmul-forward-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M430 75 L430 110" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-ink)"/>
+  <path d="M430 170 L430 207 L250 207 L250 245" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-ink)"/>
+  <path d="M430 170 L430 207 L660 207 L660 245" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-ink)"/>
+  <path d="M250 307 L250 355" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-token)"/>
+  <path d="M250 417 L250 465" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-token)"/>
+  <path d="M250 527 L250 563 L430 563 L430 595" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-token)"/>
+  <path d="M660 335 L660 563 L430 563 L430 595" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-token)"/>
+  <path d="M430 655 L430 690" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#matmul-forward-ah-ink)"/>
+  <rect x="220" y="25" width="420" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A3 准备输入 → A4 各层前向</text>
+  <rect x="220" y="110" width="420" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">attention → mHC 写回与再次混合</text>
+  <text x="430" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP 入口归一化后选择层型</text>
+  <rect x="50" y="245" width="400" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">稠密 MLP · gate_up_proj</text>
+  <text x="250" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">合并 gate 和 up 的本卡投影</text>
+  <rect x="50" y="355" width="400" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">act_fn · SwiGLU</text>
+  <text x="250" y="401" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先限制 gate/up，再算 SiLU(gate) × up</text>
+  <rect x="50" y="465" width="400" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">down_proj → All-Reduce</text>
+  <text x="250" y="511" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本卡降维部分和 → 组内合齐</text>
+  <rect x="510" y="245" width="300" height="90" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">MoE 分支</text>
+  <text x="660" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">选择专家并计算，另加共享结果</text>
+  <rect x="220" y="595" width="420" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="621" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">mHC 写回残差流 → 后续层</text>
+  <text x="430" y="640" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">三个逻辑投影的输出重新进入层间状态</text>
+  <rect x="220" y="690" width="420" height="45" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="717.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">全部层结束 → A5 采样与草拟</text>
+  <text x="185" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">前三层</text>
+  <text x="615" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">后续层</text>
+  <text x="555" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">分支二选一</text>
+</svg>

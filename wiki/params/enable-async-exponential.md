@@ -67,7 +67,7 @@ rawSources:
 | `VLLM_BATCH_INVARIANT=1` 时 | 静默置回 `False` [C1] | — | — | 两者互斥，且没有任何告警；以为开了其实没开 |
 | 预生成的 `q` | `(logits_indices.shape[0], vocab_size)`，fp32 [C5] | — | — | 显存开销随 batch × 词表走，和模型多大无关 |
 | Qwen3-0.6B、batch 32 时 `q` | 18.55 MiB / 步 [D] | — | — | 小模型大词表时这块比 hidden state 还大 |
-| [那条请求](../concepts/one-request.md)上 | batch 1，`q` 593.5 KiB / 步；greedy 时压根不取用 [D] | — | — | 单请求要藏的只有一次 593.5 KiB 的填充，profile 上看不出区别 |
+| 本页旧算例上 | batch 1，`q` 593.5 KiB / 步；greedy 时压根不取用 [D] | — | — | 单请求要藏的只有一次 593.5 KiB 的填充，profile 上看不出区别 |
 | 取用前的同步方式 | `Event.synchronize()` | — | — | 阻塞的是 host 线程，比同步路径的 `wait_stream`（device 侧）代价更重 |
 | 同步路径的 `record_stream` | 没有 | 已补上 | 已补上 | 跨流分配的 `q` 到 v0.26 才登记给消费流，v0.23 上是个潜在的提前复用风险 |
 | 采样公式 | `probs.div_(q).argmax(dim=-1)` | 同式 | 同式 | 三个版本数学上同分布，开关本身不改采样语义 |

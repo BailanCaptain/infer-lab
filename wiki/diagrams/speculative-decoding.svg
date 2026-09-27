@@ -1,25 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="每步猜 3 个：4 个位置一次算完，第一个对不上的地方换成模型自己的答案，后面作废">
-  <title>每步猜 3 个：4 个位置一次算完，第一个对不上的地方换成模型自己的答案，后面作废</title>
-  <defs><marker id="speculative-decoding-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="speculative-decoding-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
-  <path d="M195 80 L195 132" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-ah-ink)"/>
-  <path d="M375 80 L375 132" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-ah-ink)"/>
-  <path d="M555 80 L555 132" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-ah-ink)"/>
-  <path d="M735 80 L735 132" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#speculative-decoding-ah-control)"/>
-  <rect x="120" y="36" width="150" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="195" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已确定</text>
-  <rect x="300" y="36" width="150" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="375" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">猜 1</text>
-  <rect x="480" y="36" width="150" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="555" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">猜 2</text>
-  <rect x="660" y="36" width="150" height="44" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <text x="735" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">猜 3</text>
-  <rect x="120" y="132" width="150" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="195" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">猜 1 对</text>
-  <rect x="300" y="132" width="150" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="375" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">猜 2 对</text>
-  <rect x="480" y="132" width="150" height="44" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="555" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">猜 3 错，换掉</text>
-  <rect x="660" y="132" width="150" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
-  <path d="M120 192 v8 h510 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="375" y="222" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步出 3 个 token</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" width="900" height="320" role="img" aria-label="Greedy、三个候选的教学例子：输入与后继预测错开一位；前两个候选被接受，第三个用目标预测 z 替代，未接受分支不提交">
+  <title>Greedy、三个候选的教学例子：输入与后继预测错开一位；前两个候选被接受，第三个用目标预测 z 替代，未接受分支不提交</title>
+  <defs><marker id="speculative-decoding-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M237 117 L237 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-ah-ink)"/>
+  <path d="M397 117 L397 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-ah-ink)"/>
+  <path d="M557 117 L557 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-ah-ink)"/>
+  <path d="M717 117 L717 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#speculative-decoding-ah-ink)"/>
+  <rect x="170" y="190" width="135" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="237.5" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">d₁ · 接受</text>
+  <rect x="330" y="190" width="135" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="397.5" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">d₂ · 接受</text>
+  <rect x="490" y="190" width="135" height="42" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="557.5" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">z · 替代 d₃</text>
+  <rect x="650" y="190" width="135" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="717.5" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">不提交</text>
+  <rect x="170" y="75" width="135" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="237.5" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已确定 token</text>
+  <rect x="330" y="75" width="135" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="397.5" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">候选 d₁</text>
+  <rect x="490" y="75" width="135" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="557.5" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">候选 d₂</text>
+  <rect x="650" y="75" width="135" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="717.5" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">候选 d₃</text>
+  <path d="M170 258 v8 h455 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="397.5" y="288" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本轮提交 3 个新输出</text>
+  <text x="40" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">验证输入</text>
+  <text x="40" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">后继预测</text>
 </svg>

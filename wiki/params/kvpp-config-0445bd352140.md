@@ -46,13 +46,21 @@ sources:
   - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L50'
   - >-
     vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L532
+  - >-
+    vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L546
+  - >-
+    vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L629
 rawSources:
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
     raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md
   - >-
+    raw/sha256-b6dee85cabd61a407e769b3afe87cad9ebab694e8557acb71a692aba730e6c8a.md
+  - >-
     raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md
+  - >-
+    raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md
   - >-
     raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md
 ---
@@ -145,8 +153,8 @@ vllm serve <非 hybrid 的 MLA 模型> --tensor-parallel-size 8 --enforce-eager 
 | 标识 | `additional_config["kvpp_config"]` |
 | 类型 | `KVPPConfig` |
 | 默认表达式 | `dataclasses.field(default_factory=KVPPConfig, kw_only=True)` |
-| 定义 | `vllm_ascend/ascend_config.py:532` [C17] |
-| 版本 | main · 39fef3f8fe71e71a8b7a684ae0f62b85ff18661f |
+| 定义 | `vllm_ascend/ascend_config.py:629` [C19] |
+| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
 
 字段注释：
 

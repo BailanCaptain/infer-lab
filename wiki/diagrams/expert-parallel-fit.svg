@@ -1,19 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200" role="img" aria-label="光是专家就占满了一颗 NPU；分给两颗后，每颗只占一半">
-  <title>光是专家就占满了一颗 NPU；分给两颗后，每颗只占一半</title>
-  <defs><pattern id="expert-parallel-fit-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <rect x="150" y="46" width="540" height="26" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="166" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">全部专家 60 GiB</text>
-  <rect x="690" y="46" width="46.8" height="26" rx="4" fill="url(#expert-parallel-fit-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
-  <rect x="150" y="40" width="536.4" height="38" rx="7" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="2.2"/>
-  <text x="686.4" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-kv, #4c65b6)" text-anchor="end">一颗 NPU 的显存：64 GB</text>
-  <rect x="150" y="134" width="270" height="26" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="166" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">128 个专家 30 GiB</text>
-  <rect x="150" y="128" width="536.4" height="38" rx="7" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="2.2"/>
-  <text x="20" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">只用一颗</text>
-  <text x="748" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">+ 其他权重约 5 GiB</text>
-  <text x="20" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">用两颗，每颗</text>
-  <text x="436" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93">空出来的放其他权重和 KV Cache</text>
-  <text x="150" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">长度按比例画，1 GiB 约 9 像素</text>
-  <rect x="780" y="84" width="63" height="24" rx="12" fill="var(--color-danger, #b54237)"/>
-  <text x="811.5" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">装不下</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 656" width="900" height="656" role="img" aria-label="本部署开启 EP 后的 A2 通信选择。两组使用同一个最大 token 数；每卡 18 个专家和 EP16 已满足规模条件，实际分界是当前配置的容量 128。固定源码提交见页末。">
+  <title>本部署开启 EP 后的 A2 通信选择。两组使用同一个最大 token 数；每卡 18 个专家和 EP16 已满足规模条件，实际分界是当前配置的容量 128。固定源码提交见页末。</title>
+  <defs><marker id="expert-parallel-fit-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="expert-parallel-fit-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M450 80 L450 122" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-fit-ah-ink)"/>
+  <path d="M450 182 L450 234" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-fit-ah-ink)"/>
+  <path d="M450 304 L450 368" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-fit-ah-ink)"/>
+  <path d="M720 269 L864 269 L864 560 L840 560" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-fit-ah-comm)"/>
+  <path d="M330 438 L330 480 L230 480 L230 526" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-fit-ah-comm)"/>
+  <path d="M570 438 L570 480 L670 480 L670 526" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-fit-ah-comm)"/>
+  <rect x="180" y="20" width="540" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">读取本步两个 DP 组的 token 数</text>
+  <text x="450" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">已经过 capture size 与 DP 对齐</text>
+  <rect x="180" y="122" width="540" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="148" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取两组最大值</text>
+  <text x="450" y="167" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R1：4；纯 decode：64；场景 M：6048</text>
+  <rect x="180" y="234" width="540" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">EP ≥16 且每卡专家 ≤24？</text>
+  <text x="450" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本部署：EP16、18 个/卡 → 是</text>
+  <rect x="180" y="368" width="540" height="70" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">最大 token 数 ≤128？</text>
+  <text x="450" y="418" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">当前配置的 MC2 容量门槛</text>
+  <rect x="60" y="526" width="340" height="68" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="230" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MC2</text>
+  <text x="230" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按专家目的地派发与回收</text>
+  <rect x="500" y="526" width="340" height="68" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="670" y="556" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AllGather</text>
+  <text x="670" y="575" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先收集输入，再算本卡专家并归约</text>
+  <text x="468" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="285" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="610" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="736" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">否</text>
+  <text x="230" y="631" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">R1 与 64 行纯 decode</text>
+  <text x="670" y="631" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">场景 M；单机 EP8 也走此路</text>
 </svg>

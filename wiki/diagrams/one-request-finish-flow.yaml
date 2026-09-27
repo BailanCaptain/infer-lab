@@ -1,0 +1,42 @@
+layout: figure
+id: one-request-finish-flow
+caption: 每步结果先在第 6 站检查 token 与长度，再在第 7 站检查 stop string。前端先命中时，通知引擎终止；紫色回线指向第 6 站内的回收操作。
+size: [880, 760]
+frames:
+  - { at: [24, 44], size: [832, 300], label: ⑥ EngineCore · 更新请求 }
+  - { at: [24, 412], size: [832, 326], label: ⑦ API server · 还原文字 }
+items:
+  - { at: [44, 58], size: [438, 58], text: scheduler 更新请求, sub: 按拒绝数回退，再逐个追加确定的 token, style: plain }
+  - { at: [44, 152], size: [438, 58], text: 结束 token、停止 token 或长度到限？, style: plain }
+  - { at: [550, 152], size: [282, 58], text: 截断本步余下 token, sub: 归还请求的块号, tone: kv }
+  - { at: [44, 272], size: [438, 50], text: 把本步输出与结束状态发回前端, tone: comm }
+  - { at: [550, 272], size: [282, 50], text: 收到前端终止：回收 KV block, tone: kv }
+  - { at: [194, 446], size: [492, 58], text: 增量反分词并检查 stop string, tone: token }
+  - { at: [194, 542], size: [492, 58], text: 命中 stop string 且引擎仍未结束？, style: plain }
+  - { at: [550, 652], size: [282, 58], text: 通知引擎终止，流式收尾, tone: comm }
+  - { at: [44, 652], size: [438, 58], text: 按当前结束状态返回文字, sub: 已结束则收尾；仍在运行则下一步继续, tone: token }
+links:
+  - { from: [263, 116], to: [263, 152] }
+  - { from: [482, 181], to: [550, 181] }
+  - { from: [263, 210], to: [263, 272] }
+  - { from: [691, 210], to: [410, 272], via: [[691, 238], [410, 238]] }
+  - { from: [263, 322], to: [440, 446], via: [[263, 378], [440, 378]], tone: comm }
+  - { from: [440, 504], to: [440, 542] }
+  - { from: [330, 600], to: [263, 652], via: [[263, 624]] }
+  - { from: [550, 600], to: [691, 652], via: [[691, 624]] }
+  - { from: [832, 681], to: [691, 322], via: [[868, 681], [868, 364], [691, 364]], tone: comm }
+texts:
+  - { at: [503, 166], text: 是, size: 13 }
+  - { at: [280, 244], text: 否：继续, size: 13 }
+  - { at: [460, 389], text: ZMQ · 每一步的输出, size: 14, tone: comm }
+  - { at: [224, 628], text: 否, size: 13 }
+  - { at: [708, 628], text: 是, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1694-L1910
+    symbols: [check_stop, _free_request, finish_requests]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/utils.py#L94-L130
+    symbols: [check_stop, min_tokens, repetition_detection]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L681
+    symbols: [process_outputs, detokenizer, reqs_to_abort]
+  - source: vllm@0fc695fc:vllm/v1/engine/async_llm.py#L637-L695
+    symbols: [abort_requests_async]

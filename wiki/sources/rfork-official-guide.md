@@ -82,7 +82,7 @@ rawSources:
 | Usage / Prerequisites | [配置](../concepts/rfork-config.md) | Planner、数据系统、NPU 环境都要具备 |
 | Configuration Fields | 配置的完整参数表 | 官网五项表不是工作版参数全集 |
 | How RFork Matches Seeds | 身份的规范化、指纹、rank | 分隔符式 key 与哈希式 key 不可混用 |
-| Quantized Models | [布局](../concepts/rfork-layout.md)、[内存](../concepts/rfork-memory.md) | 搬的是后处理后的可传状态，不能只看 checkpoint |
+| Quantized Models | [布局](../concepts/rfork-layout.md)、[传输](../concepts/rfork-transfer.md) | 搬的是后处理后的可传状态，不能只看 checkpoint |
 | Tested Models | 本页模型表 | 官方记录与工作版验收是两份证据 |
 | Example Commands & Placeholders | 配置的 Linux 命令和四类端口 | 先替换占位符；逻辑模型标识不等于文件路径或 API 模型名 |
 | Note & Caveats | 配置限制、[生命周期](../concepts/rfork-lifecycle.md) | 动态 EPLB、示例 Planner 能力和端口行为分别核实 |
@@ -117,7 +117,7 @@ rawSources:
 | 成功日志 | 让人搜 `transfer weights starts` 与 `transfer weights time` | 起始那条本版**照样在打** `transfer weights starts`；换掉的是结束那条，现在是 `RFork weight transfer completed: weights=…, chunks=…, bytes=… GiB`。所以搜不到 `transfer weights time` 不等于没传，搜得到 `transfer weights starts` 也不等于版本不对。[C12] |
 | 依赖安装 | 指向 `openyuanrong-transfer-engine` | 本版实际导入 `yr.datasystem`，并调用 Ex 注册和 finalize API。包名、能 import、native 行为相容是三层验证。[C5][C6][C7] |
 
-随工作版保存的指南安装命令则写 `openyuanrong-datasystem`。[M15] 这是两份指南的差异记录，不能据此断言两个发行包任意版本都可互换；先用配置页的只读检查确认实际模块/API，再核部署配套版本。
+随工作版保存的指南安装命令则写 `openyuanrong-datasystem`。[S15] 这是两份指南的差异记录，不能据此断言两个发行包任意版本都可互换；先用配置页的只读检查确认实际模块/API，再核部署配套版本。
 
 上述官网列是当日说明的摘要，不是对社区所有分支代码行为的证明。[S1] 官网当前 Caveats 写的是动态 EPLB；不要把其他版本文档中的 `layer_sharding` 限制直接冒充这页原文。工作版显式绕过动态 EPLB，又会拒绝已物化的混合 CPU/NPU 参数；没有单独的 `layer_sharding` 禁用分支，也**不能反推该组合已实测支持**。[C10][C13][I]
 
@@ -138,7 +138,7 @@ rawSources:
 | GLM5-W4A8 | W4A8 | A2 |
 | Kimi2.5-W4A8 | W4A8 | A2 |
 
-这是官网当日报告的测试覆盖，并非本轮复现。[S1] **BF16** 是 bfloat16 浮点格式；**W8A8 / W4A8** 分别表示权重 8/4 bit、激活 8 bit 的量化方案名称，不代表模型里每一个张量都用相同位宽。MTP、dtype、scale 等见[术语](../concepts/rfork-terms.md)。
+这是官网当日报告的测试覆盖，并非本轮复现。[S1] **BF16** 是 bfloat16 浮点格式；**W8A8 / W4A8** 分别表示权重 8/4 bit、激活 8 bit 的量化方案名称，不代表模型里每一个张量都用相同位宽。MTP、dtype、scale 等见 `wiki/TERMS.md`。
 
 迁到本工作版时，还要记录模型 revision、并行配置、两端代码、YuanRong / CANN / torch_npu 版本，再验证实际 seed 命中、输出与默认加载一致、故障回退和资源清理。不能把模型名称出现在表里当作任意卡型、任意量化实现或任意 batching 参数都兼容。
 

@@ -73,7 +73,7 @@ rawSources:
 
 **存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起整套 `vllm_ascend/ops/weight_prefetch.py` 和配置字段已被删除，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都没有这个键——引入与移除的 PR 见下面「版本谱系」。**两边删得不一样** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C31]，照旧配置它服务起得来、只是什么都不会发生；main 的顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型 [C23]，同一条命令会在配置解析阶段直接失败。它只有一个子键值得单独看：[prefetch_ratio](prefetch-ratio.md)。
 
-[那条请求](../concepts/one-request.md)在 v0.23 上至少不会被门槛挡住：Qwen3-0.6B 是稠密模型，37 token 的 prefill 和之后的每一步 decode 都满足 `num_tokens < 500`，走的是 MLP 那条路。具体搬多少字节、哪几块搬不动，下面「开了的代价」里按这条请求算了一遍。
+本页旧算例在 v0.23 上至少不会被门槛挡住：Qwen3-0.6B 是稠密模型，37 token 的 prefill 和之后的每一步 decode 都满足 `num_tokens < 500`，走的是 MLP 那条路。具体搬多少字节、哪几块搬不动，下面「开了的代价」里按这条请求算了一遍。
 
 ## 事实表
 

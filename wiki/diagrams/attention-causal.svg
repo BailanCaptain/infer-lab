@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="普通因果注意力的可见范围：青色格允许访问，虚线格被屏蔽；Prefill 每行边界不同，单位置 Decode 可访问已有历史与自身">
+  <title>普通因果注意力的可见范围：青色格允许访问，虚线格被屏蔽；Prefill 每行边界不同，单位置 Decode 可访问已有历史与自身</title>
+  <defs></defs>
+  <rect x="110" y="90" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="169" y="90" width="54" height="44" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="196" y="116.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">×</text>
+  <rect x="228" y="90" width="54" height="44" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="255" y="116.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">×</text>
+  <rect x="287" y="90" width="54" height="44" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="314" y="116.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">×</text>
+  <rect x="110" y="139" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="169" y="139" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="228" y="139" width="54" height="44" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="255" y="165.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">×</text>
+  <rect x="287" y="139" width="54" height="44" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="314" y="165.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">×</text>
+  <rect x="110" y="188" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="169" y="188" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="228" y="188" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="287" y="188" width="54" height="44" rx="4" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="314" y="214.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">×</text>
+  <rect x="110" y="237" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="169" y="237" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="228" y="237" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="287" y="237" width="54" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="100" y="116.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q₀</text>
+  <text x="100" y="165.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q₁</text>
+  <text x="100" y="214.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q₂</text>
+  <text x="100" y="263.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q₃</text>
+  <text x="137" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₀</text>
+  <text x="196" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₁</text>
+  <text x="255" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₂</text>
+  <text x="314" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₃</text>
+  <rect x="530" y="165" width="48" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="583" y="165" width="48" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="636" y="165" width="48" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="689" y="165" width="48" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="742" y="165" width="48" height="44" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="520" y="191.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">Q₄</text>
+  <text x="554" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₀</text>
+  <text x="607" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₁</text>
+  <text x="660" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₂</text>
+  <text x="713" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₃</text>
+  <text x="766" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">K₄</text>
+  <text x="228" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Prefill · 四个查询位置</text>
+  <text x="660" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Decode · 新增查询位置 4</text>
+  <text x="228" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">行＝查询，列＝键</text>
+  <text x="660" y="265" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">先前位置 0–3 ＋ 当前位置 4</text>
+</svg>

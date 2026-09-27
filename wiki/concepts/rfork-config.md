@@ -281,7 +281,7 @@ print("optional kNotFound:",
 ### 开销和什么时候别开
 
 - `parallel_config.enable_eplb`、`eplb_config.dynamic_eplb` 或 `expert_map_record_path` 命中动态 EPLB 检查时 RFork 被绕过，调重试数不改变这个限制。[C6][C7]
-- `rfork_request_timeout_sec` 传给 Requests，约束连接 / 读等待，不是总截止时间。按 `3 × 10 + 2 × 30 = 90 秒` 计算只是每次 HTTP 恰好耗时 10 秒的算例，不是严格上界。[M13][D]
+- `rfork_request_timeout_sec` 传给 Requests，约束连接 / 读等待，不是总截止时间。按 `3 × 10 + 2 × 30 = 90 秒` 计算只是每次 HTTP 恰好耗时 10 秒的算例，不是严格上界。[S13][D]
 - seed 启动用单调时钟算健康检查 deadline，用剩余时间限制队列与轮询；失败清理另有等待预算。
 - 固定端口：global rank 在分布式组内唯一，不保证同机多个独立实例之间唯一；main 与 draft 也可能用同一 Worker 的 global rank。需按部署隔离端口或保留动态端口，并分别验证两个模型角色的 seed 启动结果。[I]
 - 内建 seed 服务以普通 HTTP 启动；seed key 是匹配字段，不是认证凭据；走 HTTPS 要核对代理、URL 与转发配置。
@@ -303,4 +303,4 @@ print("optional kNotFound:",
 - 心跳间隔语义与 advertise 自动取 IP：`planner_client.py`
 - seed HTTP 服务、健康检查 deadline 与回环地址：`seed_server.py`
 - 示例 Planner 的 TTL 默认值 与命令行开关：`examples/rfork/rfork_planner.py`
-- 工作版指南中的超时与重试说明：`docs/source/user_guide/feature_guide/rfork.md` [M13]
+- 工作版指南中的超时与重试说明：`docs/source/user_guide/feature_guide/rfork.md` [S13]

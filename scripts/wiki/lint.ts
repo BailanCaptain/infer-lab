@@ -83,52 +83,14 @@ function linkTargets(page: WikiPage): string[] {
  *
  * 2026-09-25 读者定为初学者，「一句话」也不再强制：它把开头写成定义，初学者读完
  * 还是不知道这东西解决什么问题。现在开头只要求先给一个具体问题（机器查不了，写在
- * HANDBOOK），机器守的是两层结构的边界，见 halfProblems。
+ * HANDBOOK）。随后教学改版允许就近引用与按主题分节；机器继续检查来源、编号、
+ * 链接和关系，不以证据出现位置或固定标题模板判错。
  */
 const REQUIRED_SECTIONS: Record<string, string[]> = {
   concept: [],
   feature: [],
   param: ["一句话", "事实表", "为什么存在", "开了的代价"],
 };
-
-/**
- * 两层结构（2026-09-25）：上半给初学者讲，下半「## 对照源码」给要去核对源码的人查。
- * 下半的小标题固定成这五个、按这个顺序，读者和问答都按名字找；用不上的就不写，不写「无」。
- * 证据标记只放下半——上半是讲解，满屏角标会把初学者挡在门外。
- * 还没改写的旧页没有「对照源码」，这两条不管它们。
- */
-export const SOURCE_HALF = "对照源码";
-export const SOURCE_HALF_H3 = ["怎么开", "会报什么错", "开销和什么时候别开", "版本差异", "源码位置"] as const;
-
-function halfProblems(p: WikiPage): PageProblem[] {
-  const body = p.body.replace(/```[\s\S]*?```/g, "");
-  const head = new RegExp(`^##\\s+${SOURCE_HALF}\\s*$`, "m").exec(body);
-  if (!head) return [];
-  const out: PageProblem[] = [];
-  const upper = [...body.slice(0, head.index).matchAll(MARK_RE)].length;
-  if (upper)
-    out.push({
-      file: p.file,
-      rule: "mark-in-upper-half",
-      message: `「${SOURCE_HALF}」之前有 ${upper} 处证据标记——上半给初学者读，标记放到下半`,
-    });
-  const rest = body.slice(head.index + head[0].length);
-  const next = rest.search(/^##\s/m);
-  const lower = next < 0 ? rest : rest.slice(0, next);
-  let last = -1;
-  for (const m of lower.matchAll(/^###\s+(.+?)\s*$/gm)) {
-    const title = (m[1] ?? "").trim();
-    const at = (SOURCE_HALF_H3 as readonly string[]).indexOf(title);
-    if (at < 0 || at <= last)
-      out.push({
-        file: p.file,
-        rule: "source-half-heading",
-        message: `「${SOURCE_HALF}」下的小标题「${title}」${at < 0 ? "不在固定的五个里" : "顺序不对"}：只用 ${SOURCE_HALF_H3.join(" → ")}，按这个顺序`,
-      });
-    else last = at;
-  }
-  return out;
-}
 
 /** 2026-09-11 改版前的四节格式，用于识别待迁移的旧页 */
 const LEGACY_SECTIONS = ["是什么", "形状与数值", "在哪一步出现", "常见误解"];
@@ -248,7 +210,25 @@ function markProblems(p: WikiPage): PageProblem[] {
   const out: PageProblem[] = [];
   const counts = new Map<string, number>();
   let total = 0;
-  for (const m of p.body.matchAll(MARK_RE)) {
+  // 围栏中的 [C99] 等是代码内容，与阅读页的证据标记处理保持一致。
+  let fence = "";
+  const prose = p.body
+    .split(/\r?\n/)
+    .filter((line) => {
+      const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+      if (fence) {
+        if (marker && marker[1]?.[0] === fence[0] && marker[1].length >= fence.length && !marker[2]?.trim())
+          fence = "";
+        return false;
+      }
+      if (marker) {
+        fence = marker[1] ?? "";
+        return false;
+      }
+      return true;
+    })
+    .join("\n");
+  for (const m of prose.matchAll(MARK_RE)) {
     const level = m[1] ?? "";
     const num = m[2] ?? "";
     total++;
@@ -423,8 +403,6 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
     // 不逐条刷屏——它们要重跑才会变成新格式，在那之前既不该被静默放过，
     // 也不该拿几百条噪声淹掉真问题。重跑完这个分支就走不到了。
     if (isLegacyPage(p)) continue;
-
-    problems.push(...halfProblems(p));
 
     // 「接着看」改由 relations 生成，手写会与 note 漂移
     if (p.body.includes("## 接着看")) {

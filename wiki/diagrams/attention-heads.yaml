@@ -1,24 +1,29 @@
 layout: figure
 id: attention-heads
-caption: 通用多头结构，以四个头示意；各头的输出沿特征维拼接，再经输出投影恢复隐藏宽度，未展开每头内部计算
-size: [900, 430]
+caption: 通用多头结构，以四个头示意：Q、K、V 投影的输出按头切成几段，每个头用自己那一段各算一遍 attention，权重分布可以各不相同；各头输出沿特征维拼接，再经输出投影回到隐藏宽度
+size: [900, 560]
 items:
-  - { at: [80, 70], size: [140, 52], text: 头 0, sub: 独立输出, style: plain }
-  - { at: [280, 70], size: [140, 52], text: 头 1, sub: 独立输出, style: plain }
-  - { at: [480, 70], size: [140, 52], text: 头 2, sub: 独立输出, style: plain }
-  - { at: [680, 70], size: [140, 52], text: 头 3, sub: 独立输出, style: plain }
-  - { at: [345, 275], size: [210, 44], text: 输出投影, tone: weight }
+  - { at: [300, 14], size: [300, 54], text: 输入 X, sub: 每行一个位置的隐藏向量, tone: token }
+  - { at: [200, 104], size: [500, 56], text: Q、K、V 投影, sub: 三次矩阵乘，输出宽度按头切成 4 段, tone: weight }
+  - { at: [60, 222], size: [180, 58], text: 头 0, sub: 各算一遍 attention, style: plain }
+  - { at: [260, 222], size: [180, 58], text: 头 1, sub: 各算一遍 attention, style: plain }
+  - { at: [460, 222], size: [180, 58], text: 头 2, sub: 各算一遍 attention, style: plain }
+  - { at: [660, 222], size: [180, 58], text: 头 3, sub: 各算一遍 attention, style: plain }
+  - { at: [345, 402], size: [210, 44], text: 输出投影, tone: weight }
+fans:
+  - { from: [450, 160], to: [[150, 222], [350, 222], [550, 222], [750, 222]], tone: token }
 rows:
-  - { at: [350, 190], count: 4, w: 50, h: 22, gap: 0, tone: token }
+  - { at: [350, 340], count: 4, w: 50, h: 22, gap: 0, tone: token }
 matrices:
-  - { at: [350, 360], w: 200, h: 22, rows: 1, cols: 8, tone: token, label: 注意力子层输出 }
+  - { at: [350, 492], w: 200, h: 22, rows: 1, cols: 8, tone: token, label: attention 子层输出 }
 links:
-  - { from: [150, 122], to: [375, 190], tone: token }
-  - { from: [350, 122], to: [425, 190], tone: token }
-  - { from: [550, 122], to: [475, 190], tone: token }
-  - { from: [750, 122], to: [525, 190], tone: token }
-  - { from: [450, 212], to: [450, 275], tone: token }
-  - { from: [450, 319], to: [450, 360], tone: token }
+  - { from: [450, 68], to: [450, 104], tone: token }
+  - { from: [150, 280], to: [375, 340], tone: token }
+  - { from: [350, 280], to: [425, 340], tone: token }
+  - { from: [550, 280], to: [475, 340], tone: token }
+  - { from: [750, 280], to: [525, 340], tone: token }
+  - { from: [450, 362], to: [450, 402], tone: token }
+  - { from: [450, 446], to: [450, 492], tone: token }
 texts:
-  - { at: [450, 35], text: 同一查询位置的四个头, anchor: middle, strong: true }
-  - { at: [585, 207], text: 拼接头输出, size: 13 }
+  - { at: [585, 357], text: 拼接各头输出, size: 13 }
+  - { at: [585, 473], text: 回到隐藏宽度, size: 13 }

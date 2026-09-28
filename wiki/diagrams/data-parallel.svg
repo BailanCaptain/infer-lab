@@ -1,44 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 535" width="900" height="535" role="img" aria-label="DP 先分请求：两个执行副本分别管理队列、批次与状态；图中路由结果只是一次教学分配">
-  <title>DP 先分请求：两个执行副本分别管理队列、批次与状态；图中路由结果只是一次教学分配</title>
-  <defs><marker id="data-parallel-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="data-parallel-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <rect x="30" y="215" width="385" height="270" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="46" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 副本 0</text>
-  <rect x="485" y="215" width="385" height="270" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="501" y="203" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 副本 1</text>
-  <g data-hardware="memory">
-  <rect x="105" y="400" width="230" height="55" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M110 447h220M110 451h220" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="220" y="431.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A / B 历史状态</text>
-  </g>
-  <g data-hardware="memory">
-  <rect x="560" y="400" width="230" height="55" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M565 447h220M565 451h220" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="675" y="431.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C / D 历史状态</text>
-  </g>
-  <path d="M360 120 L360 170 L190 170 L190 266" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
-  <path d="M540 120 L540 170 L645 170 L645 266" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
-  <path d="M190 298 L190 320" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
-  <path d="M645 298 L645 320" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#data-parallel-ah-token)"/>
-  <path d="M220 370 L220 400" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-start="url(#data-parallel-ah-kv)" marker-end="url(#data-parallel-ah-kv)"/>
-  <path d="M675 370 L675 400" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-start="url(#data-parallel-ah-kv)" marker-end="url(#data-parallel-ah-kv)"/>
-  <rect x="105" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
-  <text x="147.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A</text>
-  <rect x="190" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
-  <text x="232.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">B</text>
-  <path d="M190 266v32" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="105" y="266" width="170" height="32" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="560" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
-  <text x="602.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
-  <rect x="645" y="266" width="85" height="32" fill="var(--color-surface-sunken, #ece9df)"/>
-  <text x="687.5" y="286.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D</text>
-  <path d="M645 266v32" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="560" y="266" width="170" height="32" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="280" y="55" width="340" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="83.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求入口与路由</text>
-  <text x="450" y="102.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A、B、C、D</text>
-  <rect x="65" y="320" width="310" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="220" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度 → 执行</text>
-  <rect x="520" y="320" width="310" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="675" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度 → 执行</text>
-  <text x="30" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">副本内部还可使用 TP；是否跨副本通信取决于模型与并行组合</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="两个 DP 组各有自己的队列和调度。新请求只派进组 0；组 1 这一刻一条请求都没有，但它的卡持有另一部分专家，组 0 的 token 在 MoE 层要发过去算。所以组 1 用一份假输入跑同一步（dummy run），和组 0 一起进出 EP 通信；假输入自己的输出丢弃，为组 0 算的专家结果照常送回。">
+  <title>两个 DP 组各有自己的队列和调度。新请求只派进组 0；组 1 这一刻一条请求都没有，但它的卡持有另一部分专家，组 0 的 token 在 MoE 层要发过去算。所以组 1 用一份假输入跑同一步（dummy run），和组 0 一起进出 EP 通信；假输入自己的输出丢弃，为组 0 算的专家结果照常送回。</title>
+  <defs><marker id="data-parallel-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="data-parallel-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="30" y="136" width="390" height="226" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 组 0 · 自己的队列、调度、KV cache</text>
+  <rect x="480" y="136" width="390" height="226" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="496" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">DP 组 1 · 此刻没有请求</text>
+  <path d="M450 90 L450 112 L225 112 L225 136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-ah-ink)"/>
+  <path d="M400 312 L500 312" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#data-parallel-ah-comm)"/>
+  <path d="M500 330 L400 330" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#data-parallel-ah-comm)"/>
+  <path d="M225 362 L225 424" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-ah-ink)"/>
+  <path d="M675 362 L675 424" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#data-parallel-ah-ink)"/>
+  <rect x="300" y="36" width="300" height="54" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="59" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新请求</text>
+  <text x="450" y="78" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">前端比较两组的负载，挑一组</text>
+  <rect x="50" y="166" width="110" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="105" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求 A</text>
+  <rect x="170" y="166" width="110" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求 B</text>
+  <rect x="290" y="166" width="110" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="345" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求 C</text>
+  <rect x="50" y="228" width="350" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步前向：算 A、B、C</text>
+  <text x="225" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果交回各自的请求</text>
+  <rect x="50" y="298" width="350" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本组的卡持有一部分专家</text>
+  <rect x="500" y="166" width="350" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等待队列、运行队列都为空</text>
+  <rect x="500" y="228" width="350" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">dummy run：用假输入跑同一步</text>
+  <text x="675" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">假输入自己的输出丢弃</text>
+  <rect x="500" y="298" width="350" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本组的卡持有另一部分专家</text>
+  <rect x="30" y="424" width="840" height="60" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">同一步的 MoE 层 · EP 通信</text>
+  <text x="450" y="469" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组的卡必须一起进、一起出；少一组，另一组就停在这里等</text>
+  <text x="450" y="16" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 DP 组 · 只示意分工与同步</text>
+  <text x="450" y="398" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">同一步，两组一起进入</text>
+  <text x="450" y="506" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">组 0 的 token 发到组 1 的专家，算完送回组 0</text>
 </svg>

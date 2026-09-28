@@ -1,35 +1,37 @@
 layout: figure
 id: ascend-vs-upstream
-caption: Ascend 的接入位置：虚线表示注册或配置选择实现，实线表示执行调用；横向分区是职责，不是进程或仓库的硬边界
-size: [900, 680]
-frames:
-  - { at: [25, 70], size: [255, 485], label: 平台与实现选择 }
-  - { at: [345, 70], size: [230, 485], label: 设备执行 }
-  - { at: [640, 70], size: [235, 485], label: 模型与计算 }
+caption: 上游 vLLM 决定每一步算什么；计划越过平台边界后，由 vllm-ascend 的 Worker、Runner 和 GLM 模型在 NPU 上执行。左侧的插件入口、平台、配置、patch 和模型注册在启动时就把这条路径定好
+size: [900, 510]
 items:
-  - { at: [48, 110], size: [210, 58], text: 插件入口注册, sub: 平台与通用入口, style: plain }
-  - { at: [48, 260], size: [210, 58], text: NPUPlatform, sub: 配置、Worker 与后端选择, style: plain }
-  - { at: [48, 410], size: [210, 58], text: 平台 / Worker 补丁, style: plain }
-  - { at: [365, 110], size: [190, 58], text: Executor, sub: 引擎提供执行计划, style: plain }
-  - { at: [365, 260], size: [190, 58], text: NPUWorker, style: plain }
-  - { at: [365, 410], size: [190, 58], text: NPUModelRunner, style: plain }
-  - { at: [660, 110], size: [195, 58], text: 模型注册, sub: 架构名称 → 实现, style: plain }
-  - { at: [660, 260], size: [195, 58], text: GLM 专用模型, tone: token }
-  - { at: [660, 410], size: [195, 58], text: 注意力 / 算子 / 通信, tone: token }
+  - { at: [32, 32], size: [180, 58], text: 请求接入, sub: HTTP、分词、选 DP 组, tone: control }
+  - { at: [268, 32], size: [180, 58], text: Scheduler, sub: 本步算哪些请求、分哪些块, tone: control }
+  - { at: [504, 32], size: [180, 58], text: Executor, sub: 把本步计划发给 Worker, tone: control }
+  - { at: [32, 176], size: [180, 58], text: 插件入口, sub: 装包时登记、启动时被发现, style: plain }
+  - { at: [268, 176], size: [180, 58], text: patch, sub: 没接口处替换上游函数, style: plain }
+  - { at: [504, 176], size: [180, 58], text: NPUWorker, sub: 每张卡一个, tone: weight }
+  - { at: [32, 282], size: [180, 58], text: NPUPlatform, sub: 答用哪个 Worker 和后端, style: plain }
+  - { at: [504, 282], size: [180, 58], text: NPUModelRunner, sub: 输入张量与 block table, tone: weight }
+  - { at: [32, 388], size: [180, 58], text: Ascend 配置, sub: 命令行、JSON、环境变量, style: plain }
+  - { at: [268, 388], size: [180, 58], text: 模型注册, sub: 架构名 → 昇腾的 GLM 实现, style: plain }
+  - { at: [504, 388], size: [180, 58], text: GLM 模型与算子, sub: 注意力、MoE、量化、通信, tone: weight }
 links:
-  - { from: [153, 168], to: [153, 260], dashed: true }
-  - { from: [258, 289], to: [365, 289], dashed: true }
-  - { from: [460, 168], to: [460, 260] }
-  - { from: [460, 318], to: [460, 410] }
-  - { from: [555, 439], to: [660, 289], via: [[607, 439], [607, 289]], tone: token }
-  - { from: [757, 168], to: [757, 260], dashed: true }
-  - { from: [757, 318], to: [757, 410], tone: token }
-  - { from: [855, 468], to: [460, 468], via: [[855, 525], [460, 525]], tone: token }
+  - { from: [212, 61], to: [268, 61], tone: control }
+  - { from: [448, 61], to: [504, 61], tone: control }
+  - { from: [594, 90], to: [594, 176], tone: weight }
+  - { from: [594, 234], to: [594, 282], tone: weight }
+  - { from: [594, 340], to: [594, 388], tone: weight }
+  - { from: [684, 417], to: [684, 61], via: [[730, 417], [730, 61]], tone: weight }
+  - { from: [122, 234], to: [122, 282], dashed: true }
+  - { from: [122, 388], to: [122, 340], dashed: true }
+  - { from: [212, 311], to: [504, 205], via: [[476, 311], [476, 205]], dashed: true }
+  - { from: [358, 176], to: [358, 90], dashed: true }
+  - { from: [448, 417], to: [504, 417], dashed: true }
+dividers:
+  - { from: [16, 132], to: [884, 132], sides: [上游 vLLM：与硬件无关, 平台边界以下：vllm-ascend 提供的实现] }
 texts:
-  - { at: [48, 205], text: 启动时发现实现 }
-  - { at: [48, 360], text: 按导入路径调整公共行为, size: 12.5 }
-  - { at: [45, 610], text: 配置与注册建立执行路径；每轮请求沿选定路径执行, strong: true }
-  - { at: [45, 650], text: 专用模型、公共接口、继承逻辑与补丁共同决定当前版本的行为, note: true }
+  - { at: [744, 252], text: 本步输出, note: true }
+  - { at: [744, 272], text: 交回引擎, note: true }
+  - { at: [24, 486], text: 实线：每一步都走的调用；虚线：启动时登记、选择或替换实现, note: true }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L75
     symbols: [NPUPlatform]

@@ -1,21 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="固定旋转前的 q/k，取同向单位向量示意；每个位置旋转 20°，两组位置均相差 2，因此旋转后的夹角均为 40°，这不是 GLM 配置">
-  <title>固定旋转前的 q/k，取同向单位向量示意；每个位置旋转 20°，两组位置均相差 2，因此旋转后的夹角均为 40°，这不是 GLM 配置</title>
-  <desc>单个二维旋转平面，K 从水平轴转 60 度，Q 转 100 度，夹角 40 度；位置整体增加 100，K 转角等效为 260 度，Q 为 300 度，夹角仍为 40 度</desc>
-  <defs><marker id="rope-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="rope-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <circle cx="230" cy="230" r="120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <path d="M90 230 L370 230" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
-  <path d="M230 230 L290 126" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
-  <path d="M230 230 L209 112" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
-  <text x="302" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">K</text>
-  <text x="196" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56" text-anchor="end">Q</text>
-  <text x="244" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">差 2 格</text>
-  <circle cx="670" cy="230" r="120" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <path d="M530 230 L810 230" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
-  <path d="M670 230 L649 348" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
-  <path d="M670 230 L730 334" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
-  <text x="636" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93" text-anchor="end">K</text>
-  <text x="742" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">Q</text>
-  <text x="684" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">差 2 格</text>
-  <text x="230" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">位置 3 的 K · 位置 5 的 Q</text>
-  <text x="670" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">位置 103 的 K · 位置 105 的 Q</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。每对分量的真实转速见下文；这不是 GLM 的配置，GLM 的 RoPE 维数为 0">
+  <title>示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。每对分量的真实转速见下文；这不是 GLM 的配置，GLM 的 RoPE 维数为 0</title>
+  <desc>旋转前，k 指向 20 度，q 指向 50 度，夹角 30 度；k 在位置 3 转 60 度到 80 度，q 在位置 5 转 100 度到 150 度，夹角 70 度；两个位置都加 100，k 指向 280 度，q 指向 350 度，夹角仍为 70 度</desc>
+  <defs><marker id="rope-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="rope-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="rope-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M268 190 L322 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#rope-ah-ink)"/>
+  <path d="M578 190 L632 190" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#rope-ah-ink)"/>
+  <circle cx="150" cy="190" r="95" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M150 190 L239 158" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
+  <path d="M150 190 L211 117" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
+  <path d="M188 176 C 185 170, 181 164, 176 159" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <text x="248" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">k</text>
+  <text x="217" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">q</text>
+  <text x="209" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">30°</text>
+  <circle cx="460" cy="190" r="95" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M460 190 L549 158" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M460 190 L521 117" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M562 153 C 548 117, 517 90, 479 84" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
+  <path d="M505 136 C 472 108, 421 117, 399 155" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
+  <path d="M460 190 L476 96" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
+  <path d="M460 190 L378 142" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
+  <path d="M466 156 C 452 153, 437 160, 430 173" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <text x="468" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93" text-anchor="end">k</text>
+  <text x="370" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56" text-anchor="end">q</text>
+  <text x="438" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">70°</text>
+  <circle cx="770" cy="190" r="95" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M770 190 L859 158" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M770 190 L831 117" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M770 190 L786 284" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#rope-ah-kv)"/>
+  <path d="M770 190 L864 206" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rope-ah-token)"/>
+  <path d="M776 224 C 791 222, 802 211, 804 196" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <text x="794" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#3a4f93">k</text>
+  <text x="872" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#065f56">q</text>
+  <text x="808" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">70°</text>
+  <text x="150" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">旋转前：由内容算出</text>
+  <text x="460" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k 在位置 3，q 在位置 5</text>
+  <text x="770" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">k 在位置 103，q 在位置 105</text>
+  <text x="295" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按位置转</text>
+  <text x="605" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">都 +100</text>
+  <text x="150" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">夹角 30°，由内容决定</text>
+  <text x="460" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">k 转 60°，q 转 100°，夹角 70°</text>
+  <text x="770" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各多转 2000°，夹角仍是 70°</text>
 </svg>

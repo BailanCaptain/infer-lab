@@ -1,15 +1,32 @@
 layout: figure
 id: token-split
-caption: 一句用户文本先按模板组织，再经配套分词器成为编号序列；符号只表示流向，未指定实际切分或 token 数。
-size: [840, 300]
+caption: GLM 模型仓库自带的 chat template 处理一条消息：前后插入特殊标记，正文切成块，每块查词表得到一个编号。特殊标记的编号取自模型仓库的 tokenizer 文件；正文的切法和 a–d 是示意。主线 R1 把整条输入约定为 4 个编号，是教学简化。
+size: [900, 350]
 items:
-  - { at: [25, 35], size: [245, 64], text: 用户说：推理引擎怎么工作, sub: 角色 + 正文, tone: token, style: plain }
-  - { at: [320, 35], size: [490, 64], text: 对话模板组织消息, sub: 角色与边界标记 + 正文 + 回答起始格式, tone: control, style: solid }
-  - { at: [320, 150], size: [490, 64], text: 配套分词器 · 切分并查词表, sub: 每个单元得到一个整数编号, tone: token, style: solid }
-  - { at: [25, 150], size: [245, 64], text: p₀　p₁　…　pₙ₋₁, sub: 最终编号序列 · 共 n 个位置, tone: token, style: plain }
-links:
-  - { from: [270, 67], to: [320, 67], ends: end }
-  - { from: [565, 99], to: [565, 150], ends: end }
-  - { from: [320, 182], to: [270, 182], ends: end }
+  - { at: [460, 40], size: [196, 44], text: 用户消息：推理引擎怎么工作, tone: token, style: plain }
+  - { at: [55, 150], size: [66, 54], text: "[gMASK]", sub: "154822", tone: control, style: solid }
+  - { at: [127, 150], size: [62, 54], text: "<sop>", sub: "154824", tone: control, style: solid }
+  - { at: [195, 150], size: [84, 54], text: "<|system|>", sub: "154826", tone: control, style: solid }
+  - { at: [285, 150], size: [92, 54], text: 推理强度说明, sub: 几个 token, tone: control, style: faded }
+  - { at: [383, 150], size: [68, 54], text: "<|user|>", sub: "154827", tone: control, style: solid }
+  - { at: [457, 150], size: [46, 54], text: 推理, sub: a, tone: token, style: solid }
+  - { at: [509, 150], size: [46, 54], text: 引擎, sub: b, tone: token, style: solid }
+  - { at: [561, 150], size: [46, 54], text: 怎么, sub: c, tone: token, style: solid }
+  - { at: [613, 150], size: [46, 54], text: 工作, sub: d, tone: token, style: solid }
+  - { at: [665, 150], size: [106, 54], text: "<|assistant|>", sub: "154828", tone: control, style: solid }
+  - { at: [777, 150], size: [66, 54], text: "<think>", sub: "154841", tone: control, style: solid }
+  - { at: [300, 275], size: [60, 52], text: p₀, sub: 位置 0, tone: token, style: solid }
+  - { at: [366, 275], size: [60, 52], text: p₁, sub: 位置 1, tone: token, style: solid }
+  - { at: [432, 275], size: [60, 52], text: p₂, sub: 位置 2, tone: token, style: solid }
+  - { at: [498, 275], size: [60, 52], text: p₃, sub: 位置 3, tone: token, style: solid }
+fans:
+  - { from: [558, 84], to: [[480, 150], [532, 150], [584, 150], [636, 150]], tone: token }
+brackets:
+  - { from: 55, to: 451, y: 212, label: 模板插在前面 }
+  - { from: 457, to: 659, y: 212, label: 正文切成的块 }
+  - { from: 665, to: 843, y: 212, label: 模板插在后面 }
 texts:
-  - { at: [420, 264], text: 在主机上完成；后续嵌入查表才把编号变成用于计算的向量, anchor: middle, note: true }
+  - { at: [55, 67], text: ① 用户发来的正文, strong: true }
+  - { at: [55, 132], text: ② 套模板、切块，每块查表得一个编号 }
+  - { at: [55, 306], text: ③ 主线 R1：整条输入记作 4 个编号, strong: true }
+  - { at: [578, 306], text: 教学简化，真实模板更长, note: true }

@@ -1,39 +1,47 @@
 layout: figure
 id: attention-qkv-flow
-caption: 单头手算示例：查询位置 2 对位置 0–2 的 V 加权汇合，未来位置 3 的权重为 0；数字为教学假设
-size: [900, 580]
+caption: 一个查询位置怎样读历史：当前位置 2 的 q 与自己及此前每个位置的 k 做点积，除以 √d 得到分数，softmax 把分数换成加起来等于 1 的权重，再按权重把各位置的 v 加成一条输出；条形长短只示意权重大小
+size: [900, 590]
 items:
-  - { at: [35, 130], size: [130, 48], text: 查询 q₂, tone: token }
-  - { at: [270, 40], size: [100, 40], text: K₀, tone: token }
-  - { at: [410, 40], size: [100, 40], text: K₁, tone: token }
-  - { at: [550, 40], size: [100, 40], text: K₂, tone: token }
-  - { at: [725, 40], size: [100, 40], text: K₃, tone: control, style: faded }
-  - { at: [270, 200], size: [100, 36], text: ln 2, style: plain }
-  - { at: [410, 200], size: [100, 36], text: '0', style: plain }
-  - { at: [550, 200], size: [100, 36], text: '0', style: plain }
-  - { at: [725, 200], size: [100, 36], text: '−∞', tone: control, style: faded }
-  - { at: [270, 390], size: [100, 40], text: 'V₀ [2, 0]', tone: token }
-  - { at: [410, 390], size: [100, 40], text: 'V₁ [0, 2]', tone: token }
-  - { at: [550, 390], size: [100, 40], text: 'V₂ [2, 2]', tone: token }
-  - { at: [725, 390], size: [100, 40], text: V₃, tone: control, style: faded }
-  - { at: [560, 510], size: [160, 40], text: '输出 [1.5, 1]', tone: token }
+  - { at: [460, 16], size: [200, 54], text: 查询 q₂, sub: 当前位置 2 算出, tone: token }
+  - { at: [338, 120], size: [124, 50], text: k₀, sub: 位置 0 的键, tone: kv }
+  - { at: [498, 120], size: [124, 50], text: k₁, sub: 位置 1 的键, tone: kv }
+  - { at: [658, 120], size: [124, 50], text: k₂, sub: 位置 2 自己的键, tone: kv }
+  - { at: [338, 204], size: [124, 38], text: s₀, style: plain }
+  - { at: [498, 204], size: [124, 38], text: s₁, style: plain }
+  - { at: [658, 204], size: [124, 38], text: s₂, style: plain }
+  - { at: [338, 276], size: [444, 44], text: softmax：一排分数 → 加起来等于 1 的权重, tone: control, style: plain }
+  - { at: [338, 404], size: [124, 50], text: a₀ × v₀, sub: 位置 0 的值, tone: kv }
+  - { at: [498, 404], size: [124, 50], text: a₁ × v₁, sub: 位置 1 的值, tone: kv }
+  - { at: [658, 404], size: [124, 50], text: a₂ × v₂, sub: 位置 2 自己的值, tone: kv }
+  - { at: [640, 508], size: [190, 50], text: 输出 o₂, sub: 一条向量，交给输出投影, tone: token }
 fans:
-  - { from: [165, 154], to: [[320, 80], [460, 80], [600, 80]], tone: token }
-  - { from: [[320, 430], [460, 430], [600, 430]], to: [460, 512], tone: token }
+  - { from: [560, 70], to: [[400, 120], [560, 120], [720, 120]], tone: token }
+  - { from: [[400, 454], [560, 454], [720, 454]], to: [560, 513], tone: kv }
 links:
-  - { from: [480, 530], to: [560, 530], tone: token }
+  - { from: [400, 170], to: [400, 204] }
+  - { from: [560, 170], to: [560, 204] }
+  - { from: [720, 170], to: [720, 204] }
+  - { from: [400, 242], to: [400, 276] }
+  - { from: [560, 242], to: [560, 276] }
+  - { from: [720, 242], to: [720, 276] }
+  - { from: [400, 320], to: [400, 348] }
+  - { from: [560, 320], to: [560, 348] }
+  - { from: [720, 320], to: [720, 348] }
+  - { from: [400, 372], to: [400, 404], tone: kv }
+  - { from: [560, 372], to: [560, 404], tone: kv }
+  - { from: [720, 372], to: [720, 404], tone: kv }
+  - { from: [580, 533], to: [640, 533], tone: token }
 nodes:
-  - { at: [460, 530], text: Σ }
+  - { at: [560, 533], text: Σ }
 bars:
-  - { at: [270, 300], h: 18, scale: 200, segments: [{ value: 0.5, tone: token }] }
-  - { at: [410, 300], h: 18, scale: 200, segments: [{ value: 0.25, tone: token }] }
-  - { at: [550, 300], h: 18, scale: 200, segments: [{ value: 0.25, tone: token }] }
+  - { at: [350, 352], h: 18, scale: 200, segments: [{ value: 0.5, tone: token }] }
+  - { at: [510, 352], h: 18, scale: 200, segments: [{ value: 0.25, tone: token }] }
+  - { at: [670, 352], h: 18, scale: 200, segments: [{ value: 0.25, tone: token }] }
 texts:
-  - { at: [35, 222], text: 缩放点积＋掩码, size: 13 }
-  - { at: [35, 314], text: softmax 权重, size: 13 }
-  - { at: [320, 347], text: '0.5', anchor: middle }
-  - { at: [460, 347], text: '0.25', anchor: middle }
-  - { at: [600, 347], text: '0.25', anchor: middle }
-  - { at: [775, 347], text: '0', anchor: middle }
-  - { at: [35, 419], text: 按权重缩放 V, size: 13 }
-  - { at: [775, 150], text: 未来位置, anchor: middle, tone: control }
+  - { at: [40, 100], text: ① q 与每个 k 做点积, size: 13, strong: true }
+  - { at: [40, 227], text: ② 除以 √d，得到分数 s, size: 13, strong: true }
+  - { at: [40, 303], text: ③ softmax 换成权重 a, size: 13, strong: true }
+  - { at: [40, 366], text: 条形越长，权重越大, size: 13 }
+  - { at: [40, 434], text: ④ 各 v 乘自己的权重, size: 13, strong: true }
+  - { at: [40, 538], text: ⑤ 相加得到输出, size: 13, strong: true }

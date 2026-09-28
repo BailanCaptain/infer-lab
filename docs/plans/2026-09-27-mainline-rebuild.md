@@ -382,5 +382,25 @@
   - [ ] 瘦身第二批（09-28，进行中）：one-request / concurrent-requests / glm-5-3-flash + request-call-chain 三路并行
   - [x] 写作标准固化（09-28）：docs/wiki-writing-standard.md（113 行）为唯一出处，AGENTS.md / CLAUDE.md 已指向它；wiki:audit 写作标准检查由 Opus 实现中
   - [x] 流程提速（09-28 用户同意）：Codex 写手并发 ≤5、Opus ≤3；每页「写→审→改」，只有 P1 复审；P5 分批队列由 Codex 排（docs/plans/2026-09-28-p5-batches.md）
+  - [x] 检查点提交（09-28，用户同意）：14591fd，tag p4-checkpoint。排除 tmp/ 和 4 个写到一半的页（matmul-and-weights、kv-cache、platform-plugin-registration、engine-processes）
+  - [ ] P5 进行中（09-28）：GPT-6 Astra 额度用尽（到 10-04 13:35），按用户老规矩改派 Opus 5.5 写，被拦再派 Fable 5；Claude 子代理合计 ≤4（写+审）。模板：会话 scratchpad/opus-writer-template.md、review-template.md。已写完并审：baseline 8、collective-communication 9、hardware-devices 8.5、device-memory 8、token 7.5（P1 待修）；审中：vllm-platform-interface、cann-hccl；待修：fix-bundle-1（baseline 已修完，device-memory/hardware/cc 未完）、fix-token
+  - [ ] P5 状态（09-28 晚）：已收尾 21 页，都已进 scripts/wiki/standard-pages.json：
+    - 第 1–5 批全部完成：baseline、collective-communication、hardware-devices、device-memory、token、vllm-platform-interface、matmul-and-weights、cann-hccl、quantization、embedding、attention-qkv、platform-plugin-registration、kv-cache、layers-and-hidden、engine-processes、ascend-config-system、ascend-patch-system、mlp-residual-norm、linear-attention、kv-cache-spec、data-parallel；npu-platform 的 P1 已修，正在复审。
+    - 第 6 批：moe 写完正在审；structured-output 写到一半，正在续写；HCCL 缓冲页（gap-a5164…）被额度打断，待续写。
+    - 期间查实并修正的事实：
+      - 底稿 02 §1.1 求平均与最终 norm 的先后写反；
+      - 02 §3.1 限幅说法不准；
+      - 稠密 MLP 的限幅激活融合算子没用上（注册名对不上）；共享专家走 W8A8 融合链；
+      - 陪跑由 MoE 触发，不只因为 EP；
+      - v0.26 无 GLM 模型代码；
+      - 显式 8192 时平台照样选档，只是结果被覆盖。
+    - **R1 已拍板（09-28 用户选 a）**：保留 R1=4 token 的教学设定，不重算。待办：①在 R1 首次出现处（底稿 01 §A1 与 one-request）写明「为演示取 4 个 token；真实请求套上 GLM 模板后至少十几个」；②修正底稿 01 第 580 行与第 597 行待核的自相矛盾（4 指模板后长度）；③one-request 第 78、121 行按真实流程叙述处加一句提示。依据 docs/mainline/review/r1-realism-2026-09-28.md。恢复后第一件做。
+  - [ ] P5 暂停（09-28 深夜）：Claude 周额度用尽（10-03 18:00 重置），GPT 到 10-04 13:35 重置。
+    - 已收尾 29 页（standard-pages.json 名单共 42 页）。第 1–7 批只剩 HCCL 缓冲页的审查，留给 GPT（主题易被拦）。
+    - 第 8 批进度：mla 已收尾；rope 已写完，审查做了一半（RoPE 维数为 0 已由 mla 审查核实）；vllm-kv-block-allocation 和 npu-worker-lifecycle 未动。
+    - 中断的小修：vllm-ascend-overview 的 P2/P3，以及四页版本表 v0.23 列（ascend-config-system:222、data-parallel:230、engine-processes:334、npu-platform:200）。表头已改，未复核。
+    - 中断时 audit、lint 均为 exit 0。
+    - 恢复后先做：rope 审查 → 上面两项小修的复核 → 第 8 批其余页 → 第 9 批起。
+    - 模板在会话 scratchpad：opus-writer-template.md、review-template.md、p5q/（119 个任务单）。
 - [ ] P5 铺开
 - [ ] P6 收尾

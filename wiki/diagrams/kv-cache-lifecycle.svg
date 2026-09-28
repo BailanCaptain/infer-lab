@@ -19,8 +19,8 @@
   <text x="440" y="90" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A2 · 给本步和候选保留槽位</text>
   <text x="440" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">块号随调度计划送给 Worker</text>
   <rect x="150" y="230" width="580" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="440" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A3 · 把块号转成设备可用的地址与状态索引</text>
-  <text x="440" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">缓存张量已在启动时分配</text>
+  <text x="440" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A3 · 把块号换算成槽位与状态索引</text>
+  <text x="440" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1 个 640 格逻辑块交给算子时看成 5 个 128 格 kernel 块；缓存张量启动时已建好</text>
   <rect x="70" y="329" width="335" height="70" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="237.5" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A4 · 走到 MLA 层</text>
   <text x="237.5" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">追加主历史和索引，更新尾状态</text>

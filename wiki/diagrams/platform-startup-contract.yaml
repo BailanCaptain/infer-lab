@@ -20,6 +20,7 @@ badges:
   - { at: [49, 186], n: 2, tone: control }
   - { at: [49, 296], n: 3, tone: control }
   - { at: [49, 421], n: 4, tone: control }
+  - { at: [49, 541], n: 5, tone: kv }
 texts:
   - { at: [356, 359], text: 通过, note: true }
   - { at: [30, 24], text: A0 部署启动：本图展开平台交接，完整进程链见调用链页 }

@@ -31,12 +31,20 @@ sources:
   - vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L82
   - vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L82
   - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/Ai_QoS_introduction_en.md#L25-L86
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/utils/utils.py#L18-L47
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/base.py#L13-L35
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2186-L2192
+  - vllm-ascend@baa023ad:docs/source/tutorials/features/pd_disaggregation_mooncake_multi_node.md#L219-L275
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/mooncake_backend.py#L132-L181
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/memcache_backend.py#L150-L168
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L112-L119
 verified: []
 evidence: "C"
 relations:
   - {to: hardware-devices, kind: builds-on, note: 先认识参与计算的设备}
   - {to: collective-communication, kind: builds-on, note: 先掌握 rank、通信组和通信结果}
   - {to: glm-5-3-flash-two-node, kind: builds-on, note: A0 启动时建立通信域，16 卡分组与显存预算在部署页统一推导}
+  - {to: tensor-parallel, kind: builds-on, note: 张量并行把一层分给多张卡，部分和要靠 HCCL 合齐，具体数据流在张量并行页读}
 contradicts: []
 updated: "2026-09-28"
 origin: seed
@@ -46,13 +54,13 @@ origin: seed
 
 **CANN 是连接框架与昇腾设备的计算软件体系；HCCL 是其中负责组织多卡数据交换的通信库，物理链路承载实际传输。** CANN 提供算子（矩阵乘等具体运算）、运行时（安排设备执行与资源）和图执行等能力。vLLM 组织推理，vllm-ascend 把计算与通信接到昇腾的软件接口上。
 
-下图只画两张卡。同组参与者的编号叫 **rank**；All-Reduce(SUM) 表示将各卡对应位置相加，并让各卡都取得结果。
+下图只画两张卡，各自以一个 [rank](collective-communication.md#两张卡交换以后各自手里多了什么) 参加一次 [All-Reduce](collective-communication.md#all-reduce)(SUM)：做完后两张卡都拿到对应位置之和。
 
 ```wiki-diagram
 file: cann-hccl
 ```
 
-沿箭头看：框架交出张量、参与的组和求和要求，HCCL 安排收发与归约，设备通过链路交换数据，结果就绪后交回各自的后续计算。两侧都要参加同一操作。图中软件框代表各端的职责，省略中间适配层和传输轮次；卡图标表示逻辑设备。HCCL 既支持同组共同参与的集合通信，也支持指定两端之间的点对点收发，适用于单机和多机。
+沿实线箭头向下看：框架交出张量、参与的组和求和要求，CANN 里的 HCCL 安排收发与归约，设备通过链路交换数据；虚线箭头表示结果就绪后交回各自的后续计算。两侧都要参加同一操作。图中软件框代表各端的职责，省略中间适配层和传输轮次；卡图标表示逻辑设备。HCCL 既支持同组共同参与的[集合通信](collective-communication.md#两张卡交换以后各自手里多了什么)，也支持指定两端之间的点对点收发，适用于单机和多机。
 
 ## 为什么本地算完，还要等通信？
 
@@ -64,8 +72,8 @@ file: cann-hccl
 
 | 层次 | 决定什么 | 本页的例子 |
 |---|---|---|
-| 并行计算 | 谁保存、计算哪一片 | TP 分矩阵，EP 分完整专家，DP 分请求或批次 |
-| 通信操作 | 结束后每个参与者拿到什么 | All-Reduce 合齐数值，All-Gather 收齐分片 |
+| 并行计算 | 谁保存、计算哪一片 | [TP](tensor-parallel.md) 分矩阵，[EP](expert-parallel.md) 分完整专家，[DP](data-parallel.md) 分请求或批次 |
+| 通信操作 | 结束后每个参与者拿到什么 | All-Reduce 合齐数值，[All-Gather](collective-communication.md#all-gather) 收齐分片 |
 | 框架接口与通信库 | 怎样提交并组织这次操作 | 框架指定张量与组，HCCL 组织执行 |
 | 物理链路 | 字节沿什么连接搬运 | HCCS、RoCE、PCIe、Unified Bus 等 |
 
@@ -75,7 +83,9 @@ HCCS 是昇腾设备互联，RoCE 是基于以太网的远程内存访问通信�
 
 **计算决定要交接的张量，张量的数据类型决定每个元素占多少字节。** BF16 用 16 位表示浮点数，每元素 2 B；int8 用 8 位整数，每元素 1 B。相同形状换类型会改变逻辑载荷，但应先确认实际传给通信操作的类型。
 
-W8A8 表示可量化层的权重与激活用 8 位表示；计算过程中还会用缩放参数恢复数值范围，输出可以恢复为 BF16。因此权重采用 W8A8，并不意味着层间 hidden（隐藏向量）也按 int8 传输。量化细节见[量化](quantization.md)，矩阵如何产生部分和见[矩阵乘与权重](matmul-and-weights.md)。
+W8A8 表示可量化层的权重与激活用 8 位表示；计算过程中还会用缩放参数恢复数值范围，输出可以恢复为 BF16。因此权重采用 W8A8，并不意味着层间 hidden（隐藏向量）也按 int8 传输。
+
+本部署两种情况都有。TP 归约交给通信的是 BF16 部分和，每元素 2 B。**MoE**（每个 token 只交给少数几个专家计算的前馈层）把输入派发（dispatch）到专家所在的卡时，会先量化再发送：发出去的是 int8 隐藏向量，外加每个 token 一个 FP32 缩放系数（per-token scale），一个 token 发往一个专家的副本是 4096 B + 4 B = 4,100 B；收回（combine）的专家结果仍是 BF16。每类通信的字节账见[一次前向的通信账](one-request.md#一次前向的通信账)。量化细节见[量化](quantization.md)，矩阵如何产生部分和见[矩阵乘与权重](matmul-and-weights.md)。
 
 All-Reduce 还必须约定归约操作；SUM 是求和，也可按接口选择乘积、最大值或最小值。各参与者的类型、元素数、操作与调用次序必须按接口匹配。涉及拼接或不等长交换时，发送分片与接收分片的约定也要对应。通信库知道这些约定，才能组织正确的结果。
 
@@ -85,23 +95,29 @@ All-Reduce 还必须约定归约操作；SUM 是求和，也可按接口选择�
 
 ### 启动时，同一张卡加入不同的组
 
-**一个 rank 可以属于多个通信组；每次调用要选对组。** TP 组是机内的 {0…7} 与 {8…15}，每组 8 个 rank，用来合算矩阵。DP 设备通信组把跨机同号卡配对为 {0,8}、{1,9} 直到 {7,15}。EP / MC2 组覆盖全部 16 个 rank，用来把输入送到专家所在的卡，再收回结果。
+**一个 rank 可以属于多个通信组；每次调用要选对组。** 下文的编号都是全局 rank：机器 0 上是 0–7，机器 1 上是 8–15。组员落在哪台机器上，决定了字节走哪条链路：
 
-这里有两个 DP 执行组，却有八个跨机配对的 DP 通信组，两者分别负责请求执行与数据交接。两台合起来才持有完整的路由专家集合。引擎之间另有 **gloo** 提供的 CPU 通信组，用两个 int32 元素同步“还有没有工作”和“是否请求暂停”；这是控制状态，与 HCCL 承载的设备张量分开。各卡还可通过组内 CPU 通道同步元数据，详见部署页。
+- **TP 组** {0…7} 与 {8…15}：每组 8 个 rank 都在同一台机器里，用来合算矩阵，走机内 HCCS。
+- **DP 设备通信组** {0,8}、{1,9} 直到 {7,15}：把两台机器上同号的卡配对，每组两端分处两台机器，只能经跨机的 RoCE 传输。
+- **EP 组** {0…15}：两台合起来才持有完整的路由专家集合，所以这个组覆盖全部 16 个 rank，用来把输入送到专家所在的卡、再收回结果；下文的 MC2 也在这个组里执行。发往另一台机器的部分经 RoCE；同一台机器内的部分走 HCCS 还是网卡，取决于 HCCL 在 A2 上的机内设置与 MC2 的通信算法。GLM 教程的启动脚本没有设置相关变量，本部署的实际路径仍待核。
+
+HCCS 与 RoCE 的带宽规格在[硬件设备](hardware-devices.md#官方带宽规格能说明什么)统一列出，本页不重复。
+
+请求执行只分两份：DP2 的两个成员各起一个 EngineCore（引擎进程），各管本机 8 张卡。数据交接却有八个跨机配对的 DP 设备通信组，两者不要混为一谈。引擎之间另有 **gloo** 提供的 CPU 通信组，用两个 int32 元素同步“还有没有工作”和“是否请求暂停”；这是控制状态，与 HCCL 承载的设备张量分开。各卡还可通过组内 CPU 通道同步元数据，详见部署页。
 
 ### 执行时，输入、部分和与专家结果依次交接
 
 **跟着一个 token 看，每过一个交接点，框架都先确定本次张量和参与者。** token 是分词得到的基本单位，进入模型时用词表编号表示；它的隐藏向量经过每层计算。TP8 中，attention 的输出投影把本卡贡献交给机内 All-Reduce；稠密 MLP 的降维后再合齐一次。
 
-本部署这些 TP 归约的逻辑张量是 [T,4096] BF16：T 是本轮新计算的 token 行数，每行是一个 token 的 4096 维子层输出。**R1 是[请求主线](one-request.md#示例请求-r1-与官方双机部署)中提示词长 4 个 token 的示例请求**；它首次处理提示词时，每次这类 TP 归约的逻辑载荷为 **32 KiB/卡**。字节推导仍在[主线通信账](one-request.md#一次前向的通信账)，这个数不含底层转发、协议与重传，也没有把四路残差流重复乘进去。
+本部署这些 TP 归约的逻辑张量是 [T,4096] BF16：T 是本轮新计算的 token 行数，每行是一个 token 的 4096 维子层输出。**R1 是[请求主线](one-request.md#示例请求-r1-与官方双机部署)中提示词长 4 个 token 的示例请求**；它首次处理提示词时，每次这类 TP 归约的逻辑载荷为 **32 KiB/卡**。字节推导仍在[主线通信账](one-request.md#一次前向的通信账)，这个数不含底层转发、协议与重传。GLM 把隐藏向量复制成 4 条并行残差流（mHC），但 TP 归约只对子层输出 [T,4096] 做一次，不按 4 条流重复计算。
 
-后续 **MoE** 层用专家网络计算前馈结果。R1 的小批输入走 **MC2**，即昇腾的一类计算与通信协同实现：在 EP16 中派发给被选专家，计算后收回，再在 TP8 中收齐本组行布局；共享专家是每个 token 都会经过的前馈分支，还需合齐其 TP 部分和。每个 MoE 层的前馈段有四个通信边界，attention 的一次归约另计。大批输入走 AllGather 路径时，这四个边界换为两次 DP 收集、一次 DP Reduce-Scatter 和一次 TP 归约；Reduce-Scatter 是求和后各留一片。选择条件与全部形状见[通信基础的 GLM 段](collective-communication.md#放到-glm-双机一个-token-会在哪里通信)。
+后续 MoE 层用专家网络计算前馈结果。R1 的小批输入走 **MC2**，即昇腾的一类计算与通信协同实现：在 EP16 中派发给被选专家，计算后收回，再在 TP8 中收齐本组行布局；共享专家是每个 token 都会经过的前馈分支，还需合齐其 TP 部分和。每个 MoE 层的前馈段有四个通信边界，attention 的一次归约另计。大批输入改用名为“AllGather”的 MoE 通信方式（名称沿用源码，不是单指一次 All-Gather 操作），这四个边界换为两次 DP 收集、一次 DP [Reduce-Scatter](collective-communication.md#reduce-scatter) 和一次 TP 归约，原因见[大批输入为什么改用 Reduce-Scatter](collective-communication.md#大批输入为什么改用-reduce-scatter)。选择条件与全部形状见[通信基础的 GLM 段](collective-communication.md#放到-glm-双机一个-token-会在哪里通信)。
 
 ## AI QoS 怎样处理共享链路上的争用？
 
 **AI QoS 让支持的交换网络按流量类别安排服务先后，解决的是出口拥塞时谁先走。** 例如计算正等集合通信结果，而 KV cache（保存历史计算状态的缓存）正在主机与设备间搬运；两类流量同时到达同一出口、超过出口处理能力时，就会排队。
 
-在支持的 Unified Bus 拓扑中，**Virtual Lane（VL，虚拟通道）**把流量分到不同逻辑通道，再按优先级调度。高优先级先服务，可减少关键通信的排队；当高优先级流量占住出口时，低优先级就要继续等待。总链路带宽仍由硬件决定，请求什么时候进入模型仍由推理调度器决定，VL 不读取提示词、生成进度或 token 预算。
+在支持的 Unified Bus 拓扑中，**Virtual Lane（VL，虚拟通道）**把流量分到不同逻辑通道，再按优先级调度。高优先级先服务，可减少关键通信的排队；当高优先级流量占住出口时，低优先级就要继续等待。总链路带宽仍由硬件决定，请求什么时候进入模型仍由推理调度器决定（例如 [ShortRequestFirst](short-request-first.md)、[Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)），VL 不读取提示词、生成进度或 token 预算。
 
 本节的 UB 是 Unified Bus；[AI Core](ai-core.md)中的 UB 是片上 Unified Buffer。这里的 SP 表示 strict priority（严格优先级），与[序列并行](sequence-parallel.md)缩写相同、含义不同。固定文档把 AI QoS 限定在 Atlas 800T A3 / Atlas 900 A3 SuperPoD；本页 A2 双机主线没有启用它的证据。下面将其配置和版本边界单列，便于在相应硬件上查用。
 
@@ -110,7 +126,7 @@ All-Reduce 还必须约定归约操作；SUM 是求和，也可按接口选择�
 - **“网络连通，一次集合通信就能完成。”** 网络只解决到达问题，程序还必须使用正确的组，并使形状、类型、收发约定和调用顺序匹配。
 - **“HCCL 与 HCCS 是同一个东西。”** HCCL 是通信库，HCCS 是互联方式；库还可支持其他链路。
 - **“所有通信都经过同一个普通接口。”** 普通张量通信和 MC2 等专用实现有不同入口，应沿本次算子的实际调用核对。
-- **“W8A8 让所有通信字节都减半。”** 层间归约可能传 BF16，通信量取决于实际张量类型。
+- **“W8A8 让所有通信字节都减半。”** 本部署的 TP 归约仍传 BF16；只有 MoE dispatch 这一段因量化改传 int8 加缩放系数，combine 仍是 BF16。通信量取决于每次交给通信操作的实际张量类型。
 - **“优先级调高就能增加带宽，运行脚本就配置完交换机。”** 优先级改变服务次序；脚本写入端点后打印交换机命令，交换机仍需单独执行与验收。
 
 ## 对照源码
@@ -139,13 +155,15 @@ D2D 指设备到设备，H2D 指主机到设备；该表中 KV 换出还包括�
 
 在脚本默认配置中，SDMA 两类流量共享源标签 **2**。交换机结合初始 VL 区分方向，再把 D2D 映射到 **VL 2、优先级 3**，H2D 映射到 **VL 3、优先级 1**。这些编号来自该脚本的映射表；其他版本应核对自己的表，而非把数字视作网络通用约定。
 
-脚本写入端点状态，并打印 `hccs qos remap` 等交换机命令；操作者还需登录交换机执行，已有配置须事先备份。`python tools/ai_qos.py unset` 恢复保存的端点首次应用快照，打印交换机 `undo` 命令。它保存的是端点相关状态及自己生成的命令，不是整台交换机原配置。
+脚本写入端点状态，并打印 `hccs qos remap` 等交换机命令；操作者还需登录交换机执行，已有配置须事先备份。`python tools/ai_qos.py unset` 恢复保存的端点首次应用快照，打印交换机 `undo` 命令。它保存的是端点相关状态及自己生成的命令，不是整台交换机原配置。这些设置也不跟推理进程绑定：脚本在推理任务之前单独运行，推理进程退出后端点与交换机配置照旧生效，要恢复必须显式执行 `unset`，再登录交换机执行打印出的 `undo` 命令。
 
 ### 会报什么错
 
 先按失败阶段定位：A0 建组失败要核参与进程、rank 与组配置；A4 某次调用等待要核所有参与者是否进入同一通信及其张量约定，再结合设备和链路日志判断。单凭超时无法区分成员未到达、算子先出错或链路故障。
 
 QoS 的 `unset` 找不到快照时打印 `No state file at ...; nothing to undo.` 并退出。恢复 SDMA 或端点全局配置失败会打印带设备号和返回码的警告；“打印了 undo”只说明生成了交换机恢复指令，不能据此认定交换机已恢复。
+
+main 上 KV 传输的 `qos_priority` 不是 0–4 的整数（布尔值也不行）时，PD 分离连接器或 KV 池后端在启动阶段抛 `ValueError`；环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 里原有的 QoS 值会被覆盖，并打一条 warning。日志 `Injected comm_resource_config.qos=...` 只说明本地环境已写入，不能证明某条传输通道用了这个值。
 
 ### 开销和什么时候别开
 
@@ -168,17 +186,22 @@ AI QoS 适用于受支持拓扑上的流量争用。提高关键流量优先级�
 | 默认目标 VL / 优先级 | AIV D2D 为 2 / 3、H2D 为 5 / 3；SDMA D2D 为 2 / 3、H2D 为 3 / 1；PCIEDMA H2D 为 5 / 3 | 相同 | AIV 为 2 / 3，PCIEDMA 为 3 / 3，SDMA 为 4 / 1 |
 | 恢复与执行边界 | 恢复端点首次快照，打印交换机 undo | 相同 | 相同 |
 | 硬件与驱动限制 | A3 指定产品；AIV 两项不生效；HDK / 交换机最低版本同上 | 相同 | A3 指定产品与最低版本相同；文档写 AIV 不生效 |
+| 推理引擎内的 KV 传输 QoS 入口 | 无 | 无 | 有：kv_connector_extra_config 的 qos_priority，整数 0–4 |
 
-固定 GLM 快照的五键定义、默认值与恢复逻辑和表中 v0.23 / v0.26 一致。三版这里只核通信初始化及 QoS 工具，CANN 9.1.0 文档用于解释软件职责，完整镜像配套另需核验，因此本页不把整套部署标成三版均已验证。
+main 新增的 `qos_priority` 与 AI QoS 是两套东西。它写在 KV 传输配置的 `kv_connector_extra_config` 里，只由 PD 分离的三个 Mooncake 连接器（MooncakeConnectorV1、MooncakeHybridConnector、MooncakeLayerwiseConnector）和 KV 池后端读取。连接器在建立传输引擎前，把它写进环境变量 `ASCEND_GLOBAL_RESOURCE_CONFIG` 的 `comm_resource_config.qos`，不填时用 P/D 默认值 **1**；KV 池后端只在显式填写时写入，Mooncake 后端写 `store.comm_resource_config.qos`，Memcache 后端写 `MF_DEVICE_UB_QOS`。这里的 0–4 是 KV 传输通道的 QoS 值，与本页 AI QoS 的 high / middle / low 等级、VL 编号和交换机优先级不是同一套编号。一条 PD 连接实际用哪一端的值，由发起传输的一端决定：pull 用 decode 侧，push 用 prefill 侧。本页 GLM 双机主线没有配置 KV 传输，用不到这个入口；机制见 [PD 分离](pd-disaggregation.md)与[外部 KV 池](kv-pool.md)。
+
+固定 GLM 快照的五键定义、默认值与恢复逻辑和表中 v0.23 / v0.26 一致。三版这里只核通信初始化、QoS 工具与 KV 传输的 QoS 入口，CANN 9.1.0 文档用于解释软件职责，完整镜像配套另需核验，因此本页不把整套部署标成三版均已验证。
 
 ### 源码位置
 
 - CANN 的计算软件职责、HCCL 的通信能力及链路列表来自官方 CANN 9.1.0 文档；All-Reduce 的四种归约操作也在其中。[S1][S2]
 - 固定 Worker 初始化与普通通信封装，支撑第二张图的 A0→A4 顺序和普通 All-to-All 分支。[C3][C4][C5]
 - TP / DP / EP 的成员生成与 CPU 两元素状态同步，支撑本页通信域对照。[C18][C19]
+- 固定快照 MC2 派发器的注释写明：A2 上可用 HCCL 的机内环境变量改变机内走法、减少跨机流量，支撑 EP 组机内路径“取决于设置”的说法。[C29]
 - AI QoS 的争用动机、VL 隔离与严格优先级，以及构建、五类流量和硬件约束，来自固定执行快照官方指南。[S6][S7]
 - 固定 QoS 映射、端点写入与交换机命令生成、参数默认值、恢复与失败分支，支撑上文的默认配置与恢复边界。[C8][C9][C10][C11]
 - 三版 Worker 均显式选择 hccl 后端；三版脚本对应版本表中的五键→三键变化与恢复边界。[C12][C13][C14][C15][C16][C17]
 - 三版官方指南分别确认构建方式、硬件 / 软件条件与 AIV 驱动限制。[S20][S21][S22]
+- main 的 KV 传输 QoS 入口：P/D 默认值 1 与 0–4 校验、KV 池后端的校验、Mooncake 连接器在建传输引擎前的调用、官方 PD 教程写明的发起端规则与日志含义，以及 Mooncake / Memcache 两种 KV 池后端各自写入的环境变量；v0.23、v0.26 与固定快照中都没有这些调用。[C23][C24][C25][S26][C27][C28]
 
-**待核：** 缺少固定 GLM 镜像的完整 CANN / HCCL、驱动与固件配套清单，及真实通信 trace；尚不能确认本次运行的底层算法、物理链路带宽或 QoS 收益。218 次与 R1 的 32 KiB 是固定主线的调用 / 逻辑载荷口径，均不代表已实测的网络包数或收发字节。
+**待核：** 缺少固定 GLM 镜像的完整 CANN / HCCL、驱动与固件配套清单，及真实通信 trace；尚不能确认本次运行的底层算法、EP 组机内部分的实际链路、物理链路带宽或 QoS 收益。218 次与 R1 的 32 KiB 是固定主线的调用 / 逻辑载荷口径，均不代表已实测的网络包数或收发字节。

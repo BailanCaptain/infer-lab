@@ -170,3 +170,16 @@ problems: 0
 ### 7. 我这轮没做的事
 
 未开桌面浏览器、未联网核外链（S1–S7 的在线内容与 MemFabric 文章都没验证）；`atlas800t.pdf` 只用 `pdftotext` 抽 ASCII 数字与页脚，PDF 里的中文字形没有 ToUnicode 映射，中文表头没有逐字读出，规格页图像也未渲染查看；HANDBOOK、`docs/plans/`、`wiki/TERMS.md` 按纪律未读；`pnpm check:content`、类型检查与测试未跑。
+
+## P5 修订记录（09-28，Opus 5.5 接手）
+
+接手时本页和白名单都没有未提交改动（`git diff` 为空），P2/P3 均未开始，本轮从头修。
+
+- **P2-1 已关闭**：第 61 行重写。GLM 主干 45 层每层都先过 attention，输出投影后一次 All-Reduce；每层前馈网络再合一次，前 3 层与其余 42 层的区别只在这里（前 3 层是稠密 MLP 降维，其余 42 层是 MoE 的共享专家，另加路由专家的派发与收回）。所以每层 2 次，加上查表之后 1 次，一次主干前向共 91 次；结论回链 `tensor-parallel.md`「从一层走到整次前向：R1 的通信账」一节（TP 页第 89 行“完整一层两次 All-Reduce”，第 171、178 行 91 = 1 + 34 + 11 + 3 + 42），本页不重算。层型划分对照 `glm-5-3-flash.md` 第 108、266 行。段末补上“逐层反复的归约留在机内走 HCCS，专家的派发与收回遇到另一台机器上的专家时才走 RoCE”，“TP 放机内”的动机因此成立（同时关闭 P3-a）。
+- **P2-2 已关闭**：lint 的 source-domain 规则实际调用 `scripts/wiki/sources.ts` 的 `classifySource`，白名单常量是 `CITABLE_DOMAINS`；`scripts/wiki/sources.test.ts` 用 `handbookDomains()` 解析 HANDBOOK「可引来源」表，并要求它与常量逐条、按顺序相等。所以两处各加一行，都排在 `www.hiascend.com` 之后：`scripts/wiki/sources.ts` 第 34 行加 `{ domain: "e.huawei.com", kind: "official" }`；`wiki/HANDBOOK.md` 第 333 行由脚本按第 332 行（`www.hiascend.com` 行）的表格格式插入，说明为“华为官方产品与规格文档”，分类“官方”。HANDBOOK 没有读正文，脚本只打印行号；`git diff --numstat` 确认 HANDBOOK 只多 1 行、没有删行。
+- **P3-b 部分完成**：第 59 行 HCCL 处加链接到 `cann-hccl.md`。`tensor-parallel.md` 第 532 行待核的措辞不在本页范围内，留给协调者。
+- **P3-c 已关闭**：第 88 行写明教程只写 Atlas 800 A2，规格取自 Atlas 800T A2 白皮书，其标题写明是训练服务器，不能直接当部署机规格；第 192 行待核同步写明现场型号与同系列其他型号均未核。
+- **P3-d 未做**：是否把本页加入 `standard-pages.json` 名单，要由协调者或用户决定。
+- 数字未改，内容未删。
+
+**验证（本轮实跑）**：`npx vitest run scripts/wiki/sources.test.ts` 13/13 通过，其中包括“HANDBOOK 与代码的白名单必须一致”；`pnpm wiki:lint` exit 0，本页不再报 source-domain；`pnpm wiki:audit` exit 0（本页 21 条来源，行号全部有效）；本页 `checkStandard` problems=[]（2,994 字，免责 2.4%）；19 个站内链接和锚点全部能解析，包括新加的 `tensor-parallel.md#从一层走到整次前向r1-的通信账`。未做浏览器验收。

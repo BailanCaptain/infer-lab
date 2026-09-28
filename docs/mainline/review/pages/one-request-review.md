@@ -208,3 +208,22 @@
 - P3-16 已改：第 7 站之后新增「这个例子看不见什么」5 条（多请求拼批、抢占、chunked prefill、稀疏真正起作用、PD 分离），各带链接。
 - 数字核对（协调者 09-27 底稿修订）：本页不含 checkpoint 大小与 RFork 传输量，无需改；Sinkhorn 已按 90 次、1,800 轮；每卡 20.58 GiB、主干 20,537 MiB、3,855 块、3.94 MiB 与底稿一致。
 - 验证：`npx tsx scripts/wiki-lint.ts` 通过，本页无警告；`pnpm check:content` 通过；`npx tsx scripts/wiki-diagrams.ts --check` 只报与本页无关的 `eplb-cycle.svg`；4 张图用 Playwright 截图目检。
+
+## 七、修订记录（2026-09-28，mHC 收成单一出处）
+
+依据 `layers-and-hidden-review.md`「单一出处」表与 P2-2。只改第 4 站「词嵌入与四路残差」附近两段，以及一处术语补注。
+
+- L228：原 312 字（mHC 定义 + 加权压成 1 条 + 写回混合 + Sinkhorn 按行按列归一、20 轮）收成一句定义（保留 residual、mHC 首次解释）加链接 `layers-and-hidden.md#一层接过什么交出什么glm-为什么在层间传四条`，并引出下面的 R1 形状块。
+- L230–235 代码块（R1 的 `[4, 4, 4096]` 与 128 KiB）按审查意见保留，R1 专属数字仍归本页。
+- L237：原 325 字（两次 `[4,16384]×[16384,24]`、90 次、1,800 轮、每套 1.5 MiB、FP32、不按 TP 切、135 MiB）收成一句「每层两次，卡内计算、不产生通信」，推导链到 `layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪`；原「原理见 mlp-residual-norm」改指 layers-and-hidden。
+- 删掉的信息去向：layers-and-hidden L55（mHC 定义）、L63–66（合成 / 写回 / 混合）、L84（Sinkhorn 行列交替、20 轮）、L96 与 calc L98–106（16384 × 24、90 次、1,800 轮、3.0 MiB/层即每套 1.5 MiB、135 MiB、FP32、不按 TP 切、无通信）。全部找得到，无需补页。
+- 连带：FP32 的首次解释原在 L237，删后 KDA 一节代码块先用到 FP32，故在 KDA 状态 calc 里加注「递推状态是 FP32（32 位浮点，每个数 4 字节）」。
+- 验证：`pnpm wiki:audit` 本页写作标准全部 ✓（行内代码 7.6/千字、calc 0.81/千字、角标 0、相邻块 0）；两处锚点按 `anchors.ts` 的 `headingSlug` 规则校验通过。`wiki:lint` / `wiki:audit` 的失败全部来自 concepts/ascend-patch-system.md 及其引用页、diagrams/patch-binding.yaml 缺 svg，与本页无关。
+
+## 八、修订记录（2026-09-28，长历史结论收成单一出处）
+
+**依据。** [sparse-attention 的 P5 审查](sparse-attention-review.md) P2-1：「长历史只读 1/65」在三页各推导了一遍。定下的分工是 sparse-attention 讲机制，推导只留在那一页。
+
+**改了什么。** L295 的后半句（133120 → 33280 池、只选 512、尾部为 0、上限 2051 的拆分）压成一句结论：历史更长才真正挑选，到 133120 时只读 1/65，并链接 sparse-attention.md#稀疏什么时候才真的起作用。原来指向模型页的「压池、打分和 2051 上限」链接保留。L545「稀疏注意力真正起作用」的链接也补上了同一个锚点。被删内容里 sparse-attention 原来没有的「最后一个查询面前」这一点，已先补进那一页。R1 的 [4, 2051] 逐行表仍以本页为出处，没有改动。
+
+**验证。** pnpm wiki:lint 通过。pnpm wiki:audit 通过，本页写作标准各项全部 ✓（行内代码 7.6/千字、calc 0.81/千字）。本页 21 条带锚点的站内链接按 anchors.ts 的 createSlugger 解析，全部命中。

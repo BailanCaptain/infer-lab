@@ -5,7 +5,10 @@
  * - <Term> 悬停出摘要卡；
  * - 来源角标指向 GitHub 钉住的行号。
  */
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { parsePage } from "../scripts/wiki/pages";
+import { loadStandardConfig, measureStandard } from "../scripts/wiki/standard";
 import { checkAnswerCitations } from "../server/citations";
 
 test.describe("知识库阅读页", () => {
@@ -19,8 +22,41 @@ test.describe("知识库阅读页", () => {
     // 锚定开头：目录里现在还有闭环长出来的「问答记录：Block Table…」，子串匹配会命中两条
     await nav.getByRole("link", { name: /^Block Table/ }).click();
     await expect(page).toHaveURL(/#\/wiki\/block-table$/);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Block Table");
-    await expect(page.getByTestId("wiki-body").getByRole("heading", { level: 2 }).first()).toBeVisible();
+
+    // 写作标准（docs/wiki-writing-standard.md）：标题用英文术语，页头就是 frontmatter 的 title；
+    // 不设「## 一句话」，开篇是问题式 H2 → 一句定义 → 直觉图；页末「## 对照源码」下依次五个固定 H3。
+    const file = "concepts/block-table.md";
+    const md = parsePage(file, readFileSync(new URL(`../wiki/${file}`, import.meta.url), "utf8")).page;
+    expect(md, `${file} 的 frontmatter 不合法`).toBeTruthy();
+    expect(md?.fm.title).toMatch(/^Block Table/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(md?.fm.title ?? "");
+    // 对照源码的 H3 顺序与直觉图先行，用 wiki:audit 的同一套检查
+    const standard = measureStandard(md?.body ?? "", loadStandardConfig());
+    expect(standard.sourceSections).toBeNull();
+    expect(standard.diagramFirst).toBeNull();
+
+    const body = page.getByTestId("wiki-body");
+    await expect(body.getByRole("heading", { level: 2 }).first()).toBeVisible();
+    const opening = await body.evaluate((root) => {
+      const h2s = [...root.querySelectorAll("h2")];
+      const hasFigure = (el: Element) =>
+        el.matches("figure.wiki-diagram") || !!el.querySelector("figure.wiki-diagram");
+      const between: string[] = [];
+      let el = h2s[0]?.nextElementSibling ?? null;
+      for (; el && el.tagName !== "H2" && !hasFigure(el); el = el.nextElementSibling)
+        between.push(el.tagName);
+      return {
+        h2s: h2s.map((h) => h.textContent?.trim() ?? ""),
+        between,
+        figureInFirstSection: !!el && hasFigure(el),
+      };
+    });
+    expect(opening.h2s).not.toContain("一句话");
+    expect(opening.h2s[0]).toMatch(/[？?]$/);
+    // 第一个 H2 之后只有讲解段落（先是那句定义），然后就是直觉图，中间不夹表、算式或小标题
+    expect(opening.between.length).toBeGreaterThan(0);
+    expect(opening.between.every((tag) => tag === "P")).toBe(true);
+    expect(opening.figureInFirstSection).toBe(true);
   });
 
   // 首页的入口文案曾在代码里写死，阅读指南改写之后两边对不上

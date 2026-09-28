@@ -1,7 +1,7 @@
 layout: figure
 id: attention-causal
-caption: 普通因果注意力的可见范围：青色格允许访问，虚线格被屏蔽；Prefill 每行边界不同，单位置 Decode 可访问已有历史与自身
-size: [900, 390]
+caption: causal mask 的可见范围：行是查询，列是键。Prefill 一次算四个位置，每行只看自己和更早的位置，打叉的格在 softmax 前填 −∞；Decode 只为新位置 4 算 q，前 4 列的 K、V 从 KV cache 读出
+size: [900, 400]
 grids:
   - at: [110, 90]
     cols: 4
@@ -28,8 +28,15 @@ grids:
     style: solid
     rowLabels: ['Q₄']
     colLabels: ['K₀', 'K₁', 'K₂', 'K₃', 'K₄']
+    cells:
+      - { at: [0, 0], tone: kv }
+      - { at: [0, 1], tone: kv }
+      - { at: [0, 2], tone: kv }
+      - { at: [0, 3], tone: kv }
 texts:
   - { at: [228, 32], text: Prefill · 四个查询位置, anchor: middle, strong: true }
   - { at: [660, 32], text: Decode · 新增查询位置 4, anchor: middle, strong: true }
   - { at: [228, 320], text: 行＝查询，列＝键, anchor: middle }
-  - { at: [660, 265], text: 先前位置 0–3 ＋ 当前位置 4, anchor: middle }
+  - { at: [228, 344], text: 四个位置的 q、k、v 都在本步算出, anchor: middle, size: 13 }
+  - { at: [660, 262], text: 前 4 列：K、V 从 KV cache 读, anchor: middle, size: 13 }
+  - { at: [660, 286], text: 第 5 列：K₄、V₄ 本步新算, anchor: middle, size: 13 }

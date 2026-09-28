@@ -31,6 +31,7 @@ export interface CitableDomain {
 export const CITABLE_DOMAINS: CitableDomain[] = [
   { domain: "docs.vllm.ai", kind: "official" },
   { domain: "www.hiascend.com", kind: "official" },
+  { domain: "e.huawei.com", kind: "official" },
   { domain: "blog.vllm.ai", kind: "official" },
   { domain: "discuss.vllm.ai", kind: "community" },
   { domain: "github.com", prefix: "/vllm-project/", kind: "official" },

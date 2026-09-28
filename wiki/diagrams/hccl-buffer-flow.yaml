@@ -1,0 +1,30 @@
+layout: figure
+id: hccl-buffer-flow
+caption: 固定源码里的建组路径：按组名分四条挑缓冲值，四条都构造 Options 并写入组名，mc2 那条只是不写缓冲字段；随后注册表按成员、后端、配置和复用域判断能不能复用一个已经建好的组。
+size: [900, 436]
+items:
+  - { at: [24, 170], size: [190, 72], text: 建一个通信组, sub: 按组名取配置, tone: control }
+  - { at: [268, 42], size: [240, 52], text: 名字正好是 dp, sub: 缓冲 50, tone: comm }
+  - { at: [268, 110], size: [240, 52], text: 名字正好是 dynamic_eplb, sub: 缓冲 100, tone: comm }
+  - { at: [268, 178], size: [240, 52], text: 其他名字, sub: 缓冲 200, tone: comm }
+  - { at: [268, 246], size: [240, 52], text: 名字里含 mc2, sub: 不写缓冲字段, tone: weight }
+  - { at: [562, 102], size: [260, 60], text: 构造 Options, sub: 四条都写上组名, tone: control }
+  - { at: [562, 198], size: [260, 66], text: 注册表查同款组, sub: 成员 + 后端 + 配置 + 复用域, tone: control }
+  - { at: [562, 302], size: [122, 56], text: 命中, sub: 复用同一个组, tone: kv }
+  - { at: [700, 302], size: [122, 56], text: 没命中, sub: 新建一个组, tone: kv }
+fans:
+  - from: [214, 206]
+    to: [[268, 68], [268, 136], [268, 204], [268, 272]]
+    tone: control
+  - from: [[508, 68], [508, 136], [508, 204], [508, 272]]
+    to: [562, 132]
+    tone: control
+links:
+  - { from: [692, 264], to: [623, 302], via: [[623, 282]], tone: control }
+  - { from: [692, 264], to: [761, 302], via: [[761, 282]], tone: control }
+texts:
+  - { at: [450, 24], text: 组名只决定留多大，复用与否由注册表判断, anchor: middle, strong: true }
+  - { at: [24, 152], text: 启动阶段做一次, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_distributed.py#L39-L77
+    symbols: [_resolve_reuse_domain, _acquire_hccl_group, _init_device_groups]

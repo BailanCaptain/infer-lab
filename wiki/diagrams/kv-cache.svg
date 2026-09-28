@@ -1,29 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 355" width="850" height="355" role="img" aria-label="一个请求的按位置缓存：本步写入新输入的状态，读取已有历史与本步状态；下一步继续使用追加后的历史">
-  <title>一个请求的按位置缓存：本步写入新输入的状态，读取已有历史与本步状态；下一步继续使用追加后的历史</title>
-  <defs><marker id="kv-cache-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <path d="M135 94 L135 153" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-ah-kv)"/>
-  <path d="M425 94 L425 153" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-ah-token)"/>
-  <path d="M535 183 L620 183" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-ah-kv)"/>
-  <path d="M535 66 L720 66 L720 153" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-ah-token)"/>
-  <path d="M282 213 L282 274" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-ah-kv)"/>
-  <rect x="30" y="38" width="210" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="135" y="62" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已有历史</text>
-  <text x="135" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已算好的 K / V</text>
-  <rect x="315" y="38" width="220" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="425" y="62" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步新输入 token</text>
-  <text x="425" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算出本位置的 K / V</text>
-  <rect x="30" y="153" width="505" height="60" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="282.5" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">追加后的历史</text>
-  <text x="282.5" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">原有 K / V 保留 ＋ 本位置 K / V 写入</text>
-  <rect x="620" y="153" width="200" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="720" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步注意力</text>
-  <text x="720" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">用查询读取历史</text>
-  <rect x="30" y="274" width="505" height="54" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="282.5" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一步继续读取这份历史</text>
-  <text x="282.5" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">再接入下一个新输入</text>
-  <text x="150" y="127" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">保留</text>
-  <text x="439" y="127" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">追加</text>
-  <text x="549" y="167" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">读取</text>
-  <text x="565" y="50" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">本步查询</text>
-  <text x="300" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">跨步保存</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" width="880" height="480" role="img" aria-label="同一层相邻两步：每步只为新位置算 q、k、v，把 k、v 追加到缓存末尾，再用 q 读取整份缓存；旧列原样留给下一步，旧位置的 q 用完即弃">
+  <title>同一层相邻两步：每步只为新位置算 q、k、v，把 k、v 追加到缓存末尾，再用 q 读取整份缓存；旧列原样留给下一步，旧位置的 q 用完即弃</title>
+  <defs><marker id="kv-cache-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="kv-cache-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M313 170 L313 128" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-ah-token)"/>
+  <path d="M344 92 L460 92" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-ah-kv)"/>
+  <path d="M388 197 L585 197 L585 128" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-ah-token)"/>
+  <path d="M710 92 L750 92" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-ah-ink)"/>
+  <path d="M127 128 L127 288" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-ah-kv)"/>
+  <path d="M375 402 L375 360" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-ah-token)"/>
+  <path d="M406 324 L460 324" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kv-cache-ah-kv)"/>
+  <path d="M450 429 L585 429 L585 360" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-ah-token)"/>
+  <path d="M710 324 L750 324" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-ah-ink)"/>
+  <rect x="96" y="56" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="127" y="78.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₁</text>
+  <rect x="158" y="56" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="189" y="78.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₂</text>
+  <rect x="220" y="56" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="251" y="78.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₃</text>
+  <rect x="282" y="56" width="62" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="313" y="78.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₄</text>
+  <rect x="96" y="92" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="127" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₁</text>
+  <rect x="158" y="92" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="189" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₂</text>
+  <rect x="220" y="92" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="251" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₃</text>
+  <rect x="282" y="92" width="62" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="313" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₄</text>
+  <path d="M158 56v72M220 56v72M282 56v72M96 92h248" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="96" y="56" width="248" height="72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="86" y="78.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">K</text>
+  <text x="86" y="114.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">V</text>
+  <rect x="96" y="288" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="127" y="310.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₁</text>
+  <rect x="158" y="288" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="189" y="310.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₂</text>
+  <rect x="220" y="288" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="251" y="310.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₃</text>
+  <rect x="282" y="288" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="313" y="310.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₄</text>
+  <rect x="344" y="288" width="62" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="375" y="310.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">k₅</text>
+  <rect x="96" y="324" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="127" y="346.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₁</text>
+  <rect x="158" y="324" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="189" y="346.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₂</text>
+  <rect x="220" y="324" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="251" y="346.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₃</text>
+  <rect x="282" y="324" width="62" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <text x="313" y="346.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₄</text>
+  <rect x="344" y="324" width="62" height="36" fill="var(--color-token, #087f73)"/>
+  <text x="375" y="346.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">v₅</text>
+  <path d="M158 288v72M220 288v72M282 288v72M344 288v72M96 324h310" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="96" y="288" width="310" height="72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="86" y="310.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">K</text>
+  <text x="86" y="346.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">V</text>
+  <rect x="238" y="170" width="150" height="54" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新 token（位置 4）</text>
+  <text x="313" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只为它算 q、k、v</text>
+  <rect x="460" y="56" width="250" height="72" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="585" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步注意力</text>
+  <text x="585" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">q₄ 给 k₁…k₄ 打分，汇合 v₁…v₄</text>
+  <rect x="750" y="64" width="110" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="805" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输出 token</text>
+  <text x="805" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一步的输入</text>
+  <rect x="300" y="402" width="150" height="54" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="375" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新 token（位置 5）</text>
+  <text x="375" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">上一步的输出</text>
+  <rect x="460" y="288" width="250" height="72" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="585" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本步注意力</text>
+  <text x="585" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">q₅ 给 k₁…k₅ 打分，汇合 v₁…v₅</text>
+  <rect x="750" y="296" width="110" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="805" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输出 token</text>
+  <text x="805" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">再下一步的输入</text>
+  <text x="24" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">第 t 步：新输入是位置 4</text>
+  <text x="322" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">追加 k₄、v₄</text>
+  <text x="356" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">读取整份</text>
+  <text x="400" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">q₄ 只用这一次，不进缓存</text>
+  <text x="136" y="196" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">原样留到下一步</text>
+  <text x="136" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">旧列不重算</text>
+  <text x="140" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">第 t+1 步：新输入是位置 5</text>
+  <text x="384" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">追加 k₅、v₅</text>
 </svg>

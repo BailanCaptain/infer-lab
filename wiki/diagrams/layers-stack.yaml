@@ -1,43 +1,38 @@
 layout: figure
 id: layers-stack
-caption: GLM 文本主干的逻辑数据流；四个青色小块代表四路残差表示，每路形状为 [T, 4096]。中间 43 层合并绘制，权重图形不表示实际参数量
-size: [900, 820]
-matrices:
-  - { at: [360, 28], w: 180, h: 24, rows: 1, cols: 6, tone: token, label: 嵌入表示, dims: '[T, 4096]' }
-  - { at: [80, 130], w: 110, h: 40, rows: 2, cols: 5, tone: weight, label: 第 0 层权重 }
-  - { at: [80, 300], w: 110, h: 40, rows: 2, cols: 5, tone: weight, label: 第 1–43 层各自权重 }
-  - { at: [80, 460], w: 110, h: 40, rows: 2, cols: 5, tone: weight, label: 第 44 层权重 }
-  - { at: [360, 710], w: 180, h: 24, rows: 1, cols: 6, tone: token, label: 末层汇合后的表示, dims: '[T, 4096]' }
+caption: 主线第 4 站里 hidden 的先后与分支：embedding 交来一条，第 0 层入口复制成四条，每层两段各做一次入口混合和出口写回，第 44 层结束时求平均回到一条，再经最终 RMSNorm 和输出投影交给采样
+size: [900, 860]
+frames:
+  - { at: [150, 340], size: [380, 230], label: 每一层（第 0–44 层） }
 items:
-  - { at: [320, 120], size: [260, 56], text: 第 0 层, sub: KDA · Dense FFN, style: plain }
-  - { at: [320, 285], size: [260, 64], text: 第 1–43 层, sub: 按层号配置注意力与前馈, style: plain, depth: 2 }
-  - { at: [320, 450], size: [260, 56], text: 第 44 层, sub: KDA · MoE, style: plain }
-  - { at: [320, 620], size: [260, 40], text: 沿四路求平均, style: plain }
-rows:
-  - { at: [336, 225], count: 4, w: 52, h: 18, gap: 6, tone: token }
-  - { at: [336, 390], count: 4, w: 52, h: 18, gap: 6, tone: token }
-  - { at: [336, 550], count: 4, w: 52, h: 18, gap: 6, tone: token }
+  - { at: [200, 20], size: [280, 44], text: 本轮 T 个 token 编号, style: plain }
+  - { at: [200, 96], size: [280, 52], text: embedding 查表, sub: TP8 各查一段，All-Reduce 拼齐, style: plain }
+  - { at: [200, 180], size: [280, 44], text: 'hidden [T, 4096]', tone: token }
+  - { at: [200, 256], size: [280, 52], text: 第 0 层入口：复制成四条, sub: '[T, 4, 4096]，存成 [T, 16384]', tone: token }
+  - { at: [180, 376], size: [320, 64], text: attention 段, sub: KDA 或稀疏 MLA，进出各一次 mHC, style: plain }
+  - { at: [180, 480], size: [320, 64], text: MLP 段, sub: 稠密 MLP 或 MoE，进出各一次 mHC, style: plain }
+  - { at: [20, 440], size: [110, 56], text: 本层权重, sub: 每层各一份, tone: weight }
+  - { at: [200, 624], size: [280, 44], text: 是第 44 层吗？, style: plain }
+  - { at: [200, 704], size: [280, 52], text: 四条求平均, sub: '[T, 4, 4096] → [T, 4096]', tone: token }
+  - { at: [200, 788], size: [280, 52], text: 最终 RMSNorm → 输出投影, sub: 得到词表分数，交给第 5 站采样, style: plain }
 links:
-  - { from: [450, 99], to: [450, 120] }
-  - { from: [190, 150], to: [320, 150], tone: weight }
-  - { from: [190, 320], to: [320, 320], tone: weight }
-  - { from: [190, 480], to: [320, 480], tone: weight }
-  - { from: [362, 243], to: [362, 271], tone: token }
-  - { from: [420, 243], to: [420, 271], tone: token }
-  - { from: [478, 243], to: [478, 271], tone: token }
-  - { from: [536, 243], to: [536, 271], tone: token }
-  - { from: [362, 408], to: [362, 450], tone: token }
-  - { from: [420, 408], to: [420, 450], tone: token }
-  - { from: [478, 408], to: [478, 450], tone: token }
-  - { from: [536, 408], to: [536, 450], tone: token }
-  - { from: [450, 660], to: [450, 710], tone: token }
+  - { from: [340, 64], to: [340, 96] }
+  - { from: [340, 148], to: [340, 180], tone: token }
+  - { from: [340, 224], to: [340, 256], tone: token }
+  - { from: [340, 308], to: [340, 376], tone: token }
+  - { from: [340, 440], to: [340, 480], tone: token }
+  - { from: [340, 544], to: [340, 624], tone: token }
+  - { from: [480, 646], to: [500, 408], via: [[560, 646], [560, 408]], tone: token }
+  - { from: [340, 668], to: [340, 704], tone: token }
+  - { from: [340, 756], to: [340, 788], tone: token }
 fans:
-  - { from: [450, 176], to: [[362, 225], [420, 225], [478, 225], [536, 225]], tone: token }
-  - { from: [450, 349], to: [[362, 390], [420, 390], [478, 390], [536, 390]], tone: token }
-  - { from: [450, 506], to: [[362, 550], [420, 550], [478, 550], [536, 550]], tone: token }
-  - { from: [[362, 568], [420, 568], [478, 568], [536, 568]], to: [450, 620], tone: token }
+  - { from: [130, 468], to: [[180, 408], [180, 512]], tone: weight }
 texts:
-  - { at: [623, 143], text: 入口展开为四路, size: 13 }
-  - { at: [623, 238], text: '[T, 4, 4096]', size: 13, tone: token }
-  - { at: [623, 396], text: 层间继续传递四路, size: 13 }
-  - { at: [450, 800], text: 后续：最终 RMSNorm → 词表投影 → token 选择, anchor: middle }
+  - { at: [596, 40], text: 主线第 4 站：逐层前向, strong: true }
+  - { at: [596, 380], text: 按层号选子层, strong: true }
+  - { at: [596, 408], text: 第 0–2 层：KDA + 稠密 MLP, size: 13 }
+  - { at: [596, 432], text: 3、7、…、43：稀疏 MLA + MoE, size: 13 }
+  - { at: [596, 456], text: 其余 31 层：KDA + MoE, size: 13 }
+  - { at: [568, 530], text: 否：进入下一层, size: 13 }
+  - { at: [350, 690], text: 是, size: 13 }
+  - { at: [596, 730], text: MTP 层不走这条路：单条残差, size: 13 }

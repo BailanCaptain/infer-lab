@@ -5,9 +5,9 @@ size: [840, 660]
 items:
   - { at: [30, 35], size: [490, 62], text: A1 · API server 收到聊天消息, sub: 主机 CPU 与内存：套模板 → 分词 → 校验, tone: token, style: solid }
   - { at: [580, 35], size: [230, 62], text: 返回入口错误, sub: 模板或输入校验失败, tone: control, style: faded }
-  - { at: [30, 137], size: [490, 62], text: 包装引擎请求 · 登记输出, sub: 编号与采样设置；留好反分词状态和输出队列, tone: control, style: solid }
+  - { at: [30, 137], size: [490, 62], text: 包装引擎请求 · 登记输出, sub: R1：4 个编号 p₀–p₃ 与采样设置；留好反分词状态和输出队列, tone: control, style: solid }
   - { at: [30, 247], size: [350, 62], text: 显式指定执行组, sub: 使用请求中的目标组, tone: control, style: plain }
-  - { at: [460, 247], size: [350, 62], text: 未指定执行组, sub: 按等待与运行请求数选组, tone: control, style: plain }
+  - { at: [460, 247], size: [350, 62], text: 未指定执行组, sub: 按等待与运行请求数选组；R1：两组都 0 分 → DP0, tone: control, style: plain }
   - { at: [180, 365], size: [480, 62], text: ZMQ 发送 → 选中组的 EngineCore, sub: 传请求对象；A2 调度器决定本步计算, tone: comm, style: solid }
   - { at: [180, 477], size: [480, 62], text: A3 · worker 准备本步输入, sub: 准备设备上的编号与位置张量，保留主机记录, tone: kv, style: plain }
   - { at: [180, 579], size: [480, 55], text: A4 · 设备查嵌入表 → 逐层计算, tone: token, style: solid }

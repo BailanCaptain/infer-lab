@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" width="900" height="610" role="img" aria-label="进程由上往下一个拉起一个。两个分叉各决定一件事：启动方法决定子进程一出生是否带着父进程已经换好的名字；卡数决定 Worker 是独立进程还是 EngineCore 里的对象。不管走哪条分支，每个进程都会经过自己那一站的补丁入口，所以最后每个进程都打齐了补丁">
+  <title>进程由上往下一个拉起一个。两个分叉各决定一件事：启动方法决定子进程一出生是否带着父进程已经换好的名字；卡数决定 Worker 是独立进程还是 EngineCore 里的对象。不管走哪条分支，每个进程都会经过自己那一站的补丁入口，所以最后每个进程都打齐了补丁</title>
+  <defs><marker id="engine-processes-startup-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="engine-processes-startup-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M300 94 L300 112 L240 112 L240 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-control)"/>
+  <path d="M600 94 L600 112 L660 112 L660 160" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-control)"/>
+  <path d="M240 220 L240 248 L300 248 L300 276" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-control)"/>
+  <path d="M660 220 L660 248 L600 248 L600 276" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-control)"/>
+  <path d="M300 340 L300 358 L240 358 L240 406" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-control)"/>
+  <path d="M600 340 L600 358 L660 358 L660 406" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-control)"/>
+  <path d="M240 466 L240 494 L300 494 L300 522" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-weight)"/>
+  <path d="M660 466 L660 494 L600 494 L600 522" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#engine-processes-startup-ah-weight)"/>
+  <rect x="150" y="30" width="600" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">启动进程（node0 上它就是 API server）</text>
+  <text x="450" y="77" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">解析参数：加载通用插件、调平台钩子 → 全局补丁；建配置 → Ascend 配置缓存</text>
+  <rect x="60" y="160" width="360" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="240" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">fork</text>
+  <text x="240" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">复制父进程内存，已换好的名字一起带过来</text>
+  <rect x="480" y="160" width="360" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">spawn</text>
+  <text x="660" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">全新的解释器，父进程里的替换都不在</text>
+  <rect x="150" y="276" width="600" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EngineCore 进程初始化</text>
+  <text x="450" y="323" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">再加载一次通用插件 → 全局补丁（本进程已打过就跳过）</text>
+  <rect x="60" y="406" width="360" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="240" y="432" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">整个服务只有 1 张卡：uni</text>
+  <text x="240" y="451" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">Worker 是本进程里的一个对象</text>
+  <rect x="480" y="406" width="360" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="432" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">多于 1 张卡：mp</text>
+  <text x="660" y="451" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每张卡起一个 Worker 进程，启动方法同上</text>
+  <rect x="150" y="522" width="600" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="550" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 初始化（NPUWorker）</text>
+  <text x="450" y="569" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 补丁 → 登记昇腾算子 → Ascend 配置缓存</text>
+  <text x="450" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">拉起 EngineCore：用哪种启动方法？</text>
+  <text x="450" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">选执行器：整个服务一共几张卡？</text>
+</svg>

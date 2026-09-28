@@ -1,463 +1,80 @@
-{
-  "layout": "figure",
-  "id": "structured-output",
-  "caption": "文法状态给出允许集合；mask先排除不合法token，再由采样器选择。确认后的token反馈到文法，形成下一步的约束。",
-  "size": [
-    900,
-    640
-  ],
-  "grids": [
-    {
-      "at": [
-        195,
-        165
-      ],
-      "rows": 1,
-      "cols": 8,
-      "cell": [
-        70,
-        38
-      ],
-      "tone": "token",
-      "style": "plain",
-      "colLabels": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7"
-      ],
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "1",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "4",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            2
-          ],
-          "text": "2",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            3
-          ],
-          "text": "6",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            4
-          ],
-          "text": "0",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            5
-          ],
-          "text": "3",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            6
-          ],
-          "text": "5",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            7
-          ],
-          "text": "-1",
-          "style": "solid"
-        }
-      ]
-    },
-    {
-      "at": [
-        195,
-        259
-      ],
-      "rows": 1,
-      "cols": 8,
-      "cell": [
-        70,
-        38
-      ],
-      "tone": "control",
-      "style": "empty",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "0",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "1",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            2
-          ],
-          "text": "0",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            3
-          ],
-          "text": "0",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            4
-          ],
-          "text": "1",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            5
-          ],
-          "text": "0",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            6
-          ],
-          "text": "1",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            7
-          ],
-          "text": "0",
-          "style": "empty"
-        }
-      ]
-    },
-    {
-      "at": [
-        195,
-        353
-      ],
-      "rows": 1,
-      "cols": 8,
-      "cell": [
-        70,
-        38
-      ],
-      "tone": "token",
-      "style": "empty",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "−∞",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "4",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            2
-          ],
-          "text": "−∞",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            3
-          ],
-          "text": "−∞",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            4
-          ],
-          "text": "0",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            5
-          ],
-          "text": "−∞",
-          "style": "empty"
-        },
-        {
-          "at": [
-            0,
-            6
-          ],
-          "text": "5",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            7
-          ],
-          "text": "−∞",
-          "style": "empty"
-        }
-      ]
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        55,
-        40
-      ],
-      "size": [
-        235,
-        50
-      ],
-      "text": "当前文法状态",
-      "tone": "control"
-    },
-    {
-      "at": [
-        545,
-        455
-      ],
-      "size": [
-        210,
-        45
-      ],
-      "text": "贪心选择：ID 6",
-      "tone": "token"
-    },
-    {
-      "at": [
-        545,
-        555
-      ],
-      "size": [
-        210,
-        45
-      ],
-      "text": "确认 token",
-      "tone": "control"
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        167,
-        190
-      ],
-      "text": "logits",
-      "anchor": "end"
-    },
-    {
-      "at": [
-        167,
-        284
-      ],
-      "text": "允许位",
-      "anchor": "end"
-    },
-    {
-      "at": [
-        167,
-        378
-      ],
-      "text": "mask 后",
-      "anchor": "end"
-    },
-    {
-      "at": [
-        430,
-        116
-      ],
-      "text": "token ID"
-    },
-    {
-      "at": [
-        323,
-        64
-      ],
-      "text": "允许集合 {1, 4, 6}"
-    },
-    {
-      "at": [
-        325,
-        228
-      ],
-      "text": "按 token ID 从低位到高位展示"
-    },
-    {
-      "at": [
-        205,
-        462
-      ],
-      "text": "8 位编码：01010010 = 82"
-    },
-    {
-      "at": [
-        205,
-        490
-      ],
-      "text": "实际使用 32 位整数打包"
-    },
-    {
-      "at": [
-        180,
-        570
-      ],
-      "text": "推进文法",
-      "anchor": "middle"
-    }
-  ],
-  "links": [
-    {
-      "from": [
-        172,
-        90
-      ],
-      "to": [
-        172,
-        278
-      ],
-      "via": [
-        [
-          172,
-          112
-        ],
-        [
-          80,
-          112
-        ],
-        [
-          80,
-          235
-        ],
-        [
-          172,
-          235
-        ]
-      ],
-      "tone": "control"
-    },
-    {
-      "from": [
-        475,
-        203
-      ],
-      "to": [
-        475,
-        250
-      ],
-      "tone": "control"
-    },
-    {
-      "from": [
-        475,
-        297
-      ],
-      "to": [
-        475,
-        344
-      ],
-      "tone": "control"
-    },
-    {
-      "from": [
-        650,
-        391
-      ],
-      "to": [
-        650,
-        450
-      ]
-    },
-    {
-      "from": [
-        650,
-        500
-      ],
-      "to": [
-        650,
-        550
-      ],
-      "tone": "control"
-    },
-    {
-      "from": [
-        545,
-        577
-      ],
-      "to": [
-        55,
-        65
-      ],
-      "via": [
-        [
-          45,
-          577
-        ],
-        [
-          45,
-          65
-        ]
-      ],
-      "tone": "control"
-    }
-  ]
-}
+layout: figure
+id: structured-output
+caption: 8 个 token 的教学词表。文法状态给出一行 bitmask（1 允许、0 禁止），与模型的 logits 按编号一一对应：位为 0 的候选改成 −∞，再交给采样。选出的 token 回到文法，状态前进一步，下一步的允许集合随之改变。
+size: [880, 430]
+items:
+  - { at: [16, 65], size: [176, 52], text: 模型打分, sub: 给 8 个候选各打一个分, tone: weight }
+  - { at: [16, 143], size: [176, 52], text: 文法状态, sub: '已写出 {"ok":', tone: control }
+  - { at: [368, 330], size: [200, 52], text: 采样, sub: 此例取最高分：编号 6, tone: ink, style: plain }
+  - { at: [612, 330], size: [150, 52], text: 输出 ␣true, sub: 编号 6, tone: token }
+grids:
+  - at: [230, 72]
+    rows: 1
+    cols: 8
+    cell: [56, 38]
+    gap: 4
+    tone: token
+    style: faded
+    colLabels: ['0 }', '1 ␣false', '2 "', '3 Sure', '4 ␣null', '5 ,', '6 ␣true', '7 ]']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '4' }
+      - { at: [0, 2], text: '2' }
+      - { at: [0, 3], text: '6' }
+      - { at: [0, 4], text: '0' }
+      - { at: [0, 5], text: '3' }
+      - { at: [0, 6], text: '5' }
+      - { at: [0, 7], text: '−1' }
+  - at: [230, 150]
+    rows: 1
+    cols: 8
+    cell: [56, 38]
+    gap: 4
+    tone: control
+    style: plain
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '1', style: solid }
+      - { at: [0, 2], text: '0' }
+      - { at: [0, 3], text: '0' }
+      - { at: [0, 4], text: '1', style: solid }
+      - { at: [0, 5], text: '0' }
+      - { at: [0, 6], text: '1', style: solid }
+      - { at: [0, 7], text: '0' }
+  - at: [230, 250]
+    rows: 1
+    cols: 8
+    cell: [56, 38]
+    gap: 4
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '−∞', tone: danger, style: faded }
+      - { at: [0, 1], text: '4' }
+      - { at: [0, 2], text: '−∞', tone: danger, style: faded }
+      - { at: [0, 3], text: '−∞', tone: danger, style: faded }
+      - { at: [0, 4], text: '0' }
+      - { at: [0, 5], text: '−∞', tone: danger, style: faded }
+      - { at: [0, 6], text: '5' }
+      - { at: [0, 7], text: '−∞', tone: danger, style: faded }
+nodes:
+  - { at: [762, 169], r: 26, text: 屏蔽 }
+links:
+  - { from: [192, 91], to: [230, 91] }
+  - { from: [192, 169], to: [230, 169], tone: control }
+  - { from: [706, 91], to: [762, 143], via: [[762, 91]] }
+  - { from: [706, 169], to: [736, 169], tone: control }
+  - { from: [762, 195], to: [706, 269], via: [[762, 269]] }
+  - { from: [468, 288], to: [468, 330] }
+  - { from: [568, 356], to: [612, 356], tone: token }
+  - { from: [687, 382], to: [60, 195], via: [[687, 410], [60, 410]], tone: control }
+texts:
+  - { at: [220, 274], text: 屏蔽后的 logits, size: 13, strong: true, anchor: end }
+  - { at: [230, 214], text: 1 = 允许，0 = 禁止, size: 12.5, note: true }
+  - { at: [230, 312], text: 原最高分的编号 3 也被排除, size: 12.5, note: true }
+  - { at: [396, 402], text: 接受这个 token，文法状态前进一步, size: 12.5, anchor: middle }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/structured_output/utils.py#L44-L135
+    symbols: [apply_token_bitmask_inplace]
+  - source: vllm@0fc695fc:vllm/v1/structured_output/backend_xgrammar.py#L148-L195
+    symbols: [fill_next_token_bitmask, accept_tokens]

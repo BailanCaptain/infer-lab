@@ -1,29 +1,22 @@
 layout: figure
 id: kda-evolution
-caption: 四种递推形式的机制对照：都维护矩阵状态；Delta 更新修正键对应的预测误差，GDN 增加每头统一衰减，KDA 允许 key 通道分别衰减。格子表示状态通道，不是测量值
-size: [900, 460]
+caption: 四种递推形式的机制对照：都维护一个矩阵状态。累加式直接加入新的键值关联；DeltaNet 改成按当前键的预测误差修正，误差用写入前的状态算；Gated DeltaNet 在修正前先按每头一个系数衰减旧状态；KDA 把衰减细化到每个 key 通道。格子表示状态通道，不是测量值。
+size: [900, 400]
 matrices:
-  - { at: [60, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 状态 S }
-  - { at: [275, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 状态 S }
-  - { at: [490, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 'α S' }
-  - { at: [705, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 'D S' }
+  - { at: [60, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 状态 S, dims: 无显式衰减 }
+  - { at: [275, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 状态 S, dims: 无显式衰减 }
+  - { at: [490, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 'α S', dims: 所有行乘同一 α }
+  - { at: [705, 150], w: 115, h: 115, rows: 4, cols: 4, tone: kv, label: 'D S', dims: 各行乘 α₁…α₄ }
 texts:
   - { at: [117, 42], text: 累加式, anchor: middle, strong: true }
   - { at: [332, 42], text: DeltaNet, anchor: middle, strong: true }
   - { at: [547, 42], text: Gated DeltaNet, anchor: middle, strong: true }
   - { at: [762, 42], text: KDA, anchor: middle, strong: true }
-  - { at: [117, 105], text: 无显式衰减, anchor: middle, size: 13 }
-  - { at: [332, 105], text: 无显式衰减, anchor: middle, size: 13 }
-  - { at: [547, 105], text: 所有行乘同一 α, anchor: middle, size: 13 }
-  - { at: [762, 105], text: 各行乘 α₁…α₄, anchor: middle, size: 13 }
-  - { at: [117, 340], text: '＋ k vᵀ', anchor: middle }
-  - { at: [332, 340], text: '＋ β k eᵀ', anchor: middle }
-  - { at: [547, 340], text: '＋ β k eᵀ', anchor: middle }
-  - { at: [762, 340], text: '＋ β k eᵀ', anchor: middle }
-  - { at: [117, 394], text: 直接加入新关联, anchor: middle, size: 13 }
-  - { at: [547, 394], text: e 使用写入前状态；有遗忘门时先衰减, anchor: middle, size: 13 }
+  - { at: [117, 360], text: '＋ k vᵀ', anchor: middle }
+  - { at: [332, 360], text: '＋ β k eᵀ', anchor: middle }
+  - { at: [547, 360], text: '＋ β k eᵀ', anchor: middle }
+  - { at: [762, 360], text: '＋ β k eᵀ', anchor: middle }
 links:
   - { from: [190, 210], to: [250, 210], tone: control }
   - { from: [405, 210], to: [465, 210], tone: control }
   - { from: [620, 210], to: [680, 210], tone: control }
-

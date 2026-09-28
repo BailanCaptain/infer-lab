@@ -1,34 +1,46 @@
 layout: figure
 id: mla
-caption: GLM 稀疏 MLA 的逻辑数据流：查询变换后与选中的历史潜向量评分，在潜空间汇合再投影；索引器负责选择历史位置，图中仅画一个查询头
-size: [900, 560]
-matrices:
-  - { at: [40, 90], w: 100, h: 28, rows: 1, cols: 5, tone: token, label: 当前隐藏表示, dims: '4096' }
-  - { at: [45, 380], w: 90, h: 120, rows: 6, cols: 4, tone: kv, label: 历史 C, dims: '[n, 512]' }
-  - { at: [340, 380], w: 90, h: 80, rows: 4, cols: 4, tone: kv, label: 选中位置, dims: '[m, 512]' }
-  - { at: [580, 100], w: 100, h: 28, rows: 1, cols: 5, tone: token, label: 潜空间查询, dims: '512' }
-  - { at: [730, 390], w: 100, h: 28, rows: 1, cols: 5, tone: token, label: 单头输出, dims: '256' }
+caption: GLM 一个稀疏 MLA 层在每张卡上的执行顺序（专用镜像 db701c1f）。左列写历史，中列准备查询，右列选位置，三路在稀疏 FlashAttention 内核汇合；虚线框是 Q 不做低秩压缩时的另一分支，GLM 不走。
+size: [880, 700]
+frames:
+  - { at: [20, 44], size: [840, 630], label: 一个稀疏 MLA 层的前向（每卡）· 主线第 4 站，主干 11 层与 MTP 层各跑一次 }
 items:
-  - { at: [200, 75], size: [130, 58], text: Q 分支, sub: '1536 → 256', tone: weight }
-  - { at: [390, 75], size: [130, 58], text: 吸收 K 投影, sub: 'q Wₖᵀ', tone: weight }
-  - { at: [210, 215], size: [150, 58], text: 索引器, sub: '评分与候选选择', tone: control }
-  - { at: [550, 225], size: [160, 58], text: 评分 + softmax, sub: '因果与有效范围', tone: control }
-  - { at: [550, 375], size: [130, 58], text: 潜向量汇合, sub: 'p C', tone: kv }
+  - { at: [160, 70], size: [560, 60], text: 合并压缩投影：隐藏 4096 → Q 中间 1536 + KV 潜向量 512, sub: Q 做低秩压缩时才建这一个投影；每卡一整份，不按 TP 切, tone: weight }
+  - { at: [726, 66], size: [128, 68], text: Q 不压缩, sub: 改建两个投影, style: faded }
+  - { at: [40, 180], size: [260, 60], text: KV 潜向量 512 维, sub: RMSNorm 后写入本层主缓存, tone: kv }
+  - { at: [310, 180], size: [260, 60], text: Q 中间表示 1536 维, sub: RMSNorm, tone: token }
+  - { at: [580, 180], size: [260, 60], text: indexer 选位置, sub: 也读这份 Q 中间表示, tone: control }
+  - { at: [40, 280], size: [260, 60], text: RoPE 维数 = 0：跳过, sub: 大于 0 的模型在此旋转并另存一段, style: plain }
+  - { at: [310, 280], size: [260, 60], text: Q 展开，再吸收 K 的上投影, sub: 每卡 8 头：8×256 → 8×512, tone: weight }
+  - { at: [580, 280], size: [260, 60], text: 位置清单, sub: 每个查询一行，宽 2051, tone: token }
+  - { at: [160, 390], size: [560, 60], text: 稀疏 FlashAttention 内核：按清单读潜向量, sub: 同一份潜向量既当 K 也当 V；不传 RoPE, tone: kv }
+  - { at: [160, 490], size: [560, 60], text: V 的上投影：每头 512 → 256, sub: 由 KV 展开投影在加载权重后拆出，原投影随即释放, tone: weight }
+  - { at: [160, 590], size: [560, 60], text: 输出投影，再做一次 TP8 All-Reduce, sub: 本层唯一一次集合通信, style: plain }
 links:
-  - { from: [140, 104], to: [200, 104], tone: token }
-  - { from: [330, 104], to: [390, 104], tone: token }
-  - { from: [520, 104], to: [580, 114], tone: token }
-  - { from: [90, 118], to: [210, 244], via: [[90, 244]], tone: control }
-  - { from: [285, 273], to: [385, 380], via: [[285, 332], [385, 332]], tone: control }
-  - { from: [135, 420], to: [340, 420], tone: kv }
-  - { from: [630, 128], to: [630, 225], tone: token }
-  - { from: [430, 400], to: [550, 254], via: [[470, 400], [470, 254]], tone: kv }
-  - { from: [630, 283], to: [615, 375], via: [[630, 330], [615, 330]], tone: control }
-  - { from: [430, 440], to: [550, 412], via: [[500, 440], [500, 412]], tone: kv }
-  - { from: [680, 404], to: [730, 404], tone: token }
-texts:
-  - { at: [730, 490], text: 经 V 投影, size: 13 }
-  - { at: [450, 530], text: 主缓存每位置 512 维 BF16；索引缓存与尾状态另计, anchor: middle, size: 13 }
-
-
-
+  - { from: [720, 100], to: [726, 100], dashed: true, ends: none }
+  - { from: [240, 130], to: [170, 180], via: [[240, 155], [170, 155]] }
+  - { from: [440, 130], to: [440, 180] }
+  - { from: [570, 210], to: [580, 210] }
+  - { from: [170, 240], to: [170, 280] }
+  - { from: [440, 240], to: [440, 280] }
+  - { from: [710, 240], to: [710, 280] }
+  - { from: [170, 340], to: [170, 390] }
+  - { from: [440, 340], to: [440, 390] }
+  - { from: [710, 340], to: [710, 390] }
+  - { from: [440, 450], to: [440, 490] }
+  - { from: [440, 550], to: [440, 590] }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1900-L1963
+    symbols: [fused_qkv_a_proj, q_b_proj, kv_a_proj_with_mqa, kv_b_proj, o_proj]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L744-L788
+    symbols: [exec_kv, npu_rms_norm, npu_interleave_rope]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1349-L1361
+    symbols: [_q_proj_and_k_up_proj, W_UK_T]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
+    symbols: [_execute_sparse_flash_attention_process, execute_sparse_attention_indexer_kpool_mla]
+  - source: vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
+    symbols: [execute_sparse_attention_indexer_kpool_mla, npu_sparse_flash_attention]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L776-L793
+    symbols: [W_UK_T, W_UV]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028
+    symbols: [_v_up_proj, o_proj]

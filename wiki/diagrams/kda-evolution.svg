@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="四种递推形式的机制对照：都维护矩阵状态；Delta 更新修正键对应的预测误差，GDN 增加每头统一衰减，KDA 允许 key 通道分别衰减。格子表示状态通道，不是测量值">
-  <title>四种递推形式的机制对照：都维护矩阵状态；Delta 更新修正键对应的预测误差，GDN 增加每头统一衰减，KDA 允许 key 通道分别衰减。格子表示状态通道，不是测量值</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="四种递推形式的机制对照：都维护一个矩阵状态。累加式直接加入新的键值关联；DeltaNet 改成按当前键的预测误差修正，误差用写入前的状态算；Gated DeltaNet 在修正前先按每头一个系数衰减旧状态；KDA 把衰减细化到每个 key 通道。格子表示状态通道，不是测量值。">
+  <title>四种递推形式的机制对照：都维护一个矩阵状态。累加式直接加入新的键值关联；DeltaNet 改成按当前键的预测误差修正，误差用写入前的状态算；Gated DeltaNet 在修正前先按每头一个系数衰减旧状态；KDA 把衰减细化到每个 key 通道。格子表示状态通道，不是测量值。</title>
   <defs><marker id="kda-evolution-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
   <path d="M190 210 L250 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
   <path d="M405 210 L465 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#kda-evolution-ah-control)"/>
@@ -7,27 +7,25 @@
   <rect x="60" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <path d="M88.8 150v115M117.5 150v115M146.3 150v115M60 178.8h115M60 207.5h115M60 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="117.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">状态 S</text>
+  <text x="117.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">无显式衰减</text>
   <rect x="275" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <path d="M303.8 150v115M332.5 150v115M361.3 150v115M275 178.8h115M275 207.5h115M275 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="332.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">状态 S</text>
+  <text x="332.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">无显式衰减</text>
   <rect x="490" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <path d="M518.8 150v115M547.5 150v115M576.3 150v115M490 178.8h115M490 207.5h115M490 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="547.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">α S</text>
+  <text x="547.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">所有行乘同一 α</text>
   <rect x="705" y="150" width="115" height="115" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <path d="M733.8 150v115M762.5 150v115M791.3 150v115M705 178.8h115M705 207.5h115M705 236.3h115" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="762.5" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">D S</text>
+  <text x="762.5" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">各行乘 α₁…α₄</text>
   <text x="117" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">累加式</text>
   <text x="332" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">DeltaNet</text>
   <text x="547" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Gated DeltaNet</text>
   <text x="762" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">KDA</text>
-  <text x="117" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">无显式衰减</text>
-  <text x="332" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">无显式衰减</text>
-  <text x="547" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">所有行乘同一 α</text>
-  <text x="762" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各行乘 α₁…α₄</text>
-  <text x="117" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ k vᵀ</text>
-  <text x="332" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
-  <text x="547" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
-  <text x="762" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
-  <text x="117" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">直接加入新关联</text>
-  <text x="547" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">e 使用写入前状态；有遗忘门时先衰减</text>
+  <text x="117" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ k vᵀ</text>
+  <text x="332" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
+  <text x="547" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
+  <text x="762" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">＋ β k eᵀ</text>
 </svg>

@@ -8,7 +8,7 @@ frames:
   - { at: [24, 573], size: [832, 208], label: EngineCore · CPU 上的有效进度 }
 items:
   - { at: [150, 60], size: [580, 68], text: A2 · 给本步和候选保留槽位, sub: 块号随调度计划送给 Worker, tone: kv }
-  - { at: [150, 230], size: [580, 56], text: A3 · 把块号转成设备可用的地址与状态索引, sub: 缓存张量已在启动时分配, style: plain }
+  - { at: [150, 230], size: [580, 56], text: A3 · 把块号换算成槽位与状态索引, sub: 1 个 640 格逻辑块交给算子时看成 5 个 128 格 kernel 块；缓存张量启动时已建好, style: plain }
   - { at: [70, 329], size: [335, 70], text: A4 · 走到 MLA 层, sub: 追加主历史和索引，更新尾状态, tone: kv }
   - { at: [475, 329], size: [335, 70], text: A4 · 走到 KDA 层, sub: 读写递推矩阵与近期卷积状态, tone: kv }
   - { at: [150, 447], size: [580, 56], text: 继续逐层前向 → A5 采样与候选处理, sub: 把确定的输出与接受信息返回引擎, tone: control }

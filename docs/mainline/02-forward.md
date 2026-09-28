@@ -89,7 +89,7 @@
 | 0, 1, 2 | KDA | 稠密（12288） | A4-2 |
 | 3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43 | 稀疏 MLA + 索引器 | MoE | A4-4 + A4-5 |
 | 其余 31 层（4–6, 8–10, …, 44） | KDA | MoE | A4-3 + A4-5 |
-| — | — | — | A4-6 最终 norm → 折叠四路残差 → lm_head |
+| — | — | — | A4-6 折叠四路残差（第 44 层末尾四路求平均）→ 最终 norm → lm_head |
 
 `[C]` 层的装配：`va:vllm_ascend/models/glm5_next.py#L2080-L2127`（KDA 还是 MLA 看 `_is_kda_layer`，稠密还是 MoE 看 `mlp_layer_types[layer_idx]`）。模型主循环：`va:.../glm5_next.py#L2293-L2319`。
 
@@ -210,7 +210,7 @@ comb        = Sinkhorn(softmax(scale2*comb + base_comb))   # [T, 4, 4]，20 轮�
 
 ### 3.1 做了什么
 
-一个标准的 SwiGLU 前馈网络：把 4096 维升到 12288 维两份（gate 和 up），做 `silu(gate)*up` 并夹到 ±10，再降回 4096 维。TP8 下 12288 这一维被切成 8 份，最后一次 All-Reduce 把 8 份部分和加起来。
+一个标准的 SwiGLU 前馈网络：把 4096 维升到 12288 维两份（gate 和 up），先在 SiLU 之前限幅——gate 只限上界（≤ 10，下界不限），up 限到 [−10, 10]——再做 `silu(gate)*up`，乘积本身不再截断（`va:vllm_ascend/ops/activation.py#L46-L54`，上游 `vllm/model_executor/layers/activation.py#L179-L183` 写法相同），再降回 4096 维。TP8 下 12288 这一维被切成 8 份，最后一次 All-Reduce 把 8 份部分和加起来。
 
 ### 3.2 怎么走的
 
@@ -1115,3 +1115,10 @@ finalize TP8 All-Gather： 每卡发 8 行 × 4096 × 2 B = 65,536 B = 64 KiB
 |---|---|---|
 | 三页流程图报告 P1-1：§5 的索引器依据误指单测参考方法 | 已改 | 按 `db701c1f` 的 `forward_ascend` → `ops` → triton 运行路径重写 §5.3–5.4 的出处，池分确定为头加权查询与池 K 的点积；压池、选池、展开、固定补尾均落到运行算子。删除 decode 使用 `npu_lightning_indexer` 的错误说明；§5.4–5.5 同步区分 2051 上界与实际尾部长度，133120 位置的例子实际读 2048 条，R1 在 8 个位置时有 2 个完整池。显存预算与权重合计不变。 |
 | 2026-09-27 C3 复审：§5.5 与全文推理路径复核 | 已改 | §5.5 改引 GLM 专用重写 → A2 `BaseDeviceAdaptor` → `npu_sparse_flash_attention` / `aclnnSparseFlashAttention`，明确 PyTorch chunk=16 仅属单测；§5.2、§5.11、§10 确认融合前处理关闭，§5.9 补清逐 query 的因果尾部。全文 grep 并追踪调用后，另将 §6.5–6.8 误引的非 v0.23 MoE 分支替换为 `fused_moe_0_23_0.py`，纠正归约实际由自定义算子分支控制（覆盖 §12 旧 P2-1 的引用结论）；通信、权重、KV 容量数字不变，§5.5 数字仅为逻辑计算/数据量上界。六个主线页 grep 后仅改 `one-request.md` 的 MoE 来源及两行选位置说明，其余五页无须同步；源码静态核对，不代表 NPU 实测。 |
+
+### 12.6 追加修订（2026-09-28，据 `docs/mainline/review/pages/layers-and-hidden-review.md`「底稿 02 §1.1 的顺序」）
+
+| 意见 | 处理 | 说明 |
+|---|---|---|
+| §1.1 层表最后一行「最终 norm → 折叠四路残差」顺序写反 | 已改（只改 L92 一处） | `va:.../glm5_next.py#L2237-L2239` 在第 44 层 forward 末尾把四路求平均折回 [T, 4096]，主循环结束后 `#L2318` 才做最终 RMSNorm，再到 `compute_logits`（`#L2515-L2517`）。改为「折叠四路残差（第 44 层末尾四路求平均）→ 最终 norm → lm_head」。§7、§9 顺序本来就对；数字无变更。 |
+| 2026-09-28 据 `docs/mainline/review/pages/mlp-residual-norm-review.md`「P5 审查」3.1：§3.1「`silu(gate)*up` 并夹到 ±10」不准确 | 已改（只改 L213 一处） | 源码在 SiLU 之前限幅：gate 只限上界 ≤ 10，up 限到 [−10, 10]，乘积不再截断（`va:vllm_ascend/ops/activation.py#L46-L54`，截断在 L51–L52；上游 `vllm/model_executor/layers/activation.py#L179-L183` 相同）。数字不变；静态读码，未做 NPU 实测。 |

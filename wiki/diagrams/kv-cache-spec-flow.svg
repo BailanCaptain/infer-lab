@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" width="900" height="430" role="img" aria-label="GLM 双机每台机器启动时走一遍上两排：配置检查先把逻辑块定成 640，各卡报规格，引擎对齐成两档页、编成 5 个组，量完显存算出块数，把块大小字段回写成各组最小值；各卡再按规划申请显存，把 MLA 页看成 5 个 kernel 块；最后引擎建调度器，调度粒度取各组块大小的最小公倍数。虚线框是另一条分支：不是 GLM 的混合模型走通用对齐；打开前缀缓存时另算哈希粒度。下排是之后每条请求都要走的站点，它们只读这里定下的组和页。">
+  <title>GLM 双机每台机器启动时走一遍上两排：配置检查先把逻辑块定成 640，各卡报规格，引擎对齐成两档页、编成 5 个组，量完显存算出块数，把块大小字段回写成各组最小值；各卡再按规划申请显存，把 MLA 页看成 5 个 kernel 块；最后引擎建调度器，调度粒度取各组块大小的最小公倍数。虚线框是另一条分支：不是 GLM 的混合模型走通用对齐；打开前缀缓存时另算哈希粒度。下排是之后每条请求都要走的站点，它们只读这里定下的组和页。</title>
+  <defs><marker id="kv-cache-spec-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="kv-cache-spec-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="kv-cache-spec-flow-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M24 324 L876 324" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="24" y="314" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">启动时走一次</text>
+  <text x="24" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">每条请求都走</text>
+  <path d="M174 70 L194 70" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M366 70 L386 70" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M536 70 L556 70" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M706 70 L726 70" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M99 100 L99 138 L194 138" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M801 100 L801 180" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M726 210 L706 210" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M556 210 L536 210" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M386 210 L366 210" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M194 210 L174 210" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M99 240 L99 258" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#kv-cache-spec-flow-ah-ink)"/>
+  <path d="M250 240 L250 350" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#kv-cache-spec-flow-ah-kv)"/>
+  <path d="M274 379 L314 379" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-token)"/>
+  <path d="M564 379 L604 379" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#kv-cache-spec-flow-ah-token)"/>
+  <rect x="24" y="40" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="99" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">配置检查</text>
+  <text x="99" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">块大小默认 16</text>
+  <rect x="194" y="40" width="172" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="280" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GLM 补丁定逻辑块</text>
+  <text x="280" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">大页装下 KDA → 640</text>
+  <rect x="386" y="40" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="461" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每张卡报规格</text>
+  <text x="461" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">四类状态各一份</text>
+  <rect x="556" y="40" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="631" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">对齐两档页</text>
+  <text x="631" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">大页 / 小页</text>
+  <rect x="726" y="40" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="801" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">编成 5 个组</text>
+  <text x="801" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">full、尾状态、KDA</text>
+  <rect x="194" y="118" width="172" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="280" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">其他混合模型：通用对齐</text>
+  <rect x="726" y="180" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="801" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">量显存算块数</text>
+  <text x="801" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">8 张卡取最小值</text>
+  <rect x="556" y="180" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="631" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">回写块大小字段</text>
+  <text x="631" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">改成各组最小值 4</text>
+  <rect x="386" y="180" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="461" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按规划申请显存</text>
+  <text x="461" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">原始字节，不拆 K、V</text>
+  <rect x="194" y="180" width="172" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="280" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">MLA 页切 kernel 块</text>
+  <text x="280" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">1 个逻辑块 = 5 块</text>
+  <rect x="24" y="180" width="150" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="99" y="206" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建调度器</text>
+  <text x="99" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">粒度取各组的 lcm</text>
+  <rect x="24" y="258" width="190" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="119" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">开前缀缓存：另算哈希粒度</text>
+  <rect x="24" y="350" width="250" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 2 站 调度</text>
+  <text x="149" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每组按自己的块大小发块号</text>
+  <rect x="314" y="350" width="250" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="439" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 3 站 准备输入</text>
+  <text x="439" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">逻辑块号展开成 kernel 块号</text>
+  <rect x="604" y="350" width="272" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="740" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 4 站 逐层前向</text>
+  <text x="740" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">算子按块号找到每层的页</text>
+</svg>

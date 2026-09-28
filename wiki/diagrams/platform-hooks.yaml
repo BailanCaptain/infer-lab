@@ -1,19 +1,43 @@
 layout: figure
 id: platform-hooks
-caption: 上游按共同契约提问，当前平台返回设备属性、配置处理结果或实现路径；箭头表示接口调用与回答
-size: [880, 300]
+caption: 同一组问题，两种设备各给一列答案：上游调用点只管提问，当前平台在启动时被选中一个，换设备只换右边这一列。浅框内是同一组方法，不是调用路上的一站
+size: [880, 400]
 items:
-  - { at: [30, 75], size: [220, 90], text: 上游调用方, sub: 构造配置与执行组件, tone: control }
-  - { at: [330, 75], size: [220, 90], text: 平台接口契约, sub: 约定输入、输出与副作用, tone: control }
-  - { at: [630, 75], size: [220, 90], text: 当前平台实现, sub: 按设备回答与选择, tone: control }
+  - { at: [24, 44], size: [176, 64], text: 上游调用点, sub: 构造配置与建组件, tone: control, style: plain }
+  - { at: [268, 44], size: [196, 64], text: 当前平台, sub: 启动时选中一个实现, tone: control }
+  - { at: [268, 168], size: [270, 40], text: CUDA 平台, tone: control, style: plain }
+  - { at: [562, 168], size: [270, 40], text: NPUPlatform, tone: control }
+frames:
+  - { at: [24, 150], size: [832, 216], label: 同一组方法：契约由基类定义 }
+layers:
+  - at: [268, 218]
+    width: 270
+    h: 40
+    gap: 8
+    bands:
+      - { text: cuda, tone: control, style: plain }
+      - { text: 上游 GPU Worker, tone: control, style: plain }
+      - { text: CudaCommunicator, tone: control, style: plain }
+  - at: [562, 218]
+    width: 270
+    h: 40
+    gap: 8
+    bands:
+      - { text: npu, tone: control, style: solid }
+      - { text: NPUWorker, tone: control, style: solid }
+      - { text: NPUCommunicator, tone: control, style: solid }
 links:
-  - { from: [250, 98], to: [330, 98], tone: control }
-  - { from: [550, 98], to: [630, 98], tone: control }
-  - { from: [630, 145], to: [550, 145], tone: control }
-  - { from: [330, 145], to: [250, 145], tone: control }
+  - { from: [200, 76], to: [268, 76], tone: control }
+  - { from: [464, 76], to: [697, 168], via: [[520, 76], [520, 128], [697, 128]], tone: control }
 texts:
-  - { at: [30, 32], text: 设备属性？配置能否使用？选哪套执行实现？ }
-  - { at: [30, 217], text: 回答：属性值 ／ 调整配置或报错 ／ 实现路径 }
-  - { at: [30, 267], text: 这些箭头传递调用与结果，矩阵计算由后续执行组件完成, note: true }
+  - { at: [24, 28], text: 提问的一侧, strong: true }
+  - { at: [531, 62], text: 换一种设备只换右边这一列 }
+  - { at: [531, 86], text: 上游的提问与调用代码不改, note: true }
+  - { at: [44, 196], text: 上游问的三件事, strong: true }
+  - { at: [44, 243], text: 设备类型？ }
+  - { at: [44, 291], text: 自动选哪个 Worker 类？ }
+  - { at: [44, 339], text: 用哪个设备通信器类？ }
+  - { at: [24, 388], text: 通信后端名不在这一层, note: true }
 pins:
-  - { source: 'vllm@0fc695fc:vllm/platforms/interface.py#L428-L468', symbols: [Platform, pre_register_and_update, check_and_update_config] }
+  - { source: 'vllm@0fc695fc:vllm/platforms/__init__.py#L203-L252', symbols: [current_platform, resolve_current_platform_cls_qualname] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L128-L204', symbols: [NPUPlatform] }

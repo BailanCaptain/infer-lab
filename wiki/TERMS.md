@@ -28,7 +28,7 @@
 | 头维度 | head dim、head_size | 一个注意力头的查询、键或值向量长度，具体维度需分别说明。 | attention-qkv | 不能默认 QK 与 V 维度始终相等。 |
 | causal mask | 因果掩码 | 限制当前位置只能使用当前及更早输入位置，屏蔽未来位置。 | attention-qkv | 与结构化输出的文法掩码分开。 |
 | MLP | FFN、前馈网络 | 对每个位置独立施加的前馈变换，常含维度扩张、非线性与输出投影。 | mlp-residual-norm | 带门控的 FFN 与普通两投影 FFN 分别解释。 |
-| residual | 残差、残差连接 | 将子层输入通过恒等路径与子层输出相加。 | mlp-residual-norm | 多路连接的扩展见同页，不把 mHC 当普通相加。 |
+| residual | 残差、残差连接 | 将子层输入通过恒等路径与子层输出相加。 | mlp-residual-norm | 多路连接（mHC）见 layers-and-hidden，不把 mHC 当普通相加。 |
 | RMSNorm | 均方根归一化 | 根据输入的均方根进行缩放，再应用可学习的增益。 | mlp-residual-norm | LayerNorm 会减去均值，是另一种归一化。 |
 | MoE | 混合专家、Mixture of Experts | 用多个专家与路由机制组织前馈计算，稀疏 MoE 让每个输入位置选择部分专家。 | moe | 共享专家和路由专家分别计数。 |
 | expert | 专家 | MoE 中执行特定前馈变换的模块；输入是否经过它由专家类型与路由决定。 | moe | 具体数量只在对应模型页定义。 |
@@ -45,7 +45,7 @@
 | DeltaNet | delta rule | 按当前值与状态读出之间的误差修正矩阵状态的递推注意力机制。 | linear-attention | 它与加性线性注意力的更新形式不同。 |
 | Gated DeltaNet | GDN | 在 delta 更新中引入遗忘门，以调节历史保留。 | linear-attention | GLM 的具体 KDA 路径另有按通道衰减。 |
 | KDA | Kimi Delta Attention | 采用按通道遗忘的 delta 更新注意力机制。 | linear-attention | 说明基础与数学变化，不把概念对照擅写成发明史。 |
-| mHC | Manifold-Constrained Hyper-Connections | 约束多路残差连接的混合与写回方式。 | mlp-residual-norm | 模型采用与否、路数和权重见对应模型页。 |
+| mHC | Manifold-Constrained Hyper-Connections | 约束多路残差连接的混合与写回方式。 | layers-and-hidden | 路数、Sinkhorn 与代价只在对应页面讲。 |
 
 ### 二、推理框架
 

@@ -1,212 +1,25 @@
-{
-  "size": [
-    900,
-    570
-  ],
-  "caption": "四设备教学网格：DP=2、TP=2、PCP=PP=1，EP 开启；分组表示逻辑成员，不表示物理布线",
-  "frames": [
-    {
-      "at": [
-        50,
-        60
-      ],
-      "size": [
-        800,
-        195
-      ],
-      "label": "DP 副本 0 · TP 组 {0,1}"
-    },
-    {
-      "at": [
-        50,
-        315
-      ],
-      "size": [
-        800,
-        195
-      ],
-      "label": "DP 副本 1 · TP 组 {2,3}"
-    }
-  ],
-  "hardware": [
-    {
-      "kind": "chip",
-      "at": [
-        165,
-        100
-      ],
-      "size": [
-        120,
-        95
-      ],
-      "label": "rank 0"
-    },
-    {
-      "kind": "chip",
-      "at": [
-        615,
-        100
-      ],
-      "size": [
-        120,
-        95
-      ],
-      "label": "rank 1"
-    },
-    {
-      "kind": "chip",
-      "at": [
-        165,
-        355
-      ],
-      "size": [
-        120,
-        95
-      ],
-      "label": "rank 2"
-    },
-    {
-      "kind": "chip",
-      "at": [
-        615,
-        355
-      ],
-      "size": [
-        120,
-        95
-      ],
-      "label": "rank 3"
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        330,
-        121
-      ],
-      "size": [
-        240,
-        48
-      ],
-      "text": "同一批次的 TP 分片",
-      "tone": "token"
-    },
-    {
-      "at": [
-        330,
-        376
-      ],
-      "size": [
-        240,
-        48
-      ],
-      "text": "另一批次的 TP 分片",
-      "tone": "token"
-    }
-  ],
-  "links": [
-    {
-      "to": [
-        330,
-        145
-      ],
-      "tone": "token",
-      "from": [
-        285,
-        145
-      ],
-      "ends": "none"
-    },
-    {
-      "to": [
-        615,
-        145
-      ],
-      "tone": "token",
-      "from": [
-        570,
-        145
-      ],
-      "ends": "none"
-    },
-    {
-      "to": [
-        330,
-        400
-      ],
-      "tone": "token",
-      "from": [
-        285,
-        400
-      ],
-      "ends": "none"
-    },
-    {
-      "to": [
-        615,
-        400
-      ],
-      "tone": "token",
-      "from": [
-        570,
-        400
-      ],
-      "ends": "none"
-    },
-    {
-      "to": [
-        225,
-        355
-      ],
-      "tone": "comm",
-      "ends": "none",
-      "from": [
-        225,
-        195
-      ]
-    },
-    {
-      "to": [
-        675,
-        355
-      ],
-      "tone": "comm",
-      "ends": "none",
-      "from": [
-        675,
-        195
-      ]
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        200,
-        285
-      ],
-      "text": "DP 组 {0,2}",
-      "anchor": "end",
-      "tone": "comm"
-    },
-    {
-      "at": [
-        650,
-        285
-      ],
-      "text": "DP 组 {1,3}",
-      "anchor": "end",
-      "tone": "comm"
-    },
-    {
-      "at": [
-        450,
-        548
-      ],
-      "text": "EP 组 {0,1,2,3} · 跨副本专家协作",
-      "anchor": "middle",
-      "tone": "weight"
-    }
-  ],
-  "layout": "figure",
-  "id": "dp-ep-groups"
-}
+layout: figure
+id: dp-ep-groups
+caption: 用 4 张卡示意 DP2 × TP2 并开启 EP。同一框里的两张卡是一个 DP 执行组，也是一个 TP 组，负责本组请求的 attention 和稠密层；两组里 TP 位置相同的卡配成一个 DP 通信组，每步在这里对齐宽度；EP 组覆盖全部 4 张卡，专家分在这 4 张卡上。分组表示逻辑成员，不表示物理布线；不是 4 份完整模型。
+size: [900, 470]
+frames:
+  - { at: [40, 50], size: [380, 206], label: 'DP 执行组 0 · TP 组 {0,1}' }
+  - { at: [480, 50], size: [380, 206], label: 'DP 执行组 1 · TP 组 {2,3}' }
+items:
+  - { at: [60, 84], size: [340, 50], text: 组 0 请求的 attention、稠密层, sub: 两张卡用 TP 合作, style: plain }
+  - { at: [60, 162], size: [160, 64], text: rank 0, sub: 持有 1/4 的专家, tone: weight }
+  - { at: [240, 162], size: [160, 64], text: rank 1, sub: 持有 1/4 的专家, tone: weight }
+  - { at: [500, 84], size: [340, 50], text: 组 1 请求的 attention、稠密层, sub: 两张卡用 TP 合作, style: plain }
+  - { at: [500, 162], size: [160, 64], text: rank 2, sub: 持有 1/4 的专家, tone: weight }
+  - { at: [680, 162], size: [160, 64], text: rank 3, sub: 持有 1/4 的专家, tone: weight }
+  - { at: [40, 296], size: [390, 52], text: 'DP 通信组 {0,2}', sub: 每步对齐 token 数与图模式, tone: comm }
+  - { at: [470, 296], size: [390, 52], text: 'DP 通信组 {1,3}', sub: 每步对齐 token 数与图模式, tone: comm }
+  - { at: [40, 378], size: [820, 56], text: 'EP 组 {0,1,2,3}', sub: 两个执行组的 token 一起 dispatch 到专家所在的卡，再 combine 回来, tone: comm }
+texts:
+  - { at: [450, 18], text: '4 张卡 · DP2 × TP2 · 开 EP', anchor: middle, strong: true }
+  - { at: [450, 456], text: 'GLM：8 个 DP 通信组、1 个 16 卡 EP 组', anchor: middle, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875
+    symbols: [_DP, _EP, data_parallel_size, tensor_model_parallel_size]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1155-L1168
+    symbols: [use_ep, dp_size_, tp_size_]

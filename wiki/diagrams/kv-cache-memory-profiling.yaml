@@ -1,26 +1,63 @@
 layout: figure
 id: kv-cache-memory-profiling
-caption: 假设设备总内存64 GiB，使用比例0.9；缓存预算等于57.6 GiB减去36 GiB非缓存用量，图捕获的额外需求尚需评估
-size: [900, 270]
-texts:
-  - {at: [50, 48], text: "教学假设 · 单位 GiB", strong: true}
-  - {at: [433, 84], text: 激活, anchor: middle}
-  - {at: [469, 63], text: 其他, anchor: middle}
-  - {at: [779, 84], text: 份额外, anchor: middle}
-  - {at: [50, 244], text: "图捕获和运行峰值仍需留足空间；缓存预算不是全部空闲内存", note: true}
+caption: 一张卡的显存怎样一层层扣出 KV cache 的份额：先按总显存 × 显存比例定预算，再扣装权重时量到的占用、profile run 量到的激活峰值、用快照差量出的非 torch 增量（HCCL 缓冲属于这一项），余下的按每块字节数切成 KV 块。decode 图和后来才创建的缓冲在切完 KV 之后才出现，从预算外那一段支付。各段长短只示意先后与归属，不是实测比例。
+size: [900, 470]
 bars:
-  - at: [50, 100]
-    h: 48
-    scale: 12
-    frame: {value: 64, tone: ink}
+  - at: [164, 66]
+    h: 34
+    scale: 11
+    frame: { value: 64, label: 一张卡的总显存, tone: ink }
     segments:
-      - {value: 30, tone: weight, text: 权重 30}
-      - {value: 4, tone: token, text: "4"}
-      - {value: 2, tone: control, text: "2"}
-      - {value: 21.6, tone: kv, text: 缓存预算 21.6}
-      - {value: 6.4, tone: control, style: hatch, text: "6.4"}
+      - { value: 54.4, tone: control, text: 预算 = 总显存 × 显存比例 }
+      - { value: 9.6, tone: control, style: hatch, text: 预算外 }
+  - at: [164, 146]
+    h: 34
+    scale: 11
+    frame: { value: 54.4, tone: kv }
+    segments:
+      - { value: 21, tone: weight, text: 权重 }
+  - at: [164, 226]
+    h: 34
+    scale: 11
+    frame: { value: 54.4, tone: kv }
+    segments:
+      - { value: 21, tone: weight, text: 权重 }
+      - { value: 2, tone: token }
+  - at: [164, 306]
+    h: 34
+    scale: 11
+    frame: { value: 54.4, tone: kv }
+    segments:
+      - { value: 21, tone: weight, text: 权重 }
+      - { value: 2, tone: token }
+      - { value: 1.4, tone: comm }
+      - { value: 30, tone: kv, text: KV cache 的份额 }
+      - { value: 9.6, tone: control, style: hatch }
+badges:
+  - { at: [26, 83], n: 1, tone: control }
+  - { at: [26, 163], n: 2, tone: weight }
+  - { at: [26, 243], n: 3, tone: token }
+  - { at: [26, 323], n: 4, tone: comm }
+links:
+  - { from: [26, 96], to: [26, 150], tone: control }
+  - { from: [26, 176], to: [26, 230], tone: control }
+  - { from: [26, 256], to: [26, 310], tone: control }
+  - { from: [597, 346], to: [597, 400], tone: kv }
+items:
+  - { at: [482, 400], size: [230, 52], text: 切成 KV 块, sub: 块数 = 份额 ÷ 每块字节, tone: kv }
 brackets:
-  - {from: 50, to: 741.2, y: 180, label: "请求份额：64 × 0.9 = 57.6 GiB"}
+  - { from: 417, to: 432.4, y: 348, label: 非 torch 增量（HCCL 缓冲等） }
+  - { from: 762.4, to: 868, y: 348, label: 切完 KV 才占：录图等 }
+texts:
+  - { at: [450, 26], text: 预算先定下来，再一项项扣，剩下的切成 KV cache, anchor: middle, strong: true }
+  - { at: [46, 88], text: 定预算 }
+  - { at: [46, 168], text: 扣权重 }
+  - { at: [46, 248], text: 扣激活峰值 }
+  - { at: [46, 328], text: 扣非 torch 增量 }
+  - { at: [412, 168], text: 装权重时量：加载前后的占用差 }
+  - { at: [434, 248], text: 激活峰值：试跑最大批量时的最高点 }
 pins:
   - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
-    symbols: [determine_available_memory]
+    symbols: [determine_available_memory, memory_profiling]
+  - source: vllm@0fc695fc:vllm/utils/mem_utils.py#L263-L268
+    symbols: [non_torch_increase, before_create]

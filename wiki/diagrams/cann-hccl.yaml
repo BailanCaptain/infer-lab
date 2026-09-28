@@ -1,10 +1,12 @@
 layout: figure
 id: cann-hccl
-caption: 两张卡共同发起求和；框架提交请求，HCCL 组织收发与归约，物理链路搬运数据，再把就绪结果交回计算
-size: [860, 420]
+caption: 两张卡共同发起求和：框架把请求交给 CANN 里的 HCCL，HCCL 组织收发与归约，物理链路搬运数据，结果就绪后交回计算
+size: [860, 390]
 frames:
   - { at: [30, 30], size: [300, 338], label: '参与者 rank 0', inside: true }
   - { at: [530, 30], size: [300, 338], label: '参与者 rank 1', inside: true }
+  - { at: [45, 165], size: [270, 85], label: CANN }
+  - { at: [545, 165], size: [270, 85], label: CANN }
 items:
   - { at: [55, 75], size: [250, 55], text: 框架的通信请求, sub: 张量 · 同一组 · 求和, tone: control }
   - { at: [555, 75], size: [250, 55], text: 框架的通信请求, sub: 张量 · 同一组 · 求和, tone: control }
@@ -14,13 +16,17 @@ hardware:
   - { kind: chip, at: [125, 280], size: [110, 65], label: 卡 0 }
   - { kind: chip, at: [625, 280], size: [110, 65], label: 卡 1 }
 links:
-  - { from: [180, 130], to: [180, 182], ends: both, tone: comm }
-  - { from: [680, 130], to: [680, 182], ends: both, tone: comm }
-  - { from: [180, 237], to: [180, 280], ends: both, tone: comm }
-  - { from: [680, 237], to: [680, 280], ends: both, tone: comm }
+  - { from: [150, 130], to: [150, 182], ends: end, tone: comm }
+  - { from: [650, 130], to: [650, 182], ends: end, tone: comm }
+  - { from: [150, 237], to: [150, 280], ends: end, tone: comm }
+  - { from: [650, 237], to: [650, 280], ends: end, tone: comm }
+  - { from: [210, 280], to: [210, 237], ends: end, tone: comm, dashed: true }
+  - { from: [710, 280], to: [710, 237], ends: end, tone: comm, dashed: true }
+  - { from: [210, 182], to: [210, 130], ends: end, tone: comm, dashed: true }
+  - { from: [710, 182], to: [710, 130], ends: end, tone: comm, dashed: true }
   - { from: [235, 313], to: [625, 313], ends: both, tone: comm }
 texts:
   - { at: [430, 102], text: All-Reduce(SUM), anchor: middle, tone: comm }
-  - { at: [430, 156], text: 请求向下 · 结果向上, anchor: middle, note: true }
+  - { at: [430, 200], text: 实线：交出请求, anchor: middle, note: true }
+  - { at: [430, 222], text: 虚线：交回结果, anchor: middle, note: true }
   - { at: [430, 295], text: 物理链路 · 交换数据, anchor: middle, tone: comm }
-  - { at: [430, 394], text: HCCL 属于 CANN；两侧参加同一操作，结果就绪后继续计算, anchor: middle, note: true }

@@ -1,34 +1,62 @@
 layout: figure
 id: rope
-caption: 固定旋转前的 q/k，取同向单位向量示意；每个位置旋转 20°，两组位置均相差 2，因此旋转后的夹角均为 40°，这不是 GLM 配置
-size: [900, 420]
+caption: 示意：只画 q、k 中的一对分量，每前进一个位置转 20°；虚线是旋转前的方向，实线是旋转后。两组位置都相差 2，夹角都是 70°，点积相同。每对分量的真实转速见下文；这不是 GLM 的配置，GLM 的 RoPE 维数为 0
+size: [900, 390]
 
 texts:
-  - { at: [230, 36], text: 位置 3 的 K · 位置 5 的 Q, strong: true, anchor: middle }
-  - { at: [670, 36], text: 位置 103 的 K · 位置 105 的 Q, strong: true, anchor: middle }
+  - { at: [150, 34], text: 旋转前：由内容算出, strong: true, anchor: middle }
+  - { at: [460, 34], text: k 在位置 3，q 在位置 5, strong: true, anchor: middle }
+  - { at: [770, 34], text: k 在位置 103，q 在位置 105, strong: true, anchor: middle }
+  - { at: [295, 180], text: 按位置转, size: 12, anchor: middle }
+  - { at: [605, 180], text: 都 +100, size: 12, anchor: middle }
+  - { at: [150, 358], text: 夹角 30°，由内容决定, anchor: middle }
+  - { at: [460, 358], text: k 转 60°，q 转 100°，夹角 70°, anchor: middle }
+  - { at: [770, 358], text: 各多转 2000°，夹角仍是 70°, anchor: middle }
+
+links:
+  - { from: [268, 190], to: [322, 190] }
+  - { from: [578, 190], to: [632, 190] }
 
 sketches:
   - name: rope-dial
-    note: 单个二维旋转平面，K 从水平轴转 60 度，Q 转 100 度，夹角 40 度
-    at: [40, 60]
-    size: [380, 340]
+    note: 旋转前，k 指向 20 度，q 指向 50 度，夹角 30 度
+    at: [20, 50]
+    size: [240, 280]
     shapes:
-      - { kind: circle, at: [190, 170], r: 120, tone: ink, style: outline }
-      - { kind: line, points: [[50, 170], [330, 170]], tone: ink, dashed: true }
-      - { kind: line, points: [[190, 170], [250, 66]], tone: kv, arrow: end }
-      - { kind: line, points: [[190, 170], [169, 52]], tone: token, arrow: end }
-      - { kind: text, at: [262, 64], text: K, strong: true, tone: kv }
-      - { kind: text, at: [156, 44], text: Q, strong: true, tone: token, anchor: end }
-      - { kind: text, at: [204, 100], text: 差 2 格, anchor: middle }
+      - { kind: circle, at: [130, 140], r: 95, tone: ink, style: outline }
+      - { kind: line, points: [[130, 140], [219, 108]], tone: kv, arrow: end }
+      - { kind: line, points: [[130, 140], [191, 67]], tone: token, arrow: end }
+      - { kind: curve, from: [168, 126], c1: [165, 120], c2: [161, 114], to: [156, 109], tone: ink }
+      - { kind: text, at: [228, 114], text: k, strong: true, tone: kv }
+      - { kind: text, at: [197, 60], text: q, strong: true, tone: token }
+      - { kind: text, at: [189, 103], text: 30°, size: small, anchor: middle }
   - name: rope-dial
-    note: 位置整体增加 100，K 转角等效为 260 度，Q 为 300 度，夹角仍为 40 度
-    at: [480, 60]
-    size: [380, 340]
+    note: k 在位置 3 转 60 度到 80 度，q 在位置 5 转 100 度到 150 度，夹角 70 度
+    at: [330, 50]
+    size: [240, 280]
     shapes:
-      - { kind: circle, at: [190, 170], r: 120, tone: ink, style: outline }
-      - { kind: line, points: [[50, 170], [330, 170]], tone: ink, dashed: true }
-      - { kind: line, points: [[190, 170], [169, 288]], tone: kv, arrow: end }
-      - { kind: line, points: [[190, 170], [250, 274]], tone: token, arrow: end }
-      - { kind: text, at: [156, 306], text: K, strong: true, tone: kv, anchor: end }
-      - { kind: text, at: [262, 292], text: Q, strong: true, tone: token }
-      - { kind: text, at: [204, 248], text: 差 2 格, anchor: middle }
+      - { kind: circle, at: [130, 140], r: 95, tone: ink, style: outline }
+      - { kind: line, points: [[130, 140], [219, 108]], tone: kv, dashed: true }
+      - { kind: line, points: [[130, 140], [191, 67]], tone: token, dashed: true }
+      - { kind: curve, from: [232, 103], c1: [218, 67], c2: [187, 40], to: [149, 34], tone: kv, arrow: end }
+      - { kind: curve, from: [175, 86], c1: [142, 58], c2: [91, 67], to: [69, 105], tone: token, arrow: end }
+      - { kind: line, points: [[130, 140], [146, 46]], tone: kv, arrow: end }
+      - { kind: line, points: [[130, 140], [48, 92]], tone: token, arrow: end }
+      - { kind: curve, from: [136, 106], c1: [122, 103], c2: [107, 110], to: [100, 123], tone: ink }
+      - { kind: text, at: [138, 44], text: k, strong: true, tone: kv, anchor: end }
+      - { kind: text, at: [40, 90], text: q, strong: true, tone: token, anchor: end }
+      - { kind: text, at: [108, 97], text: 70°, size: small, anchor: middle }
+  - name: rope-dial
+    note: 两个位置都加 100，k 指向 280 度，q 指向 350 度，夹角仍为 70 度
+    at: [640, 50]
+    size: [240, 280]
+    shapes:
+      - { kind: circle, at: [130, 140], r: 95, tone: ink, style: outline }
+      - { kind: line, points: [[130, 140], [219, 108]], tone: kv, dashed: true }
+      - { kind: line, points: [[130, 140], [191, 67]], tone: token, dashed: true }
+      - { kind: line, points: [[130, 140], [146, 234]], tone: kv, arrow: end }
+      - { kind: line, points: [[130, 140], [224, 156]], tone: token, arrow: end }
+      - { kind: curve, from: [136, 174], c1: [151, 172], c2: [162, 161], to: [164, 146], tone: ink }
+      - { kind: text, at: [154, 252], text: k, strong: true, tone: kv }
+      - { kind: text, at: [232, 164], text: q, strong: true, tone: token }
+      - { kind: text, at: [168, 190], text: 70°, size: small, anchor: middle }

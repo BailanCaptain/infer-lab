@@ -1,193 +1,49 @@
-{
-  "layout": "figure",
-  "id": "cpu-binding",
-  "caption": "亲和性限制线程可运行的逻辑 CPU 集合；NUMA 页位置是另一状态。图为拓扑示意，不代表服务器规格，也不保证绑核后全是本地访问。",
-  "size": [
-    900,
-    610
-  ],
-  "hardware": [
-    {
-      "kind": "server",
-      "at": [
-        35,
-        65
-      ],
-      "size": [
-        380,
-        305
-      ],
-      "label": "NUMA 域 0"
-    },
-    {
-      "kind": "server",
-      "at": [
-        485,
-        65
-      ],
-      "size": [
-        380,
-        305
-      ],
-      "label": "NUMA 域 1"
-    },
-    {
-      "kind": "memory",
-      "at": [
-        100,
-        265
-      ],
-      "size": [
-        235,
-        65
-      ],
-      "label": "本地主存"
-    },
-    {
-      "kind": "memory",
-      "at": [
-        560,
-        265
-      ],
-      "size": [
-        235,
-        65
-      ],
-      "label": "远端主存"
-    },
-    {
-      "kind": "chip",
-      "at": [
-        355,
-        455
-      ],
-      "size": [
-        190,
-        95
-      ],
-      "label": "NPU"
-    }
-  ],
-  "rows": [
-    {
-      "at": [
-        85,
-        132
-      ],
-      "count": 8,
-      "w": 30,
-      "h": 28,
-      "tone": "control",
-      "faded": [
-        4,
-        5,
-        6,
-        7
-      ]
-    },
-    {
-      "at": [
-        535,
-        132
-      ],
-      "count": 8,
-      "w": 30,
-      "h": 28,
-      "tone": "control",
-      "faded": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ]
-    }
-  ],
-  "brackets": [
-    {
-      "from": 85,
-      "to": 214,
-      "y": 181,
-      "label": "Worker 允许集合"
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        225,
-        235
-      ],
-      "text": "线程在允许集合内运行",
-      "anchor": "middle"
-    },
-    {
-      "at": [
-        680,
-        235
-      ],
-      "text": "其他逻辑 CPU",
-      "anchor": "middle"
-    },
-    {
-      "at": [
-        450,
-        399
-      ],
-      "text": "CPU 提交任务，NPU 执行模型计算",
-      "anchor": "middle"
-    },
-    {
-      "at": [
-        450,
-        590
-      ],
-      "text": "已有页可尝试迁移；亲和性不等于 CPU 独占或持久内存绑定。",
-      "anchor": "middle"
-    }
-  ],
-  "links": [
-    {
-      "from": [
-        217,
-        245
-      ],
-      "to": [
-        217,
-        265
-      ],
-      "tone": "kv"
-    },
-    {
-      "from": [
-        335,
-        298
-      ],
-      "to": [
-        560,
-        298
-      ],
-      "tone": "comm",
-      "ends": "both"
-    },
-    {
-      "from": [
-        170,
-        355
-      ],
-      "to": [
-        355,
-        495
-      ],
-      "via": [
-        [
-          170,
-          495
-        ]
-      ],
-      "tone": "control"
-    }
-  ]
-}
+layout: figure
+id: cpu-binding
+caption: 绑核先给这颗卡凑一个 CPU 池：拓扑亲和核与 cpuset 求交，若这些核都落在同一个 NUMA 节点里，就再把编号下一个节点里允许的核补进池，所以池通常横跨两个节点。再把池里的核按位置分角色：最前两个留给这颗 NPU 的中断，最后两个给 ACL 线程和 release 线程，中间归主线程。最后把进程已分配的页迁到池里编号最小的那个核所在的节点。图按亲和节点是节点 0、下一个节点是节点 1 画，核数是示意，不是服务器规格。
+size: [880, 420]
+frames:
+  - { label: NUMA 节点 0 · 这颗卡的亲和节点, at: [190, 56], size: [330, 300] }
+  - { label: NUMA 节点 1 · 编号下一个节点, at: [548, 56], size: [308, 300] }
+hardware:
+  - { kind: chip, at: [24, 150], size: [130, 90], label: NPU 0（本卡） }
+  - { kind: memory, at: [206, 270], size: [298, 74], label: 本地内存 · 页迁到这里 }
+  - { kind: memory, at: [566, 270], size: [274, 74], label: 下一个节点的内存 }
+items:
+  - { at: [206, 92], size: [122, 44], text: Worker 主线程, sub: 准备张量, tone: token }
+  - { at: [730, 140], size: [110, 34], text: ACL 线程, tone: token }
+  - { at: [730, 186], size: [110, 34], text: release 线程, tone: token }
+rows:
+  - { at: [348, 96], count: 4, w: 28, h: 28, tone: control }
+  - { at: [566, 96], count: 3, w: 28, h: 28, tone: control }
+  - { at: [348, 148], count: 2, w: 28, h: 28, tone: comm }
+  - { at: [566, 148], count: 2, w: 28, h: 28, tone: token }
+  - { at: [566, 220], count: 5, w: 28, h: 28, tone: control, faded: [0, 1, 2, 3, 4] }
+links:
+  - { from: [154, 178], to: [204, 178], tone: comm }
+  - { from: [328, 110], to: [348, 110], tone: token }
+  - { from: [488, 110], to: [564, 110], tone: control }
+  - { from: [638, 157], to: [728, 157], tone: token }
+  - { from: [610, 176], to: [728, 203], via: [[610, 203]], tone: token }
+  - { from: [267, 136], to: [267, 270], tone: kv, ends: both }
+  - { from: [508, 307], to: [564, 307], tone: comm, ends: both, dashed: true }
+texts:
+  - { at: [440, 26], text: 池 = 亲和核 ∩ cpuset ＋ 下一个节点的核, anchor: middle, strong: true }
+  - { at: [112, 88], text: 下发算子, size: 12 }
+  - { at: [89, 262], text: 拓扑给出亲和节点, size: 12, anchor: middle }
+  - { at: [348, 80], text: 主线程池（池的中段，横跨两节点）, size: 12 }
+  - { at: [348, 186], text: 这颗 NPU 的中断 · 池最前 2 核, size: 12 }
+  - { at: [566, 186], text: ACL / release · 池最后 2 核, size: 12 }
+  - { at: [566, 258], text: 不在 cpuset 里的核：不进池, size: 12 }
+  - { at: [272, 200], text: 迁页, size: 12 }
+tags:
+  - { at: [566, 372], text: 池最后两核在节点 1，它们访存仍跨节点, tone: danger }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L270-L282
+    symbols: [extend_numa]
+  - source: vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L562-L593
+    symbols: [_build_topo_affinity_cpu_pool, average_distribute]
+  - source: vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L606-L620
+    symbols: [_allocate_default_roles]
+  - source: vllm-ascend@db701c1f:vllm_ascend/cpu_binding.py#L643-L700
+    symbols: [bind_memory, migratepages]

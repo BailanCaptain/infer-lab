@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 700" width="880" height="700" role="img" aria-label="一层 KDA 在 GLM 专用实现里的先后与分支：投影和短卷积对所有位置一样，接下来按这一步要算的位置种类分三条路，算完拼回原来的行序，再过输出门控与输出投影，最后在 TP 组内归约一次。">
+  <title>一层 KDA 在 GLM 专用实现里的先后与分支：投影和短卷积对所有位置一样，接下来按这一步要算的位置种类分三条路，算完拼回原来的行序，再过输出门控与输出投影，最后在 TP 组内归约一次。</title>
+  <defs><marker id="linear-attention-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="linear-attention-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M440 62 L440 90" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M440 150 L440 178" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M440 234 L440 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M340 314 L340 336 L156 336 L156 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M440 314 L440 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M540 314 L540 336 L724 336 L724 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M156 432 L156 470 L340 470 L340 502" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M440 432 L440 502" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M724 432 L724 470 L540 470 L540 502" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M440 552 L440 572" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#linear-attention-flow-ah-ink)"/>
+  <path d="M440 622 L440 640" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#linear-attention-flow-ah-comm)"/>
+  <rect x="300" y="16" width="280" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本层输入：隐藏向量</text>
+  <text x="440" y="54" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步本卡要算的若干行</text>
+  <rect x="240" y="90" width="400" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">投影出 q、k、v 和三个控制量</text>
+  <text x="440" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">写入强度 β、遗忘门、输出门</text>
+  <rect x="280" y="178" width="320" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">短卷积：核长 4</text>
+  <text x="440" y="221" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读写本请求的卷积状态</text>
+  <rect x="240" y="262" width="400" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步要算的是哪种位置？</text>
+  <rect x="24" y="356" width="264" height="76" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="156" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">prefill：分段并行</text>
+  <text x="156" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每 64 个位置一段算完</text>
+  <rect x="308" y="356" width="264" height="76" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">decode：逐位置递推</text>
+  <text x="440" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">状态原地更新</text>
+  <rect x="592" y="356" width="264" height="76" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="724" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">投机候选：一轮多个位置</text>
+  <text x="724" y="409" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按接受数量推进</text>
+  <rect x="280" y="502" width="320" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="532" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">按原来的行序拼回一份输出</text>
+  <rect x="280" y="572" width="320" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="602" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输出门控与归一化 → 输出投影</text>
+  <rect x="300" y="640" width="280" height="46" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="668" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 归约一次 → 回残差流</text>
+  <text x="182" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">本轮的提示词片段</text>
+  <text x="452" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">只推进 1 个位置</text>
+  <text x="592" y="328" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)">带 3 个草稿位置</text>
+</svg>

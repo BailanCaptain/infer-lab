@@ -13,7 +13,7 @@
   <rect x="540" y="115" width="140" height="65" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
   <path d="M568 115v65M596 115v65M624 115v65M652 115v65M540 136.7h140M540 158.3h140" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
   <text x="610" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">权重 W</text>
-  <text x="390" y="123" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="#7a3a6a" text-anchor="middle">复制本卡所需部分</text>
+  <text x="390" y="123" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="#7a3a6a" text-anchor="middle">复制</text>
   <text x="825" y="132" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU</text>
   <text x="825" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">计算</text>
   <text x="170" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">主机账：源数据</text>

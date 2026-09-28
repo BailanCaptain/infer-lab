@@ -31,4 +31,5 @@
   <circle cx="49" cy="186" r="11" fill="var(--color-control, #66716d)"/><text x="49" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
   <circle cx="49" cy="296" r="11" fill="var(--color-control, #66716d)"/><text x="49" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
   <circle cx="49" cy="421" r="11" fill="var(--color-control, #66716d)"/><text x="49" y="426" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <circle cx="49" cy="541" r="11" fill="var(--color-kv, #4c65b6)"/><text x="49" y="546" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
 </svg>

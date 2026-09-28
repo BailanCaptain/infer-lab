@@ -1,0 +1,68 @@
+layout: figure
+id: mlp-residual-norm-flow
+caption: 第 4 站逐层前向里，一层怎样安排 RMSNorm、子层与 residual。主干 45 层走左栏：每个子层前后各一次 mHC 混合，四条流代替单条旁路；MTP 层走右栏：正是本页首图的单条 pre-norm 写法，旁路暂存输入、子层后直接相加；块外进块前、出块后另有 RMSNorm。底部展开前 3 层的稠密 MLP 在 TP8 下每卡的走法。
+size: [880, 1040]
+frames:
+  - { at: [24, 170], size: [500, 610], label: 主干 45 层 · 四条流（mHC） }
+  - { at: [548, 170], size: [308, 610], label: MTP 层 · 单条 residual }
+  - { at: [24, 900], size: [832, 120], label: 稠密 MLP 内部（第 0–2 层，TP8 每卡） }
+items:
+  - { at: [240, 16], size: [400, 50], text: 第 4 站 逐层前向 · 一层的计算, sub: 按层号选连接方式和 MLP 类型, style: plain }
+  - { at: [290, 96], size: [300, 40], text: 主干层还是 MTP 层？, style: plain }
+  - { at: [44, 200], size: [460, 44], text: 只在第 0 层：一条复制成四条, style: plain }
+  - { at: [44, 262], size: [460, 44], text: 入口混合：四条混成一条, style: plain }
+  - { at: [44, 324], size: [460, 44], text: 子层前 RMSNorm, tone: token }
+  - { at: [44, 386], size: [460, 44], text: 注意力：KDA 或稀疏 MLA, tone: weight }
+  - { at: [44, 448], size: [460, 44], text: 写回混合：结果写回四条, style: plain }
+  - { at: [44, 510], size: [460, 44], text: 入口混合 → 子层前 RMSNorm, tone: token }
+  - { at: [44, 572], size: [460, 52], text: MLP 子层, sub: 第 0–2 层稠密 MLP ｜ 第 3–44 层 MoE, tone: weight }
+  - { at: [44, 644], size: [460, 44], text: 写回混合：结果写回四条, style: plain }
+  - { at: [44, 706], size: [460, 44], text: 只在第 44 层：四条求平均, style: plain }
+  - { at: [44, 800], size: [460, 40], text: 层外：最终 RMSNorm → 输出投影, tone: token }
+  - { at: [568, 200], size: [268, 52], text: 旁路暂存输入 x, sub: '块外：两路各 RMSNorm 再拼接投影', style: plain }
+  - { at: [568, 262], size: [268, 44], text: 子层前 RMSNorm, tone: token }
+  - { at: [568, 324], size: [268, 44], text: 注意力：稀疏 MLA, tone: weight }
+  - { at: [568, 386], size: [268, 44], text: 相加：x + 注意力输出, style: plain }
+  - { at: [568, 448], size: [268, 44], text: 旁路暂存相加结果, style: plain }
+  - { at: [568, 510], size: [268, 44], text: 子层前 RMSNorm, tone: token }
+  - { at: [568, 572], size: [268, 52], text: MLP 子层：MoE, tone: weight }
+  - { at: [568, 644], size: [268, 44], text: 相加：旁路 + MLP 输出, style: plain }
+  - { at: [568, 706], size: [268, 44], text: 块外：RMSNorm → 词表投影, tone: token }
+  - { at: [44, 938], size: [180, 52], text: gate、up 合并投影, sub: '列切 · 本卡 [T,3072]', tone: weight }
+  - { at: [248, 938], size: [180, 52], text: 限幅 SwiGLU, sub: '本卡 [T,1536]', style: plain }
+  - { at: [452, 938], size: [180, 52], text: down 投影, sub: '行切 · 部分和 [T,4096]', tone: weight }
+  - { at: [656, 938], size: [180, 52], text: TP8 All-Reduce, sub: '合齐 [T,4096]', tone: comm }
+links:
+  - { from: [440, 66], to: [440, 96] }
+  - { from: [290, 116], to: [274, 200], via: [[274, 116]] }
+  - { from: [590, 116], to: [780, 200], via: [[780, 116]] }
+  - { from: [274, 244], to: [274, 262] }
+  - { from: [274, 306], to: [274, 324] }
+  - { from: [274, 368], to: [274, 386] }
+  - { from: [274, 430], to: [274, 448] }
+  - { from: [274, 492], to: [274, 510] }
+  - { from: [274, 554], to: [274, 572] }
+  - { from: [274, 624], to: [274, 644] }
+  - { from: [274, 688], to: [274, 706] }
+  - { from: [274, 750], to: [274, 800] }
+  - { from: [702, 252], to: [702, 262] }
+  - { from: [702, 306], to: [702, 324] }
+  - { from: [702, 368], to: [702, 386] }
+  - { from: [702, 430], to: [702, 448] }
+  - { from: [702, 492], to: [702, 510] }
+  - { from: [702, 554], to: [702, 572] }
+  - { from: [702, 624], to: [702, 644] }
+  - { from: [702, 688], to: [702, 706] }
+  - { from: [836, 222], to: [836, 408], via: [[850, 222], [850, 408]], tone: token }
+  - { from: [836, 470], to: [836, 666], via: [[850, 470], [850, 666]], tone: token }
+  - { from: [504, 598], to: [536, 900], via: [[536, 598]] }
+  - { from: [224, 964], to: [248, 964] }
+  - { from: [428, 964], to: [452, 964] }
+  - { from: [632, 964], to: [656, 964], tone: comm }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241
+    symbols: [hc_pre, hc_post, input_layernorm, post_attention_layernorm, is_mtp_layer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442
+    symbols: [gate_up_proj, act_fn, down_proj]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123
+    symbols: [enorm, hnorm, eh_proj, shared_head]

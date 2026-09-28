@@ -1,0 +1,37 @@
+layout: figure
+id: rope-glm
+caption: GLM 双机的一次前向里，位置编号怎样走到两类层：KDA 收下就丢弃；稀疏 MLA 构造时三项检查都不满足，主注意力和索引器都不建旋转模块。淡色框是本配置没有走的分支，只用来对照 DeepSeek 式 MLA
+size: [880, 560]
+items:
+  - { at: [250, 16], size: [380, 56], text: 位置编号：已算 token 数 + 本步序号, sub: R1 第一步是 0、1、2、3，传给每一层, tone: control }
+  - { at: [40, 120], size: [380, 56], text: 34 层 KDA, sub: 前向收下位置编号，随即丢弃, tone: token }
+  - { at: [40, 214], size: [380, 56], text: 不建 RoPE 模块, sub: 顺序靠核长 4 的短卷积与逐位置递推, style: plain }
+  - { at: [460, 120], size: [380, 56], text: 11 层稀疏 MLA：构造时查三件事, sub: RoPE 维数大于 0？不是 NoPE？有 RoPE 参数？, tone: kv }
+  - { at: [460, 214], size: [185, 66], text: 本配置三项都不满足, sub: 维数 0、NoPE 为真, tone: kv }
+  - { at: [655, 214], size: [185, 66], text: 若维数大于 0, sub: 只转单独一段 q、k, style: faded }
+  - { at: [460, 312], size: [380, 56], text: 主注意力和索引器都不建旋转, sub: 旋转模块为空，前向不做旋转, tone: kv }
+  - { at: [460, 400], size: [380, 56], text: 主缓存每 token 只写 512 维潜向量, sub: 索引器压池另加 4 个槽位的偏置, style: plain }
+  - { at: [250, 488], size: [380, 56], text: 打分里没有显式的位置项, sub: 顺序来自 KDA、池内偏置和因果范围, style: plain }
+links:
+  - { from: [390, 72], to: [230, 120], via: [[390, 96], [230, 96]] }
+  - { from: [490, 72], to: [650, 120], via: [[490, 96], [650, 96]] }
+  - { from: [230, 176], to: [230, 214] }
+  - { from: [552, 176], to: [552, 214] }
+  - { from: [747, 176], to: [747, 214], dashed: true }
+  - { from: [552, 280], to: [552, 312] }
+  - { from: [650, 368], to: [650, 400] }
+  - { from: [230, 270], to: [390, 488], via: [[230, 468], [390, 468]] }
+  - { from: [650, 456], to: [490, 488], via: [[650, 468], [490, 468]] }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L863-L868
+    symbols: [positions_np, num_computed_tokens_cpu]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L251
+    symbols: [forward, positions]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1965-L2000
+    symbols: [rotary_emb, indexer_rotary_emb, get_rope]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2089-L2103
+    symbols: [skip_rope, mla_nope]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L641-L646
+    symbols: [kv_values, qk_rope_head_dim]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_kpool_state_compress.py#L200-L202
+    symbols: [pool_gate, ape, softmax]

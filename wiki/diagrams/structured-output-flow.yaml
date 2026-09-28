@@ -1,0 +1,48 @@
+layout: figure
+id: structured-output-flow
+caption: 结构化输出的代码流程。API server 校验请求、定下后端；处理这条请求的 EngineCore 在 CPU 上编译文法，每步派发前向后趁 NPU 计算填 bitmask，随采样调用发给本机 8 个 worker；worker 把 bitmask 作用到 logits 后采样，结果回到 EngineCore 推进文法。虚线是需要显式开启的 V2 分支。
+size: [880, 530]
+frames:
+  - { at: [12, 40], size: [180, 470], label: API server（node0） }
+  - { at: [206, 40], size: [296, 470], label: EngineCore（每台机器一个） }
+  - { at: [514, 40], size: [354, 470], label: worker × 8（每卡一个） }
+items:
+  - { at: [26, 70], size: [152, 52], text: 请求带 JSON schema, sub: 或正则、选项、语法, tone: ink, style: plain }
+  - { at: [26, 160], size: [152, 52], text: 校验、定后端, sub: auto 先试 xgrammar, tone: ink, style: plain }
+  - { at: [26, 250], size: [152, 44], text: 后端不一致 → 报错, tone: danger, style: faded }
+  - { at: [220, 70], size: [266, 52], text: 编译文法（线程池，异步）, sub: 编好之前请求停在等待队列, tone: control }
+  - { at: [220, 160], size: [266, 52], text: 派发本步前向，不等结果, sub: 8 个 worker 同时开算, tone: control }
+  - { at: [220, 250], size: [266, 52], text: CPU 上逐请求填 bitmask, sub: 草稿位先临时接受，填完回滚, tone: control }
+  - { at: [220, 400], size: [266, 52], text: 接受结果，推进文法, sub: 下一轮草稿先按文法截断, tone: control }
+  - { at: [530, 160], size: [324, 52], text: 前向 → logits, sub: all-gather 后每卡一整张 logits, tone: token }
+  - { at: [530, 250], size: [200, 52], text: V1（默认）：拷到 CPU, sub: 改 −∞ 后拷回 NPU, tone: token }
+  - { at: [742, 250], size: [112, 52], text: V2：NPU kernel, sub: 需显式开启, tone: token, style: faded }
+  - { at: [530, 400], size: [324, 52], text: 采样、验证草稿, sub: MTP 再草拟 3 个；0 号卡回报, tone: token }
+links:
+  - { from: [102, 122], to: [102, 160] }
+  - { from: [102, 212], to: [102, 250], tone: danger, dashed: true }
+  - { from: [178, 186], to: [220, 96], via: [[199, 186], [199, 96]] }
+  - { from: [353, 122], to: [353, 160], tone: control }
+  - { from: [353, 212], to: [353, 250], tone: control }
+  - { from: [486, 186], to: [530, 186], tone: token }
+  - { from: [486, 276], to: [530, 276], tone: control }
+  - { from: [630, 212], to: [630, 250], tone: token }
+  - { from: [798, 212], to: [798, 250], tone: token, dashed: true }
+  - { from: [630, 302], to: [630, 400], tone: token }
+  - { from: [798, 302], to: [798, 400], tone: token, dashed: true }
+  - { from: [530, 426], to: [486, 426], tone: token }
+  - { from: [220, 426], to: [220, 186], via: [[213, 426], [213, 186]], tone: control, dashed: true }
+texts:
+  - { at: [220, 482], text: 异步调度下上一步未确认：推迟填表与采样, size: 12.5, note: true }
+  - { at: [353, 350], text: 等采样结果回来, size: 12.5, anchor: middle, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L463
+    symbols: [get_grammar_bitmask, sample_tokens]
+  - source: vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L186-L300
+    symbols: [grammar_bitmask, rollback]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1745-L1795
+    symbols: [validate_tokens]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2417-L2427
+    symbols: [apply_grammar_bitmask]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_structured_output.py#L76-L134
+    symbols: [_raise_mixed_backend]

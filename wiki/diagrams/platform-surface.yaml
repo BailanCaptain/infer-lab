@@ -1,24 +1,36 @@
 layout: figure
 id: platform-surface
-caption: 平台处理配置并参与实现选择；GLM 层的专用后端绑定仍需沿模型实现追踪
-size: [900, 440]
+caption: 一份配置交给平台，出来时已经不是原样：先按组合校验，不支持的当场报错；通过的就地改写，Worker 类名与缓存精度在这一步定下，块大小在这一步补齐或改回 128（GLM 这类混合模型保留补丁更早写入的 640）；之后组件按拿到的类名去创建，而 GLM 的两类注意力层自带后端绑定，不经过平台这张表
+size: [900, 500]
 items:
-  - { at: [25, 90], size: [200, 65], text: VllmConfig, sub: 模型、并行、缓存配置, tone: control }
-  - { at: [310, 90], size: [250, 65], text: NPUPlatform 校验, sub: 检查组合与调整配置, tone: control }
-  - { at: [650, 35], size: [220, 60], text: Worker 类路径, sub: 进入设备启动流程, tone: weight }
-  - { at: [650, 140], size: [220, 60], text: 配置处理结果, sub: 后续组件继续使用, tone: kv }
-  - { at: [25, 300], size: [200, 65], text: 通用后端选择条件, sub: MLA / sparse / compress, tone: token }
-  - { at: [310, 300], size: [250, 65], text: 平台后端选择接口, sub: 按条件返回类路径, tone: token }
-  - { at: [650, 300], size: [220, 65], text: 使用该接口的层, sub: 创建所选后端, tone: token }
+  - { at: [24, 70], size: [250, 62], text: 汇总配置进来, sub: 命令行与模型配置, tone: control }
+  - { at: [24, 152], size: [250, 62], text: 一、按组合校验, sub: 不支持就拒绝启动, tone: danger }
+  - { at: [24, 234], size: [250, 62], text: 二、就地改写, sub: 改的是同一个对象, tone: control }
+  - { at: [24, 350], size: [250, 62], text: 三、组件按名创建, sub: 拿到类名去创建, tone: token }
+  - { at: [400, 152], size: [230, 54], text: 启动直接失败, sub: 报错就在校验里, tone: danger }
+  - { at: [400, 224], size: [230, 54], text: Worker 类名, sub: 写进并行配置, tone: weight }
+  - { at: [400, 292], size: [230, 54], text: 块大小与缓存精度, sub: 写进缓存配置, tone: kv }
+  - { at: [400, 356], size: [230, 54], text: 层来问注意力后端, sub: 按条件答一个类名, tone: token }
+  - { at: [660, 356], size: [216, 54], text: GLM 两类层自带, sub: 不问平台这张表, tone: token, style: faded }
 links:
-  - { from: [225, 122], to: [310, 122], tone: control }
-  - { from: [560, 122], to: [650, 65], via: [[605, 122], [605, 65]], tone: weight }
-  - { from: [560, 122], to: [650, 170], via: [[605, 122], [605, 170]], tone: kv }
-  - { from: [225, 332], to: [310, 332], tone: token }
-  - { from: [560, 332], to: [650, 332], tone: token }
+  - { from: [149, 132], to: [149, 152], tone: control }
+  - { from: [149, 214], to: [149, 234], tone: control }
+  - { from: [149, 296], to: [149, 350], tone: token }
+  - { from: [274, 183], to: [400, 179], via: [[340, 183], [340, 179]], tone: danger }
+  - { from: [274, 258], to: [400, 251], via: [[340, 258], [340, 251]], tone: weight }
+  - { from: [274, 275], to: [400, 319], via: [[364, 275], [364, 319]], tone: kv }
+  - { from: [274, 381], to: [400, 383], tone: token }
+  - { from: [630, 383], to: [660, 383], tone: token }
 texts:
-  - { at: [310, 210], text: 组合不受支持时可以直接报错, note: true }
-  - { at: [25, 408], text: GLM 专用绑定：见注意力后端页, note: true }
+  - { at: [24, 36], text: 平台在启动时做的三件事, strong: true }
+  - { at: [24, 440], text: 写进命令的值和最后生效的值可以不是一回事, note: true, width: 340 }
+  - { at: [400, 440], text: 改写在启动时发生，答名字在组件创建时才发生, note: true, width: 476 }
 pins:
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L475', symbols: [check_and_update_config] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831', symbols: [get_attn_backend_cls] }
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480
+    symbols: [check_and_update_config]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L662
+    symbols: [worker_cls, refresh_block_size]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831
+    symbols: [get_attn_backend_cls]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L84
+    symbols: [AscendIndexerKPoolMLABackend]

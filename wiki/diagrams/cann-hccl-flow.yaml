@@ -32,5 +32,4 @@ links:
   - { from: [670, 405], to: [620, 667], via: [[670, 667]], tone: token }
 texts:
   - { at: [640, 206], text: 完成加载与预热后执行, note: true }
-  - { at: [515, 585], text: All-to-All 返回后, note: true }
-  - { at: [515, 609], text: 按接收维拼接, note: true }
+  - { at: [398, 545], text: All-to-All 返回后按接收维拼接, note: true }

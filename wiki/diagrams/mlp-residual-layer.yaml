@@ -1,21 +1,36 @@
 layout: figure
 id: mlp-residual-layer
-caption: 通用单路 Pre-Norm 残差子层：Y = X + F(Norm(X))。旁路与子层输出逐元素相加；GLM 主干的实际四路连接见模型单层图
-size: [900, 310]
+caption: 通用单路 pre-norm 子层（以 MLP 为例）。hidden x 分两路：上方 residual 旁路原样保留 x；下方支路先做 RMSNorm，再经 gate、up 两个投影升宽，SiLU 门控后逐元素相乘，down 投影降回原宽，得到改变量 Δ；最后 y = x + Δ。H 为 hidden 宽度，F 为中间宽度。注意力子层套在同一结构里，只是把支路里的 MLP 换成注意力。
+size: [880, 380]
+frames:
+  - { at: [290, 108], size: [392, 196], label: MLP（前馈网络）：升宽 → 门控 → 降回 }
 matrices:
-  - { at: [40, 175], w: 110, h: 34, rows: 1, cols: 5, tone: token, label: 输入 X, dims: '[T, H]' }
-  - { at: [775, 175], w: 90, h: 34, rows: 1, cols: 5, tone: token, label: 输出 Y, dims: '[T, H]' }
+  - { at: [20, 196], w: 90, h: 28, rows: 1, cols: 6, tone: token, label: 输入 x, dims: '[H]' }
+  - { at: [784, 196], w: 80, h: 28, rows: 1, cols: 5, tone: token, label: 输出 y, dims: '[H]' }
 items:
-  - { at: [230, 166], size: [145, 52], text: 归一化, style: plain }
-  - { at: [430, 166], size: [180, 52], text: 子层 F, sub: 注意力或前馈, style: plain }
+  - { at: [138, 180], size: [124, 60], text: RMSNorm, sub: ÷ 均方根，× γ, style: plain }
+  - { at: [304, 138], size: [112, 44], text: gate 投影, sub: H → F, tone: weight }
+  - { at: [304, 240], size: [112, 44], text: up 投影, sub: H → F, tone: weight }
+  - { at: [436, 138], size: [80, 44], text: SiLU, style: plain }
+  - { at: [582, 188], size: [92, 44], text: down 投影, sub: F → H, tone: weight }
 nodes:
-  - { at: [700, 192], r: 20, text: '+' }
+  - { at: [548, 210], r: 18, text: '⊙' }
+  - { at: [740, 210], r: 20, text: '+' }
 links:
-  - { from: [150, 192], to: [230, 192], tone: token }
-  - { from: [375, 192], to: [430, 192] }
-  - { from: [610, 192], to: [680, 192], tone: token }
-  - { from: [720, 192], to: [775, 192], tone: token }
-  - { from: [180, 192], to: [700, 172], via: [[180, 75], [700, 75]], tone: token }
+  - { from: [110, 210], to: [138, 210], tone: token }
+  - { from: [262, 210], to: [304, 160], via: [[282, 210], [282, 160]] }
+  - { from: [262, 210], to: [304, 262], via: [[282, 210], [282, 262]] }
+  - { from: [416, 160], to: [436, 160] }
+  - { from: [516, 160], to: [548, 192], via: [[548, 160]] }
+  - { from: [416, 262], to: [548, 228], via: [[548, 262]] }
+  - { from: [566, 210], to: [582, 210] }
+  - { from: [674, 210], to: [720, 210], tone: token }
+  - { from: [760, 210], to: [784, 210], tone: token }
+  - { from: [65, 196], to: [740, 190], via: [[65, 62], [740, 62]], tone: token }
 texts:
-  - { at: [440, 56], text: 输入 X 的残差旁路, anchor: middle, strong: true }
-  - { at: [440, 284], text: 相加的两路具有相同形状, anchor: middle }
+  - { at: [400, 48], text: residual 旁路：x 不做任何变换，直接送到出口, anchor: middle, strong: true }
+  - { at: [697, 200], text: Δ, anchor: middle, strong: true }
+  - { at: [740, 262], text: y = x + Δ, anchor: middle, strong: true }
+  - { at: [200, 338], text: ① 只在支路入口做 RMSNorm（pre-norm）, anchor: middle, size: 13 }
+  - { at: [486, 338], text: ② 支路算出改变量 Δ，形状与 x 相同, anchor: middle, size: 13 }
+  - { at: [760, 338], text: ③ 两路逐元素相加, anchor: middle, size: 13 }

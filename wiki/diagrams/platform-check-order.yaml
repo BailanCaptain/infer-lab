@@ -1,0 +1,52 @@
+layout: figure
+id: platform-check-order
+caption: 校验与改写在同一个函数里按固定先后跑：两道早退之后先认量化，再跑四个校验（任一不通过就报错退出），然后修不兼容组合并建昇腾配置，接着定编译与图模式、选 Worker 类、定块大小，最后三条按 PD 角色的检查。四个校验里管着本部署的是并行那一条，因为这里 DP 是 2
+size: [900, 650]
+items:
+  - { at: [24, 70], size: [250, 56], text: 两道早退, sub: 不是 npu 就返回, tone: control }
+  - { at: [24, 152], size: [250, 56], text: 认出量化方式, sub: 决定后面识别哪套, tone: control }
+  - { at: [24, 234], size: [250, 56], text: 四个校验, sub: 不支持就当场报错, tone: danger }
+  - { at: [24, 316], size: [250, 56], text: 修组合、建昇腾配置, sub: 之后按角色再改, tone: control }
+  - { at: [24, 398], size: [250, 56], text: 定编译与图模式, sub: 也可能整段关掉, tone: comm }
+  - { at: [24, 480], size: [250, 56], text: 选 Worker 类, sub: 只在自动时才选, tone: weight }
+  - { at: [24, 562], size: [250, 56], text: 定块大小与角色检查, sub: 这一段跑在最后, tone: kv }
+layers:
+  - at: [330, 216]
+    width: 280
+    h: 34
+    gap: 6
+    bands:
+      - { text: 层切分只许 P 节点, tone: danger, style: faded }
+      - { text: 投机 + DCP：非 MLA 草稿查头数, tone: danger, style: faded }
+      - { text: DP 与 prefill 上下文并行, tone: danger, style: solid }
+      - { text: MTP 且 PP>1：只许 P 节点, tone: danger, style: faded }
+  - at: [330, 462]
+    width: 280
+    h: 34
+    gap: 6
+    bands:
+      - { text: NPUWorker：本部署走这条, tone: weight, style: solid }
+      - { text: 310P 专用 Worker, tone: weight, style: plain }
+      - { text: xlite Worker, tone: weight, style: plain }
+links:
+  - { from: [149, 126], to: [149, 152], tone: control }
+  - { from: [149, 208], to: [149, 234], tone: control }
+  - { from: [149, 290], to: [149, 316], tone: danger }
+  - { from: [149, 372], to: [149, 398], tone: control }
+  - { from: [149, 454], to: [149, 480], tone: comm }
+  - { from: [149, 536], to: [149, 562], tone: weight }
+  - { from: [274, 262], to: [330, 262], tone: danger }
+  - { from: [274, 508], to: [330, 508], tone: weight }
+texts:
+  - { at: [24, 36], text: 校验与改写的先后, strong: true }
+  - { at: [650, 218], text: 报错文本就写在这四个函数里, width: 226, size: 15 }
+  - { at: [650, 252], text: 本部署的 DP 是 2，所以 prefill 侧上下文并行只能是 1, width: 226, size: 15 }
+  - { at: [650, 466], text: 常规 A2 路径两个分支都不成立，落在第一条, width: 226, size: 15 }
+  - { at: [330, 590], text: 补丁更早已写入 640；这里空着才填 128，混合模型跳过「改回 128」, note: true, width: 540 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480
+    symbols: [check_and_update_config, maybe_auto_detect_quantization]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L662
+    symbols: [worker_cls, refresh_block_size]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L663-L700
+    symbols: [enable_balance_scheduling, recompute_scheduler_enable]

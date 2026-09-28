@@ -1,0 +1,43 @@
+layout: figure
+id: data-parallel-loop
+caption: 一个 DP 组的 EngineCore 每转一圈做什么。本地没算到东西、而全局还在运行时，它自己决定跑一次 dummy batch；每张卡按一条 decode 请求的形状准备 4 个 token，前向前照常和对面对齐宽度。每 32 圈两组交换一次「还有没有活」，都说没有才一起暂停，等 DP coordinator 广播唤醒消息再一起醒来。只有 MoE 模型的 DP 组走这条循环。
+size: [900, 790]
+items:
+  - { at: [250, 40], size: [400, 50], text: 处理输入队列, sub: 第 1 站送来的请求、唤醒消息都从这里进, style: plain }
+  - { at: [250, 120], size: [400, 50], text: 调度并执行一步（主线第 2–7 站）, sub: 有可算的请求时，第 3 站里先和对面对齐宽度, tone: weight }
+  - { at: [250, 200], size: [400, 44], text: 这一步本地执行了吗？, style: plain }
+  - { at: [250, 284], size: [400, 56], text: 本地还有请求，或全局仍在运行？, sub: 看全局运行标志, style: plain }
+  - { at: [30, 288], size: [170, 48], text: 空转，不进前向, style: plain }
+  - { at: [250, 380], size: [400, 56], text: 跑一次 dummy batch, sub: 每张卡本地准备 4 个 token，对齐后按对面宽度跑, tone: control }
+  - { at: [250, 476], size: [400, 56], text: 第 32、64、96……圈：一次 All-Reduce, sub: 两组交换「本地还有没有没做完的请求」, tone: comm }
+  - { at: [250, 572], size: [400, 44], text: 两组都没有活了？, style: plain }
+  - { at: [250, 656], size: [400, 56], text: 两组一起暂停，wave 加 1, sub: 新请求到来时由 DP coordinator 叫醒, tone: control }
+links:
+  - { from: [450, 90], to: [450, 120] }
+  - { from: [450, 170], to: [450, 200] }
+  - { from: [450, 244], to: [450, 284] }
+  - { from: [650, 222], to: [650, 504], via: [[690, 222], [690, 504]] }
+  - { from: [250, 312], to: [200, 312] }
+  - { from: [115, 288], to: [250, 74], via: [[115, 74]] }
+  - { from: [450, 340], to: [450, 380] }
+  - { from: [450, 436], to: [450, 476] }
+  - { from: [450, 532], to: [450, 572] }
+  - { from: [250, 594], to: [250, 56], via: [[16, 594], [16, 56]] }
+  - { from: [450, 616], to: [450, 656] }
+  - { from: [650, 684], to: [650, 65], via: [[880, 684], [880, 65]] }
+texts:
+  - { at: [450, 18], text: '一个 DP 组的引擎 · 每转一圈', anchor: middle, strong: true }
+  - { at: [462, 268], text: 否 }
+  - { at: [706, 214], text: 是 }
+  - { at: [212, 304], text: 否 }
+  - { at: [462, 364], text: 是 }
+  - { at: [220, 586], text: 否 }
+  - { at: [462, 642], text: 是 }
+  - { at: [450, 764], text: 非 MoE 模型的 DP 组按 DP=1 各跑各的，不陪跑。, anchor: middle, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
+    symbols: [run_busy_loop, execute_dummy_batch, engines_running, _has_global_unfinished_reqs]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L972-L973
+    symbols: [execute_dummy_batch, _dummy_run]
+  - source: vllm@0fc695fc:vllm/v1/engine/coordinator.py#L23-L58
+    symbols: [START_DP_WAVE]

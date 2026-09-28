@@ -1,0 +1,47 @@
+layout: figure
+id: attention-glm-paths
+caption: 主线第 4 站里一层 attention 的两条路径：按层号二选一。KDA 保留 q、k、v 投影，但用每头一个固定大小的状态代替逐位置 softmax；稀疏 MLA 仍做 softmax，只是历史存成潜向量、只读索引器挑中的位置。两条路最后都在本卡算出部分和，经一次 TP8 All-Reduce 合齐
+size: [860, 850]
+items:
+  - { at: [230, 18], size: [400, 58], text: 进入一层的 attention, sub: 入口混合与归一化之后，每卡输入 T 行 × 4096, tone: token }
+  - { at: [40, 140], size: [360, 58], text: q、k、v 投影, sub: 本卡 8 个头，每头 128 维, tone: weight }
+  - { at: [40, 240], size: [360, 58], text: 短卷积，q、k 归一化, sub: 混合当前与前 3 个位置, tone: token }
+  - { at: [40, 340], size: [360, 58], text: 更新并读取状态, sub: 每头 128 × 128，没有逐位置 softmax, tone: kv }
+  - { at: [40, 440], size: [360, 58], text: 输出门与归一化, sub: 按通道决定放出多少, tone: token }
+  - { at: [460, 140], size: [360, 58], text: 低秩投影，潜向量写入缓存, sub: 每位置 512 维，每卡完整一份, tone: kv }
+  - { at: [460, 232], size: [360, 58], text: 索引器挑位置, sub: '因果范围内最多 2,051 个', tone: control }
+  - { at: [460, 324], size: [360, 58], text: q 展开并吸收 K 的解压, sub: 本卡 8 个头，每头 256 维 → 512 维, tone: weight }
+  - { at: [460, 416], size: [360, 58], text: softmax 汇合选中位置, sub: 分数乘 1/16，只在挑中的位置上归一化, tone: token }
+  - { at: [460, 508], size: [360, 58], text: V 解压, sub: 每头 512 维 → 256 维，8 头拼成 2048, tone: weight }
+  - { at: [230, 612], size: [400, 58], text: 输出投影：本卡部分和, sub: 本卡 8 个头的结果降回 4096 维, tone: weight }
+  - { at: [230, 700], size: [400, 54], text: TP8 All-Reduce, sub: 8 卡按位置相加，每卡拿回完整结果, tone: comm }
+  - { at: [230, 784], size: [400, 50], text: 写回四路残差，进入 MLP 或 MoE, tone: token }
+links:
+  - { from: [430, 76], via: [[430, 108], [220, 108]], to: [220, 140] }
+  - { from: [430, 76], via: [[430, 108], [640, 108]], to: [640, 140] }
+  - { from: [220, 198], to: [220, 240], tone: token }
+  - { from: [220, 298], to: [220, 340], tone: token }
+  - { from: [220, 398], to: [220, 440], tone: token }
+  - { from: [640, 198], to: [640, 232], tone: token }
+  - { from: [640, 290], to: [640, 324], tone: token }
+  - { from: [640, 382], to: [640, 416], tone: token }
+  - { from: [640, 474], to: [640, 508], tone: token }
+  - { from: [220, 498], via: [[220, 590], [380, 590]], to: [380, 612], tone: token }
+  - { from: [640, 566], via: [[640, 590], [480, 590]], to: [480, 612], tone: token }
+  - { from: [430, 670], to: [430, 700], tone: token }
+  - { from: [430, 754], to: [430, 784], tone: token }
+texts:
+  - { at: [40, 128], text: 34 层 KDA, note: true }
+  - { at: [660, 128], text: 11 层稀疏 MLA, note: true }
+  - { at: [444, 98], text: 按层号二选一, size: 12 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2075-L2105
+    symbols: [_is_kda_layer, KimiGatedDeltaNetAttention, AscendGlm5NextMLAAttention]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291
+    symbols: [q_proj, k_proj, v_proj, kda_attention, o_norm, o_proj]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L182
+    symbols: [AscendIndexerKPoolMLAAttention, IndexerKPoolMLACacheLayer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
+    symbols: [execute_sparse_attention_indexer_kpool_mla, npu_sparse_flash_attention]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028
+    symbols: [_execute_sparse_flash_attention_process, _v_up_proj, o_proj]

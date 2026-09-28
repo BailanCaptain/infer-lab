@@ -1,0 +1,36 @@
+layout: figure
+id: layers-and-hidden-intuition
+caption: mHC 的一段（attention 段或 MLP 段）：左边从四条流里分出一路去计算，右边旁路上的旧流经 4×4 矩阵互相混合，最后两部分按流相加，成为下一段的四条流；一层有两段
+size: [900, 600]
+rows:
+  - { at: [150, 40], count: 4, w: 44, h: 24, gap: 12, tone: token }
+  - { at: [150, 548], count: 4, w: 44, h: 24, gap: 12, tone: token }
+items:
+  - { at: [136, 110], size: [240, 52], text: ① 分出一路, sub: 按 4 个入口权重把四条加成一条, style: plain }
+  - { at: [136, 196], size: [240, 40], text: RMSNorm, style: plain }
+  - { at: [136, 270], size: [240, 60], text: ② 子层计算, sub: attention 或 MLP, tone: weight }
+  - { at: [136, 366], size: [240, 52], text: ③ 写回, sub: 输出按 4 个写回权重分给四条流, style: plain }
+  - { at: [136, 454], size: [240, 48], text: ④ 汇合, sub: 写回的输出 + 混合后的旧流, style: plain }
+grids:
+  - { at: [580, 150], rows: 4, cols: 4, cell: [30, 30], tone: token, style: faded, label: Sinkhorn 之后每行、每列的和都是 1 }
+fans:
+  - { from: [[172, 64], [228, 64], [284, 64], [340, 64]], to: [256, 110], tone: token }
+  - { from: [256, 502], to: [[172, 548], [228, 548], [284, 548], [340, 548]], tone: token }
+links:
+  - { from: [256, 162], to: [256, 196], tone: token }
+  - { from: [256, 236], to: [256, 270], tone: token }
+  - { from: [256, 330], to: [256, 366], tone: token }
+  - { from: [256, 418], to: [256, 454], tone: token }
+  - { from: [362, 52], to: [640, 150], via: [[640, 52]], tone: token }
+  - { from: [640, 304], to: [376, 478], via: [[640, 478]], tone: token }
+  - { from: [376, 124], to: [580, 210], via: [[470, 124], [470, 210]], dashed: true }
+  - { from: [376, 148], to: [376, 392], via: [[420, 148], [420, 392]], dashed: true }
+texts:
+  - { at: [150, 28], text: 进入这一段的四条流, size: 13 }
+  - { at: [380, 565], text: 交给下一段的四条流, size: 13 }
+  - { at: [652, 104], text: 旁路：原来的四条流, size: 13 }
+  - { at: [712, 174], text: 行：旧流 1–4, size: 12.5 }
+  - { at: [712, 198], text: 列：新流 1–4, size: 12.5 }
+  - { at: [480, 200], text: 4×4 混合系数, size: 12.5 }
+  - { at: [428, 300], text: 4 个写回权重, size: 12.5 }
+  - { at: [652, 400], text: 混合后的旧流, size: 13 }

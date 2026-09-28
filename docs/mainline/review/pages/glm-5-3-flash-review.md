@@ -197,3 +197,24 @@
 | P3-8 | 「版本差异」的 [I] 扩到 sigmoid 入口权重、2 × sigmoid 写回权重、不带增益的 RMSNorm。 |
 
 检查：`pnpm wiki:lint` 通过（本页无警告）、`pnpm check:content` 通过、`pnpm wiki:diagrams --check` 141 张一致。角标 28 处（C 18、S 5、I 3、D 2），[C] 占 64%。
+
+## 九、修订记录（2026-09-28，mHC 收成单一出处）
+
+依据 `layers-and-hidden-review.md`「单一出处」表与 P2-2。只改本页「一层有两段计算，四条 residual 流贯穿两段」一节。
+
+| 条目 | 处理 |
+|---|---|
+| mHC 机制重复讲解 | 原 L79–87 三段（Hyper-Connections 动机、双随机与 20 轮 Sinkhorn、入口/子层/出口三步与 24 个系数、0–1 / 0–2 范围）收成一段两句：层间四条流、入口合成、出口写回并经 Sinkhorn 约束的 4 × 4 矩阵混合、第 44 层求平均，链到 `layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪`。原 L95 删去末层平均与代价两句，只留 MTP 层不用 mHC 一句。L77 普通一层讲解、单层图及图注保留。 |
+| 删掉的信息去向 | 逐条对照 layers-and-hidden：HC 动机 L74、按 token 算系数 L68、双随机与 Sinkhorn L78–84、24 个系数与为什么是 4 L94、入口 RMSNorm 与 16384 × 24 L96、0–1 / 0–2 L86、第 0 层复制 L137、末层平均与最终 RMSNorm L140–141、MTP 不走 mHC L167、宽度 16384 只在旁路 L172。全部找得到，无需补页。 |
+| 顺带消除的矛盾 | 原 L87 把 20 轮 Sinkhorn 写进出口混合，与源码（入口 hc_pre 传迭代次数）和 layers-and-hidden L96 矛盾；该段已删。 |
+| 其余 mHC 提及 | L5、L63、L147、L264、L295、L310 及对照源码区的一句 / 一格保留。 |
+
+检查：`pnpm wiki:audit` 本页写作标准全部 ✓（行内代码 9.2/千字、calc 0.15/千字、角标 0、相邻块 0）；锚点按 `anchors.ts` 的 `headingSlug` 规则校验通过。`wiki:lint` / `wiki:audit` 的失败全部来自 concepts/ascend-patch-system.md（relations 枚举）及其引用页、diagrams/patch-binding.yaml 缺 svg，与本页无关。
+
+## 十、修订记录（2026-09-28，长历史结论收成单一出处）
+
+**依据。** [sparse-attention 的 P5 审查](sparse-attention-review.md) P2-1：「≤2051 等于密集、长历史只读一小部分」在三页各推导了一遍。定下的分工是 sparse-attention 讲机制，推导只留在那一页。
+
+**改了什么。** L185 原来用 131072 个 token 举例（32768 池、约 1.6%），现在压成一句结论：不到 2051 时等于读全部历史，到部署上限 133120 时只读 1/65，并链接 sparse-attention.md#稀疏什么时候才真的起作用。数字与底稿 02 §5.4 以及另两页统一为 133120。被删的内容里没有 sparse-attention 缺的信息（131072 只是另一个例子），2051 的两行 calc 仍留在本页。
+
+**验证。** pnpm wiki:lint 通过。pnpm wiki:audit 通过，本页写作标准各项全部 ✓（行内代码 9.3/千字、calc 0.15/千字）。新链接的锚点按 anchors.ts 的 createSlugger 解析，已命中，本页 16 条带锚点的站内链接全部命中。

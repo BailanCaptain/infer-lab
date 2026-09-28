@@ -1,32 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="平台与通用插件入口加载全局适配，Worker 构造加载执行侧适配；各进程分别维护名称和注册表">
-  <title>平台与通用插件入口加载全局适配，Worker 构造加载执行侧适配；各进程分别维护名称和注册表</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="上半是 global patch：平台准备钩子和三个通用插件入口都会调同一个分流函数，同一进程里只有第一次真正导入 patch/platform；下半是 worker patch：NPUWorker 构造函数第一步调分流函数导入 patch/worker，打完才登记昇腾算子、建 Ascend 配置、初始化基类。两个目录的入口文件按芯片、vLLM 版本、环境变量等条件决定导入哪些文件，导入时文件里的赋值语句完成替换。最下面是两个目录之外、按配置才导入的零散入口">
+  <title>上半是 global patch：平台准备钩子和三个通用插件入口都会调同一个分流函数，同一进程里只有第一次真正导入 patch/platform；下半是 worker patch：NPUWorker 构造函数第一步调分流函数导入 patch/worker，打完才登记昇腾算子、建 Ascend 配置、初始化基类。两个目录的入口文件按芯片、vLLM 版本、环境变量等条件决定导入哪些文件，导入时文件里的赋值语句完成替换。最下面是两个目录之外、按配置才导入的零散入口</title>
   <defs><marker id="patch-timing-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="patch-timing-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <path d="M225 85 L280 85 L280 140 L335 140" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
-  <path d="M225 220 L280 220 L280 165 L335 165" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
-  <path d="M565 152 L650 152" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
-  <path d="M225 345 L335 345" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
-  <path d="M565 345 L650 345" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
-  <rect x="25" y="55" width="200" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="125" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台准备钩子</text>
-  <text x="125" y="100" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">配置使用前准备</text>
-  <rect x="25" y="190" width="200" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="125" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通用插件入口</text>
-  <text x="125" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">进程内幂等加载</text>
-  <rect x="335" y="120" width="230" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">patch/platform</text>
-  <text x="450" y="167.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">配置与全局路径适配</text>
-  <rect x="650" y="120" width="225" height="65" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="762.5" y="148.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">GLM 配置登记</text>
-  <text x="762.5" y="167.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">类型与架构转换器</text>
-  <rect x="25" y="315" width="200" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="125" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 构造</text>
-  <text x="125" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">加载执行侧适配</text>
-  <rect x="335" y="315" width="230" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">patch/worker</text>
-  <text x="450" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">执行侧适配</text>
-  <rect x="650" y="315" width="225" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="762.5" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后续初始化</text>
-  <text x="762.5" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算子登记、配置、基类</text>
-  <text x="650" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">模型类注册、CustomOp 登记</text>
-  <text x="650" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">是另外两种扩展机制</text>
+  <path d="M16 238 L884 238" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="16" y="228" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">global patch：前端、EngineCore、Worker 进程都要有</text>
+  <text x="16" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-muted, #66716d)">worker patch：只在 Worker 进程里打</text>
+  <path d="M170 89 L185 89 L185 120 L200 120" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
+  <path d="M170 165 L185 165 L185 138 L200 138" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
+  <path d="M360 128 L380 128" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
+  <path d="M530 128 L560 128" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
+  <path d="M710 128 L740 128" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#patch-timing-ah-control)"/>
+  <path d="M170 328 L200 328" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
+  <path d="M360 328 L380 328" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
+  <path d="M530 328 L560 328" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
+  <path d="M710 328 L740 328" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
+  <path d="M815 356 L815 398" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#patch-timing-ah-weight)"/>
+  <rect x="20" y="62" width="150" height="54" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="95" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台准备钩子</text>
+  <text x="95" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">解析参数、建配置时</text>
+  <rect x="20" y="138" width="150" height="54" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="95" y="161" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">三个通用入口</text>
+  <text x="95" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">标记已置就返回</text>
+  <rect x="200" y="100" width="160" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="280" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分流函数</text>
+  <text x="280" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">导入 platform 目录</text>
+  <rect x="380" y="100" width="150" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本进程导入过吗</text>
+  <text x="455" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">导入过：什么也不做</text>
+  <rect x="560" y="100" width="150" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="635" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">platform 入口文件</text>
+  <text x="635" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按条件逐个导入</text>
+  <rect x="740" y="100" width="150" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="815" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">patch_*.py 执行</text>
+  <text x="815" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">改指向、塞条目</text>
+  <rect x="20" y="300" width="150" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="95" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">NPUWorker 构造</text>
+  <text x="95" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第一步</text>
+  <rect x="200" y="300" width="160" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="280" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分流函数</text>
+  <text x="280" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">导入 worker 目录</text>
+  <rect x="380" y="300" width="150" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本进程导入过吗</text>
+  <text x="455" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">导入过：什么也不做</text>
+  <rect x="560" y="300" width="150" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="635" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">worker 入口文件</text>
+  <text x="635" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按条件逐个导入</text>
+  <rect x="740" y="300" width="150" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="815" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">patch_*.py 执行</text>
+  <text x="815" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">改指向</text>
+  <rect x="740" y="398" width="150" height="56" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="815" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">登记算子、建配置</text>
+  <text x="815" y="441" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">再初始化基类</text>
+  <rect x="20" y="486" width="500" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="270" y="509" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">零散入口：满足条件才导入</text>
+  <text x="270" y="528" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">检查配置时的 profiling 分块；model runner 里的 EAGLE-3 流水线辅助</text>
+  <text x="20" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">从入口到一行赋值：两类 patch 各走一条路</text>
+  <text x="534" y="120" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">没有</text>
+  <text x="534" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">没有</text>
+  <text x="560" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">310P？vLLM 版本？EPLB 环境变量？</text>
+  <text x="560" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">之后用到：建配置、分 KV 块、第 2 站调度</text>
+  <text x="560" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">310P？vLLM 版本？装了 Triton？</text>
+  <text x="560" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">之后用到：建通信组、加载权重、第 4–5 站</text>
 </svg>

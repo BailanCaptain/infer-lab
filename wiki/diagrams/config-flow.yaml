@@ -1,22 +1,37 @@
 layout: figure
 id: config-flow
-caption: 对支持兼容映射的字段，显式 JSON 键优先，否则使用环境读取值；解析后还需通过配置检查
-size: [900, 415]
+caption: 配置在代码里的先后：解析参数后建 VllmConfig，平台先跑校验再建配置并按角色改写，每个 Worker 进程在构造函数里各建一份，之后各处取。建的那一步先问缓存能不能复用，不能才重新逐键解析，组合不合法就在这一步报错；未识别的键在多数组里静默走默认值，只有 EplbConfig 那一组会报错。
+size: [900, 520]
 items:
-  - { at: [25, 70], size: [205, 65], text: JSON 扩展配置, sub: 显式键，包含 false, tone: control }
-  - { at: [25, 245], size: [205, 65], text: 环境读取结果, sub: 含读取器默认值, tone: kv }
-  - { at: [315, 150], size: [225, 75], text: 字典里存在该键？, sub: 按字段兼容规则解析, tone: control }
-  - { at: [630, 60], size: [240, 65], text: 使用 JSON 值, tone: control }
-  - { at: [630, 235], size: [240, 65], text: 使用环境读取值, tone: kv }
+  - { at: [24, 64], size: [250, 58], text: 解析命令行参数, sub: 平台钩子补 --quantization, tone: control }
+  - { at: [24, 146], size: [250, 58], text: 建 VllmConfig, sub: 附带的 JSON 原样存下, tone: control }
+  - { at: [24, 228], size: [250, 74], text: 平台校验与改写, sub: 四个校验在建配置之前, tone: danger }
+  - { at: [24, 326], size: [250, 58], text: 每个 Worker 进程, sub: 构造函数里各建一份, tone: token }
+  - { at: [24, 408], size: [250, 58], text: 各处来取这一份, sub: 没建过就直接报错, tone: kv }
+  - { at: [350, 200], size: [230, 74], text: 缓存能复用吗, sub: 绑定同一个 VllmConfig, tone: control }
+  - { at: [640, 150], size: [230, 62], text: 复用旧的那一份, tone: control }
+  - { at: [640, 250], size: [230, 86], text: 新建 AscendConfig, sub: 逐键取，多数组静默, tone: token }
+  - { at: [640, 366], size: [230, 62], text: 组合不合法就报错, sub: EplbConfig 还拒未识别键, tone: danger }
 links:
-  - { from: [230, 102], to: [315, 170], via: [[270, 102], [270, 170]], tone: control }
-  - { from: [230, 277], to: [315, 205], via: [[270, 277], [270, 205]], tone: kv }
-  - { from: [540, 175], to: [630, 92], via: [[585, 175], [585, 92]], tone: control }
-  - { from: [540, 205], to: [630, 267], via: [[585, 205], [585, 267]], tone: kv }
+  - { from: [149, 122], to: [149, 146], tone: control }
+  - { from: [149, 204], to: [149, 228], tone: control }
+  - { from: [149, 302], to: [149, 326], tone: token }
+  - { from: [149, 384], to: [149, 408], tone: kv }
+  - { from: [274, 265], to: [350, 225], via: [[312, 265], [312, 225]], tone: control }
+  - { from: [274, 355], to: [350, 255], via: [[312, 355], [312, 255]], tone: token }
+  - { from: [580, 220], to: [640, 181], via: [[610, 220], [610, 181]], tone: control }
+  - { from: [580, 250], to: [640, 293], via: [[610, 250], [610, 293]], tone: token }
+  - { from: [755, 336], to: [755, 366], tone: danger }
 texts:
-  - { at: [550, 142], text: 是, tone: control }
-  - { at: [550, 252], text: 否, tone: kv }
-  - { at: [25, 365], text: 兼容字段示例：JSON false 优先于环境 true, size: 15 }
-  - { at: [25, 397], text: 其他字段查各自解析规则；得到字段值后继续检查组合和实际消费者, note: true }
+  - { at: [24, 30], text: 谁来建、谁会改、谁去取, strong: true }
+  - { at: [596, 198], text: 是, tone: control }
+  - { at: [596, 272], text: 否, tone: token }
+  - { at: [350, 452], text: 平台那一步和每个 Worker 进程走的是同一个建配置函数，缓存各在自己的进程里, size: 15, width: 520 }
+  - { at: [350, 492], text: 每个进程各建一份，改了自己那一份别的进程看不到, note: true, width: 520 }
 pins:
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L335-L346', symbols: [_get_config_value] }
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L894-L912
+    symbols: [init_ascend_config, _is_ascend_config_initialized]
+  - source: vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480
+    symbols: [check_and_update_config, init_ascend_config]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876
+    symbols: [EplbConfig]

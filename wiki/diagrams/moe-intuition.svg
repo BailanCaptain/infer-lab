@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 404" width="860" height="404" role="img" aria-label="一个 token 过一层 MoE：router 给池里每个专家打一个分（虚线连着的是打了分但没选中的），只把这个 token 发给分最高的几个（图里 k=2），各专家算完后按 router 给的权重相加，得到这一层的输出。图里只画 6 个专家，GLM 的实际数量见后面的 GLM 小节。">
+  <title>一个 token 过一层 MoE：router 给池里每个专家打一个分（虚线连着的是打了分但没选中的），只把这个 token 发给分最高的几个（图里 k=2），各专家算完后按 router 给的权重相加，得到这一层的输出。图里只画 6 个专家，GLM 的实际数量见后面的 GLM 小节。</title>
+  <defs><marker id="moe-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="moe-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <rect x="380" y="40" width="200" height="320" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="396" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">专家池 · 图里画 6 个</text>
+  <path d="M164 187 L196 187" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#moe-intuition-ah-token)"/>
+  <path d="M566 123 L612 123 L612 176 L652 176" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#moe-intuition-ah-weight)"/>
+  <path d="M566 219 L612 219 L612 198 L652 198" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#moe-intuition-ah-weight)"/>
+  <path d="M732 214 L732 268" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#moe-intuition-ah-token)"/>
+  <path d="M346 187 L394 75" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M346 187 L394 171" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M346 187 L394 267" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M346 187 L394 315" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M346 187 L394 123" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#moe-intuition-ah-token)"/>
+  <path d="M346 187 L394 219" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#moe-intuition-ah-token)"/>
+  <rect x="24" y="160" width="140" height="54" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="94" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一个 token</text>
+  <text x="94" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">的隐藏向量</text>
+  <rect x="196" y="160" width="150" height="54" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="271" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">router 打分</text>
+  <text x="271" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个专家一个分数</text>
+  <rect x="394" y="56" width="172" height="38" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="480" y="80" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 1</text>
+  <rect x="394" y="104" width="172" height="38" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">专家 2 · 选中</text>
+  <rect x="394" y="152" width="172" height="38" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="480" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 3</text>
+  <rect x="394" y="200" width="172" height="38" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="224" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">专家 4 · 选中</text>
+  <rect x="394" y="248" width="172" height="38" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="480" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 5</text>
+  <rect x="394" y="296" width="172" height="38" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="480" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 6</text>
+  <rect x="652" y="160" width="160" height="54" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="732" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按权重相加</text>
+  <rect x="652" y="268" width="160" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="732" y="297" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一层的输出</text>
+  <text x="24" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">一个 token · 6 个专家 · 选 2 个（k=2）</text>
+  <text x="24" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">只有选中的专家收到这</text>
+  <text x="24" y="261.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">个 token</text>
+  <text x="618" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#936300">× 权重 1</text>
+  <text x="618" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#936300">× 权重 2</text>
+  <text x="24" y="378" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">灰色的 4 个专家这一轮不参与计算，权重仍留在原地</text>
+</svg>

@@ -1,24 +1,45 @@
 layout: figure
 id: patch-timing
-caption: 平台与通用插件入口加载全局适配，Worker 构造加载执行侧适配；各进程分别维护名称和注册表
-size: [900, 410]
+caption: 上半是 global patch：平台准备钩子和三个通用插件入口都会调同一个分流函数，同一进程里只有第一次真正导入 patch/platform；下半是 worker patch：NPUWorker 构造函数第一步调分流函数导入 patch/worker，打完才登记昇腾算子、建 Ascend 配置、初始化基类。两个目录的入口文件按芯片、vLLM 版本、环境变量等条件决定导入哪些文件，导入时文件里的赋值语句完成替换。最下面是两个目录之外、按配置才导入的零散入口
+size: [900, 560]
 items:
-  - { at: [25, 55], size: [200, 60], text: 平台准备钩子, sub: 配置使用前准备, tone: control }
-  - { at: [25, 190], size: [200, 60], text: 通用插件入口, sub: 进程内幂等加载, tone: control }
-  - { at: [335, 120], size: [230, 65], text: patch/platform, sub: 配置与全局路径适配, tone: control }
-  - { at: [650, 120], size: [225, 65], text: GLM 配置登记, sub: 类型与架构转换器, tone: control }
-  - { at: [25, 315], size: [200, 60], text: Worker 构造, sub: 加载执行侧适配, tone: weight }
-  - { at: [335, 315], size: [230, 60], text: patch/worker, sub: 执行侧适配, tone: weight }
-  - { at: [650, 315], size: [225, 60], text: 后续初始化, sub: 算子登记、配置、基类, tone: weight }
+  - { at: [20, 62], size: [150, 54], text: 平台准备钩子, sub: 解析参数、建配置时, tone: control }
+  - { at: [20, 138], size: [150, 54], text: 三个通用入口, sub: 标记已置就返回, tone: control }
+  - { at: [200, 100], size: [160, 56], text: 分流函数, sub: 导入 platform 目录, tone: control }
+  - { at: [380, 100], size: [150, 56], text: 本进程导入过吗, sub: 导入过：什么也不做, tone: control, style: plain }
+  - { at: [560, 100], size: [150, 56], text: platform 入口文件, sub: 按条件逐个导入, tone: control }
+  - { at: [740, 100], size: [150, 56], text: patch_*.py 执行, sub: 改指向、塞条目, tone: control }
+  - { at: [20, 300], size: [150, 56], text: NPUWorker 构造, sub: 第一步, tone: weight }
+  - { at: [200, 300], size: [160, 56], text: 分流函数, sub: 导入 worker 目录, tone: weight }
+  - { at: [380, 300], size: [150, 56], text: 本进程导入过吗, sub: 导入过：什么也不做, tone: weight, style: plain }
+  - { at: [560, 300], size: [150, 56], text: worker 入口文件, sub: 按条件逐个导入, tone: weight }
+  - { at: [740, 300], size: [150, 56], text: patch_*.py 执行, sub: 改指向, tone: weight }
+  - { at: [740, 398], size: [150, 56], text: 登记算子、建配置, sub: 再初始化基类, tone: weight, style: faded }
+  - { at: [20, 486], size: [500, 54], text: 零散入口：满足条件才导入, sub: 检查配置时的 profiling 分块；model runner 里的 EAGLE-3 流水线辅助, tone: ink, style: plain }
 links:
-  - { from: [225, 85], to: [335, 140], via: [[280, 85], [280, 140]], tone: control }
-  - { from: [225, 220], to: [335, 165], via: [[280, 220], [280, 165]], tone: control }
-  - { from: [565, 152], to: [650, 152], tone: control }
-  - { from: [225, 345], to: [335, 345], tone: weight }
-  - { from: [565, 345], to: [650, 345], tone: weight }
+  - { from: [170, 89], to: [200, 120], via: [[185, 89], [185, 120]], tone: control }
+  - { from: [170, 165], to: [200, 138], via: [[185, 165], [185, 138]], tone: control }
+  - { from: [360, 128], to: [380, 128], tone: control }
+  - { from: [530, 128], to: [560, 128], tone: control }
+  - { from: [710, 128], to: [740, 128], tone: control }
+  - { from: [170, 328], to: [200, 328], tone: weight }
+  - { from: [360, 328], to: [380, 328], tone: weight }
+  - { from: [530, 328], to: [560, 328], tone: weight }
+  - { from: [710, 328], to: [740, 328], tone: weight }
+  - { from: [815, 356], to: [815, 398], tone: weight }
+dividers:
+  - { from: [16, 238], to: [884, 238], sides: [global patch：前端、EngineCore、Worker 进程都要有, worker patch：只在 Worker 进程里打] }
 texts:
-  - { at: [650, 225], text: 模型类注册、CustomOp 登记, note: true }
-  - { at: [650, 248], text: 是另外两种扩展机制, note: true }
+  - { at: [20, 30], text: 从入口到一行赋值：两类 patch 各走一条路, size: 15, strong: true }
+  - { at: [534, 120], text: 没有, note: true }
+  - { at: [534, 320], text: 没有, note: true }
+  - { at: [560, 180], text: 310P？vLLM 版本？EPLB 环境变量？, note: true }
+  - { at: [560, 204], text: 之后用到：建配置、分 KV 块、第 2 站调度, note: true }
+  - { at: [560, 380], text: 310P？vLLM 版本？装了 Triton？, note: true }
+  - { at: [560, 476], text: 之后用到：建通信组、加载权重、第 4–5 站, note: true }
 pins:
   - { source: 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L563-L567', symbols: [adapt_patch] }
-  - { source: 'vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30', symbols: [Glm5NextModelArchConfigConvertor] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L69', symbols: [_ensure_global_patch] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L107-L130', symbols: [NPUWorker, init_ascend_config] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L710-L715', symbols: [patch_profiling_chunk] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3783-L3787', symbols: [patch_eagle3_pp_aux_propagation] }

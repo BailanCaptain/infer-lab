@@ -510,3 +510,12 @@
 - 前两屏的初学者复述：EP 把完整路由专家均分到卡上，token 找到被选中的专家计算，再收回结果加权；省每卡权重空间，代价是每层输入和结果的通信及等待，共享专家则每个 token 都使用。
 - 本轮只修用户指定问题，沿用其余已审内容；未重新审查版本语义或实测 NPU。audit 的 URL 85 条未联网验证、raw 摘录 1219 条待核对仍是该检查的范围限制。
 - 待用户决定的问题：无。
+
+## 十八、陪跑触发条件补句（09-28）
+
+按 data-parallel 的 P5 审查（`data-parallel-review.md` 第 4 节、P2-2）处理，只动一句，其余不动。
+
+- **改了什么**：「对照源码 · 开销和什么时候别开」首段「以及跨 DP 的陪跑。」之后补一句：严格说，触发陪跑的是 MoE 本身，不开 EP 时专家也切在所有卡上；本部署开了 EP16，结论相同。链接到 `data-parallel.md#dp-是什么空闲的组为什么还要陪跑`（锚点已用 `src/content/wiki/anchors.ts` 的 `headingSlug` 核对）。
+- **为什么**：原句把陪跑列为 EP 的代价，放在「什么时候别开」里，读者会以为关掉 EP 就不用陪跑。
+- **依据**：`vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1164` 只凭 `is_moe` 决定用 `DPEngineCoreProc`（陪跑逻辑所在）；`vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1074-L1082` 在不开 EP 时把专家按 DP×TP 展开切到全部卡上。两处本轮都已读原文核对。
+- **验证**：`pnpm wiki:lint` 通过（本页 0 条提示）；`pnpm wiki:audit` 通过。未改图，未跑 `wiki:diagrams`。未做浏览器验收。

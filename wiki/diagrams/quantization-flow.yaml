@@ -1,0 +1,50 @@
+layout: figure
+id: quantization-flow
+caption: 加载时按层决定精度：读模型目录里的量化描述文件，标成 FLOAT 的层换成不量化实现，其余按「精度名称、层类型」这一对键找到方法类。每次前向由选中的方法执行：激活现算系数压成 INT8，整数乘加，最后乘回两份系数输出 BF16。上排的分支只在加载时走一次，虚线表示它决定下排用哪套算子。
+size: [880, 400]
+dividers:
+  - { from: [24, 214], to: [856, 214], sides: [加载时走一次, 每次前向都走] }
+items:
+  - { at: [24, 74], size: [136, 56], text: 启动指定 ascend, sub: 或从模型文件探测, tone: control, style: plain }
+  - { at: [176, 74], size: [140, 56], text: 读量化描述文件, sub: 模型目录里的 JSON, tone: control, style: plain }
+  - { at: [340, 74], size: [120, 56], text: 逐层查这一层, sub: 权重标的是什么, tone: control, style: plain }
+  - { at: [484, 22], size: [176, 50], text: "标 FLOAT：不量化实现", tone: ink, style: plain }
+  - { at: [484, 100], size: [176, 50], text: 其他：查方法注册表, tone: control, style: plain }
+  - { at: [684, 86], size: [172, 76], text: W8A8 动态量化方法, sub: linear 与 moe 各一个, tone: weight, style: plain }
+  - { at: [24, 258], size: [132, 62], text: 主线第 4 站, sub: 逐层前向到这一层, tone: token, style: plain }
+  - { at: [176, 258], size: [140, 62], text: 激活按 token 量化, sub: 现算每行的系数, tone: token, style: plain }
+  - { at: [340, 258], size: [148, 62], text: 整数乘加, sub: 专家用分组矩阵乘, tone: ink, style: plain }
+  - { at: [512, 258], size: [148, 62], text: 乘回两份系数, sub: 输出类型跟随输入, tone: control, style: plain }
+  - { at: [684, 258], size: [120, 62], text: 输出 BF16, sub: 交给下一层, tone: token, style: plain }
+badges:
+  - { at: [28, 78], n: 1 }
+  - { at: [180, 78], n: 2 }
+  - { at: [344, 78], n: 3 }
+  - { at: [688, 90], n: 4 }
+  - { at: [180, 262], n: 5 }
+  - { at: [344, 262], n: 6 }
+  - { at: [516, 262], n: 7 }
+links:
+  - { from: [160, 102], to: [176, 102] }
+  - { from: [316, 102], to: [340, 102] }
+  - { from: [460, 92], to: [484, 47], via: [[472, 92], [472, 47]] }
+  - { from: [460, 112], to: [484, 125], via: [[472, 112], [472, 125]] }
+  - { from: [660, 125], to: [684, 125] }
+  - { from: [156, 289], to: [176, 289] }
+  - { from: [316, 289], to: [340, 289] }
+  - { from: [488, 289], to: [512, 289] }
+  - { from: [660, 289], to: [684, 289] }
+  - { from: [770, 162], to: [246, 258], via: [[770, 186], [246, 186]], tone: weight, dashed: true }
+texts:
+  - { at: [484, 14], text: 描述文件要覆盖每一层：查不到条目会直接报错，不按浮点兜底, size: 13, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L60-L70
+    symbols: [MODELSLIM_CONFIG_FILENAME]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L709-L736
+    symbols: [is_layer_skipped_ascend]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/modelslim_config.py#L364-L398
+    symbols: [get_linear_quant_type]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/registry.py#L19-L62
+    symbols: [get_scheme_class]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125
+    symbols: [npu_quant_matmul]

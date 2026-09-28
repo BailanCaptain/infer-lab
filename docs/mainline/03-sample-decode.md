@@ -592,6 +592,7 @@ positions `[0,1,2,3]`，hidden 用主模型这 4 个位置的输出；三遍跑�
 
 DP1 那 36 格（主模型）+ 每遍 20 行（草拟）就是「空闲的组陪跑」的具体代价：它本来主模型只要 32 格宽的图、
 草拟只要 28 行 `[C]`+`[D]`。
+严格说，触发陪跑的是 MoE 本身，不开 EP 时专家也切在所有卡上（见 `data-parallel.md`）；本部署开了 EP16，结论相同 `[C]`。
 依据：主模型走 `_sync_metadata_across_dp`，`allow_dp_padding` 在本地图模式非 NONE 时为真，两边都填成
 `max_tokens_across_dp`（`vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L731-L738`、`#L2979-L2983`）；
 草拟走同一个函数但带 `is_draft_model=True`，这条分支无条件取最大值
@@ -727,6 +728,7 @@ DP0 那一步混了 prefill（6048）时，DP1 的 dummy 被拉到 **6048**，�
 | 跨文档：图尺寸（三份一致） | 不改 |
 | 跨文档：块大小、每 token KV 字节 | 03 原本不涉及。这轮只在 A5 待核 2 里引用了 01 的判定（12 × 1,088 = 13,056 B/token），没有另立数字 |
 | 追加（02 作者核实，同日第三轮） | 已改。MTP 每卡显存不再由 03 自己给区间，改为引用 **02 §7.5 的 540.75 MiB（上界 559.75）**，口径写明「MLA 本体 23.0 + 索引器 14.25 = 37.25」。原下界 533 偏低，是因为假设了 `kv_b_proj` 和 `indexer.wq_b` 会被量化；自查 `modules_to_not_convert` 后确认这两项各出现 **12 次**（层 3、7、…、43 **和 45**），第 45 层都不量化，`wk_weights_proj` 代码里写死 `quant_config=None`。A5 待核 1 同步改写。同一个数只在 02 里定义一次 |
+| 追加（按 `docs/mainline/review/pages/data-parallel-review.md` 的 P5 审查，2026-09-28） | 已改。B4 场景 M 表下补一句：触发陪跑的是 MoE 本身，不开 EP 时专家也切在所有卡上；本部署开了 EP16，结论相同。依据 `vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1164`（只看 `is_moe`）与 `vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1074-L1082`。审查 P2-3 建议的改称（场景 M 的 DP1 有 7 条请求、不跑 dummy，宜称「较闲的组被拉到对面宽度的代价」）本轮未改 |
 
 **冲突项的判定（空闲组 `_dummy_run`）**：03-review 判 4、01-review 判「补到 6048 再 eager」。
 对照源码后判定**两者是同一条链的两端，都对**：`execute_dummy_batch` 传的是

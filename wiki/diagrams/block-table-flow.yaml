@@ -1,0 +1,48 @@
+layout: figure
+id: block-table-flow
+caption: R1 第一步沿主线走一遍。第 2 站，调度器按 5 个缓存组从同一个池里要块号，结果按组分开发给 worker。第 3 站，每个 worker 把各组的块号写进各组自己的 block table：full 组把一个 640 个位置的块号展开成 5 个 128 个位置的 kernel 块号，尾状态组和 3 个 KDA 组原样写入；随后把这一批用到的几行异步拷到 NPU，再给 KDA 以外的组逐 token 算槽位。第 4 站，各层按自己所在的组取用：MLA 主缓存按槽位写、按 kernel 块表读；indexer K 把表和槽位折回 640 的块；尾状态直接用本组槽位；KDA 不用槽位，把块号直接当状态页编号。
+size: [900, 420]
+items:
+  - { at: [24, 34], size: [200, 56], text: 按缓存组要块号, sub: 5 个组共用一个池, tone: control, style: plain }
+  - { at: [264, 34], size: [200, 56], text: 调度结果, sub: R1：15 个块号，按组分开, tone: control, style: plain }
+  - { at: [504, 34], size: [372, 56], text: 登记进持久批次, sub: 新请求占一行，老请求往后追加, tone: token, style: plain }
+  - { at: [24, 130], size: [270, 60], text: full 组：1 个变 5 个, sub: 640 的块号展开成 5 个 128 的, tone: kv, style: plain }
+  - { at: [314, 130], size: [270, 60], text: 尾状态组：原样写入, sub: 一块 4 个位置，R1 拿 2 个, tone: kv, style: plain }
+  - { at: [604, 130], size: [272, 60], text: 3 个 KDA 组：原样写入, sub: 每行 4 格：状态 + 3 个候选, tone: kv, style: plain }
+  - { at: [24, 226], size: [400, 56], text: 这一批的几行异步拷到 NPU, sub: 和其余 CPU 准备同时进行, tone: control, style: plain }
+  - { at: [476, 226], size: [400, 56], text: 逐 token 算槽位, sub: KDA 组跳过，其余组各算一份, tone: token, style: plain }
+  - { at: [24, 336], size: [200, 64], text: MLA 主缓存, sub: 按槽位写，按 kernel 块读, tone: kv, style: plain }
+  - { at: [240, 336], size: [200, 64], text: indexer K, sub: 表与槽位折回 640 的块, tone: kv, style: plain }
+  - { at: [456, 336], size: [200, 64], text: indexer 尾状态, sub: 直接用本组槽位, tone: kv, style: plain }
+  - { at: [672, 336], size: [204, 64], text: KDA 状态, sub: 块号直接当状态页编号, tone: kv, style: plain }
+links:
+  - { from: [224, 62], to: [264, 62] }
+  - { from: [464, 62], to: [504, 62] }
+  - { from: [424, 254], to: [476, 254] }
+fans:
+  - { from: [690, 90], to: [[159, 130], [449, 130], [740, 130]], tone: kv }
+  - { from: [[159, 190], [449, 190], [740, 190]], to: [224, 226], tone: control }
+  - { from: [676, 282], to: [[124, 336], [340, 336], [556, 336], [774, 336]], tone: token }
+texts:
+  - { at: [24, 22], text: 第 2 站 调度（引擎进程）, strong: true }
+  - { at: [504, 22], text: 第 3 站 准备输入（每个 worker）, strong: true }
+  - { at: [24, 322], text: 第 4 站 逐层前向, strong: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L26-L83
+    symbols: [get_block_ids]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_input_batch.py#L335-L528
+    symbols: [add_row, clear_row]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1366-L1401
+    symbols: [append_row]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L284-L309
+    symbols: [_convert_physical_to_logical_blocks, blocks_per_phys_block]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L834-L837
+    symbols: [commit_block_table]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/block_table.py#L329-L462
+    symbols: [is_mamba_group, compute_slot_mapping]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L175-L283
+    symbols: [kernel_blocks_per_logical_block]
+  - source: vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L27-L52
+    symbols: [format_indexer_kpool_slot_mapping]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/gdn_attn_builder.py#L545-L600
+    symbols: [non_spec_state_indices_tensor, spec_state_indices_tensor]

@@ -12,7 +12,7 @@ links:
   - { from: [305, 150], to: [475, 150], tone: comm }
   - { from: [745, 150], to: [817, 150], tone: weight }
 texts:
-  - { at: [390, 123], text: 复制本卡所需部分, anchor: middle, tone: comm, size: 15 }
+  - { at: [390, 123], text: 复制, anchor: middle, tone: comm, size: 15 }
   - { at: [825, 132], text: NPU, anchor: middle, size: 15 }
   - { at: [825, 177], text: 计算, anchor: middle, size: 15 }
   - { at: [170, 257], text: 主机账：源数据, anchor: middle, note: true }

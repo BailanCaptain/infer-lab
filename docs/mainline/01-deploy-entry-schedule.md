@@ -96,6 +96,8 @@
 
 合计 20 个进程，其中 16 个占卡。`[C]` 依据上面第 1–4 步。
 
+口径：按角色计，API server、DP 协调器、EngineCore、Worker 各算一个。node0 的 API server 就是执行 `vllm serve` 的那个进程（`--api-server-count 1`，`vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L146-L148`）。node1 执行 `vllm serve --headless` 的启动进程在拉起引擎后停在 `engine_manager.monitor_engine_liveness()`（`#L235-L253`），既不退出，也不承担任何角色，所以不计入。按进程列表数，vLLM 自己的进程是 node0 11 个、node1 10 个，合计 21 个。Python 标准库按需另起的辅助进程，以及 EPLB 等特性另起的进程，也都不计。`[C]`
+
 #### A0.2 通信域
 
 - **TP 组（8 rank，机内）**：`[0..7]`、`[8..15]`。走机内 HCCS。每层 attention 的 o_proj、MLP 的 down_proj 后面的 all-reduce 在这个域里。
@@ -1147,3 +1149,9 @@ while True:
 | 条目 | 处置 | 依据与影响 |
 |---|---|---|
 | B1「做了什么」把每台机器说成「完整的模型副本」 | **已改** | EP16 下 288 个路由专家摊在 16 张卡上、每卡 18 个（§0 表「每卡路由专家数」），每台机器只是一个 DP 执行组，两组合起来才是一份完整的模型。改为「DP 执行组（机内 TP8）……哪一组都不是一份完整的模型」。全文 `副本` 共 9 处逐处核过：只改这 1 处；另 6 处是 scale 的「FP32 副本」（数据拷贝），2 处是 RFork 语境的「扩副本」（整套服务实例），用法正确，未动。不影响任何数字。 |
+
+### 追加修订（2026-09-28，据 `review/pages/engine-processes-review.md` P5 审查 P2-4）
+
+| 条目 | 处置 | 依据与影响 |
+|---|---|---|
+| A0.1「合计 20 个进程」没有写统计口径，知识库 engine-processes 页把「按角色计」和「按进程列表数是 21 个」归到底稿名下却无出处 | **已补** | 在 A0.1 合计行后补一句口径：按角色计；node1 `--headless` 启动进程留在 `monitor_engine_liveness()` 不计入，按进程列表数为 21 个；辅助进程与特性另起的进程不计。依据 `vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L146-L148`、`#L235-L253`。20 这个数本身不变，只补口径；本文件其他位置未动 |

@@ -1,20 +1,122 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="单层、单请求、未分片的逻辑容量推导：MLA 主潜向量为 BF16；KDA 矩阵状态假设 FP32。条长只表示字节数，未包含索引、卷积、分页与其他开销，也不是速度比较">
-  <title>单层、单请求、未分片的逻辑容量推导：MLA 主潜向量为 BF16；KDA 矩阵状态假设 FP32。条长只表示字节数，未包含索引、卷积、分页与其他开销，也不是速度比较</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 290" width="900" height="290" role="img" aria-label="一个新位置做注意力时读多少历史。历史从 4 份增长到 12 份，稀疏注意力的主 attention 预算示意为 4 份。实色格是这一步要读的，虚线格仍留在缓存里但这一步不读；细条是 indexer 打分用的 key，每份比主 attention 的 K/V 小得多，但每一份都要扫到。固定状态不按位置保存历史，每一步只读写同一块状态。">
+  <title>一个新位置做注意力时读多少历史。历史从 4 份增长到 12 份，稀疏注意力的主 attention 预算示意为 4 份。实色格是这一步要读的，虚线格仍留在缓存里但这一步不读；细条是 indexer 打分用的 key，每份比主 attention 的 K/V 小得多，但每一份都要扫到。固定状态不按位置保存历史，每一步只读写同一块状态。</title>
   <defs></defs>
-  <rect x="220" y="90" width="125" height="32" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="236" y="111" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">1 MiB</text>
-  <rect x="220" y="160" width="500" height="32" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="236" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">4 MiB</text>
-  <rect x="220" y="270" width="500" height="32" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="236" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">4 MiB</text>
-  <rect x="220" y="340" width="500" height="32" rx="4" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="236" y="361" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">4 MiB</text>
-  <text x="35" y="45" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">MLA 主潜向量</text>
-  <text x="35" y="111" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">1024 个位置</text>
-  <text x="35" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">4096 个位置</text>
-  <text x="35" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">KDA 当前矩阵状态</text>
-  <text x="35" y="291" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">已处理 1024 个位置</text>
-  <text x="35" y="361" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">已处理 4096 个位置</text>
-  <text x="620" y="45" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">512 × 2 B / 位置</text>
-  <text x="620" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">64 × 128 × 128 × 4 B</text>
+  <rect x="180" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="199" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="218" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="237" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="293" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="312" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="331" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="350" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="369" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="388" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="407" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="426" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="482" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="501" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="520" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="539" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="558" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="577" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="596" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="615" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="634" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="653" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="672" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="691" y="40" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="180" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="199" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="218" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="237" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="170" y="128.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">indexer 打分</text>
+  <rect x="293" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="312" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="331" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="350" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="369" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="388" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="407" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="426" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="482" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="501" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="520" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="539" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="558" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="577" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="596" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="615" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="634" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="653" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="672" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="691" y="120" width="16" height="8" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="180" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="199" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="218" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="237" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="170" y="159.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">主 attention</text>
+  <rect x="293" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="312" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="331" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="350" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="369" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="388" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="407" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="426" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="482" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="501" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="520" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="539" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="558" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="577" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="596" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="615" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="634" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="653" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="672" y="142" width="16" height="26" rx="4" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="691" y="142" width="16" height="26" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="192" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="208" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="224" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="192" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="208" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="224" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="192" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="208" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="224" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <path d="M208 206v48M224 206v48M192 222h48M192 238h48" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="192" y="206" width="48" height="48" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="216" y="276" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">历史 4 份</text>
+  <rect x="343" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="359" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="375" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="343" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="359" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="375" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="343" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="359" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="375" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <path d="M359 206v48M375 206v48M343 222h48M343 238h48" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="343" y="206" width="48" height="48" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="367" y="276" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">历史 8 份</text>
+  <rect x="570" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="586" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="602" y="206" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="570" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="586" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="602" y="222" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="570" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="586" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <rect x="602" y="238" width="16" height="16" fill="var(--color-control, #66716d)"/>
+  <path d="M586 206v48M602 206v48M570 222h48M570 238h48" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="570" y="206" width="48" height="48" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="594" y="276" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">历史 12 份</text>
+  <text x="735" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">历史变长时</text>
+  <text x="20" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">密集注意力</text>
+  <text x="735" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">读的份数跟着增长</text>
+  <text x="20" y="106" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">稀疏注意力</text>
+  <text x="735" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">打分仍跟着增长</text>
+  <text x="735" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">读到预算就封顶</text>
+  <text x="20" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">固定状态（KDA）</text>
+  <text x="735" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">始终是同一块</text>
 </svg>

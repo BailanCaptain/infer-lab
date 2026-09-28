@@ -404,3 +404,5 @@
     - 模板在会话 scratchpad：opus-writer-template.md、review-template.md、p5q/（119 个任务单）。
 - [ ] P5 铺开
 - [ ] P6 收尾
+- 09-28 深夜（额度恢复后的一小段）：R1 方案 (a) 的页面修改已全部落地（底稿 01/02/03 与 one-request 共 9 处，只加说明不改数字，待核 1 已结）；rope 审过（9/10，无 P1，失效锚点已修）并加入 standard-pages.json（现 37 页）；四页 v0.23 列复核完，表头统一；vllm-ascend-overview P2/P3 收尾完（A4 504→246）；vllm-kv-block-allocation 深改完（1533→11500 字，教学 6809），**尚未审查**，写手自报疑点：尾状态组稳态占几块、借出时是否清零。全库 lint=0、audit=0。工作区未提交。
+- 新会话第一件事：派审查员审 vllm-kv-block-allocation（含上面两个疑点），过了加入 standard-pages.json；然后第 08 批剩 npu-worker-lifecycle、vllm-v1-shape（提示词在 scratchpad p5q/），再进第 09 批。

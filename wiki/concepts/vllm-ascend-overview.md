@@ -88,7 +88,7 @@ file: ascend-vs-upstream
 - **平台**：NPUPlatform 启动时校验并改写配置，回答 Worker、注意力后端、通信类各用哪个。见[插件发现与模型注册](platform-plugin-registration.md)与 [NPUPlatform](npu-platform.md)。
 - **patch**：上游没留接口处替换函数或类，分平台侧和 Worker 侧两类。见 [Patch 机制](ascend-patch-system.md)。
 - **模型**：在模型注册表里把 GLM 的架构名指向昇腾包里的实现。见[模型入口](platform-plugin-registration.md#模型入口从架构名找到昇腾的-glm-实现)。
-- **算子**：注意力、MoE、量化矩阵乘和卡间通信在 NPU 上的实现。总入口见[算子与 kernel](ops-and-kernels.md)，卡间通信见 [CANN 与 HCCL](cann-hccl.md)，量化见 [W8A8 量化](quantization.md)。
+- **算子**：注意力、MoE、量化矩阵乘和卡间通信在 NPU 上的实现。总入口见[算子与 kernel](ops-and-kernels.md)，注意力挑哪个后端见[注意力后端](attention-backend-family.md)，卡间通信见 [CANN 与 HCCL](cann-hccl.md)，量化见 [W8A8 量化](quantization.md)。
 - **配置**：命令行、附带的 JSON、环境变量三路开关汇成每个进程的 Ascend 配置。见 [Ascend 配置](ascend-config-system.md)。
 
 状态也按这条线分：请求进度和 KV cache 块分配归上游，本步的请求映射、注意力元数据和各卡的缓存张量归执行侧。请求没被调度，查队列、token 预算和块分配；读错了历史，查位置、[block table](block-table.md) 和状态索引。
@@ -101,7 +101,7 @@ file: ascend-vs-upstream
 - **A1 入口**：HTTP、聊天模板、分词、选 DP 组都是上游代码；昇腾只是事先打好 global patch，其中一个让 vLLM 0.23.0 认得 GLM 配置。
 - **A2 调度**：Scheduler 是上游的，但块长和分组由启动时被昇腾 patch 换掉的函数算出：逻辑块 640 个位置，四类状态对齐成两档页、编成 5 个缓存组。见 [KV cache 规格](kv-cache-spec.md)。
 - **A3 准备输入**：计划在这里越过平台边界。NPUModelRunner 把调度输出变成 NPU 上的张量，为 5 个缓存组各维护一张 block table，full 组的 640 块号再展开成 5 个 128 的 kernel 块号。见 [Block Table](block-table.md)。
-- **A4 逐层前向**：45 层都跑在昇腾包里的 GLM 模型代码上，[Attention](attention-qkv.md) 分 [KDA](linear-attention.md) 和[稀疏注意力](sparse-attention.md)两类、各自指定昇腾后端，[MoE](moe.md) 按 [EP16](expert-parallel.md) 摊到 16 张卡。
+- **A4 逐层前向**：45 层都跑在昇腾包里的 GLM 模型代码上，[Attention](attention-qkv.md) 分 34 层 [KDA](linear-attention.md) 和 11 层[稀疏注意力](sparse-attention.md)、各自指定昇腾后端，45 层里有 42 层的前馈是 [MoE](moe.md)，按 [EP16](expert-parallel.md) 摊到 16 张卡。
 
 ## 常见误解
 
@@ -116,7 +116,7 @@ file: ascend-vs-upstream
 
 ### 怎么开
 
-装上包就生效，没有开关。GLM 基线声明两组 entry point 共五个 [C1]：平台组 `vllm.platform_plugins` 只有 `ascend = vllm_ascend:register`，只返回字符串 `"vllm_ascend.platform.NPUPlatform"`，由 vLLM 自己导入；通用组 `vllm.general_plugins` 有四个，登记 KV 连接器与权重传输引擎、netloader 与 rfork 加载器、服务级 profiling 配置、模型实现 [C3]。平台组在每个进程第一次访问当前平台时加载 [C4][C5]。
+装上包就生效，没有开关。GLM 基线声明两组 entry point、共 5 个入口名 [C1]：平台组 `vllm.platform_plugins` 只有 `ascend = vllm_ascend:register`，只返回字符串 `"vllm_ascend.platform.NPUPlatform"`，由 vLLM 自己导入；通用组 `vllm.general_plugins` 有四个，登记 KV 连接器与权重传输引擎、netloader 与 rfork 加载器、服务级 profiling 配置、模型实现 [C3]。平台组在每个进程第一次访问当前平台时加载 [C4][C5]。
 
 四个通用入口里三个先调 `_ensure_global_patch()`，模型入口不调：vLLM 在 EngineCore 子进程里加载通用插件，端到端测试的 conftest 钩子到不了那里，global patch 只能借这些入口打上 [C2]。
 
@@ -148,7 +148,7 @@ GLM 基线是 glm-5.3-flash-0902-1 分支上的固定提交，配 vLLM 0.23.0，
 | GLM 模型代码 | models 下 glm5_next 等三个文件 | 无 | 无 | 移到 models/glm5next/，模型、MTP、KDA、稀疏索引器等分文件 |
 | GLM 配置 patch 与专用算子 | 有 | 无 | 无 | 有 |
 | patch 文件数 | 59 | 59 | 64 | 60 |
-| entry point | 2 组 5 个 | 2 组 5 个 [C31] | 2 组 5 个 [C32] | 3 组 6 个 [C33] |
+| entry point | 2 组 5 个 [C1] | 2 组 5 个 [C31] | 2 组 5 个 [C32] | 3 组 6 个 [C33] |
 
 main 多出的一组是 `ms_service_metric.providers`。v0.23 维护分支与 v0.26 里带 GLM 字样的只有工具调用、推理用量的 patch。GLM 基线根目录另有 vllm_patch 目录和 Transformers 补丁，后者确认在构建时应用，前者未核。其他目录见[目录地图](vllm-ascend-repo-map.md)，官方定位见 [S34][S35]。
 

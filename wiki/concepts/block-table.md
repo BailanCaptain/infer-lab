@@ -270,7 +270,7 @@ GLM 所有带缓存的层（11 层稀疏 MLA、MTP 层、34 层 KDA）都按块�
 - **提交。** `_prepare_inputs` 最前面调 `commit_block_table(num_reqs)`，注释写明先发起拷贝，与后续 CPU 工作重叠 [C11]。db701c1f 的实现是 `cpu[:num_reqs].clone().pin_memory()` 后 `non_blocking` 拷到 NPU，拷的是整行，所以 R1 独自在跑时每步约 134 KiB，尾状态组那行占约 97%。
 - **槽位。** 不开 PCP 时在准备输入中段调 `compute_slot_mapping`；`MultiGroupBlockTable` 跳过 `is_mamba_group` 的组。kernel 的 grid 是 `num_reqs + 1`，最后一个 program 把 `num_tokens` 之后到 `max_num_tokens` 的尾部填成 `PAD_SLOT_ID`。昇腾的槽位缓冲是 int32，上游是 int64。
 - **稀疏注意力读表。** 生产路径 `_execute_sparse_flash_attention_process` 把 `attn_metadata.block_table` 与 top-k 索引交给 `npu_sparse_flash_attention`，`layout_kv="PA_BSND"` [C19][C20]。旧版出处指向的 `_sparse_attention_pytorch` 只被单元测试调用，推理时不执行。
-- **待核。** 拷表与算槽位每步的实际耗时没有 profiling 数据，正文「不在关键路径」是按操作量推断 [!]。尾状态组在长序列下窗口外的块怎样回收、表里对应格写什么，归 [KV 块分配](vllm-kv-block-allocation.md)，底稿 01 §A2 待核第 1 条仍开着。
+- **待核。** 拷表与算槽位每步的实际耗时没有 profiling 数据，正文「不在关键路径」是按操作量推断 [!]。尾状态组在长序列下窗口外的块怎样回收（decode 时手里 3–4 块，窗口外的整块换成 null block 还池），归 [KV 块分配](vllm-kv-block-allocation.md#kda-组和尾状态组借法和普通注意力不同)；表里对应格写什么，没有核 [!]。
 
 ### 版本差异
 

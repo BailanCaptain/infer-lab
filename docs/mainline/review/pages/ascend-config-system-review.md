@@ -143,3 +143,5 @@
 - **自报口径更正。** 上文写作记录与复核里的「平台校验 4/2/1」只数了 `_validate_*` 类方法，漏了 main 上的两个模块级函数；按「建配置前跑的校验」口径应为 **4 / 2 / 3**，与 npu-platform.md 第 72、198 行一致。
 - **核对。** `vllm-ascend@baa023ad:vllm_ascend/platform.py`：`check_and_update_config` 起于 L457，L476 `cls._validate_indexer_pp_config`、L478 `_validate_draft_decode_context_parallel_config`、L479 `_validate_parallel_config`，L492 才 `init_ascend_config`。页面「源码位置」表已引 L457–L495，覆盖这三行，不用改。
 - **验证。** `pnpm wiki:lint` 通过，本页 0 条；`pnpm wiki:audit` 本页无 ✗，全库唯一失败在 gap-a5164fe10fa9184412f8，与本页无关。未起服务、未截图。
+
+- **v0.23 列表头复核（09-28）：改了。** 原表头写「v0.23 列核自镜像 db701c1f，在 2c59ff10 上是否逐项相同未核」，把 db701c1f 混进 v0.23 列。已按 `git diff db701c1f 2c59ff10` 核实：ascend_config.py 只差 2c59ff10 新增的采样归约两条 ValueError（L320–L339），envs.py 无差异，platform.py 只差 L596 起的编译开关复位、不在 L450–L480 的四个校验里。表头改为「v0.23 列 = 2c59ff10，db701c1f 单独注明、只有它含 GLM 模型代码与配置 patch」，表内各行对 2c59ff10 成立，未改。

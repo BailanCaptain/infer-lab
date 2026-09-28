@@ -1,26 +1,35 @@
 layout: figure
 id: ops-layers
-caption: 数学运算经框架分派或模型直接调用，进入已有设备接口或自定义扩展；两条路径最终组织设备任务
-size: [900, 500]
+caption: 模型里的一次运算逐层下沉：先决定交给谁，再决定谁去算，最后在设备上启动核函数
+size: [900, 480]
 items:
-  - { at: [315, 20], size: [270, 60], text: 模型中的数学运算, sub: 矩阵乘 / 归一化 / 状态更新, tone: weight }
-  - { at: [70, 135], size: [295, 65], text: 框架算子分派, sub: 名称 → 设备实现类, tone: control }
-  - { at: [530, 135], size: [295, 65], text: 模型直接调用, sub: 例如 GLM 的 mHC 算子, tone: control }
-  - { at: [70, 275], size: [295, 65], text: 已有设备接口, sub: 例如普通 RMSNorm, tone: token }
-  - { at: [530, 275], size: [295, 65], text: 仓库自定义扩展, sub: 按实现组织核函数, tone: kv }
-hardware:
-  - { kind: chip, at: [387, 389], size: [126, 90], label: NPU }
+  - { at: [340, 18], size: [300, 56], text: 模型里的一次运算, sub: 一次归一化、一次矩阵乘, tone: weight, depth: 2 }
+  - { at: [110, 110], size: [240, 62], text: 框架的替换表, sub: 按类名换成昇腾实现, tone: control }
+  - { at: [370, 110], size: [240, 62], text: 量化方法, sub: 按量化配置选算法, tone: control }
+  - { at: [630, 110], size: [240, 62], text: 模型里写死的调用, sub: 例如 GLM 的残差混合, tone: control }
+  - { at: [110, 206], size: [370, 62], text: 随框架发布的设备算子, sub: 成熟实现, tone: token }
+  - { at: [500, 206], size: [370, 62], text: 仓库自己编译的扩展, sub: 自己写的昇腾算子, tone: kv }
+  - { at: [230, 302], size: [520, 56], text: CANN 算子, sub: 选分块、排任务、下发, tone: comm }
+  - { at: [370, 372], size: [240, 62], text: 设备上的核函数, sub: 一次运算可能启动多个, tone: ink, depth: 2 }
 links:
-  - { from: [380, 80], to: [217, 135], via: [[380, 105], [217, 105]], tone: control }
-  - { from: [520, 80], to: [677, 135], via: [[520, 105], [677, 105]], tone: control }
-  - { from: [217, 200], to: [217, 275], tone: token }
-  - { from: [310, 200], to: [530, 300], via: [[450, 200], [450, 300]], tone: kv }
-  - { from: [677, 200], to: [677, 275], tone: kv }
-  - { from: [217, 340], to: [387, 434], via: [[217, 434]], tone: token }
-  - { from: [677, 340], to: [513, 434], via: [[677, 434]], tone: kv }
+  - { from: [490, 74], to: [230, 110], via: [[490, 92], [230, 92]], tone: control }
+  - { from: [490, 74], to: [490, 110], tone: control }
+  - { from: [490, 74], to: [750, 110], via: [[490, 92], [750, 92]], tone: control }
+  - { from: [230, 172], to: [295, 206], via: [[230, 190], [295, 190]], tone: token }
+  - { from: [490, 172], to: [295, 206], via: [[490, 190], [295, 190]], tone: token }
+  - { from: [490, 172], to: [685, 206], via: [[490, 190], [685, 190]], tone: kv }
+  - { from: [750, 172], to: [685, 206], via: [[750, 190], [685, 190]], tone: kv }
+  - { from: [295, 268], to: [420, 302], via: [[295, 285], [420, 285]], tone: comm }
+  - { from: [685, 268], to: [560, 302], via: [[685, 285], [560, 285]], tone: comm }
+  - { from: [490, 358], to: [490, 372], tone: ink }
 texts:
-  - { at: [55, 472], text: 运行库安排任务与依赖, note: true }
-  - { at: [570, 472], text: 算子数 ≠ kernel 启动数, note: true }
+  - { at: [0, 50], text: 模型 }
+  - { at: [0, 146], text: 换实现 }
+  - { at: [0, 242], text: 算子 }
+  - { at: [0, 336], text: 运行库 }
+  - { at: [0, 408], text: 硬件 }
+  - { at: [110, 466], text: 上面三条路都要落到下面两类算子, note: true }
+  - { at: [600, 466], text: 算子的个数不等于核函数的个数, note: true }
 pins:
   - { source: 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88', symbols: [AscendRMSNorm] }
   - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169', symbols: [hc_pre, hc_post] }

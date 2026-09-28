@@ -256,7 +256,8 @@
         "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1605",
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426",
         "vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495",
-        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876"
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340"
       ],
       "verified": [],
       "evidence": "C",
@@ -587,7 +588,7 @@
       "title": "注意力后端：模型机制、状态布局与设备实现的连接",
       "type": "concept",
       "origin": "seed",
-      "summary": "模型层定义注意力机制，后端实现把该机制与缓存布局、批次元数据和设备算子连接起来。以 GLM 的稀疏 MLA 和 KDA 两条路径说明为什么不能只用一个通用后端名称代表整个模型。",
+      "summary": "注意力后端是模型层和设备算子之间的那层代码：层说自己是哪种注意力，后端决定用哪份状态、按什么形状组织这批 token、最后调哪个算子。GLM 的一次前向同时走 KDA 和稀疏 MLA 两条分支，不存在\"这个模型的后端\"。",
       "aliases": [
         "attention backend",
         "注意力后端",
@@ -595,6 +596,10 @@
         "metadata builder",
         "IndexerKPoolMLA",
         "Kimi KDA",
+        "AscendGDNAttentionBackend",
+        "AscendIndexerKPoolMLABackend",
+        "attention group",
+        "注意力组",
         "FlashAttention",
         "Flash Attention 3",
         "FA3",
@@ -614,23 +619,45 @@
       "order": 50,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2049",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2072-L2105",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L216-L227",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L181-L196",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L296-L310",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L352-L368",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2049",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L763-L768",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L246-L300",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5041-L5063",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L474",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L980-L1061",
-        "https://arxiv.org/abs/2205.14135",
-        "https://arxiv.org/abs/2407.08608",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L232-L243",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L244-L291",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L388",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L390-L475",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
+        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5039-L5063",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5065-L5083",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L831",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L833-L858",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L12-L60",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L62-L97",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L99-L145",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L815-L841",
+        "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L816-L842",
+        "vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L679-L732",
+        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L240-L281",
+        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1357-L1383",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L266-L267",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kv_cache.py#L119-L178",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L301-L327",
+        "vllm@0fc695fc:vllm/v1/attention/selector.py#L54-L110",
+        "vllm@0fc695fc:vllm/config/attention.py#L14-L22",
         "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/flash_attention.md#L8-L43",
         "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/flash_attention.md#L45-L73",
         "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/flash_attention.md#L134-L156",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L805-L810",
-        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L834-L858",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L12-L60",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L62-L97",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/fa3_v1.py#L99-L145"
+        "https://arxiv.org/abs/2205.14135",
+        "https://arxiv.org/abs/2407.08608",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L45",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L82",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L136-L137"
       ],
       "verified": [],
       "evidence": "C",
@@ -649,11 +676,21 @@
           "to": "linear-attention",
           "kind": "builds-on",
           "note": "KDA 的递推与卷积状态需要不同于位置 K/V 页的访问方式"
+        },
+        {
+          "to": "sparse-attention",
+          "kind": "builds-on",
+          "note": "每个查询最多 2051 个位置的推导在那一页"
+        },
+        {
+          "to": "kv-cache-spec",
+          "kind": "builds-on",
+          "note": "分组用的缓存规格就是那一页讲的 spec"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/attention-backend-family.md",
       "backlinks": [
         {
@@ -664,7 +701,7 @@
         {
           "from": "ops-and-kernels",
           "kind": "enables",
-          "note": "后端使用设备算子执行具体计算"
+          "note": "后端选择决定注意力落到哪个算子"
         },
         {
           "from": "sfa-dcp-force-tmajor-restore-6d9c266d3ece",
@@ -678,7 +715,7 @@
       "title": "注意力代价：容量、计算与访存",
       "type": "concept",
       "origin": "seed",
-      "summary": "注意力结构改变保存的历史、查询范围和运算形状；逻辑容量可以由维度推导，实际分配、HBM 流量和耗时需要结合缓存管理、内核及工作负载分析。",
+      "summary": "历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个 token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。",
       "aliases": [
         "注意力代价",
         "attention cost",
@@ -691,30 +728,55 @@
       "order": 40,
       "prerequisites": [],
       "sources": [
-        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L134",
+        "https://arxiv.org/abs/1706.03762",
+        "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json",
         "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda_state.py#L9-L32",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L69-L182",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L261-L362",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L139",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L980-L1061"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L131-L237",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
+        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L136-L146",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L44-L56",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L159",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L94-L110",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda_state.py#L43-L45",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L115-L127",
+        "vllm-ascend@baa023ad:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L131-L153",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L90-L119"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
           "to": "mla",
           "kind": "builds-on",
-          "note": "压缩潜向量和稀疏选择分别改变哪些成本"
+          "note": "每个位置 1 KiB 的潜向量从哪里来，吸收怎样在潜空间里打分和汇合"
         },
         {
           "to": "linear-attention",
           "kind": "builds-on",
-          "note": "固定状态的形状与递推成本"
+          "note": "KDA 固定状态的递推、卷积状态，以及每条请求实际写进 85 MiB 的来历"
+        },
+        {
+          "to": "sparse-attention",
+          "kind": "builds-on",
+          "note": "按池选择、2051 宽清单与每层 33.6 MFLOP 上界的推导"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "R1 在 34 层 KDA 与 11 层稀疏 MLA 里的逐卡形状"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/attention-cost.md",
       "backlinks": []
     },
@@ -822,7 +884,7 @@
         {
           "from": "gqa",
           "kind": "enables",
-          "note": "在多头评分与汇合的基础上，讨论 Q 头与 KV 头之间的共享关系"
+          "note": "多头各自打分与汇合在那里讲；本页只讲查询头和 K、V 之间怎样共享"
         },
         {
           "from": "kv-cache",
@@ -1175,7 +1237,7 @@
         {
           "from": "vllm-kv-block-allocation",
           "kind": "enables",
-          "note": "先理解逻辑块和物理块号，再看块从哪里获得"
+          "note": "借到的块号写进块表，worker 按表把位置换算成槽位"
         }
       ]
     },
@@ -1445,6 +1507,11 @@
           "from": "dynamic-chunked-pp",
           "kind": "enables",
           "note": "理解 token 预算与前缀进度"
+        },
+        {
+          "from": "prefix-caching",
+          "kind": "enables",
+          "note": "align 模式要求 chunked prefill 开着"
         },
         {
           "from": "short-request-first",
@@ -1809,6 +1876,11 @@
           "note": "将多请求的轮次推演对应到引擎迭代"
         },
         {
+          "from": "vllm-kv-block-allocation",
+          "kind": "enables",
+          "note": "池子不够时抢占的整批账：32 条满载、被抢占的一条还回 120–121 块"
+        },
+        {
           "from": "vllm-scheduler",
           "kind": "enables",
           "note": "将批次变化对应到预算、进度和请求集合"
@@ -1816,7 +1888,7 @@
         {
           "from": "vllm-v1-shape",
           "kind": "enables",
-          "note": "将请求进入、批次变化和独立输出对应到实际框架组件"
+          "note": "多条请求时同一个循环怎样装下一整批、结果怎样按请求拆回"
         }
       ]
     },
@@ -2079,7 +2151,9 @@
         "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1205-L1208",
         "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L709-L760",
         "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L796-L850",
-        "vllm@0fc695fc:vllm/v1/engine/utils.py#L1090-L1096"
+        "vllm@0fc695fc:vllm/v1/engine/utils.py#L1090-L1096",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L985-L987",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L673-L721"
       ],
       "verified": [],
       "evidence": "C",
@@ -3016,7 +3090,8 @@
         "vllm@0fc695fc:vllm/config/vllm.py#L561-L580",
         "vllm@0fc695fc:vllm/v1/executor/abstract.py#L48-L82",
         "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L108-L130",
-        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L127-L149"
+        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L127-L149",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L745"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -3088,7 +3163,7 @@
         {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
-          "note": "Worker 是设备执行角色，其进程位置取决于执行器"
+          "note": "Worker 在哪个进程里、每个 EngineCore 起几个 Worker，由执行器决定"
         },
         {
           "from": "request-call-chain",
@@ -3931,6 +4006,11 @@
           "note": "每 token 1"
         },
         {
+          "from": "prefix-caching",
+          "kind": "enables",
+          "note": "部署前提、逻辑块 640、官方命令没写这个开关"
+        },
+        {
           "from": "vllm-ascend-overview",
           "kind": "enables",
           "note": "A0–A4 各站的部署前提（2×A2×8、TP8 / DP2 / EP16、W8A8）在那一页统一推导"
@@ -3944,10 +4024,10 @@
     },
     {
       "id": "gqa",
-      "title": "GQA：查询头如何共享 K/V，改变哪些开销",
+      "title": "GQA：几个查询头共读一组 K、V，省下什么、付出什么",
       "type": "concept",
       "origin": "seed",
-      "summary": "GQA 让一组查询头共享 K/V，减少 K/V 投影宽度和缓存容量；查询头仍分别评分与汇合，实际访存和速度取决于内核、并行方式与工作负载。",
+      "summary": "GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA 都不是 GQA，本页只作对照。",
       "aliases": [
         "GQA",
         "Grouped-Query Attention",
@@ -3962,6 +4042,7 @@
         "num_key_value_heads",
         "num_kv_heads",
         "num_queries_per_kv",
+        "num_kv_head_replicas",
         "KV 头数",
         "注意力头",
         "head",
@@ -3982,25 +4063,59 @@
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L414-L428",
         "vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359",
         "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1901-L1962"
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1901-L1962",
+        "vllm@0fc695fc:vllm/model_executor/models/llama.py#L144-L156",
+        "vllm@0fc695fc:vllm/model_executor/models/llama.py#L290-L296",
+        "vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1358-L1363",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L201",
+        "vllm@0fc695fc:vllm/v1/attention/backends/cpu_attn.py#L444-L456",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L440-L451",
+        "vllm-ascend@2ed6cbba:vllm_ascend/attention/attention_v1.py#L1378-L1389",
+        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L526-L538",
+        "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L948-L959",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L121-L134",
+        "vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L110-L134",
+        "vllm@0fc695fc:vllm/distributed/utils.py#L52-L63",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L414-L428",
+        "vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L23-L50",
+        "vllm-ascend@db701c1f:vllm_ascend/transformers_utils/configs/glm5_next.py#L128-L134"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
           "to": "attention-qkv",
           "kind": "builds-on",
-          "note": "在多头评分与汇合的基础上，讨论 Q 头与 KV 头之间的共享关系"
+          "note": "多头各自打分与汇合在那里讲；本页只讲查询头和 K、V 之间怎样共享"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "R1 在第 4 站走过 34 层 KDA 与 11 层稀疏 MLA 时每卡的形状，唯一推导处"
+        },
+        {
+          "to": "tensor-parallel",
+          "kind": "builds-on",
+          "note": "按头切到各卡的做法；本页补 KV 头少于卡数时的复制"
         },
         {
           "to": "mla",
           "kind": "alternative-to",
-          "note": "GQA 减少独立 KV 头数，MLA 采用压缩表示；两者的参数化与缓存对象不同"
+          "note": "GLM 稀疏 MLA 层存一条共享潜向量，而不是减少 K、V 的组数"
+        },
+        {
+          "to": "linear-attention",
+          "kind": "alternative-to",
+          "note": "GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/gqa.md",
       "backlinks": [
         {
@@ -4066,6 +4181,11 @@
           "from": "acl-graph",
           "kind": "enables",
           "note": "先区分编译图优化、捕获和回放"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "第六步录下的图，运行时怎样被选中和回放"
         },
         {
           "from": "npugraph-ex",
@@ -4327,7 +4447,7 @@
         {
           "from": "prefix-caching",
           "kind": "enables",
-          "note": "跨请求共享之前先明确需复用的历史状态"
+          "note": "被复用的就是已算好的 KV 历史"
         },
         {
           "from": "speculative-decoding",
@@ -4548,6 +4668,16 @@
           "from": "glm-5-3-flash-two-node",
           "kind": "enables",
           "note": "启动时量剩余显存、再一次性切成 KV 块的那一步"
+        },
+        {
+          "from": "npu-worker-lifecycle",
+          "kind": "enables",
+          "note": "第四步量预算时每一项怎么扣、为什么试跑两次，推导在那一页"
+        },
+        {
+          "from": "vllm-kv-block-allocation",
+          "kind": "enables",
+          "note": "池子里一共有多少块，是启动时量显存切出来的；本页从「块已经切好」开始讲"
         }
       ]
     },
@@ -4775,6 +4905,11 @@
       "file": "concepts/kv-cache-spec.md",
       "backlinks": [
         {
+          "from": "attention-backend-family",
+          "kind": "enables",
+          "note": "分组用的缓存规格就是那一页讲的 spec"
+        },
+        {
           "from": "block-table",
           "kind": "enables",
           "note": "5 个缓存组怎样编成、block_size 五种含义的唯一出处；块表只按组的块大小建表"
@@ -4812,7 +4947,7 @@
         {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
-          "note": "池内状态形状来自实际层的规格"
+          "note": "第五步按缓存配置分配张量，每层每页的形状由规格决定"
         },
         {
           "from": "one-request",
@@ -4822,12 +4957,12 @@
         {
           "from": "prefix-caching",
           "kind": "enables",
-          "note": "混合状态的恢复边界取决于各缓存组规格"
+          "note": "5 个缓存组怎么编、各组块大小是唯一出处"
         },
         {
           "from": "vllm-kv-block-allocation",
           "kind": "enables",
-          "note": "分配必须满足模型各类状态的规格和缓存组约束"
+          "note": "5 个缓存组怎样编成、block_size 五种含义的唯一出处；本页按组借块，不讲组怎么编"
         }
       ]
     },
@@ -5449,6 +5584,11 @@
       "file": "concepts/linear-attention.md",
       "backlinks": [
         {
+          "from": "gqa",
+          "kind": "alternative-to",
+          "note": "GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态"
+        },
+        {
           "from": "mla",
           "kind": "alternative-to",
           "note": "GLM 中与稀疏 MLA 交替使用的 KDA 状态机制"
@@ -5466,7 +5606,7 @@
         {
           "from": "attention-cost",
           "kind": "enables",
-          "note": "固定状态的形状与递推成本"
+          "note": "KDA 固定状态的递推、卷积状态，以及每条请求实际写进 85 MiB 的来历"
         },
         {
           "from": "kv-cache",
@@ -5477,6 +5617,11 @@
           "from": "kv-cache-spec",
           "kind": "enables",
           "note": "KDA 一份状态有多大、为什么每组每请求 4 块，在线性注意力页推导"
+        },
+        {
+          "from": "prefix-caching",
+          "kind": "enables",
+          "note": "KDA 递推状态没有逐 token 的 K/V，只能按档恢复"
         },
         {
           "from": "rope",
@@ -5831,7 +5976,9 @@
         "vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L1405-L1415",
         "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L180-L230",
         "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_glm5next_config.py#L34-L51",
-        "vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1606-L1618"
+        "vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1606-L1618",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L1134-L1214",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L508-L522"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -5874,7 +6021,7 @@
         {
           "from": "gqa",
           "kind": "alternative-to",
-          "note": "GQA 减少独立 KV 头数，MLA 采用压缩表示；两者的参数化与缓存对象不同"
+          "note": "GLM 稀疏 MLA 层存一条共享潜向量，而不是减少 K、V 的组数"
         },
         {
           "from": "linear-attention",
@@ -5889,7 +6036,7 @@
         {
           "from": "attention-cost",
           "kind": "enables",
-          "note": "压缩潜向量和稀疏选择分别改变哪些成本"
+          "note": "每个位置 1 KiB 的潜向量从哪里来，吸收怎样在潜空间里打分和汇合"
         },
         {
           "from": "kv-cache",
@@ -6423,7 +6570,8 @@
         "vllm@0fc695fc:vllm/transformers_utils/model_arch_config_convertor.py#L252-L308",
         "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30",
         "vllm@0fc695fc:vllm/config/cache.py#L46",
-        "vllm@0fc695fc:vllm/config/cache.py#L231-L239"
+        "vllm@0fc695fc:vllm/config/cache.py#L231-L239",
+        "vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L480"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -6472,18 +6620,22 @@
     },
     {
       "id": "npu-worker-lifecycle",
-      "title": "NPUWorker 启动：设备、权重与状态池",
+      "title": "NPUWorker 启动：一张卡按什么顺序准备好接请求",
       "type": "feature",
       "origin": "seed",
-      "summary": "追踪 Worker 从进程内适配到设备通信、权重、缓存预算和预热的依赖，区分显式内存预算与自动测算，以及启动分配池和运行时分配请求块。",
+      "summary": "每张 NPU 上有一个 NPUWorker。启动时它先换补丁、选卡建通信组、装本卡那份权重、试跑量出 KV cache 预算；EngineCore 收齐各卡的数、按最紧的那张卡定块数并发回配置后，每张卡再建缓存池，最后预热并录 decode 图。每一步用到上一步的产物，所以顺序固定。预算怎么扣、块怎么借、系统怎么分层各有专页，本页只讲这条先后链。",
       "aliases": [
         "NPUWorker",
         "WorkerBase",
         "Worker 生命周期",
         "worker 启动",
         "启动时序",
+        "Worker 启动顺序",
         "init_device",
-        "compile_or_warm_up_model"
+        "load_model",
+        "initialize_from_config",
+        "compile_or_warm_up_model",
+        "六步启动"
       ],
       "chapters": [
         "10"
@@ -6491,14 +6643,34 @@
       "order": 110,
       "prerequisites": [],
       "sources": [
+        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L90-L133",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L524",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L447-L503",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L521",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L975-L988",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L668-L691",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L894-L905",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L399-L418"
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L789",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L626-L634",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L236-L317",
+        "vllm@0fc695fc:vllm/v1/executor/abstract.py#L118-L126",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3717-L3795",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/worker/patch_process_weights_after_loading.py#L18-L64",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L136-L191",
+        "vllm@0fc695fc:vllm/model_executor/model_loader/weight_utils.py#L893-L1027",
+        "vllm@0fc695fc:vllm/distributed/parallel_state.py#L1545-L1551",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L162",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L706-L798",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_process_weights_after_loading.py#L18-L21",
+        "vllm-ascend@2c59ff10:vllm_ascend/patch/worker/patch_weight_utils.py#L36-L74",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L748-L778",
+        "vllm-ascend@2ed6cbba:vllm_ascend/model_executor/warmup/kernel_warmup.py#L36-L49",
+        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L549-L620",
+        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1129-L1138",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/attention.py#L300-L322",
+        "vllm@0fc695fc:vllm/config/parallel.py#L156-L162",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2018-L2018"
       ],
       "verified": [],
       "evidence": "C",
@@ -6506,22 +6678,32 @@
         {
           "to": "engine-processes",
           "kind": "builds-on",
-          "note": "Worker 是设备执行角色，其进程位置取决于执行器"
+          "note": "Worker 在哪个进程里、每个 EngineCore 起几个 Worker，由执行器决定"
+        },
+        {
+          "to": "kv-cache-memory-profiling",
+          "kind": "builds-on",
+          "note": "第四步量预算时每一项怎么扣、为什么试跑两次，推导在那一页"
         },
         {
           "to": "kv-cache-spec",
           "kind": "builds-on",
-          "note": "池内状态形状来自实际层的规格"
+          "note": "第五步按缓存配置分配张量，每层每页的形状由规格决定"
         },
         {
           "to": "vllm-kv-block-allocation",
           "kind": "builds-on",
-          "note": "运行时为请求分配与回收块"
+          "note": "启动只建好池子，请求来了才从池里借块、用完归还"
+        },
+        {
+          "to": "graph-mode-layer",
+          "kind": "builds-on",
+          "note": "第六步录下的图，运行时怎样被选中和回放"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/npu-worker-lifecycle.md",
       "backlinks": [
         {
@@ -6548,6 +6730,11 @@
           "from": "rfork",
           "kind": "enables",
           "note": "RFork 在 Worker 加载模型时运行，推理请求开始前就要把权重准备好"
+        },
+        {
+          "from": "vllm-v1-shape",
+          "kind": "enables",
+          "note": "循环开始之前，Worker 怎样起设备、装权重、建缓存池"
         }
       ]
     },
@@ -6735,6 +6922,11 @@
           "note": "回答里第 1 步、第 92 步、199 步只分一次这些数，全部取自该页并入的旧算例设定"
         },
         {
+          "from": "attention-cost",
+          "kind": "enables",
+          "note": "R1 在 34 层 KDA 与 11 层稀疏 MLA 里的逐卡形状"
+        },
+        {
           "from": "attention-qkv",
           "kind": "enables",
           "note": "本页的计算发生在主线第 4 站逐层前向，R1 每站形状在主线页"
@@ -6763,6 +6955,11 @@
           "from": "glm-5-3-flash-baseline",
           "kind": "enables",
           "note": "R1 的 4 token 示例、15 个块号与 MTP 闭环沿用单请求主线"
+        },
+        {
+          "from": "gqa",
+          "kind": "enables",
+          "note": "R1 在第 4 站走过 34 层 KDA 与 11 层稀疏 MLA 时每卡的形状，唯一推导处"
         },
         {
           "from": "kv-cache",
@@ -6795,6 +6992,11 @@
           "note": "对照请求从输入到输出的完整路径"
         },
         {
+          "from": "prefix-caching",
+          "kind": "enables",
+          "note": "R1 教学设定与七站主线"
+        },
+        {
           "from": "request-call-chain",
           "kind": "enables",
           "note": "七站的站名和编号沿用那一页；每一站上的形状、字节、通信次数和块数都在那一页，本页只讲代码走哪条路"
@@ -6823,6 +7025,16 @@
           "from": "token",
           "kind": "enables",
           "note": "本页展开 A1 的模板与分词，R1 的七站形状和设备账回到主线页"
+        },
+        {
+          "from": "vllm-kv-block-allocation",
+          "kind": "enables",
+          "note": "R1 在第 2 站借 15 块、第 7 站还块的主线出处"
+        },
+        {
+          "from": "vllm-v1-shape",
+          "kind": "enables",
+          "note": "主线七站的形状、字节和块数都在那一页；本页讲七站背后是哪几个组件在循环"
         }
       ]
     },
@@ -6890,7 +7102,7 @@
       "title": "算子与 kernel：从数学语义到设备实现",
       "type": "feature",
       "origin": "seed",
-      "summary": "区分模型运算、框架算子与设备核函数，解释 CustomOp 分派、torch_npu 与自定义扩展的关系，并追踪 GLM 的实际算子入口。",
+      "summary": "模型里的一次运算怎样经框架替换表、量化方法或模型自己的调用，落到 torch_npu 已有算子或仓库自编译扩展，再经 CANN 下发成设备 kernel；并沿 GLM 双机的一层列出各站的实际算子。",
       "aliases": [
         "ops",
         "register_ascend_customop",
@@ -6898,7 +7110,10 @@
         "csrc",
         "torch_npu",
         "自定义算子",
-        "_C_ascend"
+        "_C_ascend",
+        "CustomOp",
+        "kernel",
+        "核函数"
       ],
       "chapters": [
         "16"
@@ -6906,14 +7121,37 @@
       "order": 10,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207",
+        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L133",
+        "vllm@0fc695fc:vllm/model_executor/custom_op.py#L174-L207",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L690-L768",
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L818-L823",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L101-L120",
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L452",
         "vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/__init__.py#L21-L54",
-        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L452"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/__init__.py#L39-L55",
+        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L2317-L2326",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/linear.py#L83-L107",
+        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2147-L2169",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2213-L2240",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L157-L166",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L294-L331",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L388",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L430-L475",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1994-L2028",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104",
+        "vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793",
+        "vllm-ascend@db701c1f:csrc/torch_binding.cpp#L2848-L2860",
+        "vllm-ascend@db701c1f:csrc/attention/sparse_flash_attention/sparse_flash_attention_torch_adpt.h#L93-L149",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L108-L120",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L225-L240",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L329-L340",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L215",
+        "vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L353-L366",
+        "vllm-ascend@2c59ff10:vllm_ascend/utils.py#L690-L700",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ops/kimi_kda.py#L148-L166",
+        "vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L82",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L495-L505"
       ],
       "verified": [],
       "evidence": "C",
@@ -6926,12 +7164,17 @@
         {
           "to": "attention-backend-family",
           "kind": "builds-on",
-          "note": "后端使用设备算子执行具体计算"
+          "note": "后端选择决定注意力落到哪个算子"
+        },
+        {
+          "to": "quantization",
+          "kind": "builds-on",
+          "note": "W8A8 的量化方法决定线性层调哪个算子"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/ops-and-kernels.md",
       "backlinks": [
         {
@@ -7438,16 +7681,18 @@
     },
     {
       "id": "prefix-caching",
-      "title": "前缀缓存：复用已计算输入的条件与边界",
+      "title": "Prefix caching：相同的开头只算一次，靠什么认",
       "type": "feature",
       "origin": "seed",
-      "summary": "相同前缀只有在身份匹配、状态驻留且各缓存组可共同恢复时才能复用。APC 是否启用和有效块大小依赖版本与配置，2048 不是 GLM 的通用默认值。",
+      "summary": "写满的块按 block hash 登记，开头相同的请求直接指向同一份、计数加一。GLM 是 hybrid 模型，v0.23 上游判它不支持而默认关；显式打开会走 align 模式，KDA 状态按 640 边界留档，能复用的长度仍按 640 对齐，不足一块零收益。",
       "aliases": [
         "Prefix Caching",
         "前缀缓存",
         "自动前缀缓存",
         "Automatic Prefix Caching",
-        "APC"
+        "APC",
+        "block hash",
+        "块指纹"
       ],
       "chapters": [
         "11"
@@ -7455,30 +7700,77 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L198-L225",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L589",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L659-L707",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L348-L396",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L222-L225",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L312-L362"
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L195-L235",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L525-L561",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L563-L590",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L593-L656",
+        "vllm@0fc695fc:vllm/config/model.py#L1758-L1759",
+        "vllm@0fc695fc:vllm/config/model.py#L1814-L1857",
+        "vllm@0fc695fc:vllm/model_executor/models/config.py#L337-L394",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2419",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L582-L683",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1349-L1401",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L332-L410",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L60-L90",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L125-L160",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L216-L225",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L20-L50",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L1-L61",
+        "vllm-ascend@db701c1f:vllm_ascend/models/layer/attention/layer.py#L112-L120",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/dsa_v1.py#L191-L199",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2430-L2440",
+        "vllm@568afb3a:vllm/engine/arg_utils.py#L2514-L2524",
+        "vllm@84030bbe:vllm/engine/arg_utils.py#L2775-L2812",
+        "vllm@84030bbe:vllm/config/model.py#L2130-L2142",
+        "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L82-L136",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L835-L845"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
+          "to": "vllm-kv-block-allocation",
+          "kind": "builds-on",
+          "note": "登记、引用计数、驱逐、抢占的完整机制在那页；本页讲什么能命中、GLM 上开不开"
+        },
+        {
           "to": "kv-cache",
           "kind": "builds-on",
-          "note": "跨请求共享之前先明确需复用的历史状态"
+          "note": "被复用的就是已算好的 KV 历史"
         },
         {
           "to": "kv-cache-spec",
           "kind": "builds-on",
-          "note": "混合状态的恢复边界取决于各缓存组规格"
+          "note": "5 个缓存组怎么编、各组块大小是唯一出处"
+        },
+        {
+          "to": "glm-5-3-flash-two-node",
+          "kind": "builds-on",
+          "note": "部署前提、逻辑块 640、官方命令没写这个开关"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "R1 教学设定与七站主线"
+        },
+        {
+          "to": "chunked-prefill",
+          "kind": "builds-on",
+          "note": "align 模式要求 chunked prefill 开着"
+        },
+        {
+          "to": "linear-attention",
+          "kind": "builds-on",
+          "note": "KDA 递推状态没有逐 token 的 K/V，只能按档恢复"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/prefix-caching.md",
       "backlinks": [
         {
@@ -7495,6 +7787,11 @@
           "from": "lmcache",
           "kind": "enables",
           "note": "外部前缀复用要求一致的数据身份"
+        },
+        {
+          "from": "vllm-kv-block-allocation",
+          "kind": "enables",
+          "note": "引用计数大于 1 的场景；什么前缀能命中、混合模型为什么默认关，在那一页"
         }
       ]
     },
@@ -7740,6 +8037,11 @@
           "from": "kv-cache-quantization",
           "kind": "enables",
           "note": "使用量化尺度与误差的基本概念"
+        },
+        {
+          "from": "ops-and-kernels",
+          "kind": "enables",
+          "note": "W8A8 的量化方法决定线性层调哪个算子"
         }
       ]
     },
@@ -8105,7 +8407,9 @@
         "vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L12-L67",
         "vllm@0fc695fc:vllm/v1/engine/core.py#L106-L136",
         "vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L227-L236",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996"
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L82",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L527"
       ],
       "verified": [],
       "evidence": "C",
@@ -8165,6 +8469,11 @@
           "from": "vllm-platform-interface",
           "kind": "enables",
           "note": "平台选定组件后，沿进程和函数链追到真正执行的位置"
+        },
+        {
+          "from": "vllm-v1-shape",
+          "kind": "enables",
+          "note": "每个组件落在哪个进程、从哪个函数进、走哪条通道"
         }
       ]
     },
@@ -9296,6 +9605,16 @@
       "file": "concepts/sparse-attention.md",
       "backlinks": [
         {
+          "from": "attention-backend-family",
+          "kind": "enables",
+          "note": "每个查询最多 2051 个位置的推导在那一页"
+        },
+        {
+          "from": "attention-cost",
+          "kind": "enables",
+          "note": "按池选择、2051 宽清单与每层 33.6 MFLOP 上界的推导"
+        },
+        {
           "from": "block-table",
           "kind": "enables",
           "note": "稀疏注意力选出的历史位置，就是按这张表到缓存池里取的"
@@ -9668,6 +9987,11 @@
           "from": "glm-5-3-flash-two-node",
           "kind": "enables",
           "note": "机内 8 张卡怎样合切一个矩阵"
+        },
+        {
+          "from": "gqa",
+          "kind": "enables",
+          "note": "按头切到各卡的做法；本页补 KV 头少于卡数时的复制"
         },
         {
           "from": "kvpp",
@@ -10183,19 +10507,29 @@
     },
     {
       "id": "vllm-kv-block-allocation",
-      "title": "缓存块分配：资源池、引用与请求生命周期",
+      "title": "KV 块分配：块从池里借出、共享、归还",
       "type": "concept",
       "origin": "seed",
-      "summary": "缓存管理器为请求安排物理块，块池维护空闲状态与引用计数。分配、共享、释放和前缀保留是不同动作；资源池作用域由管理实例决定，不能称为全机唯一池。",
+      "summary": "启动时切好的 KV 块由 BlockPool 记账：请求要写新历史时从空闲队列队头借块号、计数 0 → 1，前缀相同的请求共用同一块，请求结束或被抢占时计数减回 0、块排回队列，数据不擦。GLM 双机上每个 DP 组一个池子，5 个缓存组共用；R1 首步借 15 块，此后尾状态组边借边还、手里 3–4 块，结束时一次还回 16–17 块；池子不够就抢占，不借一半。",
       "aliases": [
         "BlockPool",
         "KVCacheManager",
         "allocate_slots",
         "get_new_blocks",
+        "free_blocks",
+        "touch",
+        "null_block",
+        "null block",
+        "free block queue",
+        "块池",
         "块分配",
+        "缓存块分配",
         "空闲块队列",
         "引用计数",
-        "ref_cnt"
+        "ref_cnt",
+        "块归还",
+        "块驱逐",
+        "抢占回收"
       ],
       "chapters": [
         "11"
@@ -10203,29 +10537,89 @@
       "order": 10,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L90-L119",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L238-L338",
         "vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L177",
-        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L441",
-        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L238"
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L363",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L365-L441",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_coordinator.py#L88-L119",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L196-L236",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L368-L446",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L101-L180",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L259-L336",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L363-L378",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L448-L501",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L751-L793",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1054-L1120",
+        "vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1197-L1209",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L459-L509",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L753-L781",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995",
+        "vllm@0fc695fc:vllm/config/model.py#L1851-L1857",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L18-L84",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L357-L378",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L926-L930",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L877-L879",
+        "vllm@568afb3a:vllm/v1/core/block_pool.py#L719-L740",
+        "vllm@568afb3a:vllm/v1/core/single_type_kv_cache_manager.py#L753-L782",
+        "vllm@84030bbe:vllm/v1/core/block_pool.py#L734-L758",
+        "vllm@84030bbe:vllm/v1/core/single_type_kv_cache_manager.py#L817-L836",
+        "vllm-ascend@db701c1f:vllm_ascend/utils.py#L1396-L1433",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L917-L925",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1103-L1106",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L339-L341",
+        "vllm-ascend@db701c1f:vllm_ascend/core/kv_cache_interface.py#L366-L369",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L499-L508",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L368",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_worker.py#L586-L589",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L931-L938",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L1025-L1032",
+        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1146-L1158"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
-          "to": "block-table",
+          "to": "kv-cache-memory-profiling",
           "kind": "builds-on",
-          "note": "先理解逻辑块和物理块号，再看块从哪里获得"
+          "note": "池子里一共有多少块，是启动时量显存切出来的；本页从「块已经切好」开始讲"
         },
         {
           "to": "kv-cache-spec",
           "kind": "builds-on",
-          "note": "分配必须满足模型各类状态的规格和缓存组约束"
+          "note": "5 个缓存组怎样编成、block_size 五种含义的唯一出处；本页按组借块，不讲组怎么编"
+        },
+        {
+          "to": "block-table",
+          "kind": "builds-on",
+          "note": "借到的块号写进块表，worker 按表把位置换算成槽位"
+        },
+        {
+          "to": "prefix-caching",
+          "kind": "builds-on",
+          "note": "引用计数大于 1 的场景；什么前缀能命中、混合模型为什么默认关，在那一页"
+        },
+        {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "R1 在第 2 站借 15 块、第 7 站还块的主线出处"
+        },
+        {
+          "to": "concurrent-requests",
+          "kind": "builds-on",
+          "note": "池子不够时抢占的整批账：32 条满载、被抢占的一条还回 120–121 块"
+        },
+        {
+          "to": "vllm-scheduler",
+          "kind": "builds-on",
+          "note": "调度器怎样决定每步算多少 token；本页只讲它向池子要块这一步"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-28",
       "file": "concepts/vllm-kv-block-allocation.md",
       "backlinks": [
         {
@@ -10246,12 +10640,22 @@
         {
           "from": "npu-worker-lifecycle",
           "kind": "enables",
-          "note": "运行时为请求分配与回收块"
+          "note": "启动只建好池子，请求来了才从池里借块、用完归还"
+        },
+        {
+          "from": "prefix-caching",
+          "kind": "enables",
+          "note": "登记、引用计数、驱逐、抢占的完整机制在那页；本页讲什么能命中、GLM 上开不开"
         },
         {
           "from": "recompute-scheduler",
           "kind": "enables",
           "note": "理解增长时的目的块分配失败"
+        },
+        {
+          "from": "vllm-v1-shape",
+          "kind": "enables",
+          "note": "计划里的块号从哪个池子借、请求结束时怎样还"
         }
       ]
     },
@@ -10440,15 +10844,20 @@
           "from": "short-request-first",
           "kind": "enables",
           "note": "理解等待准入与运行请求的区别"
+        },
+        {
+          "from": "vllm-kv-block-allocation",
+          "kind": "enables",
+          "note": "调度器怎样决定每步算多少 token；本页只讲它向池子要块这一步"
         }
       ]
     },
     {
       "id": "vllm-v1-shape",
-      "title": "vLLM 与 Ascend 架构：组件、进程和数据如何协作",
+      "title": "vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环",
       "type": "concept",
       "origin": "seed",
-      "summary": "从 GLM 单请求与并发批次出发，说明 API、EngineCore、Scheduler、Executor、NPUWorker 和 NPUModelRunner 的输入输出、状态与进程关系。",
+      "summary": "vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字，EngineCore 每一步排一份调度计划、拿回结果更新进度，Executor 把计划交给每张卡上的 Worker 执行。本页讲这个循环里各组件的分工、两道边界上交接什么，以及 R1 在双机部署上绕一圈的样子。",
       "aliases": [
         "vLLM 的形状",
         "vLLM V1 架构",
@@ -10457,7 +10866,10 @@
         "Executor",
         "执行器",
         "SchedulerOutput",
-        "架构总览"
+        "架构总览",
+        "ModelRunnerOutput",
+        "EngineCoreRequest",
+        "EngineCoreOutputs"
       ],
       "chapters": [
         "10"
@@ -10465,34 +10877,76 @@
       "order": 10,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L339-L415",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L95-L160",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L236-L290",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
-        "vllm@0fc695fc:vllm/v1/executor/abstract.py#L47-L92",
-        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L386",
-        "vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L241",
-        "vllm@0fc695fc:vllm/v1/outputs.py#L234-L267",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L520",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L677",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2284-L2431",
-        "vllm@0fc695fc:vllm/v1/engine/output_processor.py#L612-L690",
+        "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L415",
+        "vllm@0fc695fc:vllm/v1/engine/async_llm.py#L637-L695",
+        "vllm@0fc695fc:vllm/v1/engine/__init__.py#L83-L239",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L95-L222",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L236-L317",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1275",
+        "vllm@0fc695fc:vllm/config/vllm.py#L495-L506",
+        "vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L130",
+        "vllm@0fc695fc:vllm/config/parallel.py#L845-L890",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L400",
+        "vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L510",
+        "vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L96",
+        "vllm@0fc695fc:vllm/v1/worker/worker_base.py#L39-L159",
+        "vllm@0fc695fc:vllm/v1/core/sched/output.py#L31-L241",
+        "vllm@0fc695fc:vllm/v1/outputs.py#L231-L267",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1236",
+        "vllm@0fc695fc:vllm/v1/structured_output/__init__.py#L70-L81",
+        "vllm@0fc695fc:vllm/v1/engine/exceptions.py#L9-L13",
         "vllm-ascend@db701c1f:vllm_ascend/platform.py#L650-L662",
-        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2323",
-        "https://docs.vllm.ai/en/v0.23.0/design/arch_overview/"
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L505-L525",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L667",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L748-L763",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2345-L2371",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_use_v2_model_runner.py#L1-L20",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2043-L2051",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L67-L134",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L611-L679",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L653-L721",
+        "vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L746-L816",
+        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L1238-L1246",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L839-L841",
+        "vllm@568afb3a:vllm/v1/engine/core.py#L576-L606",
+        "vllm@98dff2a8:vllm/v1/engine/core.py#L597-L627",
+        "https://docs.vllm.ai/en/v0.23.0/design/arch_overview/",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945"
       ],
       "verified": [],
       "evidence": "C",
       "relations": [
         {
+          "to": "one-request",
+          "kind": "builds-on",
+          "note": "主线七站的形状、字节和块数都在那一页；本页讲七站背后是哪几个组件在循环"
+        },
+        {
           "to": "concurrent-requests",
           "kind": "builds-on",
-          "note": "将请求进入、批次变化和独立输出对应到实际框架组件"
+          "note": "多条请求时同一个循环怎样装下一整批、结果怎样按请求拆回"
+        },
+        {
+          "to": "request-call-chain",
+          "kind": "builds-on",
+          "note": "每个组件落在哪个进程、从哪个函数进、走哪条通道"
+        },
+        {
+          "to": "npu-worker-lifecycle",
+          "kind": "builds-on",
+          "note": "循环开始之前，Worker 怎样起设备、装权重、建缓存池"
+        },
+        {
+          "to": "vllm-kv-block-allocation",
+          "kind": "builds-on",
+          "note": "计划里的块号从哪个池子借、请求结束时怎样还"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-25",
+      "updated": "2026-09-28",
       "file": "concepts/vllm-v1-shape.md",
       "backlinks": [
         {

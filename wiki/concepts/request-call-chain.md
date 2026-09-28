@@ -60,6 +60,8 @@ sources:
   - vllm@0fc695fc:vllm/v1/engine/core.py#L106-L136
   - vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L227-L236
   - vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996
+  - vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L82
+  - vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L527
 verified: []
 evidence: "C"
 relations:
@@ -159,7 +161,7 @@ vLLM 是主程序，vllm-ascend 是装在它上面的插件，不单独起自己
 
 1. **平台插件回答硬件问题。** vLLM 启动时发现插件，拿到 NPUPlatform，此后用它决定昇腾上怎么执行，见[平台注册](platform-plugin-registration.md)。
 2. **worker 类接管执行。** 平台选择 NPUWorker，它创建 NPUModelRunner；后者继承上游 GPUModelRunner，重写请求路径上的主要方法。
-3. **注意力后端选择实现。** 模型建层时按 attention 类型向平台查询；GLM 的稀疏 MLA（压短每条历史、只挑部分读取）走 AscendSFABackend，见[后端家族](attention-backend-family.md)与[稀疏注意力](sparse-attention.md)。
+3. **注意力后端选择实现。** 走通用路径的模型建层时按 attention 类型向平台查询，平台用一张按注意力类型查后端的表回答；GLM 的稀疏 MLA（压短每条历史、只挑部分读取）不查这张表，由层自己返回 AscendIndexerKPoolMLABackend，只有它的实现类继承自 SFA 的实现类（SFA 即昇腾这边稀疏注意力的那套实现，`sfa_v1.py` 里的类名、方法名和设备算子名都写作 sparse flash attention），见[后端家族](attention-backend-family.md)与[稀疏注意力](sparse-attention.md)。
 4. **custom op 替换整层。** 标为 custom op 的层允许硬件插件换实现；worker 初始化时把 MoE 与 KDA 换成昇腾版本。KDA 用固定大小状态保存历史，见[线性注意力](linear-attention.md)。
 5. **patch 改变已有入口的指向。** 每个进程加载 general plugin（通用插件）时，把部分上游函数或类换成昇腾实现；EngineCore 也会加载，所以第 2 站也受影响，见[Patch 机制](ascend-patch-system.md)。
 6. **模型注册选择 GLM 实现。** 将权重配置里的架构名映射到昇腾的模型类。具体注册名、路径和版本条件集中在页末。
@@ -336,7 +338,7 @@ file: request-call-chain-log-route
 |---|---|
 | 平台插件 | 包元数据里的 `vllm.platform_plugins` 入口 `vllm_ascend:register` 返回 `"vllm_ascend.platform.NPUPlatform"`；general plugin 入口里的 `_ensure_global_patch` 调 `adapt_patch(is_global_patch=True)`，注释写明是为了让 EngineCore 子进程里也打上补丁 |
 | worker 类 | `NPUPlatform.check_and_update_config` 把 `parallel_config.worker_cls` 设成 `vllm_ascend.worker.worker.NPUWorker` |
-| 注意力后端 | `get_attn_backend_cls` 按 `(use_mla, use_sparse, use_compress)` 查表，GLM 的稀疏 MLA 命中 `(True, True, False)` → `AscendSFABackend` |
+| 注意力后端 | `get_attn_backend_cls` 按 `(use_mla, use_sparse, use_compress)` 查表，走通用路径的稀疏 MLA 命中 `(True, True, False)` → `AscendSFABackend`；GLM 的稀疏 MLA 层不经过这张表，后端由层内部的缓存层返回 `AscendIndexerKPoolMLABackend`（`ops/indexer_kpool_mla.py#L78`、`#L136-L137`），该后端直接继承 `AttentionBackend`，和 `AscendSFABackend` 是兄弟类；继承只发生在下一层——实现类 `AscendIndexerKPoolMLAImpl` 继承 `AscendSFAImpl`，元数据类和它的构建器同样各自继承 SFA 的对应类 |
 | custom op | `register_ascend_customop` 在 worker 初始化时逐个 `CustomOp.register_oot`；vLLM 是 0.23.0 时将 `FusedMoE` 与 `KimiGatedDeltaNetAttention` 分别替换为 `AscendFusedMoE` 与 `AscendKimiGatedDeltaNetAttention` [C32] |
 | patch | 第 2 站的五处见上表 |
 | 模型注册 | `Glm5NextForConditionalGeneration` → `AscendGlm5NextForConditionalGeneration`，它内部再按 `Glm5NextForCausalLM` 建文本模型 |

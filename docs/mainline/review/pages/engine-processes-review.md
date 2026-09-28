@@ -184,3 +184,5 @@ GPT 写到一半额度用完：页面只剩 6 个 H2、约 1,235 字教学正文
 
 - 底稿 §A2.4 第 670 行「R1 走 scheduled_new_reqs」的说明本轮没补（本轮只允许动 §A0.1 与修订记录），是否补由用户决定。
 - 写作记录里的四项「待核」仍未查。
+
+- **v0.23 列表头复核（09-28）：改了。** 原表头写「v0.23 列行号全部读自镜像 db701c1f，在 2c59ff10 上未核」，把 db701c1f 混进 v0.23 列。已在 2c59ff10 上逐项 grep：`__init__.py` 21/45/55/65、`platform.py` 188/475、`worker/worker.py` 110/120、`patch/platform/__init__.py` 47–48、`patch_multiproc_executor.py` 199 与镜像相同；唯一不同是 `patch_balance_schedule.py` 的 scheduler 类替换，2c59ff10 在 L745、镜像在 L718。表内该格改为 745，表头改为「v0.23 列 = 2c59ff10，db701c1f 单独注明，镜像只有这一处行号不同」。本页表内没有 GLM 专属代码。

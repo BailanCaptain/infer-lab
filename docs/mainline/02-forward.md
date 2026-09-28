@@ -37,9 +37,9 @@
 
 ### 0.3 示例请求 R1
 
-- **prefill**：prompt 4 个 token，一次前向 T=4。
+- **prefill**：prompt 4 个 token，一次前向 T=4。`[A]` 4 是演示设定，真实请求套完模板至少十几个 token，见 01 A1「在我们部署下的具体数字（R1）」第一条。
 - **decode 一步**：MTP 每轮 3 个草稿，`uniform_decode_query_len = 1 + 3 = 4`（`vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L814`）。所以主模型这一步也是 T=4：位置 4 是上一步采样出来的真 token，位置 5/6/7 是 MTP 的 3 个草稿；seq_len = 8。
-- 于是 **R1 的 prefill 和 decode 在本文件里的张量形状完全一样（T=4）**，区别只在 attention metadata（prefill 全是新 token，decode 要读 4 个已缓存的 key）和是否走 ACL 图。
+- 于是 **R1 的 prefill 和 decode 在本文件里的张量形状完全一样（T=4）**，区别只在 attention metadata（prefill 全是新 token，decode 要读 4 个已缓存的 key）和是否走 ACL 图。这是演示长度凑出来的巧合，不是普遍规律：真实请求 prefill 的 T 等于套完模板后的 prompt 长度，比 decode 的 T=4 宽。
 
 ### 0.4 量化范围
 

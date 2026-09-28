@@ -232,7 +232,7 @@ file: linear-attention-flow
 - **「KDA 层没有 KV cache，所以不进 KV cache 管理。」** 引擎把它当作一类缓存规格统一声明、统一分块，和 MLA 的历史共用同一个池子，见 [KV cache spec](kv-cache-spec.md)。
 - **「prefill 分段并行，算出来和逐个递推不同。」** 段间仍按顺序传状态，两者数学上等价，差别只在浮点累加顺序。
 - **「递推状态和卷积状态是一回事。」** 两份不同的东西：一份是汇总全部历史的矩阵，一份是短卷积要回看的最近几个位置，精度、形状、用途都不同。
-- **「后端类名里带 GDN，所以这个模型跑的是 Gated DeltaNet。」** 昇腾的 KDA 实现沿用了 GDN 后端的接口名，实际调用的是 KDA 算子；类名不能证明算法，见[后端家族](attention-backend-family.md#kda-路径使用递推和卷积状态)。
+- **「后端类名里带 GDN，所以这个模型跑的是 Gated DeltaNet。」** 昇腾的 KDA 实现沿用了 GDN 后端的接口名，实际调用的是 KDA 算子；类名不能证明算法，见[后端家族](attention-backend-family.md#放到-glm-双机一个-token-走过-45-层要问-45-次)。
 
 ## 对照源码
 

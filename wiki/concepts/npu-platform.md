@@ -44,6 +44,7 @@ sources:
   - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_config.py#L14-L30
   - vllm@0fc695fc:vllm/config/cache.py#L46
   - vllm@0fc695fc:vllm/config/cache.py#L231-L239
+  - vllm-ascend@2c59ff10:vllm_ascend/platform.py#L450-L480
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
@@ -197,7 +198,7 @@ file: platform-check-order
 
 ### 版本差异
 
-按知识库固定快照核对：v0.23 维护分支为 Ascend 2c59ff10，v0.26 为 Ascend 2ed6cbba，main 为 Ascend baa023ad。**本部署跑的是专用镜像 Ascend db701c1f，它与 v0.23 维护快照是两个不同提交：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个工具调用 patch。下表 v0.23 列的校验清单与行号读自镜像 db701c1f，在 2c59ff10 上是否逐项相同未核。**
+按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本部署跑的专用镜像 db701c1f 是另一个 orphan commit，不算进 v0.23 列：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个 GLM 工具调用 patch。**下表 v0.23 列按 2c59ff10 写；平台文件在两者之间只差第 596 行之后几处编译开关复位和一处重算调度复位，下表各行（含起始行 450、四个校验的顺序）在镜像上完全相同。
 
 | 项 | v0.23 | v0.26 | main | 意味着什么 |
 |---|---|---|---|---|

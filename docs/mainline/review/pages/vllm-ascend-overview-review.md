@@ -173,3 +173,13 @@ patch 文件数按 `patch_*.py` 递归计数：**59 / 59 / 64 / 60**，与 150 �
 - **未读 frontmatter 的 sources 清单**（10–45 行）除 commit 与路径外的内容，来源由 audit 校验。
 - **未跑 `git diff` 逐行看删除**：整页重写，改用 46 条清单（F1–F46）逐条对照，并用 `git show 0f97c8b` / `git show HEAD` 的 H2/H3 列表核结构落点。
 - 详细页只 grep 需要核对的行并读其附近不超过 12 行；ops-and-kernels、attention-backend-family、cann-hccl 三页只取标题、summary 与 H2 列表。
+
+## P2/P3 修订（09-28）
+
+- **P2-1（算子一站没有出口）：已改。** 「算子」那条原只链 quantization.md，现在链四页：总入口 [算子与 kernel](ops-and-kernels.md)、注意力挑后端 [注意力后端](attention-backend-family.md)、卡间通信 [CANN 与 HCCL](cann-hccl.md)、量化 [W8A8 量化](quantization.md)。四个文件名与标题都先 `ls` + `grep '^## '` 确认存在（ops-and-kernels.md 五个 H2、cann-hccl.md 七个 H2）。
+- **P2-2（四页把 db701c1f 标成 v0.23）：本页不改，另四页已改。** ascend-config-system、data-parallel、engine-processes、npu-platform 的版本差异表头已统一为「v0.23 列 = 2c59ff10，db701c1f 作为 orphan commit 单独注明」，各页复核结论记在各自的 review 末尾。其中 data-parallel 的「dummy batch 额外动作」一格原写「无」，按 2c59ff10 应为「先记一次显存统计」，已改并补 2c59ff10 源码位置；engine-processes 的 scheduler 类替换行号 v0.23 列应为 `:745`（镜像是 `:718`），已改。
+- **P3-1（A4 一站 504 字）：已改，改后 246 字符（去掉链接语法后 171 字）。** 删的是与详细页第一屏重复的细节数（2051 个位置容量、288 选 8），它们在 sparse-attention.md、expert-parallel.md 原处已有且本条已链过去；结构数保留并补回：45 层里 34 层 KDA、11 层稀疏注意力、42 层的前馈是 MoE、EP16 摊到 16 张卡。34/11 核 sparse-attention.md:135 与 linear-attention.md:5，42 核 moe.md:153-155。
+- **P3-2（entry point 表 GLM 基线列缺角标）：已改。** 补 `[C1]`（`vllm-ascend@db701c1f:setup.py#L543-L550`，sources 第 1 条），与另三列的 [C31][C32][C33] 对齐；角标在「对照源码」之内，不违反「对照源码之上不放角标」。
+- **P3-3（同页两组「五个」）：已改。** entry point 那句改成「两组 entry point、共 5 个入口名」，与教学区「五个扩展点」区分开；没有在页面上写解释两者区别的说明文字。
+- **P3-4：不改。** 三条自报待核属于未验证事实的诚实标注，本轮没有新证据推进。
+- **验证。** `pnpm wiki:lint` 通过，本页与另四页均无告警（全库 18 处 mark-flood 待留意，都在别的页）；`pnpm wiki:diagrams --check` 189 张图与 spec 一致；`pnpm wiki:audit` 全库唯一失败是 `concepts/vllm-kv-block-allocation.md` 的 diagram-identifier，那一页与 `wiki/diagrams/block-allocation.yaml` 正被另一位写手同时改动（本轮运行期间文件时间戳变化），与这五页无关，本页与另四页 0 条 ✗。人工核对本页：五个 H3 顺序为 怎么开 / 会报什么错 / 开销和什么时候别开 / 版本差异 / 源码位置，其后无 H2；行内代码 12 处、正文约 4.2 千字，合 2.8 处/千字（上限 13）；calc 0 个；免责词（待核/尚未核实/未验证/可能/不确定）命中 0 句（99 句，0%）。未改 scripts/ 与 standard-pages.json。

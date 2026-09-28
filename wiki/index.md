@@ -4,8 +4,8 @@
 
 ## 概念（concept）
 - [AI Core：计算单元与数据搬运](concepts/ai-core.md) — 从矩阵乘和逐项运算认识 Cube、Vector、Scalar，沿设备内存到片上缓冲区的数据路径理解计算与访存的配合。 `07`
-- [注意力后端：模型机制、状态布局与设备实现的连接](concepts/attention-backend-family.md) — 模型层定义注意力机制，后端实现把该机制与缓存布局、批次元数据和设备算子连接起来。以 GLM 的稀疏 MLA 和 KDA 两条路径说明为什么不能只用一个通用后端名称代表整个模型。 `09 16`
-- [注意力代价：容量、计算与访存](concepts/attention-cost.md) — 注意力结构改变保存的历史、查询范围和运算形状；逻辑容量可以由维度推导，实际分配、HBM 流量和耗时需要结合缓存管理、内核及工作负载分析。 `04`
+- [注意力后端：模型机制、状态布局与设备实现的连接](concepts/attention-backend-family.md) — 注意力后端是模型层和设备算子之间的那层代码：层说自己是哪种注意力，后端决定用哪份状态、按什么形状组织这批 token、最后调哪个算子。GLM 的一次前向同时走 KDA 和稀疏 MLA 两条分支，不存在"这个模型的后端"。 `09 16`
+- [注意力代价：容量、计算与访存](concepts/attention-cost.md) — 历史变长时，密集注意力每一步读的份数跟着增长，稀疏注意力的主读取到预算就封顶、打分和缓存却照样增长，固定状态始终只读写同一块；放到 GLM 双机上，按一个 token 核算 34 层 KDA 与 11 层稀疏 MLA 各存多少、读多少。 `04`
 - [Attention 与 Q/K/V：当前位置怎样从历史里取信息](concepts/attention-qkv.md) — attention 让当前位置用查询 q 给自己和此前每个位置的键 k 打分，softmax 换成权重后把各位置的值 v 加权汇合。本页对照原论文讲清 Q/K/V 从哪来、为什么除以 √d、多头和 causal mask，再看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。 `04`
 - [Block Table：请求里的第几个位置，落在缓存池的哪一格](concepts/block-table.md) — block table（块表）是一张整数表：一行对应批次里的一条请求，第 i 格记着它的第 i 个块在缓存池里的块号；worker 每步按它把位置换算成槽位，注意力算子也按它逐块读历史。GLM 的 5 个缓存组各有一张表，full 组的 640 块号还要展开成 5 个 128 的 kernel 块号。 `11`
 - [CANN 与 HCCL：计算、通信和物理链路](concepts/cann-hccl.md) — CANN 提供昇腾计算软件能力，HCCL 负责组内通信；沿框架请求、通信库和物理链路看数据怎样到另一张卡，再解释 GLM 双机通信域与 AI QoS 的适用边界。 `07 09 08`
@@ -16,7 +16,7 @@
 - [引擎有哪几个进程：API server、EngineCore 与 Worker](concepts/engine-processes.md) — vLLM 把推理服务拆成三类进程——API server 收发请求、EngineCore 每步调度、Worker 每卡一个执行模型，彼此只发消息，请求状态、补丁和 Ascend 配置缓存各归各的进程；GLM 双机按角色计 20 个进程，executor（执行器）决定 Worker 是否独立成进程。 `10`
 - [HCCL buffer：每个通信组各自预留的一块显存](concepts/gap-a5164fe10fa9184412f8.md) — HCCL 为每个通信组在每张成员卡上预留一块中转内存；讲清它为什么必须提前占住、怎样按组名挑大小、在 GLM 双机上有哪些组各留多大，以及为什么这笔钱直接从 KV cache 的预算里扣。 `13`
 - [认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来](concepts/glm-5-3-flash.md) — GLM-5.3-Flash 模型形状的唯一出处：45 层里 34 层 KDA、11 层稀疏 MLA，四条 residual 流，前 3 层稠密 MLP、其余 42 层 288 选 8 的 MoE，外加 1 个 MTP 层；每种层先讲它从哪个基础机制演变来，再给 GLM 的具体维度、参数量与权重精度。 `00`
-- [GQA：查询头如何共享 K/V，改变哪些开销](concepts/gqa.md) — GQA 让一组查询头共享 K/V，减少 K/V 投影宽度和缓存容量；查询头仍分别评分与汇合，实际访存和速度取决于内核、并行方式与工作负载。 `04`
+- [GQA：几个查询头共读一组 K、V，省下什么、付出什么](concepts/gqa.md) — GQA 把查询头分组，同组共读一组 K、V，K/V 投影与缓存按 KV 头数缩小，打分与汇合仍逐头计算，且须在训练时定下。GLM 的稀疏 MLA 与 KDA 都不是 GQA，本页只作对照。 `04`
 - [NPU、板卡、服务器与机柜](concepts/hardware-devices.md) — 分清芯片、板卡、服务器与软件可见设备，沿 GLM 双机的一条输入理解主机内存、设备显存、机内 HCCS 与跨机 RoCE 的边界，并核对官方规格峰值和启动源码。 `07 08`
 - [KV cache：新 token 留下历史，下一步接着读](concepts/kv-cache.md) — KV cache 保存每一层为已处理位置算好的状态：新 token 只算自己这一份并追加进去，下一步直接读取，不再重算旧位置；代价是占显存、每步要读。GLM-5.3-Flash 的 12 层 MLA 按位置存压缩潜向量和 indexer K（每 token 每卡 13,056 B），34 层 KDA 按请求存固定大小的状态；缓存池按 640 个 token 的逻辑块分配。 `04 05 11`
 - [KV cache 显存预算：启动时怎样一项项扣出来](concepts/kv-cache-memory-profiling.md) — 启动时先按总显存乘显存比例定预算，再用一次最大批量的 profile run 量出激活峰值和非 torch 增量，连同权重一起扣掉，剩下的切成 KV 块；录图等后来才出现的占用从预算外支付，预算也不能直接换成固定并发数。 `11`
@@ -41,10 +41,10 @@
 - [vllm-ascend 如何接入 vLLM](concepts/vllm-ascend-overview.md) — vllm-ascend 是让 vLLM 跑在昇腾 NPU 上的单独插件包：上游决定每一步算什么，计划越过平台边界后，怎么在 NPU 上算由它决定。本页是地图：五个扩展点（平台、patch、模型、算子、配置）各一句，再沿 GLM 双机主线 A0–A4 看每站接管了什么，最后给三版差异与源码入口。 `10`
 - [源码目录地图：把文件放回推理架构](concepts/vllm-ascend-repo-map.md) — 用启动、调度、执行、模型、状态与通信职责定位目录，沿 GLM 的执行路径选择阅读入口，区分上游框架和 Ascend 适配。 `20`
 - [EngineCore：调度、执行与结果更新如何形成迭代](concepts/vllm-engine-core.md) — EngineCore 持续接收请求和控制消息，安排批次执行并提交结果。一次引擎迭代不等于每个请求产生一个 token，批次队列还会改变调度与执行的重叠方式。 `10`
-- [缓存块分配：资源池、引用与请求生命周期](concepts/vllm-kv-block-allocation.md) — 缓存管理器为请求安排物理块，块池维护空闲状态与引用计数。分配、共享、释放和前缀保留是不同动作；资源池作用域由管理实例决定，不能称为全机唯一池。 `11`
+- [KV 块分配：块从池里借出、共享、归还](concepts/vllm-kv-block-allocation.md) — 启动时切好的 KV 块由 BlockPool 记账：请求要写新历史时从空闲队列队头借块号、计数 0 → 1，前缀相同的请求共用同一块，请求结束或被抢占时计数减回 0、块排回队列，数据不擦。GLM 双机上每个 DP 组一个池子，5 个缓存组共用；R1 首步借 15 块，此后尾状态组边借边还、手里 3–4 块，结束时一次还回 16–17 块；池子不够就抢占，不借一半。 `11`
 - [Platform：硬件适配的接口契约](concepts/vllm-platform-interface.md) — Platform 约定上游怎样询问设备属性、校验配置和选择执行实现；沿 A0 启动分清平台、Worker 与模型的职责，以及主机内存、设备显存和 token 预算的边界。 `10`
 - [Scheduler：按计算进度、预算与缓存安排批次](concepts/vllm-scheduler.md) — 调度器把每个请求待处理的位置数与本轮预算、运行上限和缓存可用性结合起来，形成执行计划。统一进度表示不消除 Prefill 与 Decode 的计算差别，也不保证所有运行请求每轮都能推进。 `12`
-- [vLLM 与 Ascend 架构：组件、进程和数据如何协作](concepts/vllm-v1-shape.md) — 从 GLM 单请求与并发批次出发，说明 API、EngineCore、Scheduler、Executor、NPUWorker 和 NPUModelRunner 的输入输出、状态与进程关系。 `10`
+- [vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环](concepts/vllm-v1-shape.md) — vLLM V1 把推理服务拆成前端、EngineCore、Worker 三类角色：前端管文字，EngineCore 每一步排一份调度计划、拿回结果更新进度，Executor 把计划交给每张卡上的 Worker 执行。本页讲这个循环里各组件的分工、两道边界上交接什么，以及 R1 在双机部署上绕一圈的样子。 `10`
 
 ## 特性（feature）
 - [ACL Graph：捕获、批形状与重复执行](concepts/acl-graph.md) — 从 Host 下发开销出发，解释稳定缓冲、批描述符、补齐与三种执行路径，以及捕获和回放各自的成本。 `16`
@@ -76,13 +76,13 @@
 - [LoRA：低秩更新与多适配器推理](concepts/lora.md) — 从线性层的低秩更新解释 LoRA，再连接适配器槽位、批处理与昇腾执行路径。 `17`
 - [Mooncake 连接器：状态生命周期与数据传输](concepts/mooncake-connector.md) — 把调度侧的块归属、元数据与完成通知，对应到执行侧的地址注册、分组搬运和逐层重叠；区分固定版本的不同连接器。 `18`
 - [NPUPlatform：配置校验与设备实现选择](concepts/npu-platform.md) — 昇腾插件交给 vLLM 的平台实现。启动时它按组合校验整份配置、就地改写，再答出 Worker 类、注意力后端与图包装的类名；也是「查不到设备显存以后默认 token 预算怎么定」的唯一推导处。 `10`
-- [NPUWorker 启动：设备、权重与状态池](concepts/npu-worker-lifecycle.md) — 追踪 Worker 从进程内适配到设备通信、权重、缓存预算和预热的依赖，区分显式内存预算与自动测算，以及启动分配池和运行时分配请求块。 `10`
+- [NPUWorker 启动：一张卡按什么顺序准备好接请求](concepts/npu-worker-lifecycle.md) — 每张 NPU 上有一个 NPUWorker。启动时它先换补丁、选卡建通信组、装本卡那份权重、试跑量出 KV cache 预算；EngineCore 收齐各卡的数、按最紧的那张卡定块数并发回配置后，每张卡再建缓存池，最后预热并录 decode 图。每一步用到上一步的产物，所以顺序固定。预算怎么扣、块怎么借、系统怎么分层各有专页，本页只讲这条先后链。 `10`
 - [编译图融合：改变算子边界与中间数据流](concepts/npugraph-ex.md) — 解释编译器怎样识别计算片段、替换融合实现，以及 npugraph_ex、本地匹配器、静态 kernel 与图捕获之间的关系。 `16`
-- [算子与 kernel：从数学语义到设备实现](concepts/ops-and-kernels.md) — 区分模型运算、框架算子与设备核函数，解释 CustomOp 分派、torch_npu 与自定义扩展的关系，并追踪 GLM 的实际算子入口。 `16`
+- [算子与 kernel：从数学语义到设备实现](concepts/ops-and-kernels.md) — 模型里的一次运算怎样经框架替换表、量化方法或模型自己的调用，落到 torch_npu 已有算子或仓库自编译扩展，再经 CANN 下发成设备 kernel；并沿 GLM 双机的一层列出各站的实际算子。 `16`
 - [PD 分离：计算阶段与历史状态的交接](concepts/pd-disaggregation.md) — 从 prefill 和 decode 的不同工作形态解释分离部署，跟踪目的块分配、状态边界、异步传输和完成后的恢复与释放。 `18`
 - [流水线并行（PP）：层分段、状态交接与气泡](concepts/pipeline-parallel.md) — 将连续模型层分到多个阶段，说明阶段之间的张量与通信、单请求生成依赖，以及多个批次怎样提高流水线利用率。 `13`
 - [插件发现与模型注册](concepts/platform-plugin-registration.md) — 装上昇腾的包，vLLM 自己就会用昇腾：包里带着一张「我能接哪几个口」的入口点清单，vLLM 每起一个进程都按组名读一遍——一个口认平台，四个口登记连接器、模型加载器、性能采集和模型实现。 `10`
-- [前缀缓存：复用已计算输入的条件与边界](concepts/prefix-caching.md) — 相同前缀只有在身份匹配、状态驻留且各缓存组可共同恢复时才能复用。APC 是否启用和有效块大小依赖版本与配置，2048 不是 GLM 的通用默认值。 `11`
+- [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md) — 写满的块按 block hash 登记，开头相同的请求直接指向同一份、计数加一。GLM 是 hybrid 模型，v0.23 上游判它不支持而默认关；显式打开会走 align 模式，KDA 状态按 640 边界留档，能复用的长度仍按 640 对齐，不足一块零收益。 `11`
 - [W8A8 量化：权重压成 INT8，算完再乘回缩放系数](concepts/quantization.md) — 量化把权重和激活换成 8 位整数，另存一组缩放系数把结果换回原来的数值范围。先看一个数怎样压下去再还原，再分清动态与静态量化，最后落到 GLM 双机：两个 8 位分别从哪来、哪些矩阵保持 BF16、缩放系数占多少字节。 `11`
 - [抢占卸载：保存请求状态并恢复计算](concepts/recompute-cpu-offload.md) — 解释请求被抢占时哪些状态需要保存、传输完成如何决定释放与恢复，以及主机容量不足时的退路。 `11 12`
 - [重计算调度：D 端容量不足时如何恢复请求](concepts/recompute-scheduler.md) — 沿分配失败、状态保存或重建、代理续接解释D端恢复路径，区分普通抢占、保存缓存以及重新进入prefill的成本。 `12`
@@ -152,12 +152,12 @@
 - [Patch 机制：昇腾怎样在运行时换掉 vLLM 的函数和类](concepts/ascend-patch-system.md)
 - [引擎有哪几个进程：API server、EngineCore 与 Worker](concepts/engine-processes.md)
 - [NPUPlatform：配置校验与设备实现选择](concepts/npu-platform.md)
-- [NPUWorker 启动：设备、权重与状态池](concepts/npu-worker-lifecycle.md)
+- [NPUWorker 启动：一张卡按什么顺序准备好接请求](concepts/npu-worker-lifecycle.md)
 - [插件发现与模型注册](concepts/platform-plugin-registration.md)
 - [vllm-ascend 如何接入 vLLM](concepts/vllm-ascend-overview.md)
 - [EngineCore：调度、执行与结果更新如何形成迭代](concepts/vllm-engine-core.md)
 - [Platform：硬件适配的接口契约](concepts/vllm-platform-interface.md)
-- [vLLM 与 Ascend 架构：组件、进程和数据如何协作](concepts/vllm-v1-shape.md)
+- [vLLM V1 的形状：请求、调度计划和执行结果怎样在组件之间循环](concepts/vllm-v1-shape.md)
 
 ### 11 KV cache 内存系统
 - [问答记录：Block Table 里的块什么时候分配、什么时候回收](sources/answer-fbdf834736fd6584fd523555c449c21fa1c755b9e992cf949c98cd86e147a1ad.md)
@@ -173,14 +173,14 @@
 - [外部 KV 池：前缀匹配、加载和完成状态](concepts/kv-pool.md)
 - [kvpp_config](params/kvpp-config-0445bd352140.md)
 - [LMCache：外部缓存如何接入推理引擎](concepts/lmcache.md)
-- [前缀缓存：复用已计算输入的条件与边界](concepts/prefix-caching.md)
+- [Prefix caching：相同的开头只算一次，靠什么认](concepts/prefix-caching.md)
 - [W8A8 量化：权重压成 INT8，算完再乘回缩放系数](concepts/quantization.md)
 - [抢占卸载：保存请求状态并恢复计算](concepts/recompute-cpu-offload.md)
 - [size](params/size-40a1c2ca47b8.md)
 - [UCM：前缀存储与两种 PD 数据流](concepts/ucm.md)
 - [use_fused_overlap](params/use-fused-overlap-75a180fff6ab.md)
 - [use_layerwise](params/use-layerwise-b475778cd352.md)
-- [缓存块分配：资源池、引用与请求生命周期](concepts/vllm-kv-block-allocation.md)
+- [KV 块分配：块从池里借出、共享、归还](concepts/vllm-kv-block-allocation.md)
 
 ### 12 Scheduler 与调度策略
 - [异步调度：让主机准备与设备计算重叠](concepts/async-scheduling.md)
@@ -278,7 +278,7 @@
 ### 04 Attention 深入
 - [注意力代价：容量、计算与访存](concepts/attention-cost.md)
 - [Attention 与 Q/K/V：当前位置怎样从历史里取信息](concepts/attention-qkv.md)
-- [GQA：查询头如何共享 K/V，改变哪些开销](concepts/gqa.md)
+- [GQA：几个查询头共读一组 K、V，省下什么、付出什么](concepts/gqa.md)
 - [KV cache：新 token 留下历史，下一步接着读](concepts/kv-cache.md)
 - [KDA：用一个固定大小的状态代替逐位置历史](concepts/linear-attention.md)
 - [MLA：历史压成一条潜向量，用时再展开](concepts/mla.md)

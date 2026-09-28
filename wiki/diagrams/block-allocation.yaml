@@ -1,109 +1,63 @@
 layout: figure
 id: block-allocation
-caption: 共享完整前缀块的引用变化示例：A 与 B 都持有块 7；A 释放后 B 仍使用，最后一个引用释放后才可回收
-size:
-- 900
-- 450
+caption: 一个只有 7 块可借的小池子（0 号块开机就被摘出来当占位，不在队里），走四步。① A 从队头借走块 1、2，两块的引用计数从 0 变 1。② B 的开头和 A 一样，直接共用 A 已经写满的块 1，计数变 2；B 的后半段不同，另从队头借块 3。虚线表示两条请求指着同一块。③ A 结束，倒着还：块 2 计数降到 0，排回队尾；块 1 只降到 1，B 还在用，不回队。④ B 结束，块 3、块 1 计数都降到 0，按倒序排回队尾。归还只改计数和排队位置，块里的数据不擦；排回队尾的位置按 v0.23 的规则画。
+size: [900, 492]
 items:
-- at:
-  - 45
-  - 80
-  size:
-  - 150
-  - 55
-  text: 请求 A
-  tone: token
-- at:
-  - 45
-  - 245
-  size:
-  - 150
-  - 55
-  text: 请求 B
-  tone: token
-- at:
-  - 330
-  - 150
-  size:
-  - 180
-  - 75
-  text: 物理块 7
-  tone: kv
-  sub: 引用计数 2
-- at:
-  - 610
-  - 155
-  size:
-  - 110
-  - 65
-  text: 计数 1
-  tone: kv
-- at:
-  - 765
-  - 155
-  size:
-  - 110
-  - 65
-  text: 计数 0
-  tone: control
+  # ① A 借 2 块
+  - { at: [200, 46], size: [40, 42], text: A, tone: token }
+  - { at: [250, 46], size: [78, 42], text: 块 1, sub: 计数 1, tone: kv }
+  - { at: [336, 46], size: [78, 42], text: 块 2, sub: 计数 1, tone: kv }
+  - { at: [200, 102], size: [40, 42], text: B, tone: token, style: faded }
+  # ② B 共用块 1，另借块 3
+  - { at: [200, 158], size: [40, 42], text: A, tone: token }
+  - { at: [250, 158], size: [78, 42], text: 块 1, sub: 计数 2, tone: kv }
+  - { at: [336, 158], size: [78, 42], text: 块 2, sub: 计数 1, tone: kv }
+  - { at: [200, 214], size: [40, 42], text: B, tone: token }
+  - { at: [250, 214], size: [78, 42], text: 块 1, sub: 计数 2, tone: kv }
+  - { at: [336, 214], size: [78, 42], text: 块 3, sub: 计数 1, tone: kv }
+  # ③ A 结束
+  - { at: [200, 270], size: [40, 42], text: A, tone: token, style: faded }
+  - { at: [250, 270], size: [164, 42], text: A 结束, sub: 倒着还：先块 2，再块 1, tone: token, style: faded }
+  - { at: [200, 326], size: [40, 42], text: B, tone: token }
+  - { at: [250, 326], size: [78, 42], text: 块 1, sub: 计数 1, tone: kv }
+  - { at: [336, 326], size: [78, 42], text: 块 3, sub: 计数 1, tone: kv }
+  # ④ B 结束
+  - { at: [200, 382], size: [40, 42], text: B, tone: token, style: faded }
+  - { at: [250, 382], size: [164, 42], text: B 结束, sub: 倒着还：先块 3，再块 1, tone: token, style: faded }
+grids:
+  - { at: [560, 78], rows: 1, cols: 5, cell: [36, 36], gap: 4, tone: kv, style: plain, cells: [{ at: [0, 0], text: "3" }, { at: [0, 1], text: "4" }, { at: [0, 2], text: "5" }, { at: [0, 3], text: "6" }, { at: [0, 4], text: "7" }] }
+  - { at: [560, 190], rows: 1, cols: 4, cell: [36, 36], gap: 4, tone: kv, style: plain, cells: [{ at: [0, 0], text: "4" }, { at: [0, 1], text: "5" }, { at: [0, 2], text: "6" }, { at: [0, 3], text: "7" }] }
+  - { at: [560, 302], rows: 1, cols: 5, cell: [36, 36], gap: 4, tone: kv, style: plain, cells: [{ at: [0, 0], text: "4" }, { at: [0, 1], text: "5" }, { at: [0, 2], text: "6" }, { at: [0, 3], text: "7" }, { at: [0, 4], text: "2", style: solid }] }
+  - { at: [560, 414], rows: 1, cols: 7, cell: [36, 36], gap: 4, tone: kv, style: plain, cells: [{ at: [0, 0], text: "4" }, { at: [0, 1], text: "5" }, { at: [0, 2], text: "6" }, { at: [0, 3], text: "7" }, { at: [0, 4], text: "2" }, { at: [0, 5], text: "3", style: solid }, { at: [0, 6], text: "1", style: solid }] }
 links:
-- from:
-  - 195
-  - 107
-  to:
-  - 330
-  - 176
-  tone: kv
-  via:
-  - - 260
-    - 107
-  - - 260
-    - 176
-- from:
-  - 195
-  - 272
-  to:
-  - 330
-  - 200
-  tone: kv
-  via:
-  - - 260
-    - 272
-  - - 260
-    - 200
-- from:
-  - 510
-  - 188
-  to:
-  - 610
-  - 188
-  tone: control
-- from:
-  - 720
-  - 188
-  to:
-  - 765
-  - 188
-  tone: control
+  # 借：从队头取
+  - { from: [560, 96], to: [414, 67], via: [[490, 96], [490, 67]], tone: kv }
+  - { from: [560, 208], to: [414, 235], via: [[490, 208], [490, 235]], tone: kv }
+  # 共享：两条请求指着同一块
+  - { from: [289, 200], to: [289, 214], ends: both, dashed: true, tone: kv }
+  # 还：排回队尾
+  - { from: [414, 291], to: [738, 302], via: [[738, 291]], tone: control }
+  - { from: [414, 403], to: [818, 414], via: [[818, 403]], tone: control }
+badges:
+  - { at: [24, 64], n: 1 }
+  - { at: [24, 176], n: 2 }
+  - { at: [24, 288], n: 3 }
+  - { at: [24, 400], n: 4 }
 texts:
-- at:
-  - 528
-  - 135
-  text: A 释放
-- at:
-  - 745
-  - 120
-  text: B 释放
-- at:
-  - 565
-  - 285
-  text: B 继续读取
-- at:
-  - 750
-  - 330
-  text: 可回收
-- at:
-  - 45
-  - 390
-  text: 释放引用 → 可回收；缓存保留另有条件
-  note: true
+  - { at: [200, 24], text: 请求手里的块（块号，引用计数）, size: 13, strong: true }
+  - { at: [560, 24], text: 空闲块队列：左边是队头，右边是队尾, size: 13, strong: true }
+  - { at: [42, 70], text: A 借 2 块, strong: true }
+  - { at: [42, 182], text: B 共用块 1, strong: true }
+  - { at: [42, 294], text: A 结束, strong: true }
+  - { at: [42, 406], text: B 结束, strong: true }
+  - { at: [560, 134], text: 0 号块是占位块，永不借出, size: 12, note: true }
+  - { at: [560, 470], text: 块 1 的数据还在，被取走前仍可命中, size: 12, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L130-L177
+    symbols: [free_block_queue, null_block]
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L363
+    symbols: [get_new_blocks, popleft_n]
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L365-L441
+    symbols: [touch, free_blocks, append_n]
+  - source: vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L363-L378
+    symbols: [free, reversed]

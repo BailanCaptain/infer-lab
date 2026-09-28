@@ -56,6 +56,7 @@ sources:
   - vllm@0fc695fc:vllm/v1/executor/abstract.py#L48-L82
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L108-L130
   - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L127-L149
+  - vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_balance_schedule.py#L661-L745
 verified: ["releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: "C"
 relations:
@@ -331,7 +332,7 @@ file: engine-processes-startup
 
 ### 版本差异
 
-按知识库固定快照核对：v0.23 维护分支为 Ascend 2c59ff10，v0.26rc 为 Ascend 2ed6cbba，main 为 Ascend baa023ad。**本页读的是本部署专用镜像 Ascend db701c1f，它与 v0.23 维护快照是两个不同提交：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个工具调用 patch。下表 v0.23 列的行号全部读自镜像 db701c1f，同一批入口在 2c59ff10 上的行号未核。**
+按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26rc 列是 2ed6cbba，main 列是 baa023ad。**本页正文读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个 GLM 工具调用 patch。**下表 v0.23 列的行号读自 2c59ff10；镜像上除 scheduler 类替换在 `:718` 外，其余行号与 2c59ff10 相同。
 
 | 项 | v0.23 | v0.26rc | main |
 |---|---|---|---|
@@ -340,7 +341,7 @@ file: engine-processes-startup
 | 平台里的 `init_ascend_config` | `platform.py:475` | `platform.py:431` | `platform.py:492` |
 | Worker 入口 `adapt_patch()` / `init_ascend_config` | `worker/worker.py:110` / `:120` | `:119` / `:129` | `:138` / `:148` |
 | EPLB 启动补丁的导入条件 | `patch/platform/__init__.py:47-48` | `:45-46`，条件相同 | `:39-40`，条件相同 |
-| scheduler 类替换 | `patch_balance_schedule.py:718`，写法 `vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler` | `:936`，写法改为 `_sched_mod.Scheduler = BalanceScheduler`，效果相同 | `:911`，同 v0.26rc |
+| scheduler 类替换 | `patch_balance_schedule.py:745`，写法 `vllm.v1.core.sched.scheduler.Scheduler = BalanceScheduler` | `:936`，写法改为 `_sched_mod.Scheduler = BalanceScheduler`，效果相同 | `:911`，同 v0.26rc |
 
 三条入口的结构在三个版本里一致，变的只是行号；`daemon=False` 三个版本都在 `patch_multiproc_executor.py:199`。
 

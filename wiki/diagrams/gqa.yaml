@@ -1,247 +1,127 @@
 layout: figure
 id: gqa
-caption: 四个查询头的通用共享示意；连线表示 KV 向查询头提供数据，每个蓝块代表一组 K 与 V，头数不是 GLM 配置
-size:
-- 900
-- 400
+caption: 三栏都是 4 个查询头，头数只为示意，不对应任何模型。箭头从一组 K、V 指向读它的查询头；每个查询头再用自己的 Q 打分、汇合，得到自己那一份输出，所以三栏都出 4 份输出。MHA 每个查询头独占一组 K、V；GQA 每两个查询头共读一组；MQA 四个查询头共读同一组。
+size: [900, 400]
 frames:
-- at:
-  - 25
-  - 60
-  size:
-  - 265
-  - 310
-  label: MHA · 4 个 KV 头
-- at:
-  - 317
-  - 60
-  size:
-  - 265
-  - 310
-  label: GQA · 2 个 KV 头
-- at:
-  - 610
-  - 60
-  size:
-  - 265
-  - 310
-  label: MQA · 1 个 KV 头
-items:
-- at:
-  - 707
-  - 245
-  size:
-  - 68
-  - 40
-  text: KV₀
-  tone: kv
-links:
-- from:
-  - 72
-  - 245
-  to:
-  - 72
-  - 145
-  tone: kv
-- from:
-  - 128
-  - 245
-  to:
-  - 128
-  - 145
-  tone: kv
-- from:
-  - 184
-  - 245
-  to:
-  - 184
-  - 145
-  tone: kv
-- from:
-  - 240
-  - 245
-  to:
-  - 240
-  - 145
-  tone: kv
-fans:
-- from:
-  - 394
-  - 245
-  to:
-  - - 364
-    - 145
-  - - 420
-    - 145
-  tone: kv
-- from:
-  - 506
-  - 245
-  to:
-  - - 476
-    - 145
-  - - 532
-    - 145
-  tone: kv
-- from:
-  - 741
-  - 245
-  to:
-  - - 657
-    - 145
-  - - 713
-    - 145
-  - - 769
-    - 145
-  - - 825
-    - 145
-  tone: kv
-texts:
-- at:
-  - 157
-  - 332
-  text: 每头一组
-  anchor: middle
-- at:
-  - 449
-  - 332
-  text: 每两头共享一组
-  anchor: middle
-- at:
-  - 742
-  - 332
-  text: 四头共享一组
-  anchor: middle
+  - { at: [90, 50], size: [255, 318], label: MHA 多头注意力 }
+  - { at: [360, 50], size: [255, 318], label: GQA 分组查询注意力 }
+  - { at: [630, 50], size: [255, 318], label: MQA 多查询注意力 }
 grids:
-- at:
-  - 50
-  - 105
-  cols: 4
-  rows: 1
-  cell:
-  - 44
-  - 40
-  gap: 12
-  tone: token
-  style: solid
-  cells:
-  - at:
-    - 0
-    - 0
-    text: Q₀
-  - at:
-    - 0
-    - 1
-    text: Q₁
-  - at:
-    - 0
-    - 2
-    text: Q₂
-  - at:
-    - 0
-    - 3
-    text: Q₃
-- at:
-  - 342
-  - 105
-  cols: 4
-  rows: 1
-  cell:
-  - 44
-  - 40
-  gap: 12
-  tone: token
-  style: solid
-  cells:
-  - at:
-    - 0
-    - 0
-    text: Q₀
-  - at:
-    - 0
-    - 1
-    text: Q₁
-  - at:
-    - 0
-    - 2
-    text: Q₂
-  - at:
-    - 0
-    - 3
-    text: Q₃
-- at:
-  - 635
-  - 105
-  cols: 4
-  rows: 1
-  cell:
-  - 44
-  - 40
-  gap: 12
-  tone: token
-  style: solid
-  cells:
-  - at:
-    - 0
-    - 0
-    text: Q₀
-  - at:
-    - 0
-    - 1
-    text: Q₁
-  - at:
-    - 0
-    - 2
-    text: Q₂
-  - at:
-    - 0
-    - 3
-    text: Q₃
-- at:
-  - 50
-  - 245
-  cols: 4
-  rows: 1
-  cell:
-  - 44
-  - 40
-  gap: 12
-  tone: kv
-  style: solid
-  cells:
-  - at:
-    - 0
-    - 0
-    text: KV₀
-  - at:
-    - 0
-    - 1
-    text: KV₁
-  - at:
-    - 0
-    - 2
-    text: KV₂
-  - at:
-    - 0
-    - 3
-    text: KV₃
-- at:
-  - 360
-  - 245
-  cols: 2
-  rows: 1
-  cell:
-  - 68
-  - 40
-  gap: 44
-  tone: kv
-  style: solid
-  cells:
-  - at:
-    - 0
-    - 0
-    text: KV₀
-  - at:
-    - 0
-    - 1
-    text: KV₁
+  - at: [104, 88]
+    rows: 1
+    cols: 4
+    cell: [48, 34]
+    gap: 12
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: O₀ }, { at: [0, 1], text: O₁ }, { at: [0, 2], text: O₂ }, { at: [0, 3], text: O₃ }]
+  - at: [374, 88]
+    rows: 1
+    cols: 4
+    cell: [48, 34]
+    gap: 12
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: O₀ }, { at: [0, 1], text: O₁ }, { at: [0, 2], text: O₂ }, { at: [0, 3], text: O₃ }]
+  - at: [644, 88]
+    rows: 1
+    cols: 4
+    cell: [48, 34]
+    gap: 12
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: O₀ }, { at: [0, 1], text: O₁ }, { at: [0, 2], text: O₂ }, { at: [0, 3], text: O₃ }]
+  - at: [104, 172]
+    rows: 1
+    cols: 4
+    cell: [48, 34]
+    gap: 12
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: Q₀ }, { at: [0, 1], text: Q₁ }, { at: [0, 2], text: Q₂ }, { at: [0, 3], text: Q₃ }]
+  - at: [374, 172]
+    rows: 1
+    cols: 4
+    cell: [48, 34]
+    gap: 12
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: Q₀ }, { at: [0, 1], text: Q₁ }, { at: [0, 2], text: Q₂ }, { at: [0, 3], text: Q₃ }]
+  - at: [644, 172]
+    rows: 1
+    cols: 4
+    cell: [48, 34]
+    gap: 12
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: Q₀ }, { at: [0, 1], text: Q₁ }, { at: [0, 2], text: Q₂ }, { at: [0, 3], text: Q₃ }]
+  - at: [104, 262]
+    rows: 2
+    cols: 4
+    cell: [48, 24]
+    gap: 12
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: K₀ }
+      - { at: [0, 1], text: K₁ }
+      - { at: [0, 2], text: K₂ }
+      - { at: [0, 3], text: K₃ }
+      - { at: [1, 0], text: V₀ }
+      - { at: [1, 1], text: V₁ }
+      - { at: [1, 2], text: V₂ }
+      - { at: [1, 3], text: V₃ }
+  - at: [374, 262]
+    rows: 2
+    cols: 2
+    cell: [108, 24]
+    gap: 12
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: K₀ }
+      - { at: [0, 1], text: K₁ }
+      - { at: [1, 0], text: V₀ }
+      - { at: [1, 1], text: V₁ }
+  - at: [644, 262]
+    rows: 2
+    cols: 1
+    cell: [228, 24]
+    gap: 12
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: K₀ }
+      - { at: [1, 0], text: V₀ }
+links:
+  - { from: [128, 262], to: [128, 206], tone: kv }
+  - { from: [188, 262], to: [188, 206], tone: kv }
+  - { from: [248, 262], to: [248, 206], tone: kv }
+  - { from: [308, 262], to: [308, 206], tone: kv }
+  - { from: [128, 172], to: [128, 122], tone: token }
+  - { from: [188, 172], to: [188, 122], tone: token }
+  - { from: [248, 172], to: [248, 122], tone: token }
+  - { from: [308, 172], to: [308, 122], tone: token }
+  - { from: [398, 172], to: [398, 122], tone: token }
+  - { from: [458, 172], to: [458, 122], tone: token }
+  - { from: [518, 172], to: [518, 122], tone: token }
+  - { from: [578, 172], to: [578, 122], tone: token }
+  - { from: [668, 172], to: [668, 122], tone: token }
+  - { from: [728, 172], to: [728, 122], tone: token }
+  - { from: [788, 172], to: [788, 122], tone: token }
+  - { from: [848, 172], to: [848, 122], tone: token }
+fans:
+  - { from: [428, 262], to: [[398, 206], [458, 206]], tone: kv }
+  - { from: [548, 262], to: [[518, 206], [578, 206]], tone: kv }
+  - { from: [758, 262], to: [[668, 206], [728, 206], [788, 206], [848, 206]], tone: kv }
+texts:
+  - { at: [10, 110], text: 各头输出, size: 13, strong: true }
+  - { at: [10, 194], text: 查询头 Q, size: 13, strong: true }
+  - { at: [10, 279], text: 键 K, size: 13, strong: true }
+  - { at: [10, 315], text: 值 V, size: 13, strong: true }
+  - { at: [217, 352], text: 4 组 K、V → 4 份输出, anchor: middle }
+  - { at: [487, 352], text: 2 组 K、V → 4 份输出, anchor: middle }
+  - { at: [757, 352], text: 1 组 K、V → 4 份输出, anchor: middle }
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/layers/attention/attention.py#L452-L513
+    symbols: [num_heads, num_kv_heads]

@@ -180,3 +180,5 @@
 - P3：上轮第 8 节 P3 各条，外加本节第 3 条的附注。
 
 **跳过了什么**：没有读 frontmatter 来源清单、「对照源码」正文、HANDBOOK、docs/plans/、TERMS.md；没有跑 `wiki:lint`，没有做浏览器验收（本轮不在核对范围，修订也没改图）。没有哪次读取被拦。
+
+- **v0.23 列表头复核（09-28）：改了。** 原表头写「v0.23 列核自镜像 db701c1f，在 2c59ff10 上是否逐项相同未核」，把 db701c1f 混进 v0.23 列。按 `git diff db701c1f 2c59ff10` 核：对齐与通道开关（镜像 model_runner_v1.py L692–L740、L5383–L5389，ascend_config.py L315–L318，utils.py L1257–L1303）不在任何差异块里，`decode_token_per_req` 两边都是 1 + 草拟数；但「dummy batch 的额外动作」一格原写「无」，2c59ff10 的 `execute_dummy_batch`（worker.py L985–L987）先调 `log_memory_stats()`，镜像（L972–L973）没有。已把该格改为按 2c59ff10 写并注明镜像差别，表头改为「v0.23 列 = 2c59ff10，db701c1f 单独注明」。两边都没有 `skip_gdn_state_update`。

@@ -1,0 +1,51 @@
+layout: figure
+id: gqa-flow
+caption: 同一套 vLLM 流程里，每层按自己的注意力类型走三支之一。左支是普通注意力：加载模型时按 TP 定本卡几个 KV 头（够分就切，不够就每卡 1 个并复制），启动时按本卡 KV 头数定每块字节，第 4 站把查询头数和 KV 头数一起交给算子。中、右两支是 GLM 的两类层：稀疏 MLA 的潜向量不按头切，缓存规格写成 1 个 KV 头；KDA 的 q、k、v 头数相同，按头切到各卡，不存逐位置的 K、V。
+size: [900, 480]
+items:
+  - { at: [300, 16], size: [300, 48], text: 这一层用哪种注意力？, tone: control, style: plain }
+  - { at: [24, 110], size: [260, 56], text: 普通注意力, sub: GQA 模型：KV 头少于查询头, tone: token, style: plain }
+  - { at: [320, 110], size: [260, 56], text: GLM 稀疏 MLA, sub: 主干 11 层，另加 MTP 层, tone: kv, style: plain }
+  - { at: [616, 110], size: [260, 56], text: GLM KDA, sub: 34 层, tone: kv, style: plain }
+  - { at: [24, 196], size: [260, 60], text: 按 TP 定本卡头数, sub: KV 头够分就切，不够每卡 1 个并复制, tone: weight, style: plain }
+  - { at: [320, 196], size: [260, 60], text: 潜向量不按头切, sub: TP8 下每卡各算、各存一份完整的, tone: weight, style: plain }
+  - { at: [616, 196], size: [260, 60], text: q、k、v 头数相同, sub: 按 TP8 切，每卡 8 个头, tone: weight, style: plain }
+  - { at: [24, 286], size: [260, 60], text: 每块字节随本卡 KV 头数, sub: K、V 两份 × token 数 × 头数 × 头宽, tone: kv, style: plain }
+  - { at: [320, 286], size: [260, 60], text: 规格写 1 个 KV 头, sub: 头宽是潜向量宽，不是 64 组 K、V, tone: kv, style: plain }
+  - { at: [616, 286], size: [260, 60], text: 不存逐位置的 K、V, sub: 每个头一个固定大小的状态, tone: kv, style: plain }
+  - { at: [24, 376], size: [260, 60], text: 两种头数一起交给算子, sub: 算子内部让同组查询头读同一组 K、V, tone: token, style: plain }
+  - { at: [320, 376], size: [260, 60], text: 吸收后在潜空间打分, sub: 每个头的 K、V 由各自投影得到, tone: token, style: plain }
+  - { at: [616, 376], size: [260, 60], text: 先改写状态，再用 q 读出, sub: 历史多长，状态大小都不变, tone: token, style: plain }
+fans:
+  - { from: [450, 64], to: [[154, 110], [450, 110], [746, 110]], tone: control }
+links:
+  - { from: [154, 166], to: [154, 196] }
+  - { from: [154, 256], to: [154, 286] }
+  - { from: [154, 346], to: [154, 376] }
+  - { from: [450, 166], to: [450, 196] }
+  - { from: [450, 256], to: [450, 286] }
+  - { from: [450, 346], to: [450, 376] }
+  - { from: [746, 166], to: [746, 196] }
+  - { from: [746, 256], to: [746, 286] }
+  - { from: [746, 346], to: [746, 376] }
+texts:
+  - { at: [24, 188], text: 加载模型, size: 12, strong: true }
+  - { at: [24, 278], text: 启动：定缓存规格, size: 12, strong: true }
+  - { at: [24, 368], text: 第 4 站 逐层前向, size: 12, strong: true }
+  - { at: [154, 462], text: GLM 的注意力层都不走这一支, anchor: middle }
+  - { at: [598, 462], text: 本部署：稀疏 MLA 走中间，KDA 走右边, anchor: middle }
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/models/llama.py#L144-L156
+    symbols: [total_num_kv_heads]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1000-L1042
+    symbols: [num_kv_head_replicas]
+  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L183-L201
+    symbols: [real_page_size_bytes]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/attention/attention_v1.py#L1336-L1359
+    symbols: [num_key_value_heads]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1901-L1962
+    symbols: [fused_qkv_a_proj, num_local_heads]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L121-L134
+    symbols: [MLAAttentionSpec]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/mamba/gdn/kimi_gdn_linear_attn.py#L110-L134
+    symbols: [local_num_heads]

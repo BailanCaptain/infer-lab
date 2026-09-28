@@ -5,7 +5,7 @@
 - 控制流：`vllm@0fc695fc`（工作树 `tools/repos/vllm`，可直接打开文件）。
 - 执行侧：`vllm-ascend@db701c1f`（孤立提交，用 `git -C tools/repos/vllm-ascend show db701c1f:<path>` 读）。
 - 结论标记沿用主仓 `PLAN.md` §1.4：`[S]` 官方文档/论文、`[C]` 固定 commit 源码、`[D]` 由公式/shape/rank 推导、`[A]` 教学假设、`[I]` 推断、`[M]` 实测、`[!]` 版本冲突或需要红色高亮的条件。
-- 示例请求 R1：prompt 4 个 token，一直生成到结束。
+- 示例请求 R1：prompt 4 个 token，一直生成到结束。`[A]` 4 是演示设定，真实请求套完模板至少十几个 token，见 A1「在我们部署下的具体数字（R1）」第一条。
 - 场景 M：DP0 上 12 个请求在 decode，同时来了 1 个 6000 token 的新请求；DP1 上 7 个请求在 decode。M′：DP1 空闲。
 
 ---
@@ -579,7 +579,7 @@ RFork 只替换「权重字节从哪里来」。HCCL 建域（A0 第 5 步）、
 
 ### 在我们部署下的具体数字（R1）
 
-- prompt 4 个 token，`[4]` 的 int id 列表；套完聊天模板后的真实长度以 tokenizer 为准，这里按计划约定固定为 4。`[A]`
+- prompt 4 个 token，`[4]` 的 int id 列表。4 是为演示取的设定，指送进引擎的 `prompt_token_ids` 总数，不是哪条真实请求套完模板后的长度：GLM-5.3-Flash 的聊天模板给单条消息加的特殊标记就有 6 个，再加 system 行和正文，真实请求至少十几个 token。与序列长度有关的形状和字节随之变大，机制不变。`[A]`（依据 `docs/mainline/review/r1-realism-2026-09-28.md` §1、§3）
 - `EngineCoreRequest` 里与后面几站直接相关的字段：`prompt_token_ids`（4 个）、`sampling_params`、`data_parallel_rank`（未指定则为 None）由 `process_inputs` 填（`[C]` `vllm@0fc695fc:vllm/v1/engine/async_llm.py#L349-L360`）；`current_wave` 与 `client_index` 由客户端在发送前覆写（`[C]` `vllm/v1/engine/core_client.py#L1347-L1349`）。
 - 路由打分（场景 M 的两组计数 DP0 = (0 waiting, 12 running)、DP1 = (0, 7)）：
   ```
@@ -596,7 +596,7 @@ RFork 只替换「权重字节从哪里来」。HCCL 建域（A0 第 5 步）、
 
 ### 待核
 
-1. GLM-5.3-Flash 的聊天模板会在 4 个 prompt token 前后加多少特殊 token（`eos_token_id = [154820, 154827, 154829]`、`pad_token_id = 154820` 已知），需要模型仓库里的 `chat_template`。
+1. **已核（不再待核）**：R1 的 4 是套完模板、送进引擎的 token 总数（演示设定，见上文「具体数字」第一条），不是模板前的正文长度。用 jinja2 渲染模型仓库 690b7052 的 `chat_template`，单条消息得到 `[gMASK]<sop><|system|>Reasoning Effort: Max<|user|>…<|assistant|><think>`，共 6 个特殊标记；system 行一定出现，推理强度只取 low、high、max 之一。依据：`docs/mainline/review/r1-realism-2026-09-28.md` §1、§3。残余：system 行的 token 数（本地按 tokenizer.json 复算为 6，空消息合计 12 个）还没用官方 tokenizers 库复核。
 2. `--api-server-count 1` 时 `client_count` 为 1；若以后改成多 API server，打分里的 `client_count` 与 `eng_start_index`（`#L1394-L1396`）会改变分布，这里没有展开。
 
 ---
@@ -626,6 +626,7 @@ RFork 只替换「权重字节从哪里来」。HCCL 建域（A0 第 5 步）、
      `vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1054-L1120`。`mamba_cache_mode != "align"` 这一支会先把 `num_tokens` 加上 `block_size × num_speculative_blocks`，再走通用公式。
      注意这个类被 `AscendMambaManager` 替换过（`[C]` `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L18-L84`，导入点 `vllm_ascend/patch/platform/__init__.py#L43`），
      替换版只改了前缀命中与外部 KV 的分支，本部署（无 KV connector、前缀缓存关闭）下每组仍是 4 块。
+     但外部 KV 分支的判断 `total_computed_tokens > len(new_computed_blocks) × block_size` 且有新 token（`patch_mamba_manager.py#L76-L80`）对每条 c > 0 的运行中请求都成立（它们传入的 `new_computed_blocks` 为空，`vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L339-L342`），所以求和时每个 KDA 组多报 1 块、三组 +3；实际借块走上游 `allocate_new_blocks`，仍是 0。只让「够不够」的比较多要 3 块，不改变任何持有块数。`[C]+[D]`（2026-09-28 补）
 5. 取块：`BlockPool.get_new_blocks` `vllm@0fc695fc:vllm/v1/core/block_pool.py#L333-L362`，从空闲队列头部弹出。
 
 ### 在我们部署下的具体数字
@@ -655,7 +656,28 @@ R1 prefill：`num_new_tokens = 4`，`num_tokens_need_slot = 4 + 3 = 7`。
 
 `[C]+[D]`。要点：**一条只有 4 个 token 的请求，80% 的块花在 KDA 循环状态上**，因为 KDA 状态按「每请求一页」分配，页大小与序列长度无关（`mamba_block_size = 133120`，再加 3 个投机块）。
 
-对比满长度请求（133,120 token）：`ceil(133120/640) = 208` + 12 + 状态组 ≈ **222 块 ≈ 1.728 GiB**。按 A0.5 的算例（3,855 块），同时最多放 17 条满长度请求；`max_num_seqs=32` 条请求各自先吃掉 14 块（12 + 2）共 448 块，剩 3,407 块 × 640 ≈ 2.18 M token 的历史，平均每条 ≈ 68.1 K token。`[D]`
+上表的 15 块只是**第一步**。KDA 组此后一直是每组 4 块（`MambaManager.get_num_skipped_tokens = c − 1`，再减 3 个投机块，除以 133,120 为 0，中途不还，`vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L1018-L1028`、`#L1203-L1209`）；full 组每 640 个位置多 1 块；**尾状态组每一步都在变**，账如下（2026-09-28 复核；改了哪些数、依据哪几行见文末「追加修订（2026-09-28，块数）」）。
+
+尾状态组是 `SlidingWindowManager`，窗口 = 块 = `compress_ratio` = 4（`[C]` `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L339-L341`，登记处 `vllm_ascend/core/kv_cache_interface.py#L366-L369`；上游这个类不覆盖求块数和借块，走基类）。设本步开始时已算 `c` 个位置、本步新算 `n` 个、lookahead 3：
+
+```
+先还：remove_skipped_blocks(c)，窗口外 token = max(0, c − 4 + 1)            [C] single_type_kv_cache_manager.py#L793
+      整块数 floor(max(0, c − 3) / 4) 换成 null block 还池                  [C] #L464-L501；调用在 kv_cache_manager.py#L381-L383
+再借：块列表（含 null 占位）补到 cdiv(c + n + 3, 4)                         [C] kv_cache_manager.py#L370-L373；#L132、#L146-L154
+手里真块数 = cdiv(c + n + 3, 4) − floor(max(0, c − 3) / 4)
+```
+
+| 时刻 | c | n | 真块数 |
+|---|---|---|---|
+| R1 第一步 | 0 | 4 | `cdiv(7, 4) − 0` = **2** |
+| decode（1 个确定 token + 3 个候选） | ≥ 3 | 4 | `c mod 4` 为 0、1、3 时 **3**，为 2 时 **4** |
+| 一次 prefill n 个 token（从 0 开始） | 0 | n | `cdiv(n + 3, 4)`：6,000 → **1,501**，8,144 → **2,037** |
+
+`[C]+[D]`。为什么是区间不是定值：真块数取决于窗口起点落在块里的哪一格，也就是 `c mod 4`；而 MTP 每步让 `c` 前进 1–4 个位置（接受几个候选就多前进几个），所以 `c mod 4` 每步都可能换。decode 中「需要」每步涨 1–4，`cdiv(·, 4)` 最多跨一次边界，还池的整块数也最多加 1：**每前进 4 个位置借 1 块、还 1 块**，候选全被接受时每步都借还各 1 块，全被拒时每 4 步一次。开着异步调度时 `c` 在调度时含上一步未验证的候选，但它逐步不减，上面的公式和 3–4 的结论不变。
+
+长 prompt 的 prefill 这一步，尾状态组要为本步全部新 token 留位置，所以临时借约 `n / 4` 块，下一步 `c` 追上来再还掉；上游对滑动窗口的注释写的就是「chunked prefill 时要容纳窗口内已算的 token 加本步新 token」（`[C]` `vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L499-L508`）。准入时的每请求上限 `max_admission_blocks_per_request = cdiv(3 + 8192, 4) + 1 = 2,050`，由它和 `scheduler_reserve_full_isl = True`（默认，`vllm/config/scheduler.py#L140`）一起在 waiting 侧先检查整段 prompt 放不放得下（`kv_cache_manager.py#L354-L368`）。`[C]+[D]`
+
+对比满长度请求（133,120 token）：decode 时 `ceil(133120/640) = 208` + 12 + 尾状态组 3–4 = **223–224 块 ≈ 1.74 GiB**。按 A0.5 的算例（3,855 块），同时最多放 `floor(3,855 / 224) = 17` 条满长度请求；`max_num_seqs=32` 条请求各自常驻 15–16 块（12 + 3~4）共 480–512 块，剩 3,343–3,375 块 × 640 ≈ 2.14–2.16 M token 的历史，平均每条 ≈ 66.9–67.5 K token（按上限 512 块算 ≈ 66.9 K）。`[D]`
 
 #### A2.3 前缀缓存
 
@@ -677,8 +699,8 @@ R1 第一步：`{R1: 4}`，新块 15 个，草稿为空。
 
 ### 待核
 
-1. indexer-state 组稳态到底占 1 块还是 2 块：它是 `SlidingWindowManager`（窗口 = 块 = 4），`remove_skipped_blocks` 会把窗口外的块换成 null block 并归还（`vllm@0fc695fc:vllm/v1/core/single_type_kv_cache_manager.py#L582-L660` 与 `kv_cache_manager.py#L448-L460`）。上表按 `ceil(7/4)=2` 记，长序列下的稳态值需要跑一遍确认。
-2. `needs_kv_cache_zeroing`（`scheduler.py#L259-L260`）在 GLM 上是否为真：KDA 页被复用前要清零，这会给抢占后的重新分配加一笔开销，本底稿没有追到置位处。
+1. ~~indexer-state 组稳态到底占 1 块还是 2 块~~ **已核（2026-09-28，按源码推导，未实跑）**：都不是。2 块只是第一步；decode 时 3–4 块，长 prompt 的 prefill 那一步临时约 `n / 4` 块。推导见 §A2.2「尾状态组每一步」一段。
+2. ~~`needs_kv_cache_zeroing` 在 GLM 上是否为真~~ **已核（2026-09-28）**：调度器侧为真（KDA 层是 `MambaBase`，`vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L873-L879`），full 组新块号会进 `new_block_ids_to_zero`（`scheduler.py#L926-L930`）；但执行侧不清零：上游 `_zero_block_ids` 只在 runner 上有 `_kv_block_zeroer` 时才动手（`vllm/v1/worker/gpu_model_runner.py#L1103-L1106`），昇腾 worker 只在投机方法为 `eagle3` 且投机 token 数大于 1 时才建它（`vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L917-L925`；v0.23 `2c59ff10` L931–L938、v0.26 `2ed6cbba` L1025–L1032 同一条件；main `baa023ad` L1146–L1158 另加一个入口：用 model runner v2 时也建）。GLM 用 `mtp`，所以借出的块不清零，抢占后重新分配也没有这笔开销。
 3. `max_num_batched_tokens=8192` 与 `block_size=640` 不整除（8192 = 12×640 + 512），是否会在某些 kernel 路径上要求对齐，未核。
 
 ---
@@ -765,7 +787,7 @@ attn_state               = 含 prefill
 ### 在我们部署下的具体数字（R1 收尾）
 
 - 一条 decode 步最多回 4 个 token（1 个已验证 + 最多 3 个被接受的 MTP 草稿），所以流式输出的一个 chunk 可能一次带出 1–4 个 token。`[D]`
-- 结束时归还 R1 占的块：起步 15 块，生成到长度 L 时是 `ceil((L+3)/640) + 12 + 状态组` 块。R1 若生成 200 个 token，L = 204 → `1 + 12 + 2 = 15` 块，一次性还回。`[D]`
+- 结束时归还 R1 占的块：起步 15 块，此后是 `ceil((c+7)/640) + 12 + 尾状态组 3~4` 块（`c` 为最后一次调度时的已算位置，尾状态组算法见 §A2.2）。R1 若生成 200 个 token，最后一步开始前已输出 196–199 个，`c = 199~202`，full 组 `ceil(≤209/640) = 1`，尾状态组 `c mod 4 = 2` 时 4 块、其余 3 块 → **`1 + 12 + 3~4 = 16~17` 块**，一次性还回；落在哪个数取决于 MTP 候选接受了几个。尾状态组这一生共借过 52–53 个块号，其中 49 个在途中已还。`[D]`（2026-09-28 由「15 块」改正）
 - 归还顺序是逆序（尾块先还），这样启用前缀缓存时尾块最先被淘汰；本部署前缀缓存关闭，顺序只影响空闲队列的排列。`[C]` `kv_cache_manager.py#L438-L442`
 - DP 视角：这条请求结束后 DP0 的 `running` 计数减 1，下一次 `_maybe_publish_request_counts` 会把新分数推给前端，影响后续路由（见 A1）。`[C]`
 
@@ -921,8 +943,12 @@ waiting 循环：新请求 num_new_tokens = min(6000, 8144) = 6000   → 一步�
 第 4 步起：这条请求进入 decode，每步 4 个 token
 ```
 
-每一步都要给它补 KV 块：第 1 步 `ceil((8144+3)/640) = 13` 块（full 组）+ 12（KDA）+ 状态组；
-第 2 步再补 `ceil((16288+3)/640) − 13 = 13` 块；第 3 步再补 `ceil((20003)/640) − 26 = 6` 块。`[D]`
+每一步都要给它补 KV 块：第 1 步 `ceil((8144+3)/640) = 13` 块（full 组）+ 12（KDA）+ 尾状态组 `cdiv(8147, 4) = 2,037` 块；
+第 2 步 full 组再补 `ceil((16288+3)/640) − 13 = 13` 块；第 3 步再补 `ceil((20003)/640) − 26 = 6` 块。`[D]`
+
+尾状态组（算法见 §A2.2）在这三步里手里分别是 **2,037 → 2,038 → 930** 块，第 4 步进入 decode 后回到 3–4 块：
+第 2 步先还 `floor((8144−3)/4) = 2,035` 块、再借 `cdiv(16291, 4) − 2,037 = 2,036` 块；第 3 步还 2,036、借 928；第 4 步还 928、借 1。
+也就是说，一个 8144 token 的 chunk 会让尾状态组临时占住 3,855 块池子的一半多（2,037 × 7.969 MiB ≈ 15.9 GiB），比 full 组的 13 块多两个数量级。`[C]+[D]`（2026-09-28 补）
 
 #### 上限
 
@@ -978,34 +1004,37 @@ while True:
 设可用块 `num_blocks = 3,855`（A0.5 算例）。DP0 上 12 条请求各已生成到 20,000 token：
 
 ```
-每条已持有 = ceil(20003/640) + 12 + 2 = 32 + 14 = 46 块
-12 条合计   = 552 块
-剩余        = 3,855 − 552 = 3,303 块
+每条已持有 = ceil(20007/640) + 12 + (3~4) = 32 + 15~16 = 47~48 块
+12 条合计   = 564~576 块
+剩余        = 3,855 − (564~576) = 3,279~3,291 块
 ```
 
-这时 6000 token 的新请求需要 `ceil(6003/640) + 12 + 2 = 10 + 14 = 24` 块，轻松装下。
-要把池子逼到抢占，需要把长度或并发拉上去，例如 **32 条各 60,000 token**：
+（每条常驻 15–16 块 = KDA 12 + 尾状态组 3~4，尾状态组的算法见 §A2.2；2026-09-28 由「14 块」改正。）
+
+这时 6000 token 的新请求第一步要 `ceil(6003/640) + 12 + cdiv(6003, 4) = 10 + 12 + 1,501 = 1,523` 块，仍装得下；但其中 1,501 块是尾状态组为 prefill 临时借的，下一步还掉，之后这条请求回到 `10 + 12 + 3~4 = 25~26` 块。
+要把池子逼到抢占，需要把长度或并发拉上去，例如 **32 条各 60,000 token**（都在 decode）：
 
 ```
-每条 = ceil(60003/640) + 14 = 94 + 14 = 108 块
-32 条 = 3,456 块 ≤ 3,855，还剩 399 块
+每条 = ceil(60007/640) + 12 + (3~4) = 94 + 15~16 = 109~110 块
+32 条 = 3,488~3,520 块 ≤ 3,855，还剩 335~367 块
 ```
 
-再往后每条每 640 个新 token 各要 1 块，399 块用完（平均每条再跑 `399/32 × 640 ≈ 7,980` token）后，
-某条请求 `allocate_slots` 返回 None，触发抢占。此时每条已经涨到约 68,000 token：
+再往后每条每 640 个新 token 各要 1 块，这 335–367 块用完（平均每条再跑约 6,700–7,340 token）后，
+某条请求 `allocate_slots` 返回 None，触发抢占。此时 full 组合计 `3,855 − 32×12 − 32×(3~4) = 3,343~3,375` 块，平均每条约 105 块，也就是每条约 67,000 token：
 
 ```
-被踢那条已持有 = ceil(67983/640) + 14 = 107 + 14 = 121 块
+被踢那条已持有 ≈ ceil(67007/640) + 12 + (3~4) = 105 + 15~16 = 120~121 块
 ```
 
 - 被踢的是 running 里最后一条（FCFS 下是最晚被排进来的那条）。
-- 一次释放它的 **121 块 ≈ 964 MiB**，够其余请求再跑 `121 × 640 = 77,440` 个 token 的历史。
-- 被踢的那条 `num_computed_tokens = 0`：它那约 68,000 个 token 的 prefill 要全部重算。按 8192 的预算，重算要 `ceil(68000/8192) ≈ 9` 步，并且这 9 步里每步都和别人抢预算。`[D]`
+- 一次释放它的 **120–121 块 ≈ 956–964 MiB**，够其余请求再跑 `120~121 × 640 ≈ 77,000` 个 token 的历史。
+- 被踢的那条 `num_computed_tokens = 0`：它那约 67,000 个 token 的 prefill 要全部重算。按 8192 的预算，重算要 `ceil(67000/8192) = 9` 步，并且这 9 步里每步都和别人抢预算。`[D]`（2026-09-28 按常驻 15–16 块重算，原为约 68,000 token、121 块）
 
-抢占在本部署里特别贵的两个原因（都可由源码直接推出）：
+抢占在本部署里特别贵的三个原因（都可由源码直接推出）：
 
 1. **前缀缓存关着**（A2.3），被释放的块不进缓存，重算没有任何复用。`[C]`
 2. **KDA 状态跟着一起丢**：那 12 块循环状态被归还，再回来时 34 层的循环状态要靠重新扫一遍全部 prompt 重建。`[C]` `_preempt_request` 调的是 `kv_cache_manager.free`，对所有组一视同仁。
+3. **排回来要的块远多于它还掉的块**：它退回 waiting 队首后，准入检查（`scheduler_reserve_full_isl` 默认开）按整段 67,000 token 算 `105 + 12 + min(cdiv(67000, 4), 2,050) = 2,167` 块，第一个 chunk（预算 `8192 − 31×4 = 8,068`）实际要借 `13 + 12 + cdiv(8071, 4) = 2,043` 块，都远大于它还掉的 120–121 块。waiting 侧借不到就 `break`，所以它和排在它后面的新请求都要等池子空出约 2,170 块才进得来。`[C]+[D]`：准入与封顶见 §A2.2；`break` 见下文 `#L774-L781`。
 
 另外两条与抢占相关的机制：
 
@@ -1019,7 +1048,7 @@ while True:
 
 ### 待核
 
-1. 抢占后重新分配到的 KDA 页是否必须清零（`needs_kv_cache_zeroing`，见 A2 待核 2），以及清零的代价。
+1. ~~抢占后重新分配到的 KDA 页是否必须清零~~ **已核（2026-09-28）**：GLM 用 `mtp`，昇腾 worker 不建清零器，借出的块不清零，没有这笔开销；见 A2 待核 2。
 2. vllm-ascend 的 `recompute_scheduler.py` / `kv_offload` 是否提供了「抢占改为换出」的路径，默认是否启用，未核。
 3. 上面算例里的 `num_blocks = 3,855` 依赖 A0 的显存假设；真值定下来后，本节所有块数都按同一公式重算即可（公式本身是 `[C]`）。
 
@@ -1069,7 +1098,7 @@ while True:
 | P1-3 待核 5「实际分配 conv 长度是 3」 | **已改**。自核 OOT 注册（`CustomOp.register_oot` + `REGISTERED_ASCEND_OPS["KimiGatedDeltaNetAttention"]`，且本轮 vLLM 正是 0.23.0），实例化的是 `AscendKimiGatedDeltaNetAttention`，`get_state_shape` 带 `num_spec`。删除 `[!]` 待核项，改写成 A0.4 的已核结论，并注明 `AscendGlm5NextLinearAttention` 是死代码 |
 | P1-4 3,873 应为 3,874 | **已改**（被 P1-1 覆盖）：按 8,355,840 重算为 **3,855** |
 | P1-5 B2 满载门槛 | **已改**。改成「能进队的最大 running 数是 31，门槛 `8192 − 124 = 8068`；满 32 条时新请求排不进来」 |
-| P1-6 B3 释放块数前后矛盾 | **已改**。抢占时每条已涨到约 68,000 token，被踢那条持有 `ceil(67983/640)+14 = 121` 块 ≈ 964 MiB，可腾出 77,440 token 的历史 |
+| P1-6 B3 释放块数前后矛盾 | **已改**。抢占时每条已涨到约 68,000 token，被踢那条持有 `ceil(67983/640)+14 = 121` 块 ≈ 964 MiB，可腾出 77,440 token 的历史。**2026-09-28 再更正**：`+14` 把尾状态组首步的 2 块当成了常驻值，常驻应为 15–16 块；按总量重算为每条约 67,000 token、被踢那条 `105 + 15~16 = 120~121` 块 ≈ 956–964 MiB、可腾出约 77,000 token，见 §B3 与文末「追加修订（2026-09-28，块数）」 |
 
 ### 01-review P2
 
@@ -1155,3 +1184,13 @@ while True:
 | 条目 | 处置 | 依据与影响 |
 |---|---|---|
 | A0.1「合计 20 个进程」没有写统计口径，知识库 engine-processes 页把「按角色计」和「按进程列表数是 21 个」归到底稿名下却无出处 | **已补** | 在 A0.1 合计行后补一句口径：按角色计；node1 `--headless` 启动进程留在 `monitor_engine_liveness()` 不计入，按进程列表数为 21 个；辅助进程与特性另起的进程不计。依据 `vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L146-L148`、`#L235-L253`。20 这个数本身不变，只补口径；本文件其他位置未动 |
+
+### 追加修订（2026-09-28，块数，据 `review/pages/vllm-kv-block-allocation-review.md` P5 审查 P1-1/P1-2 与复审 P3）
+
+| 条目 | 处置 | 依据与影响 |
+|---|---|---|
+| indexer-state（尾状态）组把首步 2 块当成常驻值，「每条先吃掉 14 块」「R1 结束还 15 块」「被踢那条 121 块」都偏小 | **已改** | 尾状态组是上游 `SlidingWindowManager`，窗口 = 块 = 4（`vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L339-L341`，登记 `vllm_ascend/core/kv_cache_interface.py#L366-L369`）；`allocate_slots` 先 `remove_skipped_blocks(c)` 再求块（`vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L370-L383`）；窗口外 token `max(0, c − 3)`（`single_type_kv_cache_manager.py#L793`），整块换 null 还池（`#L464-L487`）；运行中请求补到 `cdiv(need, 4)`、`len` 含 null（`#L132`、`#L146-L154`）。手里 = `cdiv(c + n + 3, 4) − floor(max(0, c − 3)/4)`：首步 2、decode 3–4、prefill 一步 `cdiv(n + 3, 4)`。改动：§A2.2 新增「尾状态组每一步」推导与表，满长度 222 → 223–224、32 条 448 → 480–512、平均 68.1 K → 66.9–67.5 K；§A7 R1 结束 15 → 16–17；§B2 补尾状态组 2,037 → 2,038 → 930 → 3；§B3 场景 M 46 → 47–48 块、6000 token 新请求 24 → 首步 1,523 块、60,000 例 108 → 109–110 块、被踢那条 121 → 120–121 块（≈ 956–964 MiB，约 67,000 token）、新增「排回来要约 2,167 块」一条；P1-6 修订表行加再更正说明。KDA 12 块、R1 首步 15 块不变。 |
+| 清零（A2 待核 2、B3 待核 1） | **已核** | 调度器侧 `needs_kv_cache_zeroing` 为真（`vllm/v1/kv_cache_interface.py#L873-L879`），执行侧只有存在 `_kv_block_zeroer` 才清（`vllm/v1/worker/gpu_model_runner.py#L1103-L1106`），昇腾 worker 只在 `eagle3` 且投机 token 数 > 1 时建（`vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L917-L925`）；GLM 用 mtp → 不清零。main `baa023ad` L1146–L1158 另有 model runner v2 入口。不影响块数 |
+| 昇腾 KDA 管理器求块时每组多报 1 块（复审 P3-1） | **已补说明** | `vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L76-L80` 的外部 KV 判断对 c > 0 的运行中请求都成立（`new_computed_blocks` 为空，`kv_cache_manager.py#L339-L342`），三组求和 +3，实际借块仍 0。只让「够不够」多要 3 块，抢占约提前 3 块；**常驻 15–16、R1 结束 16–17、被踢 120–121 都不变**。v0.26 / main 只是把同一个量提成 `local_hit_tokens`，条件等价。改动：§A2「怎么走的」第 4 条补一句 |
+
+以上是按源码的推导，没有实跑。知识库同步：`vllm-kv-block-allocation`（尾状态组算法唯一出处）、`one-request`（R1 逐圈）、`glm-5-3-flash-two-node`、`concurrent-requests`（整批表）、`block-table`。

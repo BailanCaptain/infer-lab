@@ -187,3 +187,119 @@
 | P3-6 图二角标 | **已改** | 删去图二的 1/2 角标，靠「第一次/第二次」文字标注，已重新生成 svg。 |
 
 验证：`pnpm wiki:lint` 通过（本页无提示）、`pnpm check:content` 通过、`pnpm wiki:diagrams --check` 140 张一致。本轮读取没有被拦截。
+
+## 09-28 跨页修复：GLM 稀疏 MLA 的后端写错了
+
+来源：`attention-backend-family` 的 P5 独立审查列出的跨页 P1（该页审查记录「问题清单」一节）。由 attention-backend-family 的写手对照 `db701c1f` 独立复核后修改，只动点到的两处及紧邻表述，块数相关文字一律未动。
+
+**复核结论：审查员判对了，原文两处都要改。**
+
+| 核查项 | 源码 | 结论 |
+|---|---|---|
+| GLM 的稀疏 MLA 层报出哪个后端 | `vllm_ascend/ops/indexer_kpool_mla.py#L78` 里 `IndexerKPoolMLACacheLayer.attn_backend = AscendIndexerKPoolMLABackend`，`#L136-L137` 的 `get_attn_backend` 返回它；该层在 `AscendIndexerKPoolMLAAttention.__init__`（`#L166`）里构造 | 层直接返回 `AscendIndexerKPoolMLABackend`，不是 `AscendSFABackend` |
+| 这个后端和 SFA 是什么关系 | `attention/indexer_kpool_mla_v1.py#L521` `class AscendIndexerKPoolMLABackend(AttentionBackend)`，`get_name()` 返回 `"ASCEND_INDEXER_KPOOL_MLA"`；`attention/sfa_v1.py#L135` `class AscendSFABackend(AttentionBackend)` | 两者是**兄弟类**，不是继承、也不是包装 |
+| 那为什么调用链里会出现 sfa_v1 | `indexer_kpool_mla_v1.py#L557` `class AscendIndexerKPoolMLAImpl(AscendSFAImpl)`（`sfa_v1.py#L563`）；元数据 `#L78` 继承 `AscendSFAMetadata`、构建器 `#L389` 继承 `AscendSFAMetadataBuilder` | **实现、元数据、构建器**继承自 SFA 的同名类，**后端类本身**不是。所以 `sfa_v1.py#L1994-L2028` 确实在 GLM 的执行路径上，但那是父类实现，不代表后端是 `AscendSFABackend` |
+| 平台查表会不会被走到 | `platform.py#L805-L831` 的 `get_attn_backend_cls` 按 `(use_mla, use_sparse, use_compress)` 查表，`(True, True, False)` → `AscendSFABackend`；GLM 的三个缓存层都自己实现 `get_attn_backend()`，Runner 在 `model_runner_v1.py#L5052-L5059` 直接调层的方法 | GLM 的稀疏 MLA 层根本不经过这张表；表本身的映射没写错，错在把它套到 GLM 头上 |
+
+改动：
+
+| 位置 | 改成 |
+|---|---|
+| 正文第 3 站（原 L162） | 「走通用路径的模型建层时按 attention 类型向平台查询；GLM 的稀疏 MLA 不查这张表，由层自己返回 `AscendIndexerKPoolMLABackend`，它的实现类继承自 SFA 实现」 |
+| 证据表「注意力后端」行（原 L339） | 保留平台表 `(True, True, False)` → `AscendSFABackend` 的描述但限定为"走通用路径的稀疏 MLA"，另写明 GLM 由层内部的缓存层返回 `AscendIndexerKPoolMLABackend`，后端类直接继承 `AttentionBackend`，只有实现、元数据、构建器继承自 SFA 同名类 |
+| frontmatter sources | 末尾追加两条（不影响既有角标编号）：`vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L74-L82`、`vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L521-L527` |
+
+本页其他部分未动，块数（14/15 块）相关文字未动。验证见 attention-backend-family 的「P5 修订记录（09-28）」：`pnpm wiki:lint`、`pnpm wiki:diagrams --check`、`pnpm wiki:audit` 三项退出码均为 0。
+
+## 09-28 跨页修复复审
+
+复审人：新开的独立审查员（只审不改，本节是唯一改动）。范围：上节两处改写 + 两条新 sources、全库同类错误、linear-attention 的锚点。块数相关改动不在范围内。源码一律读 `vllm-ascend@db701c1f`。
+
+**结论：写手的源码结论成立；改写后的两处没有事实错误，不再说 GLM 走 `AscendSFABackend`，也没有写成「完全不走 SFA」。剩 3 处 P3 措辞/术语问题，无 P1/P2。**
+
+### 一、逐条核源码
+
+| 写手的说法 | 独立核到的行 | 结论 |
+|---|---|---|
+| 两个后端是兄弟类 | `attention/indexer_kpool_mla_v1.py#L521` `class AscendIndexerKPoolMLABackend(AttentionBackend)`；`attention/sfa_v1.py#L135` `class AscendSFABackend(AttentionBackend)` | 成立 |
+| 继承只发生在实现、元数据、构建器 | 同文件 `#L557` `AscendIndexerKPoolMLAImpl(AscendSFAImpl)`、`#L78` `AscendIndexerKPoolMLAMetadata(AscendSFAMetadata)`、`#L389` `AscendIndexerKPoolMLAMetadataBuilder(AscendSFAMetadataBuilder)`；`#L549` `get_impl_cls` 写死返回子类 | 成立 |
+| 层自己返回后端 | `ops/indexer_kpool_mla.py#L78` `self.attn_backend = AscendIndexerKPoolMLABackend`，`#L83-L84` 用它的 `get_impl_cls()` 建 impl，`#L136-L137` `get_attn_backend` 原样返回；runner 在 `worker/model_runner_v1.py#L5052-L5053` 调 `layers[layer_name].get_attn_backend()` | 成立 |
+| 不经过平台查表 | `platform.py#L805-L831` 的 `backend_map` 只有 `AscendMLABackend / AscendAttentionBackend / AscendSFABackend / AscendDSABackend` 四项，没有 IndexerKPool；GLM 稀疏 MLA 层由 `models/glm5_next.py#L2089` 建 `AscendGlm5NextMLAAttention` → `#L2018` 建 `AscendIndexerKPoolMLAAttention`（`ops/indexer_kpool_mla.py#L147` docstring：never constructs generic MLAAttention） | 成立：GLM 双机的 11 层稀疏 MLA + MTP 层都不查这张表 |
+
+**实际 forward 走到 SFA 的哪些方法**（判断「完全不走 SFA」是否成立的依据）：
+
+`AscendIndexerKPoolMLAAttention.forward` → `torch.ops.vllm.indexer_kpool_mla_forward`（`ops/indexer_kpool_mla.py#L200`、`#L253`）→ `wrapper.impl.forward`（`#L263`/`#L281`）→ `AscendIndexerKPoolMLAImpl.forward`（`indexer_kpool_mla_v1.py#L800`）→ 两个分支都 `super().forward(...)`（`#L810`、`#L848`，后者先把三份缓存重排成 `sfa_cache`）→ `AscendSFAImpl.forward`（`sfa_v1.py#L1650`）。
+
+在 SFA 的 forward 主流程里：
+
+- **沿用 SFA 父类的**：`fused_qkv_a_proj`（L1766）、`q_a_layernorm`（L1772）、`_q_proj_and_k_up_proj`（L1850）、`_get_full_kv`（L1919）、indexcache 的 topk 取/存（L1976/L1992）、`_v_up_proj`（L2004）、`o_proj` 及其切换（L2017/L2028），以及 `attn_metadata is None` 时的空跑分支。
+- **被子类改写的钩子**（父类 forward 调到的是子类版本）：`_get_indexer_slot_mapping`（子类 L600）、`_store_indexer_cache`（L603）、`indexer_select_pre_process`（L705）、`exec_kv`（L744）、`rope_single`（L790）、`_execute_sparse_flash_attention_process`（L1065）、`indexer_select_post_process`（L1106）。
+
+所以准确说法是：**后端类不是 SFA 的；forward 的骨架和 Q/K/V 上投影、输出投影是 SFA 父类的；写 KV、indexer 选 top-k、稀疏注意力算子这几步换成了 GLM 自己的。** traceback 里会先后出现 `indexer_kpool_mla_v1.py` 和 `sfa_v1.py` 两帧。
+
+### 二、改写处的措辞
+
+| 严重级别 | 位置 | 问题 | 影响 | 建议 |
+|---|---|---|---|---|
+| P3 | `wiki/concepts/request-call-chain.md#L341` | 「只有实现、元数据和构建器继承自 SFA 的**同名类**」：三者名字都不同（`AscendIndexerKPoolMLAImpl`←`AscendSFAImpl` 等），「同名」不对；「只有」也容易让人以为 SFA 只占很小一部分，实际 forward 主流程是 SFA 父类的 | 读者按「同名」去 sfa_v1.py 找同名类会找不到 | 改成「实现、元数据、构建器各自继承 SFA 的对应类（`AscendSFAImpl` 等）；forward 经 `super().forward` 走 SFA 的主流程，只换掉写 KV、indexer 选 top-k、稀疏注意力算子几步」。上节修复记录第 201、209 行的「同名类」同样应改 |
+| P3 | `wiki/concepts/request-call-chain.md#L164` | 「不查**这张表**」：第 3 条前半句只说「向平台查询」，没出现过「表」，这张表在本段没有先行词（表在页末 L341 才出现） | 初学者读到「这张表」不知道指什么 | 前半句改成「按 attention 类型查平台的一张对照表」之类，先立「表」再说不查它 |
+| P3 | `wiki/concepts/request-call-chain.md#L164`（新增「SFA 实现」） | 「SFA」在本页正文第一次出现就直接用，页内没有解释，`wiki/TERMS.md` 里也没有 SFA 条目 | 违反术语先讲后用 | 首次出现处加一句中文解释（昇腾稀疏注意力的通用实现），或链到后端家族页讲 SFA 的位置 |
+
+改写处前后 30 行的连带问题（不是本次改动引入，顺带记录）：
+
+| 严重级别 | 位置 | 问题 | 建议 |
+|---|---|---|---|
+| P3 | `wiki/concepts/request-call-chain.md#L325` 第 4 站「往下调」 | 写 `AscendGlm5NextDecoderLayer` → `AscendSFAImpl`，跳过了 `AscendGlm5NextMLAAttention` → `AscendIndexerKPoolMLAAttention` → `torch.ops.vllm.indexer_kpool_mla_forward` → `AscendIndexerKPoolMLAImpl.forward` 这几帧。`AscendSFAImpl.forward` 确实在栈上，所以不算错，但本页说「按报错看出错那一帧的文件路径」，而 GLM 报错最先落到的 impl 文件是 `indexer_kpool_mla_v1.py`，表里没有；改完 L164 后读者还会觉得这一格和第 3 条对不上 | 改成 `… → AscendIndexerKPoolMLAImpl.forward` → `AscendSFAImpl.forward`（父类） |
+
+新增 sources 两条（`ops/indexer_kpool_mla.py#L74-L82`、`attention/indexer_kpool_mla_v1.py#L521-L527`）行号在范围内，覆盖了正文引用的 L78 和 L521；正文 L341 里的 `ops/indexer_kpool_mla.py#L78`、`#L136-L137` 没带 `vllm-ascend@db701c1f:` 前缀，与页内其他路径写法不一致，不影响校验。
+
+### 三、全库还有没有把 GLM 说成走 `AscendSFABackend`
+
+`grep -rnE 'AscendSFABackend|SFA 后端|SFA后端' wiki`，另查 `GLM.*SFA|SFA.*GLM` 与 `AscendSFAImpl`，逐条看上下文：
+
+| 页 | 行 | 判断 |
+|---|---|---|
+| `concepts/attention-backend-family.md` | 193 | 版本差异表的 **main（baa023ad）** 列：main 里 GLM 改用上游 `MultiHeadLatentAttentionWrapper`（`baa023ad:vllm_ascend/models/glm5next/attention.py#L22`、`#L301`），不再有 IndexerKPoolMLABackend，回到平台表。说的是另一版本，不是同类错误 |
+| `concepts/npu-platform.md` | 171（及 138、157） | 正确：通用查表与「GLM 侧的直接绑定」分开写 |
+| `params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md` | 26、87 | 讲 SFA 的 DCP 子类与 Qwen3 旧算例，没说 GLM |
+| `params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md` | 84 | 同上，Qwen3 旧算例 |
+| `raw/kv-cache-sparse-offload.md` | 212、226 | 原始资料，讲 SFA 卸载，没提 GLM |
+| `concepts/kv-cache-memory-profiling.md` | 194 | 「SFA 在 `attn_metadata is None` 时 `output.fill_(0)`」：GLM 子类在 None 时直接 `super().forward`，确实走这一支，正确 |
+| `concepts/block-table.md` 244、`kv-cache.md` 235、`kv-cache-spec.md` 287/321、`context-parallel.md` 97 | — | 只用 `GLM5_SFA_KERNEL_BLOCK_SIZE`、SFA 的 DCP 条件等名字，没说 GLM 的后端是 `AscendSFABackend` |
+
+**全库没有第二处同类错误。**
+
+### 四、linear-attention 的锚点
+
+`wiki/concepts/linear-attention.md#L235` 由 `#kda-路径使用递推和卷积状态` 改成 `attention-backend-family.md#放到-glm-双机一个-token-走过-45-层要问-45-次`。目标页 `attention-backend-family.md#L89` 标题是「## 放到 GLM 双机：一个 token 走过 45 层，要问 45 次」，按前端 `src/content/wiki/anchors.ts#L11-L13` 的规则（转小写、去掉非字母数字连字符空格的字符、空格换 `-`），全角「：」「，」被去掉，得到的 id 与链接完全一致，全页只有这一个同名标题，**能解析**。该节 L97（KDA 行报出 `AscendGDNAttentionBackend`）与 L100 正好解释 GDN/KDA 类名与算法的关系，与链接处「类名不能证明算法」对得上。
+
+### 五、命令
+
+| 命令 | 退出码 | tail |
+|---|---|---|
+| `pnpm wiki:lint` | 0 | `ok wiki:lint 通过（另有 17 处待留意）`；17 处里没有 request-call-chain 与 linear-attention |
+| `pnpm wiki:audit` | 0 | `行号有效 2176 … 行号越界 0`；`ok wiki:audit 本地引用与行号校验、名单页写作标准通过` |
+
+### 六、没核的
+
+- 上节修复记录说「GLM 的三个缓存层都自己实现 `get_attn_backend()`」：只核了 `IndexerKPoolMLACacheLayer`（`ops/indexer_kpool_mla.py#L136`）和 `AscendGlm5NextIndexerKPoolCache`（`models/glm5_next.py#L306-L307` 返回 `_get_indexer_kpool_backend()`），`AscendGlm5NextCompressorStateCache`（`#L312`，继承 `CompressorStateCache`）没核。
+- 没开浏览器看渲染（任务要求不起服务）；锚点按前端 slug 源码推算。
+- 没读 HANDBOOK、docs/plans/、TERMS.md 全文（只 grep 了 SFA 条目）。没有工具调用被拦。
+
+### P3 收尾（09-28）
+
+复审留的 3 条 P3 已改，另核了一处未核说法。只动点到的两段及紧邻表述，块数文字未动。
+
+| 条目 | 处理 |
+|---|---|
+| P3-1 L341「同名类」措辞含糊 | **已改**：写成「该后端直接继承 `AttentionBackend`，和 `AscendSFABackend` 是兄弟类；继承只发生在下一层——实现类 `AscendIndexerKPoolMLAImpl` 继承 `AscendSFAImpl`，元数据类和它的构建器同样各自继承 SFA 的对应类」。四个类的位置：`indexer_kpool_mla_v1.py#L521`（后端）、`#L557`（Impl）、`#L78`（Metadata）、`#L389`（MetadataBuilder）；`sfa_v1.py#L135`（`AscendSFABackend`）、`#L563`（`AscendSFAImpl`） |
+| P3-2 L164「这张表」没有先行词 | **已改**：前半句补「平台用一张按注意力类型查后端的表回答」，后半句的「这张表」才有指代。该表即 `platform.py#L805-L831` 的 `get_attn_backend_cls` |
+| P3-3 SFA 首现未解释 | **已改**：L164 首现处补「SFA 即昇腾这边稀疏注意力的那套实现，`sfa_v1.py` 里的类名、方法名和设备算子名都写作 sparse flash attention」。没有把 SFA 断言成官方缩写，只陈述源码里的命名（`AscendSFAImpl._execute_sparse_flash_attention_process`、`device_op.py#L688` 的 `torch.ops._C_ascend.npu_sparse_flash_attention`） |
+
+**补核 `CompressorStateCache`（上节说「GLM 的三个缓存层都自己实现 `get_attn_backend()`」里没核的那个）：说法成立，无需改。**
+
+- 它是上游 vLLM 的类，不是昇腾的：`vllm@0fc695fc:vllm/models/deepseek_v4/compressor.py#L121` `class CompressorStateCache(torch.nn.Module, AttentionLayerBase)`，基类版本的 `get_kv_cache_spec` 返回 `SlidingWindowMLASpec`、`get_attn_backend` 返回 `CompressorBackend`（`#L157-L174`），`forward(self): ...` 为空。
+- GLM 在它之上派生：`vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L312` `class AscendGlm5NextCompressorStateCache(CompressorStateCache)`，**两个方法都被覆盖**——`get_kv_cache_spec` 改返回 `AscendIndexerKPoolStateSpec`（`#L352-L362`），`get_attn_backend` 改返回 `_get_indexer_kpool_state_backend()`，即 `AscendIndexerKPoolStateBackend`（`#L364-L365`）。
+- 它在 GLM 路径上的角色：由 indexer 在 `#L1298` 构造（`self.state_cache`），是 kpool 尾状态那一份缓存的持有者，前向为空，只为让 Runner 按它自己的缓存规格分配和管理这份缓存。加上 `IndexerKPoolMLACacheLayer`（`ops/indexer_kpool_mla.py#L136-L137`）与 `AscendGlm5NextIndexerKPoolCache`（`glm5_next.py#L306-L307`），三个缓存层确实各自返回自己的后端，上节的说法成立。
+
+验证：`pnpm wiki:lint` 退出码 0（`ok wiki:lint 通过（另有 17 处待留意）`，17 处中无本页）；`pnpm wiki:audit` 退出码 0（`行号越界 0、文件不存在 0`，名单 40 页全部达标）。未起服务、未提交 git。

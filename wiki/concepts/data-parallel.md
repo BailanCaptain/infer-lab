@@ -33,6 +33,8 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L709-L760
   - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L796-L850
   - vllm@0fc695fc:vllm/v1/engine/utils.py#L1090-L1096
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L985-L987
+  - vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L673-L721
 verified: []
 evidence: "C"
 relations:
@@ -225,12 +227,12 @@ EngineCore 通过 executor（管本组所有 worker 的对象）让本组每个 
 
 ### 版本差异
 
-上游控制流（EngineCore 主循环、DP coordinator、选组打分）按 `vllm@0fc695fc` 读。执行侧按知识库固定快照核对：v0.23 维护分支为 Ascend 2c59ff10，v0.26 为 Ascend 2ed6cbba，main 为 Ascend baa023ad。**本页 GLM 算例读的是本部署专用镜像 Ascend db701c1f：GLM 的 MoE 模型代码只在这个镜像里，v0.23 维护快照 2c59ff10 上没有 GLM 模型代码。下表 v0.23 列的字段名与开关核自镜像 db701c1f，在 2c59ff10 上是否逐项相同未核。**
+上游控制流（EngineCore 主循环、DP coordinator、选组打分）按 `vllm@0fc695fc` 读。执行侧按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本页 GLM 算例读的是本部署专用镜像 db701c1f，它是另一个 orphan commit，不算进 v0.23 列：GLM 的 MoE 模型代码只在镜像里，2c59ff10 上没有。**下表 v0.23 列按 2c59ff10 写；对齐规则、通道开关、dummy batch 的 token 数在镜像上内容逐字相同，只是行号整体偏移（每步对齐那个方法在 2c59ff10 是第 673–721 行，镜像是第 692–740 行），唯一的实质差别是镜像的 dummy batch 不先记显存统计。
 
 | 项目 | v0.23 | v0.26[C22][C24] | main[C23][C25] |
 |---|---|---|---|
 | dummy batch 本地的 token 数 | `decode_token_per_req` = 1 + 草拟 token 数 | `uniform_decode_query_len`；它继承自上游，`vllm@0fc695fc` 里同样是 1 + 草拟 token 数 | 同 v0.26 |
-| dummy batch 的额外动作 | 无 | 先记一次显存统计；传 `skip_gdn_state_update=True`，假输入不更新 GDN 类线性注意力的递推状态 | 同 v0.26 |
+| dummy batch 的额外动作 | 先记一次显存统计；不传 GDN 状态开关（镜像 db701c1f 连显存统计也没有） | 先记一次显存统计；传 `skip_gdn_state_update=True`，假输入不更新 GDN 类线性注意力的递推状态 | 同 v0.26 |
 | 每步对齐走哪条通道 | 默认 CPU gloo，`dp_allreduce_on_npu` 可改走 NPU | 固定 CPU gloo，没有这个选项 | 同 v0.26 |
 | 对齐规则 | 两行求和后本地取最大 / 最小；本组能用图时补到最大值；草拟一律取最大；非 MoE 跳过 | 一致 | 一致 |
 
@@ -249,6 +251,7 @@ EngineCore 通过 executor（管本组所有 worker 的对象）让本组每个 
 | 每步对齐、图模式取最小、通道开关、跳过条件 | `vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L692-L740`；`#L5383-L5389`；`vllm_ascend/ascend_config.py#L315-L318`；`vllm_ascend/utils.py#L1257-L1303` |
 | DP 通信组与 EP 组怎样建、EP 横跨 DP × TP | `vllm@0fc695fc:vllm/distributed/parallel_state.py#L1833-L1875`；`vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1118-L1200` |
 | GLM MoE 层按 EP 编号算本卡专家范围 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1453-L1508` |
+| v0.23 列的 dummy batch 与每步对齐 | `vllm-ascend@2c59ff10:vllm_ascend/worker/worker.py#L985-L987`；`vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L673-L721` |
 
 **证据索引。** 分组、EngineCore 与 DP coordinator 的构成见 [C7][C9][C26]；打分、请求头与越界、不迁移、约 100 ms 的计数刷新见 [C1][C20][C21]；每步对齐的两行表、取最大 / 最小、补齐与跳过条件、通道开关见 [C5][C19][C17][C18]；陪跑的判断、32 步检查与停下见 [C2][C16]；唤醒与恢复时的报错见 [C8]；假输入的形状（1 + 草拟 token 数）见 [C5]，下发链见 [C12]；假输入经过对齐、草拟模型陪跑见 [C14]；DP 通信组、EP 组与不开 EP 时的切法见 [C3][C4]；GLM 专家范围见 [C6]。
 

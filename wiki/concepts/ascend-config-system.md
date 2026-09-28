@@ -37,6 +37,7 @@ sources:
   - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426
   - vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495
   - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876
+  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340
 verified: []
 evidence: "C"
 relations:
@@ -219,7 +220,7 @@ file: config-flow
 
 ### 版本差异
 
-按知识库固定快照核对：v0.23 维护分支为 Ascend 2c59ff10，v0.26 为 Ascend 2ed6cbba，main 为 Ascend baa023ad。**本部署跑的是专用镜像 Ascend db701c1f，它与 v0.23 维护快照同属 0.23 系但是两个不同提交：GLM 的模型代码与配置 patch 只在镜像里，维护快照上只有两个工具调用 patch。下表 v0.23 列的键构成与条目数核自镜像 db701c1f，在 2c59ff10 上是否逐项相同未核。**
+按知识库固定快照核对：v0.23 列是 vllm-ascend 维护分支 2c59ff10，v0.26 列是 2ed6cbba，main 列是 baa023ad。**本部署跑的专用镜像 db701c1f 是另一个 orphan commit，不算进 v0.23 列：GLM 的模型代码与配置 patch 只在镜像里，2c59ff10 上只有两个 GLM 工具调用 patch。**就本页涉及的配置代码，两者只差一处：2c59ff10 的配置类多了采样归约的两条 ValueError（与 lmhead 的 fine-grained TP 同开，或在 PD 的 P 节点上开，都会被拦）；环境变量表逐行相同，建配置前的四个平台校验也相同。所以下表 v0.23 列按 2c59ff10 写，对镜像同样成立。
 
 | 项 | v0.23 | v0.26 | main | 意味着什么 |
 | --- | --- | --- | --- | --- |

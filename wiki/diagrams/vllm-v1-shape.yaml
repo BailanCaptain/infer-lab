@@ -1,62 +1,45 @@
 layout: figure
 id: vllm-v1-shape
-caption: 多进程执行器下的角色示意，只展开一个执行 rank；外框表示进程边界，设备图表示计算与状态位置，不表示官方双机的进程总数
-size: [900, 780]
+caption: vLLM V1 的三类角色和它们之间的循环。请求从前端进来，EngineCore 里的 Scheduler 每一步排一份计划，Executor 把同一份计划交给每个 Worker；Worker 把计划变成张量、算完前向再采样，结果交回 EngineCore 更新进度，新 token 编号再回到前端变成文字。更新完进度就排下一步，直到请求结束。
+size: [900, 530]
 frames:
-  - { at: [25, 65], size: [230, 510], label: API 服务进程 }
-  - { at: [305, 65], size: [280, 510], label: EngineCore 进程 }
-  - { at: [635, 65], size: [240, 510], label: Worker 进程 · rank i }
+  - { at: [20, 100], size: [250, 420], label: 前端 · 管文字 }
+  - { at: [300, 100], size: [300, 420], label: EngineCore · 管进度 }
+  - { at: [630, 100], size: [250, 420], label: Worker · 管张量（每卡一个） }
 items:
-  - { at: [48, 112], size: [185, 64], text: API / AsyncLLM, sub: 输入处理与异步请求, style: plain }
-  - { at: [48, 476], size: [185, 64], text: 输出处理, sub: 解码与响应流, style: plain }
-  - { at: [329, 112], size: [230, 64], text: Scheduler, sub: 进度、等待与运行集合, style: plain }
-  - { at: [329, 240], size: [230, 60], text: 缓存管理器, sub: 分配记录与引用, tone: kv }
-  - { at: [329, 375], size: [230, 58], text: Executor, sub: 下发操作、收集结果, style: plain }
-  - { at: [329, 476], size: [230, 64], text: 按请求更新, sub: 追加输出、判断停止, style: plain }
-  - { at: [655, 112], size: [200, 64], text: NPUModelRunner, sub: 输入张量与执行元数据, style: plain }
-  - { at: [655, 260], size: [200, 58], text: GLM 模型前向, sub: 层内计算与历史读写, tone: token }
-  - { at: [655, 410], size: [200, 58], text: 输出投影与采样, tone: token }
-hardware:
-  - { kind: chip, at: [648, 644], size: [90, 70], label: NPU }
-  - { kind: memory, at: [768, 644], size: [108, 70], label: 设备内存 }
+  - { at: [45, 10], size: [200, 38], text: 用户 / 客户端, style: plain }
+  - { at: [45, 134], size: [200, 60], text: 接请求、分词, sub: 文字 → token 编号, tone: token }
+  - { at: [45, 404], size: [200, 60], text: 反分词、流式返回, sub: token 编号 → 文字, tone: token }
+  - { at: [320, 134], size: [260, 60], text: Scheduler 排这一步, sub: 谁算、各算几个、用哪些块号, tone: control }
+  - { at: [380, 270], size: [200, 56], text: Executor, sub: 同一份计划发给每个 Worker, style: plain }
+  - { at: [320, 404], size: [260, 60], text: 按结果更新进度, sub: 追加新 token、判断是否结束, tone: control }
+  - { at: [650, 134], size: [210, 60], text: 把计划变成张量, sub: token、位置、写进缓存哪一格, style: plain }
+  - { at: [650, 270], size: [210, 56], text: 模型前向, sub: 权重和 KV cache 都在卡上, tone: weight }
+  - { at: [650, 404], size: [210, 60], text: 采样, sub: 每个请求得到新 token, tone: weight }
 links:
-  - { from: [30, 24], to: [75, 24] }
-  - { from: [285, 24], to: [330, 24], dashed: true }
-  - { from: [580, 24], to: [625, 24], dashed: true, ends: none }
-  - { from: [233, 144], to: [329, 144] }
-  - { from: [444, 176], to: [444, 240], ends: both, tone: kv, dashed: true }
-  - { from: [559, 160], to: [559, 395], via: [[574, 160], [574, 395]], tone: control }
-  - { from: [559, 404], to: [655, 144], via: [[610, 404], [610, 144]], tone: control, dashed: true }
-  - { from: [755, 176], to: [755, 260], via: [[755, 192], [842, 192], [842, 246], [755, 246]], tone: token, dashed: true }
-  - { from: [755, 318], to: [755, 410], via: [[755, 334], [842, 334], [842, 396], [755, 396]], tone: token }
-  - { from: [655, 445], to: [559, 508], via: [[601, 445], [601, 508]], tone: token }
-  - { from: [329, 508], to: [233, 508], tone: token }
-  - { from: [329, 498], to: [329, 159], via: [[316, 498], [316, 159]], tone: control, dashed: true }
-  - { from: [693, 575], to: [693, 644], tone: control, dashed: true, ends: none }
-  - { from: [822, 575], to: [822, 644], tone: kv, dashed: true, ends: none }
-  - { from: [738, 679], to: [768, 679], ends: both }
+  - { from: [145, 48], to: [145, 134] }
+  - { from: [245, 164], to: [320, 164] }
+  - { from: [490, 194], to: [490, 270], tone: control }
+  - { from: [580, 298], to: [650, 164], via: [[615, 298], [615, 164]], tone: control }
+  - { from: [755, 194], to: [755, 270] }
+  - { from: [755, 326], to: [755, 404] }
+  - { from: [650, 434], to: [580, 434], tone: token }
+  - { from: [320, 434], to: [245, 434], tone: token }
+  - { from: [45, 434], to: [45, 29], via: [[32, 434], [32, 29]], tone: token }
+  - { from: [332, 404], to: [332, 194], dashed: true, tone: control }
 texts:
-  - { at: [88, 29], text: 数据传递, size: 12.5 }
-  - { at: [343, 29], text: 调用 / 控制, size: 12.5 }
-  - { at: [638, 29], text: 设备位置映射, size: 12.5 }
-  - { at: [276, 124], text: 请求, anchor: middle, size: 12.5 }
-  - { at: [276, 485], text: 结果, anchor: middle, size: 12.5 }
-  - { at: [445, 347], text: 调度计划 → 执行侧, anchor: middle }
-  - { at: [660, 231], text: token / 位置 / 状态索引, size: 12.5 }
-  - { at: [660, 374], text: 隐藏表示 → logits, size: 12.5 }
-  - { at: [635, 607], text: 计算位置, size: 12.5 }
-  - { at: [764, 607], text: 状态位置, size: 12.5 }
-  - { at: [45, 625], text: 核心侧保存请求与资源记录, strong: true }
-  - { at: [45, 660], text: 执行侧维护批次输入，访问权重与历史状态 }
-  - { at: [45, 748], text: 其他 rank 省略；进程安排由执行器及并行配置决定, note: true }
+  - { at: [282, 154], text: 请求, anchor: middle, size: 12.5 }
+  - { at: [498, 236], text: 调度计划, size: 12.5, tone: control }
+  - { at: [617, 424], text: 执行结果, anchor: middle, size: 12.5, tone: token }
+  - { at: [282, 424], text: 新 token, anchor: middle, size: 12.5, tone: token }
+  - { at: [338, 302], text: 下一步, size: 12.5, tone: control }
+  - { at: [45, 498], text: 持有：分词器、每个请求的输出队列, size: 12.5 }
+  - { at: [320, 498], text: 持有：请求进度、块号清单, size: 12.5 }
+  - { at: [650, 498], text: 持有：权重、KV cache 张量, size: 12.5 }
 pins:
-  - source: vllm@0fc695fc:vllm/v1/engine/async_llm.py#L70-L80
-    symbols: [AsyncLLM]
   - source: vllm@0fc695fc:vllm/v1/engine/core.py#L95-L160
     symbols: [EngineCore, Scheduler]
   - source: vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L92
     symbols: [Executor]
-  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L96
-    symbols: [NPUWorker]
-  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L287-L310
-    symbols: [NPUModelRunner]
+  - source: vllm@0fc695fc:vllm/v1/worker/worker_base.py#L39-L159
+    symbols: [WorkerBase, execute_model, sample_tokens]

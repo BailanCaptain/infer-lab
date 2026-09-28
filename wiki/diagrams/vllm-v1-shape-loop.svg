@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="EngineCore 的主循环每转一圈做的事，圈里的编号是主线七站。没有请求要算时循环停在输入队列上等；DP 部署里本组没有请求、另一组还在跑时，改让本组的 Worker 跑一个空批次陪着通信。有请求时排一份计划，经 Executor 让每个 Worker 先做前向、再做采样，拿回结果更新进度，新 token 编号送回前端。">
+  <title>EngineCore 的主循环每转一圈做的事，圈里的编号是主线七站。没有请求要算时循环停在输入队列上等；DP 部署里本组没有请求、另一组还在跑时，改让本组的 Worker 跑一个空批次陪着通信。有请求时排一份计划，经 Executor 让每个 Worker 先做前向、再做采样，拿回结果更新进度，新 token 编号送回前端。</title>
+  <defs><marker id="vllm-v1-shape-loop-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="vllm-v1-shape-loop-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M450 86 L450 116" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M450 166 L450 196" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M660 218 L700 218" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M790 190 L790 141 L660 141" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M450 240 L450 280" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M450 330 L450 364" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M450 420 L450 454" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M450 510 L450 544" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M660 569 L700 569" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-token)"/>
+  <path d="M450 594 L450 628" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <path d="M240 653 L16 653 L16 218 L240 218" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-loop-ah-ink)"/>
+  <rect x="240" y="36" width="420" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="57" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 前端：分词，包成请求消息</text>
+  <text x="450" y="76" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">经进程间消息送进所选 DP 组的 EngineCore</text>
+  <rect x="240" y="116" width="420" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="146" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">EngineCore 收下请求，放进等待队列</text>
+  <rect x="240" y="196" width="420" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">有请求要算吗？</text>
+  <rect x="700" y="190" width="180" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="790" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">停下，等新请求</text>
+  <text x="790" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">另一组在跑时改跑空批次</text>
+  <rect x="240" y="280" width="420" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② Scheduler 排出这一步的计划</text>
+  <text x="450" y="320" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">哪些请求、各算几个 token、新借哪些块号</text>
+  <rect x="240" y="364" width="420" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Executor 发出第一次调用：前向</text>
+  <text x="450" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个 Worker：③ 准备输入 → ④ 逐层前向；logits 先留在 Worker</text>
+  <rect x="240" y="454" width="420" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Executor 发出第二次调用：采样</text>
+  <text x="450" y="497" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个 Worker：⑤ 采样与草拟；只有 0 号 Worker 回话</text>
+  <rect x="240" y="544" width="420" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="565" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ Scheduler 按结果更新进度</text>
+  <text x="450" y="584" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">追加新 token、判断停止</text>
+  <rect x="700" y="544" width="180" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="790" y="574" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ 前端：反分词、流式返回</text>
+  <rect x="240" y="628" width="420" height="50" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="649" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束的请求：块号还回池子</text>
+  <text x="450" y="668" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求编号随下一份计划通知 Worker 清掉缓存</text>
+  <text x="450" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">EngineCore 主循环 · 每转一圈</text>
+  <text x="462" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="668" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="24" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">下一圈</text>
+</svg>

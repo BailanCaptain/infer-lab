@@ -36,7 +36,16 @@
     "block-table",
     "kv-cache-memory-profiling",
     "cpu-binding",
-    "mla"
+    "mla",
+    "rope",
+    "attention-backend-family",
+    "vllm-v1-shape",
+    "vllm-kv-block-allocation",
+    "npu-worker-lifecycle",
+    "attention-cost",
+    "gqa",
+    "ops-and-kernels",
+    "prefix-caching"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

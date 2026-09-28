@@ -91,6 +91,6 @@
 ## 6. 额度与环境
 
 - Codex（GPT-6 Astra）：10-04 13:35 恢复。
-- 仓库：wiki 仓 `C:\Users\-\Desktop\infra-view-new-llm-wiki`（分支 main）；主仓 `C:\Users\-\Desktop\infra-view-new` 本阶段基本不动。
+- 仓库：wiki 仓 `C:\Users\-\Desktop\infra-view-new-llm-wiki`（**分支 feat/llm-wiki**，p4/p5 检查点都在这条分支）；主仓 `C:\Users\-\Desktop\infra-view-new` 本阶段基本不动。
 - 预览：preview_start 起 `wiki-server`(8790) + `wiki-web`(5193)，页面路由是 hash 式 `#/wiki/<页面id>`。
 - 记忆里对应条目：project-codex-wiki-rewrite-audit（进度）、feedback-dispatch-dont-read（分类器坑）、feedback-subagent-quota-and-scope（并发）、feedback-intuition-before-numbers（§5.2 由来）。

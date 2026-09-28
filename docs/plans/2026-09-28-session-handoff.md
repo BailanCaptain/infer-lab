@@ -78,15 +78,17 @@
   - request-call-chain 两处后端归属说法修正（独立复审通过）；linear-attention 一处锚点修复；
   - 「5 页错误出处」全部完成（出处从单测文件换到实际推理路径）。
 - 本轮各页首审分数 6.5–9 分，全部修到过线；每页的审查/修订记录都在 `docs/mainline/review/pages/<页面id>-review.md`。
+- **HCCL buffer 页（gap-a5164…）已闭环**（09-29，在 p5-checkpoint-2 之后）：审 7.5 → P1（dp 组职责矛盾）修订 → 独立复审 8.5 通过。用 **Fable 5 子代理 + 从严读取纪律**（每次 ≤60 行、不逐句引用原文、跳过 sources/代码块/成排环境变量）全程未触发分类器；该话题今后照这个配置派，不必等 GPT。gap 页按惯例不进 standard-pages.json。
 - tmp/ 是 Codex 的临时产物（124M），一直不提交。
 
 ## 5. 接续清单（按顺序做）
 
 1. **提交检查点**：第 08+09 批是个干净检查点，**用户点头**后提交打 tag（建议 `p5-checkpoint-2`）。
 2. **第 10 批起**按 `2026-09-28-p5-batches.md` 走，每页流程不变（写→独立审→修→P1 复审→入名单）。旧清单已知要点仍有效：vllm-scheduler 要换掉旧的「预算 6、上限 2」例子；新页（sampling / HTTP 入口 / DP 组选择 / lm_head / A7）；RFork 批 20–25（其中要验证「400 本身不能证明 TTL 过期」）；参数页保持 4 段式。
-3. HCCL buffer 页（gap-a5164…）的审查**等 GPT 恢复**再做（话题容易触发分类器，Claude 两系都被拦过）。
-4. 小 P3 攒着顺手做：block-table 约 250–350 字重复、L147 meta 文本、「full 组」未解释；EP 直觉图 E3/E2 顺序。
-5. P6：11 张孤儿图（删前必须问用户）、3 个既有 e2e 失败、flaky 导航 e2e、主仓 PROJECT-MAP 同步、HANDOFF/HANDBOOK 更新（HANDBOOK 派 Fable 改）。
+3. 小 P3 攒着顺手做：block-table 约 250–350 字重复、L147 meta 文本、「full 组」未解释；EP 直觉图 E3/E2 顺序。
+4. P6：11 张孤儿图（删前必须问用户）、3 个既有 e2e 失败、flaky 导航 e2e、主仓 PROJECT-MAP 同步、HANDOFF/HANDBOOK 更新（HANDBOOK 派 Fable 改）。
+
+（原「HCCL buffer 页等 GPT」一条已闭环，见 §4。）
 
 ## 6. 额度与环境
 

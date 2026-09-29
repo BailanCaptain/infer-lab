@@ -16019,5 +16019,466 @@
       }
     ],
     "state": "static-facts-refreshed-prose-needs-review"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "8d4409d6256d8a6729140ddcc0d1889e3f96cdd6",
+    "after": "b64b4d714484feaa6ca71edc99b98318fe6d2f0d",
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "before": {
+          "name": "enable_dsa_cp",
+          "type": "bool",
+          "default": "False",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"enable_dsa_cp\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 574,
+          "comment": "",
+          "constraints": [
+            "if self.enable_dsa_cp:\n    tp_size = vc.parallel_config.tensor_parallel_size\n    pcp_size = vc.parallel_config.prefill_context_parallel_size\n    if pcp_size > 1:\n        migration = 'Prefill context parallelism is already enabled; remove enable_dsa_cp from additional_config.'\n    elif tp_size > 1:\n        migration = f'Consider trying prefill context parallelism with --tensor-parallel-size 1 --prefill-context-parallel-size {tp_size} to preserve the current world size. Remove enable_dsa_cp from additional_config when enabling PCP.'\n    else:\n        migration = 'Consider trying prefill context parallelism with --prefill-context-parallel-size greater than 1 (requires additional ranks). Remove enable_dsa_cp from additional_config when enabling PCP.'\n    logger.warning_once('enable_dsa_cp will be fully deprecated once PCP is ready. %s Check PCP support for your model and deployment configuration.', migration)",
+            "if pcp_size > 1:\n    migration = 'Prefill context parallelism is already enabled; remove enable_dsa_cp from additional_config.'\nelif tp_size > 1:\n    migration = f'Consider trying prefill context parallelism with --tensor-parallel-size 1 --prefill-context-parallel-size {tp_size} to preserve the current world size. Remove enable_dsa_cp from additional_config when enabling PCP.'\nelse:\n    migration = 'Consider trying prefill context parallelism with --prefill-context-parallel-size greater than 1 (requires additional ranks). Remove enable_dsa_cp from additional_config when enabling PCP.'",
+            "if tp_size > 1:\n    migration = f'Consider trying prefill context parallelism with --tensor-parallel-size 1 --prefill-context-parallel-size {tp_size} to preserve the current world size. Remove enable_dsa_cp from additional_config when enabling PCP.'\nelse:\n    migration = 'Consider trying prefill context parallelism with --prefill-context-parallel-size greater than 1 (requires additional ranks). Remove enable_dsa_cp from additional_config when enabling PCP.'"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 432
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 574
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 725
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 726
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 729
+            }
+          ],
+          "occurrenceCount": 65
+        },
+        "after": {
+          "name": "enable_dsa_cp",
+          "type": "bool",
+          "default": "False",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"enable_dsa_cp\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 574,
+          "comment": "",
+          "constraints": [
+            "if self.enable_dsa_cp and vc.parallel_config.prefill_context_parallel_size > 1:\n    raise ValueError('DSA-CP and PCP cannot be enabled at the same time. Use PCP instead: remove enable_dsa_cp from additional_config when --prefill-context-parallel-size is greater than 1.')",
+            "if self.enable_dsa_cp:\n    tp_size = vc.parallel_config.tensor_parallel_size\n    if tp_size > 1:\n        migration = f'Consider trying prefill context parallelism with --tensor-parallel-size 1 --prefill-context-parallel-size {tp_size} to preserve the current world size. Remove enable_dsa_cp from additional_config when enabling PCP.'\n    else:\n        migration = 'Consider trying prefill context parallelism with --prefill-context-parallel-size greater than 1 (requires additional ranks). Remove enable_dsa_cp from additional_config when enabling PCP.'\n    logger.warning_once('enable_dsa_cp will be fully deprecated once PCP is ready. %s Check PCP support for your model and deployment configuration.', migration)",
+            "if tp_size > 1:\n    migration = f'Consider trying prefill context parallelism with --tensor-parallel-size 1 --prefill-context-parallel-size {tp_size} to preserve the current world size. Remove enable_dsa_cp from additional_config when enabling PCP.'\nelse:\n    migration = 'Consider trying prefill context parallelism with --prefill-context-parallel-size greater than 1 (requires additional ranks). Remove enable_dsa_cp from additional_config when enabling PCP.'"
+          ],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 432
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 574
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 682
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 685
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 731
+            }
+          ],
+          "occurrenceCount": 66
+        }
+      }
+    ],
+    "skipped": [
+      {
+        "name": "enable_dsa_cp",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_flashcomm1",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "tp_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dump_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "SUPPORTED_METHODS",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "method",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "method_params",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "budget_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "budget_update_interval",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "initial_verify_budget_per_req",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "oproj_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lmhead_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "embedding_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mlp_tensor_parallel_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "full_mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "smooth_factor",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "min_chunk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "need_timing",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "max_fit_chunk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "max_jobs",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "reserve_margin_blocks",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "reserve_max_blocks",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "low_available_tokens_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "short_decode_token_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "long_max_wait_ms",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_diagnostics",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mode",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "start_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "end_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "bubble_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "long_req_block_threshold",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dynamic_max_step",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_balance_scheduling",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "recompute_scheduler_enable",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "short_request_first_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "profiling_chunk_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "batch_job_sched_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dyntra_lb_config",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enabled",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "topk_buffer_size",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "dram_size_per_dp_GB",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "keep_device_kv_cache",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "topk",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "refresh",
+        "file": "vllm_ascend/ascend_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "backend",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "consumer_is_to_load",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "consumer_is_to_put",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "load_async",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "save_decode_cache",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_blocks",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lookup_rpc_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mooncake_rpc_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "load_async",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "consumer_is_to_put",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "backend",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "h2d_stagger_us",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_blocks",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_bytes",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "prefill_pp_layer_partition",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "prefill_pp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_prefetch_layers",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "sparse_attention_freq",
+        "file": "vllm_ascend/platform.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "architectures",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "group_name",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      }
+    ],
+    "state": "static-facts-refreshed-prose-needs-review"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "releases/v0.23.0",
+    "before": "1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8",
+    "after": "2bcf78b37ea826e841ff90a4621eb15feb5519b2",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "skipped": [],
+    "state": "no-existing-page-updated"
   }
 ]

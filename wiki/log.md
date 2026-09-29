@@ -502,3 +502,17 @@ vllm-ascend@main 2bb3f44716f3505d2723a4e5badb10211a6c5589 → 8d4409d6256d8a6729
 ## [2026-09-27] review | 周期维护
 
 本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-09-28] ingest | 参数增量
+
+vllm-ascend@main 8d4409d6256d8a6729140ddcc0d1889e3f96cdd6 → b64b4d714484feaa6ca71edc99b98318fe6d2f0d；新增 0 / 删除 0 / 变更 1。
+
+- enable_dsa_cp: 默认表达式 "False" → "False"
+
+## [2026-09-28] ingest | 参数增量
+
+vllm-ascend@releases/v0.23.0 1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8 → 2bcf78b37ea826e841ff90a4621eb15feb5519b2；新增 0 / 删除 0 / 变更 0。
+
+## [2026-09-28] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。

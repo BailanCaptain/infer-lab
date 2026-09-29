@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 384" width="880" height="384" role="img" aria-label="同样 4 张卡、8 个专家，每张卡都只存全部专家权重的 1/4。TP 把每个专家竖着切成 4 条，每张卡拿每个专家的一条；EP 不切专家，每张卡拿 2 个完整专家。实色是某个 token 选中的 E3、E4：TP 下 4 张卡都要动手、结果还要相加，EP 下只有持有它们的两张卡动手。">
+  <title>同样 4 张卡、8 个专家，每张卡都只存全部专家权重的 1/4。TP 把每个专家竖着切成 4 条，每张卡拿每个专家的一条；EP 不切专家，每张卡拿 2 个完整专家。实色是某个 token 选中的 E3、E4：TP 下 4 张卡都要动手、结果还要相加，EP 下只有持有它们的两张卡动手。</title>
+  <defs></defs>
+  <rect x="10" y="34" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="26" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
+  <rect x="228" y="34" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="244" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
+  <rect x="446" y="34" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="462" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
+  <rect x="664" y="34" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="680" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
+  <rect x="10" y="222" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="26" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
+  <rect x="228" y="222" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="244" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
+  <rect x="446" y="222" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="462" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
+  <rect x="664" y="222" width="206" height="112" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="680" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
+  <rect x="28" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M28 82h12M28 94h12M28 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="34" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E0</text>
+  <rect x="50" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M50 82h12M50 94h12M50 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="56" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
+  <rect x="72" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M72 82h12M72 94h12M72 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="78" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E2</text>
+  <rect x="94" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M94 82h12M94 94h12M94 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="100" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E3</text>
+  <rect x="116" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M116 82h12M116 94h12M116 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="122" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E4</text>
+  <rect x="138" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M138 82h12M138 94h12M138 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="144" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E5</text>
+  <rect x="160" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M160 82h12M160 94h12M160 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="166" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E6</text>
+  <rect x="182" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M182 82h12M182 94h12M182 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="188" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E7</text>
+  <rect x="246" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M246 82h12M246 94h12M246 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="252" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E0</text>
+  <rect x="268" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M268 82h12M268 94h12M268 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="274" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
+  <rect x="290" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M290 82h12M290 94h12M290 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="296" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E2</text>
+  <rect x="312" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M312 82h12M312 94h12M312 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="318" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E3</text>
+  <rect x="334" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 82h12M334 94h12M334 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="340" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E4</text>
+  <rect x="356" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M356 82h12M356 94h12M356 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="362" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E5</text>
+  <rect x="378" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M378 82h12M378 94h12M378 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="384" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E6</text>
+  <rect x="400" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M400 82h12M400 94h12M400 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="406" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E7</text>
+  <rect x="464" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M464 82h12M464 94h12M464 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="470" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E0</text>
+  <rect x="486" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M486 82h12M486 94h12M486 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="492" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
+  <rect x="508" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M508 82h12M508 94h12M508 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="514" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E2</text>
+  <rect x="530" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M530 82h12M530 94h12M530 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="536" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E3</text>
+  <rect x="552" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M552 82h12M552 94h12M552 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="558" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E4</text>
+  <rect x="574" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M574 82h12M574 94h12M574 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="580" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E5</text>
+  <rect x="596" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M596 82h12M596 94h12M596 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="602" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E6</text>
+  <rect x="618" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M618 82h12M618 94h12M618 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="624" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E7</text>
+  <rect x="682" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M682 82h12M682 94h12M682 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="688" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E0</text>
+  <rect x="704" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M704 82h12M704 94h12M704 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="710" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
+  <rect x="726" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M726 82h12M726 94h12M726 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="732" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E2</text>
+  <rect x="748" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M748 82h12M748 94h12M748 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="754" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E3</text>
+  <rect x="770" y="70" width="12" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M770 82h12M770 94h12M770 106h12" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="776" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E4</text>
+  <rect x="792" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M792 82h12M792 94h12M792 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="798" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E5</text>
+  <rect x="814" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M814 82h12M814 94h12M814 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="820" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E6</text>
+  <rect x="836" y="70" width="12" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M836 82h12M836 94h12M836 106h12" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="842" y="138" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E7</text>
+  <rect x="28" y="258" width="48" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M40 258v48M52 258v48M64 258v48M28 270h48M28 282h48M28 294h48" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="52" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E0</text>
+  <rect x="106" y="258" width="48" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M118 258v48M130 258v48M142 258v48M106 270h48M106 282h48M106 294h48" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="130" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
+  <rect x="246" y="258" width="48" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M258 258v48M270 258v48M282 258v48M246 270h48M246 282h48M246 294h48" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="270" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E2</text>
+  <rect x="324" y="258" width="48" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M336 258v48M348 258v48M360 258v48M324 270h48M324 282h48M324 294h48" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="348" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E3</text>
+  <rect x="464" y="258" width="48" height="48" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M476 258v48M488 258v48M500 258v48M464 270h48M464 282h48M464 294h48" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="488" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E4</text>
+  <rect x="542" y="258" width="48" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M554 258v48M566 258v48M578 258v48M542 270h48M542 282h48M542 294h48" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="566" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E5</text>
+  <rect x="682" y="258" width="48" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M694 258v48M706 258v48M718 258v48M682 270h48M682 282h48M682 294h48" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="706" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E6</text>
+  <rect x="760" y="258" width="48" height="48" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.5" stroke-width="1.3"/>
+  <path d="M772 258v48M784 258v48M796 258v48M760 270h48M760 282h48M760 294h48" stroke="var(--color-weight, #c78300)" stroke-opacity="0.3" stroke-width="1" fill="none"/>
+  <text x="784" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E7</text>
+  <text x="10" y="20" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">TP4：每张卡放每个专家的 1/4</text>
+  <text x="10" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">实色 E3、E4 被选中 → 4 张卡都算 → 部分和相加</text>
+  <text x="10" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">EP4：每张卡放 2 个完整专家</text>
+  <text x="10" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">实色 E3、E4 被选中 → 只有卡 1、卡 2 算</text>
+</svg>

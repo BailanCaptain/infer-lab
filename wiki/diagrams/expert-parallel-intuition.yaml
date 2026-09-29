@@ -1,6 +1,6 @@
 layout: figure
 id: expert-parallel-intuition
-caption: 用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 的 token 由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。
+caption: 用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 上的 token「我」由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。
 size: [900, 370]
 frames:
   - { at: [18, 48], size: [290, 292], label: 卡 0 · 源卡，也持有专家 }
@@ -10,7 +10,7 @@ frames:
 items:
   - { at: [36, 72], size: [116, 38], text: E0 完整专家, style: plain }
   - { at: [170, 72], size: [116, 38], text: E1 完整专家, style: plain }
-  - { at: [36, 140], size: [90, 56], text: token, tone: token }
+  - { at: [36, 140], size: [90, 56], text: token, sub: 「我」, tone: token }
   - { at: [160, 140], size: [126, 56], text: router, sub: 选 k 个专家, tone: control }
   - { at: [36, 270], size: [250, 50], text: 收回结果，按权重相加, tone: token }
   - { at: [510, 72], size: [136, 44], text: token → E3, tone: weight }

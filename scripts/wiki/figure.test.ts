@@ -1,6 +1,13 @@
 import { expect, it } from "vitest";
 import { diagramSpecSchema, renderDiagram } from "./diagrams";
-import { figureAdvisories, figureProblems, figureSpecSchema, renderFigure, sketchUsage } from "./figure";
+import {
+  exchangeStates,
+  figureAdvisories,
+  figureProblems,
+  figureSpecSchema,
+  renderFigure,
+  sketchUsage,
+} from "./figure";
 
 const BASE = { layout: "figure", id: "f", caption: "说明", size: [400, 200] } as const;
 
@@ -468,4 +475,525 @@ it("驼峰代码名要提醒，vLLM 这种产品名不算", () => {
   const advice = (s: string) => figureAdvisories(fig({ texts: [{ at: [20, 40], text: s }] }));
   expect(advice("isPrefill 为真")).not.toEqual([]);
   expect(advice("vLLM 把请求排队")).toEqual([]);
+});
+
+/** 4 张卡、每卡 4 块的 ring All-Reduce：前 3 步 Reduce-Scatter（add），后 3 步 All-Gather（copy） */
+const RING = (() => {
+  const next = (i: number) => (i + 1) % 4;
+  const step = (op: "add" | "copy", chunk: (i: number) => number) => ({
+    title: "一步",
+    moves: [0, 1, 2, 3].map((i) => ({ from: [i, chunk(i)], to: [next(i), chunk(i)], op })),
+  });
+  return {
+    at: [10, 10],
+    cards: ["卡 0", "卡 1", "卡 2", "卡 3"],
+    slots: 4,
+    dots: true,
+    start: [0, 1, 2, 3].map((c) => [1, 2, 3, 4].map((v) => v * 10 ** c)),
+    steps: [
+      ...[0, 1, 2].map((s) => step("add", (i) => (i - s + 4) % 4)),
+      ...[0, 1, 2].map((s) => step("copy", (i) => (i + 1 - s + 4) % 4)),
+    ],
+    end: "结束",
+  };
+})();
+
+it("集合通信分镜：按步骤算出每卡手里的块，ring 做完每卡都是各位置之和、加进了全部 4 张卡", () => {
+  const spec = fig({ exchanges: [RING] }, [880, 2416]);
+  const { states, problems } = exchangeStates(spec.exchanges[0]!);
+  expect(problems).toEqual([]);
+  expect(states).toHaveLength(7);
+  // Reduce-Scatter 3 步后：卡 i 手里第 i+1 块加齐
+  expect(states[3]![0]![1]).toMatchObject({ value: 2222, from: [0, 1, 2, 3] });
+  expect(states[3]![3]![0]).toMatchObject({ value: 1111, from: [0, 1, 2, 3] });
+  // 第 1 步只加了一次：卡 1 的第 0 块是 1 + 10
+  expect(states[1]![1]![0]).toMatchObject({ value: 11, from: [0, 1], fresh: true });
+  for (const row of states[6]!) expect(row.map((s) => s.value)).toEqual([1111, 2222, 3333, 4444]);
+  expect(states[6]!.flat().every((s) => s.from.length === 4)).toBe(true);
+});
+
+it("集合通信分镜：同一步同时发生、keep 把其余块淡掉，收发不成立都会报", () => {
+  const base = {
+    at: [10, 10],
+    cards: ["卡 0", "卡 1"],
+    slots: 2,
+    start: [
+      [1, 2],
+      [10, 20],
+    ],
+    end: "结束",
+  };
+  // 互相交换：两边都按这一步之前的值算，不会先换过去再换回来
+  const swap = exchangeStates(
+    fig({
+      exchanges: [
+        {
+          ...base,
+          steps: [
+            {
+              title: "换",
+              moves: [
+                { from: [0, 0], to: [1, 0] },
+                { from: [1, 0], to: [0, 0] },
+              ],
+              keep: [[0, 0]],
+            },
+          ],
+        },
+      ],
+    }).exchanges[0]!,
+  );
+  expect(swap.states[1]!.map((row) => row[0]!.value)).toEqual([10, 1]);
+  expect(swap.states[1]![1]![1]!.dim).toBe(true);
+  expect(swap.states[1]![0]![0]!.dim).toBe(false);
+  const bad = exchangeStates(
+    fig({
+      exchanges: [
+        {
+          ...base,
+          start: [
+            [1, null],
+            [10, 20],
+          ],
+          steps: [
+            {
+              title: "错",
+              moves: [
+                { from: [0, 0], to: [0, 1] },
+                { from: [0, 1], to: [1, 1] },
+                { from: [1, 0], to: [0, 1], op: "add" },
+                { from: [0, 0], to: [1, 0] },
+                { from: [0, 0], to: [1, 0] },
+                { from: [0, 0], to: [3, 0] },
+              ],
+            },
+          ],
+        },
+      ],
+    }).exchanges[0]!,
+  ).problems;
+  expect(bad.some((p) => p.includes("自己发给自己"))).toBe(true);
+  expect(bad.some((p) => p.includes("源块是空的"))).toBe(true);
+  expect(bad.some((p) => p.includes("add 的目的块是空的"))).toBe(true);
+  expect(bad.some((p) => p.includes("写了两次"))).toBe(true);
+  expect(bad.some((p) => p.includes("越界"))).toBe(true);
+});
+
+it("集合通信分镜：一步一格，每格有裁切框和标题，要发的块带着从源块出发的路线", () => {
+  const svg = renderFigure(fig({ exchanges: [RING] }, [880, 2416]));
+  expect(svg.match(/class="wiki-anim-band"/g)).toHaveLength(7);
+  expect(svg.match(/class="wiki-anim-box"/g)).toHaveLength(7);
+  expect(svg.match(/class="wiki-anim-move"/g)).toHaveLength(24);
+  // 第一格第一块从卡 0 第 0 块中心出发：卡框 x=10、左内边距 16、半块 26；卡框 y=10+36、标题下 32、半块 17
+  expect(svg).toContain('class="wiki-anim-route" d="M52 95');
+  expect(figureProblems(fig({ exchanges: [RING] }, [880, 2416]))).toEqual([]);
+});
+
+it("集合通信分镜不和别的零件同图，画不下也会报", () => {
+  const mixed = figureProblems(
+    fig({ exchanges: [RING], texts: [{ at: [10, 10], text: "标题" }] }, [880, 2416]),
+  );
+  expect(mixed.some((p) => p.includes("分镜图不能再放别的零件（texts）"))).toBe(true);
+  const small = figureProblems(fig({ exchanges: [RING] }, [880, 600]));
+  expect(small.some((p) => p.includes("画到了画布外"))).toBe(true);
+});
+
+/** EP 的派发与收回：两张卡、每卡一格一个 token；中间一步是本卡计算（sets），不通信 */
+const EP_TWO = {
+  at: [10, 10],
+  cards: ["卡 0", "卡 1"],
+  slots: 2,
+  labels: ["甲", "乙"],
+  start: [
+    [2, null],
+    [null, 5],
+  ],
+  steps: [
+    {
+      title: "派发",
+      moves: [{ from: [0, 0], to: [1, 0] }],
+      keep: [
+        [1, 0],
+        [1, 1],
+      ],
+    },
+    {
+      title: "本卡算",
+      sets: [
+        { at: [1, 0], value: 4 },
+        { at: [1, 1], value: 10 },
+        { at: [0, 0], value: 0 },
+      ],
+    },
+    {
+      title: "收回",
+      moves: [{ from: [1, 0], to: [0, 0], op: "add" }],
+      keep: [
+        [0, 0],
+        [1, 1],
+      ],
+    },
+  ],
+  end: "结束",
+};
+
+it("集合通信分镜：sets 是本卡计算，不通信也能占一格；换数、标成刚写入、保留来源", () => {
+  const { states, problems } = exchangeStates(fig({ exchanges: [EP_TWO] }, [880, 1200]).exchanges[0]!);
+  expect(problems).toEqual([]);
+  expect(states).toHaveLength(4);
+  // 派发后卡 0 的原块只是用过的输入，被淡掉
+  expect(states[1]![0]![0]).toMatchObject({ value: 2, dim: true });
+  // 本卡算：卡 1 两块换成新数，来源不变；卡 0 的原块清成 0 等着收结果
+  expect(states[2]![1]![0]).toMatchObject({ value: 4, from: [0], fresh: true, dim: false });
+  expect(states[2]![1]![1]).toMatchObject({ value: 10, from: [1], fresh: true });
+  expect(states[2]![0]![0]).toMatchObject({ value: 0, fresh: true, dim: false });
+  // 收回：加进原卡那一格
+  expect(states[3]![0]![0]).toMatchObject({ value: 4, fresh: true });
+  expect(states[3]![1]![0]!.dim).toBe(true);
+});
+
+it("集合通信分镜：本卡计算越界、同一块算两次、和收到的数撞车、整步空着都会报", () => {
+  const bad = exchangeStates(
+    fig({
+      exchanges: [
+        {
+          ...EP_TWO,
+          steps: [
+            {
+              title: "错",
+              moves: [{ from: [0, 0], to: [1, 0] }],
+              sets: [
+                { at: [1, 0], value: 1 },
+                { at: [0, 1], value: 1 },
+                { at: [0, 1], value: 2 },
+                { at: [5, 0], value: 1 },
+              ],
+            },
+            { title: "空" },
+          ],
+        },
+      ],
+    }).exchanges[0]!,
+  ).problems;
+  expect(bad.some((p) => p.includes("同时收到别的卡发来的数"))).toBe(true);
+  expect(bad.some((p) => p.includes("算了两次"))).toBe(true);
+  expect(bad.some((p) => p.includes("越界"))).toBe(true);
+  expect(bad.some((p) => p.includes("既没有收发也没有本卡计算"))).toBe(true);
+});
+
+it("集合通信分镜：labels 写在每块下面，本卡计算的块描权重色框，不通信的一格没有飞行的块", () => {
+  const spec = fig({ exchanges: [EP_TWO] }, [880, 1200]);
+  const svg = renderFigure(spec);
+  expect(svg.match(/class="wiki-anim-band"/g)).toHaveLength(4);
+  expect(svg.match(/class="wiki-anim-move"/g)).toHaveLength(2);
+  expect(svg.match(/>甲</g)).toHaveLength(8);
+  expect(svg).toContain('stroke="var(--color-weight, #c78300)" stroke-width="2.6"');
+  expect(figureProblems(spec)).toEqual([]);
+  const wrong = figureProblems(fig({ exchanges: [{ ...EP_TWO, labels: ["甲"] }] }, [880, 1200]));
+  expect(wrong.some((p) => p.includes("labels 有 1 个"))).toBe(true);
+});
+
+/** EP 分镜的完整画法：卡里画专家、本卡计算写用哪个专家和短注、派发后原卡不参与的块清空、结果用 sum 送回 */
+const EP_FULL = {
+  at: [10, 10],
+  cards: ["卡 0", "卡 1"],
+  slots: 2,
+  labels: ["甲", "乙"],
+  experts: [["E0"], ["E1"]],
+  start: [
+    [2, null],
+    [null, 5],
+  ],
+  steps: [
+    { title: "派发", moves: [{ from: [0, 0], to: [1, 0] }], drop: [[0, 0]] },
+    {
+      title: "本卡算",
+      sets: [
+        { at: [1, 0], value: 3, expert: "E1", note: "×3 ×0.5" },
+        { at: [1, 1], value: 10, expert: "E1", note: "×2" },
+      ],
+    },
+    {
+      title: "收回",
+      moves: [{ from: [1, 0], to: [0, 0], op: "sum" }],
+      keep: [
+        [0, 0],
+        [1, 1],
+      ],
+    },
+  ],
+  end: "结束",
+};
+
+it("集合通信分镜：drop 把块清空且不描计算框，sum 能落在空块上从 0 开始加、也能叠加", () => {
+  const { states, problems } = exchangeStates(fig({ exchanges: [EP_FULL] }, [880, 1600]).exchanges[0]!);
+  expect(problems).toEqual([]);
+  // 派发后原卡那一格清空：不参与本卡计算
+  expect(states[1]![0]![0]).toEqual({ value: null, from: [], dim: false, fresh: false });
+  expect(states[1]![1]![0]).toMatchObject({ value: 2, fresh: true });
+  // 空块上 sum 从 0 开始
+  expect(states[3]![0]![0]).toMatchObject({ value: 3, fresh: true, from: [0] });
+  // 两个 sum 落同一块叠加，落在有数的块上加进去
+  const stack = exchangeStates(
+    fig({
+      exchanges: [
+        {
+          ...EP_TWO,
+          start: [
+            [1, 2],
+            [10, null],
+          ],
+          steps: [
+            {
+              title: "叠",
+              moves: [
+                { from: [0, 0], to: [1, 1], op: "sum" },
+                { from: [0, 1], to: [1, 1], op: "sum" },
+                { from: [0, 0], to: [1, 0], op: "sum" },
+              ],
+            },
+          ],
+        },
+      ],
+    }).exchanges[0]!,
+  );
+  expect(stack.problems).toEqual([]);
+  expect(stack.states[1]![1]!.map((s) => s.value)).toEqual([11, 3]);
+  // null 的本卡计算就是把块置空
+  const cleared = exchangeStates(
+    fig({ exchanges: [{ ...EP_TWO, steps: [{ title: "空", sets: [{ at: [0, 0], value: null }] }] }] })
+      .exchanges[0]!,
+  );
+  expect(cleared.states[1]![0]![0]).toMatchObject({ value: null, from: [], fresh: false });
+});
+
+it("集合通信分镜：专家名、drop、sum 用错都会报", () => {
+  const bad = exchangeStates(
+    fig({
+      exchanges: [
+        {
+          ...EP_FULL,
+          steps: [
+            {
+              title: "错",
+              moves: [
+                { from: [0, 0], to: [1, 0] },
+                { from: [0, 0], to: [1, 1], op: "sum" },
+                { from: [1, 1], to: [0, 1] },
+              ],
+              sets: [{ at: [0, 0], value: 1, expert: "E9" }],
+              drop: [
+                [1, 0],
+                [4, 0],
+              ],
+            },
+          ],
+        },
+      ],
+    }).exchanges[0]!,
+  ).problems;
+  expect(bad.some((p) => p.includes("没有专家「E9」"))).toBe(true);
+  expect(bad.some((p) => p.includes("不能同时清空"))).toBe(true);
+  expect(bad.some((p) => p.includes("清空：卡号或块号越界"))).toBe(true);
+  const rows = figureProblems(fig({ exchanges: [{ ...EP_FULL, experts: [["E0"]] }] }, [880, 1600]));
+  expect(rows.some((p) => p.includes("experts 有 1 行"))).toBe(true);
+});
+
+it("集合通信分镜：卡里画专家框，本卡计算连线到专家、块飞进专家，短注只在那一格出现", () => {
+  const spec = fig({ exchanges: [EP_FULL] }, [880, 1600]);
+  const svg = renderFigure(spec);
+  expect(figureProblems(spec)).toEqual([]);
+  // 4 格 × 2 张卡，每张卡一个专家框
+  expect(svg.match(/>E1</g)).toHaveLength(4);
+  // 第 1 格一块跨卡飞，第 2 格两块飞进专家，第 3 格一块送回
+  expect(svg.match(/class="wiki-anim-move"/g)).toHaveLength(4);
+  expect(svg.match(/>×3 ×0\.5</g)).toHaveLength(1);
+  // 块在专家框下方：卡框 y=10+36=46，专家框 46+32=78 到 102，块从 46+90=136 开始
+  expect(svg).toContain('y="136"');
+  // 清空的块不描计算框：第 1 格只有要发出的紫框，没有权重色粗框
+  const band1 = svg.split('class="wiki-anim-band"')[1]!;
+  expect(band1).not.toContain('stroke="var(--color-weight, #c78300)" stroke-width="2.6"');
+});
+
+it("集合通信分镜：labels 和 dots 同时开时各占一行，不重叠", () => {
+  expect(figureProblems(fig({ exchanges: [{ ...EP_TWO, dots: true }] }, [880, 1300]))).toEqual([]);
+});
+
+it("集合通信分镜：同一块混用 add 和 sum 会单独报出来", () => {
+  const mixed = exchangeStates(
+    fig({
+      exchanges: [
+        {
+          ...EP_TWO,
+          start: [
+            [1, 2],
+            [10, null],
+          ],
+          steps: [
+            {
+              title: "混",
+              moves: [
+                { from: [0, 0], to: [1, 0], op: "add" },
+                { from: [0, 1], to: [1, 0], op: "sum" },
+              ],
+            },
+          ],
+        },
+      ],
+    }).exchanges[0]!,
+  ).problems;
+  expect(mixed.some((p) => p.includes("混用了 add 和 sum"))).toBe(true);
+});
+
+it("集合通信分镜：连到别的专家的线走直角，块升到专家框下沿再横移；步骤短注只在那一格、画成淡色", () => {
+  // 卡 1 的第 0 块交给右边的 E2：竖—横—竖三段；第 1 块就在 E2 正下方：一条竖线
+  const spec = fig(
+    {
+      exchanges: [
+        {
+          ...EP_FULL,
+          experts: [["E0"], ["E1", "E2"]],
+          steps: [
+            EP_FULL.steps[0],
+            {
+              title: "本卡算",
+              sets: [
+                { at: [1, 0], value: 3, expert: "E2", note: "×3" },
+                { at: [1, 1], value: 10, expert: "E2", note: "×2" },
+              ],
+            },
+            { ...EP_FULL.steps[2], notes: [{ at: [1, 1], text: "=5×2" }] },
+          ],
+        },
+      ],
+    },
+    [880, 1600],
+  );
+  expect(figureProblems(spec)).toEqual([]);
+  const svg = renderFigure(spec);
+  expect(svg).toMatch(
+    /<path d="M[\d.]+ [\d.]+ V[\d.]+ H[\d.]+ V[\d.]+" fill="none" stroke="var\(--color-weight/,
+  );
+  expect(svg).toMatch(/<path d="M[\d.]+ [\d.]+ V[\d.]+" fill="none" stroke="var\(--color-weight/);
+  const band3 = svg.split('class="wiki-anim-band"')[3]!;
+  expect(band3).toContain(">=5×2<");
+  expect(svg.match(/>=5×2</g)).toHaveLength(1);
+  // 两条短注撞在同一块、多行时还用专家框，都会报
+  const clash = figureProblems(
+    fig(
+      {
+        exchanges: [
+          {
+            ...EP_FULL,
+            steps: [
+              EP_FULL.steps[0],
+              { ...EP_FULL.steps[1], notes: [{ at: [1, 0], text: "重复" }] },
+              EP_FULL.steps[2],
+            ],
+          },
+        ],
+      },
+      [880, 1600],
+    ),
+  );
+  expect(clash.some((p) => p.includes("有两条短注"))).toBe(true);
+  const rows = figureProblems(
+    fig({ exchanges: [{ ...EP_FULL, labels: undefined, slots: 2, rows: 2 }] }, [880, 1600]),
+  );
+  expect(rows.some((p) => p.includes("不能再用 experts 和短注"))).toBe(true);
+});
+
+/** SP 的 Reduce-Scatter：两张卡、每卡一个 2 行 × 2 列的张量（一行一个 token），按行交换 */
+const SP_TWO = {
+  at: [10, 10],
+  cards: ["卡 0", "卡 1"],
+  slots: 4,
+  rows: 2,
+  rowLabels: ["token 0", "token 1"],
+  gap: [200, 96],
+  start: [
+    [1, 3, 3, 1],
+    [0, 4, 4, 0],
+  ],
+  steps: [
+    {
+      title: "按行归约",
+      moves: [
+        { from: [1, 0], to: [0, 0], op: "add" },
+        { from: [1, 1], to: [0, 1], op: "add" },
+        { from: [0, 2], to: [1, 2], op: "add" },
+        { from: [0, 3], to: [1, 3], op: "add" },
+      ],
+      keep: [
+        [0, 0],
+        [0, 1],
+        [1, 2],
+        [1, 3],
+      ],
+    },
+  ],
+  end: "结束",
+};
+
+it("集合通信分镜：rows 把一张卡的块排成多行格子，行名写在左边，收发仍按块号算", () => {
+  const spec = fig({ exchanges: [SP_TWO] }, [880, 600]);
+  const { states, problems } = exchangeStates(spec.exchanges[0]!);
+  expect(problems).toEqual([]);
+  expect(states[1]![0]!.slice(0, 2).map((s) => s.value)).toEqual([1, 7]);
+  expect(states[1]![1]!.slice(2).map((s) => s.value)).toEqual([7, 1]);
+  const svg = renderFigure(spec);
+  // 两格 × 两张卡，每张卡两个行名；多行时格子线里有横线
+  expect(svg.match(/>token 0</g)).toHaveLength(4);
+  expect(svg).toMatch(/M\d+(\.\d+)? \d+(\.\d+)?h104/);
+  expect(figureProblems(spec)).toEqual([]);
+  // 不给 rows 时和一排的画法一样：不出现横向格子线
+  expect(renderFigure(fig({ exchanges: [EP_TWO] }, [880, 1200]))).not.toMatch(/M\d+(\.\d+)? \d+(\.\d+)?h\d+/);
+  const bad = figureProblems(
+    fig({ exchanges: [{ ...SP_TWO, rows: 3, rowLabels: ["甲"], dots: true }] }, [880, 600]),
+  );
+  expect(bad.some((p) => p.includes("排不成 3 行"))).toBe(true);
+  expect(bad.some((p) => p.includes("不能再用 dots 和 labels"))).toBe(true);
+  expect(bad.some((p) => p.includes("rowLabels 有 1 个"))).toBe(true);
+});
+
+it("集合通信分镜：不给 rows 时卡框和块的坐标与一排的画法一致（锁住 EP_TWO 的关键坐标）", () => {
+  const svg = renderFigure(fig({ exchanges: [EP_TWO] }, [880, 1200]));
+  // 卡框：宽 32 + 2 × 52 = 136，高 32 + 34 + 16（labels）+ 14 = 96；第 1 格卡 0 在 (10, 46)，卡 1 右移 136 + 150
+  expect(svg).toContain('<rect x="10" y="46" width="136" height="96" rx="16"');
+  expect(svg).toContain('<rect x="296" y="46" width="136" height="96" rx="16"');
+  // 第 0 块：卡框左边 + 16、顶边 + 32
+  expect(svg).toMatch(/<rect x="26" y="78" width="52" height="34" fill="[^"]+"\/>/);
+});
+
+it("集合通信分镜：rows 时路上的块按源卡的行分组，组间留缝；一排时不留缝；一排最多 8 块", () => {
+  const twoRows = {
+    ...SP_TWO,
+    steps: [
+      {
+        title: "两行一起发",
+        moves: [0, 1, 2, 3].map((s) => ({ from: [1, s], to: [0, s], op: "add" })),
+      },
+    ],
+  };
+  const xs = (svg: string) =>
+    [...svg.matchAll(/<g class="wiki-anim-payload"><rect x="([\d.]+)"/g)].map((m) => Number(m[1]));
+  const rowsX = xs(renderFigure(fig({ exchanges: [twoRows] }, [880, 600])));
+  expect(rowsX).toHaveLength(4);
+  // 同一行相邻两块挨着（30），跨行多一道 8 的缝
+  expect(rowsX[1]! - rowsX[0]!).toBeCloseTo(30);
+  expect(rowsX[2]! - rowsX[1]!).toBeCloseTo(38);
+  expect(rowsX[3]! - rowsX[2]!).toBeCloseTo(30);
+  const flat = xs(
+    renderFigure(fig({ exchanges: [{ ...twoRows, rows: undefined, rowLabels: undefined }] }, [880, 600])),
+  );
+  expect(flat[2]! - flat[1]!).toBeCloseTo(30);
+  const wide = figureProblems(
+    fig(
+      {
+        exchanges: [{ ...EP_TWO, slots: 9, labels: undefined, start: [Array(9).fill(1), Array(9).fill(1)] }],
+      },
+      [880, 1200],
+    ),
+  );
+  expect(wide.some((p) => p.includes("一排最多 8 块"))).toBe(true);
 });

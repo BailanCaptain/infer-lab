@@ -1,0 +1,35 @@
+layout: figure
+id: graph-mode-record-replay
+caption: 首次在启动期按固定尺寸跑一遍，把整串任务的次序记下来；之后形状相同的每一轮一次提交整串，没录过的形状仍旧逐个提交。任务块只表示次序，不代表耗时。
+size: [900, 470]
+texts:
+  - { at: [24, 38], text: 首次 · 启动期：按固定尺寸跑一遍，记录整串任务的次序, size: 15, strong: true }
+  - { at: [24, 176], text: 之后每一轮 · 形状相同：一次提交，按记录好的次序执行, size: 15, strong: true }
+  - { at: [24, 314], text: 没录过这种形状（例如混进 prefill）：仍旧逐个提交, size: 15, strong: true }
+  - { at: [24, 438], text: 记录的是次序 · 输入内容每轮另写, size: 13.5, note: true }
+frames:
+  - { at: [160, 56], size: [700, 82], label: 记录结果：这一串成为「这个尺寸的一张图」, inside: true }
+items:
+  - { at: [24, 87], size: [120, 36], text: Host 6 次, style: plain }
+  - { at: [24, 225], size: [120, 40], text: Host 1 次, style: plain }
+  - { at: [24, 363], size: [120, 36], text: Host 6 次, style: plain }
+  - { at: [172, 87], size: [100, 36], text: 任务 1, tone: control }
+  - { at: [285, 87], size: [100, 36], text: 任务 2, tone: control }
+  - { at: [398, 87], size: [100, 36], text: 任务 3, tone: control }
+  - { at: [511, 87], size: [100, 36], text: 任务 4, tone: control }
+  - { at: [624, 87], size: [100, 36], text: 任务 5, tone: control }
+  - { at: [737, 87], size: [100, 36], text: 任务 6, tone: control }
+  - { at: [172, 225], size: [665, 40], text: 回放：整串一次提交, sub: 次序来自记录，输入内容是本轮的, tone: token }
+  - { at: [172, 363], size: [100, 36], text: 任务 1, tone: control }
+  - { at: [285, 363], size: [100, 36], text: 任务 2, tone: control }
+  - { at: [398, 363], size: [100, 36], text: 任务 3, tone: control }
+  - { at: [511, 363], size: [100, 36], text: 任务 4, tone: control }
+  - { at: [624, 363], size: [100, 36], text: 任务 5, tone: control }
+  - { at: [737, 363], size: [100, 36], text: 任务 6, tone: control }
+links:
+  - { from: [866, 105], to: [866, 245], via: [[880, 105], [880, 245]], tone: control, dashed: true }
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170'
+    symbols: [ACLGraphWrapper]
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719'
+    symbols: [compile_or_warm_up_model]

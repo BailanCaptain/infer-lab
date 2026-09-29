@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 的 token 由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。">
-  <title>用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 的 token 由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 370" width="900" height="370" role="img" aria-label="用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 上的 token「我」由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。">
+  <title>用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 上的 token「我」由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。</title>
   <defs><marker id="expert-parallel-intuition-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="expert-parallel-intuition-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
   <rect x="18" y="48" width="290" height="292" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
   <text x="34" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 源卡，也持有专家</text>
@@ -19,7 +19,8 @@
   <rect x="170" y="72" width="116" height="38" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="228" y="96" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">E1 完整专家</text>
   <rect x="36" y="140" width="90" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="81" y="173" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token</text>
+  <text x="81" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token</text>
+  <text x="81" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">「我」</text>
   <rect x="160" y="140" width="126" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="223" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">router</text>
   <text x="223" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 k 个专家</text>

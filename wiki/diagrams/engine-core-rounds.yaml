@@ -1,0 +1,52 @@
+layout: figure
+id: engine-core-rounds
+caption: 示意请求 R：提示词 3 个 token（编号 7、2、9），回答 2 个 token（5、8），格子下面是位置。第 1 圈 R 第一次上场，计划带着完整提示词发给 Worker；第 2 圈 Worker 手里已经有自己采样出的 5，计划只写「R 这一步算 1 个位置」。每圈的新 token 都经 EngineCore 记账后再送回前端。
+size: [900, 1420]
+exchanges:
+  - at: [7, 8]
+    cards: [前端（API server）, EngineCore, Worker]
+    perRow: 3
+    slots: 5
+    cell: [42, 34]
+    gap: [80, 96]
+    labels: [位置 0, 位置 1, 位置 2, 位置 3, 位置 4]
+    tag: 编号为示意
+    start:
+      - [7, 2, 9, null, null]
+      - [null, null, null, null, null]
+      - [null, null, null, null, null]
+    steps:
+      - title: 收消息：前端把 3 个提示词编号发给 EngineCore，R 进等待队列
+        moves:
+          - { from: [0, 0], to: [1, 0] }
+          - { from: [0, 1], to: [1, 1] }
+          - { from: [0, 2], to: [1, 2] }
+      - title: 第 1 圈调度：R 算 3 个位置，第一次上场，计划带上完整提示词
+        moves:
+          - { from: [1, 0], to: [2, 0] }
+          - { from: [1, 1], to: [2, 1] }
+          - { from: [1, 2], to: [2, 2] }
+      - title: 第 1 圈执行：Worker 前向一次，用最后一个位置选出新 token 5
+        sets:
+          - { at: [2, 3], value: 5 }
+      - title: 第 1 圈更新：5 交回 EngineCore，记账「已算 3 个位置」
+        moves:
+          - { from: [2, 3], to: [1, 3] }
+      - title: 送回：5 放进输出队列发给前端，前端还原成文字推给用户
+        moves:
+          - { from: [1, 3], to: [0, 3] }
+      - title: 第 2 圈：计划只写「R 算 1 个位置」，Worker 拿手里的 5 算出 8
+        sets:
+          - { at: [2, 4], value: 8 }
+      - title: 第 2 圈更新：8 交回 EngineCore，是结束记号，R 完成、还块
+        moves:
+          - { from: [2, 4], to: [1, 4] }
+      - title: 送回：8 发给前端，前端结束这条回答
+        moves:
+          - { from: [1, 4], to: [0, 4] }
+    end: 两圈后：三处都有 R 的 5 个编号，EngineCore 下一份计划通知 Worker 删掉 R 的缓存
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L215
+    symbols: [scheduled_new_reqs, scheduled_cached_reqs, num_scheduled_tokens, finished_req_ids]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/output.py#L112-L120
+    symbols: [new_token_ids]

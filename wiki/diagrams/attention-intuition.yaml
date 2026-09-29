@@ -1,0 +1,27 @@
+layout: figure
+id: attention-intuition
+caption: attention 的直觉（比重为示意）：读到「她」时，这个位置回头看前面每个词，按相关程度取信息，主要取「小红」，少量取「小明」「借给」和自己；下面一行颜色越深，取得越多，各位置取的比重加起来是 1
+size: [900, 290]
+items:
+  - { at: [95, 96], size: [80, 46], text: 小明, style: plain }
+  - { at: [185, 96], size: [80, 46], text: 把, style: plain }
+  - { at: [275, 96], size: [80, 46], text: 书, style: plain }
+  - { at: [365, 96], size: [80, 46], text: 借给, style: plain }
+  - { at: [455, 96], size: [80, 46], text: 小红, style: plain }
+  - { at: [545, 96], size: [80, 46], text: ，, style: plain }
+  - { at: [635, 96], size: [80, 46], text: 因为, style: plain }
+  - { at: [725, 96], size: [80, 46], text: 她, tone: token }
+heatmaps:
+  - at: [90, 170]
+    cell: [90, 40]
+    values: [[0.18, 0.02, 0.05, 0.08, 0.52, 0.01, 0.04, 0.10]]
+    tone: token
+    min: 0
+    max: 0.52
+    label: 「她」从每个位置取多少
+    legend: [少, 多]
+links:
+  - { from: [765, 94], to: [495, 94], curve: [[740, 30], [520, 30]], tone: token }
+texts:
+  - { at: [630, 24], text: 「她」指谁？回头看「小红」, size: 13, anchor: middle }
+  - { at: [818, 126], text: ……, size: 16 }

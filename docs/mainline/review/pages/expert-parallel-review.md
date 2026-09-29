@@ -519,3 +519,271 @@
 - **为什么**：原句把陪跑列为 EP 的代价，放在「什么时候别开」里，读者会以为关掉 EP 就不用陪跑。
 - **依据**：`vllm@0fc695fc:vllm/v1/engine/core.py#L1153-L1164` 只凭 `is_moe` 决定用 `DPEngineCoreProc`（陪跑逻辑所在）；`vllm@0fc695fc:vllm/model_executor/layers/fused_moe/config.py#L1074-L1082` 在不开 EP 时把专家按 DP×TP 展开切到全部卡上。两处本轮都已读原文核对。
 - **验证**：`pnpm wiki:lint` 通过（本页 0 条提示）；`pnpm wiki:audit` 通过。未改图，未跑 `wiki:diagrams`。未做浏览器验收。
+
+## 十九、基础讲清修订（09-29）
+
+按 09-29「基础概念页讲清楚」标准改写。起点是排查结论：基础部分只有约 22 行，没演一个 token 被派到哪几张卡，dispatch / combine 的代价没有量化直觉，「MC2 还是 AllGather」「工作量不均」等通用理解排在 GLM 之后。
+
+### 逐节改了什么
+
+- **EP 是什么？**（原「EP 是什么，专家怎样分到各卡？」）先一句话定义；再用几句回顾 MoE（router、top-k、组合权重），**路由专家**按源码与 moe 页口径写成「整个可供挑选的集合，不是这次选中的那几个」；共享专家一句话并链到本页新节。然后用 4 卡 / E0–E7 / k=2 的示意讲直觉，沿用原直觉图（token 标成「我」）；定义 hidden、dispatch、combine；补一句「EP 不另外占卡」。283.5 GiB / 64 GB 等 GLM 数字挪到 GLM 节。
+- **为什么需要 EP？**（原「为什么要拆，代价是什么？」的前半）讲「全部专家要常驻、MoE 省的是计算不是显存」，示意数 80 GB 专家 vs 32 GB 卡；新图 `expert-parallel-vs-tp` 对比 TP4（每卡每个专家一条）与 EP4（每卡 2 个完整专家）；TP / EP 对照表（放什么、谁来算、算完做什么、卡越多），口径与 tensor-parallel 页一致（All-Reduce 相加量与切几条无关）；保留「真实形状与同等权重账见对照源码」。
+- **EP 怎么做？4 个 token 走一遍**（新）：「我吃了苹果」4 个 token 各在一卡，hidden 缩成一个数、专家 Ek 缩成「乘 k」（示意）；路由表；新分镜图 `expert-parallel-flow`（复用 collective-communication 的 exchanges 分镜播放器）演 ① dispatch → ② 本卡计算乘权重 → ③ combine；逐步文字；calc「跟着苹果走一遍」（分卡与不分卡都是 14）；定义 token–expert 对与 N_r（N = 1、4、2、1）；源卡 / 目的卡两个角色的通用版。
+- **代价：每层两次交换，还要等最慢的卡**（新，含三个 H3）：①「每层两次按目的地交换」：链 collective-communication 的 All-to-All，说明 EP 是不等长、按路由决定的交换，不一定直接调用通用 All-to-All；逐卡收发份数表；calc 用 TP 页同一示意模型（hidden 1024、BF16、40 层）算每卡每层 512 KiB、一次前向 20 MiB；原 B5「还会安排额外收集与归约，后面逐次数」保留在这里。②「负载不均」：新时间线图 `expert-parallel-wait`（6 格 vs 均分 4 格）与 calc；说明真实耗时不一定与行数成正比（链 matmul-and-weights）；校正偏置与 EPLB 两层缓解（原 G13/G17 的通用部分）。③「两种搬法」：用同一例子演 All-Gather → 本卡挑行 → Reduce-Scatter，结果同为 14，为 GLM 的 MC2 / AllGather 打底。
+- **共享专家放在哪？**（新）：为什么不参与 EP；calc「苹果」路由 14 + 共享 4 = 18；链 GLM 第 4 步。
+- **放到 GLM 双机：一个 token 走过一层 MoE**：标题不变（外链锚点）。开头补回挪来的 288 / top-8 / 共享专家不参与 EP / 283.5 GiB vs 64 GB / 「省的是计算不是显存」；新增 H3「16 张卡怎样分专家」收 rank、编号、放置表；router、dispatch 两步各加一句与示意的对应（每卡派发一个 token、N_r 同一定义、÷18 与 ÷2 同一规则）。原「其他层与后续生成也这样算吗？」降为本节 H3。
+- **放到 GLM 双机：搬法怎么选，两组怎么配合**（新 H2，一句话总领）：收原「MC2 还是 AllGather」「两个 DP 组为什么要陪跑」「场景 M…」三个 H2（降为 H3，标题原样保留以保外链锚点），开头加一句把 MC2 / AllGather 对应到前面的两种搬法；「专家数量均分，工作量仍可能不均」改名「场景 M 的每卡账：权重均分，工作量看路由」并链回基础节。
+- **常见误解**：原 7 条保留，新增 2 条（EP 会不会改变结果；EP 是否另占卡）。
+- **对照源码**：五个 H3 不动；按协调者要求，把「开销和什么时候别开」里指向 data-parallel 的旧锚点改为 `data-parallel.md#moe-模型里两组为什么不能各跑各的`。
+
+### 新增的演算与图
+
+- 数值演算 4 处（calc）：跟着「苹果」走一遍；一张卡每层发出、收回多少；4 个 token 的负载；「苹果」这一层 MoE 输出（路由 + 共享）。另有正文里卡 1 四份的逐个乘法、两种搬法的逐卡结果。
+- 新图 3 张：`expert-parallel-vs-tp`（matrices，TP 条 vs EP 整块）、`expert-parallel-flow`（exchanges 分镜，4 格可播放）、`expert-parallel-wait`（timelines）。改图 1 张：`expert-parallel-intuition` 的 token 标成「我」、说明对应改。
+- 示意数前后一致：「我」2→3+4=7，「吃」5→6+2=8，「了」3→4.5+10.5=15，「苹果」4→9+5=14，共享后 18；分镜、calc、两种搬法、负载表用同一组数。
+
+### 新增图元（渲染器只做加法）
+
+在 `scripts/wiki/figure.ts` 的 exchanges 分镜上加两个可选字段，已有图不受影响（`pnpm wiki:diagrams --check` 235 张一致）：
+- 步骤的 `sets`：本卡计算，不通信，把某块换成算出来的数（null 清空）；`moves` 由必填改为默认空，两者至少一样，否则记问题；同一块同一步既收数又计算、算两次、越界都记问题。画法：要算的块描权重色粗框，下一格显示新数。播放器无需改动（没有飞行块的一格按原节奏停留后换格，浏览器实测 2/4→3/4 正常）。
+- `labels`：每块下面的小字（每卡相同），个数须等于 slots。
+- 先写失败测试再实现：`scripts/wiki/figure.test.ts` 新增 3 个测试（sets 状态、sets 报错、labels 与权重色框渲染），全部通过。
+
+### 现有信息清单勾选（scratchpad/expert-parallel-basics-facts.md，A1–H7 共 97 条）
+
+- A1–A4、A7 → 「EP 是什么？」（改写保留）；A5、A2 的 GLM 数字 → GLM 节开头；A6 图保留，k=8 写进 GLM 节开头。
+- B1–B4 → 「EP 是什么？」与「为什么需要 EP？」；B5 → 「每层两次按目的地交换」末句；B6 → 「为什么需要」通用版 + GLM 节开头原句；B7–B9 → 「为什么需要 EP？」对照表与段落。
+- C1–C31 → GLM 第一个 H2，原文保留（C4–C7 进新 H3「16 张卡怎样分专家」；C11、C16 各加一句对应示意）。
+- D1–D3 → 同 H2 的 H3「其他层与后续生成也这样算吗？」。
+- E1–E10、F1–F3、G1–G17 → 第二个 GLM H2 下各 H3，原文保留；G13 首句加链回基础节。
+- H1–H7 → 常见误解原样保留。
+- 删掉的：无。逐项关键词（283.5 GiB、E144–E161、≤32,800 B、113 倍、6.09 GiB、94.5 MiB、608 对、6,048 行、EPLB 逐项表等 70 余项）已 grep 核对仍在。
+
+### 验证证据
+
+- `pnpm wiki:lint`：通过（本页 0 条）；`pnpm wiki:diagrams --check`：235 张一致，本页 5+3 张图无提示；`pnpm wiki:audit`：通过，本页在名单内仍达标，正文字数 24,308 → 32,293。
+- `npx vitest run scripts/wiki/figure.test.ts src/content/wiki/DiagramPlayer.test.ts`：全部通过；`tsc -p tsconfig.node.json --noEmit` 退出 0；我改动的行 biome 格式干净（figure.test.ts 第 717 行附近另一处格式提示是别的写手新增的测试，未动）。
+- 浏览器（Playwright，1440 宽，http://localhost:5193/#/wiki/expert-parallel）：第一屏、`expert-parallel-flow` 四格（含 combine 飞行中）、vs-tp 图、wait 图、「苹果」calc 均已截图看过，数字清楚、不重叠、不裁切；截图在 scratchpad（expert-parallel-shot-1/-2.png、ep-flow-band1–4.png、ep-flow-flying2/4.png）。
+- 核实：MC2 combine 把 `topk_weights` 作为 `expert_scales` 传进 combine 算子（`vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py` 的 `get_combine_mc_kwargs`），据此写「有的实现把乘权重放进 combine」；「路由专家」口径与 moe 页、GLM 配置 288 个 routed experts 一致。
+
+### 限制
+
+- 示意把 hidden 缩成一个数、专家缩成「乘 k」，已在正文说明；负载时间线假设每份工作耗时相同，正文说明真实耗时不一定与行数成正比。
+- 参考了 AMD ROCm 的 vLLM MoE 指南（EP 是一种专家放法、不单独占卡；按专家分 vs 按矩阵切）；知乎链接按要求跳过。
+
+## 二十、基础讲清审查（09-29）
+
+独立审查员，只审不改。依据：scratchpad 的 basics-standard.md（总原则与第 1–14 条）、basics-audit.md 第 19 节、本文件第十九节写手记录、expert-parallel-basics-facts.md。
+
+**分数：8.5 / 10。** 页面 P1 0 条、P2 2 条（都在分镜动图上）、P3 5 条；代码 P1 0 条、P2 0 条、P3 3 条。
+
+### 学习顺序与逐节初学者检验（GLM 双机之前 5 个 H2，5/5 通过）
+
+顺序是「EP 是什么（先回顾 MoE、router、top-k、组合权重，再用 4 卡 8 专家的直觉图）→ 为什么需要（全部专家常驻、单卡放不下；与 TP 的切法对比）→ 怎么做（4 个 token 走一遍）→ 代价 → 共享专家」，没有一上来就算，也没有先用后讲。
+
+| H2（行号） | 初学者读完能讲出的一句话 | 结论 |
+| --- | --- | --- |
+| EP 是什么？（61） | 专家整份分到各卡，token 的 hidden 去放着所选专家的卡上算，去叫 dispatch、回来按权重加叫 combine | 通过；路由专家按 moe 页口径写成「可供挑选的整个集合」 |
+| 为什么需要 EP？（79） | 全部专家都得常驻，80 GB 放不进 32 GB 卡；TP 是每卡拿每个专家的一条、都算完再 All-Reduce，EP 是整份分、只有持有卡算 | 通过；All-Reduce 当场一句话定义 |
+| EP 怎么做？（104） | dispatch 复制 hidden → 各卡用本卡专家算并乘权重 → combine 送回相加，「苹果」分卡和不分卡都是 14 | 通过；有 calc，有分镜 |
+| 代价（147） | 每层一去一回两次交换，量只和 token 数 × k × hidden 宽有关；最慢那张卡决定这一层多久；另一种搬法是 All-Gather + Reduce-Scatter | 通过；All-to-All、All-Gather、Reduce-Scatter 都在用到处一句话说明并链到集合通信页 |
+| 共享专家放在哪？（211） | 共享专家每个 token 都要过，不参与派发，各卡自己算或 TP 切；苹果这一层输出 14 + 4 = 18 | 通过 |
+
+### 演算逐个手算（全部正确）
+
+- 路由表四行：「我」2×3×0.5 + 2×4×0.5 = 3 + 4 = 7；「吃」5×2×0.6 + 5×1×0.4 = 6 + 2 = 8；「了」3×3×0.5 + 3×7×0.5 = 4.5 + 10.5 = 15；「苹果」4×3×0.75 + 4×5×0.25 = 9 + 5 = 14。专家所在卡 = 编号 ÷ 2 向下取整，四行都对。
+- calc「跟着苹果走一遍」：12、9、20、5、14，不分卡同为 14。对。
+- calc「一张卡每层发出、收回多少」：1024×2 = 2,048 B；64×2×2 KiB = 256 KiB；两者相加 512 KiB；×40 = 20,480 KiB = 20 MiB。对。
+- calc「4 个 token 的负载」：8 对、均值 2、[1,4,2,1]（逐 token 核对落卡无误）、1+4+1 = 6、1+2+1 = 4。对。
+- calc「苹果这一层 MoE 输出」：9 + 5 = 14，共享 4，合 18。对。
+- 正文逐卡收发表：dispatch 发出 2/1/2/2、收到 1/3/2/1，combine 反过来；每方向跨卡 7 份。逐条对过，对。两种搬法：卡 1 四个数 3/6/4.5/9、卡 3 只有 10.5、「苹果」0+9+5+0 = 14、All-Gather 每卡收 3 份共 12 份，对。
+- 分镜 spec（expert-parallel-flow.yaml）的 start / moves / sets / keep 逐格推了一遍：终态 7、8、15、14，与表和 calc 一致；卡序写成「卡0 卡1 卡3 卡2」以绕圈，下标换算无误。
+
+### 核心概念（对照源码与站内口径）
+
+- 路由专家、共享专家定义：与 moe 页同口径（整个可选集合，不是这次选中的几个；共享专家不经 router、每个 token 都过、不参与 EP），与 TERMS 的 shared expert、dispatch/combine 行一致。
+- 每层 dispatch + combine 两次：与 data-parallel 页（去和回各一次集合通信）、tensor-parallel 页（42 层各一次 EP dispatch、一次 EP combine，共 84 次）、collective-communication 页（42 层各一轮 dispatch 和 combine）口径一致。
+- 「有的实现把乘权重放进 combine」：在 tools/repos/vllm-ascend 的 db701c1f 上核实，token_dispatcher.py 的 combine 参数组装把 topk_weights 作为 expert_scales 传入（约第 265–288 行）。成立。
+- TP 相加量与切几条无关、EP 不另外占卡（EP16 由 TP8×DP2 推出）、校正偏置推理时固定、少量行时专家计算受读权重限制：均无误。
+
+### 没丢信息
+
+- 抽查信息清单 6 条：A5（283.5 GiB / 64 GB，GLM 节开头）、B8（卡越多 TP 越窄、相加量不变；EP 代价转为搬运与等待，「为什么需要」对照表下）、C7（专家 e 的目的卡 = e ÷ 18 向下取整，「16 张卡怎样分专家」）、E6（单机 EP8 每卡 36 专家、两条件都不满足）、F3（陪跑三个含义）、G15（场景 M 大 calc 全部数字）。6/6 都在，另顺带确认 E7、G12 在。
+- git diff 删掉的 20 行：都是改写或挪位（旧 H2 标题降级或改名、定义段并入新节、「开销和什么时候别开」只换了一个 data-parallel 锚点），没有删掉的机制或数字。
+- 字数 24,308 → 32,293：新增基本都是示意例子、表和 calc，没有明显注水；重复见 P3-3。
+
+### 标准第 11–14 条
+
+- 基础节没有 GLM 部署数字（「共享专家放在哪」末句提到 GLM 1 个共享专家、8 卡合切，是指路句，记 P3-5）；283.5 GiB 等已挪进 GLM 节。
+- GLM 之后只有常见误解和对照源码；原「专家数量均分，工作量仍可能不均」的通用部分已挪到基础节，GLM 里的是场景 M 的具体账。
+- 第一节末尾没有堆链接。
+
+### 图（Playwright，1440 宽，用户预览 5193，未起停服务）
+
+截图：scratchpad 的 ep-review-top.png、ep-review-intuition.png、ep-review-vs-tp.png、ep-review-wait.png、ep-review-flow-1…4.png、ep-review-flow-fly1…3.png。
+
+- 分镜播放器：「下一步」1/4 → 2/4 → 3/4 → 4/4 都能走，飞行中截图块确实沿箭头从源格飞向目的格；只有本卡计算、没有飞行块的第 2 格也能正常换到第 3 格；「从头播放」后自动连播（6 秒后到 3/4）。页面无脚本错误（控制台只有 502，来自未开的问答后端，与图无关）。
+- 不看文字能否看出 dispatch：能看出每个 token 的数据块从原卡飞到哪几张卡（2 飞向卡 1、卡 2；5 飞向卡 0……）。能看出 combine：各卡的结果块飞回原卡并加进那一格，最后 7、8、15、14。**看不出的是卡内哪个专家、乘了什么权重**，见 P2-1。
+- vs-tp 图：TP 每卡 8 条竖条、EP 每卡 2 个完整方块，选中的 E3、E4 实色，一眼能看出「TP 4 张卡都动手、EP 只有 2 张」。wait 图：6 格对 4 格，「等」用斜线，清楚。直觉图：「我」→ router → E3、E4 → 收回相加，专家级别清楚。数字都清楚，没有重叠裁切。
+
+### 参考资料
+
+AMD ROCm 的 vLLM MoE 指南以 8 卡 DeepSeek-R1、256 专家、显存表和 TP/DP×是否开 EP 的四张分布图为主，没有逐 token 演算。本页的 4 卡 8 专家、「我吃了苹果」、分镜、负载时间线都是自己的例子和图语言；只借了「EP 不是单独占卡的一种并行」这个说法，已用自己的话写。不算照抄。
+
+### 锚点与工具
+
+- 全库指向本页的锚点 9 种（放到 GLM 双机一节、MC2 还是 AllGather、两个 DP 组为什么要陪跑、场景 M、EPLB、1. router、怎么开、会报什么错、版本差异）标题都还在；旧 H2「EP 是什么，专家怎样分到各卡」「为什么要拆，代价是什么」「专家数量均分，工作量仍可能不均」全库无人引用。
+- `pnpm wiki:lint`：通过（本页 0 条）。`pnpm wiki:audit`：通过，本页在名单内，正文 32,293 字 / 9 节。
+
+### 页面问题清单
+
+**P1：无。**
+
+**P2**
+
+1. **分镜第 ② 格看不出「哪个专家、乘哪个权重」**（expert-parallel-flow 第 2→3 格）。卡 1 同时放 E2、E3，四格从 2、5、3、4 变成 3、6、4.5、9，不看正文只看到数字变了，看不出「我」「了」「苹果」用的是 E3、「吃」用的是 E2，也看不出 ×0.5、×0.6 这些权重。这一格正是「只是数字在变」。改法：第 ② 格每个计算块下写一行小字，如「E3×0.5」「E2×0.6」；现有 labels 每卡相同，做不到，需要让 labels 能按卡给（或让 sets 带一个短注），只做加法。
+2. **「清零待收」的格和「本卡计算」的格画法一样**（第 2 格和第 3 格）。卡 0 的「我」、卡 2 的「了」、卡 3 的「苹果」这三格在第 2 格也描了琥珀色计算框，第 3 格又显示成加粗实色的 0，看上去像卡 0 在算「我」、算出了 0，和正文「卡 0 的专家这一层不处理它」相反。根因是分镜不允许 add 进空格，写手只好用 sets 把原格置 0。改法：渲染器里「置 0 / 置空」不描计算框、不标成刚写入（或允许 add 落在空格上当 0 起算，就不用这一步清零）。
+
+**P3**
+
+1. **标题层级被压平**：原来挂在「MC2 还是 AllGather」下的「AllGather：先拿到所有输入」、挂在「场景 M」下的「纯 decode」「混入长 prefill」「场景 M 的每卡账」「这套部署有没有开 EPLB」，现在都成了与父节平级的 H3，目录里看不出从属。改法：这几节降为 H4（锚点不变）。
+2. **「代价」一节首句说得太满**：粗体说 EP 每层都要做两次 All-to-All 式交换，但紧接着的「两种搬法」和 GLM 的 AllGather 路径都不是按目的地交换。改法：首句加「按目的地发时」，或改成「每层要把 token 送去、把结果收回各一次」。
+3. **重复定义**：token–expert 对在基础节（143 行）定义后，GLM 第 2 步（263 行）又括注定义一遍；源卡/目的卡两个角色在 145 行和 269 行各讲一遍；「EP 只改变在哪张卡上算」出现三次（calc 注、141 行、常见误解）。改法：GLM 节改成「沿用前面的定义」，误解条目保留、正文删一次。
+4. **两个示意模型接不上**：「为什么需要」用每个专家 0.25 GB、40 层；「代价」沿用 TP 页的 hidden 1024、40 层。hidden 1024 的一个专家只有几 MB 量级，0.25 GB 对应的中间层宽约 4.4 万，数前后对不上。改法：在显存账里注明「专家大小另设」，或把专家大小改成与 hidden 1024 相称、同时放大专家数或层数让总数仍放不下。
+5. **基础节末尾带 GLM 数字**：「共享专家放在哪」最后一句写 GLM 1 个共享专家、每机 8 卡合切。只是指路，影响小；可改成「GLM 的做法见第 4 步」。
+
+### 代码审查（exchanges 分镜新增 sets、labels）
+
+范围：scripts/wiki/figure.ts 中 exchanges 的 schema（sets、labels，moves 改为默认空）、exchangeStates 的本卡计算分支、exchangeLayout 的 labels 行高、paint 中计算框与标签绘制、figureWords；scripts/wiki/figure.test.ts 的 EP_TWO 三个测试。exchanges 整个零件和 DiagramPlayer 都是未提交的新文件，collective-communication 写手的部分不在本次范围；同一段里还有 SP 写手加的 rows / rowLabels。
+
+- **只做加法**：没有 sets 时 computing 集合为空、不画计算框；没有 labels 时行高与原来相同；moves 由必填改为默认空后，「一步既不收发也不计算」改在 problems 里报，不会放过空步。`pnpm wiki:diagrams --check`：236 张图与 spec 一致（写手记的是 235，之后别的写手又加了一张），本页与通信页的图都没有提示。
+- **通信基础页回归**：Playwright 打开 #/wiki/collective-communication，10 个分镜播放器都在（各自格数 2–7 格），点第一张的「下一步」，块沿箭头飞向对方、落地后变成 [11, 22]，截图 ep-review-cc-regress.png（飞行中 ep-review-cc-regress-fly.png），无脚本错误。正常。
+- **测试**：新增 3 个测试覆盖了 sets 的状态推演、四类报错（越界、同块算两次、和收数撞车、空步）、labels 渲染与个数不符报错、计算框颜色、无飞行块的一格。`npx vitest run scripts/wiki/figure.test.ts src/content/wiki/DiagramPlayer.test.ts`：2 个文件 37 个测试全部通过。
+- **typecheck**：`pnpm typecheck`（tsc -b --noEmit）退出 0。
+- **lint**：本仓库没有 eslint，`pnpm lint` 是 biome check。结果退出 1：1 个格式错误在 figure.test.ts 第 717 行，是 SP 写手的 SP_TWO 测试（keep 写成一行），不是本页写手的改动；另有 14 条 wiki.css 的选择器顺序警告，与本次无关。EP 写手改动的行格式干净。
+
+**代码 P1：无。代码 P2：无。**
+
+**代码 P3**
+
+1. 清零只能靠「sets 置 0」：add 不能落在空格上、同一格同一步又不能 copy 与 add 混用，于是「原卡留一格从 0 开始加」只能写成本卡计算，渲染器随之描计算框、标成刚写入。这是页面 P2-2 的根因；建议给 sets 的置 0 / 置空单独画法，或允许 add 落空格按 0 起算。
+2. labels 只能每卡相同，表达不了「这张卡这一格用哪个专家」，是页面 P2-1 做不出来的原因；如要补，可加一个按卡给的可选字段，保持现有 labels 行为不变。
+3. 置 0 时 from 沿用原格的来源，若同时开 dots，会显示「这格里有某卡的数」但值是 0；value 为 null 的清空分支、labels 与 dots 同时开的布局都没有测试。
+
+### 未做 / 跳过
+
+- 对照源码一节只 grep 了五个 H3 标题，未逐段读；sources 区、代码块未读。
+- 知乎参考链接未看（写手记录也写了跳过）。
+
+## 二十一、基础讲清审查后修订（09-29）
+
+针对第二十节的 2 条 P2（都在分镜 `expert-parallel-flow` 上）和 5 条页面 P3、3 条代码 P3。
+
+### P2-1：第 ② 格看不出「交给哪个专家、乘了什么」（已修）
+
+- 图上把专家画出来：每张卡上方一排琥珀色小框标着它放的专家（卡 1 是 E2、E3……），四格都在。
+- 第 ② 格里，每个要算的块用一条琥珀色连线指向它交给的那个专家（卡 1 的「我」「了」「苹果」三条连到 E3，「吃」连到 E2）；块下写乘了什么，如「×3 ×0.5」「×2 ×0.6」，前一个是专家的 k，后一个是这个 token 给该专家的组合权重；每格右上角的旁注写「专家 Ek 就是乘 k」。
+- 播放时，第 ② 格的块沿连线飞进专家框（浏览器实测截图 ep-flow-flying3.png），下一格同一位置换成算出的数（3、6、4.5、9……）。不看正文也能读出「2 交给 E3，乘 3 再乘 0.5，得 3」。
+
+### P2-2：「清零待收」被画成本卡计算（已修）
+
+- 删掉了置 0 这一步。按实际机制：原卡上没有这个 token 选中的专家时，dispatch 以后那一格清空，不参与本卡计算（卡 0 的「我」、卡 2 的「了」、卡 3 的「苹果」），第 ② 格里这三格是空的、没有计算框、没有连线。
+- combine 用新的 `sum`：结果送回原卡，空着的格从 0 开始加，「吃」那一格在本卡 E2 的 6 上再加卡 0 送回的 2。终态仍是 7、8、15、14。
+- 正文同步：① 段改成「那一格清空了……不参与本卡计算」；② 段删掉「原卡留一格从 0 开始加」；③ 段写明「空着的格从 0 开始加」；分镜读法一句补上专家框、连线和格下小字的含义。
+
+### 新增图元选项（scripts/wiki/figure.ts，只做加法）
+
+- `experts`（exchanges 级，可选）：每卡一行专家名，画成块上方的一排权重色小框；个数须等于卡数，否则报问题。
+- 本卡计算 `sets` 的两个可选字段：`expert`（用本卡哪个专家，画连线，播放时块飞进专家框；名字不在这张卡的 experts 里就报问题）、`note`（只在这一格显示的块下短注）。
+- 步骤的 `drop`（可选）：这一步之后清空的块，不画计算框；和同一步的收数、计算撞在同一块上会报问题。
+- move 的 `op: sum`：和 add 一样叠加，但目的块空着时从 0 开始。原有 copy / add 的行为、报错都没变。
+- 不给这些字段时排布和原来完全一样：`pnpm wiki:diagrams --check` 241 张图与 spec 一致；collective-communication（10 个分镜）与 sequence-parallel 的分镜在浏览器里点「下一步」照常飞行、换格（regress-*-fly/after.png）。
+- 代码 P3-3 顺手补测试：null 的本卡计算把块置空、labels 与 dots 同开不重叠。新增测试共 4 个（sum/drop 状态、四类报错、专家框与连线与短注渲染、labels+dots）。代码 P3-1、P3-2 由上面的 `sum`、`drop`、`experts`/`expert`/`note` 解决。
+
+### 页面 P3
+
+1. 标题层级：试过把子节降为 H4，浏览器里 h4 没有站点样式（15px、常规字重，和正文一样），看不出是标题，改回 H3；改用标题前缀表明从属：「AllGather 路径：…」「场景 M · 纯 decode：…」「场景 M · 混入长 prefill：…」「场景 M 的每卡账：…」；「这套部署有没有开 EPLB」有外链锚点，原样保留。这三个改名的标题全库无人引用。
+2. 「代价」首句加「按目的地发的时候」。
+3. 重复定义：GLM 第 2 步 token–expert 对改为「沿用前面示意里的定义」；源卡 / 目的卡两个角色改写成「和示意里的卡 1 一样，rank 0 既是源卡……也是目的卡……」；「苹果」calc 的旁注删去「EP 只改变在哪张卡上算」（正文粗体句和常见误解各保留一次）。
+4. 两个示意模型接上：显存账改用和 TP 页、通信账同一个示意模型（hidden 1024、BF16、40 层），设每层 128 个专家、一个专家三块 1024 × 2048 矩阵，新增 calc：一个专家 12 MiB、全部 60 GiB 放不进 32 GB、分 4 卡每卡 15 GiB。
+5. 共享专家一节末句去掉 GLM 数字，只留「GLM 的放法见后文第 4 步」。
+
+### 验证证据
+
+- `npx vitest run scripts/wiki/figure.test.ts src/content/wiki/DiagramPlayer.test.ts`：2 个文件 43 个测试通过。
+- `pnpm typecheck`：退出 0。`pnpm lint`（biome check .）：0 错（只用 biome 修了 figure.ts 里我写的一处格式；14 条 wiki.css 警告与本次无关）。
+- `pnpm wiki:diagrams --check`：241 张一致。`pnpm wiki:lint`：通过。`pnpm wiki:audit`：通过，本页仍达标，正文 32,591 字。
+- 浏览器（Playwright，1440 宽，5193）：expert-parallel 分镜 1/4→2/4→3/4→4/4 全程走通，重拍并覆盖 ep-flow-band1–4.png、ep-flow-flying2.png（dispatch 飞行）、ep-flow-flying3.png（块飞进专家）、expert-parallel-shot-1/-2.png；回归 collective-communication、sequence-parallel 分镜正常，页面无脚本错误。
+
+## 二十二、基础讲清复审（09-29）
+
+独立复审员，只审不改。范围：第二十一节写手对分镜 `expert-parallel-flow` 的修订，以及 exchanges 分镜新增的 `experts`、`drop`、`op: sum`、sets 的 `expert` / `note`。
+
+**分数：9 / 10。** 页面 P1 0 条、P2 0 条、P3 5 条；代码 P1 0 条、P2 0 条、P3 2 条。上一轮两条 P2 都已修掉，分镜里没有一格还是「只有数字在变」。扣 1 分在第 ③ 格看不回「这个数是怎么来的」、第 ② 格飞行时块压住专家名，以及「清空」一词的歧义（见 P3）。
+
+### 逐帧：不看文字能否看出这一格发生了什么（4/4 能）
+
+Playwright（1440 宽，用户预览 5193，未起停服务），截图在 scratchpad：ep-rereview-1…4.png（各格落定）、ep-rereview-2-fly…4-fly.png（点「下一步」后飞行中）、ep-rereview-zoom-card1.png（第 2 格卡 1 放大）。控制台无脚本错误。
+
+| 格 | 看到了什么 | 能否看懂 |
+| --- | --- | --- |
+| 1/4 ① dispatch（ep-rereview-1.png、-2-fly） | 每张卡上方一排琥珀色专家框（卡 0 E0 E1，卡 1 E2 E3，卡 2 E4 E5，卡 3 E6 E7）；源格紫色粗框、落点紫色虚框落在同一个 token 的那一列；7 条箭头各带数（2 去卡 1 和卡 2，5 去卡 0，3 去卡 1 和卡 3，4 去卡 1 和卡 2），飞行时块沿箭头落进虚框 | 能：token 去了哪张卡、落在哪一格一眼可见。看不出「为什么是这张卡」（选中哪个专家只在上面的表里），但下一格的连线补上了 |
+| 2/4 ② 本卡计算（ep-rereview-2.png、-3-fly、zoom-card1） | 卡 0 的「我」、卡 2 的「了」、卡 3 的「苹果」三格是空的，无框无线；其余 8 块描琥珀色粗框，各有一条带箭头的线连到本卡一个专家（卡 1：我、了、苹果 → E3，吃 → E2），块下写「×3 ×0.5」等；点「下一步」时块沿连线飞进专家框 | 能：交给哪个专家（连线 + 飞进去）、乘了什么（×k ×权重）、哪些位置不参与（空格）都在图上。上一轮 P2-1、P2-2 已修 |
+| 3/4 ③ combine（ep-rereview-3.png、-4-fly） | 格里换成算好的 3、6、4.5、9 / 2 / 4、5 / 10.5；原卡空着的格描虚框作落点，「吃」在卡 1 的 6 上也描虚框；7 条箭头带着结果数送回原卡，飞行时两块落进同一虚框 | 能：结果送回哪张卡、哪两份落进同一格相加看得出。第 ② 格的短注和连线在这一格消失，看这一格本身追不回「3 = 2 × 3 × 0.5」（P3-1） |
+| 4/4 结果（ep-rereview-4.png） | 7、8、15、14 实色高亮在各自原卡的那一格，用过的 3、4、4.5、9、2、5、10.5 变淡留在原处 | 能：两份来源淡着留在别的卡上，7 = 3 + 4 等能对回去 |
+
+最能说明机制的是 **ep-rereview-2.png**（连线到专家 + 乘数短注 + 空格不参与）、**ep-rereview-3-fly.png**（块飞进专家框）、**ep-rereview-3.png**（结果送回原卡、两份落进同一虚框）。
+
+### 机制与示意数（全部正确）
+
+- 手算：我 3×2×0.5 = 3、4×2×0.5 = 4，和 7；吃 2×5×0.6 = 6、1×5×0.4 = 2，和 8；了 3×3×0.5 = 4.5、7×3×0.5 = 10.5，和 15；苹果 3×4×0.75 = 9、5×4×0.25 = 5，和 14。四组权重各自和为 1。N_0 = 1、N_1 = 4、N_2 = 2、N_3 = 1，共 8 对。专家所在卡 = ⌊k/2⌋。
+- spec 逐条核对 wiki/diagrams/expert-parallel-flow.yaml：卡序 [卡0, 卡1, 卡3, 卡2] 与 experts 行对应（下标 2 是卡 3 的 E6 E7，下标 3 是卡 2 的 E4 E5）；7 个 dispatch move、3 个 drop、8 个 sets（值、expert、note 都和上面手算一致）、7 个 combine sum、keep 4 格，全部对得上。
+- 口径：data-parallel.md 89 行「去的一次叫 dispatch、回的一次叫 combine」，moe.md 108 行把「每层几次通信」指到本页；本页 158 行「按目的地发的时候……一去一回交换两次」，一致。
+- 源码（tools/repos/vllm-ascend @ db701c1f，vllm_ascend/ops/fused_moe/token_dispatcher.py）：MC2 dispatch 调 `npu_moe_distribute_dispatch(_v2)`，combine 调 `npu_moe_distribute_combine(_v2)` 并传 `expert_scales = topk_weights`，也就是真实路径在 combine 里乘权重。页面 148 行已写「有的实现把乘权重放进 combine，先乘后送和先送后乘结果相同」，299 行 GLM 第 4 步写「combine……加权合成」，不矛盾。
+- 顺带核了写手改的显存账（85–91 行）：3 × 1024 × 2048 × 2 B = 12 MiB，40 × 128 × 12 MiB = 60 GiB，÷4 = 15 GiB、每卡每层 32 个专家，正确。
+
+### 代码（scripts/wiki/figure.ts、figure.test.ts）
+
+- **只做加法**：`experts` 可选，`top = 32 + (experts ? 58 : 0)`、`noteH` 只在有短注时加；`drop` 可选；`op` 枚举加 `sum`，copy / add 的分支和报错原样；sets 的 `expert`、`note` 可选。计算块飞进专家复用现有 `wiki-anim-move`，DiagramPlayer 没改。
+- **校验**：expert 不在本卡 experts 里、experts 行数≠卡数、drop 越界、drop 与收数/计算撞同一块都会报；sum 与 add 混用在同一块会被拦下。
+- **测试**：新增 4 个（sum/drop 状态含空块从 0 起算与叠加、null 置空；四类报错；专家框、连线、飞行块个数、短注只出现一次、清空不描计算框；labels + dots 不重叠）。
+- `npx vitest run scripts/wiki/figure.test.ts src/content/wiki/DiagramPlayer.test.ts`：2 个文件 43 个测试通过。
+- `pnpm typecheck`：无输出，通过。
+- `pnpm lint`（biome check）：退出 0，0 错；14 条警告都在 src/design/wiki.css（noDescendingSpecificity），2 条 info 在 biome.json，与本次无关。
+- `pnpm wiki:diagrams --check`：241 张图与 spec 一致，expert-parallel、collective-communication、sequence-parallel 均无提示。
+
+### 回归
+
+- collective-communication：10 个分镜播放器逐个走完（8 个 2 格、1 个 3 格、1 个 7 格），全程无脚本错误；截图 ep-rereview-regress-cc.png（第一张落到 2/2，两卡都是 [11, 22]，圆点正常）。
+- sequence-parallel：1 个分镜 1/4 → 4/4 走完；截图 ep-rereview-regress-sp.png（第 2 格本卡 RMSNorm，两行描权重色框、rowLabels 正常）。
+- 两页都正常。
+
+### audit
+
+`pnpm wiki:audit` 退出 0：名单 52 页全部达标；本页「写作标准 9950 字 · ✓行内代码 · ✓角标 · ✓对照源码 · ✓calc 0.70/千字 · ✓相邻块 · ✓图先行 · ✓免责 0.3% · ✓图宽」，正文 32,591 字，本地引用行号全部有效。**本页通过。**
+
+### 问题清单
+
+**P1：无。P2：无。**
+
+**页面 P3**
+
+1. **第 ③ 格追不回结果的来历**（ep-rereview-3.png）。第 ② 格的连线和「×3 ×0.5」在下一格全部消失，只看第 ③ 格，「3」「4.5」是怎么来的要靠记忆。可在第 ③ 格保留淡色短注（如「=2×3×0.5」），或把 ② 的结果与算式放在同一格。
+2. **第 ② 格飞行时块压住专家名**（ep-rereview-3-fly.png）。卡 1 四块同时飞向 E2、E3，半途叠在一起盖住「E2」「E3」字样，卡 0、卡 2 也有块盖住专家名。落地后正常，只在飞行那一秒。可让块飞到专家框下沿而不是中心，或飞行时专家框置顶。
+3. **卡 1 两条连线交叉**（ep-rereview-zoom-card1.png）。「我」→ E3 的长斜线从「吃」→ E2 的短线上方穿过，扫一眼可能误读成「我」连 E2；短注「×3」能纠正。可把专家框改成与所连块对齐，或让「我」的线先上后折。
+4. **「清空」一词有歧义**（130 行、图注）。图里这一格空出来，意思是「这一格不进本卡专家的计算」；但原 hidden 并没有删掉，后文 303 行共享分支还用完整输入，残差也要用它。建议写成「这一格不参与本卡专家计算（原 hidden 仍留着给共享专家和残差）」，或把「清空」换成「空出」。
+5. **示意权重都和为 1**。moe.md 129 行专门提醒 GLM 的组合权重乘了缩放系数、和不为 1；本页示意 0.5/0.5、0.6/0.4、0.75/0.25 都和为 1，刚读完 MoE 的人可能疑惑。可选：表下加半句「这里取和为 1 的示意值，实际还要乘缩放系数」。
+
+**代码 P3**
+
+1. `rows > 1` 时没拦 `note` 和 `experts`：短注画在每块下方、会压到下一行；第二行块的连线会穿过第一行。现有 dots / labels 的多行禁用检查（figure.ts 1583 行）可一并加上 note、experts。目前没有页面这样用。
+2. 同一块同一步 add 与 sum 混用被拦下时，报错文字仍是「add 可以叠加，copy 不行」，不说明是混用；这一分支也没有测试。
+
+### 未做 / 跳过
+
+- 页面其余各节只抽查了写手说改过的 P3 位置（85–91、158、233、270、276 行和几个 H3 标题），没有通读。
+- sources 区、HANDBOOK、docs/plans/ 按要求未读。
+
+## 二十三、复审 P3 修订（09-29）
+
+页面 P3 5 条、代码 P3 2 条全部修掉：第 ③ 格用新增的步骤 `notes` 在结果块下留淡色算式（如「2×3×0.5」）；计算块改为升到专家框下沿再横移停靠，不再压住专家名；连线改走「竖—横—竖」直角、每个专家一层横线，不再斜着交叉；「清空」改成「空出来，不进本卡专家的计算，hidden 仍留在原卡给共享专家和残差用」（正文与图注）；路由表下补半句「示意权重和为 1，实际还可能乘缩放系数」并链 MoE 第 ⑤ 步；多行排布时用 experts / 短注会报问题；add 与 sum 混用单独报错并补测试（新增 2 个测试）。格子加宽到 68 放下算式。vitest 45 个、typecheck、pnpm lint（0 错）、wiki:lint、wiki:diagrams --check（241 张一致）、wiki:audit 全过；重截 ep-rereview-2.png、ep-rereview-3.png（另有 ep-rereview-3-fly.png）。

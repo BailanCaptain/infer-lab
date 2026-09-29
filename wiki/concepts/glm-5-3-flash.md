@@ -76,7 +76,7 @@ file: glm-flash-overview
 
 **先看最基础的一层。** 普通 Transformer 的一层有两段子层：attention 段和 MLP 段。两段的套路相同：先用 RMSNorm 把输入缩放到稳定的数值范围，再算子层，最后把子层输出**加回**子层的输入。最后这一步叫 **residual**（残差连接）：输入沿一条不做任何变换的旁路直接送到出口，子层只需要算出「在输入上改多少」。这条旁路从第 0 层一直通到最后一层，所以常叫 residual 流。三个部件的基础讲法见[前馈、残差与 RMSNorm](mlp-residual-norm.md)。
 
-**GLM 把这条旁路扩成四条。** GLM 用 mHC（Manifold-Constrained Hyper-Connections）在层间同时传四条 residual 流，每条宽 4096：每段子层入口先把四条按权重合成一条去算（入口混合），出口再把输出写回四条、旧的四条经 Sinkhorn 约束的 4 × 4 矩阵互相混合（出口混合），一层做两次，第 44 层结束时四条求平均回到一条。为什么要四条、Sinkhorn 管什么、代价多大，见[层与隐藏表示](layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪)。
+**GLM 把这条旁路扩成四条。** GLM 用 mHC（Manifold-Constrained Hyper-Connections）在层间同时传四条 residual 流，每条宽 4096：每段子层入口先把四条按权重合成一条去算（入口混合），出口再把输出写回四条、旧的四条经 Sinkhorn 约束的 4 × 4 矩阵互相混合（出口混合），一层做两次，第 44 层结束时四条求平均回到一条。为什么要四条、Sinkhorn 管什么，见[层与隐藏表示](layers-and-hidden.md#为什么要四条流sinkhorn-又管什么代价在哪)；在 GLM 上代价多大，见[mHC 在 GLM 上多花了什么](layers-and-hidden.md#mhc-在-glm-上多花了什么)。
 
 ```wiki-diagram
 file: glm-flash-layer

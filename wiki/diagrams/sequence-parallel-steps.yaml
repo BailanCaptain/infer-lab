@@ -1,0 +1,50 @@
+layout: figure
+id: sequence-parallel-steps
+caption: 两张卡、4 个 token、隐藏维 H=2，一行是一个 token 的两个数。开始时两张卡各有一份行切得到的部分和；第 1 步 Reduce-Scatter 按位置相加，但只把 token 0、1 的和留在卡 0，token 2、3 的和留在卡 1（灰字是已经发出去、不再算作结果的输入）；第 2 步每张卡只对自己那两行做 RMSNorm，不通信；第 3 步 All-Gather 把各自算好的两行发给对方，两张卡都拼回完整的 4 行。
+size: [880, 980]
+exchanges:
+  - at: [109, 8]
+    cards: [卡 0, 卡 1]
+    slots: 8
+    rows: 4
+    rowLabels: [token 0, token 1, token 2, token 3]
+    cell: [52, 34]
+    gap: [280, 96]
+    tag: 数为示意
+    start:
+      - [1, 3, 3, 1, 2, 2, 8, 15]
+      - [0, 4, 4, 0, 3, 3, 9, 16]
+    steps:
+      - title: 第 1 步 Reduce-Scatter：同位置相加，前两行的和归卡 0，后两行归卡 1
+        moves:
+          - { from: [1, 0], to: [0, 0], op: add }
+          - { from: [1, 1], to: [0, 1], op: add }
+          - { from: [1, 2], to: [0, 2], op: add }
+          - { from: [1, 3], to: [0, 3], op: add }
+          - { from: [0, 4], to: [1, 4], op: add }
+          - { from: [0, 5], to: [1, 5], op: add }
+          - { from: [0, 6], to: [1, 6], op: add }
+          - { from: [0, 7], to: [1, 7], op: add }
+        keep: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 4], [1, 5], [1, 6], [1, 7]]
+      - title: 第 2 步 本卡计算：各自只对自己的两行做 RMSNorm，不通信
+        sets:
+          - { at: [0, 0], value: 0.2 }
+          - { at: [0, 1], value: 1.4 }
+          - { at: [0, 2], value: 1.4 }
+          - { at: [0, 3], value: 0.2 }
+          - { at: [1, 4], value: 1 }
+          - { at: [1, 5], value: 1 }
+          - { at: [1, 6], value: 0.68 }
+          - { at: [1, 7], value: 1.24 }
+        keep: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 4], [1, 5], [1, 6], [1, 7]]
+      - title: 第 3 步 All-Gather：把算好的两行发给对方，拼回 4 行
+        moves:
+          - { from: [0, 0], to: [1, 0] }
+          - { from: [0, 1], to: [1, 1] }
+          - { from: [0, 2], to: [1, 2] }
+          - { from: [0, 3], to: [1, 3] }
+          - { from: [1, 4], to: [0, 4] }
+          - { from: [1, 5], to: [0, 5] }
+          - { from: [1, 6], to: [0, 6] }
+          - { from: [1, 7], to: [0, 7] }
+    end: 结束：两张卡都有 4 行归一化结果，和只用 TP 时算出的一样

@@ -1,0 +1,106 @@
+layout: figure
+id: layers-one-layer
+caption: 一层怎么算（一个位置，hidden 只画 4 个数，数为示意）：左边一列是这条 hidden 本身，右边是两段支路。① 支路先做 RMSNorm；② attention 算出改变量 Δ₁；③ Δ₁ 和原来的 x 按维逐个相加得到 x′；④ MLP 段对 x′ 再做一遍，得到交给下一层的 x″
+size: [900, 360]
+grids:
+  - at: [130, 70]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: solid
+    rowLabels: ['x']
+    colLabels: ['第 1 维', '第 2 维', '第 3 维', '第 4 维']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '2' }
+      - { at: [0, 3], text: '0' }
+  - at: [130, 130]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: faded
+    rowLabels: ['+ Δ₁']
+    cells:
+      - { at: [0, 0], text: '1.2' }
+      - { at: [0, 1], text: '0.6' }
+      - { at: [0, 2], text: '−0.4' }
+      - { at: [0, 3], text: '0.8' }
+  - at: [130, 190]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: solid
+    rowLabels: ['= x′']
+    cells:
+      - { at: [0, 0], text: '3.2' }
+      - { at: [0, 1], text: '1.6' }
+      - { at: [0, 2], text: '1.6' }
+      - { at: [0, 3], text: '0.8' }
+  - at: [130, 250]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: faded
+    rowLabels: ['+ Δ₂']
+    cells:
+      - { at: [0, 0], text: '−0.4' }
+      - { at: [0, 1], text: '0.3' }
+      - { at: [0, 2], text: '0.5' }
+      - { at: [0, 3], text: '−0.2' }
+  - at: [130, 310]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: solid
+    rowLabels: ['= x″']
+    cells:
+      - { at: [0, 0], text: '2.8' }
+      - { at: [0, 1], text: '1.9' }
+      - { at: [0, 2], text: '2.1' }
+      - { at: [0, 3], text: '0.6' }
+  - at: [430, 70]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '1.33' }
+      - { at: [0, 1], text: '0.67' }
+      - { at: [0, 2], text: '1.33' }
+      - { at: [0, 3], text: '0' }
+  - at: [430, 190]
+    rows: 1
+    cols: 4
+    cell: [56, 32]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '1.6' }
+      - { at: [0, 1], text: '0.8' }
+      - { at: [0, 2], text: '0.8' }
+      - { at: [0, 3], text: '0.4' }
+items:
+  - { at: [690, 60], size: [160, 52], text: attention, sub: 取其他位置的信息, tone: weight }
+  - { at: [690, 180], size: [160, 52], text: MLP, sub: 每个位置各自加工, tone: weight }
+links:
+  - { from: [354, 86], to: [426, 86], tone: token }
+  - { from: [654, 86], to: [686, 86], tone: token }
+  - { from: [770, 112], via: [[770, 146]], to: [358, 146], tone: token }
+  - { from: [354, 206], to: [426, 206], tone: token }
+  - { from: [654, 206], to: [686, 206], tone: token }
+  - { from: [770, 232], via: [[770, 266]], to: [358, 266], tone: token }
+texts:
+  - { at: [542, 56], text: RMSNorm：每个数 ÷ 1.5, size: 13, anchor: middle }
+  - { at: [542, 176], text: RMSNorm：每个数 ÷ 2, size: 13, anchor: middle }
+badges:
+  - { at: [424, 64], n: 1 }
+  - { at: [684, 54], n: 2 }
+  - { at: [124, 184], n: 3 }
+  - { at: [684, 174], n: 4 }

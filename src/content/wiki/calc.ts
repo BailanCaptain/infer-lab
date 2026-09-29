@@ -15,8 +15,8 @@
  *   - 说明（`（int8）`、`，占主干 45 层权重的 88%`、单位后面多出来的话 `可用于 KV`）：解释性的话，
  *     版式把它放到这一行下面，所以去掉外层的全角括号或打头的全角逗号。
  * - 结果本身才加粗，只认「数 + 最多两个单位词」，第二个单位词得是英文（`640 个 token`、`2.47 M token`）。
- *   结果本身还是一个算式、后面跟着 `≈ 数` 时（`3,855 × 640 ≈ 2.47 M token`），那个近似数才是结果，
- *   前面的算式退成中间步骤，结果前的符号记成 ≈。
+ *   结果本身不是一个数、后面跟着 `≈ …` 时（`3,855 × 640 ≈ 2.47 M token`、`e¹⁶ ≈ 8,886,111`），
+ *   ≈ 后面的才是结果，前面的算式退成中间步骤，结果前的符号记成 ≈。
  * - 只在 ```calc 里：`> ` 开头的一行是挂在上一项下面的旁注；反斜杠加任意一个字符按字面显示。
  *   现有的 ```text 块是作者当代码写的，反斜杠和 `>` 都照原样。
  */
@@ -185,7 +185,9 @@ function finish(d: Extract<Draft, { kind: "eq" }>): EqRow {
   const tail = splitTail(d.values[d.values.length - 1] ?? "");
   let { result, rel } = tail;
   let resultOp: ResultOp = d.values.length === 1 ? d.op : "=";
-  if (/^≈\s/.test(rel) && isExpression(result)) {
+  // 规则 5：≈ 前面不是一个数就是算式——带运算符的，也包括 `e¹⁶`、`√4096` 这种没有运算符的写法。
+  // 以前只认带运算符的，`= e¹⁶ ≈ 8,886,111` 的近似数留在比较里，而比较只跟着数排，页面上就没了
+  if (/^≈\s/.test(rel) && (isExpression(result) || !isNumericResult(result))) {
     steps.push(result);
     result = rel.replace(/^≈\s+/, "");
     rel = "";

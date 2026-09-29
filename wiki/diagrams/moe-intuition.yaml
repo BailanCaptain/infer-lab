@@ -1,11 +1,11 @@
 layout: figure
 id: moe-intuition
-caption: 一个 token 过一层 MoE：router 给池里每个专家打一个分（虚线连着的是打了分但没选中的），只把这个 token 发给分最高的几个（图里 k=2），各专家算完后按 router 给的权重相加，得到这一层的输出。图里只画 6 个专家，GLM 的实际数量见后面的 GLM 小节。
+caption: 「苹果」这个 token 过一层 MoE（示意）：router 给池里每个专家打一个分（虚线连着的是打了分但没选中的），只把这个 token 发给分最高的几个（图里 k=2），各专家算完后按 router 给的权重相加，得到这一层的输出。图里只画 6 个专家，GLM 的实际数量见后面的 GLM 小节。
 size: [860, 404]
 frames:
   - { label: 专家池 · 图里画 6 个, at: [380, 40], size: [200, 320] }
 items:
-  - { at: [24, 160], size: [140, 54], text: 一个 token, sub: 的隐藏向量, tone: token }
+  - { at: [24, 160], size: [140, 54], text: 「苹果」, sub: 的隐藏向量, tone: token }
   - { at: [196, 160], size: [150, 54], text: router 打分, sub: 每个专家一个分数, tone: control }
   - { at: [394, 56], size: [172, 38], text: 专家 1, tone: weight, style: faded }
   - { at: [394, 104], size: [172, 38], text: 专家 2 · 选中, tone: weight }
@@ -27,8 +27,8 @@ links:
 fans:
   - { from: [346, 187], to: [[394, 123], [394, 219]], tone: token }
 texts:
-  - { at: [24, 24], text: 一个 token · 6 个专家 · 选 2 个（k=2）, strong: true }
+  - { at: [24, 24], text: 「苹果」· 6 个专家 · 选 2 个（k = 2）, strong: true }
   - { at: [24, 240], text: 只有选中的专家收到这个 token, width: 140 }
-  - { at: [618, 112], text: × 权重 1, size: 12.5, tone: weight }
-  - { at: [618, 246], text: × 权重 2, size: 12.5, tone: weight }
+  - { at: [618, 112], text: × 专家 2 的权重, size: 12.5, tone: weight }
+  - { at: [618, 246], text: × 专家 4 的权重, size: 12.5, tone: weight }
   - { at: [24, 378], text: 灰色的 4 个专家这一轮不参与计算，权重仍留在原地, width: 500 }

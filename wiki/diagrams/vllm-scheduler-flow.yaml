@@ -1,0 +1,47 @@
+layout: figure
+id: vllm-scheduler-flow
+caption: 调度器一步里对每条请求走的四关：先扫 running、再扫 waiting，每条都是「还差几个 → 截断 → 借块 → 记账」。running 借不到块就抢占队尾一条再试，抢到自己就结束 running 扫描，这一步也不再接纳 waiting；waiting 借不到或排不下就停止接纳。整步排完才统一把已算数前移、交出结果。
+size: [880, 690]
+items:
+  - { at: [250, 16], size: [380, 56], text: 每一步开头：预算重置为上限, sub: 先扫 running，再扫 waiting, style: plain }
+  - { at: [250, 112], size: [380, 60], text: ① 还差几个位置 = 应算 − 已算, sub: running 含候选与占位，waiting 是没算的提示词, tone: token }
+  - { at: [250, 212], size: [380, 60], text: ② 截断：单条上限 → 剩余预算 → 长度上限, sub: 截完为 0 就跳过这条, tone: token }
+  - { at: [250, 312], size: [380, 60], text: ③ 借块：已算 + 本步 + 候选预留, sub: 各缓存组块数加总，够才一次借出, tone: kv }
+  - { at: [16, 312], size: [210, 60], text: running 借不到块, sub: 抢占队尾一条：还块、清零, tone: danger }
+  - { at: [654, 312], size: [210, 60], text: 停止接纳 waiting, sub: 直接交出本步结果, tone: control }
+  - { at: [250, 412], size: [380, 60], text: ④ 记账：扣掉本步预算, sub: 记下这条本步安排几个 token, tone: token }
+  - { at: [250, 512], size: [380, 56], text: 还有要扫的请求，且预算有余？, sub: 扫 waiting 还要：本步没抢占过、未满员, style: plain }
+  - { at: [250, 612], size: [380, 60], text: 排完：已算数统一前移，交出结果, sub: 每条几个 token、新借的块号、候选 token, style: plain }
+links:
+  - { from: [440, 72], to: [440, 112] }
+  - { from: [440, 172], to: [440, 212] }
+  - { from: [440, 272], to: [440, 312] }
+  - { from: [440, 372], to: [440, 412] }
+  - { from: [440, 472], to: [440, 512] }
+  - { from: [440, 568], to: [440, 612] }
+  - { from: [250, 560], to: [250, 142], via: [[8, 560], [8, 142]] }
+  - { from: [121, 372], to: [250, 520], via: [[121, 520]] }
+  - { from: [250, 342], to: [226, 342] }
+  - { from: [630, 342], to: [654, 342] }
+  - { from: [630, 242], to: [759, 312], via: [[759, 242]] }
+  - { from: [121, 312], to: [300, 312], via: [[121, 292], [300, 292]], dashed: true }
+  - { from: [759, 372], to: [630, 642], via: [[759, 642]] }
+texts:
+  - { at: [60, 552], text: 是, size: 14 }
+  - { at: [452, 596], text: 否, size: 14 }
+  - { at: [452, 398], text: 够, size: 14 }
+  - { at: [640, 232], text: 关了分块且超出余量, size: 13 }
+  - { at: [172, 286], text: 再试, size: 13 }
+  - { at: [130, 452], text: 抢到自己, size: 13 }
+  - { at: [640, 304], text: waiting 借不到, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L376-L416
+    symbols: [num_tokens_with_spec, num_output_placeholders, long_prefill_token_threshold, max_model_len]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L445-L516
+    symbols: [allocate_slots, token_budget]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L563-L568
+    symbols: [preempted_reqs, max_num_running_reqs]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L761-L778
+    symbols: [allocate_slots, full_sequence_must_fit]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1003
+    symbols: [num_computed_tokens]

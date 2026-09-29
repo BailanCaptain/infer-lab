@@ -15,6 +15,8 @@ export interface WikiPage {
   file: string;
   fm: PageFrontmatter;
   body: string;
+  /** 正文第一行在文件里是第几行（1 起）；lint 报行号时换算成文件行号。手工拼的页不给就按正文算 */
+  bodyLine?: number;
 }
 
 export interface PageProblem {
@@ -50,7 +52,9 @@ export function parsePage(file: string, text: string): { page?: WikiPage; proble
   const stem = basename(file, ".md");
   if (stem !== r.data.id)
     problems.push({ file, rule: "id-file", message: `文件名 ${stem} 与 id ${r.data.id} 不一致` });
-  return { page: { file, fm: r.data, body }, problems };
+  // gray-matter 的 content 是原文的后缀，前面有几个换行，正文就从下一行开始
+  const bodyLine = text.slice(0, text.length - body.length).split("\n").length;
+  return { page: { file, fm: r.data, body, bodyLine }, problems };
 }
 
 export function loadPages(wikiRoot: string): { pages: WikiPage[]; problems: PageProblem[] } {

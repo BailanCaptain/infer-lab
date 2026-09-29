@@ -1,42 +1,52 @@
 {
   "size": [
     900,
-    390
+    470
   ],
-  "caption": "等时阶段的理想时序，横轴为任意时间单位，省略传输/采样开销；A₁、A₂ 是相邻生成轮次，B 为独立批次",
+  "caption": "4 段流水线的理想时序（示意：每段算一轮正好一格，忽略交接和采样耗时）；A1、A2 是同一请求相邻两轮，A、B、C、D 是互不相关的批次",
   "texts": [
     {
       "at": [
         30,
-        35
+        32
       ],
-      "text": "单请求：后一轮等待前一轮输出",
+      "text": "只有请求 A：忙 8 格 / 共 32 格 = 25%",
       "strong": true
     },
     {
       "at": [
         30,
-        214
+        262
       ],
-      "text": "两个独立批次：中间时段可以重叠",
+      "text": "A–D 错开进入：忙 26 格 / 共 32 格 ≈ 81%",
       "strong": true
+    },
+    {
+      "at": [
+        870,
+        32
+      ],
+      "text": "灰格 = 气泡（卡在空等）",
+      "anchor": "end",
+      "size": 12
     }
   ],
   "timelines": [
     {
       "at": [
         30,
-        60
+        62
       ],
-      "scale": 118,
+      "scale": 90,
       "start": 0,
-      "end": 6,
+      "end": 8,
+      "ticks": 1,
       "labelW": 110,
-      "laneH": 30,
-      "gap": 13,
+      "laneH": 26,
+      "gap": 8,
       "lanes": [
         {
-          "label": "阶段 0",
+          "label": "卡 0",
           "spans": [
             {
               "from": 0,
@@ -45,22 +55,58 @@
               "text": "A1"
             },
             {
+              "from": 1,
+              "to": 2,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
               "from": 2,
               "to": 3,
-              "tone": "token",
-              "text": "A2"
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "ink",
+              "style": "faded"
             },
             {
               "from": 4,
               "to": 5,
               "tone": "token",
-              "text": "A3"
+              "text": "A2"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "ink",
+              "style": "faded"
             }
           ]
         },
         {
-          "label": "阶段 1",
+          "label": "卡 1",
           "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "ink",
+              "style": "faded"
+            },
             {
               "from": 1,
               "to": 2,
@@ -68,35 +114,172 @@
               "text": "A1"
             },
             {
+              "from": 2,
+              "to": 3,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
               "from": 3,
               "to": 4,
-              "tone": "token",
-              "text": "A2"
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "ink",
+              "style": "faded"
             },
             {
               "from": 5,
               "to": 6,
               "tone": "token",
-              "text": "A3"
+              "text": "A2"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "ink",
+              "style": "faded"
             }
           ]
+        },
+        {
+          "label": "卡 2",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "text": "A1"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "text": "A2"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "ink",
+              "style": "faded"
+            }
+          ]
+        },
+        {
+          "label": "卡 3",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "text": "A1"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "text": "A2"
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "t": 4,
+          "label": "A1 出 token，A2 才能开始"
         }
       ]
     },
     {
       "at": [
         30,
-        238
+        292
       ],
-      "scale": 118,
+      "scale": 90,
       "start": 0,
-      "end": 6,
+      "end": 8,
+      "ticks": 1,
       "labelW": 110,
-      "laneH": 30,
-      "gap": 13,
+      "laneH": 26,
+      "gap": 8,
       "lanes": [
         {
-          "label": "阶段 0",
+          "label": "卡 0",
           "spans": [
             {
               "from": 0,
@@ -109,7 +292,7 @@
               "from": 1,
               "to": 2,
               "tone": "token",
-              "style": "hatch",
+              "style": "faded",
               "text": "B1"
             },
             {
@@ -117,34 +300,54 @@
               "to": 3,
               "tone": "token",
               "style": "solid",
-              "text": "A2"
+              "text": "C1"
             },
             {
               "from": 3,
               "to": 4,
               "tone": "token",
-              "style": "hatch",
-              "text": "B2"
+              "style": "faded",
+              "text": "D1"
             },
             {
               "from": 4,
               "to": 5,
               "tone": "token",
               "style": "solid",
-              "text": "A3"
+              "text": "A2"
             },
             {
               "from": 5,
               "to": 6,
               "tone": "token",
-              "style": "hatch",
-              "text": "B3"
+              "style": "faded",
+              "text": "B2"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "style": "solid",
+              "text": "C2"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "style": "faded",
+              "text": "D2"
             }
           ]
         },
         {
-          "label": "阶段 1",
+          "label": "卡 1",
           "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "ink",
+              "style": "faded"
+            },
             {
               "from": 1,
               "to": 2,
@@ -156,7 +359,7 @@
               "from": 2,
               "to": 3,
               "tone": "token",
-              "style": "hatch",
+              "style": "faded",
               "text": "B1"
             },
             {
@@ -164,23 +367,160 @@
               "to": 4,
               "tone": "token",
               "style": "solid",
-              "text": "A2"
+              "text": "C1"
             },
             {
               "from": 4,
               "to": 5,
               "tone": "token",
-              "style": "hatch",
-              "text": "B2"
+              "style": "faded",
+              "text": "D1"
             },
             {
               "from": 5,
               "to": 6,
               "tone": "token",
               "style": "solid",
-              "text": "A3"
+              "text": "A2"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "style": "faded",
+              "text": "B2"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "style": "solid",
+              "text": "C2"
             }
           ]
+        },
+        {
+          "label": "卡 2",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "token",
+              "style": "solid",
+              "text": "A1"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "style": "faded",
+              "text": "B1"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "style": "solid",
+              "text": "C1"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "style": "faded",
+              "text": "D1"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "style": "solid",
+              "text": "A2"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "style": "faded",
+              "text": "B2"
+            }
+          ]
+        },
+        {
+          "label": "卡 3",
+          "spans": [
+            {
+              "from": 0,
+              "to": 1,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 1,
+              "to": 2,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 2,
+              "to": 3,
+              "tone": "ink",
+              "style": "faded"
+            },
+            {
+              "from": 3,
+              "to": 4,
+              "tone": "token",
+              "style": "solid",
+              "text": "A1"
+            },
+            {
+              "from": 4,
+              "to": 5,
+              "tone": "token",
+              "style": "faded",
+              "text": "B1"
+            },
+            {
+              "from": 5,
+              "to": 6,
+              "tone": "token",
+              "style": "solid",
+              "text": "C1"
+            },
+            {
+              "from": 6,
+              "to": 7,
+              "tone": "token",
+              "style": "faded",
+              "text": "D1"
+            },
+            {
+              "from": 7,
+              "to": 8,
+              "tone": "token",
+              "style": "solid",
+              "text": "A2"
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "t": 3,
+          "label": "从这格起 4 张卡全忙"
         }
       ]
     }

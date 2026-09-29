@@ -1,0 +1,321 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" width="900" height="1100" role="img" aria-label="一个 token 的隐藏向量依次流过 4 段（示意：隐藏向量 2 个数，每过一层每个数加 1）">
+  <title>一个 token 的隐藏向量依次流过 4 段（示意：隐藏向量 2 个数，每过一层每个数加 1）</title>
+  <defs><marker id="pipeline-parallel-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="8" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 0：embedding 查得 [1, 0]，再过第 0、1 层，每个数 +2</text>
+  </g>
+  <text x="854" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="44" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="76" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="82" y="95.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1</text>
+  <rect x="102" y="76" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="122" y="95.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">0</text>
+  <rect x="62" y="76" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 76v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="60.5" y="74.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="100.5" y="74.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="278" y="44" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="76" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="334" y="76" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="294" y="76" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 76v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="510" y="44" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="76" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="566" y="76" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="526" y="76" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 76v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="742" y="44" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="76" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="798" y="76" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="76" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 76v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="144" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 → 卡 1：只发这 2 个数</text>
+  </g>
+  <text x="854" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="180" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="212" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="82" y="231.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <rect x="102" y="212" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="122" y="231.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <rect x="62" y="212" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 212v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="60.5" y="210.5" width="43" height="33" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <rect x="100.5" y="210.5" width="43" height="33" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <rect x="278" y="180" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="212" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="334" y="212" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="294" y="212" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 212v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="297" y="215" width="34" height="24" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <rect x="337" y="215" width="34" height="24" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <rect x="510" y="180" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="212" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="566" y="212" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="526" y="212" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 212v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="742" y="180" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="212" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="798" y="212" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="212" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 212v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <path d="M164 218 L269 218" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pipeline-parallel-flow-ah-comm)"/>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M82 227 L164 218 L269 218 L314 227" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="186.5" y="207" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="201.5" y="222.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text></g></g>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M122 227 L164 218 L269 218 L354 227" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="216.5" y="207" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="231.5" y="222.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text></g></g>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="280" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 过第 2、3 层：每个数 +2</text>
+  </g>
+  <text x="854" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="316" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="348" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="82" y="367.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="102" y="348" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="122" y="367.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="62" y="348" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 348v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="278" y="316" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="348" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="314" y="367.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <rect x="334" y="348" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="354" y="367.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <rect x="294" y="348" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 348v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="292.5" y="346.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="332.5" y="346.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="510" y="316" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="348" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="566" y="348" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="526" y="348" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 348v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="742" y="316" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="348" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="798" y="348" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="348" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 348v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="416" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 → 卡 2</text>
+  </g>
+  <text x="854" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="452" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="484" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="82" y="503.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="102" y="484" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="122" y="503.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="62" y="484" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 484v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="278" y="452" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="484" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="314" y="503.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
+  <rect x="334" y="484" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="354" y="503.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <rect x="294" y="484" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 484v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="292.5" y="482.5" width="43" height="33" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <rect x="332.5" y="482.5" width="43" height="33" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <rect x="510" y="452" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="484" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="566" y="484" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="526" y="484" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 484v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="529" y="487" width="34" height="24" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <rect x="569" y="487" width="34" height="24" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <rect x="742" y="452" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="484" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="798" y="484" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="484" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 484v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <path d="M396 490 L501 490" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pipeline-parallel-flow-ah-comm)"/>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M314 499 L396 490 L501 490 L546 499" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="418.5" y="479" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="433.5" y="494.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text></g></g>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M354 499 L396 490 L501 490 L586 499" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="448.5" y="479" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="463.5" y="494.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text></g></g>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="552" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="574" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 过第 4、5 层：每个数 +2</text>
+  </g>
+  <text x="854" y="574" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="588" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="620" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="82" y="639.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="102" y="620" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="122" y="639.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="62" y="620" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 620v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="278" y="588" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="620" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="314" y="639.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">5</text>
+  <rect x="334" y="620" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="354" y="639.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4</text>
+  <rect x="294" y="620" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 620v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="510" y="588" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="620" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="546" y="639.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
+  <rect x="566" y="620" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="586" y="639.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <rect x="526" y="620" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 620v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="524.5" y="618.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="564.5" y="618.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="742" y="588" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="620" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="798" y="620" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="620" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 620v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="688" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 → 卡 3</text>
+  </g>
+  <text x="854" y="710" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="724" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="746" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="756" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="82" y="775.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="102" y="756" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="122" y="775.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="62" y="756" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 756v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="278" y="724" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="746" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="756" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="314" y="775.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">5</text>
+  <rect x="334" y="756" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="354" y="775.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4</text>
+  <rect x="294" y="756" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 756v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="510" y="724" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="746" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="756" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="546" y="775.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7</text>
+  <rect x="566" y="756" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="586" y="775.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
+  <rect x="526" y="756" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 756v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="524.5" y="754.5" width="43" height="33" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <rect x="564.5" y="754.5" width="43" height="33" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <rect x="742" y="724" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="746" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="756" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="798" y="756" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="756" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 756v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="761" y="759" width="34" height="24" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <rect x="801" y="759" width="34" height="24" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <path d="M628 762 L733 762" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pipeline-parallel-flow-ah-comm)"/>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M546 771 L628 762 L733 762 L778 771" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="650.5" y="751" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="665.5" y="766.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7</text></g></g>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M586 771 L628 762 L733 762 L818 771" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="680.5" y="751" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="695.5" y="766.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text></g></g>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="824" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="846" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 过第 6、7 层：每个数 +2</text>
+  </g>
+  <text x="854" y="846" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="860" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="882" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="892" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="82" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="102" y="892" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="122" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="62" y="892" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 892v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="278" y="860" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="882" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="892" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="314" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">5</text>
+  <rect x="334" y="892" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="354" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4</text>
+  <rect x="294" y="892" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 892v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="510" y="860" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="882" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="892" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="546" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">7</text>
+  <rect x="566" y="892" width="40" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="586" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">6</text>
+  <rect x="526" y="892" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 892v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="742" y="860" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="882" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="892" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="778" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">7</text>
+  <rect x="798" y="892" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="818" y="911.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
+  <rect x="758" y="892" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 892v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="756.5" y="890.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  <rect x="796.5" y="890.5" width="43" height="33" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="2.6"/>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="960" width="900" height="136" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="46" y="982" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 的 [9, 8] 进出口，采样出下一个 token</text>
+  </g>
+  <text x="854" y="982" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="46" y="996" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="62" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 层 0–1</text>
+  <rect x="62" y="1028" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="82" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <rect x="102" y="1028" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="122" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <rect x="62" y="1028" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M102 1028v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="278" y="996" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="294" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 层 2–3</text>
+  <rect x="294" y="1028" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="314" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <rect x="334" y="1028" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="354" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <rect x="294" y="1028" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M334 1028v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="510" y="996" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="526" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2 · 层 4–5</text>
+  <rect x="526" y="1028" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="546" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <rect x="566" y="1028" width="40" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="586" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <rect x="526" y="1028" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M566 1028v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="742" y="996" width="112" height="76" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="758" y="1018" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3 · 层 6–7</text>
+  <rect x="758" y="1028" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="778" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">9</text>
+  <rect x="798" y="1028" width="40" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="818" y="1047.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8</text>
+  <rect x="758" y="1028" width="80" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M798 1028v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  </g>
+</svg>

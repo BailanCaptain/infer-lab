@@ -1,6 +1,6 @@
 layout: figure
 id: quantization
-caption: 对称INT8量化的四个独立数值示例，尺度为0.1；舍入和超过范围后的截断都会改变恢复值
+caption: 四个数按缩放系数 0.1 压成 INT8 再还原（示意）：除以 0.1、舍入成整数，用时乘回 0.1。前三个只差一点舍入误差；13 算出 130，超过上限 127，只能存成 127，还原成 12.7。
 size: [900, 340]
 grids:
   - at: [175, 55]
@@ -42,7 +42,7 @@ grids:
 texts:
   - {at: [40, 83], text: 原始值 x, strong: true}
   - {at: [40, 173], text: 整数 q, strong: true}
-  - {at: [40, 263], text: 恢复值 x̂, strong: true}
+  - {at: [40, 263], text: 还原值 x̂, strong: true}
   - {at: [455, 125], text: "除以0.1 → 舍入 → 截断到 [−128,127]", anchor: middle}
   - {at: [455, 215], text: "乘以0.1", anchor: middle}
   - {at: [455, 319], text: "前三列仅舍入；最后一列130超过上限，保存为127", anchor: middle, note: true}

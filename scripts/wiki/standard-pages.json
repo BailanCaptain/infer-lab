@@ -45,7 +45,17 @@
     "attention-cost",
     "gqa",
     "ops-and-kernels",
-    "prefix-caching"
+    "prefix-caching",
+    "prefill",
+    "vllm-scheduler",
+    "graph-mode-layer",
+    "pd-disaggregation",
+    "pipeline-parallel",
+    "sequence-parallel",
+    "chunked-prefill",
+    "prepare-inputs-flow",
+    "vllm-engine-core",
+    "kv-cache-quantization"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

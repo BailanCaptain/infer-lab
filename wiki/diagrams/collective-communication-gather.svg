@@ -1,0 +1,233 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 696" width="880" height="696" role="img" aria-label="Gather：每张卡各有一块，全部送到根卡 0，按卡号排好；其余卡手里的块只是用过的输入（灰字）。它正好是 Scatter 反过来。">
+  <title>Gather：每张卡各有一块，全部送到根卡 0，按卡号排好；其余卡手里的块只是用过的输入（灰字）。它正好是 Scatter 反过来。</title>
+  <defs><marker id="collective-communication-gather-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="8" width="880" height="344" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="105" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">每张卡把自己那一块发给根卡 0</text>
+  </g>
+  <text x="775" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="105" y="44" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="121" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
+  <rect x="121" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="147" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1</text>
+  <rect x="173" y="76" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="225" y="76" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="277" y="76" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="121" y="76" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M173 76v34M225 76v34M277 76v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="135" cy="119" r="3" fill="var(--color-token, #087f73)"/>
+  <circle cx="143" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="151" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="159" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="187" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="195" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="203" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="211" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="176" y="79" width="46" height="28" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <circle cx="239" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="247" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="255" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="263" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="228" y="79" width="46" height="28" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <circle cx="291" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="299" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="307" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="315" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="280" y="79" width="46" height="28" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="1.6" stroke-dasharray="4 3"/>
+  <rect x="535" y="44" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="551" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
+  <rect x="551" y="76" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="603" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="629" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="655" y="76" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="707" y="76" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="551" y="76" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M603 76v34M655 76v34M707 76v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="565" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="573" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="581" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="589" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="617" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="625" cy="119" r="3" fill="var(--color-token, #087f73)"/>
+  <circle cx="633" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="641" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="601.5" y="74.5" width="55" height="37" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <circle cx="669" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="677" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="685" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="693" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="721" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="729" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="737" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="745" cy="119" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="535" y="234" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="551" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
+  <rect x="551" y="266" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="603" y="266" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="655" y="266" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="681" y="287.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="707" y="266" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="551" y="266" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M603 266v34M655 266v34M707 266v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="565" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="573" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="581" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="589" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="617" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="625" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="633" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="641" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="669" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="677" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="685" cy="309" r="3" fill="var(--color-token, #087f73)"/>
+  <circle cx="693" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="653.5" y="264.5" width="55" height="37" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <circle cx="721" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="729" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="737" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="745" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="105" y="234" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="121" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
+  <rect x="121" y="266" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="173" y="266" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="225" y="266" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="277" y="266" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="303" y="287.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4</text>
+  <rect x="121" y="266" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M173 266v34M225 266v34M277 266v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="135" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="143" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="151" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="159" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="187" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="195" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="203" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="211" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="239" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="247" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="255" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="263" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="291" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="299" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="307" cy="309" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="315" cy="309" r="3" fill="var(--color-token, #087f73)"/>
+  <rect x="275.5" y="264.5" width="55" height="37" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.6"/>
+  <path d="M529 91 L354 91" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-gather-ah-comm)"/>
+  <path d="M543.1 231.6 L339.6 141.6" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-gather-ah-comm)"/>
+  <path d="M225 228 L225 147" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-gather-ah-comm)"/>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M629 93 L529 91 L354 91 L199 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="426.5" y="80" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="441.5" y="95.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text></g></g>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M681 283 L543.1 231.6 L339.6 141.6 L251 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="426.4" y="175.6" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="441.4" y="191.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text></g></g>
+  <g class="wiki-anim-move"><path class="wiki-anim-route" d="M303 283 L225 228 L225 147 L303 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="210" y="176.5" width="30" height="22" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/><text x="225" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text></g></g>
+  </g>
+  <g class="wiki-anim-band">
+  <rect class="wiki-anim-box" x="0" y="352" width="880" height="344" fill="none"/>
+  <g class="wiki-anim-title">
+  <text x="105" y="374" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">通信后：只有根卡 0 收齐 [1, 2, 3, 4]</text>
+  </g>
+  <text x="775" y="374" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
+  <rect x="105" y="388" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="121" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
+  <rect x="121" y="420" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="147" y="441.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1</text>
+  <rect x="173" y="420" width="52" height="34" fill="var(--color-token, #087f73)"/>
+  <text x="199" y="441.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <rect x="225" y="420" width="52" height="34" fill="var(--color-token, #087f73)"/>
+  <text x="251" y="441.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <rect x="277" y="420" width="52" height="34" fill="var(--color-token, #087f73)"/>
+  <text x="303" y="441.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <rect x="121" y="420" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M173 420v34M225 420v34M277 420v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="135" cy="463" r="3" fill="var(--color-token, #087f73)"/>
+  <circle cx="143" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="151" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="159" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="187" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="195" cy="463" r="3" fill="var(--color-token, #087f73)"/>
+  <circle cx="203" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="211" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="239" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="247" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="255" cy="463" r="3" fill="var(--color-token, #087f73)"/>
+  <circle cx="263" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="291" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="299" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="307" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="315" cy="463" r="3" fill="var(--color-token, #087f73)"/>
+  <rect x="535" y="388" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="551" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
+  <rect x="551" y="420" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="603" y="420" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="629" y="441.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <rect x="655" y="420" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="707" y="420" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="551" y="420" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M603 420v34M655 420v34M707 420v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="565" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="573" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="581" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="589" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="617" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="625" cy="463" r="3" fill="var(--color-ink-muted, #66716d)"/>
+  <circle cx="633" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="641" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="669" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="677" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="685" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="693" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="721" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="729" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="737" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="745" cy="463" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="535" y="578" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="551" y="600" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
+  <rect x="551" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="603" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="655" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="681" y="631.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <rect x="707" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="551" y="610" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M603 610v34M655 610v34M707 610v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="565" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="573" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="581" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="589" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="617" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="625" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="633" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="641" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="669" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="677" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="685" cy="653" r="3" fill="var(--color-ink-muted, #66716d)"/>
+  <circle cx="693" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="721" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="729" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="737" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="745" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <rect x="105" y="578" width="240" height="94" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="121" y="600" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
+  <rect x="121" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="173" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="225" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="277" y="610" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="303" y="631.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <rect x="121" y="610" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M173 610v34M225 610v34M277 610v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <circle cx="135" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="143" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="151" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="159" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="187" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="195" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="203" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="211" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="239" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="247" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="255" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="263" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="291" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="299" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="307" cy="653" r="3" fill="none" stroke="var(--color-ink-muted, #66716d)" stroke-opacity="0.7" stroke-width="1"/>
+  <circle cx="315" cy="653" r="3" fill="var(--color-ink-muted, #66716d)"/>
+  </g>
+</svg>

@@ -1,0 +1,62 @@
+layout: figure
+id: layers-what
+caption: hidden 与层的直觉（颜色深浅代表数的大小，数为示意）：每个位置一条 hidden，这里每条只画 4 个数，「她」的起点标出了数值，后文「一层怎么算」就从它算起；每一层读进所有位置的 hidden，交出同样多、同样长的一组新 hidden。第 1 层里「小红」从「借给」取到信息，第 2 层里「她」再从已经更新过的「小红」取信息；最后一层之后，用最后一个位置的 hidden 给下一个词打分
+size: [900, 470]
+items:
+  - { at: [74, 14], size: [72, 34], text: 小明, style: plain }
+  - { at: [154, 14], size: [72, 34], text: 把, style: plain }
+  - { at: [234, 14], size: [72, 34], text: 书, style: plain }
+  - { at: [314, 14], size: [72, 34], text: 借给, style: plain }
+  - { at: [394, 14], size: [72, 34], text: 小红, style: plain }
+  - { at: [474, 14], size: [72, 34], text: ，, style: plain }
+  - { at: [554, 14], size: [72, 34], text: 因为, style: plain }
+  - { at: [634, 14], size: [72, 34], text: 她, style: plain }
+  - { at: [570, 414], size: [200, 40], text: 下一个词的分数, tone: token }
+frames:
+  - { at: [60, 56], size: [660, 34], label: embedding 查表, inside: true }
+  - { at: [60, 126], size: [660, 44], label: 第 1 层：attention + MLP, inside: true }
+  - { at: [60, 208], size: [660, 44], label: 第 2 层, inside: true }
+  - { at: [60, 318], size: [660, 44], label: 最后一层, inside: true }
+heatmaps:
+  - { at: [74, 98], cell: [18, 18], values: [[0.8, 0.2, 0.5, 0.1]], tone: token, min: 0, max: 1 }
+  - { at: [154, 98], cell: [18, 18], values: [[0.1, 0.6, 0.2, 0.3]], tone: token, min: 0, max: 1 }
+  - { at: [234, 98], cell: [18, 18], values: [[0.4, 0.1, 0.9, 0.2]], tone: token, min: 0, max: 1 }
+  - { at: [314, 98], cell: [18, 18], values: [[0.2, 0.9, 0.1, 0.6]], tone: token, min: 0, max: 1 }
+  - { at: [394, 98], cell: [18, 18], values: [[0.7, 0.3, 0.4, 0.1]], tone: token, min: 0, max: 1 }
+  - { at: [474, 98], cell: [18, 18], values: [[0.1, 0.1, 0.2, 0.1]], tone: token, min: 0, max: 1 }
+  - { at: [554, 98], cell: [18, 18], values: [[0.3, 0.5, 0.1, 0.8]], tone: token, min: 0, max: 1 }
+  - { at: [634, 98], cell: [18, 18], values: [[2, 1, 2, 0]], tone: token, min: 0, max: 3, showValues: true }
+  - { at: [74, 180], cell: [18, 18], values: [[0.8, 0.3, 0.5, 0.2]], tone: token, min: 0, max: 1 }
+  - { at: [154, 180], cell: [18, 18], values: [[0.2, 0.6, 0.3, 0.3]], tone: token, min: 0, max: 1 }
+  - { at: [234, 180], cell: [18, 18], values: [[0.4, 0.2, 0.9, 0.3]], tone: token, min: 0, max: 1 }
+  - { at: [314, 180], cell: [18, 18], values: [[0.3, 0.9, 0.2, 0.6]], tone: token, min: 0, max: 1 }
+  - { at: [394, 180], cell: [18, 18], values: [[0.7, 0.8, 0.4, 0.6]], tone: token, min: 0, max: 1 }
+  - { at: [474, 180], cell: [18, 18], values: [[0.1, 0.2, 0.2, 0.2]], tone: token, min: 0, max: 1 }
+  - { at: [554, 180], cell: [18, 18], values: [[0.3, 0.5, 0.2, 0.8]], tone: token, min: 0, max: 1 }
+  - { at: [634, 180], cell: [18, 18], values: [[2.8, 1.9, 2.1, 0.6]], tone: token, min: 0, max: 3 }
+  - { at: [74, 262], cell: [18, 18], values: [[0.8, 0.3, 0.6, 0.2]], tone: token, min: 0, max: 1 }
+  - { at: [154, 262], cell: [18, 18], values: [[0.2, 0.7, 0.3, 0.4]], tone: token, min: 0, max: 1 }
+  - { at: [234, 262], cell: [18, 18], values: [[0.5, 0.2, 0.9, 0.3]], tone: token, min: 0, max: 1 }
+  - { at: [314, 262], cell: [18, 18], values: [[0.3, 0.9, 0.3, 0.7]], tone: token, min: 0, max: 1 }
+  - { at: [394, 262], cell: [18, 18], values: [[0.8, 0.8, 0.4, 0.6]], tone: token, min: 0, max: 1 }
+  - { at: [474, 262], cell: [18, 18], values: [[0.2, 0.2, 0.3, 0.2]], tone: token, min: 0, max: 1 }
+  - { at: [554, 262], cell: [18, 18], values: [[0.4, 0.6, 0.2, 0.8]], tone: token, min: 0, max: 1 }
+  - { at: [634, 262], cell: [18, 18], values: [[0.7, 0.8, 0.4, 0.7]], tone: token, min: 0, max: 1 }
+  - { at: [74, 372], cell: [18, 18], values: [[0.6, 0.4, 0.7, 0.3]], tone: token, min: 0, max: 1 }
+  - { at: [154, 372], cell: [18, 18], values: [[0.3, 0.6, 0.5, 0.4]], tone: token, min: 0, max: 1 }
+  - { at: [234, 372], cell: [18, 18], values: [[0.5, 0.4, 0.8, 0.5]], tone: token, min: 0, max: 1 }
+  - { at: [314, 372], cell: [18, 18], values: [[0.4, 0.8, 0.4, 0.6]], tone: token, min: 0, max: 1 }
+  - { at: [394, 372], cell: [18, 18], values: [[0.7, 0.7, 0.5, 0.7]], tone: token, min: 0, max: 1 }
+  - { at: [474, 372], cell: [18, 18], values: [[0.3, 0.3, 0.4, 0.3]], tone: token, min: 0, max: 1 }
+  - { at: [554, 372], cell: [18, 18], values: [[0.5, 0.6, 0.3, 0.7]], tone: token, min: 0, max: 1 }
+  - { at: [634, 372], cell: [18, 18], values: [[0.9, 0.7, 0.2, 1.0]], tone: token, min: 0, max: 1 }
+links:
+  - { from: [350, 118], to: [428, 178], tone: token }
+  - { from: [432, 200], to: [666, 260], tone: token }
+  - { from: [670, 392], to: [670, 412], tone: token }
+texts:
+  - { at: [736, 112], text: 每个位置一条 hidden, size: 13 }
+  - { at: [736, 153], text: 「小红」读「借给」, size: 13, tone: token }
+  - { at: [736, 235], text: 「她」读「小红」, size: 13, tone: token }
+  - { at: [390, 300], text: ⋮  中间还有几十层, size: 14, anchor: middle }
+  - { at: [736, 386], text: 进出形状始终不变, size: 13 }

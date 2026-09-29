@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { collectStepTerms, lintLog, lintPages } from "./lint";
-import type { WikiPage } from "./pages";
+import { parsePage, type WikiPage } from "./pages";
 
 /** 概念页的合法骨架，让不关心分节的用例不必自己写全七节 */
 const SKELETON = ["一句话", "为什么需要它", "怎么工作", "事实表", "常见误解"]
@@ -470,5 +470,96 @@ describe("lintPages · 可引来源分级", () => {
   it("论文可以撑起 S", () => {
     const paper = mkRaw("a", { sources: ["https://arxiv.org/abs/2309.06180"], evidence: "S" }, body);
     expect(lintPages([paper], opts).map((p) => p.rule)).not.toContain("doc-evidence");
+  });
+});
+
+/**
+ * 标题改名后，别的页指向旧标题的 `xxx.md#旧锚点` 在阅读页上静默失效（prefill、moe 各出过一次，
+ * 都是审查员手工发现的）。锚点必须按阅读页同一条 markdown 管线算，不能另写一套。
+ */
+describe("broken-anchor：链接里的 #锚点 必须是目标页阅读页上真有的 id", () => {
+  const target = mkRaw(
+    "b",
+    {},
+    [
+      "## 新标题",
+      "x",
+      "## `--max-model-len` 为什么是 128K？",
+      "## KV cache 怎么算",
+      "## 怎么开",
+      "## 怎么开",
+      "```text",
+      "## 代码块里的不是标题",
+      "```",
+    ].join("\n"),
+  );
+  const anchors = (body: string) =>
+    lintPages([mkRaw("a", {}, body), target], opts).filter((p) => p.rule === "broken-anchor");
+
+  it("跨页锚点：目标页标题改名后，指向旧标题的链接报错，给出行号与失效锚点", () => {
+    const bad = anchors("## 一节\n\n见 [b](b.md#旧标题)。");
+    expect(bad).toHaveLength(1);
+    expect(bad[0]?.file).toBe("concepts/a.md");
+    expect(bad[0]?.message).toContain("第 3 行");
+    expect(bad[0]?.message).toContain("#旧标题");
+    expect(bad[0]?.message).toContain("concepts/b.md");
+  });
+
+  it("与阅读页同一套规则：小写、去全角标点、空格变 -、行内代码按文字、同名依次加 -1", () => {
+    expect(
+      anchors(
+        "[1](b.md#新标题) [2](b.md#--max-model-len-为什么是-128k) [3](b.md#kv-cache-怎么算) [4](b.md#怎么开) [5](b.md#怎么开-1)",
+      ),
+    ).toEqual([]);
+    expect(anchors("[x](b.md#怎么开-2)")).toHaveLength(1);
+    // 阅读页按 id 精确查找，大小写不同就跳不到
+    expect(anchors("[x](b.md#KV-cache-怎么算)")).toHaveLength(1);
+    // 带全角问号的原文不是锚点
+    expect(anchors("[x](b.md#--max-model-len-为什么是-128k？)")).toHaveLength(1);
+  });
+
+  it("百分号编码的锚点按解码后比对", () => {
+    expect(anchors(`[x](b.md#${encodeURIComponent("新标题")})`)).toEqual([]);
+    expect(anchors(`[x](b.md#${encodeURIComponent("旧标题")})`)).toHaveLength(1);
+  });
+
+  it("本页锚点 (#x) 查本页的标题", () => {
+    expect(anchors("## 本页一节\n[上](#本页一节)")).toEqual([]);
+    expect(anchors("## 本页一节\n[上](#别的一节)")).toHaveLength(1);
+  });
+
+  it("代码块里的标题不生成锚点，代码里的链接不算链接；引用式链接照样检查", () => {
+    expect(anchors("[x](b.md#代码块里的不是标题)")).toHaveLength(1);
+    expect(anchors("```\n[x](b.md#旧标题)\n```\n\n`[y](b.md#旧标题)`")).toEqual([]);
+    expect(anchors("见 [b][r]。\n\n[r]: b.md#旧标题")).toHaveLength(1);
+  });
+
+  it("指向非页面文件、外链的锚点不归这条管", () => {
+    expect(anchors("[r](../raw/a.md#L3) [w](https://example.org/a#b)")).toEqual([]);
+  });
+
+  it("行号是文件里的行号，算上 frontmatter", () => {
+    const text = [
+      "---",
+      "id: a",
+      "title: A",
+      "type: concept",
+      "summary: s",
+      'chapters: ["11"]',
+      "sources:",
+      "  - https://docs.vllm.ai/projects/ascend/en/latest/index.html",
+      'evidence: "S"',
+      "updated: 2026-09-07",
+      "---",
+      "",
+      "## 一节",
+      "见 [b](b.md#旧标题)。",
+      "",
+    ].join("\n");
+    const page = parsePage("concepts/a.md", text).page;
+    if (!page) throw new Error("frontmatter 应当合法");
+    const bad = lintPages([page, target], opts).filter((p) => p.rule === "broken-anchor");
+    expect(bad).toHaveLength(1);
+    expect(bad[0]?.message).toContain("第 14 行");
   });
 });

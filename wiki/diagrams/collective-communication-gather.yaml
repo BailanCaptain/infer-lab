@@ -1,0 +1,24 @@
+layout: figure
+id: collective-communication-gather
+caption: Gather：每张卡各有一块，全部送到根卡 0，按卡号排好；其余卡手里的块只是用过的输入（灰字）。它正好是 Scatter 反过来。
+size: [880, 696]
+exchanges:
+  - at: [105, 8]
+    cards: [卡 0, 卡 1, 卡 2, 卡 3]
+    slots: 4
+    gap: [190, 96]
+    dots: true
+    tag: 数为示意
+    start:
+      - [1, null, null, null]
+      - [null, 2, null, null]
+      - [null, null, 3, null]
+      - [null, null, null, 4]
+    steps:
+      - title: 每张卡把自己那一块发给根卡 0
+        moves:
+          - { from: [1, 1], to: [0, 1] }
+          - { from: [2, 2], to: [0, 2] }
+          - { from: [3, 3], to: [0, 3] }
+        keep: [[0, 0], [0, 1], [0, 2], [0, 3]]
+    end: 通信后：只有根卡 0 收齐 [1, 2, 3, 4]

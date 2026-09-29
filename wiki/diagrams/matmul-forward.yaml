@@ -5,9 +5,9 @@ size: [860, 760]
 items:
   - { at: [220, 25], size: [420, 50], text: A3 准备输入 → A4 各层前向, tone: control, style: plain }
   - { at: [220, 110], size: [420, 60], text: attention → mHC 写回与再次混合, sub: MLP 入口归一化后选择层型, tone: token }
-  - { at: [50, 245], size: [400, 62], text: 稠密 MLP · gate_up_proj, sub: 合并 gate 和 up 的本卡投影, tone: weight }
-  - { at: [50, 355], size: [400, 62], text: act_fn · SwiGLU, sub: 先限制 gate/up，再算 SiLU(gate) × up, tone: token }
-  - { at: [50, 465], size: [400, 62], text: down_proj → All-Reduce, sub: 本卡降维部分和 → 组内合齐, tone: comm }
+  - { at: [50, 245], size: [400, 62], text: 稠密 MLP · 合并 gate/up 投影, sub: 合并 gate 和 up 的本卡投影, tone: weight }
+  - { at: [50, 355], size: [400, 62], text: 门控 · SwiGLU, sub: 先限制 gate/up，再算 SiLU(gate) × up, tone: token }
+  - { at: [50, 465], size: [400, 62], text: down 投影 → All-Reduce, sub: 本卡降维部分和 → 组内合齐, tone: comm }
   - { at: [510, 245], size: [300, 90], text: MoE 分支, sub: 选择专家并计算，另加共享结果, tone: weight, style: plain }
   - { at: [220, 595], size: [420, 60], text: mHC 写回残差流 → 后续层, sub: 三个逻辑投影的输出重新进入层间状态, tone: token }
   - { at: [220, 690], size: [420, 45], text: 全部层结束 → A5 采样与草拟, tone: control, style: plain }

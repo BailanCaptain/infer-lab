@@ -1,4 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { CalcBlock } from "./CalcBlock";
 import { isNumericResult, parseCalc, parseCalcFence, splitExpr, textFenceAsCalc } from "./calc";
 
 describe("```calc 围栏：一行一条算式", () => {
@@ -249,6 +252,19 @@ describe("```calc 语法规范（docs/wiki-calc-syntax.md）", () => {
       result: "2.47 M token",
       resultOp: "≈",
     });
+    // ≈ 前面不是一个数就算「算式」，不只认带空格运算符的：幂、根号、函数都是（attention-qkv 的写手撞到过）
+    expect(eq("不缩放的权重比 = e¹⁶ ≈ 8,886,111")).toMatchObject({
+      steps: ["e¹⁶"],
+      result: "8,886,111",
+      resultOp: "≈",
+      rel: "",
+    });
+    expect(eq("缩放因子 = √4096 ≈ 64")).toMatchObject({ steps: ["√4096"], result: "64", resultOp: "≈" });
+    expect(textFenceAsCalc("不缩放的权重比   = e¹⁶ ≈ 8,886,111")?.[0]).toMatchObject({
+      steps: ["e¹⁶"],
+      result: "8,886,111",
+      resultOp: "≈",
+    });
   });
 
   it("规则 6 结果后的比较（≤ ≥ ≈ < >）跟在结果下面", () => {
@@ -422,5 +438,33 @@ describe("现有 ```text 算式块：P3 验收发现的两块", () => {
       result: "30.00 GiB",
       note: "可用于 KV",
     });
+  });
+});
+
+/** 按阅读页的算式块组件渲染，取出读者看到的文字 */
+function shown(source: string): string {
+  const { rows, title } = parseCalcFence(source);
+  return renderToStaticMarkup(createElement(CalcBlock, { rows, title }))
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+describe("算式块排版：解析出来的每一段都要显示，不能被吞掉", () => {
+  it("结果是数：算式、≈ 与近似数、比较、旁注都在", () => {
+    const text = shown("不缩放的权重比 = e¹⁶ ≈ 8,886,111\n每块号 = 8,355,840 B ≈ 7.969 MiB（每张卡）");
+    for (const part of ["e¹⁶", "≈", "8,886,111", "8,355,840 B", "≈ 7.969 MiB", "每张卡"])
+      expect(text, part).toContain(part);
+  });
+
+  it("结果不是数：结果后面的比较照样显示", () => {
+    const text = shown("每卡 token 数 = ceil(N / 8) ≤ 128");
+    for (const part of ["ceil(N / 8)", "≤", "128"]) expect(text, part).toContain(part);
+  });
+
+  it("结果不是数、≈ 后面也不是数：≈ 和它后面的字都在，不改成 =", () => {
+    const text = shown("两种写法 = 先乘后加 ≈ 先加后乘");
+    expect(text).toContain("先乘后加 ≈ 先加后乘");
   });
 });

@@ -1,0 +1,120 @@
+layout: figure
+id: embedding-split
+caption: 示意：6 行的小表按行切给 2 张卡，每张卡给自己手里的行从 0 编号（行标左边是本卡行号，右边是整表编号）；编号 [0, 2, 3] 两张卡都收到。卡 0 查到位置 0、1，位置 2 的编号 3 不归它，整行填 0；卡 1 只查到位置 2，它自己的第 0 行就是整表第 3 行。All-Reduce 逐格相加后，每张卡各得一份和单卡查表一样的 [3, 4]
+size: [900, 450]
+texts:
+  - { at: [20, 30], text: '本轮编号 [0, 2, 3] 同时发给两张卡', strong: true }
+  - { at: [772, 172], text: All-Reduce：逐格相加, anchor: middle, tone: comm, strong: true }
+frames:
+  - { label: 卡 0：存整表第 0～2 行, at: [20, 50], size: [620, 180], inside: true }
+  - { label: 卡 1：存整表第 3～5 行, at: [20, 250], size: [620, 180], inside: true }
+grids:
+  - at: [150, 100]
+    rows: 3
+    cols: 4
+    cell: [46, 30]
+    tone: weight
+    style: faded
+    rowLabels: ['本卡 0：0 我', '本卡 1：1 你', '本卡 2：2 喜欢']
+    label: 本卡存的 3 行
+    cells:
+      - { at: [0, 0], text: '0.2', style: solid }
+      - { at: [0, 1], text: '−0.1', style: solid }
+      - { at: [0, 2], text: '0.5', style: solid }
+      - { at: [0, 3], text: '0.3', style: solid }
+      - { at: [1, 0], text: '0.1' }
+      - { at: [1, 1], text: '0.4' }
+      - { at: [1, 2], text: '−0.2' }
+      - { at: [1, 3], text: '0.6' }
+      - { at: [2, 0], text: '−0.3', style: solid }
+      - { at: [2, 1], text: '0.8', style: solid }
+      - { at: [2, 2], text: '0.1', style: solid }
+      - { at: [2, 3], text: '0.0', style: solid }
+  - at: [420, 100]
+    rows: 3
+    cols: 4
+    cell: [46, 30]
+    tone: token
+    style: solid
+    rowLabels: ['位置 0', '位置 1', '位置 2']
+    label: 查到的结果，不归本卡的填 0
+    cells:
+      - { at: [0, 0], text: '0.2' }
+      - { at: [0, 1], text: '−0.1' }
+      - { at: [0, 2], text: '0.5' }
+      - { at: [0, 3], text: '0.3' }
+      - { at: [1, 0], text: '−0.3' }
+      - { at: [1, 1], text: '0.8' }
+      - { at: [1, 2], text: '0.1' }
+      - { at: [1, 3], text: '0.0' }
+      - { at: [2, 0], text: '0', style: plain }
+      - { at: [2, 1], text: '0', style: plain }
+      - { at: [2, 2], text: '0', style: plain }
+      - { at: [2, 3], text: '0', style: plain }
+  - at: [150, 300]
+    rows: 3
+    cols: 4
+    cell: [46, 30]
+    tone: weight
+    style: faded
+    rowLabels: ['本卡 0：3 猫', '本卡 1：4 看', '本卡 2：5 。']
+    label: 本卡存的 3 行
+    cells:
+      - { at: [0, 0], text: '0.7', style: solid }
+      - { at: [0, 1], text: '0.2', style: solid }
+      - { at: [0, 2], text: '−0.4', style: solid }
+      - { at: [0, 3], text: '0.9', style: solid }
+      - { at: [1, 0], text: '0.5' }
+      - { at: [1, 1], text: '−0.6' }
+      - { at: [1, 2], text: '0.3' }
+      - { at: [1, 3], text: '−0.1' }
+      - { at: [2, 0], text: '0.0' }
+      - { at: [2, 1], text: '−0.2' }
+      - { at: [2, 2], text: '0.6' }
+      - { at: [2, 3], text: '0.4' }
+  - at: [420, 300]
+    rows: 3
+    cols: 4
+    cell: [46, 30]
+    tone: token
+    style: solid
+    rowLabels: ['位置 0', '位置 1', '位置 2']
+    label: 查到的结果，不归本卡的填 0
+    cells:
+      - { at: [0, 0], text: '0', style: plain }
+      - { at: [0, 1], text: '0', style: plain }
+      - { at: [0, 2], text: '0', style: plain }
+      - { at: [0, 3], text: '0', style: plain }
+      - { at: [1, 0], text: '0', style: plain }
+      - { at: [1, 1], text: '0', style: plain }
+      - { at: [1, 2], text: '0', style: plain }
+      - { at: [1, 3], text: '0', style: plain }
+      - { at: [2, 0], text: '0.7' }
+      - { at: [2, 1], text: '0.2' }
+      - { at: [2, 2], text: '−0.4' }
+      - { at: [2, 3], text: '0.9' }
+  - at: [680, 185]
+    rows: 3
+    cols: 4
+    cell: [46, 30]
+    tone: token
+    style: solid
+    label: 每张卡各得一份完整的 [3, 4]
+    cells:
+      - { at: [0, 0], text: '0.2' }
+      - { at: [0, 1], text: '−0.1' }
+      - { at: [0, 2], text: '0.5' }
+      - { at: [0, 3], text: '0.3' }
+      - { at: [1, 0], text: '−0.3' }
+      - { at: [1, 1], text: '0.8' }
+      - { at: [1, 2], text: '0.1' }
+      - { at: [1, 3], text: '0.0' }
+      - { at: [2, 0], text: '0.7' }
+      - { at: [2, 1], text: '0.2' }
+      - { at: [2, 2], text: '−0.4' }
+      - { at: [2, 3], text: '0.9' }
+links:
+  - { from: [338, 145], to: [362, 145] }
+  - { from: [338, 345], to: [362, 345] }
+  - { from: [604, 145], to: [676, 222], via: [[650, 145], [650, 222]], tone: comm }
+  - { from: [604, 345], to: [676, 238], via: [[650, 345], [650, 238]], tone: comm }

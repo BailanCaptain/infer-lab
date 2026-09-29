@@ -1,0 +1,84 @@
+layout: figure
+id: embedding-intuition
+caption: 「我喜欢猫」切成 3 个 token，编号 0、2、3（示意）。embedding 按编号到嵌入表里各取一行，得到 3 条向量，交给模型第 1 层。这里每条画 4 个数，数是编的；真实模型每条有几千个数
+size: [880, 260]
+texts:
+  - { at: [40, 56], text: 切出的 token, strong: true }
+  - { at: [184, 56], text: 编号, strong: true }
+  - { at: [520, 56], text: 取出的向量, strong: true }
+items:
+  - { at: [40, 77], size: [96, 36], text: 我, tone: token, style: faded }
+  - { at: [40, 137], size: [96, 36], text: 喜欢, tone: token, style: faded }
+  - { at: [40, 192], size: [96, 36], text: 猫, tone: token, style: faded }
+  - { at: [184, 77], size: [64, 36], text: '0', tone: token }
+  - { at: [184, 137], size: [64, 36], text: '2', tone: token }
+  - { at: [184, 192], size: [64, 36], text: '3', tone: token }
+  - { at: [800, 70], size: [64, 163], text: 第 1 层, tone: ink, style: plain }
+grids:
+  - at: [340, 84]
+    rows: 6
+    cols: 4
+    cell: [28, 22]
+    tone: weight
+    style: empty
+    rowLabels: ['0', '1', '2', '3', '4', '5']
+    label: 嵌入表：编号是几就取第几行
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 1], style: solid }
+      - { at: [0, 2], style: solid }
+      - { at: [0, 3], style: solid }
+      - { at: [2, 0], style: solid }
+      - { at: [2, 1], style: solid }
+      - { at: [2, 2], style: solid }
+      - { at: [2, 3], style: solid }
+      - { at: [3, 0], style: solid }
+      - { at: [3, 1], style: solid }
+      - { at: [3, 2], style: solid }
+      - { at: [3, 3], style: solid }
+  - at: [520, 77]
+    rows: 1
+    cols: 4
+    cell: [60, 36]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '0.2' }
+      - { at: [0, 1], text: '−0.1' }
+      - { at: [0, 2], text: '0.5' }
+      - { at: [0, 3], text: '0.3' }
+  - at: [520, 137]
+    rows: 1
+    cols: 4
+    cell: [60, 36]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '−0.3' }
+      - { at: [0, 1], text: '0.8' }
+      - { at: [0, 2], text: '0.1' }
+      - { at: [0, 3], text: '0.0' }
+  - at: [520, 192]
+    rows: 1
+    cols: 4
+    cell: [60, 36]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '0.7' }
+      - { at: [0, 1], text: '0.2' }
+      - { at: [0, 2], text: '−0.4' }
+      - { at: [0, 3], text: '0.9' }
+links:
+  - { from: [136, 95], to: [184, 95] }
+  - { from: [136, 155], to: [184, 155] }
+  - { from: [136, 210], to: [184, 210] }
+  - { from: [248, 95], to: [316, 95] }
+  - { from: [248, 155], to: [316, 139], via: [[282, 155], [282, 139]] }
+  - { from: [248, 210], to: [316, 161], via: [[298, 210], [298, 161]] }
+  - { from: [452, 95], to: [520, 95], tone: token }
+  - { from: [452, 139], to: [520, 155], via: [[478, 139], [478, 155]], tone: token }
+  - { from: [452, 161], to: [520, 210], via: [[496, 161], [496, 210]], tone: token }
+  - { from: [760, 95], to: [800, 95], tone: token }
+  - { from: [760, 155], to: [800, 155], tone: token }
+  - { from: [760, 210], to: [800, 210], tone: token }

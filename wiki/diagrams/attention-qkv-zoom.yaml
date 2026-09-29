@@ -1,0 +1,121 @@
+layout: figure
+id: attention-qkv-zoom
+caption: 放大两个数（数为示意）：左边把 q₂ 和 k₀ 抽出来，对应位置相乘再全部相加，得到点积表里的 4；右边把三个 v 的第 3 个数抽出来，各乘自己的权重再相加，得到 o₂ 的第 3 个数 1.58
+size: [900, 300]
+grids:
+  - at: [110, 56]
+    rows: 1
+    cols: 4
+    cell: [44, 32]
+    tone: token
+    style: solid
+    rowLabels: ['q₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '0' }
+      - { at: [0, 3], text: '1' }
+  - at: [110, 96]
+    rows: 1
+    cols: 4
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    rowLabels: ['k₀']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '0' }
+      - { at: [0, 3], text: '0' }
+  - at: [110, 170]
+    rows: 1
+    cols: 4
+    cell: [44, 32]
+    tone: control
+    style: plain
+    rowLabels: ['相乘']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '0' }
+      - { at: [0, 3], text: '0' }
+  - at: [400, 170]
+    rows: 1
+    cols: 3
+    cell: [44, 32]
+    tone: token
+    style: faded
+    colLabels: ['k₀', 'k₁', 'k₂']
+    label: 位置 2 的点积
+    cells:
+      - { at: [0, 0], text: '4', style: solid }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '0' }
+  - at: [630, 70]
+    rows: 3
+    cols: 1
+    cell: [44, 32]
+    tone: kv
+    style: solid
+    rowLabels: ['v₀', 'v₁', 'v₂']
+    colLabels: ['第 3 个']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [1, 0], text: '1' }
+      - { at: [2, 0], text: '0' }
+  - at: [714, 70]
+    rows: 3
+    cols: 1
+    cell: [52, 32]
+    tone: token
+    style: solid
+    colLabels: ['权重']
+    cells:
+      - { at: [0, 0], text: '0.67' }
+      - { at: [1, 0], text: '0.24' }
+      - { at: [2, 0], text: '0.09' }
+  - at: [806, 70]
+    rows: 3
+    cols: 1
+    cell: [52, 32]
+    tone: control
+    style: plain
+    colLabels: ['相乘']
+    cells:
+      - { at: [0, 0], text: '1.34' }
+      - { at: [1, 0], text: '0.24' }
+      - { at: [2, 0], text: '0' }
+  - at: [630, 250]
+    rows: 1
+    cols: 4
+    cell: [44, 32]
+    tone: token
+    style: faded
+    rowLabels: ['o₂']
+    cells:
+      - { at: [0, 0], text: '0.76' }
+      - { at: [0, 1], text: '0.33' }
+      - { at: [0, 2], text: '1.58', style: solid }
+      - { at: [0, 3], text: '0.42' }
+nodes:
+  - { at: [342, 186], r: 18, text: Σ }
+  - { at: [832, 208], r: 18, text: Σ }
+links:
+  - { from: [132, 130], to: [132, 166] }
+  - { from: [176, 130], to: [176, 166] }
+  - { from: [220, 130], to: [220, 166] }
+  - { from: [264, 130], to: [264, 166] }
+  - { from: [288, 186], to: [322, 186] }
+  - { from: [362, 186], to: [396, 186], tone: token }
+  - { from: [832, 168], to: [832, 188] }
+  - { from: [814, 208], via: [[740, 208]], to: [740, 246], tone: token }
+dividers:
+  - { from: [570, 20], to: [570, 285] }
+texts:
+  - { at: [40, 30], text: 一个点积：q₂ 和 k₀, strong: true }
+  - { at: [290, 152], text: 对应位置相乘, size: 13 }
+  - { at: [342, 232], text: 全部相加, size: 13, anchor: middle }
+  - { at: [600, 30], text: 输出的一个数：o₂ 的第 3 个数, strong: true }
+  - { at: [694, 125], text: ×, size: 16, anchor: middle }
+  - { at: [786, 125], text: '=', size: 16, anchor: middle }
+  - { at: [878, 246], text: 全部相加, size: 13, anchor: end }

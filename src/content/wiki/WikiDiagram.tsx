@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CollectiveDemo } from "./CollectiveDemo";
+import { DiagramPlayer } from "./DiagramPlayer";
 
 /**
  * 渲染正文里的 ```wiki-diagram 围栏。
@@ -153,6 +153,9 @@ function useScrollHint() {
 
 export function WikiDiagram({ id, svg }: { id: string; svg: string | undefined }) {
   const safe = useMemo(() => (svg ? sanitizeDiagram(svg) : null), [svg]);
+  // React 19 只要 {__html} 换了个对象就重写 innerHTML：滚动提示的状态一变，整张 SVG 就被重新注入，
+  // 分镜播放器裁好的画布和飞到一半的块都会被冲掉。对象跟着 safe 走，图没变就不重写。
+  const html = useMemo(() => ({ __html: safe ?? "" }), [safe]);
   const caption = svg ? captionOf(svg) : "";
   const hint = useScrollHint();
   if (!safe) {
@@ -186,10 +189,11 @@ export function WikiDiagram({ id, svg }: { id: string; svg: string | undefined }
           // 画布能横滚时它就是一个可聚焦的滚动区：键盘用户也要能左右看
           {...(hint.scrollable ? { tabIndex: 0, role: "group", "aria-label": caption || id } : {})}
           // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitizeDiagram 按白名单重建，只留几何与排版
-          dangerouslySetInnerHTML={{ __html: safe }}
+          dangerouslySetInnerHTML={html}
         />
       </div>
-      {id === "collective-communication" ? <CollectiveDemo /> : null}
+      {/* 分镜图（exchanges）一次显示一格、块沿箭头飞；普通图这里什么也不渲染 */}
+      <DiagramPlayer id={id} host={hint.ref} svg={safe} />
       {caption ? <figcaption>{caption}</figcaption> : null}
     </figure>
   );

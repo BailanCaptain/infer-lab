@@ -1,0 +1,152 @@
+layout: figure
+id: moe-router-calc
+caption: 接着「苹果」的例子（数为示意）：上面四排从 router 算出的 z 一路算到选人分数 s + b，按 s + b 选中专家 2、4（只看 s 会选 2、3）；组合权重却回到没加偏置的 s 去取 0.88 和 0.73，先归一化、再乘 2；最后两个专家的输出按 1.09 和 0.91 加权相加。
+size: [900, 520]
+grids:
+  - at: [210, 74]
+    rows: 1
+    cols: 6
+    cell: [72, 34]
+    tone: ink
+    style: plain
+    colLabels: ['专家 1', '专家 2', '专家 3', '专家 4', '专家 5', '专家 6']
+    cells:
+      - { at: [0, 0], text: '−1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '1.5' }
+      - { at: [0, 3], text: '1' }
+      - { at: [0, 4], text: '−2' }
+      - { at: [0, 5], text: '0.5' }
+  - at: [210, 116]
+    rows: 1
+    cols: 6
+    cell: [72, 34]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '0.27' }
+      - { at: [0, 1], text: '0.88', style: solid }
+      - { at: [0, 2], text: '0.82' }
+      - { at: [0, 3], text: '0.73', style: solid }
+      - { at: [0, 4], text: '0.12' }
+      - { at: [0, 5], text: '0.62' }
+  - at: [210, 158]
+    rows: 1
+    cols: 6
+    cell: [72, 34]
+    tone: control
+    style: plain
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '−0.2', style: faded }
+      - { at: [0, 3], text: '+0.1', style: faded }
+      - { at: [0, 4], text: '0' }
+      - { at: [0, 5], text: '0' }
+  - at: [210, 200]
+    rows: 1
+    cols: 6
+    cell: [72, 34]
+    tone: control
+    style: faded
+    cells:
+      - { at: [0, 0], text: '0.27' }
+      - { at: [0, 1], text: '0.88', style: solid }
+      - { at: [0, 2], text: '0.62' }
+      - { at: [0, 3], text: '0.83', style: solid }
+      - { at: [0, 4], text: '0.12' }
+      - { at: [0, 5], text: '0.62' }
+  - at: [210, 340]
+    rows: 1
+    cols: 2
+    cell: [72, 34]
+    tone: token
+    style: solid
+    label: 取出专家 2、4 的 s
+    cells:
+      - { at: [0, 0], text: '0.88' }
+      - { at: [0, 1], text: '0.73' }
+  - at: [460, 340]
+    rows: 1
+    cols: 2
+    cell: [72, 34]
+    tone: token
+    style: faded
+    rowLabels: ['÷ 1.61 =']
+    label: 归一化，和为 1
+    cells:
+      - { at: [0, 0], text: '0.547' }
+      - { at: [0, 1], text: '0.453' }
+  - at: [680, 340]
+    rows: 1
+    cols: 2
+    cell: [72, 34]
+    tone: token
+    style: solid
+    rowLabels: ['× 2 =']
+    label: 组合权重，和为 2
+    cells:
+      - { at: [0, 0], text: '1.09' }
+      - { at: [0, 1], text: '0.91' }
+  - at: [120, 440]
+    rows: 1
+    cols: 4
+    cell: [44, 34]
+    tone: token
+    style: faded
+    rowLabels: ['1.09 ×']
+    label: 专家 2 的输出 E₂(x)
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '2', style: solid }
+      - { at: [0, 3], text: '−1' }
+  - at: [420, 440]
+    rows: 1
+    cols: 4
+    cell: [44, 34]
+    tone: token
+    style: faded
+    rowLabels: ['+ 0.91 ×']
+    label: 专家 4 的输出 E₄(x)
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '1', style: solid }
+      - { at: [0, 3], text: '1' }
+  - at: [650, 440]
+    rows: 1
+    cols: 4
+    cell: [56, 34]
+    tone: token
+    style: faded
+    rowLabels: ['=']
+    label: 路由分支的输出
+    cells:
+      - { at: [0, 0], text: '1.09' }
+      - { at: [0, 1], text: '1.82' }
+      - { at: [0, 2], text: '3.09', style: solid }
+      - { at: [0, 3], text: '−0.18' }
+items:
+  - { at: [270, 258], size: [240, 34], text: 选中：专家 2、专家 4, tone: control }
+links:
+  - { from: [318, 234], to: [318, 258], tone: control }
+  - { from: [462, 234], to: [462, 258], tone: control }
+  - { from: [300, 292], to: [300, 340], tone: control, dashed: true }
+  - { from: [210, 133], via: [[190, 133], [190, 357]], to: [210, 357], tone: token }
+badges:
+  - { at: [32, 91], n: 1 }
+  - { at: [32, 133], n: 2 }
+  - { at: [32, 175], n: 3 }
+  - { at: [422, 322], n: 4 }
+  - { at: [651, 322], n: 5 }
+  - { at: [32, 457], n: 6 }
+texts:
+  - { at: [24, 30], text: 「苹果」· 6 个专家 · 选 2 个（数为示意）, strong: true }
+  - { at: [50, 96], text: router 算出 z }
+  - { at: [660, 96], text: 专家 2：x · 第 2 列 = 2, size: 12.5 }
+  - { at: [50, 138], text: 原始分数 s, tone: token }
+  - { at: [50, 180], text: 偏置 b, tone: control }
+  - { at: [50, 222], text: 选人分数 s + b, tone: control, strong: true }
+  - { at: [308, 320], text: 按编号取, size: 12.5, tone: control }
+  - { at: [180, 300], text: 从 s 这一排取数, size: 12.5, tone: token, anchor: end }

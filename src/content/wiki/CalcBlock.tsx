@@ -62,7 +62,8 @@ function Expr({ text }: { text: string }) {
 function Row({ row }: { row: CalcRow }) {
   if (row.kind === "gap") return <div className="wiki-calc-gap" aria-hidden="true" />;
   if (row.kind === "text") return <p className="wiki-calc-text">{row.text}</p>;
-  // 结果是一个数才进结果栏；`input_ids [4] → [4, 4096]` 这种文字结果留在算式栏里
+  // 结果是一个数才进结果栏；`input_ids [4] → [4, 4096]` 这种文字结果留在算式栏里，
+  // 它前面的符号（可能是 ≈）和后面的比较也跟着留在算式栏，不能因为不进结果栏就丢掉
   const numeric = isNumericResult(row.result);
   const chain = numeric ? row.steps : [...row.steps, row.result];
   return (
@@ -75,12 +76,15 @@ function Row({ row }: { row: CalcRow }) {
             {i > 0 && (
               <>
                 {" "}
-                <span className="wiki-calc-op">=</span>{" "}
+                <span className="wiki-calc-op">
+                  {!numeric && i === chain.length - 1 ? row.resultOp : "="}
+                </span>{" "}
               </>
             )}
             <Expr text={step} />
           </Fragment>
         ))}
+        {!numeric && row.rel && <Expr text={` ${row.rel}`} />}
       </span>
       {numeric && (
         <>

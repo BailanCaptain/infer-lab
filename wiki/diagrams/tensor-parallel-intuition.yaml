@@ -1,6 +1,6 @@
 layout: figure
 id: tensor-parallel-intuition
-caption: N 张卡合算一对矩阵：每卡用同一份 X 乘第一个矩阵的列片，得到数值完整的几列；逐元素激活后，直接乘第二个矩阵的对应行片，产生完整形状的部分和。最后只做一次 All-Reduce，每卡得到完整 Y。卡 2 与卡 N 之间省略其余卡。
+caption: N 张卡合算一对矩阵：每卡用同一份 X 乘第一个矩阵的列片，得到数值完整的几列；逐元素激活后，直接乘第二个矩阵的对应行片，产生完整形状的部分和。最后只做一次 All-Reduce，每卡得到完整 Y。卡 1 与卡 N−1 之间省略其余卡。
 size: [880, 360]
 frames:
   - { at: [130, 55], size: [389, 259], label: 列切 → 本地激活 → 行切：中间不用通信 }
@@ -45,15 +45,15 @@ links:
   - { from: [628, 280], to: [659, 198], via: [[642, 280], [642, 198]], tone: comm }
   - { from: [776, 185], to: [803, 185], tone: comm }
 texts:
-  - { at: [142, 20], text: 第一个矩阵：列切, size: 13, strong: true }
-  - { at: [397, 20], text: 第二个矩阵：行切, size: 13, strong: true }
-  - { at: [554, 20], text: 形状完整, size: 13, strong: true }
-  - { at: [554, 39], text: 数值是部分和, size: 13 }
+  - { at: [142, 15], text: 第一个矩阵：列切, size: 13, strong: true }
+  - { at: [397, 15], text: 第二个矩阵：行切, size: 13, strong: true }
+  - { at: [554, 15], text: 形状完整, size: 13, strong: true }
+  - { at: [554, 33], text: 数值是部分和, size: 13 }
   - { at: [801, 136], text: 每张卡, size: 13, strong: true }
-  - { at: [134, 142], text: 卡 1, size: 12 }
-  - { at: [134, 227], text: 卡 2, size: 12 }
+  - { at: [160, 69], text: 卡 0, size: 12 }
+  - { at: [160, 154], text: 卡 1, size: 12 }
   - { at: [314, 242], text: ⋮ }
-  - { at: [134, 300], text: 卡 N, size: 12 }
+  - { at: [160, 249], text: 卡 N−1, size: 12 }
   - { at: [141, 337], text: 竖条：输出列片, size: 13 }
   - { at: [276, 337], text: 数值完整、形状不全, size: 13, strong: true }
   - { at: [427, 337], text: 横条：输入行片, size: 13 }

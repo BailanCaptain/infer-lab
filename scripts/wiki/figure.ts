@@ -397,6 +397,110 @@ export const figureSpecSchema = z
           .strict(),
       )
       .default([]),
+    /**
+     * 集合通信分镜（2026-09-29）：几张卡，每卡一个张量切成一排块；每一步写清谁把哪一块发给谁，
+     * copy 是覆盖目的块，add 是加进目的块。块里的数由渲染器按步骤算出来，作者只写初值和收发。
+     * 渲染成一步一格、从上往下排的分镜：每格画「这一步之前各卡手里有什么 + 要发的块停在箭头上」，
+     * 最后一格画结果。页面上由播放器一次只显示一格，播放时每个块沿箭头从源块飞到目的块
+     * （src/content/wiki/DiagramPlayer.tsx）。一张图最多一个分镜，也不和别的零件同图：播放器按格裁切。
+     */
+    exchanges: z
+      .array(
+        z
+          .object({
+            at: point,
+            /** 卡的名字，按环的顺序：第一排从左往右，第二排从右往左，正好顺时针一圈 */
+            cards: z.array(z.string().min(1)).min(2).max(8),
+            /** 每排几张卡；不给时 3 张以内排一排，再多分两排 */
+            perRow: int.min(1).max(8).optional(),
+            /** 每卡切成几块，每块画多宽多高。一排最多 8 块；用 rows 排成多行时最多 16 块（比如 4 个 token × 4 维） */
+            slots: int.min(1).max(16),
+            cell: point.default([52, 34]),
+            /** 卡与卡之间的横、竖间距：箭头和路上的块画在这里 */
+            gap: point.default([150, 96]),
+            /** 每卡每块的初值；null 是空着的接收位置 */
+            start: z.array(z.array(z.number().nullable()).min(1)).min(2),
+            /** 每块下面一排小圆点，一张卡一个：实心表示这块里已经加进了那张卡的数 */
+            dots: z.boolean().default(false),
+            /** 每格标题右边的小字，比如「数为示意」 */
+            tag: z.string().optional(),
+            /** 每块下面的小字，每张卡相同，写这一格装的是谁（2026-09-29 EP 页加，比如一格一个 token） */
+            labels: z.array(z.string().min(1)).optional(),
+            /**
+             * 每卡的张量排成几行（2026-09-29 SP 页加）：给了就把 slots 块排成 rows 行、每行 slots / rows 块，
+             * 第 k 块落在第 floor(k / 每行块数) 行。一行一个 token、一列一个隐藏维时用它；不给就是一排。
+             * 多行时不能再用 dots 和 labels（它们画在每块下面，会压到下一行）。
+             */
+            rows: int.min(1).max(8).optional(),
+            /** 多行时每行左边的小字，写这一行是谁（比如 token 0）；个数等于 rows */
+            rowLabels: z.array(z.string().min(1)).optional(),
+            /**
+             * 每张卡上放着的专家（2026-09-29 EP 页加）：画成卡里块上方的一排权重色小框，个数等于卡数。
+             * 本卡计算（sets）写了 expert 时，块和这个专家之间连一条线，播放时块飞进专家。
+             */
+            experts: z.array(z.array(z.string().min(1)).min(1)).optional(),
+            steps: z
+              .array(
+                z
+                  .object({
+                    title: z.string().min(1),
+                    moves: z
+                      .array(
+                        z
+                          .object({
+                            from: z.tuple([int.min(0), int.min(0)]),
+                            to: z.tuple([int.min(0), int.min(0)]),
+                            /**
+                             * copy 覆盖目的块；add 加进目的块（目的块不能空）；
+                             * sum（2026-09-29 EP 页加）也是加进目的块，但目的块空着时从 0 开始加，用于「结果送回原卡加起来」
+                             */
+                            op: z.enum(["copy", "add", "sum"]).default("copy"),
+                          })
+                          .strict(),
+                      )
+                      .default([]),
+                    /**
+                     * 本卡计算（2026-09-29 EP 页加）：这一步不通信，卡把自己手里的某一块换成算出来的数，
+                     * null 是清空。和 moves 至少写一样；同一块在同一步里不能既收数又计算。
+                     */
+                    sets: z
+                      .array(
+                        z
+                          .object({
+                            at: z.tuple([int.min(0), int.min(0)]),
+                            value: z.number().nullable(),
+                            /** 用本卡哪个专家算（名字要在 experts 里这张卡那一行） */
+                            expert: z.string().min(1).optional(),
+                            /** 这一格里写在这块标签下面的短注，比如乘了什么「×3 ×0.5」 */
+                            note: z.string().min(1).optional(),
+                          })
+                          .strict(),
+                      )
+                      .default([]),
+                    /** 这一步之后清空的块（2026-09-29 EP 页加）：不参与后面的计算，不画计算框，下一格空着 */
+                    drop: z.array(z.tuple([int.min(0), int.min(0)])).optional(),
+                    /**
+                     * 这一格里写在块下面的淡色短注（2026-09-29 EP 页加），比如「这个数是怎么算来的」；
+                     * 和 sets 的 note 画在同一行，同一块只能有一条
+                     */
+                    notes: z
+                      .array(
+                        z.object({ at: z.tuple([int.min(0), int.min(0)]), text: z.string().min(1) }).strict(),
+                      )
+                      .optional(),
+                    /** 这一步之后算「结果」的块；给了就把其余有数的块淡掉（只是用过的输入） */
+                    keep: z.array(z.tuple([int.min(0), int.min(0)])).optional(),
+                  })
+                  .strict(),
+              )
+              .min(1),
+            /** 最后一格（结果）的标题 */
+            end: z.string().min(1),
+          })
+          .strict(),
+      )
+      .max(1)
+      .default([]),
     /** 热力图：一格一个真实数值，颜色越深数越大 */
     heatmaps: z
       .array(
@@ -708,6 +812,193 @@ function axisLabels(
     if (s) text(r, x0 - 10, y0 + k * (ch + gap) + ch / 2 + 4.5, s, { size: 13, anchor: "end" });
   for (const [k, s] of colLabels.entries())
     if (s) text(r, x0 + k * (cw + gap) + cw / 2, y0 - 10, s, { size: 12.5, fill: MUTED, anchor: "middle" });
+}
+
+type ExchangeSpec = FigureSpec["exchanges"][number];
+
+/** 分镜里一块在某一格的样子：数、加进过哪几张卡的数、是否只是用过的输入、是否这一步刚写入 */
+export interface ExchangeSlot {
+  value: number | null;
+  from: number[];
+  dim: boolean;
+  fresh: boolean;
+}
+
+/**
+ * 按步骤算出每一格各卡手里的块：第 0 格是初值，第 k 格是做完第 k 步。
+ * 同一步里的收发同时发生，全都按这一步之前的值算；几条 add 可以落在同一块上（直接归约），
+ * copy 只能写一次。收发不成立（越界、源块空、add 到空块……）记成问题，不抛异常。
+ */
+export function exchangeStates(ex: ExchangeSpec): { states: ExchangeSlot[][][]; problems: string[] } {
+  const problems: string[] = [];
+  const n = ex.cards.length;
+  if (ex.start.length !== n) problems.push(`初值有 ${ex.start.length} 行，卡有 ${n} 张`);
+  for (const [c, row] of ex.start.entries())
+    if (row.length !== ex.slots) problems.push(`初值第 ${c} 行有 ${row.length} 块，每卡应有 ${ex.slots} 块`);
+  let cur: ExchangeSlot[][] = ex.cards.map((_, c) =>
+    Array.from({ length: ex.slots }, (_, s) => {
+      const v = ex.start[c]?.[s] ?? null;
+      return { value: v, from: v === null ? [] : [c], dim: false, fresh: false };
+    }),
+  );
+  const states = [cur];
+  const inRange = (c: number, s: number) => c < n && s < ex.slots;
+  for (const [k, step] of ex.steps.entries()) {
+    const next = cur.map((row) => row.map((s) => ({ ...s, from: [...s.from], fresh: false })));
+    const written = new Map<string, "copy" | "add" | "sum">();
+    for (const m of step.moves) {
+      const [fc, fs] = m.from;
+      const [tc, ts] = m.to;
+      const where = `第 ${k + 1} 步 卡${fc}.块${fs} → 卡${tc}.块${ts}`;
+      if (!inRange(fc, fs) || !inRange(tc, ts)) {
+        problems.push(`${where}：卡号或块号越界`);
+        continue;
+      }
+      if (fc === tc) {
+        problems.push(`${where}：卡自己发给自己不算通信`);
+        continue;
+      }
+      const src = cur[fc]![fs]!;
+      if (src.value === null) {
+        problems.push(`${where}：源块是空的`);
+        continue;
+      }
+      const key = `${tc}.${ts}`;
+      const prev = written.get(key);
+      if (prev && prev !== m.op && prev !== "copy" && m.op !== "copy") {
+        problems.push(`${where}：同一块在这一步混用了 add 和 sum，只能用其中一种`);
+        continue;
+      }
+      if (prev && (prev !== m.op || m.op === "copy")) {
+        problems.push(`${where}：同一块在这一步被写了两次（add 可以叠加，copy 不行）`);
+        continue;
+      }
+      written.set(key, m.op);
+      const dst = next[tc]![ts]!;
+      if (m.op === "add") {
+        if (cur[tc]![ts]!.value === null) {
+          problems.push(`${where}：add 的目的块是空的，应该用 copy`);
+          continue;
+        }
+        dst.value = (dst.value ?? 0) + src.value;
+        dst.from = [...new Set([...dst.from, ...src.from])].sort((a, b) => a - b);
+      } else if (m.op === "sum") {
+        // 和 add 一样叠加，只是目的块空着时从 0 开始
+        dst.value = (dst.value ?? 0) + src.value;
+        dst.from = [...new Set([...dst.from, ...src.from])].sort((a, b) => a - b);
+      } else {
+        dst.value = src.value;
+        dst.from = [...src.from];
+      }
+      dst.fresh = true;
+      dst.dim = false;
+    }
+    // 本卡计算：按这一步之前的值换成新数；和收发一样同时发生
+    if (!step.moves.length && !step.sets.length) problems.push(`第 ${k + 1} 步既没有收发也没有本卡计算`);
+    const computed = new Set<string>();
+    for (const s of step.sets) {
+      const [c, i] = s.at;
+      const where = `第 ${k + 1} 步 卡${c}.块${i} 本卡计算`;
+      if (!inRange(c, i)) {
+        problems.push(`${where}：卡号或块号越界`);
+        continue;
+      }
+      const key = `${c}.${i}`;
+      if (written.has(key)) {
+        problems.push(`${where}：这一块这一步同时收到别的卡发来的数`);
+        continue;
+      }
+      if (computed.has(key)) {
+        problems.push(`${where}：同一块在这一步算了两次`);
+        continue;
+      }
+      computed.add(key);
+      if (s.expert !== undefined && !ex.experts?.[c]?.includes(s.expert))
+        problems.push(`${where}：卡${c} 上没有专家「${s.expert}」（先在 experts 里写上）`);
+      const before = cur[c]![i]!;
+      const dst = next[c]![i]!;
+      dst.value = s.value;
+      dst.from = s.value === null ? [] : before.value === null ? [c] : [...before.from];
+      dst.fresh = s.value !== null;
+      dst.dim = false;
+    }
+    // 清空：这一块不参与后面的计算，下一格空着
+    for (const [c, i] of step.drop ?? []) {
+      const where = `第 ${k + 1} 步 卡${c}.块${i} 清空`;
+      if (!inRange(c, i)) {
+        problems.push(`${where}：卡号或块号越界`);
+        continue;
+      }
+      const key = `${c}.${i}`;
+      if (written.has(key) || computed.has(key)) {
+        problems.push(`${where}：这一块这一步已经收数或计算，不能同时清空`);
+        continue;
+      }
+      next[c]![i] = { value: null, from: [], dim: false, fresh: false };
+    }
+    if (step.keep) {
+      const keep = new Set<string>();
+      for (const [c, s] of step.keep) {
+        if (!inRange(c, s)) problems.push(`第 ${k + 1} 步 keep 里的卡${c}.块${s} 越界`);
+        keep.add(`${c}.${s}`);
+      }
+      for (const [c, row] of next.entries())
+        for (const [s, slot] of row.entries())
+          if (keep.has(`${c}.${s}`)) slot.dim = false;
+          else if (slot.value !== null) slot.dim = true;
+    }
+    states.push(next);
+    cur = next;
+  }
+  return { states, problems };
+}
+
+/** 分镜的排布：卡框大小、每格多高、每张卡落在第几排第几列（第二排从右往左，绕成一圈） */
+function exchangeLayout(ex: ExchangeSpec) {
+  const n = ex.cards.length;
+  const perRow = ex.perRow ?? (n <= 3 ? n : Math.ceil(n / 2));
+  const rows = Math.ceil(n / perRow);
+  const cols = Math.min(n, perRow);
+  const [sw, sh] = ex.cell;
+  const [hg, vg] = ex.gap;
+  // 卡里的张量：gr 行 × gc 列；不给 rows 时 gr=1、gc=slots、lw=0，和一排的画法完全一样
+  const gr = ex.rows ?? 1;
+  const gc = Math.ceil(ex.slots / gr);
+  const lw = ex.rowLabels?.length ? Math.max(...ex.rowLabels.map((s) => textWidth(s, 12))) + 10 : 0;
+  const cw = 32 + lw + gc * sw;
+  // 专家框一排画在块上方，和块之间留出连线的地方；有短注时每块下面再多一行。都不给时与原来一样
+  const top = 32 + (ex.experts ? 58 : 0);
+  const noteH = ex.steps.some((s) => s.sets.some((t) => t.note) || s.notes?.length) ? 15 : 0;
+  const ch = top + gr * sh + (ex.dots ? 14 : 0) + (ex.labels ? 16 : 0) + noteH + 14;
+  const head = 36;
+  const bandH = head + rows * ch + (rows - 1) * vg + 24;
+  const place = (c: number) => {
+    const row = Math.floor(c / perRow);
+    const k = c % perRow;
+    return { row, col: row % 2 === 0 ? k : perRow - 1 - k };
+  };
+  /** 第 s 块在卡里张量的哪一格（相对张量左上角的偏移） */
+  const cellAt = (s: number) => [(s % gc) * sw, Math.floor(s / gc) * sh] as const;
+  return {
+    n,
+    rows,
+    cols,
+    sw,
+    sh,
+    hg,
+    vg,
+    gr,
+    gc,
+    lw,
+    cw,
+    ch,
+    top,
+    head,
+    bandH,
+    width: cols * cw + (cols - 1) * hg,
+    place,
+    cellAt,
+  };
 }
 
 function paint(spec: FigureSpec): Run {
@@ -1283,6 +1574,320 @@ function paint(spec: FigureSpec): Run {
     }
   }
 
+  // ---- 集合通信分镜：一步一格从上往下排。每格先画各卡手里的块，再画箭头，最后画停在箭头上的块
+  for (const [i, ex] of spec.exchanges.entries()) {
+    const base = `exchanges[${i}]`;
+    r.where = base;
+    const others = Object.entries(spec).filter(
+      ([k, v]) => !["exchanges", "pins", "size"].includes(k) && Array.isArray(v) && v.length > 0,
+    );
+    if (others.length)
+      r.tight.push(
+        `${base}：分镜图不能再放别的零件（${others.map(([k]) => k).join("、")}），播放器按格裁切会把它们裁掉`,
+      );
+    const L = exchangeLayout(ex);
+    if (L.rows > 2) r.tight.push(`${base}：卡最多排两排才绕得成一圈，现在要排 ${L.rows} 排`);
+    const { states, problems } = exchangeStates(ex);
+    for (const p of problems) r.tight.push(`${base}：${p}`);
+    if (ex.labels && ex.labels.length !== ex.slots)
+      r.tight.push(`${base}：labels 有 ${ex.labels.length} 个，每卡有 ${ex.slots} 块`);
+    if (ex.rows !== undefined && ex.slots % ex.rows !== 0)
+      r.tight.push(`${base}：${ex.slots} 块排不成 ${ex.rows} 行（要能整除）`);
+    if (L.gr > 1 && (ex.dots || ex.labels))
+      r.tight.push(`${base}：排成多行时不能再用 dots 和 labels，它们会压到下一行；每行是谁写进 rowLabels`);
+    if (L.gr > 1 && (ex.experts || ex.steps.some((s) => s.sets.some((t) => t.note) || s.notes?.length)))
+      r.tight.push(`${base}：排成多行时不能再用 experts 和短注：短注会压到下一行，下一行的连线会穿过上一行`);
+    for (const [k, s] of ex.steps.entries())
+      for (const n of s.notes ?? []) {
+        if (n.at[0] >= ex.cards.length || n.at[1] >= ex.slots)
+          r.tight.push(`${base}：第 ${k + 1} 步短注的卡${n.at[0]}.块${n.at[1]} 越界`);
+        if (s.sets.some((t) => t.note && t.at[0] === n.at[0] && t.at[1] === n.at[1]))
+          r.tight.push(`${base}：第 ${k + 1} 步卡${n.at[0]}.块${n.at[1]} 有两条短注`);
+      }
+    if (ex.rowLabels && ex.rowLabels.length !== L.gr)
+      r.tight.push(`${base}：rowLabels 有 ${ex.rowLabels.length} 个，张量有 ${L.gr} 行`);
+    if (L.gr === 1 && ex.slots > 8)
+      r.tight.push(`${base}：一排最多 8 块，现在 ${ex.slots} 块；多了用 rows 排成几行`);
+    const [ax, ay] = ex.at;
+    const frameOf = (c: number, by: number) => {
+      const { row, col } = L.place(c);
+      return { x: ax + col * (L.cw + L.hg), y: by + L.head + row * (L.ch + L.vg) };
+    };
+    const slotCenter = (c: number, s: number, by: number) => {
+      const f = frameOf(c, by);
+      const [dx, dy] = L.cellAt(s);
+      return [f.x + 16 + L.lw + dx + L.sw / 2, f.y + L.top + dy + L.sh / 2] as const;
+    };
+    /** 卡 c 的第 j 个专家框：一排居中放在块的正上方 */
+    const expertBox = (c: number, j: number, by: number) => {
+      const f = frameOf(c, by);
+      const m = ex.experts?.[c]?.length ?? 1;
+      const inner = L.gc * L.sw;
+      const w = Math.min(96, (inner - (m - 1) * 12) / m);
+      const x0 = f.x + 16 + L.lw + (inner - (m * w + (m - 1) * 12)) / 2;
+      return { x: x0 + j * (w + 12), y: f.y + 32, w, h: 24 };
+    };
+    if (ex.experts && ex.experts.length !== L.n)
+      r.tight.push(`${base}：experts 有 ${ex.experts.length} 行，卡有 ${L.n} 张`);
+    /** 从卡框中心出发、平移 (px, py) 的那条线，沿 u 方向走出卡框要走多远 */
+    const exit = (ux: number, uy: number, px: number, py: number) =>
+      Math.min(
+        ux > 0 ? (L.cw / 2 - px) / ux : ux < 0 ? (-L.cw / 2 - px) / ux : Number.POSITIVE_INFINITY,
+        uy > 0 ? (L.ch / 2 - py) / uy : uy < 0 ? (-L.ch / 2 - py) / uy : Number.POSITIVE_INFINITY,
+      );
+    for (const [b, state] of states.entries()) {
+      const by = ay + b * L.bandH;
+      const step = ex.steps[b];
+      const band = `${base} 第 ${b + 1} 格`;
+      r.parts.push(`<g class="wiki-anim-band">`);
+      r.parts.push(
+        `<rect class="wiki-anim-box" x="0" y="${round(by)}" width="${spec.size[0]}" height="${round(L.bandH)}" fill="none"/>`,
+      );
+      r.where = `${band} 标题`;
+      r.parts.push(`<g class="wiki-anim-title">`);
+      text(r, ax, by + 22, step ? step.title : ex.end, { size: 14.5, weight: 700 });
+      r.parts.push("</g>");
+      if (ex.tag) {
+        r.where = `${band} 旁注`;
+        text(r, ax + L.width, by + 22, ex.tag, { size: 12.5, fill: MUTED, anchor: "end" });
+      }
+      const sending = new Set(step?.moves.map((m) => `${m.from[0]}.${m.from[1]}`) ?? []);
+      const landing = new Set(step?.moves.map((m) => `${m.to[0]}.${m.to[1]}`) ?? []);
+      const computing = new Set(step?.sets.map((s) => `${s.at[0]}.${s.at[1]}`) ?? []);
+      // 本卡计算写了用哪个专家：块沿连线飞进专家框（播放器按 wiki-anim-move 统一处理）
+      const computeMovers: string[] = [];
+      for (const [c, name] of ex.cards.entries()) {
+        r.where = `${band} ${name}`;
+        const f = frameOf(c, by);
+        r.parts.push(
+          `<rect x="${round(f.x)}" y="${round(f.y)}" width="${L.cw}" height="${L.ch}" rx="16" fill="none" stroke="${FRAME}" stroke-width="1.5"/>`,
+        );
+        text(r, f.x + 16, f.y + 22, name, { size: 13, weight: 700 });
+        for (const [j, e] of (ex.experts?.[c] ?? []).entries()) {
+          r.where = `${band} ${name} 专家 ${e}`;
+          const b = expertBox(c, j, by);
+          r.parts.push(
+            `<rect x="${round(b.x)}" y="${round(b.y)}" width="${round(b.w)}" height="${b.h}" rx="6" fill="${SOFT.weight}" stroke="${COLOR.weight}" stroke-width="1.3"/>`,
+          );
+          fitted(r, r.where, e, 12.5, b.w - 8);
+          text(r, b.x + b.w / 2, b.y + 16.5, e, {
+            size: 12.5,
+            weight: 700,
+            fill: DEEP.weight,
+            anchor: "middle",
+            ink: false,
+          });
+          box(r, r.where, b.x, b.y, b.w, b.h);
+        }
+        r.where = `${band} ${name}`;
+        const tx = f.x + 16 + L.lw;
+        const ty = f.y + L.top;
+        const tw = L.gc * L.sw;
+        const th = L.gr * L.sh;
+        for (const [k, s] of (ex.rowLabels ?? []).entries())
+          text(r, tx - 8, ty + k * L.sh + L.sh / 2 + 4.5, s, { size: 12, fill: MUTED, anchor: "end" });
+        const row = state[c] ?? [];
+        for (const [s, slot] of row.entries()) {
+          const x = tx + L.cellAt(s)[0];
+          const y = ty + L.cellAt(s)[1];
+          const fill = slot.value === null || slot.dim ? SURFACE : slot.fresh ? COLOR.token : SOFT.token;
+          r.parts.push(
+            `<rect x="${round(x)}" y="${round(y)}" width="${L.sw}" height="${L.sh}" fill="${fill}"/>`,
+          );
+          if (slot.value === null) continue;
+          const v = num(slot.value);
+          fitted(r, `${band} ${name} 第 ${s} 块`, v, 13, L.sw - 6);
+          text(r, x + L.sw / 2, y + L.sh / 2 + 4.6, v, {
+            size: 13,
+            weight: slot.fresh ? 700 : 600,
+            fill: slot.dim ? MUTED : slot.fresh ? INVERSE : DEEP.token,
+            anchor: "middle",
+            ink: false,
+          });
+        }
+        // 一张卡手里的整个张量是一块：外框加格子线，分块只是格子线
+        r.parts.push(
+          `<rect x="${round(tx)}" y="${round(ty)}" width="${tw}" height="${th}" fill="none" stroke="${INK}" stroke-width="1.3"/>`,
+        );
+        // 格子线：竖线分列，多行时再加横线分行
+        const grid = [
+          ...Array.from({ length: L.gc - 1 }, (_, s) => `M${round(tx + (s + 1) * L.sw)} ${round(ty)}v${th}`),
+          ...Array.from({ length: L.gr - 1 }, (_, k) => `M${round(tx)} ${round(ty + (k + 1) * L.sh)}h${tw}`),
+        ];
+        if (grid.length)
+          r.parts.push(
+            `<path d="${grid.join("")}" stroke="${INK}" stroke-opacity="0.35" stroke-width="1" fill="none"/>`,
+          );
+        box(r, `${name} 的块`, tx, ty, tw, th);
+        for (const [s, slot] of row.entries()) {
+          const x = tx + L.cellAt(s)[0];
+          const y = ty + L.cellAt(s)[1];
+          if (ex.dots) {
+            const x0 = x + L.sw / 2 - ((L.n - 1) * 8) / 2;
+            for (let k = 0; k < L.n; k++)
+              r.parts.push(
+                slot.from.includes(k)
+                  ? `<circle cx="${round(x0 + k * 8)}" cy="${round(y + L.sh + 9)}" r="3" fill="${slot.dim ? MUTED : COLOR.token}"/>`
+                  : `<circle cx="${round(x0 + k * 8)}" cy="${round(y + L.sh + 9)}" r="3" fill="none" stroke="${MUTED}" stroke-opacity="0.7" stroke-width="1"/>`,
+              );
+          }
+          // 这一步要发出去的块描紫色粗框，要落进来的块描紫色虚框
+          if (sending.has(`${c}.${s}`))
+            r.parts.push(
+              `<rect x="${round(x - 1.5)}" y="${round(y - 1.5)}" width="${L.sw + 3}" height="${L.sh + 3}" fill="none" stroke="${COLOR.comm}" stroke-width="2.6"/>`,
+            );
+          if (landing.has(`${c}.${s}`))
+            r.parts.push(
+              `<rect x="${round(x + 3)}" y="${round(y + 3)}" width="${L.sw - 6}" height="${L.sh - 6}" fill="none" stroke="${COLOR.comm}" stroke-width="1.6" stroke-dasharray="4 3"/>`,
+            );
+          // 这一步在本卡上算的块描权重色粗框：不通信，下一格换成算出来的数
+          if (computing.has(`${c}.${s}`))
+            r.parts.push(
+              `<rect x="${round(x - 1.5)}" y="${round(y - 1.5)}" width="${L.sw + 3}" height="${L.sh + 3}" fill="none" stroke="${COLOR.weight}" stroke-width="2.6"/>`,
+            );
+          const label = ex.labels?.[s];
+          if (label) {
+            r.where = `${band} ${name} 第 ${s} 块的标签`;
+            fitted(r, r.where, label, 12, L.sw - 4);
+            text(r, x + L.sw / 2, y + L.sh + (ex.dots ? 14 : 0) + 14, label, {
+              size: 12,
+              fill: MUTED,
+              anchor: "middle",
+            });
+          }
+          const set = step?.sets.find((t) => t.at[0] === c && t.at[1] === s);
+          if (set?.note) {
+            r.where = `${band} ${name} 第 ${s} 块的短注`;
+            fitted(r, r.where, set.note, 11.5, L.sw - 2);
+            text(r, x + L.sw / 2, y + L.sh + (ex.dots ? 14 : 0) + (ex.labels ? 16 : 0) + 13, set.note, {
+              size: 11.5,
+              weight: 700,
+              fill: DEEP.weight,
+              anchor: "middle",
+            });
+          }
+          const stepNote = step?.notes?.find((t) => t.at[0] === c && t.at[1] === s);
+          if (stepNote && !set?.note) {
+            r.where = `${band} ${name} 第 ${s} 块的淡色短注`;
+            fitted(r, r.where, stepNote.text, 11.5, L.sw - 2);
+            text(r, x + L.sw / 2, y + L.sh + (ex.dots ? 14 : 0) + (ex.labels ? 16 : 0) + 13, stepNote.text, {
+              size: 11.5,
+              weight: 600,
+              fill: MUTED,
+              anchor: "middle",
+            });
+          }
+          const j = set?.expert === undefined ? -1 : (ex.experts?.[c]?.indexOf(set.expert) ?? -1);
+          if (set && j >= 0 && slot.value !== null) {
+            // 块上沿竖着往上，到这个专家自己那一层横线再横过去，最后竖着进专家框：
+            // 连到不同专家的线只会直角相交，不会斜着交叉看错。播放时块升到专家框下沿再横移过去
+            r.where = `${band} ${name} 第 ${s} 块 → ${set.expert}`;
+            const b = expertBox(c, j, by);
+            const bx = x + L.sw / 2;
+            const ax = Math.min(Math.max(bx, b.x + 12), b.x + b.w - 12);
+            const under = b.y + b.h;
+            const lane = y - 9 - j * 9;
+            const d =
+              ax === bx
+                ? `M${round(bx)} ${round(y)} V${round(under + 3)}`
+                : `M${round(bx)} ${round(y)} V${round(lane)} H${round(ax)} V${round(under + 3)}`;
+            r.parts.push(stroke(r, id, d, "weight", false, "end"));
+            r.points.push({ where: r.where, x: bx, y }, { where: r.where, x: ax, y: under + 3 });
+            const dock = under + 2 + L.sh / 2;
+            const route = [
+              [bx, y + L.sh / 2],
+              [bx, dock],
+              [ax, dock],
+            ]
+              .map(([px, py], k) => `${k ? "L" : "M"}${round(px!)} ${round(py!)}`)
+              .join(" ");
+            const v = num(slot.value);
+            computeMovers.push(
+              `<g class="wiki-anim-move"><path class="wiki-anim-route" d="${route}" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="${round(x)}" y="${round(y)}" width="${L.sw}" height="${L.sh}" fill="${slot.dim ? SURFACE : slot.fresh ? COLOR.token : SOFT.token}" stroke="${COLOR.weight}" stroke-width="2.6"/><text x="${round(x + L.sw / 2)}" y="${round(y + L.sh / 2 + 4.6)}" font-family="${FONT}" font-size="13" font-weight="700" fill="${slot.fresh ? INVERSE : DEEP.token}" text-anchor="middle">${esc(v)}</text></g></g>`,
+            );
+          }
+        }
+      }
+      if (step) {
+        // 同一对卡之间的块合成一条箭头，块排成一小条停在箭头上；两个方向都有就各让开一点
+        const pairs = new Map<string, { a: number; c: number; moves: typeof step.moves }>();
+        for (const m of step.moves) {
+          if (m.from[0] >= L.n || m.to[0] >= L.n || m.from[0] === m.to[0]) continue;
+          const key = `${m.from[0]}>${m.to[0]}`;
+          const p = pairs.get(key) ?? { a: m.from[0], c: m.to[0], moves: [] };
+          p.moves.push(m);
+          pairs.set(key, p);
+        }
+        const movers: string[] = [];
+        for (const { a, c, moves } of pairs.values()) {
+          r.where = `${band} ${ex.cards[a]}→${ex.cards[c]}`;
+          const fa = frameOf(a, by);
+          const fc = frameOf(c, by);
+          const A = [fa.x + L.cw / 2, fa.y + L.ch / 2] as const;
+          const C = [fc.x + L.cw / 2, fc.y + L.ch / 2] as const;
+          const len = Math.hypot(C[0] - A[0], C[1] - A[1]);
+          const ux = (C[0] - A[0]) / len;
+          const uy = (C[1] - A[1]) / len;
+          const both = pairs.has(`${c}>${a}`);
+          const px = both ? -uy * 12 : 0;
+          const py = both ? ux * 12 : 0;
+          const t0 = exit(ux, uy, px, py) + 6;
+          const t1 = exit(-ux, -uy, px, py) + 9;
+          const s0 = [A[0] + px + ux * t0, A[1] + py + uy * t0] as const;
+          const s1 = [C[0] + px - ux * t1, C[1] + py - uy * t1] as const;
+          r.parts.push(
+            stroke(
+              r,
+              id,
+              `M${round(s0[0])} ${round(s0[1])} L${round(s1[0])} ${round(s1[1])}`,
+              "comm",
+              false,
+              "end",
+            ),
+          );
+          r.points.push({ where: r.where, x: s0[0], y: s0[1] }, { where: r.where, x: s1[0], y: s1[1] });
+          // 两头都有块时各靠自己的源端；斜线在中间交叉，再往源端挪一点，免得几条斜线上的块挤在交叉点
+          const at = both ? (ux && uy ? 0.2 : 0.3) : 0.5;
+          const P = [s0[0] + (s1[0] - s0[0]) * at, s0[1] + (s1[1] - s0[1]) * at];
+          const sorted = [...moves].sort((m1, m2) => m1.from[1] - m2.from[1] || m1.to[1] - m2.to[1]);
+          const vals = sorted.map((m) => num(state[m.from[0]]?.[m.from[1]]?.value ?? 0));
+          const pw = Math.max(30, ...vals.map((v) => textWidth(v, 12) + 12));
+          const ph = 22;
+          // 多行张量（rows）时，来自源卡不同行的块之间留一道缝，路上也看得出是几行；一排时没有缝
+          const rowGap = 8;
+          const gapsBefore = sorted.map((_, j) =>
+            L.gr > 1
+              ? sorted
+                  .slice(1, j + 1)
+                  .filter((m, k) => Math.floor(m.from[1] / L.gc) !== Math.floor(sorted[k]!.from[1] / L.gc))
+                  .length
+              : 0,
+          );
+          const stripW = pw * sorted.length + rowGap * (gapsBefore.at(-1) ?? 0);
+          const sx = P[0]! - stripW / 2;
+          const sy = P[1]! - ph / 2;
+          box(r, "路上的块", sx, sy, stripW, ph);
+          for (const [j, m] of sorted.entries()) {
+            const src = slotCenter(m.from[0], m.from[1], by);
+            const dst = slotCenter(m.to[0], m.to[1], by);
+            const route = [src, s0, s1, dst]
+              .map(([x, y], k) => `${k ? "L" : "M"}${round(x)} ${round(y)}`)
+              .join(" ");
+            const bx = sx + j * pw + rowGap * gapsBefore[j]!;
+            // 播放器沿 route 把块从源块移到目的块；静态图里块停在箭头上
+            movers.push(
+              `<g class="wiki-anim-move"><path class="wiki-anim-route" d="${route}" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="${round(bx)}" y="${round(sy)}" width="${round(pw)}" height="${ph}" fill="${COLOR.comm}" stroke="${INK}" stroke-width="1.2"/><text x="${round(bx + pw / 2)}" y="${round(sy + 15.5)}" font-family="${FONT}" font-size="12" font-weight="700" fill="${INVERSE}" text-anchor="middle">${esc(vals[j]!)}</text></g></g>`,
+            );
+          }
+        }
+        r.parts.push(...movers);
+      }
+      r.parts.push(...computeMovers);
+      r.parts.push("</g>");
+    }
+    r.where = base;
+  }
+
   // ---- 受限自由画板
   for (const [i, sk] of spec.sketches.entries()) {
     r.where = `sketches[${i}]`;
@@ -1564,6 +2169,16 @@ function figureWords(spec: FigureSpec): string[] {
       ...c.series.map((s) => s.label),
     ]),
     ...spec.graphs.flatMap((g) => g.labels),
+    ...spec.exchanges.flatMap((e) => [
+      ...e.cards,
+      ...e.steps.map((s) => s.title),
+      e.end,
+      e.tag,
+      ...(e.labels ?? []),
+      ...(e.rowLabels ?? []),
+      ...(e.experts ?? []).flat(),
+      ...e.steps.flatMap((s) => s.sets.flatMap((t) => (t.note ? [t.note] : []))),
+    ]),
     ...spec.sketches.flatMap((s) => s.shapes.flatMap((sh) => (sh.kind === "text" ? [sh.text] : []))),
   ].filter((s): s is string => Boolean(s));
 }

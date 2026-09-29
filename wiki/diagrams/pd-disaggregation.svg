@@ -1,31 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="状态交接的逻辑顺序：P 保留来源状态，D 分配目的块并接收；完成信息分别触发继续执行和源块释放。图不表示固定耗时或 GLM 已验证部署">
-  <title>状态交接的逻辑顺序：P 保留来源状态，D 分配目的块并接收；完成信息分别触发继续执行和源块释放。图不表示固定耗时或 GLM 已验证部署</title>
-  <defs><marker id="pd-disaggregation-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="pd-disaggregation-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="pd-disaggregation-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <rect x="30" y="60" width="340" height="540" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="46" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P 执行组</text>
-  <rect x="530" y="60" width="340" height="540" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="546" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">D 执行组</text>
-  <path d="M200 160 L200 270" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-kv)"/>
-  <path d="M335 287 L565 287" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
-  <path d="M335 325 L445 325 L445 430 L565 430" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-kv)"/>
-  <path d="M700 315 L700 405" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
-  <path d="M700 460 L700 510" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-token)"/>
-  <path d="M565 450 L470 450 L470 537 L335 537" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
-  <rect x="65" y="105" width="270" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="200" y="137.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">计算到交接位置</text>
-  <rect x="65" y="270" width="270" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="200" y="298.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保留来源状态</text>
-  <text x="200" y="317.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">发布块 / 位置元数据</text>
-  <rect x="65" y="510" width="270" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="200" y="542.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">释放传输保留块</text>
-  <rect x="565" y="260" width="270" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="700" y="292.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分配目的块</text>
-  <rect x="565" y="405" width="270" height="55" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="700" y="437.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">接收状态完成</text>
-  <rect x="565" y="510" width="270" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="700" y="542.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">继续模型计算</text>
-  <text x="450" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="middle">控制元数据</text>
-  <text x="437" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93" text-anchor="end">按组搬运</text>
-  <text x="450" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="middle">完成通知后释放</text>
-  <text x="450" y="634" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">源块编号和目的块编号分别属于各自的块池</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，D 上的请求随后回到队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。">
+  <title>一次交接的先后（以设计文档作示例的 Mooncake V1 为例）。代理把同一条请求先发给 P、再转给 D；D 在自己的块池里分好目的块，由后台线程按地址读 P 的源块；D 发出的完成信号让 P 放块，D 上的请求随后回到队列，算完最后一个位置才开始逐 token 生成。编号与正文步骤一致，图不表示耗时。</title>
+  <defs><marker id="pd-disaggregation-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="pd-disaggregation-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="pd-disaggregation-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="20" y="40" width="290" height="540" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P 实例</text>
+  <rect x="330" y="40" width="240" height="290" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="346" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">代理</text>
+  <rect x="590" y="40" width="290" height="540" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="606" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">D 实例</text>
+  <path d="M350 92 L290 92" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
+  <path d="M165 120 L165 154" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-ink)"/>
+  <path d="M290 182 L450 182 L450 244" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
+  <path d="M550 272 L610 272" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
+  <path d="M165 210 L165 334" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#pd-disaggregation-ah-ink)"/>
+  <path d="M735 300 L735 334" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-ink)"/>
+  <path d="M290 362 L610 362" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#pd-disaggregation-ah-comm)"/>
+  <path d="M735 390 L735 424" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-ink)"/>
+  <path d="M610 452 L290 452" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-control)"/>
+  <path d="M735 480 L735 514" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#pd-disaggregation-ah-ink)"/>
+  <rect x="350" y="64" width="200" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">发给 P</text>
+  <text x="450" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只生成 1 个 token</text>
+  <rect x="40" y="64" width="250" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="165" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">prefill 提示词</text>
+  <text x="165" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">混合模型先截掉最后 1 个位置</text>
+  <rect x="40" y="154" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="165" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按长度上限结束</text>
+  <text x="165" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">打包块号与地址，块先不放</text>
+  <rect x="350" y="244" width="200" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">转给 D</text>
+  <text x="450" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">带上 P 交回的信息</text>
+  <rect x="610" y="244" width="250" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="735" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分配 D 自己的块</text>
+  <text x="735" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">请求挂起，等远端状态</text>
+  <rect x="40" y="334" width="250" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="165" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">源块保留中</text>
+  <text x="165" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">等 D 按地址来读</text>
+  <rect x="610" y="334" width="250" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="735" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后台线程读 P 的块</text>
+  <text x="735" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D 拉，不是 P 推</text>
+  <rect x="610" y="424" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="735" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通知 P 收完</text>
+  <text x="735" y="467" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">成功或失败都会发</text>
+  <rect x="40" y="424" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="165" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">释放源块</text>
+  <text x="165" y="467" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收到通知，或超时强制释放</text>
+  <rect x="610" y="514" width="250" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="735" y="538" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算最后 1 个位置</text>
+  <text x="735" y="557" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样首 token，进入 decode</text>
+  <text x="372" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="middle">交回块号、地址</text>
+  <text x="450" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">按块读取历史状态</text>
+  <text x="450" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="middle">完成信号</text>
+  <text x="172" y="276" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">请求已结束，块仍押着</text>
+  <text x="450" y="620" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">两边的块号各属自己的块池</text>
+  <circle cx="352" cy="66" r="11" fill="var(--color-ink, #17211f)"/><text x="352" y="71" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
+  <circle cx="42" cy="156" r="11" fill="var(--color-ink, #17211f)"/><text x="42" y="161" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <circle cx="612" cy="246" r="11" fill="var(--color-ink, #17211f)"/><text x="612" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <circle cx="612" cy="336" r="11" fill="var(--color-ink, #17211f)"/><text x="612" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+  <circle cx="612" cy="426" r="11" fill="var(--color-ink, #17211f)"/><text x="612" y="431" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">5</text>
+  <circle cx="612" cy="516" r="11" fill="var(--color-ink, #17211f)"/><text x="612" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6</text>
 </svg>

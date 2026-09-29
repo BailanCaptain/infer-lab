@@ -1,47 +1,165 @@
 layout: figure
 id: attention-qkv-flow
-caption: 一个查询位置怎样读历史：当前位置 2 的 q 与自己及此前每个位置的 k 做点积，除以 √d 得到分数，softmax 把分数换成加起来等于 1 的权重，再按权重把各位置的 v 加成一条输出；条形长短只示意权重大小
-size: [900, 590]
-items:
-  - { at: [460, 16], size: [200, 54], text: 查询 q₂, sub: 当前位置 2 算出, tone: token }
-  - { at: [338, 120], size: [124, 50], text: k₀, sub: 位置 0 的键, tone: kv }
-  - { at: [498, 120], size: [124, 50], text: k₁, sub: 位置 1 的键, tone: kv }
-  - { at: [658, 120], size: [124, 50], text: k₂, sub: 位置 2 自己的键, tone: kv }
-  - { at: [338, 204], size: [124, 38], text: s₀, style: plain }
-  - { at: [498, 204], size: [124, 38], text: s₁, style: plain }
-  - { at: [658, 204], size: [124, 38], text: s₂, style: plain }
-  - { at: [338, 276], size: [444, 44], text: softmax：一排分数 → 加起来等于 1 的权重, tone: control, style: plain }
-  - { at: [338, 404], size: [124, 50], text: a₀ × v₀, sub: 位置 0 的值, tone: kv }
-  - { at: [498, 404], size: [124, 50], text: a₁ × v₁, sub: 位置 1 的值, tone: kv }
-  - { at: [658, 404], size: [124, 50], text: a₂ × v₂, sub: 位置 2 自己的值, tone: kv }
-  - { at: [640, 508], size: [190, 50], text: 输出 o₂, sub: 一条向量，交给输出投影, tone: token }
+caption: attention 的一次计算（3 个位置、每条向量 4 个数，数为示意）：① 每个位置的隐藏向量乘三套权重，得到 q、k、v；② 位置 2 的 q₂ 与每个 k 做点积；③ 除以 √4 后做 softmax，得到加起来等于 1 的权重；④ 各行 v 乘上自己的权重，按列相加得到输出 o₂
+size: [900, 580]
+grids:
+  - at: [96, 205]
+    rows: 3
+    cols: 4
+    cell: [40, 30]
+    tone: token
+    style: faded
+    rowLabels: ['位置 0', '位置 1', '位置 2']
+    label: 隐藏向量
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '2' }
+      - { at: [0, 3], text: '1' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '2' }
+      - { at: [1, 2], text: '1' }
+      - { at: [1, 3], text: '0' }
+      - { at: [2, 0], text: '2' }
+      - { at: [2, 1], text: '1' }
+      - { at: [2, 2], text: '0' }
+      - { at: [2, 3], text: '1' }
+  - at: [420, 50]
+    rows: 3
+    cols: 4
+    cell: [40, 30]
+    tone: token
+    style: faded
+    rowLabels: ['q₀', 'q₁', 'q₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '0' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+      - { at: [1, 2], text: '0' }
+      - { at: [1, 3], text: '1' }
+      - { at: [2, 0], text: '1', style: solid }
+      - { at: [2, 1], text: '2', style: solid }
+      - { at: [2, 2], text: '0', style: solid }
+      - { at: [2, 3], text: '1', style: solid }
+  - at: [420, 205]
+    rows: 3
+    cols: 4
+    cell: [40, 30]
+    tone: kv
+    style: faded
+    rowLabels: ['k₀', 'k₁', 'k₂']
+    cells:
+      - { at: [0, 0], text: '2', style: solid }
+      - { at: [0, 1], text: '1', style: solid }
+      - { at: [0, 2], text: '0', style: solid }
+      - { at: [0, 3], text: '0', style: solid }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+      - { at: [1, 2], text: '1' }
+      - { at: [1, 3], text: '0' }
+      - { at: [2, 0], text: '1' }
+      - { at: [2, 1], text: '0' }
+      - { at: [2, 2], text: '1' }
+      - { at: [2, 3], text: '−1' }
+  - at: [420, 380]
+    rows: 3
+    cols: 4
+    cell: [40, 30]
+    tone: kv
+    style: faded
+    rowLabels: ['v₀', 'v₁', 'v₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '2', style: solid }
+      - { at: [0, 3], text: '0' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+      - { at: [1, 2], text: '1', style: solid }
+      - { at: [1, 3], text: '1' }
+      - { at: [2, 0], text: '1' }
+      - { at: [2, 1], text: '1' }
+      - { at: [2, 2], text: '0', style: solid }
+      - { at: [2, 3], text: '2' }
+  - at: [630, 205]
+    rows: 3
+    cols: 1
+    cell: [52, 30]
+    tone: token
+    style: solid
+    colLabels: ['点积']
+    cells:
+      - { at: [0, 0], text: '4' }
+      - { at: [1, 0], text: '2' }
+      - { at: [2, 0], text: '0' }
+  - at: [712, 205]
+    rows: 3
+    cols: 1
+    cell: [52, 30]
+    tone: token
+    style: solid
+    colLabels: ['÷ √4']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [1, 0], text: '1' }
+      - { at: [2, 0], text: '0' }
+  - at: [794, 205]
+    rows: 3
+    cols: 1
+    cell: [60, 30]
+    tone: token
+    style: solid
+    colLabels: ['softmax']
+    cells:
+      - { at: [0, 0], text: '0.67' }
+      - { at: [1, 0], text: '0.24' }
+      - { at: [2, 0], text: '0.09' }
+  - at: [600, 380]
+    rows: 3
+    cols: 1
+    cell: [60, 30]
+    tone: token
+    style: faded
+    colLabels: ['权重']
+    cells:
+      - { at: [0, 0], text: '× 0.67' }
+      - { at: [1, 0], text: '× 0.24' }
+      - { at: [2, 0], text: '× 0.09' }
+  - at: [420, 520]
+    rows: 1
+    cols: 4
+    cell: [40, 30]
+    tone: token
+    style: solid
+    rowLabels: ['o₂']
+    cells:
+      - { at: [0, 0], text: '0.76' }
+      - { at: [0, 1], text: '0.33' }
+      - { at: [0, 2], text: '1.58' }
+      - { at: [0, 3], text: '0.42' }
+matrices:
+  - { at: [290, 71], w: 48, h: 48, rows: 4, cols: 4, tone: weight, style: faded, label: 查询权重 }
+  - { at: [290, 226], w: 48, h: 48, rows: 4, cols: 4, tone: weight, style: faded, label: 键权重 }
+  - { at: [290, 401], w: 48, h: 48, rows: 4, cols: 4, tone: weight, style: faded, label: 值权重 }
 fans:
-  - { from: [560, 70], to: [[400, 120], [560, 120], [720, 120]], tone: token }
-  - { from: [[400, 454], [560, 454], [720, 454]], to: [560, 513], tone: kv }
+  - { from: [256, 250], to: [[290, 95], [290, 250], [290, 425]], tone: token }
 links:
-  - { from: [400, 170], to: [400, 204] }
-  - { from: [560, 170], to: [560, 204] }
-  - { from: [720, 170], to: [720, 204] }
-  - { from: [400, 242], to: [400, 276] }
-  - { from: [560, 242], to: [560, 276] }
-  - { from: [720, 242], to: [720, 276] }
-  - { from: [400, 320], to: [400, 348] }
-  - { from: [560, 320], to: [560, 348] }
-  - { from: [720, 320], to: [720, 348] }
-  - { from: [400, 372], to: [400, 404], tone: kv }
-  - { from: [560, 372], to: [560, 404], tone: kv }
-  - { from: [720, 372], to: [720, 404], tone: kv }
-  - { from: [580, 533], to: [640, 533], tone: token }
-nodes:
-  - { at: [560, 533], text: Σ }
-bars:
-  - { at: [350, 352], h: 18, scale: 200, segments: [{ value: 0.5, tone: token }] }
-  - { at: [510, 352], h: 18, scale: 200, segments: [{ value: 0.25, tone: token }] }
-  - { at: [670, 352], h: 18, scale: 200, segments: [{ value: 0.25, tone: token }] }
+  - { from: [338, 95], to: [392, 95], tone: token }
+  - { from: [338, 250], to: [392, 250], tone: kv }
+  - { from: [338, 425], to: [392, 425], tone: kv }
+  - { from: [580, 125], via: [[656, 125]], to: [656, 178], tone: token }
+  - { from: [682, 250], to: [710, 250], tone: token }
+  - { from: [764, 250], to: [792, 250], tone: token }
+  - { from: [824, 295], via: [[824, 340], [630, 340]], to: [630, 352], tone: token }
+  - { from: [500, 472], to: [500, 516], tone: token }
 texts:
-  - { at: [40, 100], text: ① q 与每个 k 做点积, size: 13, strong: true }
-  - { at: [40, 227], text: ② 除以 √d，得到分数 s, size: 13, strong: true }
-  - { at: [40, 303], text: ③ softmax 换成权重 a, size: 13, strong: true }
-  - { at: [40, 366], text: 条形越长，权重越大, size: 13 }
-  - { at: [40, 434], text: ④ 各 v 乘自己的权重, size: 13, strong: true }
-  - { at: [40, 538], text: ⑤ 相加得到输出, size: 13, strong: true }
+  - { at: [630, 322], text: '4 = 1×2+2×1+0×0+1×0', size: 13 }
+  - { at: [600, 541], text: '1.58 = 0.67×2+0.24×1+0.09×0', size: 13 }
+badges:
+  - { at: [276, 64], n: 1 }
+  - { at: [614, 175], n: 2 }
+  - { at: [780, 175], n: 3 }
+  - { at: [586, 364], n: 4 }

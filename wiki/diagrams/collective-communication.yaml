@@ -1,54 +1,23 @@
 layout: figure
 id: collective-communication
-caption: 两张卡的五种交接。每行独立从左侧开始；字母是任意元素，SUM 表示对应位置求和。箭头表示逻辑输入输出，不表示实际传输轮次。
-size: [880, 510]
-texts:
-  - { at: [72, 20], text: 通信前：各自持有, size: 15, strong: true }
-  - { at: [361, 20], text: 共同完成的操作, size: 15, strong: true }
-  - { at: [699, 20], text: 通信后：各自得到, size: 15, strong: true }
-items:
-  - { at: [16, 40], size: [220, 32], text: '卡 0：[a, b]', tone: token }
-  - { at: [16, 82], size: [220, 32], text: '卡 1：[c, d]', tone: token }
-  - { at: [330, 47], size: [220, 58], text: All-Gather, sub: 收齐分片 · 不求和, tone: comm }
-  - { at: [644, 40], size: [220, 32], text: '卡 0：[a, b, c, d]', tone: token }
-  - { at: [644, 82], size: [220, 32], text: '卡 1：[a, b, c, d]', tone: token }
-  - { at: [16, 135], size: [220, 32], text: '卡 0：[a, b]', tone: token }
-  - { at: [16, 177], size: [220, 32], text: '卡 1：[c, d]', tone: token }
-  - { at: [330, 142], size: [220, 58], text: All-Reduce · SUM, sub: 合齐数值 · 每卡拿全份, tone: comm }
-  - { at: [644, 135], size: [220, 32], text: '卡 0：[a+c, b+d]', tone: token }
-  - { at: [644, 177], size: [220, 32], text: '卡 1：[a+c, b+d]', tone: token }
-  - { at: [16, 230], size: [220, 32], text: '卡 0：[a, b]', tone: token }
-  - { at: [16, 272], size: [220, 32], text: '卡 1：[c, d]', tone: token }
-  - { at: [330, 237], size: [220, 58], text: Reduce-Scatter · SUM, sub: 合齐数值 · 每卡留一片, tone: comm }
-  - { at: [644, 230], size: [220, 32], text: '卡 0：[a+c]', tone: token }
-  - { at: [644, 272], size: [220, 32], text: '卡 1：[b+d]', tone: token }
-  - { at: [16, 325], size: [220, 32], text: '卡 0：[a, b]', tone: token }
-  - { at: [16, 367], size: [220, 32], text: '卡 1：[c, d]', tone: token }
-  - { at: [330, 332], size: [220, 58], text: All-to-All, sub: 第一项给卡 0 · 第二项给卡 1, tone: comm }
-  - { at: [644, 325], size: [220, 32], text: '卡 0：[a, c]', tone: token }
-  - { at: [644, 367], size: [220, 32], text: '卡 1：[b, d]', tone: token }
-  - { at: [16, 420], size: [220, 32], text: '卡 0 根：[a, b]', tone: token }
-  - { at: [16, 462], size: [220, 32], text: 卡 1：接收空间, tone: ink }
-  - { at: [330, 427], size: [220, 58], text: Broadcast, sub: 只复制根卡的数据, tone: comm }
-  - { at: [644, 420], size: [220, 32], text: '卡 0：[a, b]', tone: token }
-  - { at: [644, 462], size: [220, 32], text: '卡 1：[a, b]', tone: token }
-links:
-  - { from: [236, 56], to: [330, 66], tone: comm }
-  - { from: [236, 98], to: [330, 87], tone: comm }
-  - { from: [550, 66], to: [644, 56], tone: comm }
-  - { from: [550, 87], to: [644, 98], tone: comm }
-  - { from: [236, 151], to: [330, 161], tone: comm }
-  - { from: [236, 193], to: [330, 182], tone: comm }
-  - { from: [550, 161], to: [644, 151], tone: comm }
-  - { from: [550, 182], to: [644, 193], tone: comm }
-  - { from: [236, 246], to: [330, 256], tone: comm }
-  - { from: [236, 288], to: [330, 277], tone: comm }
-  - { from: [550, 256], to: [644, 246], tone: comm }
-  - { from: [550, 277], to: [644, 288], tone: comm }
-  - { from: [236, 341], to: [330, 351], tone: comm }
-  - { from: [236, 383], to: [330, 372], tone: comm }
-  - { from: [550, 351], to: [644, 341], tone: comm }
-  - { from: [550, 372], to: [644, 383], tone: comm }
-  - { from: [236, 436], to: [330, 447], tone: comm }
-  - { from: [550, 447], to: [644, 436], tone: comm }
-  - { from: [550, 468], to: [644, 478], tone: comm }
+caption: 两张卡各算出一份部分和，交换后都拿到对应位置之和。紫色块是正在发的数据，沿箭头送到对方；青色实心块是刚加好的；每块下面的圆点表示这块里有哪几张卡的数。
+size: [600, 328]
+exchanges:
+  - at: [40, 8]
+    cards: [卡 0, 卡 1]
+    slots: 2
+    cell: [64, 40]
+    gap: [230, 96]
+    dots: true
+    tag: 数为示意
+    start:
+      - [1, 2]
+      - [10, 20]
+    steps:
+      - title: 交换：各把两块发给对方，对方加进同位置
+        moves:
+          - { from: [0, 0], to: [1, 0], op: add }
+          - { from: [0, 1], to: [1, 1], op: add }
+          - { from: [1, 0], to: [0, 0], op: add }
+          - { from: [1, 1], to: [0, 1], op: add }
+    end: 交换后：两张卡都是 [11, 22]

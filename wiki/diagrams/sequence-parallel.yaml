@@ -1,496 +1,71 @@
-{
-  "size": [
-    900,
-    650
-  ],
-  "caption": "TP=2、T=4 的局部激活布局：部分和先归约分片，逐行计算后收集；深浅区分 token 身份，均为有效行",
-  "frames": [
-    {
-      "at": [
-        20,
-        60
-      ],
-      "size": [
-        860,
-        230
-      ],
-      "label": "rank 0"
-    },
-    {
-      "at": [
-        20,
-        355
-      ],
-      "size": [
-        860,
-        230
-      ],
-      "label": "rank 1"
-    }
-  ],
-  "grids": [
-    {
-      "at": [
-        55,
-        105
-      ],
-      "rows": 4,
-      "cols": 1,
-      "cell": [
-        145,
-        30
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "label": "部分和 [4,H]",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "p₀(A.y₁)",
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            0
-          ],
-          "text": "p₀(C.p₀)",
-          "style": "faded"
-        },
-        {
-          "at": [
-            2,
-            0
-          ],
-          "text": "p₀(C.p₁)",
-          "style": "solid"
-        },
-        {
-          "at": [
-            3,
-            0
-          ],
-          "text": "p₀(C.p₂)",
-          "style": "faded"
-        }
-      ]
-    },
-    {
-      "at": [
-        55,
-        400
-      ],
-      "rows": 4,
-      "cols": 1,
-      "cell": [
-        145,
-        30
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "label": "部分和 [4,H]",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "p₁(A.y₁)",
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            0
-          ],
-          "text": "p₁(C.p₀)",
-          "style": "faded"
-        },
-        {
-          "at": [
-            2,
-            0
-          ],
-          "text": "p₁(C.p₁)",
-          "style": "solid"
-        },
-        {
-          "at": [
-            3,
-            0
-          ],
-          "text": "p₁(C.p₂)",
-          "style": "faded"
-        }
-      ]
-    },
-    {
-      "at": [
-        395,
-        130
-      ],
-      "rows": 2,
-      "cols": 1,
-      "cell": [
-        145,
-        35
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "label": "本地 [2,H]",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "A.y₁",
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            0
-          ],
-          "text": "C.p₀",
-          "style": "faded"
-        }
-      ]
-    },
-    {
-      "at": [
-        395,
-        425
-      ],
-      "rows": 2,
-      "cols": 1,
-      "cell": [
-        145,
-        35
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "label": "本地 [2,H]",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "C.p₁",
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            0
-          ],
-          "text": "C.p₂",
-          "style": "faded"
-        }
-      ]
-    },
-    {
-      "at": [
-        710,
-        105
-      ],
-      "rows": 4,
-      "cols": 1,
-      "cell": [
-        145,
-        30
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "label": "收集后 [4,H]",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "A.y₁",
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            0
-          ],
-          "text": "C.p₀",
-          "style": "faded"
-        },
-        {
-          "at": [
-            2,
-            0
-          ],
-          "text": "C.p₁",
-          "style": "solid"
-        },
-        {
-          "at": [
-            3,
-            0
-          ],
-          "text": "C.p₂",
-          "style": "faded"
-        }
-      ]
-    },
-    {
-      "at": [
-        710,
-        400
-      ],
-      "rows": 4,
-      "cols": 1,
-      "cell": [
-        145,
-        30
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "label": "收集后 [4,H]",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "A.y₁",
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            0
-          ],
-          "text": "C.p₀",
-          "style": "faded"
-        },
-        {
-          "at": [
-            2,
-            0
-          ],
-          "text": "C.p₁",
-          "style": "solid"
-        },
-        {
-          "at": [
-            3,
-            0
-          ],
-          "text": "C.p₂",
-          "style": "faded"
-        }
-      ]
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        570,
-        140
-      ],
-      "size": [
-        105,
-        50
-      ],
-      "text": "RMSNorm",
-      "tone": "control"
-    },
-    {
-      "at": [
-        570,
-        435
-      ],
-      "size": [
-        105,
-        50
-      ],
-      "text": "RMSNorm",
-      "tone": "control"
-    }
-  ],
-  "nodes": [
-    {
-      "at": [
-        290,
-        320
-      ],
-      "r": 25,
-      "text": "Σ"
-    },
-    {
-      "at": [
-        650,
-        320
-      ],
-      "r": 25,
-      "text": "AG"
-    }
-  ],
-  "links": [
-    {
-      "to": [
-        265,
-        312
-      ],
-      "tone": "comm",
-      "from": [
-        200,
-        160
-      ]
-    },
-    {
-      "to": [
-        265,
-        328
-      ],
-      "tone": "comm",
-      "from": [
-        200,
-        455
-      ]
-    },
-    {
-      "to": [
-        395,
-        165
-      ],
-      "tone": "comm",
-      "from": [
-        315,
-        312
-      ]
-    },
-    {
-      "to": [
-        395,
-        460
-      ],
-      "tone": "comm",
-      "from": [
-        315,
-        328
-      ]
-    },
-    {
-      "to": [
-        570,
-        165
-      ],
-      "tone": "token",
-      "from": [
-        540,
-        165
-      ]
-    },
-    {
-      "to": [
-        570,
-        460
-      ],
-      "tone": "token",
-      "from": [
-        540,
-        460
-      ]
-    },
-    {
-      "from": [
-        620,
-        190
-      ],
-      "to": [
-        637,
-        298
-      ],
-      "tone": "comm"
-    },
-    {
-      "from": [
-        620,
-        435
-      ],
-      "to": [
-        637,
-        342
-      ],
-      "tone": "comm"
-    },
-    {
-      "from": [
-        675,
-        312
-      ],
-      "to": [
-        710,
-        165
-      ],
-      "tone": "comm"
-    },
-    {
-      "from": [
-        675,
-        328
-      ],
-      "to": [
-        710,
-        460
-      ],
-      "tone": "comm"
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        290,
-        36
-      ],
-      "text": "Reduce-Scatter",
-      "anchor": "middle",
-      "tone": "comm"
-    },
-    {
-      "at": [
-        795,
-        36
-      ],
-      "text": "All-Gather",
-      "anchor": "middle",
-      "tone": "comm"
-    },
-    {
-      "at": [
-        745,
-        330
-      ],
-      "text": "完整行集合",
-      "note": true,
-      "size": 12
-    },
-    {
-      "at": [
-        25,
-        625
-      ],
-      "text": "H 维保持完整；位置、残差等关联数据采用相同的 token 归属",
-      "note": true
-    }
-  ],
-  "layout": "figure",
-  "id": "sequence-parallel"
-}
+layout: figure
+id: sequence-parallel
+caption: 两张卡、4 个 token，一个格子行是一个 token 的隐藏向量。上：只用 TP，行切之后的 All-Reduce 让两张卡都拿到同样的 4 行，残差相加和 RMSNorm 在两张卡上各做一遍。下：TP + SP 把这次 All-Reduce 拆成两半，Reduce-Scatter 之后卡 0 只留前 2 行、卡 1 只留后 2 行，各算各的；到下一对矩阵之前再 All-Gather 拼回 4 行。虚线格是这张卡此刻没有的行。
+size: [880, 420]
+grids:
+  # ---- 只用 TP：两张卡都有完整的 4 行
+  - at: [300, 70]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 0
+  - at: [364, 70]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 1
+  # ---- TP + SP：卡 0 留前 2 行，卡 1 留后 2 行
+  - at: [300, 290]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 0
+    cells:
+      - { at: [2, 0], style: ghost }
+      - { at: [2, 1], style: ghost }
+      - { at: [3, 0], style: ghost }
+      - { at: [3, 1], style: ghost }
+  - at: [364, 290]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 1
+    cells:
+      - { at: [0, 0], style: ghost }
+      - { at: [0, 1], style: ghost }
+      - { at: [1, 0], style: ghost }
+      - { at: [1, 1], style: ghost }
+items:
+  - { at: [20, 88], size: [104, 52], text: 行切矩阵乘, sub: 各得部分和, tone: weight, style: plain }
+  - { at: [150, 88], size: [120, 52], text: All-Reduce, sub: 每卡拿整份, tone: comm }
+  - { at: [446, 82], size: [140, 64], text: 残差 + RMSNorm, sub: 每卡都算 4 行, tone: control }
+  - { at: [748, 82], size: [112, 64], text: 下一对矩阵, sub: 列切，要全部行, tone: weight, style: plain }
+  - { at: [20, 308], size: [104, 52], text: 行切矩阵乘, sub: 各得部分和, tone: weight, style: plain }
+  - { at: [150, 308], size: [120, 52], text: Reduce-Scatter, sub: 每卡拿 2 行, tone: comm }
+  - { at: [446, 302], size: [140, 64], text: 残差 + RMSNorm, sub: 每卡只算 2 行, tone: control }
+  - { at: [612, 308], size: [112, 52], text: All-Gather, sub: 拼回 4 行, tone: comm }
+  - { at: [748, 302], size: [112, 64], text: 下一对矩阵, sub: 列切，要全部行, tone: weight, style: plain }
+links:
+  - { from: [124, 114], to: [150, 114] }
+  - { from: [270, 114], to: [298, 114], tone: comm }
+  - { from: [418, 114], to: [446, 114] }
+  - { from: [586, 114], to: [748, 114] }
+  - { from: [124, 334], to: [150, 334] }
+  - { from: [270, 334], to: [298, 334], tone: comm }
+  - { from: [418, 334], to: [446, 334] }
+  - { from: [586, 334], to: [612, 334] }
+  - { from: [724, 334], to: [748, 334], tone: comm }
+texts:
+  - { at: [20, 32], text: 只用 TP, size: 15, strong: true }
+  - { at: [20, 252], text: TP + SP, size: 15, strong: true }
+  - { at: [667, 104], text: 不用再收集, size: 12.5, note: true, anchor: middle }
+  - { at: [358, 58], text: 两张卡都有 token 0–3，一模一样, size: 12.5, note: true, anchor: middle }
+  - { at: [358, 278], text: 卡 0 留 token 0、1，卡 1 留 2、3, size: 12.5, note: true, anchor: middle }

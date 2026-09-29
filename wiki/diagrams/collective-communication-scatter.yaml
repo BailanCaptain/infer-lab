@@ -1,0 +1,24 @@
+layout: figure
+id: collective-communication-scatter
+caption: Scatter：根卡 0 把数据切成 4 块，第 k 块发给卡 k；根卡自己留第 0 块，其余三块只是用过的输入（灰字）。
+size: [880, 696]
+exchanges:
+  - at: [105, 8]
+    cards: [卡 0, 卡 1, 卡 2, 卡 3]
+    slots: 4
+    gap: [190, 96]
+    dots: true
+    tag: 数为示意
+    start:
+      - [1, 2, 3, 4]
+      - [null, null, null, null]
+      - [null, null, null, null]
+      - [null, null, null, null]
+    steps:
+      - title: 根卡 0 把数据切成 4 块，第 k 块发给卡 k
+        moves:
+          - { from: [0, 1], to: [1, 1] }
+          - { from: [0, 2], to: [2, 2] }
+          - { from: [0, 3], to: [3, 3] }
+        keep: [[0, 0], [1, 1], [2, 2], [3, 3]]
+    end: 通信后：卡 k 只拿到第 k 块

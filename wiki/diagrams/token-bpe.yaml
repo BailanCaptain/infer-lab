@@ -1,0 +1,55 @@
+layout: figure
+id: token-bpe
+caption: 字节级 BPE 切出「推理」（字节是真实的 UTF-8 编码；合并表和编号是示意）：先把两个字拆成 6 个字节，再每次在当前能并的相邻两块里，挑合并表中最靠上的一条来并，块数从 6 减到 1；最后这一块到词表里查出编号。
+size: [900, 510]
+items:
+  - { at: [150, 64], size: [56, 50], text: E6, tone: token, style: solid }
+  - { at: [212, 64], size: [56, 50], text: 8E, tone: token, style: solid }
+  - { at: [274, 64], size: [56, 50], text: A8, tone: token, style: solid }
+  - { at: [336, 64], size: [56, 50], text: E7, tone: token, style: solid }
+  - { at: [398, 64], size: [56, 50], text: "90", tone: token, style: solid }
+  - { at: [460, 64], size: [56, 50], text: "86", tone: token, style: solid }
+  - { at: [150, 124], size: [118, 50], text: E6 8E, tone: token, style: solid }
+  - { at: [274, 124], size: [56, 50], text: A8, tone: token, style: faded }
+  - { at: [336, 124], size: [56, 50], text: E7, tone: token, style: faded }
+  - { at: [398, 124], size: [56, 50], text: "90", tone: token, style: faded }
+  - { at: [460, 124], size: [56, 50], text: "86", tone: token, style: faded }
+  - { at: [150, 184], size: [118, 50], text: E6 8E, tone: token, style: faded }
+  - { at: [274, 184], size: [56, 50], text: A8, tone: token, style: faded }
+  - { at: [336, 184], size: [118, 50], text: E7 90, tone: token, style: solid }
+  - { at: [460, 184], size: [56, 50], text: "86", tone: token, style: faded }
+  - { at: [150, 244], size: [180, 50], text: 推, sub: E6 8E A8, tone: token, style: solid }
+  - { at: [336, 244], size: [118, 50], text: E7 90, tone: token, style: faded }
+  - { at: [460, 244], size: [56, 50], text: "86", tone: token, style: faded }
+  - { at: [150, 304], size: [180, 50], text: 推, sub: E6 8E A8, tone: token, style: faded }
+  - { at: [336, 304], size: [180, 50], text: 理, sub: E7 90 86, tone: token, style: solid }
+  - { at: [150, 364], size: [366, 50], text: 推理, sub: 6 个字节, tone: token, style: solid }
+  - { at: [150, 440], size: [366, 50], text: "9123", sub: 「推理」在词表里的编号, tone: token, style: solid }
+grids:
+  - at: [620, 124]
+    rows: 5
+    cols: 2
+    cell: [92, 50]
+    gap: 10
+    tone: control
+    style: plain
+    rowLabels: ['规则 1', '规则 2', '规则 3', '规则 4', '规则 5']
+    colLabels: ['相邻两块', '并成一块']
+    cells:
+      - { at: [0, 0], text: 'E6 + 8E' }
+      - { at: [0, 1], text: 'E6 8E' }
+      - { at: [1, 0], text: 'E7 + 90' }
+      - { at: [1, 1], text: 'E7 90' }
+      - { at: [2, 0], text: 'E6 8E + A8' }
+      - { at: [2, 1], text: '推' }
+      - { at: [3, 0], text: 'E7 90 + 86' }
+      - { at: [3, 1], text: '理' }
+      - { at: [4, 0], text: '推 + 理' }
+      - { at: [4, 1], text: '推理' }
+links:
+  - { from: [333, 416], to: [333, 438], tone: token }
+texts:
+  - { at: [40, 36], text: 放大「推理」：按合并表，一次并一对相邻的块, strong: true }
+  - { at: [620, 84], text: 合并表（示意，越靠上越先用）, strong: true }
+  - { at: [40, 94], text: UTF-8 字节 }
+  - { at: [40, 470], text: 查词表 }

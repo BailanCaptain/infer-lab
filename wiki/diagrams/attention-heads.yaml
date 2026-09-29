@@ -1,29 +1,186 @@
 layout: figure
 id: attention-heads
-caption: 通用多头结构，以四个头示意：Q、K、V 投影的输出按头切成几段，每个头用自己那一段各算一遍 attention，权重分布可以各不相同；各头输出沿特征维拼接，再经输出投影回到隐藏宽度
-size: [900, 560]
-items:
-  - { at: [300, 14], size: [300, 54], text: 输入 X, sub: 每行一个位置的隐藏向量, tone: token }
-  - { at: [200, 104], size: [500, 56], text: Q、K、V 投影, sub: 三次矩阵乘，输出宽度按头切成 4 段, tone: weight }
-  - { at: [60, 222], size: [180, 58], text: 头 0, sub: 各算一遍 attention, style: plain }
-  - { at: [260, 222], size: [180, 58], text: 头 1, sub: 各算一遍 attention, style: plain }
-  - { at: [460, 222], size: [180, 58], text: 头 2, sub: 各算一遍 attention, style: plain }
-  - { at: [660, 222], size: [180, 58], text: 头 3, sub: 各算一遍 attention, style: plain }
-  - { at: [345, 402], size: [210, 44], text: 输出投影, tone: weight }
-fans:
-  - { from: [450, 160], to: [[150, 222], [350, 222], [550, 222], [750, 222]], tone: token }
-rows:
-  - { at: [350, 340], count: 4, w: 50, h: 22, gap: 0, tone: token }
-matrices:
-  - { at: [350, 492], w: 200, h: 22, rows: 1, cols: 8, tone: token, label: attention 子层输出 }
+caption: 两个头各算一遍（位置 2，数为示意）：q、k、v 的 4 个数按列切成两半，头 0 用前两个数、头 1 用后两个数，各自打分（除以 √2）、softmax、汇合 v；头 0 的权重大部分给位置 0，头 1 在位置 0、1 之间平分；两个头的输出拼回 4 个数，再乘输出权重回到隐藏宽度
+size: [900, 480]
+grids:
+  - at: [360, 22]
+    rows: 1
+    cols: 4
+    cell: [44, 32]
+    tone: token
+    style: solid
+    rowLabels: ['q₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [0, 2], text: '0' }
+      - { at: [0, 3], text: '1' }
+  # 头 0
+  - at: [90, 160]
+    rows: 1
+    cols: 2
+    cell: [40, 30]
+    tone: token
+    style: solid
+    rowLabels: ['q₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [90, 220]
+    rows: 3
+    cols: 2
+    cell: [40, 30]
+    tone: kv
+    style: faded
+    rowLabels: ['k₀', 'k₁', 'k₂']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+      - { at: [2, 0], text: '1' }
+      - { at: [2, 1], text: '0' }
+  - at: [194, 220]
+    rows: 3
+    cols: 1
+    cell: [52, 30]
+    tone: token
+    style: faded
+    colLabels: ['分数']
+    cells:
+      - { at: [0, 0], text: '2.83' }
+      - { at: [1, 0], text: '1.41' }
+      - { at: [2, 0], text: '0.71' }
+  - at: [270, 220]
+    rows: 3
+    cols: 1
+    cell: [52, 30]
+    tone: token
+    style: solid
+    colLabels: ['权重']
+    cells:
+      - { at: [0, 0], text: '0.73' }
+      - { at: [1, 0], text: '0.18' }
+      - { at: [2, 0], text: '0.09' }
+  - at: [352, 220]
+    rows: 3
+    cols: 2
+    cell: [40, 30]
+    tone: kv
+    style: faded
+    rowLabels: ['v₀', 'v₁', 'v₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+      - { at: [2, 0], text: '1' }
+      - { at: [2, 1], text: '1' }
+  - at: [352, 340]
+    rows: 1
+    cols: 2
+    cell: [40, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '0.82' }
+      - { at: [0, 1], text: '0.27' }
+  # 头 1
+  - at: [520, 160]
+    rows: 1
+    cols: 2
+    cell: [40, 30]
+    tone: token
+    style: solid
+    rowLabels: ['q₂']
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '1' }
+  - at: [520, 220]
+    rows: 3
+    cols: 2
+    cell: [40, 30]
+    tone: kv
+    style: faded
+    rowLabels: ['k₀', 'k₁', 'k₂']
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '0' }
+      - { at: [2, 0], text: '1' }
+      - { at: [2, 1], text: '−1' }
+  - at: [624, 220]
+    rows: 3
+    cols: 1
+    cell: [52, 30]
+    tone: token
+    style: faded
+    colLabels: ['分数']
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [1, 0], text: '0' }
+      - { at: [2, 0], text: '−0.71' }
+  - at: [700, 220]
+    rows: 3
+    cols: 1
+    cell: [52, 30]
+    tone: token
+    style: solid
+    colLabels: ['权重']
+    cells:
+      - { at: [0, 0], text: '0.40' }
+      - { at: [1, 0], text: '0.40' }
+      - { at: [2, 0], text: '0.20' }
+  - at: [782, 220]
+    rows: 3
+    cols: 2
+    cell: [40, 30]
+    tone: kv
+    style: faded
+    rowLabels: ['v₀', 'v₁', 'v₂']
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '1' }
+      - { at: [2, 0], text: '0' }
+      - { at: [2, 1], text: '2' }
+  - at: [782, 340]
+    rows: 1
+    cols: 2
+    cell: [40, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '1.20' }
+      - { at: [0, 1], text: '0.80' }
+  # 拼接
+  - at: [360, 426]
+    rows: 1
+    cols: 4
+    cell: [44, 32]
+    tone: token
+    style: solid
+    rowLabels: ['拼接']
+    cells:
+      - { at: [0, 0], text: '0.82' }
+      - { at: [0, 1], text: '0.27' }
+      - { at: [0, 2], text: '1.20' }
+      - { at: [0, 3], text: '0.80' }
+frames:
+  - { label: 头 0：前两个数, at: [30, 140], size: [410, 250] }
+  - { label: 头 1：后两个数, at: [460, 140], size: [410, 250] }
+brackets:
+  - { from: 362, to: 446, y: 58, label: 头 0 }
+  - { from: 450, to: 534, y: 58, label: 头 1 }
 links:
-  - { from: [450, 68], to: [450, 104], tone: token }
-  - { from: [150, 280], to: [375, 340], tone: token }
-  - { from: [350, 280], to: [425, 340], tone: token }
-  - { from: [550, 280], to: [475, 340], tone: token }
-  - { from: [750, 280], to: [525, 340], tone: token }
-  - { from: [450, 362], to: [450, 402], tone: token }
-  - { from: [450, 446], to: [450, 492], tone: token }
+  - { from: [170, 175], via: [[220, 175]], to: [220, 196], tone: token }
+  - { from: [600, 175], via: [[650, 175]], to: [650, 196], tone: token }
+  - { from: [392, 312], to: [392, 336], tone: token }
+  - { from: [822, 312], to: [822, 336], tone: token }
+  - { from: [392, 372], via: [[392, 404], [404, 404]], to: [404, 422], tone: token }
+  - { from: [822, 372], via: [[822, 404], [492, 404]], to: [492, 422], tone: token }
 texts:
-  - { at: [585, 357], text: 拼接各头输出, size: 13 }
-  - { at: [585, 473], text: 回到隐藏宽度, size: 13 }
+  - { at: [560, 44], text: k、v 也按同样的列切开, size: 13 }
+  - { at: [552, 447], text: 再乘输出权重，回到 4 个数, size: 13 }

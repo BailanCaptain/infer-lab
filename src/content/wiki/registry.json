@@ -785,7 +785,7 @@
       "title": "Attention 与 Q/K/V：当前位置怎样从历史里取信息",
       "type": "concept",
       "origin": "seed",
-      "summary": "attention 让当前位置用查询 q 给自己和此前每个位置的键 k 打分，softmax 换成权重后把各位置的值 v 加权汇合。本页对照原论文讲清 Q/K/V 从哪来、为什么除以 √d、多头和 causal mask，再看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。",
+      "summary": "attention 让每个位置按相关程度，从自己和前面的位置取信息，模型靠它把上下文用起来。本页先讲它是什么、为什么需要，再用一个 3 个位置的小例子一步步演示 Q/K/V 打分、softmax 和加权汇合，讲清为什么除以 √d、causal mask 和多头，最后看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。",
       "aliases": [
         "注意力",
         "attention",
@@ -900,6 +900,11 @@
           "from": "mla",
           "kind": "enables",
           "note": "多头打分、softmax 和 V 汇合在那里讲；本页只改历史怎样存、怎样读"
+        },
+        {
+          "from": "prefill",
+          "kind": "enables",
+          "note": "因果掩码决定一次送进去的多个位置各能看到哪些历史"
         },
         {
           "from": "rope",
@@ -1217,7 +1222,7 @@
         {
           "from": "pd-disaggregation",
           "kind": "enables",
-          "note": "理解源块与目的块是不同物理分配"
+          "note": "源块与目的块各属自己的块池，块号怎样对应显存见该页"
         },
         {
           "from": "prepare-inputs-flow",
@@ -1499,6 +1504,11 @@
       "file": "concepts/chunked-prefill.md",
       "backlinks": [
         {
+          "from": "pd-disaggregation",
+          "kind": "alternative-to",
+          "note": "不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路"
+        },
+        {
           "from": "batch-job-aware-scheduler",
           "kind": "enables",
           "note": "理解当前轮和下一轮的输入预算"
@@ -1525,7 +1535,7 @@
       "title": "通信基础：rank 之间怎样交换和归约张量",
       "type": "concept",
       "origin": "seed",
-      "summary": "集合通信规定一组参与者怎样交换数据，以及结束后每张卡持有什么。统一定义 All-Reduce、All-Gather、Reduce-Scatter、All-to-All 与 Broadcast，区分逻辑载荷和传输量，再沿 GLM 双机解释 HCCL 与 MC2。",
+      "summary": "集合通信规定一组参与者怎样交换数据，以及结束后每张卡持有什么。用 4 张卡逐步演示 Broadcast、Scatter、Gather、All-Gather、Reduce、Reduce-Scatter、All-Reduce、All-to-All 和 ring All-Reduce，区分逻辑载荷和传输量，再沿 GLM 双机解释 HCCL 与 MC2。",
       "aliases": [
         "集合通信",
         "Collective Communication",
@@ -1542,7 +1552,11 @@
         "Send",
         "Recv",
         "rank",
-        "通信组"
+        "通信组",
+        "Scatter",
+        "Gather",
+        "Reduce",
+        "ring All-Reduce"
       ],
       "chapters": [
         "12"
@@ -1598,7 +1612,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-28",
+      "updated": "2026-09-29",
       "file": "concepts/collective-communication.md",
       "backlinks": [
         {
@@ -1645,11 +1659,6 @@
           "from": "kvpp",
           "kind": "enables",
           "note": "理解 Broadcast 的源与接收者"
-        },
-        {
-          "from": "pd-disaggregation",
-          "kind": "enables",
-          "note": "区分状态搬运与集合归约"
         },
         {
           "from": "pipeline-parallel",
@@ -1883,7 +1892,7 @@
         {
           "from": "vllm-scheduler",
           "kind": "enables",
-          "note": "将批次变化对应到预算、进度和请求集合"
+          "note": "场景 M 的整批账（一步 6048 个 token、20"
         },
         {
           "from": "vllm-v1-shape",
@@ -2455,7 +2464,7 @@
       "title": "Embedding：按编号查表取出 token 的向量",
       "type": "concept",
       "origin": "seed",
-      "summary": "Embedding 按 token 编号从训练好的权重表里取出一行数字，只有查表没有乘法。GLM 的表是 [154880, 4096]；TP8 把它按行切成 8 份，每卡查自己那 19360 行、其余位置填 0，再用 All-Reduce 得到完整的 [4, 4096]。",
+      "summary": "Embedding 把每个 token 编号换成一条向量：编号是几，就到嵌入表里取第几行，只有查表没有乘法。本页先讲它是什么、为什么需要，再用一张 6 行的小表演示查表、one-hot 等价和 2 张卡切表求和；最后落到 GLM 双机：[154880, 4096] 的表 TP8 按行切成每卡 19360 行，查不到的位置填 0，All-Reduce 后每卡得到完整的 [4, 4096]。",
       "aliases": [
         "embedding",
         "词向量",
@@ -3526,11 +3535,13 @@
       "order": 500,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L1633"
+        "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L1633",
+        "vllm-ascend@b64b4d714484feaa6ca71edc99b98318fe6d2f0d:vllm_ascend/ascend_config.py#L1634"
       ],
       "verified": [],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-487944627d866213f1a7080123d1b06364fdfd1236bf863485d634bc276f95bc.md",
         "raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md"
       ],
       "relations": [],
@@ -4006,6 +4017,16 @@
           "note": "每 token 1"
         },
         {
+          "from": "pd-disaggregation",
+          "kind": "enables",
+          "note": "本页对照的部署：两台机器是两个 DP 执行组，拆成一 P 一 D 时的换算也在那页"
+        },
+        {
+          "from": "prefill",
+          "kind": "enables",
+          "note": "每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处"
+        },
+        {
           "from": "prefix-caching",
           "kind": "enables",
           "note": "部署前提、逻辑块 640、官方命令没写这个开关"
@@ -4127,10 +4148,10 @@
     },
     {
       "id": "graph-mode-layer",
-      "title": "图执行：编译、捕获与回放分别做什么",
+      "title": "graph mode：录一次执行次序，之后整串回放",
       "type": "feature",
       "origin": "seed",
-      "summary": "从逐算子下发说明图执行的动机，区分计算图改写与设备任务捕获，解释运行时分派、动态输入和 GLM 混合后端的适用边界。",
+      "summary": "从 Host 逐个提交任务讲起，说明 graph mode 录的是执行次序而不是结果；区分编译改写、捕获与回放，列出官方双机上 FULL_DECODE_ONLY 录了哪 7 张图、一轮回放哪一张的五条判据，以及回放前必须更新什么。",
       "aliases": [
         "ACL Graph",
         "ACLGraphWrapper",
@@ -4138,9 +4159,13 @@
         "图模式",
         "graph mode",
         "piecewise",
+        "分段回放",
+        "整趟回放",
         "xlite",
         "单算子模式",
-        "eager 模式"
+        "eager 模式",
+        "捕获",
+        "回放"
       ],
       "chapters": [
         "16"
@@ -4148,15 +4173,42 @@
       "order": 30,
       "prerequisites": [],
       "sources": [
-        "vllm@0fc695fc:vllm/config/compilation.py#L37-L69",
-        "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L47-L68",
-        "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L65-L87",
+        "vllm@0fc695fc:vllm/config/compilation.py#L55-L92",
+        "vllm@0fc695fc:vllm/config/compilation.py#L1108-L1150",
+        "vllm@0fc695fc:vllm/config/vllm.py#L215-L289",
+        "vllm@0fc695fc:vllm/config/vllm.py#L1618-L1682",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L76-L158",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L209-L236",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L262-L312",
+        "vllm@0fc695fc:vllm/compilation/monitor.py#L88-L100",
+        "vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L6525-L6588",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L130-L136",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L176-L181",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L880-L886",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L593-L632",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L633-L644",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L26-L87",
         "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170",
-        "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L234-L258",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L216-L259",
         "vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L693-L719",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2910-L2967",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2778-L2835",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5330-L5340"
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3800-L3816",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5330-L5340",
+        "vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L220-L236",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L661-L670",
+        "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L180-L235",
+        "vllm-ascend@2c59ff10:vllm_ascend/compilation/acl_graph.py#L138-L258",
+        "vllm-ascend@2ed6cbba:vllm_ascend/compilation/acl_graph.py#L150-L290",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/worker.py#L748-L778",
+        "vllm-ascend@baa023ad:vllm_ascend/compilation/acl_graph.py#L286-L302",
+        "vllm@0fc695fc:vllm/config/vllm.py#L1050-L1062",
+        "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L586-L636",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L155-L217",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L280-L297",
+        "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2240-L2250",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L44-L69",
+        "vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L44-L75"
       ],
       "verified": [],
       "evidence": "C",
@@ -4164,17 +4216,22 @@
         {
           "to": "npu-model-runner",
           "kind": "builds-on",
-          "note": "Runner 决定本轮张量与执行上下文"
+          "note": "Runner 决定本轮张量、模式与描述符"
         },
         {
           "to": "ops-and-kernels",
           "kind": "builds-on",
-          "note": "先理解算子和设备任务下发"
+          "note": "先理解算子和设备任务的提交"
+        },
+        {
+          "to": "npugraph-ex",
+          "kind": "alternative-to",
+          "note": "另一条路径：改写计算图本身，不是录执行次序"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-29",
       "file": "concepts/graph-mode-layer.md",
       "backlinks": [
         {
@@ -4315,7 +4372,7 @@
       "title": "KV cache：新 token 留下历史，下一步接着读",
       "type": "concept",
       "origin": "seed",
-      "summary": "KV cache 保存每一层为已处理位置算好的状态：新 token 只算自己这一份并追加进去，下一步直接读取，不再重算旧位置；代价是占显存、每步要读。GLM-5.3-Flash 的 12 层 MLA 按位置存压缩潜向量和 indexer K（每 token 每卡 13,056 B），34 层 KDA 按请求存固定大小的状态；缓存池按 640 个 token 的逻辑块分配。",
+      "summary": "KV cache 保存每一层为已处理位置算好的 k、v 等状态：新 token 只算自己这一份并追加进去，下一步直接读取，不再重算旧位置；代价是占显存、每步要读、要按块管理空间。GLM-5.3-Flash 同时存两类历史：MLA 层按位置存压缩潜向量和 indexer K，KDA 层按请求存固定大小的状态。",
       "aliases": [
         "KV Cache",
         "KV 缓存",
@@ -4373,7 +4430,8 @@
         "vllm-ascend@db701c1f:vllm_ascend/ops/indexer_kpool_mla.py#L39-L40",
         "vllm-ascend@baa023ad:vllm_ascend/attention/attention_v1.py#L102-L111",
         "vllm-ascend@2c59ff10:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107",
-        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107"
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_mamba_config.py#L58-L107",
+        "vllm@0fc695fc:vllm/v1/worker/block_table.py#L325-L380"
       ],
       "verified": [],
       "evidence": "C",
@@ -4442,7 +4500,7 @@
         {
           "from": "pd-disaggregation",
           "kind": "enables",
-          "note": "理解注意力历史与递推状态"
+          "note": "交接的是 GLM 的几类历史状态，各自多大、怎样分组见该页"
         },
         {
           "from": "prefix-caching",
@@ -4457,7 +4515,7 @@
         {
           "from": "vllm-scheduler",
           "kind": "enables",
-          "note": "请求推进需要能够保存相应历史状态"
+          "note": "请求能不能推进，还要看有没有空闲 KV 块存下它的历史"
         }
       ]
     },
@@ -5801,7 +5859,7 @@
       "title": "矩阵乘与权重：从输入向量到输出表示",
       "type": "concept",
       "origin": "seed",
-      "summary": "矩阵乘让每行输入与各列权重分别乘加，得到新的表示。沿 GLM 的前馈投影，分清参数量、计算量、设备驻留与实际访存，再看批内复用和 MoE 的边界。",
+      "summary": "权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数怎么算、一批 token 怎么一起算，再分清参数量、计算量、容量与访存，最后落到 GLM 双机的前馈投影与 MoE 边界。",
       "aliases": [
         "矩阵乘与权重",
         "矩阵乘",
@@ -6489,7 +6547,7 @@
         {
           "from": "graph-mode-layer",
           "kind": "enables",
-          "note": "Runner 决定本轮张量与执行上下文"
+          "note": "Runner 决定本轮张量、模式与描述符"
         },
         {
           "from": "mooncake-connector",
@@ -6798,6 +6856,11 @@
       "file": "concepts/npugraph-ex.md",
       "backlinks": [
         {
+          "from": "graph-mode-layer",
+          "kind": "alternative-to",
+          "note": "另一条路径：改写计算图本身，不是录执行次序"
+        },
+        {
           "from": "enable-super-kernel-ce990e186bfa",
           "kind": "enables",
           "note": "它是 npugraph_ex → static kernel 之上的第三级，融的是什么、为什么要分三级，在那一页"
@@ -6989,7 +7052,7 @@
         {
           "from": "prefill",
           "kind": "enables",
-          "note": "对照请求从输入到输出的完整路径"
+          "note": "R1 的 prefill 与 decode 两圈、每卡形状、块号和通信都只在那一页推导，本页只引结论"
         },
         {
           "from": "prefix-caching",
@@ -7185,7 +7248,7 @@
         {
           "from": "graph-mode-layer",
           "kind": "enables",
-          "note": "先理解算子和设备任务下发"
+          "note": "先理解算子和设备任务的提交"
         },
         {
           "from": "npugraph-ex",
@@ -7206,19 +7269,24 @@
     },
     {
       "id": "pd-disaggregation",
-      "title": "PD 分离：计算阶段与历史状态的交接",
+      "title": "PD 分离：prefill 与 decode 分给两组实例时怎样交接历史",
       "type": "feature",
       "origin": "seed",
-      "summary": "从 prefill 和 decode 的不同工作形态解释分离部署，跟踪目的块分配、状态边界、异步传输和完成后的恢复与释放。",
+      "summary": "把一条请求的 prefill 与 decode 交给 P、D 两套实例，中间由连接器交接历史状态。沿 Mooncake V1 看交棒、D 拉取、完成信号与押块，讲清 GLM 这类混合模型为何让 P 少算最后一个位置；本站双机主线没有开 PD，只作变体对照。",
       "aliases": [
         "PD 分离",
         "PD Disaggregation",
         "Prefill/Decode 分离",
+        "Prefill-decode Disaggregation",
         "disaggregated prefill",
         "分离部署",
         "P 节点",
         "D 节点",
+        "P 实例",
+        "D 实例",
         "kv_role",
+        "kv_producer",
+        "kv_consumer",
         "MooncakeConnectorV1",
         "EPD 分离",
         "EPD Disaggregation",
@@ -7240,15 +7308,38 @@
       "order": 10,
       "prerequisites": [],
       "sources": [
-        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1666-L1749",
-        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1751-L1820",
-        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1822-L1878",
+        "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L3-L13",
+        "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L27-L55",
+        "vllm-ascend@db701c1f:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L64-L105",
+        "vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/supported_models.md#L29-L45",
+        "vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353",
+        "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L788-L806",
+        "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L925-L927",
         "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1880-L1926",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L804-L824",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2236-L2248",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2176-L2186",
-        "vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L790-L806",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1666-L1749",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1751-L1849",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L798-L824",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2039-L2057",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L990",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L245-L390",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L705-L756",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L166-L243",
+        "vllm@0fc695fc:vllm/envs.py#L1684-L1686",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2154-L2186",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2221-L2248",
+        "vllm@0fc695fc:vllm/config/kv_transfer.py#L66-L73",
+        "vllm@0fc695fc:vllm/config/kv_transfer.py#L11-L13",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2424-L2492",
+        "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L46-L51",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1974-L2083",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1111-L1130",
         "vllm@0fc695fc:vllm/v1/sample/logits_processor/builtin.py#L191-L238",
+        "vllm@0fc695fc:vllm/sampling_params.py#L593-L614",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/__init__.py#L21-L87",
+        "vllm-ascend@db701c1f:docs/source/tutorials/features/pd_disaggregation_mooncake_multi_node.md#L227-L239",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L1101-L1109",
+        "vllm-ascend@2c59ff10:docs/source/developer_guide/Design_Documents/disaggregated_prefill.md#L101-L107",
+        "vllm@0fc695fc:vllm/model_executor/layers/mamba/abstract.py#L44-L48",
         "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/epd_disaggregation.md#L3-L33",
         "vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/epd_disaggregation.md#L39-L79",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2018-L2025",
@@ -7260,35 +7351,56 @@
         "vllm@0fc695fc:vllm/model_executor/models/interfaces.py#L216-L246",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_multimodal.py#L671-L703",
         "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_1e1pd_example.sh#L89-L124",
-        "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L430"
+        "vllm-ascend@db701c1f:examples/disaggregated_encoder/disagg_epd_proxy.py#L402-L430",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L167-L210",
+        "vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L2585-L2616",
+        "vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L96-L102",
+        "vllm-ascend@db701c1f:vllm_ascend/sample/sampler.py#L46-L125",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2598",
+        "vllm@0fc695fc:vllm/v1/sample/sampler.py#L96-L100",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L279-L284",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/cache_config.py#L169-L176",
+        "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/__init__.py#L49-L53",
+        "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/connector.py#L228-L261",
+        "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/pull_scheduler.py#L610-L618",
+        "vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_scheduler.py#L84-L140"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
           "to": "prefill",
           "kind": "builds-on",
-          "note": "理解 prefill 和逐步生成的计算"
+          "note": "P 实例做的就是整段提示词的 prefill；混合步为什么拖慢 decode 也在那页"
         },
         {
           "to": "kv-cache",
           "kind": "builds-on",
-          "note": "理解注意力历史与递推状态"
+          "note": "交接的是 GLM 的几类历史状态，各自多大、怎样分组见该页"
+        },
+        {
+          "to": "glm-5-3-flash-two-node",
+          "kind": "builds-on",
+          "note": "本页对照的部署：两台机器是两个 DP 执行组，拆成一 P 一 D 时的换算也在那页"
         },
         {
           "to": "block-table",
           "kind": "builds-on",
-          "note": "理解源块与目的块是不同物理分配"
+          "note": "源块与目的块各属自己的块池，块号怎样对应显存见该页"
         },
         {
-          "to": "collective-communication",
-          "kind": "builds-on",
-          "note": "区分状态搬运与集合归约"
+          "to": "chunked-prefill",
+          "kind": "alternative-to",
+          "note": "不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-29",
       "file": "concepts/pd-disaggregation.md",
       "backlinks": [
         {
@@ -7619,17 +7731,23 @@
     },
     {
       "id": "prefill",
-      "title": "Prefill 与 Decode：输入如何变成连续输出",
+      "title": "Prefill 与 Decode：提示词怎样一步算完，回答怎样接着往下写",
       "type": "concept",
       "origin": "seed",
-      "summary": "Prefill 处理已知输入并产生首个输出 token，普通 Decode 逐步输入上一次生成的 token；两者经过相同模型层，但输入规模、状态访问和调度方式不同。",
+      "summary": "Prefill 是一条请求的第一步，把提示词里已知的全部位置一次送进模型，为每个位置留下历史，并用最后一个位置选出回答的第一个 token；之后每一步是 decode，在已有历史上接着往后写。两者用同一套权重，区别在送进来的是什么、有没有历史可读、调度与执行分支怎样走。",
       "aliases": [
         "Prefill",
         "Decode",
         "预填充",
         "解码",
+        "首 token 阶段",
+        "prompt 阶段",
+        "prefill 阶段",
+        "P 阶段",
+        "D 阶段",
         "TTFT",
-        "TPOT"
+        "TPOT",
+        "首 token 延迟"
       ],
       "chapters": [
         "05"
@@ -7638,23 +7756,59 @@
       "prerequisites": [],
       "sources": [
         "https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1263-L1277",
+        "https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L400-L416",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L680-L700",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L70-L84",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L259-L271",
+        "vllm@0fc695fc:vllm/v1/engine/input_processor.py#L395-L432",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L838-L856",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1471",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L147-L152",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2915-L2941",
+        "vllm@0fc695fc:vllm/v1/cudagraph_dispatcher.py#L306-L327",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L590-L644",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1262-L1307",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2326-L2327",
         "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1075-L1099",
-        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2327",
-        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472"
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2632-L2686",
+        "vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2738-L2742",
+        "vllm@0fc695fc:vllm/v1/engine/core.py#L443-L472",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L428-L436",
+        "vllm@84030bbe:vllm/v1/core/sched/scheduler.py#L566-L574",
+        "vllm@84030bbe:vllm/config/scheduler.py#L70-L72",
+        "vllm-ascend@2c59ff10:vllm_ascend/worker/model_runner_v1.py#L1477-L1505",
+        "vllm-ascend@2ed6cbba:vllm_ascend/worker/model_runner_v1.py#L1327-L1355",
+        "vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L1662-L1690",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/kda.py#L434-L515"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
           "to": "one-request",
           "kind": "builds-on",
-          "note": "对照请求从输入到输出的完整路径"
+          "note": "R1 的 prefill 与 decode 两圈、每卡形状、块号和通信都只在那一页推导，本页只引结论"
+        },
+        {
+          "to": "attention-qkv",
+          "kind": "builds-on",
+          "note": "因果掩码决定一次送进去的多个位置各能看到哪些历史"
+        },
+        {
+          "to": "glm-5-3-flash-two-node",
+          "kind": "builds-on",
+          "note": "每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-29",
       "file": "concepts/prefill.md",
       "backlinks": [
         {
@@ -7665,7 +7819,7 @@
         {
           "from": "pd-disaggregation",
           "kind": "enables",
-          "note": "理解 prefill 和逐步生成的计算"
+          "note": "P 实例做的就是整段提示词的 prefill；混合步为什么拖慢 decode 也在那页"
         },
         {
           "from": "speculative-decoding",
@@ -7715,7 +7869,7 @@
         "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L125-L160",
         "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L216-L225",
         "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L20-L50",
-        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L1-L61",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L1-L60",
         "vllm-ascend@db701c1f:vllm_ascend/models/layer/attention/layer.py#L112-L120",
         "vllm-ascend@db701c1f:vllm_ascend/attention/dsa_v1.py#L191-L199",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2430-L2440",
@@ -7723,7 +7877,8 @@
         "vllm@84030bbe:vllm/engine/arg_utils.py#L2775-L2812",
         "vllm@84030bbe:vllm/config/model.py#L2130-L2142",
         "vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L82-L136",
-        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L835-L845"
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L835-L845",
+        "vllm@0fc695fc:vllm/v1/core/block_pool.py#L402-L425"
       ],
       "verified": [
         "releases/v0.23.0",
@@ -7787,11 +7942,6 @@
           "from": "lmcache",
           "kind": "enables",
           "note": "外部前缀复用要求一致的数据身份"
-        },
-        {
-          "from": "vllm-kv-block-allocation",
-          "kind": "enables",
-          "note": "引用计数大于 1 的场景；什么前缀能命中、混合模型为什么默认关，在那一页"
         }
       ]
     },
@@ -10015,7 +10165,7 @@
       "title": "Token 与分词：从文本到模型输入",
       "type": "concept",
       "origin": "seed",
-      "summary": "Token 是模型用编号表示的文本单元。聊天消息先套模板、再分词，完整编号序列才是输入长度的依据；沿 A1 入口区分主机上的字符串处理、设备上的向量计算，以及输出编号怎样还原成文字。",
+      "summary": "Token 是模型用整数编号表示的文本单元。先讲 token 是什么、为什么切成子词，再用一个例子演示字节级 BPE 怎样把文字拆成字节、按合并表一步步并成 token；接着讲聊天模板和生成的编号怎样变回文字，最后落到 GLM 双机的分词器、154880 行词表和 R1 的入口。",
       "aliases": [
         "词元",
         "令牌",
@@ -10196,13 +10346,15 @@
         "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1047-L1054",
         "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L1535",
         "vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L1547",
-        "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L1630"
+        "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L1630",
+        "vllm-ascend@b64b4d714484feaa6ca71edc99b98318fe6d2f0d:vllm_ascend/ascend_config.py#L1631"
       ],
       "verified": [
         "main"
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-487944627d866213f1a7080123d1b06364fdfd1236bf863485d634bc276f95bc.md",
         "raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md",
         "raw/sha256-b4c233521b02d2783805e7bb877b5cc54f0a1ce018f865c48fe3005500157cba.md",
         "raw/sha256-b6dee85cabd61a407e769b3afe87cad9ebab694e8557acb71a692aba730e6c8a.md",
@@ -10502,6 +10654,11 @@
           "from": "pipeline-parallel",
           "kind": "enables",
           "note": "理解引擎批队列与结果更新"
+        },
+        {
+          "from": "vllm-scheduler",
+          "kind": "enables",
+          "note": "调度器是 EngineCore 每一步开头做的第一件事；谁在什么时候调它，写在那一页"
         }
       ]
     },
@@ -10595,11 +10752,6 @@
           "to": "block-table",
           "kind": "builds-on",
           "note": "借到的块号写进块表，worker 按表把位置换算成槽位"
-        },
-        {
-          "to": "prefix-caching",
-          "kind": "builds-on",
-          "note": "引用计数大于 1 的场景；什么前缀能命中、混合模型为什么默认关，在那一页"
         },
         {
           "to": "one-request",
@@ -10770,16 +10922,25 @@
     },
     {
       "id": "vllm-scheduler",
-      "title": "Scheduler：按计算进度、预算与缓存安排批次",
+      "title": "Scheduler：每一步给哪些请求算几个 token",
       "type": "concept",
       "origin": "seed",
-      "summary": "调度器把每个请求待处理的位置数与本轮预算、运行上限和缓存可用性结合起来，形成执行计划。统一进度表示不消除 Prefill 与 Decode 的计算差别，也不保证所有运行请求每轮都能推进。",
+      "summary": "Scheduler 在 EngineCore 每步开头只看每条请求还差几个位置，在 token 预算、请求数上限和KV 块之内先续 running、再用余量接 waiting，借不到块就抢占或停止接纳，在调度器里不分 prefill 和 decode（worker 侧仍有分路）；GLM 双机上每个 DP 组一步最多 8192 个 token、32 条请求，纯 decode 步只用 128 个。",
       "aliases": [
         "调度器",
         "Scheduler",
+        "schedule",
         "token budget",
+        "token 预算",
+        "token 名额",
+        "名额",
+        "调度一步",
+        "max_num_batched_tokens",
+        "max_num_seqs",
         "num_computed_tokens",
         "num_scheduled_tokens",
+        "num_tokens_with_spec",
+        "long_prefill_token_threshold",
         "waiting",
         "running"
       ],
@@ -10790,29 +10951,67 @@
       "prerequisites": [],
       "sources": [
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L376-L420",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L562-L580",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L359-L362",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L376-L416",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L445-L516",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L563-L568",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L679-L691",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L761-L778",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L872-L874",
         "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L974-L995",
-        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L338",
-        "vllm@0fc695fc:vllm/config/scheduler.py#L42-L90"
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1003",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L259-L263",
+        "vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L103-L109",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L42-L90",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L224-L246",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L140-L144",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2305-L2335",
+        "vllm@0fc695fc:vllm/engine/arg_utils.py#L2370-L2392",
+        "vllm@0fc695fc:vllm/config/model.py#L1805-L1810",
+        "vllm@0fc695fc:vllm/v1/core/kv_cache_manager.py#L354-L368",
+        "vllm@0fc695fc:vllm/model_executor/models/config.py#L371-L374",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L275-L281",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L84-L88",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_balance_schedule.py#L718-L718",
+        "vllm-ascend@db701c1f:vllm_ascend/envs.py#L103-L105",
+        "vllm-ascend@db701c1f:vllm_ascend/platform.py#L680-L715",
+        "vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L9-L57",
+        "vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L426-L437",
+        "vllm@84030bbe:vllm/engine/arg_utils.py#L2709-L2735",
+        "vllm-ascend@baa023ad:vllm_ascend/platform.py#L225-L237",
+        "vllm-ascend@2ed6cbba:vllm_ascend/patch/platform/patch_balance_schedule.py#L936-L936",
+        "vllm@0fc695fc:vllm/config/scheduler.py#L168-L176",
+        "vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L6-L12",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L355-L475",
+        "vllm-ascend@db701c1f:vllm_ascend/ops/kimi_kda.py#L506-L600",
+        "vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L557-L557"
       ],
-      "verified": [],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
       "evidence": "C",
       "relations": [
         {
+          "to": "vllm-engine-core",
+          "kind": "builds-on",
+          "note": "调度器是 EngineCore 每一步开头做的第一件事；谁在什么时候调它，写在那一页"
+        },
+        {
           "to": "concurrent-requests",
           "kind": "builds-on",
-          "note": "将批次变化对应到预算、进度和请求集合"
+          "note": "场景 M 的整批账（一步 6048 个 token、20"
         },
         {
           "to": "kv-cache",
           "kind": "builds-on",
-          "note": "请求推进需要能够保存相应历史状态"
+          "note": "请求能不能推进，还要看有没有空闲 KV 块存下它的历史"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-26",
+      "updated": "2026-09-29",
       "file": "concepts/vllm-scheduler.md",
       "backlinks": [
         {

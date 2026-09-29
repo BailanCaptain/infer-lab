@@ -1,0 +1,55 @@
+layout: figure
+id: collective-communication-ring
+caption: ring All-Reduce（SUM）：4 张卡首尾相连，每一步每张卡只把 1 块发给顺时针下一张卡。前 3 步是 Reduce-Scatter，收到就加进同位置，圆点一步多一个；后 3 步是 All-Gather，把加齐的块沿环传一圈、收到就覆盖。
+size: [880, 2416]
+exchanges:
+  - at: [105, 8]
+    cards: [卡 0, 卡 1, 卡 2, 卡 3]
+    slots: 4
+    gap: [190, 96]
+    dots: true
+    tag: 数为示意
+    start:
+      - [1, 2, 3, 4]
+      - [10, 20, 30, 40]
+      - [100, 200, 300, 400]
+      - [1000, 2000, 3000, 4000]
+    steps:
+      - title: 第 1 步（Reduce-Scatter）：每张卡发 1 块给下一张，对方加进同位置
+        moves:
+          - { from: [0, 0], to: [1, 0], op: add }
+          - { from: [1, 1], to: [2, 1], op: add }
+          - { from: [2, 2], to: [3, 2], op: add }
+          - { from: [3, 3], to: [0, 3], op: add }
+      - title: 第 2 步：把刚加过的那块接着往下传，再加一次
+        moves:
+          - { from: [0, 3], to: [1, 3], op: add }
+          - { from: [1, 0], to: [2, 0], op: add }
+          - { from: [2, 1], to: [3, 1], op: add }
+          - { from: [3, 2], to: [0, 2], op: add }
+      - title: 第 3 步：再传一次，这一块就加进了全部 4 张卡
+        moves:
+          - { from: [0, 2], to: [1, 2], op: add }
+          - { from: [1, 3], to: [2, 3], op: add }
+          - { from: [2, 0], to: [3, 0], op: add }
+          - { from: [3, 1], to: [0, 1], op: add }
+        keep: [[0, 1], [1, 2], [2, 3], [3, 0]]
+      - title: 第 4 步（All-Gather）：把加齐的那块发给下一张，直接覆盖
+        moves:
+          - { from: [0, 1], to: [1, 1] }
+          - { from: [1, 2], to: [2, 2] }
+          - { from: [2, 3], to: [3, 3] }
+          - { from: [3, 0], to: [0, 0] }
+      - title: 第 5 步：把刚收到的加齐块接着往下传
+        moves:
+          - { from: [0, 0], to: [1, 0] }
+          - { from: [1, 1], to: [2, 1] }
+          - { from: [2, 2], to: [3, 2] }
+          - { from: [3, 3], to: [0, 3] }
+      - title: 第 6 步：最后传一次
+        moves:
+          - { from: [0, 3], to: [1, 3] }
+          - { from: [1, 0], to: [2, 0] }
+          - { from: [2, 1], to: [3, 1] }
+          - { from: [3, 2], to: [0, 2] }
+    end: 6 步后：每张卡 4 块都加齐，每步每张卡只发了 1 块

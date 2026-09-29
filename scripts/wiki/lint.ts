@@ -3,8 +3,13 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import ReactMarkdown from "react-markdown";
+import { fragmentId } from "../../src/content/wiki/anchors";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../../src/content/wiki/evidenceMarks";
+import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../src/content/wiki/markdown";
 import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
@@ -66,6 +71,86 @@ function linkTargets(page: WikiPage): string[] {
     const raw = m[1] ?? "";
     if (/^(https?:|mailto:|#)/.test(raw)) continue;
     out.push(posix.normalize(posix.join(dir, raw.split("#")[0] ?? "")));
+  }
+  return out;
+}
+
+interface RenderedBody {
+  /** 阅读页上这段正文里能跳到的 id（标题 id，以及管线渲染出的其它 id） */
+  ids: Set<string>;
+  /** 渲染出来的每个链接：href 与它在正文里的行号（1 起） */
+  links: { href: string; line: number }[];
+}
+
+const HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  "#x27": "'",
+  "#39": "'",
+};
+
+/**
+ * 按阅读页同一条 markdown 管线渲染正文，取出全部 id 与全部链接。
+ *
+ * 锚点不另写一套规则：阅读页能跳到哪个 id，这里就认哪个。标题 id 的算法（anchors.ts）、
+ * 代码块里的 `##` 不算标题、同名标题加 -1、行内代码按文字算，都由同一条管线决定；
+ * 链接也取渲染结果里真正的 <a>，代码里的 `[x](y.md#z)` 不算，引用式链接照样算。
+ */
+function renderBody(body: string): RenderedBody {
+  const links: RenderedBody["links"] = [];
+  const html = renderToStaticMarkup(
+    createElement(
+      ReactMarkdown,
+      {
+        remarkPlugins: WIKI_REMARK_PLUGINS,
+        rehypePlugins: WIKI_REHYPE_PLUGINS,
+        components: {
+          a: ({ href, node, children }) => {
+            links.push({ href: href ?? "", line: node?.position?.start.line ?? 1 });
+            return createElement("a", { href }, children);
+          },
+        },
+      },
+      body,
+    ),
+  );
+  const ids = new Set(
+    [...html.matchAll(/\sid="([^"]*)"/g)].map((m) =>
+      (m[1] ?? "").replace(/&(amp|lt|gt|quot|#x27|#39);/g, (all, e: string) => HTML_ENTITIES[e] ?? all),
+    ),
+  );
+  return { ids, links };
+}
+
+/**
+ * `xxx.md#锚点` 与本页 `#锚点` 必须落在目标页阅读页上真有的 id 上。
+ * 目标页标题改名后，指向旧标题的链接在阅读页上静默失效——prefill、moe 各出过一次，
+ * 都是审查员手工发现的（2026-09-29）。
+ * 目标不是知识页的不看：文件缺失由 broken-link 报，raw/ 等原文没有标题锚点。
+ */
+function anchorProblems(pages: WikiPage[]): PageProblem[] {
+  const rendered = new Map(pages.map((p) => [p.file, renderBody(p.body)]));
+  const out: PageProblem[] = [];
+  for (const p of pages) {
+    const dir = posix.dirname(p.file);
+    for (const { href, line } of rendered.get(p.file)?.links ?? []) {
+      const cut = href.indexOf("#");
+      if (cut < 0 || /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("#/") || href.startsWith("/"))
+        continue;
+      const path = href.slice(0, cut);
+      if (path && !path.endsWith(".md")) continue;
+      const anchor = fragmentId(href.slice(cut));
+      const file = path ? posix.normalize(posix.join(dir, path)) : p.file;
+      const target = rendered.get(file);
+      if (!anchor || !target || target.ids.has(anchor)) continue;
+      out.push({
+        file: p.file,
+        rule: "broken-anchor",
+        message: `第 ${(p.bodyLine ?? 1) + line - 1} 行：锚点 #${anchor} 在 ${file} 里不存在——目标标题改过名，或锚点没按 anchors.ts 的规则写`,
+      });
+    }
   }
   return out;
 }
@@ -368,6 +453,7 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
       }
     }
   }
+  problems.push(...anchorProblems(pages));
   for (const p of pages) {
     const teach = p.fm.type === "concept" || p.fm.type === "feature";
     if (teach && !p.fm.chapters.length && !inbound.has(p.fm.id)) {

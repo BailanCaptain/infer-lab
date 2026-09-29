@@ -1,0 +1,37 @@
+layout: figure
+id: kv-cache-quantization-intuition
+caption: 同一段留给 KV cache 的显存，按 BF16 存装得下 4 块；改按 INT8 存，每块装的位置数不变（这里一块是 4 个位置、每个位置 8 个数，示意），每个数只占一半宽，于是装得下 8 块。写入时把新位置的 k、v 压成 8 位，读取时乘回系数；本页主讲的实现里，系数每层 k、v 各一套、随权重加载，不占这段显存。每页的位置数、页对齐和其他状态会让实际容量偏离一倍，见正文。
+size: [880, 400]
+frames:
+  - { at: [150, 70], size: [644, 76], label: 留给 KV cache 的一段显存 }
+  - { at: [150, 222], size: [644, 76], label: 同样大小的一段显存 }
+matrices:
+  - { at: [152, 76], w: 160, h: 64, rows: 4, cols: 8, tone: kv, style: faded }
+  - { at: [312, 76], w: 160, h: 64, rows: 4, cols: 8, tone: kv, style: faded }
+  - { at: [472, 76], w: 160, h: 64, rows: 4, cols: 8, tone: kv, style: faded }
+  - { at: [632, 76], w: 160, h: 64, rows: 4, cols: 8, tone: kv, style: faded }
+  - { at: [152, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [232, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [312, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [392, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [472, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [552, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [632, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [712, 228], w: 80, h: 64, rows: 4, cols: 8, tone: kv, style: solid }
+  - { at: [152, 346], w: 80, h: 10, rows: 1, cols: 8, tone: control, style: solid }
+links:
+  - { from: [472, 152], to: [472, 214], tone: kv }
+texts:
+  - { at: [24, 104], text: BF16, strong: true, size: 16 }
+  - { at: [24, 126], text: 每个数 2 字节, size: 13 }
+  - { at: [24, 256], text: INT8, strong: true, size: 16 }
+  - { at: [24, 278], text: 每个数 1 字节, size: 13 }
+  - { at: [806, 114], text: 4 块, strong: true, size: 16 }
+  - { at: [806, 266], text: 8 块, strong: true, size: 16 }
+  - { at: [486, 180], text: 写入时压成 8 位，读取时乘回系数, size: 13 }
+  - { at: [244, 356], text: 系数：每层 k、v 各一套，随权重加载，不占这段显存, size: 13, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/kv_c8.py#L108-L145
+    symbols: [k_cache_scale, kv_cache_torch_dtype]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/attention_v1.py#L1733-L1754
+    symbols: [_quantize_kv_to_int8]

@@ -1,0 +1,62 @@
+layout: figure
+id: expert-parallel-vs-tp
+caption: 同样 4 张卡、8 个专家，每张卡都只存全部专家权重的 1/4。TP 把每个专家竖着切成 4 条，每张卡拿每个专家的一条；EP 不切专家，每张卡拿 2 个完整专家。实色是某个 token 选中的 E3、E4：TP 下 4 张卡都要动手、结果还要相加，EP 下只有持有它们的两张卡动手。
+size: [880, 384]
+frames:
+  - { at: [10, 34], size: [206, 112], label: 卡 0, inside: true }
+  - { at: [228, 34], size: [206, 112], label: 卡 1, inside: true }
+  - { at: [446, 34], size: [206, 112], label: 卡 2, inside: true }
+  - { at: [664, 34], size: [206, 112], label: 卡 3, inside: true }
+  - { at: [10, 222], size: [206, 112], label: 卡 0, inside: true }
+  - { at: [228, 222], size: [206, 112], label: 卡 1, inside: true }
+  - { at: [446, 222], size: [206, 112], label: 卡 2, inside: true }
+  - { at: [664, 222], size: [206, 112], label: 卡 3, inside: true }
+matrices:
+  - { at: [28, 70], w: 12, h: 48, rows: 4, cols: 1, label: E0, style: faded }
+  - { at: [50, 70], w: 12, h: 48, rows: 4, cols: 1, label: E1, style: faded }
+  - { at: [72, 70], w: 12, h: 48, rows: 4, cols: 1, label: E2, style: faded }
+  - { at: [94, 70], w: 12, h: 48, rows: 4, cols: 1, label: E3, style: solid }
+  - { at: [116, 70], w: 12, h: 48, rows: 4, cols: 1, label: E4, style: solid }
+  - { at: [138, 70], w: 12, h: 48, rows: 4, cols: 1, label: E5, style: faded }
+  - { at: [160, 70], w: 12, h: 48, rows: 4, cols: 1, label: E6, style: faded }
+  - { at: [182, 70], w: 12, h: 48, rows: 4, cols: 1, label: E7, style: faded }
+  - { at: [246, 70], w: 12, h: 48, rows: 4, cols: 1, label: E0, style: faded }
+  - { at: [268, 70], w: 12, h: 48, rows: 4, cols: 1, label: E1, style: faded }
+  - { at: [290, 70], w: 12, h: 48, rows: 4, cols: 1, label: E2, style: faded }
+  - { at: [312, 70], w: 12, h: 48, rows: 4, cols: 1, label: E3, style: solid }
+  - { at: [334, 70], w: 12, h: 48, rows: 4, cols: 1, label: E4, style: solid }
+  - { at: [356, 70], w: 12, h: 48, rows: 4, cols: 1, label: E5, style: faded }
+  - { at: [378, 70], w: 12, h: 48, rows: 4, cols: 1, label: E6, style: faded }
+  - { at: [400, 70], w: 12, h: 48, rows: 4, cols: 1, label: E7, style: faded }
+  - { at: [464, 70], w: 12, h: 48, rows: 4, cols: 1, label: E0, style: faded }
+  - { at: [486, 70], w: 12, h: 48, rows: 4, cols: 1, label: E1, style: faded }
+  - { at: [508, 70], w: 12, h: 48, rows: 4, cols: 1, label: E2, style: faded }
+  - { at: [530, 70], w: 12, h: 48, rows: 4, cols: 1, label: E3, style: solid }
+  - { at: [552, 70], w: 12, h: 48, rows: 4, cols: 1, label: E4, style: solid }
+  - { at: [574, 70], w: 12, h: 48, rows: 4, cols: 1, label: E5, style: faded }
+  - { at: [596, 70], w: 12, h: 48, rows: 4, cols: 1, label: E6, style: faded }
+  - { at: [618, 70], w: 12, h: 48, rows: 4, cols: 1, label: E7, style: faded }
+  - { at: [682, 70], w: 12, h: 48, rows: 4, cols: 1, label: E0, style: faded }
+  - { at: [704, 70], w: 12, h: 48, rows: 4, cols: 1, label: E1, style: faded }
+  - { at: [726, 70], w: 12, h: 48, rows: 4, cols: 1, label: E2, style: faded }
+  - { at: [748, 70], w: 12, h: 48, rows: 4, cols: 1, label: E3, style: solid }
+  - { at: [770, 70], w: 12, h: 48, rows: 4, cols: 1, label: E4, style: solid }
+  - { at: [792, 70], w: 12, h: 48, rows: 4, cols: 1, label: E5, style: faded }
+  - { at: [814, 70], w: 12, h: 48, rows: 4, cols: 1, label: E6, style: faded }
+  - { at: [836, 70], w: 12, h: 48, rows: 4, cols: 1, label: E7, style: faded }
+  - { at: [28, 258], w: 48, h: 48, rows: 4, cols: 4, label: E0, style: faded }
+  - { at: [106, 258], w: 48, h: 48, rows: 4, cols: 4, label: E1, style: faded }
+  - { at: [246, 258], w: 48, h: 48, rows: 4, cols: 4, label: E2, style: faded }
+  - { at: [324, 258], w: 48, h: 48, rows: 4, cols: 4, label: E3, style: solid }
+  - { at: [464, 258], w: 48, h: 48, rows: 4, cols: 4, label: E4, style: solid }
+  - { at: [542, 258], w: 48, h: 48, rows: 4, cols: 4, label: E5, style: faded }
+  - { at: [682, 258], w: 48, h: 48, rows: 4, cols: 4, label: E6, style: faded }
+  - { at: [760, 258], w: 48, h: 48, rows: 4, cols: 4, label: E7, style: faded }
+texts:
+  - { at: [10, 20], text: TP4：每张卡放每个专家的 1/4, strong: true }
+  - { at: [10, 174], text: 实色 E3、E4 被选中 → 4 张卡都算 → 部分和相加, size: 13 }
+  - { at: [10, 208], text: EP4：每张卡放 2 个完整专家, strong: true }
+  - { at: [10, 368], text: 实色 E3、E4 被选中 → 只有卡 1、卡 2 算, size: 13 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339
+    symbols: [token_dispatch, token_combine]

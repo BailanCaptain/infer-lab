@@ -1,0 +1,150 @@
+layout: figure
+id: mla-absorb-calc
+caption: 同一个分数的两种算法（数为示意，接低秩压缩的例子）：左边先用头 1 的 K 上投影把 c₀ 还原成 k₀,₁，再和 q 点积；右边先把这块上投影行列互换后乘进 q，得到 q̃，再直接和 c₀ 点积。两边都是 6，而 q̃ 只算一次就能和每个历史位置的潜向量点乘
+size: [900, 360]
+grids:
+  # 左：先还原，再点积
+  - at: [60, 80]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: kv
+    style: solid
+    label: c₀
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [180, 63]
+    rows: 2
+    cols: 2
+    cell: [40, 34]
+    tone: weight
+    style: solid
+    label: 头 1 的 K 上投影
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+  - at: [300, 80]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: kv
+    style: solid
+    label: k₀,₁
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '4' }
+  - at: [60, 215]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: token
+    style: solid
+    label: q
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+  - at: [180, 215]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: kv
+    style: solid
+    label: k₀,₁
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '4' }
+  - at: [300, 215]
+    rows: 1
+    cols: 1
+    cell: [48, 34]
+    tone: token
+    style: solid
+    label: 分数
+    cells:
+      - { at: [0, 0], text: '6' }
+  # 右：吸收
+  - at: [510, 80]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: token
+    style: solid
+    label: q
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+  - at: [630, 63]
+    rows: 2
+    cols: 2
+    cell: [40, 34]
+    tone: weight
+    style: solid
+    label: 同一块，行列互换
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '1' }
+  - at: [750, 80]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: token
+    style: solid
+    label: q̃
+    cells:
+      - { at: [0, 0], text: '4' }
+      - { at: [0, 1], text: '1' }
+  - at: [510, 215]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: token
+    style: solid
+    label: q̃
+    cells:
+      - { at: [0, 0], text: '4' }
+      - { at: [0, 1], text: '1' }
+  - at: [630, 215]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: kv
+    style: solid
+    label: c₀
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [750, 215]
+    rows: 1
+    cols: 1
+    cell: [48, 34]
+    tone: token
+    style: solid
+    label: 分数
+    cells:
+      - { at: [0, 0], text: '6' }
+nodes:
+  - { at: [160, 97], r: 12, text: '×' }
+  - { at: [160, 232], r: 12, text: '·' }
+  - { at: [610, 97], r: 12, text: '×' }
+  - { at: [610, 232], r: 12, text: '·' }
+links:
+  - { from: [264, 97], to: [296, 97] }
+  - { from: [264, 232], to: [296, 232] }
+  - { from: [714, 97], to: [746, 97] }
+  - { from: [714, 232], to: [746, 232] }
+dividers:
+  - { from: [450, 16], to: [450, 348] }
+texts:
+  - { at: [30, 36], text: 先还原，再点积, strong: true }
+  - { at: [30, 190], text: 'k₀,₁ = [1×1 + 2×0, 1×2 + 2×1]', size: 13 }
+  - { at: [30, 310], text: 'q · k₀,₁ = 2×1 + 1×4 = 6', size: 13 }
+  - { at: [30, 336], text: 每个历史位置都要先还原一次, size: 12, note: true }
+  - { at: [480, 36], text: 吸收：先把上投影乘进 q, strong: true }
+  - { at: [480, 190], text: 'q̃ = [2×1 + 1×2, 2×0 + 1×1]', size: 13 }
+  - { at: [480, 310], text: 'q̃ · c₀ = 4×1 + 1×2 = 6', size: 13 }
+  - { at: [480, 336], text: q̃ 只算一次，每个历史位置直接和潜向量点乘, size: 12, note: true }

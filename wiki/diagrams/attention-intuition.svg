@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 290" width="900" height="290" role="img" aria-label="attention 的直觉（比重为示意）：读到「她」时，这个位置回头看前面每个词，按相关程度取信息，主要取「小红」，少量取「小明」「借给」和自己；下面一行颜色越深，取得越多，各位置取的比重加起来是 1">
+  <title>attention 的直觉（比重为示意）：读到「她」时，这个位置回头看前面每个词，按相关程度取信息，主要取「小红」，少量取「小明」「借给」和自己；下面一行颜色越深，取得越多，各位置取的比重加起来是 1</title>
+  <defs><marker id="attention-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M765 94 C 740 30, 520 30, 495 94" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#attention-intuition-ah-token)"/>
+  <rect x="90" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.4" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="180" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.12" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="270" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.17" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="360" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.22" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="450" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="1" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="540" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.1" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="630" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.15" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="720" y="170" width="90" height="40" fill="var(--color-token, #087f73)" fill-opacity="0.26" stroke="var(--color-surface, #fbfaf6)" stroke-width="1.5"/>
+  <rect x="90" y="170" width="720" height="40" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="450" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">「她」从每个位置取多少</text>
+  <text x="90" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)">少</text>
+  <rect x="110" y="246" width="16" height="10" fill="var(--color-token, #087f73)" fill-opacity="0.08"/>
+  <rect x="127" y="246" width="16" height="10" fill="var(--color-token, #087f73)" fill-opacity="0.31"/>
+  <rect x="144" y="246" width="16" height="10" fill="var(--color-token, #087f73)" fill-opacity="0.54"/>
+  <rect x="161" y="246" width="16" height="10" fill="var(--color-token, #087f73)" fill-opacity="0.77"/>
+  <rect x="178" y="246" width="16" height="10" fill="var(--color-token, #087f73)" fill-opacity="1"/>
+  <text x="202" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)">多</text>
+  <rect x="95" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">小明</text>
+  <rect x="185" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">把</text>
+  <rect x="275" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="315" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">书</text>
+  <rect x="365" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="405" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">借给</text>
+  <rect x="455" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="495" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">小红</text>
+  <rect x="545" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="585" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">，</text>
+  <rect x="635" y="96" width="80" height="46" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">因为</text>
+  <rect x="725" y="96" width="80" height="46" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="765" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">她</text>
+  <text x="630" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">「她」指谁？回头看「小红」</text>
+  <text x="818" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="16" font-weight="400" fill="var(--color-ink, #17211f)">……</text>
+</svg>

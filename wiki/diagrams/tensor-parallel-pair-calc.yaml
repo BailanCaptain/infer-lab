@@ -1,0 +1,167 @@
+layout: figure
+id: tensor-parallel-pair-calc
+caption: 一对矩阵 φ(x·W₁)·W₂ 在两张卡上怎么算（数为示意，φ 取 ReLU：负数变 0）。W₁ 按列切，每卡算出 2 个真值；激活逐个数计算，本卡就能做；W₂ 按行切，每卡拿的正好是自己那 2 个数对应的行，算出形状完整的部分和（浅色）；最后一次 All-Reduce 相加，两张卡都得到单卡结果 [10, 4]。
+size: [880, 330]
+grids:
+  # ---- 卡 0
+  - at: [60, 85]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    rowLabels: ['卡 0']
+    colLabels: ['x₁', 'x₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [150, 70]
+    rows: 2
+    cols: 2
+    cell: [32, 30]
+    tone: weight
+    style: solid
+    label: 第 1、2 列
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '3' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '−1' }
+  - at: [250, 85]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '1' }
+  - at: [358, 85]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '1' }
+  - at: [448, 70]
+    rows: 2
+    cols: 2
+    cell: [32, 30]
+    tone: weight
+    style: solid
+    label: 第 1、2 行
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '1' }
+  - at: [548, 85]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '7' }
+      - { at: [0, 1], text: '1' }
+  # ---- 卡 1
+  - at: [60, 195]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    rowLabels: ['卡 1']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [150, 180]
+    rows: 2
+    cols: 2
+    cell: [32, 30]
+    tone: weight
+    style: solid
+    label: 第 3、4 列
+    cells:
+      - { at: [0, 0], text: '−1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '−2' }
+  - at: [250, 195]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '3' }
+      - { at: [0, 1], text: '−2' }
+  - at: [358, 195]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '3' }
+      - { at: [0, 1], text: '0' }
+  - at: [448, 180]
+    rows: 2
+    cols: 2
+    cell: [32, 30]
+    tone: weight
+    style: solid
+    label: 第 3、4 行
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '1' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '2' }
+  - at: [548, 195]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '3' }
+      - { at: [0, 1], text: '3' }
+  # ---- 相加后
+  - at: [782, 140]
+    rows: 1
+    cols: 2
+    cell: [32, 30]
+    tone: token
+    style: solid
+    label: 两张卡都得到
+    cells:
+      - { at: [0, 0], text: '10' }
+      - { at: [0, 1], text: '4' }
+items:
+  - { at: [650, 130], size: [100, 50], text: All-Reduce, sub: 对应位置相加, tone: comm }
+nodes:
+  - { at: [137, 100], r: 10, text: × }
+  - { at: [435, 100], r: 10, text: × }
+  - { at: [137, 210], r: 10, text: × }
+  - { at: [435, 210], r: 10, text: × }
+links:
+  - { from: [218, 100], to: [246, 100] }
+  - { from: [318, 100], to: [354, 100] }
+  - { from: [516, 100], to: [544, 100] }
+  - { from: [218, 210], to: [246, 210] }
+  - { from: [318, 210], to: [354, 210] }
+  - { from: [516, 210], to: [544, 210] }
+  - { from: [612, 100], to: [650, 145], via: [[630, 100], [630, 145]], tone: comm }
+  - { from: [612, 210], to: [650, 165], via: [[630, 210], [630, 165]], tone: comm }
+  - { from: [750, 155], to: [778, 155], tone: comm }
+texts:
+  - { at: [182, 50], text: W₁ 的列片, size: 12.5, note: true, anchor: middle }
+  - { at: [282, 50], text: 列切结果, size: 12.5, note: true, anchor: middle }
+  - { at: [390, 50], text: ReLU 激活后, size: 12.5, note: true, anchor: middle }
+  - { at: [480, 50], text: W₂ 的行片, size: 12.5, note: true, anchor: middle }
+  - { at: [580, 50], text: 部分和, size: 12.5, note: true, anchor: middle }
+brackets:
+  - { from: 60, to: 612, y: 282, label: 这三步只用本卡的数，不通信 }
+  - { from: 650, to: 846, y: 282, label: 整对矩阵只通信这一次 }

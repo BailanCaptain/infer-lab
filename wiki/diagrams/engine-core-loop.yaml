@@ -1,112 +1,38 @@
 layout: figure
 id: engine-core-loop
-caption: EngineCore 的逻辑迭代：计划、执行、更新通过请求状态连接；一轮可以没有生成输出，也可以提交多个 token
-size:
-- 900
-- 430
+caption: EngineCore 每转一圈就是一步：① 收下前端送来的新请求和取消，② 调度出这一步的计划，③ 交给 Worker 在卡上算、等回每条请求的新 token，④ 按结果更新请求，新 token 编号送回前端，然后转下一圈。所有请求共用这一个循环；没有请求要算时，它停在 ① 等消息。
+size: [900, 400]
+frames:
+  - { at: [12, 60], size: [168, 300], label: 前端进程（API server） }
+  - { at: [248, 60], size: [420, 300], label: EngineCore 进程 }
+  - { at: [722, 60], size: [166, 300], label: Worker 进程 }
 items:
-- at:
-  - 30
-  - 65
-  size:
-  - 195
-  - 62
-  text: 接收输入 / 控制
-  tone: control
-- at:
-  - 310
-  - 65
-  size:
-  - 210
-  - 62
-  text: 安排本轮工作
-  tone: control
-- at:
-  - 645
-  - 65
-  size:
-  - 225
-  - 62
-  text: 提交模型执行
-  tone: weight
-- at:
-  - 645
-  - 280
-  size:
-  - 225
-  - 62
-  text: 获取完成结果
-  tone: token
-- at:
-  - 310
-  - 280
-  size:
-  - 210
-  - 62
-  text: 取消处理与更新
-  tone: control
-- at:
-  - 30
-  - 280
-  size:
-  - 195
-  - 62
-  text: 输出返回
-  tone: token
+  - { at: [24, 100], size: [144, 64], text: 接请求、分词, sub: 文字 → token 编号, style: plain }
+  - { at: [24, 256], size: [144, 64], text: 反分词、推给用户, sub: token 编号 → 文字, style: plain }
+  - { at: [264, 100], size: [184, 64], text: ① 收消息, sub: 新请求进等待队列, tone: control }
+  - { at: [468, 100], size: [184, 64], text: ② 调度, sub: 算谁、各几个位置、借块, tone: control }
+  - { at: [468, 256], size: [184, 64], text: ③ 交出执行、等结果, sub: 拿回每条请求的新 token, tone: token }
+  - { at: [264, 256], size: [184, 64], text: ④ 按结果更新, sub: 接 token、判停止、还块, tone: token }
+  - { at: [734, 240], size: [142, 100], text: 前向与采样, sub: 每张卡算自己那份, tone: weight }
 links:
-- from:
-  - 225
-  - 96
-  to:
-  - 310
-  - 96
-  tone: control
-- from:
-  - 520
-  - 96
-  to:
-  - 645
-  - 96
-  tone: control
-- from:
-  - 757
-  - 127
-  to:
-  - 757
-  - 280
-  tone: token
-- from:
-  - 645
-  - 311
-  to:
-  - 520
-  - 311
-  tone: token
-- from:
-  - 310
-  - 311
-  to:
-  - 225
-  - 311
-  tone: token
-- from:
-  - 415
-  - 280
-  to:
-  - 415
-  - 127
-  tone: control
+  - { from: [448, 132], to: [468, 132], tone: control }
+  - { from: [560, 164], to: [560, 256], tone: control }
+  - { from: [468, 288], to: [448, 288], tone: token }
+  - { from: [356, 256], to: [356, 164], tone: token }
+  - { from: [168, 132], to: [264, 132] }
+  - { from: [264, 300], to: [168, 300] }
+  - { from: [652, 272], to: [734, 272] }
+  - { from: [734, 306], to: [652, 306] }
 texts:
-- at:
-  - 445
-  - 203
-  text: 下一轮
-- at:
-  - 60
-  - 200
-  text: 请求状态跨轮保存
-- at:
-  - 55
-  - 390
-  text: 批次队列允许多批次在途；图中只展开一次逻辑提交与更新
-  note: true
+  - { at: [458, 204], text: 一圈 = 一步, anchor: middle, strong: true, size: 15 }
+  - { at: [458, 226], text: 所有请求共用这一个循环, anchor: middle, size: 12.5 }
+  - { at: [216, 122], text: 请求消息, anchor: middle, size: 12 }
+  - { at: [216, 318], text: token 编号, anchor: middle, size: 12 }
+  - { at: [693, 264], text: 计划, anchor: middle, size: 12 }
+  - { at: [693, 324], text: 新 token, anchor: middle, size: 12 }
+  - { at: [264, 346], text: 没有请求要算时，停在 ① 等消息，不空转, size: 12.5, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1223-L1262
+    symbols: [run_busy_loop, _process_input_queue, _process_engine_step]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L443-L473
+    symbols: [schedule, execute_model, update_from_output]

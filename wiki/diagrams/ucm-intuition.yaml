@@ -1,0 +1,87 @@
+layout: figure
+id: ucm-intuition
+caption: vLLM 只认一个接口 UCMConnector，背后是三层存储。① 请求 A 在实例 1 上算完开头三段，经 connector 交给 UCM，先存到这台机器的内存，再落到多台机器共同挂载的存储。② 请求 B 落在实例 2，开头与 A 相同，开始算之前先经 connector 问有没有这段开头。③ 有，就从共享存储经实例 2 的本机内存搬回显存。④ B 只算自己不同的尾巴。实例数、段数都是示意。
+size: [900, 430]
+frames:
+  - { label: 实例 1 · 请求 A, at: [140, 36], size: [330, 250] }
+  - { label: 实例 2 · 请求 B, at: [540, 36], size: [330, 250] }
+  - { label: 共享存储, at: [140, 332], size: [730, 84] }
+grids:
+  - at: [158, 70]
+    rows: 1
+    cols: 4
+    cell: [68, 44]
+    gap: 6
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+      - { at: [0, 3], text: 尾a, tone: token }
+  - at: [558, 70]
+    rows: 1
+    cols: 4
+    cell: [68, 44]
+    gap: 6
+    tone: kv
+    style: faded
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+      - { at: [0, 3], text: 尾b, tone: token, style: solid }
+  - at: [158, 218]
+    rows: 1
+    cols: 3
+    cell: [68, 40]
+    gap: 6
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+  - at: [558, 218]
+    rows: 1
+    cols: 3
+    cell: [68, 40]
+    gap: 6
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+  - at: [330, 360]
+    rows: 1
+    cols: 3
+    cell: [90, 40]
+    gap: 8
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+items:
+  - { at: [158, 144], size: [290, 46], text: UCMConnector, sub: A 算完，交给 UCM 往下存, tone: control, style: plain }
+  - { at: [558, 144], size: [290, 46], text: UCMConnector, sub: ② B 开始前先问：这段开头有没有, tone: control, style: plain }
+links:
+  - { from: [266, 116], to: [266, 142], tone: kv }
+  - { from: [266, 192], to: [266, 216], tone: kv }
+  - { from: [300, 260], to: [372, 358], tone: kv }
+  - { from: [574, 358], to: [640, 260], tone: kv }
+  - { from: [666, 216], to: [666, 192], tone: kv }
+  - { from: [666, 142], to: [666, 116], tone: kv }
+texts:
+  - { at: [20, 97], text: 第 1 层 显存, strong: true }
+  - { at: [20, 243], text: 第 2 层 内存, strong: true }
+  - { at: [20, 385], text: 第 3 层 存储, strong: true }
+  - { at: [854, 394], text: 多台机器共同挂载（NFS、3FS 等）, anchor: end }
+  - { at: [310, 316], text: ① 往下存, anchor: end, tone: kv }
+  - { at: [626, 306], text: ③ 取回, tone: kv }
+  - { at: [848, 62], text: ④ 只算这一格, anchor: end, tone: token }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L37-L69
+    symbols: [UCMConnector]

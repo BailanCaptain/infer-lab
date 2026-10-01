@@ -1,13 +1,13 @@
 layout: figure
 id: collective-communication-all-reduce
-caption: All-Reduce（SUM）拆成两步看：先像 Reduce-Scatter 一样让卡 k 得到第 k 块的和，再像 All-Gather 一样把各块的和发给每张卡。结束时每张卡都有全部 4 块的和，圆点全实心。
-size: [880, 1040]
+caption: All-Reduce（SUM）拆成两步看：先像 Reduce-Scatter 一样，第 k 块都送到卡 k 加起来；再像 All-Gather 一样，卡 k 把这一块的和发给其余每张卡。
+size: [880, 1136]
 exchanges:
   - at: [105, 8]
     cards: [卡 0, 卡 1, 卡 2, 卡 3]
     slots: 4
-    gap: [190, 96]
-    dots: true
+    gap: [190, 156]
+    waves: true
     tag: 数为示意
     start:
       - [1, 2, 3, 4]
@@ -15,7 +15,7 @@ exchanges:
       - [100, 200, 300, 400]
       - [1000, 2000, 3000, 4000]
     steps:
-      - title: 第 1 步：先按块归约，第 k 块的和落到卡 k
+      - title: 第 1 步：第 k 块都送到卡 k，加起来
         moves:
           - { from: [0, 1], to: [1, 1], op: add }
           - { from: [0, 2], to: [2, 2], op: add }
@@ -30,7 +30,7 @@ exchanges:
           - { from: [3, 1], to: [1, 1], op: add }
           - { from: [3, 2], to: [2, 2], op: add }
         keep: [[0, 0], [1, 1], [2, 2], [3, 3]]
-      - title: 第 2 步：再收集，卡 k 把第 k 块的和发给其余每张卡
+      - title: 第 2 步：卡 k 把第 k 块的和发给其余每张卡
         moves:
           - { from: [0, 0], to: [1, 0] }
           - { from: [0, 0], to: [2, 0] }

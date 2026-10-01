@@ -1,400 +1,70 @@
-{
-  "layout": "figure",
-  "id": "acl-graph",
-  "caption": "教学批含 6 个有效 token；在其他描述符条件匹配时补齐到 8，再选择整图、分段或普通执行。档位和补齐不是唯一判据。",
-  "size": [
-    900,
-    590
-  ],
-  "rows": [
-    {
-      "at": [
-        60,
-        90
-      ],
-      "count": 6,
-      "w": 35,
-      "h": 30,
-      "tone": "token"
-    },
-    {
-      "at": [
-        470,
-        90
-      ],
-      "count": 8,
-      "w": 35,
-      "h": 30,
-      "tone": "token",
-      "ghost": [
-        6,
-        7
-      ]
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        60,
-        55
-      ],
-      "text": "实际输入：6 个 token",
-      "strong": true
-    },
-    {
-      "at": [
-        470,
-        55
-      ],
-      "text": "示例捕获尺寸：4、8",
-      "strong": true
-    },
-    {
-      "at": [
-        60,
-        147
-      ],
-      "text": "新内容写入稳定的输入缓冲"
-    },
-    {
-      "at": [
-        470,
-        147
-      ],
-      "text": "后两格为补齐位置"
-    },
-    {
-      "at": [
-        450,
-        270
-      ],
-      "text": "模式、形状、适配器状态与后端支持共同决定路径",
-      "anchor": "middle"
-    },
-    {
-      "at": [
-        450,
-        550
-      ],
-      "text": "FULL 与 PIECEWISE 都可以回放；不满足条件时执行普通路径。",
-      "anchor": "middle"
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        240,
-        195
-      ],
-      "size": [
-        420,
-        45
-      ],
-      "text": "按批描述符查找可用捕获条目",
-      "tone": "control"
-    },
-    {
-      "at": [
-        50,
-        335
-      ],
-      "size": [
-        220,
-        48
-      ],
-      "text": "FULL",
-      "tone": "control"
-    },
-    {
-      "at": [
-        340,
-        335
-      ],
-      "size": [
-        220,
-        48
-      ],
-      "text": "PIECEWISE",
-      "tone": "control"
-    },
-    {
-      "at": [
-        630,
-        335
-      ],
-      "size": [
-        220,
-        48
-      ],
-      "text": "NONE",
-      "tone": "control"
-    }
-  ],
-  "frames": [
-    {
-      "at": [
-        45,
-        425
-      ],
-      "size": [
-        240,
-        64
-      ],
-      "label": "整段执行序列"
-    },
-    {
-      "at": [
-        335,
-        425
-      ],
-      "size": [
-        110,
-        64
-      ],
-      "label": "已捕获片段"
-    },
-    {
-      "at": [
-        490,
-        425
-      ],
-      "size": [
-        80,
-        64
-      ],
-      "label": "图外操作"
-    }
-  ],
-  "nodes": [
-    {
-      "at": [
-        83,
-        456
-      ],
-      "r": 20,
-      "text": "A"
-    },
-    {
-      "at": [
-        165,
-        456
-      ],
-      "r": 20,
-      "text": "B"
-    },
-    {
-      "at": [
-        245,
-        456
-      ],
-      "r": 20,
-      "text": "C"
-    },
-    {
-      "at": [
-        363,
-        456
-      ],
-      "r": 20,
-      "text": "A"
-    },
-    {
-      "at": [
-        416,
-        456
-      ],
-      "r": 20,
-      "text": "B"
-    },
-    {
-      "at": [
-        530,
-        456
-      ],
-      "r": 20,
-      "text": "C"
-    },
-    {
-      "at": [
-        660,
-        456
-      ],
-      "r": 20,
-      "text": "A"
-    },
-    {
-      "at": [
-        740,
-        456
-      ],
-      "r": 20,
-      "text": "B"
-    },
-    {
-      "at": [
-        820,
-        456
-      ],
-      "r": 20,
-      "text": "C"
-    }
-  ],
-  "links": [
-    {
-      "from": [
-        290,
-        105
-      ],
-      "to": [
-        450,
-        105
-      ]
-    },
-    {
-      "from": [
-        620,
-        163
-      ],
-      "to": [
-        620,
-        195
-      ]
-    },
-    {
-      "from": [
-        450,
-        240
-      ],
-      "to": [
-        160,
-        335
-      ],
-      "via": [
-        [
-          450,
-          295
-        ],
-        [
-          160,
-          295
-        ]
-      ]
-    },
-    {
-      "from": [
-        450,
-        295
-      ],
-      "to": [
-        450,
-        335
-      ]
-    },
-    {
-      "from": [
-        450,
-        295
-      ],
-      "to": [
-        740,
-        335
-      ],
-      "via": [
-        [
-          740,
-          295
-        ]
-      ]
-    },
-    {
-      "from": [
-        160,
-        383
-      ],
-      "to": [
-        160,
-        425
-      ]
-    },
-    {
-      "from": [
-        450,
-        383
-      ],
-      "to": [
-        450,
-        405
-      ]
-    },
-    {
-      "from": [
-        740,
-        383
-      ],
-      "to": [
-        740,
-        430
-      ]
-    },
-    {
-      "from": [
-        103,
-        456
-      ],
-      "to": [
-        143,
-        456
-      ]
-    },
-    {
-      "from": [
-        185,
-        456
-      ],
-      "to": [
-        223,
-        456
-      ]
-    },
-    {
-      "from": [
-        383,
-        456
-      ],
-      "to": [
-        394,
-        456
-      ]
-    },
-    {
-      "from": [
-        436,
-        456
-      ],
-      "to": [
-        508,
-        456
-      ]
-    },
-    {
-      "from": [
-        680,
-        456
-      ],
-      "to": [
-        718,
-        456
-      ]
-    },
-    {
-      "from": [
-        760,
-        456
-      ],
-      "to": [
-        798,
-        456
-      ]
-    }
-  ]
-}
+layout: figure
+id: acl-graph
+caption: 同一步里 6 个设备任务的两种走法（格数是示意，不是实测）。上：逐个下发，Host 交一个设备算一个，设备算完要等下一个任务交过来（斜线格），整步 13.5 格。下：整串录成一张图，Host 只提交一次，设备 6 个任务连着算完，整步 10 格。设备真正在算的都是 9 格，省掉的全是 Host 交任务的时间。
+size: [900, 430]
+texts:
+  - { at: [20, 28], text: 一步里的 6 个设备任务（示意格数）, strong: true, size: 15 }
+  - { at: [20, 64], text: 逐个下发：交一个、算一个, strong: true }
+  - { at: [110, 206], text: 设备只算 9 格 · 其余在等下一个任务, note: true }
+  - { at: [20, 246], text: 整串回放：提交一次、连着算完, strong: true }
+  - { at: [110, 388], text: Host 从 12 格降到 1 格 · 整步少 3.5 格, note: true }
+timelines:
+  - at: [20, 80]
+    scale: 50
+    start: 0
+    end: 14
+    ticks: 2
+    labelW: 90
+    laneH: 34
+    gap: 10
+    unit: 格
+    lanes:
+      - label: Host
+        spans:
+          - { from: 0, to: 2, tone: control, text: 下发 1 }
+          - { from: 2, to: 4, tone: control, text: 下发 2 }
+          - { from: 4, to: 6, tone: control, text: 下发 3 }
+          - { from: 6, to: 8, tone: control, text: 下发 4 }
+          - { from: 8, to: 10, tone: control, text: 下发 5 }
+          - { from: 10, to: 12, tone: control, text: 下发 6 }
+      - label: 设备
+        spans:
+          - { from: 2, to: 3.5, tone: token, text: 算 1 }
+          - { from: 3.5, to: 4, style: hatch }
+          - { from: 4, to: 5.5, tone: token, text: 算 2 }
+          - { from: 5.5, to: 6, style: hatch }
+          - { from: 6, to: 7.5, tone: token, text: 算 3 }
+          - { from: 7.5, to: 8, style: hatch }
+          - { from: 8, to: 9.5, tone: token, text: 算 4 }
+          - { from: 9.5, to: 10, style: hatch }
+          - { from: 10, to: 11.5, tone: token, text: 算 5 }
+          - { from: 11.5, to: 12, style: hatch }
+          - { from: 12, to: 13.5, tone: token, text: 算 6 }
+    marks:
+      - { t: 13.5, label: 13.5 格 }
+  - at: [20, 262]
+    scale: 50
+    start: 0
+    end: 14
+    ticks: 2
+    labelW: 90
+    laneH: 34
+    gap: 10
+    unit: 格
+    lanes:
+      - label: Host
+        spans:
+          - { from: 0, to: 1, tone: control, text: 提交 }
+      - label: 设备
+        spans:
+          - { from: 1, to: 2.5, tone: token, text: 算 1 }
+          - { from: 2.5, to: 4, tone: token, text: 算 2 }
+          - { from: 4, to: 5.5, tone: token, text: 算 3 }
+          - { from: 5.5, to: 7, tone: token, text: 算 4 }
+          - { from: 7, to: 8.5, tone: token, text: 算 5 }
+          - { from: 8.5, to: 10, tone: token, text: 算 6 }
+    marks:
+      - { t: 10, label: 10 格 }
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L259'
+    symbols: [ACLGraphWrapper]

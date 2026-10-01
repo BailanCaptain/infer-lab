@@ -1,40 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" width="900" height="320" role="img" aria-label="抢占时先保护请求A的状态，原页不再被拷贝读取后才可复用；恢复时回填完成后继续计算，时间长度仅为示意">
-  <title>抢占时先保护请求A的状态，原页不再被拷贝读取后才可复用；恢复时回填完成后继续计算，时间长度仅为示意</title>
-  <defs><pattern id="recompute-cpu-offload-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
-  <text x="148" y="83.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">请求 A</text>
-  <path d="M160 93H860" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
-  <rect x="160" y="65" width="105" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="212.5" y="83.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">执行</text>
-  <rect x="265" y="65" width="490" height="28" rx="4" fill="url(#recompute-cpu-offload-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
-  <text x="510" y="83.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">暂停</text>
-  <rect x="755" y="65" width="105" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="807.5" y="83.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">继续</text>
-  <text x="148" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">状态搬运</text>
-  <path d="M160 131H860" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
-  <rect x="265" y="103" width="140" height="28" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="335" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">保存</text>
-  <rect x="615" y="103" width="140" height="28" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="685" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">回填</text>
-  <text x="148" y="159.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">主机副本</text>
-  <rect x="405" y="141" width="350" height="28" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="580" y="159.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已保存，可恢复</text>
-  <path d="M160 181H860" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M160 181v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="160" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
-  <path d="M300 181v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="300" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
-  <path d="M440 181v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="440" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
-  <path d="M580 181v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="580" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
-  <path d="M720 181v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="720" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
-  <path d="M860 181v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="860" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">10 示意时间</text>
-  <path d="M405 61V181" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
-  <text x="405" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">保存完成</text>
-  <path d="M755 61V181" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
-  <text x="755" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">回填完成</text>
-  <text x="30" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">源设备页在保存完成前保持有效；加载目标在回填完成后才可读</text>
-  <text x="30" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">主机容量不足或保存不可用时，由调度器选择相应恢复路径</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="同一次抢占的两条恢复路径（示意：一块 4 个位置）。上面先把 A 的 3 块拷到主机、再把块号让给 C；等池子空出来，A 排上的那一步分 3 个空块、把主机那份搬回，下一步才从第 10 个位置接着算。下面主机存不下整条，3 块直接还掉，A 在 D 上结束，交给 P 把整段重算一遍">
+  <title>同一次抢占的两条恢复路径（示意：一块 4 个位置）。上面先把 A 的 3 块拷到主机、再把块号让给 C；等池子空出来，A 排上的那一步分 3 个空块、把主机那份搬回，下一步才从第 10 个位置接着算。下面主机存不下整条，3 块直接还掉，A 在 D 上结束，交给 P 把整段重算一遍</title>
+  <defs><marker id="recompute-cpu-offload-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="recompute-cpu-offload-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
+  <rect x="12" y="40" width="256" height="440" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="28" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 抢占那一刻</text>
+  <rect x="292" y="40" width="290" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="308" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② 能存：先拷到主机，再让块</text>
+  <rect x="598" y="40" width="290" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="614" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ 池子空出来：A 排上、搬回</text>
+  <rect x="292" y="280" width="290" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="308" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② 存不下：还块，A 结束</text>
+  <rect x="598" y="280" width="290" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="614" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ P 节点：整段重算</text>
+  <path d="M254 388 L274 388 L274 160 L292 160" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#recompute-cpu-offload-ah-comm)"/>
+  <path d="M254 388 L274 388 L274 416 L292 416" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#recompute-cpu-offload-ah-danger)"/>
+  <path d="M682 142 L728 114" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#recompute-cpu-offload-ah-comm)"/>
+  <path d="M728 142 L774 114" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#recompute-cpu-offload-ah-comm)"/>
+  <path d="M774 142 L820 114" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#recompute-cpu-offload-ah-comm)"/>
+  <rect x="72" y="84" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="92" y="106.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="118" y="84" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="138" y="106.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="164" y="84" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="184" y="106.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="210" y="84" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="62" y="106.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">显存</text>
+  <rect x="72" y="154" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="118" y="154" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="164" y="154" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="210" y="154" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="62" y="176.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">主机</text>
+  <rect x="356" y="76" width="40" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="376" y="98.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="402" y="76" width="40" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="422" y="98.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="448" y="76" width="40" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="468" y="98.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="494" y="76" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="346" y="98.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">显存</text>
+  <rect x="356" y="142" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="376" y="164.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="402" y="142" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="422" y="164.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="448" y="142" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="468" y="164.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="494" y="142" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="346" y="164.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">主机</text>
+  <rect x="662" y="76" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="708" y="76" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="728" y="98.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="754" y="76" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="774" y="98.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="800" y="76" width="40" height="36" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="820" y="98.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <text x="652" y="98.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">显存</text>
+  <rect x="662" y="142" width="40" height="36" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="682" y="164.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">A</text>
+  <rect x="708" y="142" width="40" height="36" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="728" y="164.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">A</text>
+  <rect x="754" y="142" width="40" height="36" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="774" y="164.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">A</text>
+  <rect x="800" y="142" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="652" y="164.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">主机</text>
+  <rect x="356" y="328" width="40" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="376" y="350.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="402" y="328" width="40" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="422" y="350.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="448" y="328" width="40" height="36" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="468" y="350.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">C</text>
+  <rect x="494" y="328" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="346" y="350.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">显存</text>
+  <rect x="356" y="398" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="402" y="398" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="448" y="398" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="494" y="398" width="40" height="36" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="346" y="420.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">主机</text>
+  <rect x="662" y="360" width="40" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="682" y="382.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="708" y="360" width="40" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="728" y="382.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <rect x="754" y="360" width="40" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="774" y="382.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算</text>
+  <text x="652" y="382.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">P</text>
+  <rect x="26" y="356" width="228" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="140" y="384" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">问连接器：存得走吗？</text>
+  <text x="140" y="403" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">主机块够存下整条才答「能」</text>
+  <text x="26" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">A 已算 9 个位置</text>
+  <text x="26" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">一块 4 个位置，占 3 块</text>
+  <text x="26" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#8f3229">池子不够，A 被挑中让出块</text>
+  <text x="306" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">拷完 3 块，才把块号给 C</text>
+  <text x="612" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">排上那一步：分 3 个空块、搬回</text>
+  <text x="612" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">下一步才从第 10 个位置接着算</text>
+  <text x="306" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#8f3229">3 块还给池子，A 交给 P</text>
+  <text x="612" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56">P 重算这 9 个位置，再交给 D</text>
 </svg>

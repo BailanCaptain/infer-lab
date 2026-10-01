@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" role="img" aria-label="左边是每组引擎每步转的一圈，右边是其中调度接纳 waiting 的循环；红框是闸门，左下角是互报，虚线是下一步读计数表。">
+  <title>左边是每组引擎每步转的一圈，右边是其中调度接纳 waiting 的循环；红框是闸门，左下角是互报，虚线是下一步读计数表。</title>
+  <defs><marker id="balance-scheduling-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="balance-scheduling-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="balance-scheduling-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="20" y="60" width="400" height="530" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 主循环 · 每组一个，每步一圈</text>
+  <rect x="470" y="60" width="410" height="530" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="486" y="84" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">调度器接纳 waiting（主线第 2 站）</text>
+  <path d="M220 150 L220 180" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M220 236 L220 266" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M220 322 L220 352" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M220 408 L220 438" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M50 470 L34 470 L34 125 L50 125" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M675 150 L675 180" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M675 236 L675 266" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M675 322 L675 352" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M675 416 L675 446" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M850 474 L866 474 L866 294 L850 294" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-flow-ah-ink)"/>
+  <path d="M390 208 L445 208 L445 125 L500 125" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#balance-scheduling-flow-ah-control)"/>
+  <path d="M390 470 L445 470 L445 384 L500 384" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#balance-scheduling-flow-ah-comm)"/>
+  <rect x="50" y="100" width="340" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">处理输入队列</text>
+  <text x="220" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">新请求先进本组 waiting</text>
+  <rect x="50" y="180" width="340" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度并执行一步</text>
+  <text x="220" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">右边这一段就在这里面</text>
+  <rect x="50" y="266" width="340" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一步本地没算到东西？</text>
+  <text x="220" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是：全局还有活就陪跑一步（dummy batch）</text>
+  <rect x="50" y="352" width="340" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="376" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">全局还有没有活</text>
+  <text x="220" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每 32 步才真跨组同步一次</text>
+  <rect x="50" y="438" width="340" height="64" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="466" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">互报 running 条数，写进计数表</text>
+  <text x="220" y="485" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Gather · 每步一次 · 陪跑的组也到场</text>
+  <rect x="500" y="100" width="350" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="121" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">开关打开了吗？</text>
+  <text x="675" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">没开：整段交回上游原版调度</text>
+  <rect x="500" y="180" width="350" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先续 running</text>
+  <text x="675" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每条排上这一步要算的 token</text>
+  <rect x="500" y="266" width="350" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本组 running 满了？</text>
+  <text x="675" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">满了就停止接纳（上游原有）</text>
+  <rect x="500" y="352" width="350" height="64" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">计数表里最大值 = 上限？</text>
+  <text x="675" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是就停止接纳（Balance 闸门）</text>
+  <rect x="500" y="446" width="350" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取一条 waiting</text>
+  <text x="675" y="489" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token 预算和 KV 块都够才进 running</text>
+  <text x="450" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">每组引擎里多出的两处：一次互报，一道闸门</text>
+  <text x="687" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="687" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="596" y="560" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">回到「本组 running 满了？」再取下一条</text>
+  <text x="450" y="616" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">虚线：下一步调度读上一步末尾的计数表</text>
+</svg>

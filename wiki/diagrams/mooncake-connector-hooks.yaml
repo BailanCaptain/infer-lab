@@ -1,0 +1,51 @@
+layout: figure
+id: mooncake-connector-hooks
+caption: 同一个连接器类在两类进程里各造一份，按主线站点从左往右看一步里它在哪几处被叫到。调度器那一半只记账：远端能补几个位置、D 上哪些目的块等着收、请求结束时 P 的源块押不押；worker 那一半在前向开始前把要收、要发的请求交给后台线程，在每层注意力算完后可以顺手发出这一层（只有 Layerwise 这样做，V1 这里是空操作），步末把收完、发完的请求报回调度器。真正的字节由后台线程交给 Mooncake 传输引擎，按对方显存地址直接读写。
+size: [900, 766]
+frames:
+  - { label: 调度器进程（每个实例一个）, at: [20, 64], size: [860, 230] }
+  - { label: worker 进程（每张卡一个）, at: [20, 330], size: [860, 190] }
+  - { label: worker 里的后台线程与传输引擎, at: [20, 556], size: [860, 190] }
+items:
+  - { at: [36, 96], size: [168, 54], text: ① 远端能补几个位置, sub: D：提示词算远端已有, tone: control }
+  - { at: [36, 162], size: [168, 54], text: ② 分完块后记账, sub: D 记下要收的目的块, tone: control }
+  - { at: [36, 228], size: [168, 54], text: ③ 打包本步清单, sub: 随调度结果发下去, tone: control }
+  - { at: [666, 96], size: [200, 54], text: ⑦ 请求结束：押不押块, sub: V1 的 P 押，Layerwise 不押, tone: control }
+  - { at: [666, 194], size: [200, 54], text: ⑧ 收到完成名单, sub: 放源块，放行等数据的请求, tone: control }
+  - { at: [228, 370], size: [176, 64], text: ④ 前向开始前, sub: 交给后台线程, tone: control }
+  - { at: [424, 360], size: [220, 54], text: ⑤ 每层注意力算完, sub: 逐层的接口, tone: weight }
+  - { at: [424, 430], size: [90, 60], text: V1, sub: 空操作, tone: weight, style: faded }
+  - { at: [520, 430], size: [124, 60], text: Layerwise, sub: 本层入发送队列, tone: weight }
+  - { at: [666, 370], size: [200, 64], text: ⑥ 步末报名单, sub: 哪些请求收完、发完, tone: control }
+  - { at: [36, 591], size: [168, 70], text: 启动时登记, sub: KV 显存交给传输引擎, tone: kv, style: plain }
+  - { at: [228, 591], size: [176, 70], text: V1 · D 的接收线程, sub: 拿地址，批量读，报完成, tone: comm }
+  - { at: [424, 591], size: [220, 70], text: Layerwise · P 的发送线程, sub: 等本层算完，批量写到 D, tone: comm }
+  - { at: [666, 591], size: [200, 70], text: V1 · P 的发送线程, sub: 只答地址簿，记下收完, tone: comm }
+  - { at: [228, 680], size: [638, 44], text: Mooncake 传输引擎：按对方显存地址和长度直接读写, tone: comm, style: plain }
+links:
+  - { from: [120, 150], to: [120, 162], tone: control }
+  - { from: [120, 216], to: [120, 228], tone: control }
+  - { from: [204, 255], to: [316, 370], via: [[316, 255]], tone: control }
+  - { from: [404, 387], to: [424, 387] }
+  - { from: [469, 414], to: [469, 430] }
+  - { from: [582, 414], to: [582, 430] }
+  - { from: [644, 387], to: [666, 387] }
+  - { from: [316, 434], to: [316, 591], tone: control, dashed: true }
+  - { from: [582, 490], to: [582, 591], tone: comm }
+  - { from: [316, 661], to: [316, 680], tone: comm }
+  - { from: [534, 661], to: [534, 680], tone: comm }
+  - { from: [766, 591], to: [766, 434], tone: control, dashed: true }
+  - { from: [766, 370], to: [766, 248], tone: control }
+  - { from: [766, 150], to: [766, 194], tone: control }
+texts:
+  - { at: [120, 16], text: 第 2 站 调度, anchor: middle, strong: true }
+  - { at: [316, 16], text: 第 3 站 准备输入, anchor: middle, strong: true }
+  - { at: [534, 16], text: 第 4 站 逐层前向, anchor: middle, strong: true }
+  - { at: [766, 16], text: 步末与第 7 站 收尾, anchor: middle, strong: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L1506-L1590
+    symbols: [start_load_kv, wait_for_layer_load, save_kv_layer, wait_for_save]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L1690-L1840
+    symbols: [save_kv_layer]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L2112-L2128
+    symbols: [request_finished_all_groups]

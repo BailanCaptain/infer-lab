@@ -1,0 +1,69 @@
+layout: figure
+id: kv-pool-intuition
+caption: 两台推理实例接着同一个外部 KV 池。① 请求 A 在实例 1 上算完开头三段，经 KV connector 写进池，每段按内容指纹登记。② 请求 B 落在实例 2，开头与 A 相同，本地显存里一段也没有，connector 去池里查，得知前三段都在。③ 把这三段搬回实例 2 的显存。④ B 只算自己不同的尾巴。实例数、段数都是示意。
+size: [900, 330]
+frames:
+  - { label: 实例 1, at: [20, 60], size: [220, 240] }
+  - { label: 外部 KV 池, at: [330, 60], size: [240, 240] }
+  - { label: 实例 2, at: [660, 60], size: [220, 240] }
+grids:
+  - at: [36, 110]
+    rows: 1
+    cols: 4
+    cell: [44, 40]
+    gap: 4
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+      - { at: [0, 3], text: 尾a, tone: token }
+  - at: [345, 84]
+    rows: 4
+    cols: 1
+    cell: [210, 40]
+    gap: 8
+    tone: kv
+    style: solid
+    cells:
+      - { at: [0, 0], text: 指纹 h1 · 段1 }
+      - { at: [1, 0], text: 指纹 h2 · 段2 }
+      - { at: [2, 0], text: 指纹 h3 · 段3 }
+      - { at: [3, 0], text: 别的请求存的段, style: faded }
+  - at: [676, 110]
+    rows: 1
+    cols: 4
+    cell: [44, 40]
+    gap: 4
+    tone: kv
+    style: faded
+    cells:
+      - { at: [0, 0], text: 段1 }
+      - { at: [0, 1], text: 段2 }
+      - { at: [0, 2], text: 段3 }
+      - { at: [0, 3], text: 尾b, tone: token, style: solid }
+items:
+  - { at: [36, 220], size: [188, 40], text: KV connector, tone: control, style: plain }
+  - { at: [676, 220], size: [188, 40], text: KV connector, tone: control, style: plain }
+fans:
+  - { from: [[58, 150], [106, 150], [154, 150]], to: [130, 218], tone: kv }
+  - { from: [226, 240], to: [[343, 104], [343, 152], [343, 200]], tone: kv }
+  - { from: [[557, 104], [557, 152], [557, 200]], to: [674, 232], tone: kv }
+  - { from: [770, 218], to: [[698, 150], [746, 150], [794, 150]], tone: kv }
+links:
+  - { from: [674, 262], to: [572, 262], tone: control, dashed: true }
+texts:
+  - { at: [36, 96], text: 请求 A, strong: true }
+  - { at: [676, 96], text: 请求 B, strong: true }
+  - { at: [130, 286], text: A 先到：全部自己算, anchor: middle, note: true }
+  - { at: [864, 96], text: ④ 只算这一段, anchor: end }
+  - { at: [285, 118], text: ① 写进池, anchor: middle }
+  - { at: [615, 252], text: ② 查询, anchor: middle }
+  - { at: [615, 118], text: ③ 搬回, anchor: middle }
+  - { at: [450, 290], text: 主机内存 / SSD / 别的节点, anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L591
+    symbols: [get_num_new_matched_tokens]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1432-L1450
+    symbols: [wait_for_save]

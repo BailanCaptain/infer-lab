@@ -1,28 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" width="900" height="330" role="img" aria-label="请求A保存共同前缀，请求B稍后在本地缺失且外部命中时加载同一份状态；图描述数据复用，不代表特定插件的存储后端">
-  <title>请求A保存共同前缀，请求B稍后在本地缺失且外部命中时加载同一份状态；图描述数据复用，不代表特定插件的存储后端</title>
-  <defs><marker id="lmcache-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <g data-hardware="memory">
-  <rect x="325" y="70" width="250" height="72" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M330 134h240M330 138h240" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="450" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">外部缓存存储</text>
-  </g>
-  <path d="M141 220 L330 146" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#lmcache-ah-comm)"/>
-  <path d="M570 146 L751 220" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#lmcache-ah-comm)"/>
-  <rect x="40" y="226" width="65" height="42" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="72.5" y="251.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P0</text>
-  <rect x="113" y="226" width="65" height="42" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="145.5" y="251.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">P1</text>
-  <rect x="186" y="226" width="65" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="218.5" y="251.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
-  <rect x="650" y="226" width="65" height="42" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <text x="682.5" y="251.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">P0</text>
-  <rect x="723" y="226" width="65" height="42" rx="4" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <text x="755.5" y="251.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">P1</text>
-  <rect x="796" y="226" width="65" height="42" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
-  <text x="828.5" y="251.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">B</text>
-  <text x="40" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">请求 A · 首次计算</text>
-  <text x="650" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">请求 B · 稍后复用</text>
-  <text x="225" y="145" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">保存</text>
-  <text x="620" y="145" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">加载</text>
-  <text x="450" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">P0、P1为共同前缀段；A、B为各自后续内容</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 424" width="900" height="424" role="img" aria-label="请求 B 的开头在本地显存里一段也没有，就逐级往外找：主机内存这一层有段 1、段 2，段 3 只在更远的一层（本地磁盘或远端存储），段 4 谁那儿都没有、照常自己算。开哪几层由配置决定，层数和段数都是示意。">
+  <title>请求 B 的开头在本地显存里一段也没有，就逐级往外找：主机内存这一层有段 1、段 2，段 3 只在更远的一层（本地磁盘或远端存储），段 4 谁那儿都没有、照常自己算。开哪几层由配置决定，层数和段数都是示意。</title>
+  <defs><marker id="lmcache-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="lmcache-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <rect x="20" y="60" width="860" height="92" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">显存（本实例）</text>
+  <rect x="20" y="186" width="860" height="92" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">LMCache 主机内存层</text>
+  <rect x="20" y="312" width="860" height="92" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">更远的一层：本地磁盘 / 远端存储</text>
+  <path d="M420 156 L420 182" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#lmcache-ah-control)"/>
+  <path d="M420 282 L420 308" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#lmcache-ah-control)"/>
+  <path d="M470 308 L470 282" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#lmcache-ah-kv)"/>
+  <path d="M470 182 L470 156" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#lmcache-ah-kv)"/>
+  <rect x="56" y="100" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="99" y="124.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">待搬回</text>
+  <rect x="150" y="100" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="193" y="124.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">待搬回</text>
+  <rect x="244" y="100" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="287" y="124.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">待搬回</text>
+  <rect x="338" y="100" width="86" height="40" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="381" y="124.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">段4</text>
+  <rect x="56" y="226" width="86" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="99" y="250.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">段1</text>
+  <rect x="150" y="226" width="86" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="193" y="250.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">段2</text>
+  <rect x="244" y="226" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="338" y="226" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="56" y="352" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="150" y="352" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="244" y="352" width="86" height="40" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="287" y="376.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">段3</text>
+  <rect x="338" y="352" width="86" height="40" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="560" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">① 本地一段都没有</text>
+  <text x="560" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">段 4 哪一层都没有，照常自己算</text>
+  <text x="560" y="224" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">② 这一层存着段 1、段 2</text>
+  <text x="560" y="246" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">命中就从这里搬回显存</text>
+  <text x="560" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">③ 段 3 只在这一层</text>
+  <text x="560" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">命中得越远，等得越久</text>
+  <text x="392" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652" text-anchor="end">往外问</text>
+  <text x="486" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93">搬回</text>
 </svg>

@@ -1,34 +1,133 @@
 layout: figure
 id: recompute-cpu-offload
-caption: 抢占时先保护请求A的状态，原页不再被拷贝读取后才可复用；恢复时回填完成后继续计算，时间长度仅为示意
-size: [900, 320]
-timelines:
-  - at: [30, 65]
-    scale: 70
-    start: 0
-    end: 10
-    ticks: 2
-    unit: 示意时间
-    labelW: 130
-    lanes:
-      - label: 请求 A
-        spans:
-          - {from: 0, to: 1.5, tone: token, text: 执行}
-          - {from: 1.5, to: 8.5, tone: control, style: hatch, text: 暂停}
-          - {from: 8.5, to: 10, tone: token, text: 继续}
-      - label: 状态搬运
-        spans:
-          - {from: 1.5, to: 3.5, tone: comm, text: 保存}
-          - {from: 6.5, to: 8.5, tone: comm, text: 回填}
-      - label: 主机副本
-        spans:
-          - {from: 3.5, to: 8.5, tone: kv, text: 已保存，可恢复}
-    marks:
-      - {t: 3.5, label: 保存完成}
-      - {t: 8.5, label: 回填完成}
+caption: 同一次抢占的两条恢复路径（示意：一块 4 个位置）。上面先把 A 的 3 块拷到主机、再把块号让给 C；等池子空出来，A 排上的那一步分 3 个空块、把主机那份搬回，下一步才从第 10 个位置接着算。下面主机存不下整条，3 块直接还掉，A 在 D 上结束，交给 P 把整段重算一遍
+size: [900, 500]
+frames:
+  - {at: [12, 40], size: [256, 440], label: "① 抢占那一刻"}
+  - {at: [292, 40], size: [290, 200], label: "② 能存：先拷到主机，再让块"}
+  - {at: [598, 40], size: [290, 200], label: "③ 池子空出来：A 排上、搬回"}
+  - {at: [292, 280], size: [290, 200], label: "② 存不下：还块，A 结束"}
+  - {at: [598, 280], size: [290, 200], label: "③ P 节点：整段重算"}
+grids:
+  - at: [72, 84]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 0], text: A, style: solid}
+      - {at: [0, 1], text: A, style: solid}
+      - {at: [0, 2], text: A, style: solid}
+  - at: [72, 154]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+  - at: [356, 76]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 0], text: C, style: plain}
+      - {at: [0, 1], text: C, style: plain}
+      - {at: [0, 2], text: C, style: plain}
+  - at: [356, 142]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+    cells:
+      - {at: [0, 0], text: A, style: solid}
+      - {at: [0, 1], text: A, style: solid}
+      - {at: [0, 2], text: A, style: solid}
+  - at: [662, 76]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 1], text: A, style: solid}
+      - {at: [0, 2], text: A, style: solid}
+      - {at: [0, 3], text: A, style: solid}
+  - at: [662, 142]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+    cells:
+      - {at: [0, 0], text: A, style: faded}
+      - {at: [0, 1], text: A, style: faded}
+      - {at: [0, 2], text: A, style: faded}
+  - at: [356, 328]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 0], text: C, style: plain}
+      - {at: [0, 1], text: C, style: plain}
+      - {at: [0, 2], text: C, style: plain}
+  - at: [356, 398]
+    rows: 1
+    cols: 4
+    cell: [40, 36]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+  - at: [662, 360]
+    rows: 1
+    cols: 3
+    cell: [40, 36]
+    gap: 6
+    tone: token
+    style: empty
+    rowLabels: [P]
+    cells:
+      - {at: [0, 0], text: 算, style: solid}
+      - {at: [0, 1], text: 算, style: solid}
+      - {at: [0, 2], text: 算, style: solid}
+items:
+  - {at: [26, 356], size: [228, 64], text: 问连接器：存得走吗？, sub: 主机块够存下整条才答「能」, style: plain}
+links:
+  - {from: [254, 388], to: [292, 160], via: [[274, 388], [274, 160]], tone: comm}
+  - {from: [254, 388], to: [292, 416], via: [[274, 388], [274, 416]], tone: danger}
+  - {from: [682, 142], to: [728, 114], tone: comm}
+  - {from: [728, 142], to: [774, 114], tone: comm}
+  - {from: [774, 142], to: [820, 114], tone: comm}
 texts:
-  - {at: [30, 264], text: "源设备页在保存完成前保持有效；加载目标在回填完成后才可读", note: true}
-  - {at: [30, 294], text: "主机容量不足或保存不可用时，由调度器选择相应恢复路径", note: true}
+  - {at: [26, 240], text: A 已算 9 个位置, strong: true}
+  - {at: [26, 264], text: 一块 4 个位置，占 3 块, note: true}
+  - {at: [26, 330], text: 池子不够，A 被挑中让出块, tone: danger}
+  - {at: [306, 208], text: 拷完 3 块，才把块号给 C, tone: comm}
+  - {at: [612, 208], text: 排上那一步：分 3 个空块、搬回, tone: comm}
+  - {at: [612, 230], text: 下一步才从第 10 个位置接着算, note: true}
+  - {at: [306, 458], text: 3 块还给池子，A 交给 P, tone: danger}
+  - {at: [612, 458], text: P 重算这 9 个位置，再交给 D, tone: token}
 pins:
-  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L166
-    symbols: [start_load_kv]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/manager.py#L236-L368
+    symbols: [_create_preempt_state, get_num_free_blocks]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/recompute_cpu_offload/worker.py#L134-L175
+    symbols: [handle_preemptions, start_load_kv]

@@ -1,0 +1,26 @@
+layout: figure
+id: kv-cache-cpu-offload-cost
+caption: 同一段 4,096 个位置的开头（示意数）：有效带宽 16 GiB/s 时搬回约 31 ms，重算要 250 ms；带宽掉到 2 GiB/s，搬回也要 250 ms，两者持平
+size: [900, 250]
+timelines:
+  - at: [20, 50]
+    scale: 2.6
+    start: 0
+    end: 250
+    unit: ms
+    ticks: 50
+    labelW: 200
+    laneH: 30
+    gap: 14
+    lanes:
+      - label: 搬回（16 GiB/s）
+        spans:
+          - {from: 0, to: 31.25, tone: comm, text: 31 ms}
+      - label: 搬回（2 GiB/s）
+        spans:
+          - {from: 0, to: 250, tone: comm, style: hatch, text: 250 ms，与重算持平}
+      - label: 重算 4,096 个位置
+        spans:
+          - {from: 0, to: 250, tone: weight, text: 250 ms}
+texts:
+  - {at: [20, 226], text: "示意数：512 MiB，每秒重算 16,384 个位置", note: true}

@@ -1,53 +1,98 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" role="img" aria-label="负载统计形成放置计划后，发送端把本层E1权重传到接收缓冲；等待传输完成，再更新目标槽位和映射。只画一个专家的一次迁移，其他传输省略，图不按真实耗时绘制。">
-  <title>负载统计形成放置计划后，发送端把本层E1权重传到接收缓冲；等待传输完成，再更新目标槽位和映射。只画一个专家的一次迁移，其他传输省略，图不按真实耗时绘制。</title>
-  <defs><marker id="eplb-cycle-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="eplb-cycle-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="eplb-cycle-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
-  <rect x="495" y="269" width="150" height="132" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="511" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">接收缓冲</text>
-  <rect x="688" y="269" width="150" height="132" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="704" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">目标槽位</text>
-  <g data-hardware="server">
-  <rect x="35" y="210" width="310" height="270" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <path d="M39 222v246M341 222v246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="190" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">发送端 · 设备 0</text>
-  </g>
-  <g data-hardware="server">
-  <rect x="470" y="210" width="395" height="270" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <path d="M474 222v246M861 222v246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="667.5" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">接收端 · 设备 1</text>
-  </g>
-  <path d="M292 78 L520 78" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-control)"/>
-  <path d="M620 104 L620 155 L80 155 L80 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-control)"/>
-  <path d="M735 104 L735 210" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-control)"/>
-  <path d="M250 323 L495 323" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#eplb-cycle-ah-comm)"/>
-  <path d="M645 325 L688 325" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-weight)"/>
-  <path d="M765 402 L765 428" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-control)"/>
-  <path d="M670 480 L670 522" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-control)"/>
-  <rect x="90" y="285" width="160" height="76" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M130 285v76M170 285v76M210 285v76M90 304h160M90 323h160M90 342h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="170" y="381" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1 权重</text>
-  <rect x="520" y="295" width="100" height="60" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M545 295v60M570 295v60M595 295v60M520 310h100M520 325h100M520 340h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="570" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
-  <rect x="713" y="295" width="100" height="60" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M738 295v60M763 295v60M788 295v60M713 310h100M713 325h100M713 340h100" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <text x="763" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
-  <rect x="70" y="60" width="55" height="35" fill="var(--color-token, #087f73)"/>
-  <text x="97.5" y="82.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8</text>
-  <rect x="125" y="60" width="55" height="35" fill="var(--color-token, #087f73)"/>
-  <text x="152.5" y="82.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8</text>
-  <rect x="180" y="60" width="55" height="35" fill="var(--color-token, #087f73)"/>
-  <text x="207.5" y="82.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
-  <rect x="235" y="60" width="55" height="35" fill="var(--color-token, #087f73)"/>
-  <text x="262.5" y="82.2" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
-  <path d="M125 60v35M180 60v35M235 60v35" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="70" y="60" width="220" height="35" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="525" y="52" width="290" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后台生成本层放置计划</text>
-  <rect x="525" y="527" width="290" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="670" y="557" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后续路由使用新映射</text>
-  <text x="70" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">专家调用统计</text>
-  <text x="355" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a">传输权重</text>
-  <text x="496" y="449" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">等待完成 → 更新权重与映射</text>
-  <text x="67" y="439" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">同一逻辑专家，权重内容保持</text>
-  <text x="450" y="621" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">接收缓冲与已生效槽位分开；后台传输仍会占用链路和内存。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="EPLB 的一轮循环（数为示意）：两张卡、四个专家，「对」是 token–expert 配对的个数。① 窗口 1 里卡 0 的 E0、E1 各接 8 对，合计 16，卡 1 只有 4；② 后台算出把 E1 和 E2 对调，计划两边各 10；③ 一层一层传权重，收到的先放进接收区，这一步结束时等传完，换掉两张表、把权重写进位置；④ 下一个窗口流量变了，E0 涨到 12 对，卡 0 又到 14，于是进入下一轮。虚线框是还没落地的计划或正在传的权重；每个专家接了几对写在专家块里，每张卡的合计写在卡名旁，负载条只表示长短。">
+  <title>EPLB 的一轮循环（数为示意）：两张卡、四个专家，「对」是 token–expert 配对的个数。① 窗口 1 里卡 0 的 E0、E1 各接 8 对，合计 16，卡 1 只有 4；② 后台算出把 E1 和 E2 对调，计划两边各 10；③ 一层一层传权重，收到的先放进接收区，这一步结束时等传完，换掉两张表、把权重写进位置；④ 下一个窗口流量变了，E0 涨到 12 对，卡 0 又到 14，于是进入下一轮。虚线框是还没落地的计划或正在传的权重；每个专家接了几对写在专家块里，每张卡的合计写在卡名旁，负载条只表示长短。</title>
+  <defs><marker id="eplb-cycle-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="eplb-cycle-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="24" y="64" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 合计 16</text>
+  <rect x="236" y="64" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="252" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 合计 4</text>
+  <rect x="484" y="64" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="500" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 计划 10</text>
+  <rect x="696" y="64" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="712" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 计划 10</text>
+  <rect x="484" y="334" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="500" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
+  <rect x="696" y="334" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="712" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
+  <rect x="24" y="334" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 0 · 合计 14</text>
+  <rect x="236" y="334" width="196" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="252" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 1 · 合计 6</text>
+  <path d="M440 139 L476 139" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-ink)"/>
+  <path d="M688 222 L688 318" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-ink)"/>
+  <path d="M476 409 L440 409" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-ink)"/>
+  <path d="M228 318 L228 222" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#eplb-cycle-ah-ink)"/>
+  <path d="M627 392 L760 426" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#eplb-cycle-ah-comm)"/>
+  <path d="M749 392 L616 426" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#eplb-cycle-ah-comm)"/>
+  <rect x="36" y="146" width="80" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="116" y="146" width="80" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="248" y="146" width="20" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="268" y="146" width="20" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="496" y="146" width="80" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="576" y="146" width="20" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="708" y="146" width="80" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="788" y="146" width="20" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="36" y="416" width="120" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="156" y="416" width="20" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="248" y="416" width="40" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="288" y="416" width="20" height="22" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="36" y="78" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="77" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E0</text>
+  <text x="77" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8 对</text>
+  <rect x="126" y="78" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="167" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E1</text>
+  <text x="167" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8 对</text>
+  <rect x="248" y="78" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="289" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2</text>
+  <text x="289" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 对</text>
+  <rect x="338" y="78" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="379" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3</text>
+  <text x="379" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 对</text>
+  <rect x="496" y="78" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="537" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E0</text>
+  <text x="537" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">8 对</text>
+  <rect x="586" y="78" width="82" height="48" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="627" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E2</text>
+  <text x="627" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">2 对</text>
+  <rect x="708" y="78" width="82" height="48" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="749" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">E1</text>
+  <text x="749" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">8 对</text>
+  <rect x="798" y="78" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="839" y="98" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3</text>
+  <text x="839" y="117" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 对</text>
+  <rect x="496" y="348" width="82" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="537" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E0</text>
+  <rect x="586" y="348" width="82" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="627" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E1</text>
+  <text x="627" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">发出</text>
+  <rect x="708" y="348" width="82" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="749" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2</text>
+  <text x="749" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">发出</text>
+  <rect x="798" y="348" width="82" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="839" y="375" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3</text>
+  <rect x="496" y="426" width="172" height="44" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="582" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">接收区</text>
+  <text x="582" y="463" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">收 E2</text>
+  <rect x="708" y="426" width="172" height="44" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="794" y="444" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">接收区</text>
+  <text x="794" y="463" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">收 E1</text>
+  <rect x="36" y="348" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="77" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E0</text>
+  <text x="77" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">12 对</text>
+  <rect x="126" y="348" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="167" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E2</text>
+  <text x="167" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 对</text>
+  <rect x="248" y="348" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="289" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E1</text>
+  <text x="289" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4 对</text>
+  <rect x="338" y="348" width="82" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="379" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">E3</text>
+  <text x="379" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2 对</text>
+  <text x="24" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">① 数：窗口 1 各专家接了多少对</text>
+  <text x="484" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">② 算：后台排新摆法</text>
+  <text x="484" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">③ 搬：传权重，传完再换表</text>
+  <text x="24" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">④ 再数：流量变了</text>
+  <text x="24" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">最忙 16 ÷ 平均 10 = 1.6</text>
+  <text x="484" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">E1 与 E2 对调</text>
+  <text x="484" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">步末等传完，换表并写入权重</text>
+  <text x="24" y="514" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">最忙 14 ÷ 平均 10 = 1.4，回到 ① 再调</text>
 </svg>

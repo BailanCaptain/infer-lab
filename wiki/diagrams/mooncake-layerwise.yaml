@@ -1,146 +1,54 @@
-{
-  "size": [
-    900,
-    420
-  ],
-  "caption": "三层的理想重叠示意：每层计算 1 个时间单位、传输 0.5；传输队列不拥塞并可与计算独立推进。数值仅用于解释等待关系，不是模型性能",
-  "timelines": [
-    {
-      "at": [
-        25,
-        65
-      ],
-      "scale": 148,
-      "start": 0,
-      "end": 4.5,
-      "labelW": 145,
-      "laneH": 32,
-      "gap": 12,
-      "lanes": [
-        {
-          "label": "整批 · 计算",
-          "spans": [
-            {
-              "from": 0,
-              "to": 1,
-              "tone": "token",
-              "text": "层 0"
-            },
-            {
-              "from": 1,
-              "to": 2,
-              "tone": "token",
-              "text": "层 1"
-            },
-            {
-              "from": 2,
-              "to": 3,
-              "tone": "token",
-              "text": "层 2"
-            }
-          ]
-        },
-        {
-          "label": "整批 · 传输",
-          "spans": [
-            {
-              "from": 3,
-              "to": 4.5,
-              "tone": "comm",
-              "text": "各组 / 各任务"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "at": [
-        25,
-        245
-      ],
-      "scale": 148,
-      "start": 0,
-      "end": 4.5,
-      "labelW": 145,
-      "laneH": 32,
-      "gap": 12,
-      "lanes": [
-        {
-          "label": "逐层 · 计算",
-          "spans": [
-            {
-              "from": 0,
-              "to": 1,
-              "tone": "token",
-              "text": "层 0"
-            },
-            {
-              "from": 1,
-              "to": 2,
-              "tone": "token",
-              "text": "层 1"
-            },
-            {
-              "from": 2,
-              "to": 3,
-              "tone": "token",
-              "text": "层 2"
-            }
-          ]
-        },
-        {
-          "label": "逐层 · 传输",
-          "spans": [
-            {
-              "from": 1,
-              "to": 1.5,
-              "tone": "comm",
-              "text": "层 0"
-            },
-            {
-              "from": 2,
-              "to": 2.5,
-              "tone": "comm",
-              "text": "层 1"
-            },
-            {
-              "from": 3,
-              "to": 3.5,
-              "tone": "comm",
-              "text": "层 2"
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        25,
-        35
-      ],
-      "text": "等待所有来源状态可用后再传",
-      "strong": true
-    },
-    {
-      "at": [
-        25,
-        215
-      ],
-      "text": "每层完成后安排传输",
-      "strong": true
-    },
-    {
-      "at": [
-        450,
-        399
-      ],
-      "text": "重叠机会取决于事件依赖、链路和接收侧恢复条件",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "layout": "figure",
-  "id": "mooncake-layerwise"
-}
+layout: figure
+id: mooncake-layerwise
+caption: 同样三层、同样的字节，两种搬法的时间线（示意：每层计算 1 个时间单位，每层传输 0.5 个单位，假设传输不和别的流量抢链路）。上面是默认的 V1：P 三层都算完、请求结束，D 才一次读回三层，到齐在 4.5。下面是 Layerwise：D 在 P 开算之前就分好了目的块，P 每算完一层就把这一层写过去，前两层的传输藏进了 P 算后面几层的时间里，到齐在 3.5。最后一层的传输两种做法都省不掉，D 也都要等三层到齐才开始 decode。
+size: [900, 400]
+timelines:
+  - at: [30, 70]
+    scale: 150
+    start: 0
+    end: 4.5
+    ticks: 1
+    labelW: 150
+    laneH: 32
+    gap: 12
+    lanes:
+      - label: V1 · P 计算
+        spans:
+          - { from: 0, to: 1, tone: token, text: 层 0 }
+          - { from: 1, to: 2, tone: token, text: 层 1 }
+          - { from: 2, to: 3, tone: token, text: 层 2 }
+      - label: V1 · D 读取
+        spans:
+          - { from: 3, to: 4.5, tone: comm, text: 三层一起读 }
+    marks:
+      - { t: 4.5, label: 到齐 }
+  - at: [30, 240]
+    scale: 150
+    start: 0
+    end: 4.5
+    ticks: 1
+    labelW: 150
+    laneH: 32
+    gap: 12
+    lanes:
+      - label: Layerwise · P 计算
+        spans:
+          - { from: 0, to: 1, tone: token, text: 层 0 }
+          - { from: 1, to: 2, tone: token, text: 层 1 }
+          - { from: 2, to: 3, tone: token, text: 层 2 }
+      - label: Layerwise · P 写到 D
+        spans:
+          - { from: 1, to: 1.5, tone: comm, text: 层 0 }
+          - { from: 2, to: 2.5, tone: comm, text: 层 1 }
+          - { from: 3, to: 3.5, tone: comm, text: 层 2 }
+    marks:
+      - { t: 3.5, label: 到齐 }
+texts:
+  - { at: [30, 44], text: 整批拉：P 全部算完，D 才开始读, strong: true }
+  - { at: [30, 214], text: 逐层推：P 算完一层就写一层, strong: true }
+  - { at: [450, 384], text: 省下的是前两层的传输；最后一层照样要等, anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962
+    symbols: [batch_transfer_sync_read]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L476-L528
+    symbols: [batch_transfer_sync_write]

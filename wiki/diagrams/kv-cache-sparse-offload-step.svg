@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 640" width="880" height="640" role="img" aria-label="一步 decode 在一个稀疏 MLA 层里的顺序（默认路径）。新算出的行直接写主机；选位置、查槽表、只搬缺失行、把位置号换成槽号之后，attention 读的是设备上的热缓冲。">
+  <title>一步 decode 在一个稀疏 MLA 层里的顺序（默认路径）。新算出的行直接写主机；选位置、查槽表、只搬缺失行、把位置号换成槽号之后，attention 读的是设备上的热缓冲。</title>
+  <defs><marker id="kv-cache-sparse-offload-step-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="20" y="50" width="840" height="566" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">一步 decode 在一个稀疏 MLA 层里</text>
+  <path d="M445 134 L445 160" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-sparse-offload-step-ah-ink)"/>
+  <path d="M445 212 L445 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-sparse-offload-step-ah-ink)"/>
+  <path d="M445 290 L445 316" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-sparse-offload-step-ah-ink)"/>
+  <path d="M445 368 L445 394" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-sparse-offload-step-ah-ink)"/>
+  <path d="M445 446 L445 472" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-sparse-offload-step-ah-ink)"/>
+  <path d="M445 524 L445 550" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#kv-cache-sparse-offload-step-ah-ink)"/>
+  <rect x="210" y="82" width="470" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 这一步新算出的 K/V 写进主机池</text>
+  <text x="445" y="123" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">设备上没有分页的主 cache 可写；TP 组由 rank 0 写</text>
+  <rect x="210" y="160" width="470" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="182" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② indexer 给历史打分，选出这一步要读的位置</text>
+  <text x="445" y="201" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输出的是位置号，不是槽号</text>
+  <rect x="210" y="238" width="470" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="260" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ 查这一层的槽表：哪些位置已经在槽里</text>
+  <text x="445" y="279" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">在的算命中；其余记成缺失</text>
+  <rect x="210" y="316" width="470" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">④ 给缺失的位置挑槽</text>
+  <text x="445" y="357" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">只从这一步没被选中的槽里挑，最久没用的先换</text>
+  <rect x="210" y="394" width="470" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 只把缺失的行从主机搬进热缓冲</text>
+  <text x="445" y="435" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先等 rank 0 写完，组内各卡再各自搬自己缺的</text>
+  <rect x="210" y="472" width="470" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="494" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 把位置号换成槽号</text>
+  <text x="445" y="513" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">attention 拿到的是热缓冲里的槽号</text>
+  <rect x="210" y="550" width="470" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="572" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ 稀疏 attention 读热缓冲，算完这一层</text>
+  <text x="445" y="591" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">槽表留给下一步；下一层从 ① 重来</text>
+  <text x="42" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">设备 → 主机</text>
+  <text x="42" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">都在主机侧算</text>
+  <text x="42" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">整数运算，按行分线程</text>
+  <text x="42" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">主机 → 设备</text>
+  <text x="700" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">命中的不搬</text>
+  <text x="700" y="416" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">搬运量 = 缺失行数</text>
+  <text x="700" y="572" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">全部历史仍在主机</text>
+</svg>

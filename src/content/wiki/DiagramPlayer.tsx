@@ -1,4 +1,8 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ease, opacityAt, type Point, parseFade, parseKeys, pointAlong, pointAt } from "./animTimeline";
+
+export type { Point };
+export { ease, pointAlong };
 
 /**
  * 分镜图播放器（2026-09-29）。
@@ -9,12 +13,11 @@ import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useSta
  * 这里只做两件事：把画布裁到当前这一格；「下一步」时让块沿路线从源块飞到目的块，落地后换到下一格
  * （下一格画的就是收完以后各卡手里的样子）。几何全在 SVG 里，这里不认识任何具体的图。
  * 没有 JS 或 SVG 里没有分镜时，图照原样显示整条分镜。
+ *
+ * 逐张卡演的格（2026-09-29，band 上写了 data-ms）按关键帧播：块的 data-keys 给每个折点一个时刻，
+ * 带 data-show / data-hide 的元素（路上的块、加号、加出来的和）到时刻才出现、消失。
+ * 取点和缓动在 animTimeline.ts，渲染器算时刻用的也是它。
  */
-
-export interface Point {
-  x: number;
-  y: number;
-}
 
 /** 路线只由 M / L 组成：源块中心 → 箭头起点 → 箭头终点 → 目的块中心 */
 export function parseRoute(d: string): Point[] {
@@ -24,36 +27,14 @@ export function parseRoute(d: string): Point[] {
   }));
 }
 
-/** 折线上按长度比例 u（0 到 1）取点 */
-export function pointAlong(points: Point[], u: number): Point {
-  const first = points[0];
-  if (!first) return { x: 0, y: 0 };
-  const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i]!.x, p.y - points[i]!.y));
-  const total = lengths.reduce((a, b) => a + b, 0);
-  let left = Math.min(Math.max(u, 0), 1) * total;
-  for (const [i, l] of lengths.entries()) {
-    const a = points[i]!;
-    const b = points[i + 1]!;
-    if (left <= l || i === lengths.length - 1) {
-      const t = l > 0 ? Math.min(left / l, 1) : 1;
-      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-    }
-    left -= l;
-  }
-  return first;
-}
-
-/** 起步和落地都放慢，看得清块从哪张卡出发、落进哪一格 */
-export function ease(u: number): number {
-  return u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
-}
-
 interface Band {
   box: [number, number, number, number];
   title: string;
 }
 
 const HOLD_MS = 450;
+/** 按关键帧播的格：块一开始就在源块上，不用先跳回去再停，只留一小拍 */
+const KEYED_HOLD_MS = 150;
 const FLY_MS = 1400;
 const LAND_MS = 350;
 const PAUSE_MS = 1100;
@@ -188,6 +169,8 @@ export function DiagramPlayer({
     s.setAttribute("width", String(w));
     s.setAttribute("height", String(h));
     for (const p of s.querySelectorAll("g.wiki-anim-payload")) p.removeAttribute("transform");
+    for (const e of s.querySelectorAll<SVGElement>("[data-show],[data-hide],[data-fade]"))
+      e.style.removeProperty("opacity");
   }, [bands, step, root]);
 
   /** 第 k 格的块从源块飞到目的块；被打断返回 false */
@@ -207,24 +190,43 @@ export function DiagramPlayer({
           if (!route || !pay || !rect) return [];
           const n = (a: string) => Number(rect.getAttribute(a) ?? 0);
           const center = { x: n("x") + n("width") / 2, y: n("y") + n("height") / 2 };
-          return [{ pay, points: parseRoute(route.getAttribute("d") ?? ""), center }];
+          const points = parseRoute(route.getAttribute("d") ?? "");
+          return [{ pay, points, keys: parseKeys(m.getAttribute("data-keys"), points.length), center }];
         });
+        // 到时刻才出现 / 消失的元素：逐张卡演的块、加号、加出来的和
+        const at = (e: Element, a: string) => {
+          const v = e.getAttribute(a);
+          return v === null ? null : Number(v);
+        };
+        const timed = [...g.querySelectorAll<SVGElement>("[data-show],[data-hide],[data-fade]")].map((e) => ({
+          e,
+          show: at(e, "data-show"),
+          hide: at(e, "data-hide"),
+          fade: parseFade(e.getAttribute("data-fade")),
+        }));
+        const keyedMs = Number(g.getAttribute("data-ms") ?? 0);
         const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-        const [hold, flyMs, land] = still ? [0, 0, 0] : [HOLD_MS, FLY_MS, LAND_MS];
+        const [hold, flyMs, land] = still
+          ? [0, 0, 0]
+          : keyedMs > 0
+            ? [KEYED_HOLD_MS, keyedMs, LAND_MS]
+            : [HOLD_MS, FLY_MS, LAND_MS];
         const place = (u: number) => {
           for (const m of movers) {
-            const p = pointAlong(m.points, ease(u));
+            const p = m.keys ? pointAt(m.points, m.keys, u) : pointAlong(m.points, ease(u));
             m.pay.setAttribute(
               "transform",
               `translate(${(p.x - m.center.x).toFixed(1)} ${(p.y - m.center.y).toFixed(1)})`,
             );
           }
+          for (const t of timed) t.e.style.opacity = String(opacityAt(t.show, t.hide, t.fade, u));
         };
         place(0);
         const t0 = performance.now();
         const tick = (now: number) => {
           if (run.current !== token) {
             for (const m of movers) m.pay.removeAttribute("transform");
+            for (const t of timed) t.e.style.removeProperty("opacity");
             resolve(false);
             return;
           }

@@ -1,0 +1,44 @@
+layout: figure
+id: lm-head-split
+caption: GLM 双机的一个 TP 组：输出权重共 154880 个词，按词编号切成 8 段，每张卡存连续的 19360 个词（图里画出卡 0、卡 1、卡 7，中间 5 张同理）。8 张卡拿同一批完整的隐藏向量各算自己那段，得到的分数已是这些词的最终分数，不需要相加；All-Gather 把 8 段按词编号首尾相接，8 张卡每张都拿到底部这条完整的 154880 个分数，不是只汇到某一张卡。n 是这一步要打分的行数。
+size: [900, 480]
+texts:
+  - { at: [30, 30], text: TP8：输出权重按词编号切成 8 段，每张卡存连续的一段, strong: true }
+  - { at: [590, 246], text: '⋯', anchor: middle, size: 22 }
+  - { at: [50, 458], text: 'All-Gather：拼成完整的 [n, 154880]', tone: comm, strong: true }
+  - { at: [470, 458], text: 不是收到某一张卡上：8 张卡各有这一整条, tone: comm }
+items:
+  - { at: [245, 48], size: [410, 50], text: '同一批隐藏向量 [n, 4096]', sub: 8 张卡手里都是完整的一份, tone: token }
+  - { at: [50, 178], size: [210, 58], text: '第 0 – 19,359 号词', sub: '本卡权重 [19360, 4096]', tone: weight }
+  - { at: [50, 262], size: [210, 50], text: '本卡分数 [n, 19360]', sub: 这段词的最终分数, tone: token, style: faded }
+  - { at: [330, 178], size: [210, 58], text: '第 19,360 – 38,719 号词', sub: '本卡权重 [19360, 4096]', tone: weight }
+  - { at: [330, 262], size: [210, 50], text: '本卡分数 [n, 19360]', sub: 这段词的最终分数, tone: token, style: faded }
+  - { at: [640, 178], size: [210, 58], text: '第 135,520 – 154,879 号词', sub: '本卡权重 [19360, 4096]', tone: weight }
+  - { at: [640, 262], size: [210, 50], text: '本卡分数 [n, 19360]', sub: 这段词的最终分数, tone: token, style: faded }
+frames:
+  - { label: 卡 0, at: [30, 140], size: [250, 190], inside: true }
+  - { label: 卡 1, at: [310, 140], size: [250, 190], inside: true }
+  - { label: 卡 7, at: [620, 140], size: [250, 190], inside: true }
+bars:
+  - at: [50, 392]
+    h: 34
+    scale: 0.0051653
+    segments:
+      - { value: 19360, tone: token, text: 卡 0 }
+      - { value: 19360, tone: token, text: 卡 1 }
+      - { value: 19360, tone: token, text: 卡 2 }
+      - { value: 19360, tone: token, text: 卡 3 }
+      - { value: 19360, tone: token, text: 卡 4 }
+      - { value: 19360, tone: token, text: 卡 5 }
+      - { value: 19360, tone: token, text: 卡 6 }
+      - { value: 19360, tone: token, text: 卡 7 }
+links:
+  - { from: [450, 98], to: [155, 174], via: [[450, 118], [155, 118]] }
+  - { from: [450, 98], to: [435, 174], via: [[450, 118], [435, 118]] }
+  - { from: [450, 98], to: [745, 174], via: [[450, 118], [745, 118]] }
+  - { from: [155, 236], to: [155, 258] }
+  - { from: [435, 236], to: [435, 258] }
+  - { from: [745, 236], to: [745, 258] }
+  - { from: [155, 312], to: [100, 388], via: [[155, 352], [100, 352]], tone: comm }
+  - { from: [435, 312], to: [200, 388], via: [[435, 356], [200, 356]], tone: comm }
+  - { from: [745, 312], to: [800, 388], via: [[745, 352], [800, 352]], tone: comm }

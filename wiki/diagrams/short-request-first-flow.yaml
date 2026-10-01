@@ -1,0 +1,54 @@
+layout: figure
+id: short-request-first-flow
+caption: 调度器每一步先给 running 续上，再用剩余预算接纳等待的请求。短请求优先换掉的只有中间那一块：从三条车道里按固定次序选出一条，看一眼它的队头并记住这条车道；之后截预算、借 KV 块都照上游原样，借到了就从记住的车道取走，借不到这一步就不再接纳新请求。
+size: [900, 820]
+frames:
+  - { label: 短请求优先换掉的只有这一块：等待队列, at: [16, 196], size: [868, 250] }
+items:
+  - { at: [220, 16], size: [440, 60], text: 调度器一步的开头：先给 running 续上, sub: 还有剩余预算、running 未满上限，才看等待的请求, tone: control }
+  - { at: [220, 112], size: [440, 52], text: 挂起队列里有请求吗？, sub: 等远端 KV、等输出格式规则的请求, style: plain }
+  - { at: [684, 112], size: [200, 52], text: 有：先看挂起队列, sub: 排在三条车道之前, style: plain }
+  - { at: [32, 212], size: [168, 56], text: 被抢占的请求, sub: 退回等待，重新分车道, style: plain }
+  - { at: [220, 216], size: [440, 48], text: 恢复车道有人吗？, style: plain }
+  - { at: [684, 212], size: [184, 56], text: 有：取恢复车道, sub: 被抢占、算过一部分的, tone: token }
+  - { at: [220, 292], size: [440, 48], text: 长车道队头等够上限，且短车道有人吗？, style: plain }
+  - { at: [684, 288], size: [184, 56], text: 是：取长车道队头, sub: 等待上限默认 0，不触发, tone: token, style: faded }
+  - { at: [220, 368], size: [440, 48], text: 短车道有人吗？, style: plain }
+  - { at: [684, 364], size: [184, 56], text: 有：取短车道, sub: 提示词 ≤ 门槛（默认 256）, tone: token }
+  - { at: [32, 364], size: [168, 56], text: 没有：取长车道, sub: 提示词 > 门槛, tone: token, style: faded }
+  - { at: [220, 476], size: [440, 60], text: 看一眼选中车道的队头，记住这条车道, sub: 取走时从记住的车道拿，不会看一条、拿另一条, style: plain }
+  - { at: [220, 566], size: [440, 60], text: 上游照常：截到剩余预算，借 KV 块, sub: 这一段算多少由 chunked prefill 定, tone: kv, style: plain }
+  - { at: [220, 656], size: [440, 48], text: 这条请求借到块了吗？, style: plain }
+  - { at: [16, 740], size: [300, 60], text: 借不到：这一步不再接纳新请求, sub: 它留在车道队头，下一步再试, tone: danger }
+  - { at: [584, 740], size: [300, 60], text: 借到了：从记住的车道取走, sub: 扣预算；有余量、running 未满就看下一条, tone: token }
+links:
+  - { from: [440, 76], to: [440, 112] }
+  - { from: [660, 138], to: [684, 138] }
+  - { from: [440, 164], to: [440, 216] }
+  - { from: [200, 240], to: [220, 240], dashed: true }
+  - { from: [660, 240], to: [684, 240] }
+  - { from: [440, 264], to: [440, 292] }
+  - { from: [660, 316], to: [684, 316] }
+  - { from: [440, 340], to: [440, 368] }
+  - { from: [660, 392], to: [684, 392] }
+  - { from: [220, 392], to: [200, 392] }
+  - { from: [868, 316], to: [878, 316], ends: none }
+  - { from: [868, 392], to: [878, 392], ends: none }
+  - { from: [868, 240], to: [660, 506], via: [[878, 240], [878, 506]] }
+  - { from: [116, 420], to: [220, 506], via: [[116, 506]] }
+  - { from: [440, 536], to: [440, 566] }
+  - { from: [440, 626], to: [440, 656] }
+  - { from: [220, 680], to: [166, 740], via: [[166, 680]] }
+  - { from: [660, 680], to: [734, 740], via: [[734, 680]] }
+  - { from: [884, 770], to: [560, 112], via: [[894, 770], [894, 92], [560, 92]], dashed: true }
+pins:
+  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L665-L680
+    symbols: [max_num_running_reqs, peek_request]
+  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L1976-L1978
+    symbols: [_select_waiting_queue_for_scheduling, skipped_waiting]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L171-L183
+    symbols: [_select_schedulable_queue, _immediate_queue, _short_queue, _long_queue]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L237-L244
+    symbols: [peek_request, _pinned_queue]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/short_request_first_scheduler.py#L329-L335
+    symbols: [is_recovery_request, PREEMPTED]

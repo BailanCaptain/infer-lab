@@ -1,38 +1,59 @@
 layout: figure
 id: lmcache
-caption: 请求A保存共同前缀，请求B稍后在本地缺失且外部命中时加载同一份状态；图描述数据复用，不代表特定插件的存储后端
-size: [900, 330]
-hardware:
-  - {kind: memory, at: [325, 70], size: [250, 72], label: 外部缓存存储}
+caption: 请求 B 的开头在本地显存里一段也没有，就逐级往外找：主机内存这一层有段 1、段 2，段 3 只在更远的一层（本地磁盘或远端存储），段 4 谁那儿都没有、照常自己算。开哪几层由配置决定，层数和段数都是示意。
+size: [900, 424]
+frames:
+  - { label: 显存（本实例）, at: [20, 60], size: [860, 92] }
+  - { label: LMCache 主机内存层, at: [20, 186], size: [860, 92] }
+  - { label: 更远的一层：本地磁盘 / 远端存储, at: [20, 312], size: [860, 92] }
 grids:
-  - at: [40, 226]
+  - at: [56, 100]
     rows: 1
-    cols: 3
-    cell: [65, 42]
+    cols: 4
+    cell: [86, 40]
     gap: 8
     tone: kv
-    style: solid
+    style: empty
     cells:
-      - {at: [0, 0], text: P0}
-      - {at: [0, 1], text: P1}
-      - {at: [0, 2], text: A, tone: token}
-  - at: [650, 226]
+      - { at: [0, 0], text: 待搬回 }
+      - { at: [0, 1], text: 待搬回 }
+      - { at: [0, 2], text: 待搬回 }
+      - { at: [0, 3], text: 段4, tone: token, style: solid }
+  - at: [56, 226]
     rows: 1
-    cols: 3
-    cell: [65, 42]
+    cols: 4
+    cell: [86, 40]
     gap: 8
     tone: kv
-    style: faded
+    style: empty
     cells:
-      - {at: [0, 0], text: P0}
-      - {at: [0, 1], text: P1}
-      - {at: [0, 2], text: B, tone: token}
+      - { at: [0, 0], text: 段1, style: solid }
+      - { at: [0, 1], text: 段2, style: solid }
+  - at: [56, 352]
+    rows: 1
+    cols: 4
+    cell: [86, 40]
+    gap: 8
+    tone: kv
+    style: empty
+    cells:
+      - { at: [0, 2], text: 段3, style: solid }
 links:
-  - {from: [141, 220], to: [330, 146], tone: comm}
-  - {from: [570, 146], to: [751, 220], tone: comm}
+  - { from: [420, 156], to: [420, 182], tone: control, dashed: true }
+  - { from: [420, 282], to: [420, 308], tone: control, dashed: true }
+  - { from: [470, 308], to: [470, 282], tone: kv }
+  - { from: [470, 182], to: [470, 156], tone: kv }
 texts:
-  - {at: [40, 200], text: 请求 A · 首次计算, strong: true}
-  - {at: [650, 200], text: 请求 B · 稍后复用, strong: true}
-  - {at: [225, 145], text: 保存, tone: comm}
-  - {at: [620, 145], text: 加载, tone: comm}
-  - {at: [450, 300], text: "P0、P1为共同前缀段；A、B为各自后续内容", anchor: middle, note: true}
+  - { at: [560, 112], text: ① 本地一段都没有, strong: true }
+  - { at: [560, 134], text: 段 4 哪一层都没有，照常自己算, note: true }
+  - { at: [560, 224], text: ② 这一层存着段 1、段 2 }
+  - { at: [560, 246], text: 命中就从这里搬回显存, note: true }
+  - { at: [560, 350], text: ③ 段 3 只在这一层 }
+  - { at: [560, 372], text: 命中得越远，等得越久, note: true }
+  - { at: [392, 174], text: 往外问, anchor: end, tone: control }
+  - { at: [486, 174], text: 搬回, tone: kv }
+pins:
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_integration/vllm_v1_adapter.py#L1140-L1225
+    symbols: [get_num_new_matched_tokens]
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/lmcache_connector.py#L120-L198
+    symbols: [start_load_kv, wait_for_save]

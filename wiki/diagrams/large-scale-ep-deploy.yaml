@@ -1,0 +1,40 @@
+layout: figure
+id: large-scale-ep-deploy
+caption: vllm-ascend 官方示例（DeepSeek-R1，8 台 Atlas 800T A3，每台 16 颗 NPU）。P 一侧 4 台各自是一个 EP16，彼此不交换 token；D 一侧 4 台合成一个 EP64，每层 64 个 rank 一起交换。proxy 只挑服务、转交传输参数，KV cache 由连接器从 P 直接传到 D。
+size: [900, 466]
+frames:
+  - { at: [18, 124], size: [400, 326], label: P 一侧：4 个互不相干的 EP16 }
+  - { at: [482, 124], size: [400, 326], label: D 一侧：合起来一个 EP64 }
+hardware:
+  - { kind: server, at: [38, 162], size: [170, 104], label: P 机 1 }
+  - { kind: server, at: [228, 162], size: [170, 104], label: P 机 2 }
+  - { kind: server, at: [38, 332], size: [170, 104], label: P 机 3 }
+  - { kind: server, at: [228, 332], size: [170, 104], label: P 机 4 }
+  - { kind: server, at: [502, 162], size: [170, 104], label: D 机 1 }
+  - { kind: server, at: [692, 162], size: [170, 104], label: D 机 2 }
+  - { kind: server, at: [502, 332], size: [170, 104], label: D 机 3 }
+  - { kind: server, at: [692, 332], size: [170, 104], label: D 机 4 }
+items:
+  - { at: [300, 18], size: [300, 54], text: proxy（外部路由）, sub: 先挑 P，再挑 D, tone: control }
+  - { at: [50, 176], size: [146, 34], text: 2 个 rank × TP8, style: plain }
+  - { at: [50, 220], size: [146, 34], text: 本机 EP16, tone: comm }
+  - { at: [240, 176], size: [146, 34], text: 2 个 rank × TP8, style: plain }
+  - { at: [240, 220], size: [146, 34], text: 本机 EP16, tone: comm }
+  - { at: [50, 346], size: [146, 34], text: 2 个 rank × TP8, style: plain }
+  - { at: [50, 390], size: [146, 34], text: 本机 EP16, tone: comm }
+  - { at: [240, 346], size: [146, 34], text: 2 个 rank × TP8, style: plain }
+  - { at: [240, 390], size: [146, 34], text: 本机 EP16, tone: comm }
+  - { at: [514, 192], size: [146, 44], text: 16 个 rank, sub: 每个 rank TP1, style: plain }
+  - { at: [704, 192], size: [146, 44], text: 16 个 rank, sub: 每个 rank TP1, style: plain }
+  - { at: [514, 362], size: [146, 44], text: 16 个 rank, sub: 每个 rank TP1, style: plain }
+  - { at: [704, 362], size: [146, 44], text: 16 个 rank, sub: 每个 rank TP1, style: plain }
+  - { at: [502, 272], size: [360, 30], text: EP64：每层 64 个 rank 一起 dispatch、combine, tone: comm }
+links:
+  - { from: [340, 72], to: [380, 124], tone: control }
+  - { from: [560, 72], to: [840, 124], tone: control }
+  - { from: [418, 290], to: [482, 290], tone: kv }
+texts:
+  - { at: [450, 278], text: KV cache, anchor: middle, tone: kv }
+pins:
+  - source: vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/large_scale_ep.md#L479-L489
+    symbols: [prefill, decode]

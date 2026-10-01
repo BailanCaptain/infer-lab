@@ -1,235 +1,50 @@
-{
-  "size": [
-    900,
-    660
-  ],
-  "caption": "调度侧管理块身份与生命周期，执行侧把各缓存组映射到地址并传输；控制元数据和完成事件连接两层职责，传输引擎不替代调度器",
-  "frames": [
-    {
-      "at": [
-        25,
-        75
-      ],
-      "size": [
-        385,
-        505
-      ],
-      "label": "P 来源侧"
-    },
-    {
-      "at": [
-        490,
-        75
-      ],
-      "size": [
-        385,
-        505
-      ],
-      "label": "D 目的侧"
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        65,
-        130
-      ],
-      "size": [
-        305,
-        75
-      ],
-      "text": "调度侧",
-      "tone": "control",
-      "sub": "保留块 / 来源元数据"
-    },
-    {
-      "at": [
-        530,
-        130
-      ],
-      "size": [
-        305,
-        75
-      ],
-      "text": "调度侧",
-      "tone": "control",
-      "sub": "分配块 / 接收计划"
-    },
-    {
-      "at": [
-        65,
-        315
-      ],
-      "size": [
-        305,
-        55
-      ],
-      "text": "执行侧：地址 / 布局注册",
-      "tone": "control"
-    },
-    {
-      "at": [
-        530,
-        315
-      ],
-      "size": [
-        305,
-        55
-      ],
-      "text": "执行侧：映射 / 传输任务",
-      "tone": "control"
-    }
-  ],
-  "hardware": [
-    {
-      "kind": "memory",
-      "at": [
-        80,
-        440
-      ],
-      "size": [
-        275,
-        80
-      ],
-      "label": "来源缓存组"
-    },
-    {
-      "kind": "memory",
-      "at": [
-        545,
-        440
-      ],
-      "size": [
-        275,
-        80
-      ],
-      "label": "目的缓存组"
-    }
-  ],
-  "links": [
-    {
-      "to": [
-        530,
-        168
-      ],
-      "tone": "control",
-      "from": [
-        370,
-        168
-      ]
-    },
-    {
-      "to": [
-        215,
-        315
-      ],
-      "tone": "control",
-      "dashed": true,
-      "from": [
-        215,
-        205
-      ]
-    },
-    {
-      "to": [
-        682,
-        315
-      ],
-      "tone": "control",
-      "dashed": true,
-      "from": [
-        682,
-        205
-      ]
-    },
-    {
-      "to": [
-        215,
-        440
-      ],
-      "tone": "kv",
-      "from": [
-        215,
-        370
-      ]
-    },
-    {
-      "to": [
-        682,
-        440
-      ],
-      "tone": "kv",
-      "from": [
-        682,
-        370
-      ]
-    },
-    {
-      "to": [
-        545,
-        480
-      ],
-      "tone": "comm",
-      "from": [
-        355,
-        480
-      ]
-    },
-    {
-      "to": [
-        835,
-        205
-      ],
-      "tone": "control",
-      "via": [
-        [
-          852,
-          480
-        ],
-        [
-          852,
-          242
-        ],
-        [
-          835,
-          242
-        ]
-      ],
-      "from": [
-        820,
-        480
-      ]
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        450,
-        140
-      ],
-      "text": "元数据",
-      "anchor": "middle",
-      "tone": "control"
-    },
-    {
-      "at": [
-        450,
-        461
-      ],
-      "text": "数据传输",
-      "anchor": "middle",
-      "tone": "comm"
-    },
-    {
-      "at": [
-        450,
-        620
-      ],
-      "text": "完成事件 → D 可继续；P 按发送完成释放保留块",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "layout": "figure",
-  "id": "mooncake-connector"
-}
+layout: figure
+id: mooncake-connector
+caption: 连接器做的三件事：先对表，再按层搬，完成通知后 D 才开始算、V1 的 P 也到这时才放源块；块号和层数都是示意。
+size: [900, 450]
+frames:
+  - { label: P 实例：算完提示词的一方, at: [20, 50], size: [300, 330] }
+  - { label: D 实例：接着生成的一方, at: [580, 50], size: [300, 330] }
+grids:
+  - at: [120, 150]
+    rows: 3
+    cols: 2
+    cell: [80, 50]
+    gap: 6
+    tone: kv
+    style: solid
+    rowLabels: [层 0, 层 1, 层 2]
+    colLabels: [7 号块, 12 号块]
+  - at: [647, 150]
+    rows: 3
+    cols: 2
+    cell: [80, 50]
+    gap: 6
+    tone: kv
+    style: solid
+    colLabels: [3 号块, 5 号块]
+    cells:
+      - { at: [2, 0], style: faded }
+      - { at: [2, 1], style: faded }
+items:
+  - { at: [345, 62], size: [210, 62], text: ① 两端对表, sub: 7→3，12→5，再换成地址, tone: control }
+  - { at: [345, 318], size: [210, 56], text: ③ 最后一层到齐, sub: 发完成通知，两端各自继续, tone: control }
+links:
+  - { from: [345, 93], to: [320, 93], tone: control }
+  - { from: [555, 93], to: [580, 93], tone: control }
+  - { from: [286, 175], to: [645, 175], tone: comm }
+  - { from: [286, 231], to: [645, 231], tone: comm }
+  - { from: [286, 287], to: [645, 287], tone: comm, dashed: true }
+  - { from: [345, 346], to: [320, 346], tone: control }
+  - { from: [555, 346], to: [580, 346], tone: control }
+texts:
+  - { at: [450, 26], text: 先对好块号，再按层把历史搬过去, anchor: middle, strong: true }
+  - { at: [466, 206], text: ② 同一层对同一层地搬, anchor: middle, tone: comm }
+  - { at: [170, 362], text: 源块：这条请求在 P 上的历史, anchor: middle, note: true }
+  - { at: [730, 362], text: 目的块先分好，再等数据, anchor: middle, note: true }
+  - { at: [450, 410], text: V1：P 全部层算完，D 一次读回；Layerwise：P 算完一层就写一层, anchor: middle, note: true, width: 820 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py#L774-L962
+    symbols: [batch_transfer_sync_read]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py#L476-L528
+    symbols: [batch_transfer_sync_write]

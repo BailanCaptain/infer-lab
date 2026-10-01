@@ -1,37 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" width="900" height="390" role="img" aria-label="两个DP rank的运行上限均为4。上次交换计数为[4,2]时，两边暂停接纳等待请求；已有请求继续运行，未发生请求或缓存迁移。">
-  <title>两个DP rank的运行上限均为4。上次交换计数为[4,2]时，两边暂停接纳等待请求；已有请求继续运行，未发生请求或缓存迁移。</title>
-  <defs><marker id="balance-scheduling-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="balance-scheduling-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
-  <path d="M620 127 L620 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#balance-scheduling-ah-control)"/>
-  <path d="M645 235 L645 260" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#balance-scheduling-ah-control)"/>
-  <path d="M347 106 L535 106" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#balance-scheduling-ah-comm)"/>
-  <path d="M347 156 L535 106" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#balance-scheduling-ah-comm)"/>
-  <rect x="115" y="85" width="52" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="141" y="110.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">运行</text>
-  <rect x="175" y="85" width="52" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="201" y="110.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">运行</text>
-  <rect x="235" y="85" width="52" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="261" y="110.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">运行</text>
-  <rect x="295" y="85" width="52" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="321" y="110.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">运行</text>
-  <rect x="115" y="135" width="52" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="141" y="160.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">运行</text>
-  <rect x="175" y="135" width="52" height="42" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="201" y="160.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">运行</text>
-  <rect x="235" y="135" width="52" height="42" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <rect x="295" y="135" width="52" height="42" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
-  <text x="105" y="110.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">DP0</text>
-  <text x="105" y="160.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">DP1</text>
-  <rect x="555" y="85" width="65" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
-  <text x="587.5" y="110.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">4</text>
-  <rect x="620" y="85" width="65" height="42" fill="var(--color-surface-sunken, #ece9df)"/>
-  <text x="652.5" y="110.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2</text>
-  <path d="M620 85v42" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="555" y="85" width="130" height="42" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <rect x="505" y="180" width="280" height="55" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="645" y="212.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">最大 4 = 运行上限 4</text>
-  <rect x="505" y="260" width="280" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="645" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本次两边暂停新准入</text>
-  <text x="35" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">已有运行请求</text>
-  <text x="530" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">所有 rank 得到同一统计</text>
-  <text x="450" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">后续计数为 [3,2] 时解除此条件，再检查各自预算与缓存</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 530" width="900" height="530" role="img" aria-label="数为示意。从左往右读：本步末尾各组的队列 → 互报后的同一张表 → 下一步两组都停收、已有请求照算。">
+  <title>数为示意。从左往右读：本步末尾各组的队列 → 互报后的同一张表 → 下一步两组都停收、已有请求照算。</title>
+  <defs><marker id="balance-scheduling-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="balance-scheduling-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="balance-scheduling-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
+  <rect x="16" y="78" width="300" height="175" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">DP0</text>
+  <rect x="16" y="290" width="300" height="175" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="314" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">DP1</text>
+  <rect x="594" y="78" width="290" height="175" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="610" y="102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">DP0 · 下一步</text>
+  <rect x="594" y="290" width="290" height="175" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="610" y="314" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">DP1 · 下一步</text>
+  <path d="M455 206 L455 246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-ah-ink)"/>
+  <path d="M455 302 L455 342" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#balance-scheduling-ah-ink)"/>
+  <path d="M612 256 L612 288" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-start="url(#balance-scheduling-ah-comm)" marker-end="url(#balance-scheduling-ah-comm)"/>
+  <path d="M316 165 L350 178" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#balance-scheduling-ah-comm)"/>
+  <path d="M316 377 L350 178" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#balance-scheduling-ah-comm)"/>
+  <path d="M560 374 L594 165" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#balance-scheduling-ah-danger)"/>
+  <path d="M560 374 L594 377" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#balance-scheduling-ah-danger)"/>
+  <rect x="40" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="63" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="92" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="115" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B</text>
+  <rect x="144" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="167" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C</text>
+  <rect x="196" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="219" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D</text>
+  <text x="141" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">running 4 / 4 · 顶满</text>
+  <rect x="40" y="186" width="46" height="30" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="63" y="205.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">E</text>
+  <rect x="92" y="186" width="46" height="30" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="115" y="205.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">F</text>
+  <text x="89" y="238" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">waiting · 2 条在等</text>
+  <rect x="40" y="324" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="63" y="345.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">G</text>
+  <rect x="92" y="324" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="115" y="345.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">H</text>
+  <rect x="144" y="324" width="46" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <rect x="196" y="324" width="46" height="34" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="141" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">running 2 / 4 · 两个空位</text>
+  <rect x="40" y="398" width="46" height="30" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="63" y="417.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">I</text>
+  <rect x="92" y="398" width="46" height="30" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="115" y="417.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">J</text>
+  <text x="89" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">waiting · 2 条在等</text>
+  <rect x="618" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="641" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A</text>
+  <rect x="670" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="693" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">B</text>
+  <rect x="722" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="745" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">C</text>
+  <rect x="774" y="112" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="797" y="133.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">D</text>
+  <text x="719" y="168" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">照常算 A–D</text>
+  <rect x="618" y="186" width="46" height="30" rx="4" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="641" y="205.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">E</text>
+  <rect x="670" y="186" width="46" height="30" rx="4" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="693" y="205.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">F</text>
+  <text x="667" y="238" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">不接：闸门落下</text>
+  <rect x="618" y="324" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="641" y="345.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">G</text>
+  <rect x="670" y="324" width="46" height="34" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="693" y="345.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">H</text>
+  <rect x="722" y="324" width="46" height="34" rx="4" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="774" y="324" width="46" height="34" rx="4" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <text x="719" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">照常算 G、H · 两个空位空着</text>
+  <rect x="618" y="398" width="46" height="30" rx="4" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="641" y="417.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">I</text>
+  <rect x="670" y="398" width="46" height="30" rx="4" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="693" y="417.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#8f3229" text-anchor="middle">J</text>
+  <text x="667" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">不接：闸门落下</text>
+  <rect x="350" y="150" width="210" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="174" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Gather 互报条数</text>
+  <text x="455" y="193" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP0 交 4 · DP1 交 2</text>
+  <rect x="350" y="246" width="210" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两组都拿到 [4, 2]</text>
+  <text x="455" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一张计数表</text>
+  <rect x="350" y="342" width="210" height="64" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">最大 4 = 上限 4</text>
+  <text x="455" y="389" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组下一步都停收</text>
+  <text x="450" y="26" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">两组互报条数，按同一张表决定下一步收不收</text>
+  <text x="166" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">① 各组数自己的 running</text>
+  <text x="455" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">② 汇总成一张表</text>
+  <text x="739" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ 下一步：停收，已有的照算</text>
+  <text x="626" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">同一步前向，MoE 层两组一起通信</text>
+  <text x="450" y="494" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">请求不在组之间搬：DP1 的空位不接 DP0 排队的 E、F</text>
+  <text x="450" y="516" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">最大值降到 3 后闸门抬起，各组再按本地规则接新请求</text>
 </svg>

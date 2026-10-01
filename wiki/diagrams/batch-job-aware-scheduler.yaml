@@ -1,115 +1,73 @@
-{
-  "id": "batch-job-aware-scheduler",
-  "size": [
-    900,
-    395
-  ],
-  "caption": "预算教学例：6个空闲块，预测下一轮新增1块，余量2块、上限8块；从准入预算扣3块，剩3块×4位置=12。预留不是立即分配专属物理块。",
-  "texts": [
-    {
-      "at": [
-        35,
-        35
-      ],
-      "text": "本轮准入前：空闲 6 块",
-      "strong": true
-    },
-    {
-      "at": [
-        35,
-        190
-      ],
-      "text": "预留 = min(1 + 2, 8) = 3 块"
-    },
-    {
-      "at": [
-        35,
-        235
-      ],
-      "text": "准入预算 = (6 − 3) × 4 = 12 个位置"
-    },
-    {
-      "at": [
-        450,
-        345
-      ],
-      "text": "B=4 为教学假设；真实混合缓存不能由此直接换算显存",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "grids": [
-    {
-      "at": [
-        55,
-        85
-      ],
-      "rows": 1,
-      "cols": 6,
-      "cell": [
-        125,
-        50
-      ],
-      "gap": 0,
-      "tone": "token",
-      "style": "plain",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "可准入",
-          "tone": "token",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "可准入",
-          "tone": "token",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            2
-          ],
-          "text": "可准入",
-          "tone": "token",
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            3
-          ],
-          "text": "预留预算",
-          "tone": "kv",
-          "style": "faded"
-        },
-        {
-          "at": [
-            0,
-            4
-          ],
-          "text": "预留预算",
-          "tone": "kv",
-          "style": "faded"
-        },
-        {
-          "at": [
-            0,
-            5
-          ],
-          "text": "预留预算",
-          "tone": "kv",
-          "style": "faded"
-        }
-      ]
-    }
-  ],
-  "layout": "figure"
-}
+layout: figure
+id: batch-job-aware-scheduler
+caption: 同一个池子、同样 6 块空闲的两种接法（数为示意）。上行先替 running 留 3 块，余额只够接 X，Y 等下一轮；下行不留，X、Y 都进来，下一步 A 借走最后 1 块，Y 被抢占。留着的块没有记到谁名下。
+size: [880, 490]
+grids:
+  - at: [64, 46]
+    rows: 2
+    cols: 4
+    cell: [52, 36]
+    gap: 0
+    tone: kv
+    rowLabels: [A, B]
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 1], style: solid }
+      - { at: [0, 2], style: solid }
+      - { at: [0, 3], style: faded, text: 本步 }
+      - { at: [1, 0], style: solid }
+      - { at: [1, 1], style: solid }
+      - { at: [1, 2], style: faded, text: 本步 }
+  - at: [104, 280]
+    rows: 1
+    cols: 6
+    cell: [96, 44]
+    gap: 6
+    tone: kv
+    rowLabels: [预留]
+    cells:
+      - { at: [0, 0], tone: control, style: faded, text: 空（留） }
+      - { at: [0, 1], tone: control, style: faded, text: 空（留） }
+      - { at: [0, 2], tone: control, style: faded, text: 空（留） }
+      - { at: [0, 3], style: solid, text: X }
+      - { at: [0, 4], style: solid, text: X }
+      - { at: [0, 5], style: solid, text: X }
+  - at: [104, 392]
+    rows: 1
+    cols: 6
+    cell: [96, 44]
+    gap: 6
+    tone: kv
+    rowLabels: [不预留]
+    cells:
+      - { at: [0, 0], style: solid, text: X }
+      - { at: [0, 1], style: solid, text: X }
+      - { at: [0, 2], style: solid, text: X }
+      - { at: [0, 3], style: solid, text: Y }
+      - { at: [0, 4], style: solid, text: Y }
+      - { at: [0, 5], text: 空 }
+brackets:
+  - { from: 104, to: 404, y: 330, label: 留 = 下一步 1 块 + 余量 2 块 = 3 块 }
+  - { from: 410, to: 710, y: 330, label: 余额 3 × 4 = 12 个位置，只够 X }
+items:
+  - { at: [24, 170], size: [200, 50], text: X：提示词 10 个位置, sub: 要 3 块, tone: token }
+  - { at: [240, 170], size: [200, 50], text: Y：提示词 8 个位置, sub: 要 2 块, tone: token }
+  - { at: [724, 280], size: [150, 44], text: A 借到 1 块, sub: Y 下一轮再接, tone: kv, style: plain }
+  - { at: [724, 392], size: [150, 44], text: Y 被抢占, sub: A 借走最后 1 块, tone: danger, style: faded }
+links:
+  - { from: [710, 302], to: [724, 302] }
+  - { from: [710, 414], to: [724, 414] }
+texts:
+  - { at: [24, 30], text: ① running：先看下一步要不要新块, strong: true }
+  - { at: [296, 69], text: A：本步写满这一块 → 下一步要借 1 块 }
+  - { at: [296, 105], text: B：块里还空 1 格 → 下一步不用借 }
+  - { at: [24, 156], text: ② waiting：两条新请求在排队, strong: true }
+  - { at: [24, 262], text: ③ 同样 6 块空闲，两种接法；右边是下一步, strong: true }
+  - { at: [24, 474], text: 一块 4 个位置；深色是已写的，淡色是本步要写的, note: true }
+pins:
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L238-L287
+    symbols: [reserve_margin_blocks, reserve_max_blocks, num_lookahead_tokens]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L517
+    symbols: [get_num_free_blocks, block_size]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333
+    symbols: [peek_best_fit_request]

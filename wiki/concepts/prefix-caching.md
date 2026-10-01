@@ -22,7 +22,7 @@ sources:
   - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L216-L225
   - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_manager.py#L20-L50
   - vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_glm5_next_mamba_scheduler.py#L1-L60
-  - vllm-ascend@db701c1f:vllm_ascend/models/layer/attention/layer.py#L112-L120
+  - vllm-ascend@db701c1f:vllm_ascend/models/layer/attention/layer.py#L100-L120
   - vllm-ascend@db701c1f:vllm_ascend/attention/dsa_v1.py#L191-L199
   - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2430-L2440
   - vllm@568afb3a:vllm/engine/arg_utils.py#L2514-L2524
@@ -137,7 +137,7 @@ file: prefix-caching
 - 开 APC、关 chunked prefill：断言失败 `Chunked prefill is required for mamba cache mode 'align'.` [C7]。
 - 开成功时有两条日志可确认：warning 说 cache mode 因开了 prefix caching 被设为 `align`，info 说 Mamba 层的 prefix caching 仍是实验性的。排查时以这两条和启动日志里的判定为准，别拿配置类的字段默认值当有效配置。
 - 手动指定的指纹粒度除不尽某个组的块大小：`ValueError`，上游和 GLM 分支各有一条、报文不同 [C11]。
-- 一条容易误读的死分支：GLM 稀疏注意力层文件里有 `cache_config.enable_prefix_caching = False`，条件是后端名等于 `TRITON_MLA` 或 `FLASHINFER` [C17]；这条路上后端固定是 `AscendDSABackend`，名字只会是 `ASCEND_DSA` 或 `FLASH_ATTN` [C18]，永远不触发。别据此以为昇腾会自动关掉 APC。
+- 一条容易误读的死分支：DeepSeek-V4 压缩式 attention 的层文件里有 `cache_config.enable_prefix_caching = False`，条件是后端名等于 `TRITON_MLA` 或 `FLASHINFER` [C17]；这条路上后端固定是 `AscendDSABackend`，名字只会是 `ASCEND_DSA` 或 `FLASH_ATTN` [C18]，永远不触发；GLM 的 DSA 式稀疏 MLA 也不走这个文件（见 [sparse attention](sparse-attention.md)）。别据此以为昇腾会自动关掉 APC。
 
 ### 开销和什么时候别开
 

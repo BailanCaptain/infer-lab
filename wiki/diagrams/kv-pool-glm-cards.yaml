@@ -1,0 +1,49 @@
+layout: figure
+id: kv-pool-glm-cards
+caption: 假如在 GLM 双机上打开 KV Pool（本部署没开，照镜像源码推演）：一个 DP 组的 8 张卡合切每一层。full 组里的 MLA 潜向量和 indexer 缓存每卡一整份、8 卡相同，池里每块只存一条，名字里的卡号都取 0，8 张卡轮流写；KDA 的 64 个头按卡切开、每卡 8 个头，状态各不相同，3 个 KDA 组每组每块存 8 条，各带自己的卡号。
+size: [900, 370]
+frames:
+  - { label: 一个 DP 组的 8 张卡（TP8）, at: [30, 50], size: [530, 190] }
+  - { label: 外部 KV 池, at: [630, 50], size: [250, 190] }
+grids:
+  - at: [130, 96]
+    rows: 2
+    cols: 8
+    cell: [48, 52]
+    gap: 4
+    tone: kv
+    style: solid
+    rowLabels: [full 组, KDA 组]
+    colLabels: [卡0, 卡1, 卡2, 卡3, 卡4, 卡5, 卡6, 卡7]
+    cells:
+      - { at: [0, 0], text: 同一份 }
+      - { at: [0, 1], text: 同一份 }
+      - { at: [0, 2], text: 同一份 }
+      - { at: [0, 3], text: 同一份 }
+      - { at: [0, 4], text: 同一份 }
+      - { at: [0, 5], text: 同一份 }
+      - { at: [0, 6], text: 同一份 }
+      - { at: [0, 7], text: 同一份 }
+      - { at: [1, 0], text: 头0–7, style: faded }
+      - { at: [1, 1], text: 头8–15, style: faded }
+      - { at: [1, 2], text: 16–23, style: faded }
+      - { at: [1, 3], text: 24–31, style: faded }
+      - { at: [1, 4], text: 32–39, style: faded }
+      - { at: [1, 5], text: 40–47, style: faded }
+      - { at: [1, 6], text: 48–55, style: faded }
+      - { at: [1, 7], text: 56–63, style: faded }
+items:
+  - { at: [650, 84], size: [210, 58], text: full 组：每块 1 条, sub: 编号取 0，8 卡轮流写, tone: kv, style: solid }
+  - { at: [650, 164], size: [210, 58], text: 每个 KDA 组：每块 8 条, sub: 编号取各自卡号, tone: kv, style: faded }
+links:
+  - { from: [546, 122], to: [644, 113], tone: kv }
+  - { from: [546, 174], to: [644, 193], tone: kv }
+texts:
+  - { at: [30, 280], text: full 组：潜向量与 indexer，8 卡相同, size: 13 }
+  - { at: [30, 304], text: KDA 组：64 个头按卡切，每卡 8 个, size: 13 }
+  - { at: [30, 338], text: 名字里没有 DP 编号：两台机器可互取, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L174-L194
+    symbols: [put_step, head_or_tp_rank]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L219-L237
+    symbols: [group_uses_align_state, KeyMetadata]

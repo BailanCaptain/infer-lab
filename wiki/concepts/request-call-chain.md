@@ -104,6 +104,8 @@ Python 报错时打印的 traceback 列出出错那一刻的调用链；跨进�
 
 第四种是 node0 上的 **DP 协调器**，它不经手请求本身，只汇总两个 DP 组各有多少请求，并在两组之间传递「开始干活」「可以停了」的信号。
 
+前端怎样拿这些条数给新请求选组，见 [DP 请求路由](dp-request-routing.md)。
+
 | 站 | 在哪个进程 | 从哪个函数进 | 代码属于 |
 |---|---|---|---|
 | 1 入口 | API server | `OpenAIServingChat.create_chat_completion` | vLLM |

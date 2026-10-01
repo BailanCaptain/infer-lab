@@ -1,6 +1,6 @@
 layout: figure
 id: kv-cache-layerwise-offload
-caption: 假设8个同规格attention层，每层缓存P字节；L0独占，其余层依次使用两个共享槽，主体由8P降到3P，槽位复用前必须满足完成依赖
+caption: 8 个缓存规格相同的层，每层的缓存占 P 字节（示意）。L0 独占一个槽；其余 7 层轮流用两个共享槽：S0 依次给 L1、L3、L5、L7，S1 依次给 L2、L4、L6。显存里的缓存主体从各层独占的 8P 降到 3P。代价是一个槽换给下一位之前，上一位必须已经存出完，所以 L3 的搬入要等 L1 存完。
 size: [900, 370]
 grids:
   - at: [190, 65]
@@ -44,8 +44,9 @@ texts:
   - {at: [35, 96], text: 独占槽 · P, strong: true}
   - {at: [35, 186], text: 共享 S0 · P, strong: true}
   - {at: [35, 276], text: 共享 S1 · P, strong: true}
-  - {at: [370, 98], text: "横向箭头：同一物理槽的使用顺序"}
-  - {at: [35, 340], text: "前提：规格相同；覆盖前满足完成依赖", note: true}
+  - {at: [370, 86], text: "横向箭头：同一个槽依次换给谁用"}
+  - {at: [370, 112], text: "显存主体：各层独占 8P → 这样排 3P", strong: true}
+  - {at: [35, 340], text: "前提：这些层规格相同；换给下一位之前，上一位要存出完", note: true}
 pins:
   - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/layerwise_cache_layout.py#L210-L294
     symbols: [KVCacheSpec, AttentionSpec]

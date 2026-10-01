@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 236" width="880" height="236" role="img" aria-label="数为示意，一格是一段时间，画的是一个 MoE 层；一步 decode 里每个 MoE 层都把这一段重复一遍。两组先各自算本组请求的注意力（只读自己的 KV），在 dispatch 处会合；各卡算完自己持有的专家，再在 combine 处会合。前一处的等待来自两组历史长短不同，后一处来自专家冷热不同。">
+  <title>数为示意，一格是一段时间，画的是一个 MoE 层；一步 decode 里每个 MoE 层都把这一段重复一遍。两组先各自算本组请求的注意力（只读自己的 KV），在 dispatch 处会合；各卡算完自己持有的专家，再在 combine 处会合。前一处的等待来自两组历史长短不同，后一处来自专家冷热不同。</title>
+  <defs><pattern id="dyntra-lb-bubble-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <text x="108" y="77.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">DP0</text>
+  <path d="M120 90H820" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="120" y="56" width="350" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="295" y="77.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">注意力 · 读 131 块</text>
+  <rect x="470" y="56" width="70" height="34" rx="4" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="505" y="77.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#7a3a6a" text-anchor="middle">dispatch</text>
+  <rect x="540" y="56" width="70" height="34" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="575" y="77.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">专家</text>
+  <rect x="610" y="56" width="140" height="34" rx="4" fill="url(#dyntra-lb-bubble-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="680" y="77.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等</text>
+  <rect x="750" y="56" width="70" height="34" rx="4" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="785" y="77.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#7a3a6a" text-anchor="middle">combine</text>
+  <text x="108" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">DP1</text>
+  <rect x="120" y="100" width="70" height="34" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="155" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读 4 块</text>
+  <rect x="190" y="100" width="280" height="34" rx="4" fill="url(#dyntra-lb-bubble-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="330" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等</text>
+  <rect x="470" y="100" width="70" height="34" rx="4" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="505" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#7a3a6a" text-anchor="middle">dispatch</text>
+  <rect x="540" y="100" width="210" height="34" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="645" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">专家 · 热门的在这边</text>
+  <rect x="750" y="100" width="70" height="34" rx="4" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="785" y="121.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#7a3a6a" text-anchor="middle">combine</text>
+  <path d="M120 146H820" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M120 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="120" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M190 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="190" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
+  <path d="M260 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="260" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <path d="M330 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="330" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <path d="M400 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="400" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <path d="M470 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="470" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">5</text>
+  <path d="M540 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="540" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">6</text>
+  <path d="M610 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="610" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">7</text>
+  <path d="M680 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="680" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">8</text>
+  <path d="M750 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="750" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">9</text>
+  <path d="M820 146v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="820" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">10 格时间</text>
+  <path d="M120 186 v8 h350 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="295" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">DyntraLB 管这段：各组的注意力</text>
+  <path d="M540 186 v8 h210 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="216" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">EPLB 管这段：专家放哪</text>
+  <text x="24" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">一个 MoE 层：先各算注意力，再一起过专家（每层重复）</text>
+</svg>

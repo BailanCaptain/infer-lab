@@ -1,0 +1,79 @@
+layout: figure
+id: kv-cache-layerwise-offload-overlap
+caption: 一个 4 层的模型跑一次前向，外部存着它的开头（示意数：每层搬入 2 ms、计算 3 ms、存出 2 ms）。上：整趟搬，四层历史全部搬完才开算，算完再把四层新缓存一起存出，计算有 16 ms 在等（斜线格），共 28 ms。下：逐层搬，只等第 0 层到齐就开算；算第 L 层时，第 L+1 层在搬入、第 L−1 层在存出，计算只在头尾各等 2 ms，共 16 ms。搬的字节一样多，省下的是等待。
+size: [900, 470]
+texts:
+  - { at: [20, 28], text: 4 层模型一次前向（示意数）, strong: true, size: 15 }
+  - { at: [880, 28], text: 每层：搬入 2 ms · 计算 3 ms · 存出 2 ms, anchor: end, note: true }
+  - { at: [20, 66], text: 整趟搬：先搬完四层，再算，再存, strong: true }
+  - { at: [20, 272], text: 逐层搬：算第 L 层时，搬入 L+1、存出 L−1, strong: true }
+  - { at: [800, 66], text: 计算在等 16 / 28 ms, anchor: end, tone: danger, strong: true }
+  - { at: [880, 272], text: 计算在等 4 / 16 ms, anchor: end, tone: token, strong: true }
+timelines:
+  - at: [20, 84]
+    scale: 27
+    start: 0
+    end: 28
+    ticks: 4
+    labelW: 80
+    laneH: 32
+    gap: 8
+    unit: ms
+    lanes:
+      - label: 搬入
+        spans:
+          - { from: 0, to: 2, tone: comm, text: L0 }
+          - { from: 2, to: 4, tone: comm, text: L1 }
+          - { from: 4, to: 6, tone: comm, text: L2 }
+          - { from: 6, to: 8, tone: comm, text: L3 }
+      - label: 计算
+        spans:
+          - { from: 0, to: 8, style: hatch, text: 等四层搬完 }
+          - { from: 8, to: 11, tone: token, text: 算 L0 }
+          - { from: 11, to: 14, tone: token, text: 算 L1 }
+          - { from: 14, to: 17, tone: token, text: 算 L2 }
+          - { from: 17, to: 20, tone: token, text: 算 L3 }
+          - { from: 20, to: 28, style: hatch, text: 等四层存完 }
+      - label: 存出
+        spans:
+          - { from: 20, to: 22, tone: kv, text: L0 }
+          - { from: 22, to: 24, tone: kv, text: L1 }
+          - { from: 24, to: 26, tone: kv, text: L2 }
+          - { from: 26, to: 28, tone: kv, text: L3 }
+    marks:
+      - { t: 28, label: 28 ms }
+  - at: [20, 290]
+    scale: 27
+    start: 0
+    end: 28
+    ticks: 4
+    labelW: 80
+    laneH: 32
+    gap: 8
+    unit: ms
+    lanes:
+      - label: 搬入
+        spans:
+          - { from: 0, to: 2, tone: comm, text: L0 }
+          - { from: 2, to: 4, tone: comm, text: L1 }
+          - { from: 5, to: 7, tone: comm, text: L2 }
+          - { from: 8, to: 10, tone: comm, text: L3 }
+      - label: 计算
+        spans:
+          - { from: 0, to: 2, style: hatch, text: 等 }
+          - { from: 2, to: 5, tone: token, text: 算 L0 }
+          - { from: 5, to: 8, tone: token, text: 算 L1 }
+          - { from: 8, to: 11, tone: token, text: 算 L2 }
+          - { from: 11, to: 14, tone: token, text: 算 L3 }
+          - { from: 14, to: 16, style: hatch, text: 等 }
+      - label: 存出
+        spans:
+          - { from: 5, to: 7, tone: kv, text: L0 }
+          - { from: 8, to: 10, tone: kv, text: L1 }
+          - { from: 11, to: 13, tone: kv, text: L2 }
+          - { from: 14, to: 16, tone: kv, text: L3 }
+    marks:
+      - { t: 16, label: 16 ms }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L1356-L1430
+    symbols: [wait_for_layer_load, save_kv_layer]

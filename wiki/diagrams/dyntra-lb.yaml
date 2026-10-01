@@ -1,179 +1,122 @@
-{
-  "id": "dyntra-lb",
-  "size": [
-    900,
-    440
-  ],
-  "caption": "块数代理的教学输入：DP0[128,1,1,1]，DP1[1,1,1,1]并有候选64。计划在DP1本地暂停1并准入64，运行负载从[131,4]变[131,67]；暂停请求的缓存仍占空间。",
-  "bars": [
-    {
-      "at": [
-        110,
-        75
-      ],
-      "h": 34,
-      "scale": 4.3,
-      "segments": [
-        {
-          "value": 128,
-          "text": "128 块",
-          "tone": "kv"
-        },
-        {
-          "value": 3,
-          "tone": "kv"
-        }
-      ]
-    },
-    {
-      "at": [
-        110,
-        125
-      ],
-      "h": 34,
-      "scale": 4.3,
-      "segments": [
-        {
-          "value": 4,
-          "tone": "kv"
-        }
-      ]
-    },
-    {
-      "at": [
-        110,
-        270
-      ],
-      "h": 34,
-      "scale": 4.3,
-      "segments": [
-        {
-          "value": 128,
-          "text": "128 块",
-          "tone": "kv"
-        },
-        {
-          "value": 3,
-          "tone": "kv"
-        }
-      ]
-    },
-    {
-      "at": [
-        110,
-        320
-      ],
-      "h": 34,
-      "scale": 4.3,
-      "segments": [
-        {
-          "value": 3,
-          "tone": "kv"
-        },
-        {
-          "value": 64,
-          "text": "准入候选 64 块",
-          "tone": "kv"
-        }
-      ]
-    }
-  ],
-  "items": [
-    {
-      "at": [
-        540,
-        130
-      ],
-      "size": [
-        230,
-        42
-      ],
-      "text": "DP1 候选：64 块",
-      "tone": "control"
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        30,
-        35
-      ],
-      "text": "当前运行集合",
-      "strong": true
-    },
-    {
-      "at": [
-        30,
-        99
-      ],
-      "text": "DP0"
-    },
-    {
-      "at": [
-        30,
-        149
-      ],
-      "text": "DP1"
-    },
-    {
-      "at": [
-        710,
-        99
-      ],
-      "text": "合计 131"
-    },
-    {
-      "at": [
-        140,
-        149
-      ],
-      "text": "合计 4"
-    },
-    {
-      "at": [
-        30,
-        230
-      ],
-      "text": "计划生效后的运行集合",
-      "strong": true
-    },
-    {
-      "at": [
-        30,
-        294
-      ],
-      "text": "DP0"
-    },
-    {
-      "at": [
-        30,
-        344
-      ],
-      "text": "DP1"
-    },
-    {
-      "at": [
-        710,
-        294
-      ],
-      "text": "合计 131"
-    },
-    {
-      "at": [
-        430,
-        344
-      ],
-      "text": "合计 67"
-    },
-    {
-      "at": [
-        450,
-        410
-      ],
-      "text": "DP1 本地暂停 1 块请求；没有跨 rank 搬迁",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "layout": "figure"
-}
+layout: figure
+id: dyntra-lb
+caption: 数为示意，格子里是每条请求占的 KV 块数，长条是这一组合计要读的块。从左往右读：本步末尾各组数自己的请求 → 互报成同一张表 → 下一步 DP1 停一条短的、换进 64 块那条，DP0 冻结不接新请求。
+size: [900, 560]
+frames:
+  - { at: [16, 78], size: [300, 200], label: DP0, inside: true }
+  - { at: [16, 300], size: [300, 200], label: DP1, inside: true }
+  - { at: [594, 78], size: [290, 200], label: DP0 · 下一步, inside: true }
+  - { at: [594, 300], size: [290, 200], label: DP1 · 下一步, inside: true }
+grids:
+  # ---- ① 本步末尾各组手上的请求
+  - at: [40, 108]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: solid
+    label: running · 合计 131 块
+    cells:
+      - { at: [0, 0], text: '128' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '1' }
+  - at: [118, 180]
+    rows: 1
+    cols: 1
+    cell: [46, 30]
+    tone: control
+    style: faded
+    label: 候选：无
+    cells:
+      - { at: [0, 0], style: ghost }
+  - at: [40, 330]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: solid
+    label: running · 合计 4 块
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '1' }
+  - at: [118, 402]
+    rows: 1
+    cols: 1
+    cell: [46, 30]
+    tone: control
+    style: faded
+    label: 候选 · KV 已从 P 拉到
+    cells:
+      - { at: [0, 0], text: '64' }
+  # ---- ③ 下一步
+  - at: [618, 108]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: solid
+    label: 照常算 · 131 块
+    cells:
+      - { at: [0, 0], text: '128' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '1' }
+  - at: [696, 180]
+    rows: 1
+    cols: 1
+    cell: [46, 30]
+    tone: danger
+    style: faded
+    label: 冻结：不接新请求
+    cells:
+      - { at: [0, 0], style: ghost }
+  - at: [618, 330]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: solid
+    label: 换进 64 块那条 · 67 块
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '1' }
+      - { at: [0, 3], text: '64' }
+  - at: [696, 402]
+    rows: 1
+    cols: 1
+    cell: [46, 30]
+    tone: danger
+    style: faded
+    label: 暂停 · KV 块留在本组
+    cells:
+      - { at: [0, 0], text: '1' }
+bars:
+  - { at: [40, 250], h: 14, scale: 1.4, segments: [{ value: 131, tone: kv }] }
+  - { at: [40, 472], h: 14, scale: 1.4, segments: [{ value: 4, tone: kv }] }
+  - { at: [618, 250], h: 14, scale: 1.4, segments: [{ value: 131, tone: kv }] }
+  - { at: [618, 472], h: 14, scale: 1.4, segments: [{ value: 67, tone: kv }] }
+items:
+  - { at: [350, 150], size: [210, 56], text: All-Gather 互报块数, sub: 每组交一串整数, tone: comm }
+  - { at: [350, 246], size: [210, 56], text: '合计 [131, 4]', sub: 平均 67.5 · 最重多出 63.5, style: plain }
+  - { at: [350, 342], size: [210, 64], text: 同一套算法出计划, sub: DP1 换人 · DP0 冻结, tone: control }
+fans:
+  - { from: [[316, 178], [316, 400]], to: [350, 178], tone: comm }
+  - { from: [560, 374], to: [[594, 178], [594, 400]], tone: control }
+links:
+  - { from: [455, 206], to: [455, 246] }
+  - { from: [455, 302], to: [455, 342] }
+texts:
+  - { at: [450, 26], text: 各组互报块数，按同一张表调整下一步让谁上, anchor: middle, strong: true }
+  - { at: [166, 58], text: ① 各组数自己请求的块, anchor: middle, strong: true }
+  - { at: [455, 58], text: ② 汇总成同一张表, anchor: middle, strong: true }
+  - { at: [739, 58], text: ③ 下一步：组内换人, anchor: middle, strong: true }
+  - { at: [450, 526], text: 请求不跨组搬：暂停的那条仍在 DP1, anchor: middle, note: true }
+  - { at: [450, 548], text: '两组合计 [131, 4] → [131, 67]', anchor: middle, note: true }

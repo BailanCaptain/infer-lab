@@ -1,52 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 485" width="900" height="485" role="img" aria-label="层 1 的 owner 是 rank 0；广播将同一层 bundle 送到其他 rank 的暂存区，各 rank 仍执行自己的 TP 计算。箭头表示逻辑广播，不规定物理网络算法">
-  <title>层 1 的 owner 是 rank 0；广播将同一层 bundle 送到其他 rank 的暂存区，各 rank 仍执行自己的 TP 计算。箭头表示逻辑广播，不规定物理网络算法</title>
-  <defs><marker id="kvpp-broadcast-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="kvpp-broadcast-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
-  <rect x="35" y="120" width="180" height="145" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="51" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">rank 0</text>
-  <rect x="255" y="120" width="180" height="145" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="271" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">rank 1</text>
-  <rect x="475" y="120" width="180" height="145" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="491" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">rank 2</text>
-  <rect x="695" y="120" width="180" height="145" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="711" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">rank 3</text>
-  <g data-hardware="memory">
-  <rect x="60" y="163" width="130" height="65" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M65 220h120M65 224h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="125" y="199.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">层 1 常驻</text>
-  </g>
-  <g data-hardware="memory">
-  <rect x="280" y="163" width="130" height="65" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M285 220h120M285 224h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="345" y="199.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">暂存区</text>
-  </g>
-  <g data-hardware="memory">
-  <rect x="500" y="163" width="130" height="65" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M505 220h120M505 224h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="565" y="199.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">暂存区</text>
-  </g>
-  <g data-hardware="memory">
-  <rect x="720" y="163" width="130" height="65" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M725 220h120M725 224h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="785" y="199.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">暂存区</text>
-  </g>
-  <path d="M125 163 L125 45 L422 45" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
-  <path d="M450 73 L345 85 L345 163" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
-  <path d="M474 60 L565 85 L565 163" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
-  <path d="M478 45 L785 45 L785 163" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
-  <path d="M125 228 L125 375" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
-  <path d="M345 228 L345 375" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
-  <path d="M565 228 L565 375" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
-  <path d="M785 228 L785 375" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
-  <rect x="55" y="375" width="140" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="125" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 TP 计算</text>
-  <rect x="275" y="375" width="140" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="345" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 TP 计算</text>
-  <rect x="495" y="375" width="140" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="565" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 TP 计算</text>
-  <rect x="715" y="375" width="140" height="48" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="785" y="404" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本地 TP 计算</text>
-  <circle cx="450" cy="45" r="28" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="450" y="51" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Bcast</text>
-  <text x="450" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">首次访问缓存前等待到位</text>
-  <text x="450" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">常驻 owner 与接收暂存区区分；历史为空时可跳过广播</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 410" width="900" height="410" role="img" aria-label="示意，沿用上一张图的 8 层、4 卡。上排：算到第 2 层时，常驻卡 1 把这一层所有已分配的块整层广播出去，卡 0、2、3 收进暂存区 A；4 张卡随后各算自己那几个头，卡 1 直接用常驻的那份。下排：站在卡 3 看时间，广播在单独的流上跑、总是提前一层；只有第 0 层前面没有计算可遮挡，要干等。暂存 A、B 轮流使用，一个装正在算的层，一个接下一层。时长为示意。">
+  <title>示意，沿用上一张图的 8 层、4 卡。上排：算到第 2 层时，常驻卡 1 把这一层所有已分配的块整层广播出去，卡 0、2、3 收进暂存区 A；4 张卡随后各算自己那几个头，卡 1 直接用常驻的那份。下排：站在卡 3 看时间，广播在单独的流上跑、总是提前一层；只有第 0 层前面没有计算可遮挡，要干等。暂存 A、B 轮流使用，一个装正在算的层，一个接下一层。时长为示意。</title>
+  <defs><marker id="kvpp-broadcast-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="kvpp-broadcast-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><pattern id="kvpp-broadcast-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <rect x="24" y="76" width="200" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
+  <rect x="242" y="76" width="200" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="258" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
+  <rect x="460" y="76" width="200" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="476" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
+  <rect x="678" y="76" width="200" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="694" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
+  <path d="M342 110 L342 42 L124 42 L124 110" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
+  <path d="M342 110 L342 42 L560 42 L560 110" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
+  <path d="M342 110 L342 42 L778 42 L778 110" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#kvpp-broadcast-ah-comm)"/>
+  <path d="M124 150 L124 170" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
+  <path d="M342 150 L342 170" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
+  <path d="M560 150 L560 170" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
+  <path d="M778 150 L778 170" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#kvpp-broadcast-ah-kv)"/>
+  <text x="84" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">计算</text>
+  <path d="M96 314H888" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="96" y="284" width="72" height="30" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="132" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#065f56" text-anchor="middle">层 0 投影</text>
+  <rect x="168" y="284" width="72" height="30" rx="4" fill="url(#kvpp-broadcast-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="204" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">等广播</text>
+  <rect x="240" y="284" width="144" height="30" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="312" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0 attention 及其余</text>
+  <rect x="384" y="284" width="72" height="30" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="420" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#065f56" text-anchor="middle">层 1 投影</text>
+  <rect x="456" y="284" width="144" height="30" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="528" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1 attention 及其余</text>
+  <rect x="600" y="284" width="72" height="30" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="636" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#065f56" text-anchor="middle">层 2 投影</text>
+  <rect x="672" y="284" width="144" height="30" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="744" y="303.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2 attention 及其余</text>
+  <text x="84" y="345.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">广播接收</text>
+  <rect x="96" y="326" width="144" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="168" y="345.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0 → 暂存 A</text>
+  <rect x="240" y="326" width="180" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="330" y="345.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1 → 暂存 B</text>
+  <rect x="456" y="326" width="180" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="546" y="345.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2 → 暂存 A</text>
+  <rect x="672" y="326" width="180" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="762" y="345.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 3 → 暂存 B</text>
+  <path d="M96 368H888" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M96 368v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="96" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M888 368v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="888" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">11</text>
+  <path d="M240 280V368" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
+  <text x="240" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">层 0 到位，发层 1</text>
+  <path d="M456 280V368" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
+  <text x="456" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">层 1 已到，发层 2</text>
+  <rect x="40" y="110" width="168" height="40" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="124" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">暂存 A：第 2 层副本</text>
+  <rect x="258" y="110" width="168" height="40" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="342" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">常驻：第 2、3 层</text>
+  <rect x="476" y="110" width="168" height="40" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="560" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">暂存 A：第 2 层副本</text>
+  <rect x="694" y="110" width="168" height="40" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="778" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">暂存 A：第 2 层副本</text>
+  <rect x="40" y="170" width="168" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="124" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算第 2 层：本卡的头</text>
+  <rect x="258" y="170" width="168" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="342" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算第 2 层：本卡的头</text>
+  <rect x="476" y="170" width="168" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="560" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算第 2 层：本卡的头</text>
+  <rect x="694" y="170" width="168" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="778" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算第 2 层：本卡的头</text>
+  <text x="24" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">算到第 2 层：卡 1 整层广播，其余 3 张卡收进暂存区</text>
+  <text x="24" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">站在卡 3 看时间：广播提前一层</text>
 </svg>

@@ -1,211 +1,84 @@
-{
-  "size": [
-    900,
-    450
-  ],
-  "caption": "通用容量示意：8 个等大层 bundle 分给 4 个 rank；每 rank 常驻 2 层并保留 2 个暂存区。B 为一层已分配缓存的字节数，不是 GLM 配置",
-  "grids": [
-    {
-      "at": [
-        120,
-        80
-      ],
-      "rows": 4,
-      "cols": 8,
-      "cell": [
-        30,
-        28
-      ],
-      "gap": 2,
-      "tone": "kv",
-      "style": "solid",
-      "rowLabels": [
-        "rank 0",
-        "rank 1",
-        "rank 2",
-        "rank 3"
-      ],
-      "colLabels": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7"
-      ],
-      "label": "复制：每 rank 8B"
-    },
-    {
-      "at": [
-        520,
-        80
-      ],
-      "rows": 4,
-      "cols": 8,
-      "cell": [
-        30,
-        28
-      ],
-      "gap": 2,
-      "tone": "kv",
-      "style": "empty",
-      "rowLabels": [
-        "rank 0",
-        "rank 1",
-        "rank 2",
-        "rank 3"
-      ],
-      "colLabels": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7"
-      ],
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            2
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            1,
-            3
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            2,
-            4
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            2,
-            5
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            3,
-            6
-          ],
-          "style": "solid"
-        },
-        {
-          "at": [
-            3,
-            7
-          ],
-          "style": "solid"
-        }
-      ],
-      "label": "常驻：每 rank 2B"
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        120,
-        42
-      ],
-      "text": "原来：相同历史逐 rank 复制",
-      "strong": true
-    },
-    {
-      "at": [
-        520,
-        42
-      ],
-      "text": "按层分配 owner",
-      "strong": true
-    },
-    {
-      "at": [
-        35,
-        312
-      ],
-      "text": "原来"
-    },
-    {
-      "at": [
-        35,
-        382
-      ],
-      "text": "KVPP"
-    },
-    {
-      "at": [
-        470,
-        382
-      ],
-      "text": "4B",
-      "tone": "kv"
-    }
-  ],
-  "bars": [
-    {
-      "at": [
-        130,
-        290
-      ],
-      "h": 34,
-      "scale": 78,
-      "segments": [
-        {
-          "value": 8,
-          "tone": "kv",
-          "text": "8B"
-        }
-      ]
-    },
-    {
-      "at": [
-        130,
-        360
-      ],
-      "h": 34,
-      "scale": 78,
-      "segments": [
-        {
-          "value": 2,
-          "tone": "kv",
-          "text": "常驻 2B"
-        },
-        {
-          "value": 2,
-          "tone": "kv",
-          "style": "hatch",
-          "text": "暂存 2B"
-        }
-      ]
-    }
-  ],
-  "layout": "figure",
-  "id": "kvpp"
-}
+layout: figure
+id: kvpp
+caption: 示意：一个 8 层的模型用 TP 分到 4 张卡。上排左边是不开 KVPP，每张卡都存全部 8 层的历史，内容一样；右边是开 KVPP，第 0、1 层只由卡 0 长期保存，第 2、3 层归卡 1，依此类推，每张卡另留 2 个暂存区。下排是新 token 往下算的顺序：每到一层，先由这一层的常驻卡把历史广播给另外 3 张卡，然后 4 张卡照旧各算自己那一份。
+size: [900, 470]
+texts:
+  - { at: [24, 26], text: "不开 KVPP：4 张卡各存一整份", strong: true }
+  - { at: [470, 26], text: "开 KVPP：每层只由一张卡常驻", strong: true }
+  - { at: [30, 53], text: 层号, note: true }
+  - { at: [476, 53], text: 层号, note: true }
+  - { at: [24, 244], text: "新 token 逐层往下算：每层的历史由这层的常驻卡发来", strong: true }
+  - { at: [24, 418], text: "以第 2 层为例：卡 1 常驻这一层，把它整层发给卡 0、2、3 的暂存区；随后 4 张卡照旧各算自己那几个头，TP 分工不变。", note: true, width: 850 }
+  - { at: [24, 446], text: "暂存区里的副本用完就让给后面的层；只有常驻卡上的那份一直保留。", note: true, width: 850 }
+grids:
+  - at: [84, 62]
+    rows: 4
+    cols: 8
+    cell: [32, 26]
+    gap: 3
+    tone: kv
+    style: solid
+    rowLabels: [卡 0, 卡 1, 卡 2, 卡 3]
+    colLabels: ["0", "1", "2", "3", "4", "5", "6", "7"]
+    label: 每张卡存 8 层，4 份一模一样
+  - at: [530, 62]
+    rows: 4
+    cols: 8
+    cell: [32, 26]
+    gap: 3
+    tone: kv
+    style: empty
+    rowLabels: [卡 0, 卡 1, 卡 2, 卡 3]
+    colLabels: ["0", "1", "2", "3", "4", "5", "6", "7"]
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 1], style: solid }
+      - { at: [1, 2], style: solid }
+      - { at: [1, 3], style: solid }
+      - { at: [2, 4], style: solid }
+      - { at: [2, 5], style: solid }
+      - { at: [3, 6], style: solid }
+      - { at: [3, 7], style: solid }
+    label: 常驻：每张卡只存 2 层
+  - at: [826, 62]
+    rows: 4
+    cols: 2
+    cell: [24, 26]
+    gap: 3
+    tone: kv
+    style: faded
+    colLabels: [A, B]
+    label: 暂存区
+items:
+  - { at: [30, 266], size: [84, 30], text: 卡 0 发, tone: comm, style: faded }
+  - { at: [136, 266], size: [84, 30], text: 卡 0 发, tone: comm, style: faded }
+  - { at: [242, 266], size: [84, 30], text: 卡 1 发, tone: comm, style: solid }
+  - { at: [348, 266], size: [84, 30], text: 卡 1 发, tone: comm, style: faded }
+  - { at: [454, 266], size: [84, 30], text: 卡 2 发, tone: comm, style: faded }
+  - { at: [560, 266], size: [84, 30], text: 卡 2 发, tone: comm, style: faded }
+  - { at: [666, 266], size: [84, 30], text: 卡 3 发, tone: comm, style: faded }
+  - { at: [772, 266], size: [84, 30], text: 卡 3 发, tone: comm, style: faded }
+  - { at: [30, 330], size: [84, 48], text: 算第 0 层, tone: token, style: plain }
+  - { at: [136, 330], size: [84, 48], text: 算第 1 层, tone: token, style: plain }
+  - { at: [242, 330], size: [84, 48], text: 算第 2 层, tone: token, style: solid }
+  - { at: [348, 330], size: [84, 48], text: 算第 3 层, tone: token, style: plain }
+  - { at: [454, 330], size: [84, 48], text: 算第 4 层, tone: token, style: plain }
+  - { at: [560, 330], size: [84, 48], text: 算第 5 层, tone: token, style: plain }
+  - { at: [666, 330], size: [84, 48], text: 算第 6 层, tone: token, style: plain }
+  - { at: [772, 330], size: [84, 48], text: 算第 7 层, tone: token, style: plain }
+links:
+  - { from: [72, 296], to: [72, 330], tone: comm }
+  - { from: [178, 296], to: [178, 330], tone: comm }
+  - { from: [284, 296], to: [284, 330], tone: comm }
+  - { from: [390, 296], to: [390, 330], tone: comm }
+  - { from: [496, 296], to: [496, 330], tone: comm }
+  - { from: [602, 296], to: [602, 330], tone: comm }
+  - { from: [708, 296], to: [708, 330], tone: comm }
+  - { from: [814, 296], to: [814, 330], tone: comm }
+  - { from: [114, 354], to: [136, 354], tone: token }
+  - { from: [220, 354], to: [242, 354], tone: token }
+  - { from: [326, 354], to: [348, 354], tone: token }
+  - { from: [432, 354], to: [454, 354], tone: token }
+  - { from: [538, 354], to: [560, 354], tone: token }
+  - { from: [644, 354], to: [666, 354], tone: token }
+  - { from: [750, 354], to: [772, 354], tone: token }

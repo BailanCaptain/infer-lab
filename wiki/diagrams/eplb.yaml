@@ -1,311 +1,76 @@
-{
-  "id": "eplb",
-  "size": [
-    900,
-    660
-  ],
-  "caption": "局部教学布局：仅展示四个逻辑专家，调用数[8,8,2,2]。交换E1与E2后两设备各10次分配；其余专家省略，不是GLM全层或规划器最优输出。",
-  "frames": [
-    {
-      "at": [
-        25,
-        70
-      ],
-      "size": [
-        405,
-        220
-      ],
-      "label": "调整前 · 设备 0"
-    },
-    {
-      "at": [
-        470,
-        70
-      ],
-      "size": [
-        405,
-        220
-      ],
-      "label": "调整前 · 设备 1"
-    },
-    {
-      "at": [
-        25,
-        380
-      ],
-      "size": [
-        405,
-        220
-      ],
-      "label": "调整后 · 设备 0"
-    },
-    {
-      "at": [
-        470,
-        380
-      ],
-      "size": [
-        405,
-        220
-      ],
-      "label": "调整后 · 设备 1"
-    }
-  ],
-  "grids": [
-    {
-      "at": [
-        70,
-        110
-      ],
-      "rows": 1,
-      "cols": 2,
-      "cell": [
-        150,
-        42
-      ],
-      "gap": 0,
-      "tone": "weight",
-      "style": "plain",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "E0"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "E1"
-        }
-      ]
-    },
-    {
-      "at": [
-        515,
-        110
-      ],
-      "rows": 1,
-      "cols": 2,
-      "cell": [
-        150,
-        42
-      ],
-      "gap": 0,
-      "tone": "weight",
-      "style": "plain",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "E2"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "E3"
-        }
-      ]
-    },
-    {
-      "at": [
-        70,
-        420
-      ],
-      "rows": 1,
-      "cols": 2,
-      "cell": [
-        150,
-        42
-      ],
-      "gap": 0,
-      "tone": "weight",
-      "style": "plain",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "E0"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "E2"
-        }
-      ]
-    },
-    {
-      "at": [
-        515,
-        420
-      ],
-      "rows": 1,
-      "cols": 2,
-      "cell": [
-        150,
-        42
-      ],
-      "gap": 0,
-      "tone": "weight",
-      "style": "plain",
-      "cells": [
-        {
-          "at": [
-            0,
-            0
-          ],
-          "text": "E1"
-        },
-        {
-          "at": [
-            0,
-            1
-          ],
-          "text": "E3"
-        }
-      ]
-    }
-  ],
-  "bars": [
-    {
-      "at": [
-        70,
-        205
-      ],
-      "h": 34,
-      "scale": 18,
-      "segments": [
-        {
-          "value": 8,
-          "text": "E0:8",
-          "tone": "token"
-        },
-        {
-          "value": 8,
-          "text": "E1:8",
-          "tone": "token"
-        }
-      ]
-    },
-    {
-      "at": [
-        515,
-        205
-      ],
-      "h": 34,
-      "scale": 18,
-      "segments": [
-        {
-          "value": 2,
-          "text": "2",
-          "tone": "token"
-        },
-        {
-          "value": 2,
-          "text": "2",
-          "tone": "token"
-        }
-      ]
-    },
-    {
-      "at": [
-        70,
-        515
-      ],
-      "h": 34,
-      "scale": 18,
-      "segments": [
-        {
-          "value": 8,
-          "text": "E0:8",
-          "tone": "token"
-        },
-        {
-          "value": 2,
-          "text": "2",
-          "tone": "token"
-        }
-      ]
-    },
-    {
-      "at": [
-        515,
-        515
-      ],
-      "h": 34,
-      "scale": 18,
-      "segments": [
-        {
-          "value": 8,
-          "text": "E1:8",
-          "tone": "token"
-        },
-        {
-          "value": 2,
-          "text": "2",
-          "tone": "token"
-        }
-      ]
-    }
-  ],
-  "texts": [
-    {
-      "at": [
-        70,
-        186
-      ],
-      "text": "总负载 16"
-    },
-    {
-      "at": [
-        515,
-        186
-      ],
-      "text": "总负载 4"
-    },
-    {
-      "at": [
-        70,
-        496
-      ],
-      "text": "总负载 10"
-    },
-    {
-      "at": [
-        515,
-        496
-      ],
-      "text": "总负载 10"
-    },
-    {
-      "at": [
-        450,
-        336
-      ],
-      "text": "改变物理放置；逻辑专家函数与权重内容保持一致",
-      "anchor": "middle",
-      "strong": true
-    },
-    {
-      "at": [
-        450,
-        637
-      ],
-      "text": "条长表示 token–expert 分配次数，不表示延迟",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "layout": "figure"
-}
+layout: figure
+id: eplb
+caption: 窗口 2 的流量（E0 12 对、E1 4 对、E2 和 E3 各 2 对，数为示意）放在三种摆法下。左：每卡 2 个位置，只能换位置，E0 放在哪张卡，哪张卡至少 12 + 2 = 14。中：启动时留了 2 个副本位，每卡 3 个位置，规划器给 E0、E1 各多放一份，并假定每份分到一半的活，估计两边各 10；两张卡上的两份 E0（E1 同理）完全一样，没有原件、副本之分。右：实际运行时每张卡按固定规则挑一份副本，这里正好各用本卡那份；E0 的 12 对里 8 对来自卡 0 上的 token、4 对来自卡 1，于是实际是 12 和 8。负载条只表示长短，数字写在专家块和卡名旁。
+size: [900, 410]
+frames:
+  - { label: 卡 0 · 合计 14, at: [24, 64], size: [268, 124] }
+  - { label: 卡 1 · 合计 6, at: [24, 222], size: [268, 124] }
+  - { label: 卡 0 · 合计 10, at: [316, 64], size: [268, 124] }
+  - { label: 卡 1 · 合计 10, at: [316, 222], size: [268, 124] }
+  - { label: 卡 0 · 合计 12, at: [608, 64], size: [268, 124] }
+  - { label: 卡 1 · 合计 8, at: [608, 222], size: [268, 124] }
+items:
+  - { at: [36, 76], size: [76, 46], text: E0, sub: 12 对, tone: weight }
+  - { at: [120, 76], size: [76, 46], text: E2, sub: 2 对, tone: weight }
+  - { at: [36, 234], size: [76, 46], text: E1, sub: 4 对, tone: weight }
+  - { at: [120, 234], size: [76, 46], text: E3, sub: 2 对, tone: weight }
+  - { at: [328, 76], size: [76, 46], text: E0, sub: 估 6, tone: weight }
+  - { at: [412, 76], size: [76, 46], text: E1, sub: 估 2, tone: weight }
+  - { at: [496, 76], size: [76, 46], text: E2, sub: 2 对, tone: weight }
+  - { at: [328, 234], size: [76, 46], text: E0, sub: 估 6, tone: weight }
+  - { at: [412, 234], size: [76, 46], text: E1, sub: 估 2, tone: weight }
+  - { at: [496, 234], size: [76, 46], text: E3, sub: 2 对, tone: weight }
+  - { at: [620, 76], size: [76, 46], text: E0, sub: 8 对, tone: weight }
+  - { at: [704, 76], size: [76, 46], text: E1, sub: 2 对, tone: weight }
+  - { at: [788, 76], size: [76, 46], text: E2, sub: 2 对, tone: weight }
+  - { at: [620, 234], size: [76, 46], text: E0, sub: 4 对, tone: weight }
+  - { at: [704, 234], size: [76, 46], text: E1, sub: 2 对, tone: weight }
+  - { at: [788, 234], size: [76, 46], text: E3, sub: 2 对, tone: weight }
+bars:
+  - at: [36, 142]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 12, tone: token }
+      - { value: 2, tone: token }
+  - at: [36, 300]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 4, tone: token }
+      - { value: 2, tone: token }
+  - at: [328, 142]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 6, tone: token }
+      - { value: 2, tone: token }
+      - { value: 2, tone: token }
+  - at: [328, 300]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 6, tone: token }
+      - { value: 2, tone: token }
+      - { value: 2, tone: token }
+  - at: [620, 142]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 8, tone: token }
+      - { value: 2, tone: token }
+      - { value: 2, tone: token }
+  - at: [620, 300]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 4, tone: token }
+      - { value: 2, tone: token }
+      - { value: 2, tone: token }
+texts:
+  - { at: [24, 30], text: 只换位置, strong: true }
+  - { at: [316, 30], text: 加 2 个副本位 · 规划时估计, strong: true }
+  - { at: [608, 30], text: 加 2 个副本位 · 实际运行, strong: true }
+  - { at: [24, 378], text: 峰均比 14 ÷ 10 = 1.4, note: true }
+  - { at: [316, 378], text: 峰均比 10 ÷ 10 = 1.0, note: true }
+  - { at: [608, 378], text: 峰均比 12 ÷ 10 = 1.2, note: true }

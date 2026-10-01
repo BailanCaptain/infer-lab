@@ -1,0 +1,36 @@
+layout: figure
+id: dp-request-routing-flow
+caption: 虚线是计数走的路，实线是请求走的路。① 两组引擎在每一步前后把 waiting、running 两个条数报给协调器，数没变就不报；② 协调器有新数时，离上次推送满 100 ms 就推给前端；③ 前端收到推送，整张换掉计数表；④ 前端按表打分，把请求送进那组引擎的输入队列，引擎算完手上这一步，下一圈开头才把它收进 waiting。
+size: [900, 470]
+frames:
+  - { at: [20, 60], size: [250, 330], label: 前端 · node0 的 API server, inside: true }
+  - { at: [600, 60], size: [282, 150], label: DP0 · EngineCore, inside: true }
+  - { at: [600, 240], size: [282, 150], label: DP1 · EngineCore, inside: true }
+items:
+  - { at: [44, 104], size: [200, 60], text: 选组, sub: 看请求头，没有就打分, tone: token }
+  - { at: [44, 300], size: [200, 60], text: 计数表, sub: '每组 (waiting, running)', tone: control, style: plain }
+  - { at: [612, 104], size: [100, 60], text: 输入队列, sub: 这一步里到的, style: plain }
+  - { at: [732, 104], size: [140, 60], text: scheduler, sub: waiting · running, tone: control }
+  - { at: [612, 284], size: [100, 60], text: 输入队列, sub: 这一步里到的, style: plain }
+  - { at: [732, 284], size: [140, 60], text: scheduler, sub: waiting · running, tone: control }
+  - { at: [320, 380], size: [230, 56], text: DP 协调器, sub: 汇总两组的条数, tone: comm }
+links:
+  # 请求走的路
+  - { from: [244, 126], to: [610, 126], tone: token }
+  - { from: [244, 148], to: [610, 306], tone: token }
+  - { from: [712, 134], to: [730, 134] }
+  - { from: [712, 314], to: [730, 314] }
+  # 计数走的路
+  - { from: [872, 134], to: [552, 424], via: [[892, 134], [892, 424]], tone: comm, dashed: true }
+  - { from: [802, 344], to: [552, 400], via: [[802, 400]], tone: comm, dashed: true }
+  - { from: [318, 408], to: [246, 330], via: [[290, 408], [290, 330]], tone: comm, dashed: true }
+  - { from: [144, 298], to: [144, 166] }
+badges:
+  - { at: [802, 372], n: 1, tone: comm }
+  - { at: [700, 424], n: 1, tone: comm }
+  - { at: [435, 368], n: 2, tone: comm }
+  - { at: [290, 370], n: 3, tone: comm }
+  - { at: [430, 126], n: 4, tone: token }
+texts:
+  - { at: [450, 26], text: 计数怎样从引擎回到前端, anchor: middle, strong: true }
+  - { at: [742, 192], text: 算完这一步才收进 waiting, anchor: middle, note: true }

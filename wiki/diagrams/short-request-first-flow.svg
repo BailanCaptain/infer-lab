@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 820" width="900" height="820" role="img" aria-label="调度器每一步先给 running 续上，再用剩余预算接纳等待的请求。短请求优先换掉的只有中间那一块：从三条车道里按固定次序选出一条，看一眼它的队头并记住这条车道；之后截预算、借 KV 块都照上游原样，借到了就从记住的车道取走，借不到这一步就不再接纳新请求。">
+  <title>调度器每一步先给 running 续上，再用剩余预算接纳等待的请求。短请求优先换掉的只有中间那一块：从三条车道里按固定次序选出一条，看一眼它的队头并记住这条车道；之后截预算、借 KV 块都照上游原样，借到了就从记住的车道取走，借不到这一步就不再接纳新请求。</title>
+  <defs><marker id="short-request-first-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="16" y="196" width="868" height="250" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">短请求优先换掉的只有这一块：等待队列</text>
+  <path d="M440 76 L440 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M660 138 L684 138" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M440 164 L440 216" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M200 240 L220 240" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M660 240 L684 240" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M440 264 L440 292" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M660 316 L684 316" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M440 340 L440 368" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M660 392 L684 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M220 392 L200 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M868 316 L878 316" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <path d="M868 392 L878 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <path d="M868 240 L878 240 L878 506 L660 506" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M116 420 L116 506 L220 506" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M440 536 L440 566" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M440 626 L440 656" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M220 680 L166 680 L166 740" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M660 680 L734 680 L734 740" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <path d="M884 770 L894 770 L894 92 L560 92 L560 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#short-request-first-flow-ah-ink)"/>
+  <rect x="220" y="16" width="440" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度器一步的开头：先给 running 续上</text>
+  <text x="440" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">还有剩余预算、running 未满上限，才看等待的请求</text>
+  <rect x="220" y="112" width="440" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">挂起队列里有请求吗？</text>
+  <text x="440" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">等远端 KV、等输出格式规则的请求</text>
+  <rect x="684" y="112" width="200" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="784" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">有：先看挂起队列</text>
+  <text x="784" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">排在三条车道之前</text>
+  <rect x="32" y="212" width="168" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="116" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">被抢占的请求</text>
+  <text x="116" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">退回等待，重新分车道</text>
+  <rect x="220" y="216" width="440" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">恢复车道有人吗？</text>
+  <rect x="684" y="212" width="184" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="776" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有：取恢复车道</text>
+  <text x="776" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">被抢占、算过一部分的</text>
+  <rect x="220" y="292" width="440" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">长车道队头等够上限，且短车道有人吗？</text>
+  <rect x="684" y="288" width="184" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="776" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">是：取长车道队头</text>
+  <text x="776" y="331" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">等待上限默认 0，不触发</text>
+  <rect x="220" y="368" width="440" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="397" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">短车道有人吗？</text>
+  <rect x="684" y="364" width="184" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="776" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有：取短车道</text>
+  <text x="776" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">提示词 ≤ 门槛（默认 256）</text>
+  <rect x="32" y="364" width="168" height="56" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="116" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">没有：取长车道</text>
+  <text x="116" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">提示词 &gt; 门槛</text>
+  <rect x="220" y="476" width="440" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="502" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">看一眼选中车道的队头，记住这条车道</text>
+  <text x="440" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">取走时从记住的车道拿，不会看一条、拿另一条</text>
+  <rect x="220" y="566" width="440" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="592" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">上游照常：截到剩余预算，借 KV 块</text>
+  <text x="440" y="611" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">这一段算多少由 chunked prefill 定</text>
+  <rect x="220" y="656" width="440" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="685" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这条请求借到块了吗？</text>
+  <rect x="16" y="740" width="300" height="60" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="166" y="766" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">借不到：这一步不再接纳新请求</text>
+  <text x="166" y="785" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">它留在车道队头，下一步再试</text>
+  <rect x="584" y="740" width="300" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="734" y="766" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">借到了：从记住的车道取走</text>
+  <text x="734" y="785" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">扣预算；有余量、running 未满就看下一条</text>
+</svg>

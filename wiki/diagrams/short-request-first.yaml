@@ -1,112 +1,158 @@
-{
-  "id": "short-request-first",
-  "size": [
-    900,
-    365
-  ],
-  "caption": "抽象准入算例：预算16，阈值2，允许任意分片且无其他资源约束。A/B各8，C/D各2；先选短输入后，B本轮只处理4个位置。不是GLM实际分片配置。",
-  "texts": [
-    {
-      "at": [
-        30,
-        35
-      ],
-      "text": "同一轮的 16 个输入位置预算",
-      "strong": true
-    },
-    {
-      "at": [
-        30,
-        96
-      ],
-      "text": "先到先服务"
-    },
-    {
-      "at": [
-        30,
-        196
-      ],
-      "text": "短请求优先"
-    },
-    {
-      "at": [
-        160,
-        140
-      ],
-      "text": "后续等待：C 2、D 2",
-      "note": true
-    },
-    {
-      "at": [
-        160,
-        240
-      ],
-      "text": "后续等待：B 剩余 4",
-      "note": true
-    },
-    {
-      "at": [
-        450,
-        322
-      ],
-      "text": "改变等待顺序；分片和缓存分配仍由调度器完成",
-      "anchor": "middle",
-      "note": true
-    }
-  ],
-  "bars": [
-    {
-      "at": [
-        160,
-        72
-      ],
-      "h": 34,
-      "scale": 41,
-      "segments": [
-        {
-          "value": 8,
-          "text": "A · 8",
-          "tone": "token"
-        },
-        {
-          "value": 8,
-          "text": "B · 8",
-          "tone": "token",
-          "style": "hatch"
-        }
-      ]
-    },
-    {
-      "at": [
-        160,
-        172
-      ],
-      "h": 34,
-      "scale": 41,
-      "segments": [
-        {
-          "value": 2,
-          "text": "C · 2",
-          "tone": "token"
-        },
-        {
-          "value": 2,
-          "text": "D · 2",
-          "tone": "token"
-        },
-        {
-          "value": 8,
-          "text": "A · 8",
-          "tone": "token"
-        },
-        {
-          "value": 4,
-          "text": "B · 4",
-          "tone": "token",
-          "style": "hatch"
-        }
-      ]
-    }
-  ],
-  "layout": "figure"
-}
+layout: figure
+id: short-request-first
+caption: 同一组等待请求、同一份每步 16 个位置的预算。先到先服务按到达先后取，A、B 占满第 1 步，C、D 等到第 2 步；短请求优先先把 C、D 分进短车道先取，A 照常算完，B 这一步只算前 4 个 token、第 2 步补完。数为示意。
+size: [900, 432]
+grids:
+  - at: [250, 62]
+    rows: 1
+    cols: 20
+    cell: [20, 30]
+    tone: token
+    style: empty
+    cells:
+      - { at: [0, 0], text: A, tone: token, style: faded }
+      - { at: [0, 1], text: A, tone: token, style: faded }
+      - { at: [0, 2], text: A, tone: token, style: faded }
+      - { at: [0, 3], text: A, tone: token, style: faded }
+      - { at: [0, 4], text: A, tone: token, style: faded }
+      - { at: [0, 5], text: A, tone: token, style: faded }
+      - { at: [0, 6], text: A, tone: token, style: faded }
+      - { at: [0, 7], text: A, tone: token, style: faded }
+      - { at: [0, 8], text: B, tone: token, style: faded }
+      - { at: [0, 9], text: B, tone: token, style: faded }
+      - { at: [0, 10], text: B, tone: token, style: faded }
+      - { at: [0, 11], text: B, tone: token, style: faded }
+      - { at: [0, 12], text: B, tone: token, style: faded }
+      - { at: [0, 13], text: B, tone: token, style: faded }
+      - { at: [0, 14], text: B, tone: token, style: faded }
+      - { at: [0, 15], text: B, tone: token, style: faded }
+      - { at: [0, 16], text: C, tone: token, style: solid }
+      - { at: [0, 17], text: C, tone: token, style: solid }
+      - { at: [0, 18], text: D, tone: token, style: solid }
+      - { at: [0, 19], text: D, tone: token, style: solid }
+  - at: [560, 172]
+    rows: 1
+    cols: 4
+    cell: [20, 30]
+    tone: token
+    style: empty
+    rowLabels: [短车道]
+    cells:
+      - { at: [0, 0], text: C, tone: token, style: solid }
+      - { at: [0, 1], text: C, tone: token, style: solid }
+      - { at: [0, 2], text: D, tone: token, style: solid }
+      - { at: [0, 3], text: D, tone: token, style: solid }
+  - at: [560, 214]
+    rows: 1
+    cols: 16
+    cell: [20, 30]
+    tone: token
+    style: empty
+    rowLabels: [长车道]
+    cells:
+      - { at: [0, 0], text: A, tone: token, style: faded }
+      - { at: [0, 1], text: A, tone: token, style: faded }
+      - { at: [0, 2], text: A, tone: token, style: faded }
+      - { at: [0, 3], text: A, tone: token, style: faded }
+      - { at: [0, 4], text: A, tone: token, style: faded }
+      - { at: [0, 5], text: A, tone: token, style: faded }
+      - { at: [0, 6], text: A, tone: token, style: faded }
+      - { at: [0, 7], text: A, tone: token, style: faded }
+      - { at: [0, 8], text: B, tone: token, style: faded }
+      - { at: [0, 9], text: B, tone: token, style: faded }
+      - { at: [0, 10], text: B, tone: token, style: faded }
+      - { at: [0, 11], text: B, tone: token, style: faded }
+      - { at: [0, 12], text: B, tone: token, style: faded }
+      - { at: [0, 13], text: B, tone: token, style: faded }
+      - { at: [0, 14], text: B, tone: token, style: faded }
+      - { at: [0, 15], text: B, tone: token, style: faded }
+  - at: [110, 296]
+    rows: 1
+    cols: 16
+    cell: [20, 30]
+    tone: token
+    style: empty
+    rowLabels: [第 1 步]
+    cells:
+      - { at: [0, 0], text: A, tone: token, style: faded }
+      - { at: [0, 1], text: A, tone: token, style: faded }
+      - { at: [0, 2], text: A, tone: token, style: faded }
+      - { at: [0, 3], text: A, tone: token, style: faded }
+      - { at: [0, 4], text: A, tone: token, style: faded }
+      - { at: [0, 5], text: A, tone: token, style: faded }
+      - { at: [0, 6], text: A, tone: token, style: faded }
+      - { at: [0, 7], text: A, tone: token, style: faded }
+      - { at: [0, 8], text: B, tone: token, style: faded }
+      - { at: [0, 9], text: B, tone: token, style: faded }
+      - { at: [0, 10], text: B, tone: token, style: faded }
+      - { at: [0, 11], text: B, tone: token, style: faded }
+      - { at: [0, 12], text: B, tone: token, style: faded }
+      - { at: [0, 13], text: B, tone: token, style: faded }
+      - { at: [0, 14], text: B, tone: token, style: faded }
+      - { at: [0, 15], text: B, tone: token, style: faded }
+  - at: [110, 346]
+    rows: 1
+    cols: 16
+    cell: [20, 30]
+    tone: token
+    style: empty
+    rowLabels: [第 2 步]
+    cells:
+      - { at: [0, 0], text: A, tone: control, style: plain }
+      - { at: [0, 1], text: B, tone: control, style: plain }
+      - { at: [0, 2], text: C, tone: token, style: solid }
+      - { at: [0, 3], text: C, tone: token, style: solid }
+      - { at: [0, 4], text: D, tone: token, style: solid }
+      - { at: [0, 5], text: D, tone: token, style: solid }
+  - at: [560, 296]
+    rows: 1
+    cols: 16
+    cell: [20, 30]
+    tone: token
+    style: empty
+    rowLabels: [第 1 步]
+    cells:
+      - { at: [0, 0], text: C, tone: token, style: solid }
+      - { at: [0, 1], text: C, tone: token, style: solid }
+      - { at: [0, 2], text: D, tone: token, style: solid }
+      - { at: [0, 3], text: D, tone: token, style: solid }
+      - { at: [0, 4], text: A, tone: token, style: faded }
+      - { at: [0, 5], text: A, tone: token, style: faded }
+      - { at: [0, 6], text: A, tone: token, style: faded }
+      - { at: [0, 7], text: A, tone: token, style: faded }
+      - { at: [0, 8], text: A, tone: token, style: faded }
+      - { at: [0, 9], text: A, tone: token, style: faded }
+      - { at: [0, 10], text: A, tone: token, style: faded }
+      - { at: [0, 11], text: A, tone: token, style: faded }
+      - { at: [0, 12], text: B, tone: token, style: faded }
+      - { at: [0, 13], text: B, tone: token, style: faded }
+      - { at: [0, 14], text: B, tone: token, style: faded }
+      - { at: [0, 15], text: B, tone: token, style: faded }
+  - at: [560, 346]
+    rows: 1
+    cols: 16
+    cell: [20, 30]
+    tone: token
+    style: empty
+    rowLabels: [第 2 步]
+    cells:
+      - { at: [0, 0], text: C, tone: control, style: plain }
+      - { at: [0, 1], text: D, tone: control, style: plain }
+      - { at: [0, 2], text: A, tone: control, style: plain }
+      - { at: [0, 3], text: B, tone: token, style: faded }
+      - { at: [0, 4], text: B, tone: token, style: faded }
+      - { at: [0, 5], text: B, tone: token, style: faded }
+      - { at: [0, 6], text: B, tone: token, style: faded }
+links:
+  - { from: [330, 96], to: [240, 134] }
+  - { from: [570, 96], to: [660, 134] }
+  - { from: [240, 184], to: [240, 290] }
+  - { from: [720, 248], to: [720, 290] }
+texts:
+  - { at: [450, 22], text: 每一步最多算 16 个位置（示意数）, strong: true, anchor: middle }
+  - { at: [250, 52], text: 等待队列，从左到右按到达先后, size: 13 }
+  - { at: [40, 156], text: 先到先服务：按到达先后取, strong: true }
+  - { at: [480, 156], text: 短请求优先：先分车道，短车道先取, strong: true }
+  - { at: [40, 178], text: 一条队，不看长短, note: true }
+  - { at: [450, 278], text: 每一步的预算：16 格，一格算一个位置, size: 13, anchor: middle }
+  - { at: [450, 412], text: 灰格：已算完提示词、在逐个生成回答的请求，一步只占 1 格, note: true, anchor: middle }

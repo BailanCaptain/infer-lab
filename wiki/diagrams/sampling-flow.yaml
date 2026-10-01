@@ -1,0 +1,41 @@
+layout: figure
+id: sampling-flow
+caption: 一台机器在一步里怎样完成采样（另一台机器同样如此，各管各的请求）。分数先在 8 张卡之间拼完整；8 张卡用同一个随机种子各采一遍，得到同一个结果，只有 0 号卡交回引擎；停止判断在引擎进程里、CPU 上做。R1 是提示词 4 个 token 的示例请求
+size: [880, 760]
+dividers:
+  - { from: [20, 636], to: [860, 636], sides: [8 张卡（NPU）, 引擎进程（CPU）] }
+items:
+  - { at: [200, 20], size: [480, 58], text: 前向结束：每张卡算 19360 个词的分数, sub: 词表投影按词表切成 8 份, tone: weight }
+  - { at: [200, 118], size: [480, 58], text: TP8 All-Gather：拼出完整的 154880 个分数, sub: 8 张卡手里的分数完全相同, tone: comm }
+  - { at: [200, 216], size: [480, 58], text: 这条请求这一步带着 MTP 候选吗？, style: plain }
+  - { at: [20, 318], size: [400, 70], text: 没有：普通采样, sub: 每条请求取 1 行 · R1 第 1 步, tone: token }
+  - { at: [460, 318], size: [400, 70], text: 有：验证候选, sub: 每条请求取 1 + 3 行 · R1 第 2 步起, tone: token }
+  - { at: [200, 436], size: [480, 62], text: 8 张卡用同一个种子各采一遍, sub: 改分数 → greedy，或 ÷T、截断、指数噪声抽取, tone: control }
+  - { at: [20, 546], size: [400, 62], text: 0 号卡把结果交回引擎, sub: 其余 7 张卡不回传, tone: token }
+  - { at: [460, 546], size: [400, 62], text: 每张卡留着结果，接着做 MTP 草拟, sub: 草拟每遍都取最高分, tone: token, style: faded }
+  - { at: [200, 676], size: [480, 62], text: 逐个追加 token，检查停止条件, sub: 结束 token、停止 token、长度上限, tone: control }
+links:
+  - { from: [440, 78], to: [440, 118] }
+  - { from: [440, 176], to: [440, 216] }
+  - { from: [320, 274], to: [220, 318], via: [[320, 296], [220, 296]] }
+  - { from: [560, 274], to: [660, 318], via: [[560, 296], [660, 296]] }
+  - { from: [220, 388], to: [320, 436], via: [[220, 412], [320, 412]] }
+  - { from: [660, 388], to: [560, 436], via: [[660, 412], [560, 412]] }
+  - { from: [320, 498], to: [220, 546], via: [[320, 522], [220, 522]] }
+  - { from: [560, 498], to: [660, 546], via: [[560, 522], [660, 522]] }
+  - { from: [220, 608], to: [320, 676], via: [[220, 656], [320, 656]] }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L2730-L2809
+    symbols: [logits_indices, bonus_logits_indices]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2585-L2610
+    symbols: [_sample, sampler, rejection_sampler]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L498-L499
+    symbols: [set_random_seed]
+  - source: vllm-ascend@db701c1f:vllm_ascend/sample/sampler.py#L20-L43
+    symbols: [exponential_, argmax]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L495-L509
+    symbols: [_get_output_rank, tensor_parallel_size]
+  - source: vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1290-L1299
+    symbols: [argmax]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/utils.py#L94-L117
+    symbols: [check_stop, FINISHED_STOPPED, FINISHED_LENGTH_CAPPED]

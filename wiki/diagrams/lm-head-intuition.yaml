@@ -1,0 +1,52 @@
+layout: figure
+id: lm-head-intuition
+caption: 示意：词表只有 6 个 token。提示词「我喜欢」走完所有层后，最后一个位置留下一条 4 个数的隐藏向量。lm_head 给每个词存一列、一列也是 4 个数；隐藏向量和某一列逐位相乘再相加，就是这个词的分数。6 列各做一次，得到 6 个分数（logits），其中「猫」最高，采样就最可能挑中它。
+size: [900, 340]
+texts:
+  - { at: [30, 34], text: '提示词「我喜欢」走完所有层，最后一个位置交出一条向量', strong: true }
+  - { at: [221, 128], text: 和每一列, anchor: middle, size: 12.5 }
+  - { at: [221, 146], text: 逐位相乘, anchor: middle, size: 12.5 }
+  - { at: [221, 164], text: 再相加, anchor: middle, size: 12.5 }
+  - { at: [614, 136], text: 输出权重, strong: true, tone: weight }
+  - { at: [614, 156], text: 每个词一列, size: 12.5 }
+  - { at: [614, 174], text: 一列 4 个数, size: 12.5 }
+grids:
+  - at: [120, 90]
+    rows: 4
+    cols: 1
+    cell: [52, 34]
+    tone: token
+    style: solid
+    label: 隐藏向量 h
+  - at: [270, 90]
+    rows: 4
+    cols: 6
+    cell: [56, 34]
+    tone: weight
+    style: faded
+    colLabels: ['我', '你', '喜欢', '猫', '看', '。']
+    cells:
+      - { at: [0, 3], style: solid }
+      - { at: [1, 3], style: solid }
+      - { at: [2, 3], style: solid }
+      - { at: [3, 3], style: solid }
+  - at: [270, 262]
+    rows: 1
+    cols: 6
+    cell: [56, 34]
+    tone: token
+    style: faded
+    label: 每个词一个分数（logits），只比大小，还不是概率
+    cells:
+      - { at: [0, 0], text: '−0.4' }
+      - { at: [0, 1], text: '−0.5' }
+      - { at: [0, 2], text: '0.2' }
+      - { at: [0, 3], text: '2.1', style: solid }
+      - { at: [0, 4], text: '0.8' }
+      - { at: [0, 5], text: '1.0' }
+items:
+  - { at: [680, 256], size: [180, 46], text: 采样：挑出「猫」, sub: 作为下一个 token, tone: token }
+links:
+  - { from: [176, 190], to: [266, 190] }
+  - { from: [466, 226], to: [466, 258] }
+  - { from: [610, 279], to: [676, 279] }

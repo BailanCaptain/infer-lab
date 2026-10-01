@@ -1,0 +1,46 @@
+layout: figure
+id: large-scale-ep-flow
+caption: 左：启动时给出自己的 DP rank 编号，这个进程就进入外置负载均衡模式，只管本机这一个 rank；稠密模型在这一步报错。它仍要到 DP 主节点握手，和全组一起走每层 MoE。右：vllm-ascend 示例 proxy 处理一条请求的先后；KV 由连接器在 P、D 之间直接传，proxy 只转交传输参数。
+size: [900, 624]
+frames:
+  - { at: [18, 44], size: [416, 564], label: 启动：一个 vllm serve 进程成为一个 rank }
+  - { at: [466, 44], size: [416, 564], label: 一条请求：proxy 先挑 P，再挑 D }
+items:
+  - { at: [38, 72], size: [376, 58], text: 启动时给出自己的 DP rank 编号, sub: 同时给 DP 总数、主节点地址和 RPC 端口, style: plain }
+  - { at: [38, 164], size: [250, 58], text: 模型是 MoE 吗？, sub: 外置分派只对 MoE 开放, tone: control }
+  - { at: [306, 164], size: [108, 58], text: 不是：报错, sub: 改起独立实例, tone: danger }
+  - { at: [38, 256], size: [376, 58], text: 本机只管这 1 个 rank, sub: 本地 DP 个数只能是 1 或不写, tone: control }
+  - { at: [38, 348], size: [376, 58], text: 只起 1 个 API server, sub: 分派交给外部路由, tone: control }
+  - { at: [38, 440], size: [376, 58], text: 客户端只连本机的 EngineCore, sub: 不再替其他 rank 排队、打分, tone: control }
+  - { at: [38, 532], size: [376, 58], text: 到 DP 主节点握手，加入 EP 组, sub: 每层 MoE 仍和全组一起 dispatch、combine, tone: comm }
+  - { at: [486, 72], size: [376, 58], text: proxy 收到请求, sub: 按请求体长度给 P、D 各记一笔估算, tone: control }
+  - { at: [486, 164], size: [376, 58], text: 挑估分之和最小的 P rank, sub: 只做 prefill，最多生成 1 个 token, tone: control }
+  - { at: [486, 256], size: [376, 58], text: P 算完 prefill，返回 KV 传输参数, sub: 说明 D 该去哪里取哪些 KV 块, tone: kv }
+  - { at: [486, 348], size: [376, 58], text: 挑手上负载最小的 D rank, sub: 把 KV 传输参数一并转交, tone: control }
+  - { at: [486, 440], size: [376, 58], text: D 通过连接器直接从 P 取 KV, sub: KV 不经过 proxy, tone: kv }
+  - { at: [486, 532], size: [376, 58], text: D 接着 decode, sub: 生成的结果经 proxy 返回用户, tone: token }
+links:
+  - { from: [163, 130], to: [163, 164] }
+  - { from: [288, 193], to: [306, 193], tone: danger }
+  - { from: [163, 222], to: [163, 256] }
+  - { from: [226, 314], to: [226, 348] }
+  - { from: [226, 406], to: [226, 440] }
+  - { from: [226, 498], to: [226, 532], tone: comm }
+  - { from: [674, 130], to: [674, 164] }
+  - { from: [674, 222], to: [674, 256] }
+  - { from: [674, 314], to: [674, 348] }
+  - { from: [674, 406], to: [674, 440], tone: kv }
+  - { from: [674, 498], to: [674, 532] }
+texts:
+  - { at: [172, 244], text: 是 }
+pins:
+  - source: vllm@0fc695fc:vllm/engine/arg_utils.py#L1859-L1882
+    symbols: [data_parallel_external_lb, data_parallel_size_local]
+  - source: vllm@0fc695fc:vllm/entrypoints/cli/serve.py#L71-L148
+    symbols: [is_external_lb, api_server_count, run_server]
+  - source: vllm@0fc695fc:vllm/config/parallel.py#L514-L520
+    symbols: [local_engines_only]
+  - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L789-L806
+    symbols: [build_prefill_request, do_remote_decode]
+  - source: vllm-ascend@db701c1f:examples/disaggregated_prefill_v1/load_balance_proxy_server_example.py#L898-L945
+    symbols: [assign_instances, kv_transfer_params]

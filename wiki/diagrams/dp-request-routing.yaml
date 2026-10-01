@@ -1,0 +1,74 @@
+layout: figure
+id: dp-request-routing
+caption: 数为示意。上面一条路：请求 A 的请求头写了组号 0，前端不打分，直接派给 DP0。下面一条路：请求 B 没写组号，前端拿手里的计数表给每组打分（waiting × 4 + running），派给分数小的 DP1，再在本地给 DP1 的 waiting 记一笔。右边两组里，实心格是正在算的请求（running），淡格是刚派进来、还没开始算的请求（waiting）。计数表括号里的两个数，先 waiting 后 running。
+size: [900, 476]
+frames:
+  - { at: [650, 56], size: [232, 176], label: DP0, inside: true }
+  - { at: [650, 262], size: [232, 176], label: DP1, inside: true }
+items:
+  - { at: [20, 90], size: [170, 56], text: 请求 A, sub: 请求头写了组号 0, tone: token }
+  - { at: [20, 272], size: [170, 56], text: 请求 B, sub: 没写组号, tone: token }
+  - { at: [230, 268], size: [180, 64], text: 前端手里的计数表, sub: 'DP0 (0, 6) · DP1 (0, 3)', tone: control, style: plain }
+  - { at: [424, 268], size: [214, 64], text: 分数 = waiting × 4 + running, sub: DP0 得 6 · DP1 得 3, tone: control }
+grids:
+  # ---- DP0：6 条在算，A 刚到
+  - at: [666, 100]
+    rows: 1
+    cols: 8
+    cell: [22, 26]
+    gap: 3
+    tone: token
+    style: empty
+    label: running · 6 条在算
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 1], style: solid }
+      - { at: [0, 2], style: solid }
+      - { at: [0, 3], style: solid }
+      - { at: [0, 4], style: solid }
+      - { at: [0, 5], style: solid }
+  - at: [666, 162]
+    rows: 1
+    cols: 8
+    cell: [22, 26]
+    gap: 3
+    tone: control
+    style: empty
+    label: waiting · A 刚派进来
+    cells:
+      - { at: [0, 0], text: A, style: faded }
+  # ---- DP1：3 条在算，B 刚到
+  - at: [666, 306]
+    rows: 1
+    cols: 8
+    cell: [22, 26]
+    gap: 3
+    tone: token
+    style: empty
+    label: running · 3 条在算
+    cells:
+      - { at: [0, 0], style: solid }
+      - { at: [0, 1], style: solid }
+      - { at: [0, 2], style: solid }
+  - at: [666, 368]
+    rows: 1
+    cols: 8
+    cell: [22, 26]
+    gap: 3
+    tone: control
+    style: empty
+    label: waiting · B 刚派进来
+    cells:
+      - { at: [0, 0], text: B, style: faded }
+links:
+  - { from: [190, 118], to: [648, 118], tone: token }
+  - { from: [190, 300], to: [228, 300], tone: token }
+  - { from: [410, 300], to: [422, 300] }
+  - { from: [638, 300], to: [648, 300], tone: token }
+texts:
+  - { at: [450, 26], text: 新请求派给哪一组：写了组号就直接去，没写就按队列长度打分, anchor: middle, strong: true }
+  - { at: [420, 104], text: ① 显式指定：直接去 DP0, anchor: middle, strong: true }
+  - { at: [420, 142], text: 不打分，也不改前端的计数表, anchor: middle, note: true }
+  - { at: [420, 250], text: ② 没写组号：按计数表打分，取最小, anchor: middle, strong: true }
+  - { at: [420, 356], text: 3 < 6 → 派给 DP1，本地记它排队 1 条, anchor: middle, note: true }
+  - { at: [450, 460], text: 派定以后不换组：KV cache 留在那组的池子里, anchor: middle, note: true }

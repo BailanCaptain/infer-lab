@@ -81,20 +81,32 @@ const ALLOWED_ATTRS = new Set([
 /** 只允许指向同一张图内部的 marker / pattern，不允许任何外部引用 */
 const INTERNAL_REF = /^url\(#[A-Za-z0-9_-]+\)$/;
 
+/**
+ * 分镜播放器的时间轴（2026-09-29，逐张卡演）：整段多长、每个折点的时刻、出现 / 消失的时刻。
+ * 值只能是数字，关键帧里还可以有表示中间点的「-」
+ */
+const TIMING_ATTRS: Record<string, RegExp> = {
+  "data-ms": /^\d+(\.\d+)?$/,
+  "data-show": /^\d+(\.\d+)?$/,
+  "data-hide": /^\d+(\.\d+)?$/,
+  "data-keys": /^(\d+(\.\d+)?|-)( (\d+(\.\d+)?|-))*$/,
+  "data-fade": /^\d+(\.\d+)? \d+(\.\d+)?$/,
+};
+
+/** 这个属性能不能留下 */
+export function allowedAttribute(name: string, value: string): boolean {
+  if (name === "marker-end" || name === "marker-start") return INTERNAL_REF.test(value);
+  // fill 可以是颜色，也可以是同一张图里的斜线填充（figure 版式的「其他权重」那一段）
+  if (name === "fill" && value.startsWith("url(")) return INTERNAL_REF.test(value);
+  const timing = TIMING_ATTRS[name];
+  if (timing) return timing.test(value);
+  return ALLOWED_ATTRS.has(name);
+}
+
 function clean(source: Element, target: Element, doc: Document): void {
-  for (const attribute of [...source.attributes]) {
-    const name = attribute.name;
-    if (name === "marker-end" || name === "marker-start") {
-      if (INTERNAL_REF.test(attribute.value)) target.setAttribute(name, attribute.value);
-      continue;
-    }
-    // fill 可以是颜色，也可以是同一张图里的斜线填充（figure 版式的「其他权重」那一段）
-    if (name === "fill" && attribute.value.startsWith("url(")) {
-      if (INTERNAL_REF.test(attribute.value)) target.setAttribute(name, attribute.value);
-      continue;
-    }
-    if (ALLOWED_ATTRS.has(name)) target.setAttribute(name, attribute.value);
-  }
+  for (const attribute of [...source.attributes])
+    if (allowedAttribute(attribute.name, attribute.value))
+      target.setAttribute(attribute.name, attribute.value);
   for (const child of [...source.childNodes]) {
     if (child.nodeType === Node.TEXT_NODE) {
       target.appendChild(doc.createTextNode(child.nodeValue ?? ""));

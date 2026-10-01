@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { parseFade, parseKeys, pointAt, shownAt } from "../../src/content/wiki/animTimeline";
 import { diagramSpecSchema, renderDiagram } from "./diagrams";
 import {
   exchangeStates,
@@ -996,4 +997,202 @@ it("集合通信分镜：rows 时路上的块按源卡的行分组，组间留�
     ),
   );
   expect(wide.some((p) => p.includes("一排最多 8 块"))).toBe(true);
+});
+
+/**
+ * 逐张卡演（waves）的 All-Reduce：第 1 步第 k 块都送到卡 k 加起来（add），第 2 步卡 k 把和发给其余每张卡（copy）。
+ * 卡框 240×80（32 + 4 × 52，标题 32 + 块 34 + 底 14），两排之间留 156 放加法列（离自己的卡 8、离对面 22）；一格高 36 + 80 + 156 + 80 + 24 = 376
+ */
+const AR_WAVES = {
+  at: [10, 10],
+  cards: ["卡 0", "卡 1", "卡 2", "卡 3"],
+  slots: 4,
+  gap: [190, 156],
+  waves: true,
+  start: [0, 1, 2, 3].map((c) => [1, 2, 3, 4].map((v) => v * 10 ** c)),
+  steps: [
+    {
+      title: "归约",
+      moves: [0, 1, 2, 3].flatMap((k) =>
+        [0, 1, 2, 3].filter((c) => c !== k).map((c) => ({ from: [c, k], to: [k, k], op: "add" })),
+      ),
+      keep: [
+        [0, 0],
+        [1, 1],
+        [2, 2],
+        [3, 3],
+      ],
+    },
+    {
+      title: "收集",
+      moves: [0, 1, 2, 3].flatMap((k) =>
+        [0, 1, 2, 3].filter((c) => c !== k).map((c) => ({ from: [k, k], to: [c, k] })),
+      ),
+    },
+  ],
+  end: "结束",
+};
+const AR_SIZE: [number, number] = [880, 1138];
+
+/** 从一格的 SVG 里读出路上的块：路线、关键帧、出现 / 消失的时刻、块的大小 */
+function waveMovers(band: string) {
+  return [
+    ...band.matchAll(
+      /<g class="wiki-anim-move"([^>]*)><path class="wiki-anim-route" d="([^"]+)"[^>]*\/><g class="wiki-anim-payload"><rect x="[\d.-]+" y="[\d.-]+" width="([\d.]+)" height="([\d.]+)"/g,
+    ),
+  ].map((m) => {
+    const attr = (name: string) => new RegExp(`${name}="([^"]+)"`).exec(m[1]!)?.[1] ?? null;
+    const points = [...m[2]!.matchAll(/[ML]\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/g)].map((p) => ({
+      x: Number(p[1]),
+      y: Number(p[2]),
+    }));
+    const num = (s: string | null) => (s === null ? null : Number(s));
+    return {
+      points,
+      keys: parseKeys(attr("data-keys"), points.length),
+      show: num(attr("data-show")),
+      hide: num(attr("data-hide")),
+      fade: parseFade(attr("data-fade")),
+      w: Number(m[3]),
+      h: Number(m[4]),
+    };
+  });
+}
+
+it("逐张卡演：不画箭头；路上的块平时藏在源块上，路线从源块中心出发；下排的卡块朝上、名字写在下面", () => {
+  const spec = fig({ exchanges: [AR_WAVES] }, AR_SIZE);
+  expect(figureProblems(spec)).toEqual([]);
+  const svg = renderFigure(spec);
+  expect(svg).not.toContain("marker-end");
+  expect(svg.match(/class="wiki-anim-move"/g)).toHaveLength(24);
+  const bands = svg.split('<g class="wiki-anim-band"').slice(1);
+  expect(bands).toHaveLength(3);
+  // 有收发的格写明整段播放多长；每块都有关键帧、出现时刻，静止时看不见
+  for (const b of bands.slice(0, 2)) {
+    expect(b).toMatch(/^ data-ms="\d+"/);
+    for (const m of waveMovers(b)) {
+      expect(m.keys).not.toBeNull();
+      expect(m.show).not.toBeNull();
+    }
+    expect(b.match(/class="wiki-anim-move"[^>]*opacity="0"/g)).toHaveLength(12);
+  }
+  // 卡 1 第 0 块：卡框 x = 10 + 240 + 190，左内边距 16、半块 26；上排块在标题下 32
+  expect(bands[0]).toContain('class="wiki-anim-route" d="M482 95');
+  // 卡 3（下排左）第 0 块：下排卡顶 = 10 + 36 + 80 + 156 = 282，块在卡顶下 14；名字写在块下面，基线在卡底上 10
+  expect(bands[0]).toContain('class="wiki-anim-route" d="M52 313');
+  expect(bands[0]).toMatch(/<text x="26" y="352"[^>]*>卡 3</);
+});
+
+it("逐张卡演：加法步按目的卡一批一批演，发来的块排在目的块旁边、左边出现加号，再并进目的块，目的块上出现和", () => {
+  const svg = renderFigure(fig({ exchanges: [AR_WAVES] }, AR_SIZE));
+  const [rs, ag, end] = svg.split('<g class="wiki-anim-band"').slice(1);
+  // 12 个加号全在第 1 格；收集那一格不加，没有加号
+  expect(rs!.match(/>\+<\/text>/g)).toHaveLength(12);
+  expect(ag).not.toContain(">+</text>");
+  // 四个和作为「出现」的提示画在第 1 格里
+  for (const v of ["1111", "2222", "3333", "4444"])
+    expect(rs).toMatch(
+      new RegExp(`<g class="wiki-anim-cue" data-show="[0-9.]+" opacity="0"><rect[^>]*/><text[^>]*>${v}<`),
+    );
+  // 一批只有一张目的卡：4 批 4 个出发时刻，前一批并完（块消失）才开始下一批
+  const movers = waveMovers(rs!);
+  const shows = [...new Set(movers.map((m) => m.show!))].sort((a, b) => a - b);
+  expect(shows).toHaveLength(4);
+  for (let i = 0; i + 1 < shows.length; i++) {
+    const hides = movers.filter((m) => m.show === shows[i]).map((m) => m.hide!);
+    expect(Math.max(...hides)).toBeLessThanOrEqual(shows[i + 1]!);
+  }
+  // 并进目的块的那一段（最后一段）边走边淡掉，不在目的块上摞成一叠
+  for (const m of movers) expect(m.fade).toEqual([m.keys!.at(-2), m.keys!.at(-1)]);
+  // 加出来的和是青色实心；收集时收到的副本不是新算出来的，保持浅青
+  const solid = (b: string) =>
+    b.match(/width="52" height="34" fill="var\(--color-token, #087f73\)"\/>/g)?.length ?? 0;
+  expect(solid(ag!)).toBe(4);
+  expect(solid(end!)).toBe(0);
+});
+
+it("逐张卡演：路上的块任何时刻都不互相压住，也不从别的块上划过（并成一块、分出一份的那一下除外）", () => {
+  const svg = renderFigure(fig({ exchanges: [AR_WAVES] }, AR_SIZE));
+  const bands = svg.split('<g class="wiki-anim-band"').slice(1, 3);
+  const overlap = (a: number[], b: number[]) =>
+    Math.min(a[0]! + a[2]!, b[0]! + b[2]!) - Math.max(a[0]!, b[0]!) > 1 &&
+    Math.min(a[1]! + a[3]!, b[1]! + b[3]!) - Math.max(a[1]!, b[1]!) > 1;
+  const near = (p: { x: number; y: number }, q: { x: number; y: number }) =>
+    Math.abs(p.x - q.x) < 1 && Math.abs(p.y - q.y) < 1;
+  for (const [b, band] of bands.entries()) {
+    const by = 10 + b * 376;
+    // 每格 16 个块位：上排块在卡顶 + 32，下排在卡顶 + 14
+    const slots = [0, 1, 2, 3].flatMap((c) => {
+      const row = c < 2 ? 0 : 1;
+      const col = c === 0 || c === 3 ? 0 : 1;
+      const fx = 10 + col * 430;
+      const top = by + 36 + row * 236 + (row ? 14 : 32);
+      return [0, 1, 2, 3].map((s) => [fx + 16 + s * 52, top, 52, 34]);
+    });
+    const movers = waveMovers(band);
+    const failures: string[] = [];
+    for (let i = 0; i <= 600; i++) {
+      const u = i / 600;
+      const live = movers
+        .filter((m) => shownAt(m.show, m.hide, u))
+        .map((m) => {
+          const p = pointAt(m.points, m.keys!, u);
+          return { m, p, box: [p.x - m.w / 2, p.y - m.h / 2, m.w, m.h] };
+        });
+      for (const a of live) {
+        const first = a.m.points[0]!;
+        const last = a.m.points.at(-1)!;
+        for (const s of slots) {
+          const c = { x: s[0]! + 26, y: s[1]! + 17 };
+          if (near(c, first) || near(c, last)) continue;
+          if (overlap(a.box, s))
+            failures.push(`u=${u.toFixed(3)} 块从 (${first.x},${first.y}) 出发，划过块位 (${c.x},${c.y})`);
+        }
+      }
+      for (let x = 0; x < live.length; x++)
+        for (let y = x + 1; y < live.length; y++) {
+          const A = live[x]!;
+          const B = live[y]!;
+          if (!overlap(A.box, B.box)) continue;
+          // 并成一块：两块都在最后一段、奔向同一个目的块
+          const inLast = (m: typeof A.m) => u >= (m.keys!.at(-2) ?? 1);
+          if (near(A.m.points.at(-1)!, B.m.points.at(-1)!) && inLast(A.m) && inLast(B.m)) continue;
+          // 分出一份：刚出现不久，出现那一刻正好在另一块所在的位置，而且另一块从那时起一直停着没动
+          // （副本从停住的主干下面横着滑出去；主干边走边分叉会摞成一道台阶）
+          const split = (P: typeof A, Q: typeof A) => {
+            if (P.m.show === null || u - P.m.show >= 0.04) return false;
+            const at = pointAt(Q.m.points, Q.m.keys!, P.m.show);
+            return near(at, P.m.points[0]!) && near(Q.p, at);
+          };
+          if (split(A, B) || split(B, A)) continue;
+          failures.push(
+            `u=${u.toFixed(3)} (${A.p.x.toFixed(0)},${A.p.y.toFixed(0)}) 压住 (${B.p.x.toFixed(0)},${B.p.y.toFixed(0)})`,
+          );
+        }
+    }
+    expect([...new Set(failures)].slice(0, 5)).toEqual([]);
+  }
+});
+
+it("逐张卡演：只支持两排各两张卡，两排之间要放得下加法列；不开时画法不变", () => {
+  const low = figureProblems(fig({ exchanges: [{ ...AR_WAVES, gap: [190, 96] }] }, AR_SIZE));
+  expect(low.some((p) => p.includes("放不下加法列"))).toBe(true);
+  const two = figureProblems(
+    fig(
+      {
+        exchanges: [
+          {
+            ...AR_WAVES,
+            cards: ["卡 0", "卡 1"],
+            start: AR_WAVES.start.slice(0, 2),
+            steps: [{ title: "发", moves: [{ from: [0, 1], to: [1, 1], op: "add" }] }],
+          },
+        ],
+      },
+      AR_SIZE,
+    ),
+  );
+  expect(two.some((p) => p.includes("逐张卡演只支持"))).toBe(true);
+  // 不开 waves：照旧画箭头，块停在箭头上
+  expect(renderFigure(fig({ exchanges: [RING] }, [880, 2416]))).toContain("marker-end");
 });

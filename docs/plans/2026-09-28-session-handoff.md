@@ -1,4 +1,4 @@
-# 会话交接（2026-09-28/29 更新，09-29 白天再更新）：LLM-wiki P5 推进
+# 会话交接（2026-09-28/29/10-02 更新）：LLM-wiki P5 推进
 
 给下一个主会话看的完整交接。读完这份就能接手；细节按下面的索引去查，不要凭记忆推进。
 
@@ -56,6 +56,9 @@
 - **讲法总原则**（用户纠正「矫枉过正」后定的）：用户的话是站在初学者角度的建议，不是逐字规格；学习顺序是「是什么（直觉 + 具体例子）→ 为什么需要 → 怎么算（示意数演算）→ 细节 → GLM → 误解 → 对照源码」；动图演机制（谁把哪块发给谁），不是数字在跳；图元不够就新增（只做加法）。全文在本会话 scratchpad 的 `basics-standard.md`（绝对路径见 §2 补充）。
 - 仓库的格式检查 `pnpm lint` 是 biome（不是 eslint）。
 
+- **派子代理必须显式传 model（10-02）**：「不传 model=Opus」只在主会话是 Opus 时成立，主会话切 Fable 后继承会变 Fable。审查员一律 `model: opus`；写手默认也显式 opus，被拦话题才 fable。
+- **主会话被拦一次**，下一轮立即把汇报降级成只有分数/页名/过没过；连拦两次就静默派活并建议用户切 Fable；被拦没发出去的派发立刻补记 scratchpad 待办。
+
 ### 端口
 - **5193 / 8790 是用户预览（wiki-web / wiki-server，用 preview_start 起），谁都不许占**；子代理各用 4173–4177。
 
@@ -76,25 +79,25 @@
 - 页面上不写 meta 文本（参考来源、「这里放慢了演示」之类）；图宽 ≤900px；正文太窄就加宽正文，不缩图。
 - 别问用户「对不对」，自己对照 config / 源码 / 论文核，或派独立审查员核。
 
-## 4. 当前状态（09-29 本会话结束时）
+## 4. 当前状态（10-02 本会话终盘）
 
-- 已提交：`14591fd`（p4-checkpoint）、`4fb4b74`（p5-checkpoint-1）、`d547a6b`（p5-checkpoint-2）、`9ad75ad`（HCCL buffer 页闭环）。
-- **未提交**（全部检查通过：wiki:lint / wiki:audit / wiki:diagrams --check / typecheck / biome 都是 0；单测 980 个只有 `scripts/wiki/params/scan.test.ts` 1 个失败，是本机 Python 低于 3.11 的环境问题，与改动无关；达标名单 45 → **55 页全部达标**）：
-  - **第 10 批**：vllm-scheduler、prefill、graph-mode-layer、pd-disaggregation 完成并入名单；ai-core 挂起（见 §3）。
-  - **基础页「讲清楚」返工**（用户 09-29 反馈：attention 页基础没讲清、通信基础页动图「只是数字在播放」）：排查 22 页基础页（结果 `basics-audit.md`），把讲不清的全部按新讲法改完、独立审查、修到过线，共 19 页：attention-qkv、matmul-and-weights、token、embedding、moe、collective-communication、layers-and-hidden、kv-cache、tensor-parallel、expert-parallel、prefill、quantization、mlp-residual-norm、rope、gqa、mla、data-parallel、pipeline-parallel、sequence-parallel（后两页原是旧体例，整页改写后新入名单）。每页的审查 / 修订记录在 `docs/mainline/review/pages/<id>-review.md`。
-  - **工具**：新增「exchanges 分镜」图元 + `DiagramPlayer` 播放器（通信基础、EP、SP 三页的动图在用，删掉了旧 CollectiveDemo）；`wiki:lint` 加跨页锚点硬校验（改标题后入链失效会报错）；修了 calc 吞掉「≈」后面结果的 bug。都有测试，先红后绿。
-  - **第 11 批**：chunked-prefill、prepare-inputs-flow、vllm-engine-core、kv-cache-quantization 完成并入名单；op-to-ai-core 挂起（见 §3）。
-- 工作区另有 6 个夜间任务（参数同步、巡检，09-29 凌晨 3 点）的产出未跟踪，不是本会话写的，提交时由用户决定是否带上。
+- 已提交：`94e94b3`（tag p5-checkpoint-3，第 10–11 批 + 基础页返工 19 页 + 工具）、`ab68a0f`（09-29 夜间产出）。本次终盘将提交 **p5-checkpoint-4**。
+- **p5-checkpoint-4 的内容**（全套检查通过：wiki:lint / wiki:audit / wiki:diagrams(271 图) / typecheck / biome 全 0；单测 990 个仅 scripts/wiki/params/scan.test.ts 1 个失败 = 本机 Python<3.11 环境问题）：
+  - **第 12–18 批**完成并入名单（api-server-entry 除外，见 §5）：async-scheduling、batch-job-aware-scheduler、npu-model-runner、recompute-scheduler、short-request-first、balance-scheduling、batch-invariance、context-parallel、dynamic-chunked-pp、eplb、kv-cache-cpu-offload、kvpp、large-scale-ep、kv-pool、kv-cache-layerwise-offload、kv-cache-sparse-offload、recompute-cpu-offload、dyntra-lb、lmcache、lora、mooncake-connector、reading-vllm-ascend、ucm、acl-graph、fine-grained-tp，新建页 sampling / lm-head / dp-request-routing。达标名单 55 → **83 页全部达标**。每页流程都走满「写→独立审→修→P1 复审→入名单」，审查/修订记录在 `docs/mainline/review/pages/<id>-review.md`。
+  - **动图样品**：all-reduce 分镜按诊断重做（竖式加法演相加、不遮挡、一次只演一张卡），gif+前后帧已发用户，**等用户点头后再推广到其余 11 张分镜**；诊断清单 anim-diag/diagnosis.md、样品说明 anim-sample/NOTES.md（含推广前要扩展的图元能力与待定项：按来源卡上色需用户选色、节奏、正文图例文字）。
+  - **参考图库**：scratchpad\refs\（xzclass 14 张、AMD 25 张 + INDEX.md + HOW-THEY-TEACH.md）；知乎那篇 403 打不开，需用户自己存图或授权用其 Chrome。
+  - 10-02 夜间任务中途挂掉留下死锁 tools/wiki-runtime/workflow.lock（持锁进程已死），已删；该晚无产出文件。
+- **挂起等 GPT-6 Astra（10-04 13:35 恢复）**：ai-core、op-to-ai-core、vllm-ascend-repo-map（三页均为 Claude 两系被拦话题；派活提示词只写「读 p5q 任务文件+通用说明」，主会话一个字不写话题内容）。
 - tmp/ 仍是 Codex 临时产物，不提交。
 
 ## 5. 接续清单（按顺序做）
 
-1. **提交检查点**：以上是一个干净检查点，**用户点头**后提交打 tag（建议 `p5-checkpoint-3`）。
-2. **第 12 批起**按 `2026-09-28-p5-batches.md` 走，每页流程不变（写 → 独立审 → 修 → P1 复审 → 入名单）；写手 / 审查员派发说明用本会话 scratchpad 的 `b10-writer-common.md` / `b10-review-common.md`（已含「讲法」一节和读页面固定命令）。旧清单要点仍有效：新页（sampling / HTTP 入口 / DP 组选择 / lm_head / A7）；RFork 批 20–25（要验证「400 本身不能证明 TTL 过期」）；参数页保持 4 段式。
-3. **10-04 13:35 之后**：ai-core、op-to-ai-core 交 GPT-6 Astra 写，Opus 审。
-4. 小 P3 攒着顺手做：工具审查剩的 4 条 P3（真实页面未命中，见 `tooling-review.md`）；kv-cache-quantization 审查里 1 条 P3 不归本页；prefill 旧 P3-8 要改底稿；block-table 约 250–350 字重复、L147 meta 文本、「full 组」未解释；低优先级基础页（linear-attention、sparse-attention、attention-cost、context-parallel）排查判为讲清 / 基本讲清，暂不动。
-5. 环境：本机 Python 低于 3.11，导致参数扫描单测失败（可装 3.11+ 并用 `WIKI_PYTHON` 指定）；09-29 浏览器验收时发现 wiki-server（8790）没在跑，侧栏问答不可用（服务是另一会话起的，没动）。
-6. P6：11 张孤儿图（删前必须问用户）、3 个既有 e2e 失败、flaky 导航 e2e、主仓 PROJECT-MAP 同步、HANDOFF/HANDBOOK 更新（HANDBOOK 派 Fable 改）；另建议把本会话 scratchpad 里的 `basics-standard.md` 并进正式写作标准 `docs/wiki-writing-standard.md`（单一出处，免得标准只躺在临时目录里）。
+1. **P5 剩余**：第 18 批 api-server-entry（新页，未做）；第 19 批 npugraph-ex、speculative-decoding、streaming-output（新页）；第 20–25 批 RFork（要验证「400 本身不能证明 TTL 过期」）；第 26–30 批按 `2026-09-28-p5-batches.md`；参数页保持 4 段式。写手用 scratchpad 的 `p5-writer-prompt.md`、审查用 `p5-review-prompt.md`（新会话先把这些共用说明拷到自己的 scratchpad 或仓内）。
+2. **10-04 13:35 后**：三页挂起页交 GPT-6 Astra 写、Opus 审。
+3. **动图推广**：等用户对 all-reduce 样品表态后，按 NOTES.md 的清单扩展图元（Reduce 根卡一步收 4 块、ring 四卡同发、EP/SP 本卡计算）并推广到其余 11 张，正文图例文字同步改。
+4. 攒着的小 P3（各页 review 文件内有明细）：lm-head 2 条跨页、dp-request-routing 的 alias 归属、kvpp 的 index.md 一条、prefill 旧 P3-8 要改底稿、block-table 重复段、工具审查 4 条未命中项。
+5. 环境：本机 Python<3.11 致 1 个单测失败（装 3.11+ 用 WIKI_PYTHON 指定）；10-02 夜间任务为何中途挂、死锁自恢复机制要不要加，待查；前端「一页不合法整站打不开」已三次咬人，改成跳过坏页需用户拍板。
+6. P6 项不变：孤儿图（删前问用户）、3 个既有 e2e 失败、flaky 导航 e2e、主仓 PROJECT-MAP 同步、HANDOFF/HANDBOOK 更新（HANDBOOK 派 Fable）、把 basics-standard.md 并进 docs/wiki-writing-standard.md。
 
 ## 6. 额度与环境
 

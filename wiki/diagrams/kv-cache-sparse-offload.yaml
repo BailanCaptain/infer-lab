@@ -1,16 +1,45 @@
 layout: figure
 id: kv-cache-sparse-offload
-caption: 历史0至7的示例：设备热缓冲已有0、2、4、6；本步选择2和5，只需新增加载5，索引器缓存仍占用设备内存
-size: [900, 420]
+caption: 一层里的 8 个位置全在主机内存，设备上只有 4 个热槽。这一步选中 2、5、6：2 和 6 还在槽里直接用，只有 5 要从主机搬回来，装进本步没被选中、又最久没用的那个槽（原来放 0）。
+size: [900, 396]
 frames:
-  - {label: 主机内存 · 完整主注意力历史, at: [30, 50], size: [840, 105]}
-  - {label: 设备内存, at: [30, 240], size: [840, 150]}
+  - {label: "① 上一步之后", at: [12, 44], size: [284, 318]}
+  - {label: "② 这一步选中 2、5、6", at: [308, 44], size: [284, 318]}
+  - {label: "③ 只搬缺的那一行", at: [604, 44], size: [284, 318]}
 grids:
-  - at: [60, 80]
+  - at: [34, 104]
     rows: 1
     cols: 8
-    cell: [75, 45]
-    gap: 20
+    cell: [24, 32]
+    gap: 4
+    tone: kv
+    style: faded
+    cells:
+      - {at: [0, 0], text: "0"}
+      - {at: [0, 1], text: "1"}
+      - {at: [0, 2], text: "2"}
+      - {at: [0, 3], text: "3"}
+      - {at: [0, 4], text: "4"}
+      - {at: [0, 5], text: "5"}
+      - {at: [0, 6], text: "6"}
+      - {at: [0, 7], text: "7"}
+  - at: [34, 218]
+    rows: 1
+    cols: 4
+    cell: [48, 36]
+    gap: 8
+    tone: kv
+    style: faded
+    cells:
+      - {at: [0, 0], text: "0"}
+      - {at: [0, 1], text: "2"}
+      - {at: [0, 2], text: "4"}
+      - {at: [0, 3], text: "6"}
+  - at: [330, 104]
+    rows: 1
+    cols: 8
+    cell: [24, 32]
+    gap: 4
     tone: kv
     style: faded
     cells:
@@ -20,29 +49,61 @@ grids:
       - {at: [0, 3], text: "3"}
       - {at: [0, 4], text: "4"}
       - {at: [0, 5], text: "5", style: solid}
-      - {at: [0, 6], text: "6"}
+      - {at: [0, 6], text: "6", style: solid}
       - {at: [0, 7], text: "7"}
-  - at: [60, 295]
+  - at: [330, 218]
     rows: 1
     cols: 4
-    cell: [75, 45]
-    gap: 20
+    cell: [48, 36]
+    gap: 8
     tone: kv
     style: faded
     cells:
       - {at: [0, 0], text: "0"}
       - {at: [0, 1], text: "2", style: solid}
       - {at: [0, 2], text: "4"}
-      - {at: [0, 3], text: "6→5"}
-hardware:
-  - {kind: memory, at: [610, 278], size: [210, 64], label: 索引器缓存}
+      - {at: [0, 3], text: "6", style: solid}
+  - at: [626, 104]
+    rows: 1
+    cols: 8
+    cell: [24, 32]
+    gap: 4
+    tone: kv
+    style: faded
+    cells:
+      - {at: [0, 0], text: "0"}
+      - {at: [0, 1], text: "1"}
+      - {at: [0, 2], text: "2"}
+      - {at: [0, 3], text: "3"}
+      - {at: [0, 4], text: "4"}
+      - {at: [0, 5], text: "5", style: solid}
+      - {at: [0, 6], text: "6"}
+      - {at: [0, 7], text: "7"}
+  - at: [626, 218]
+    rows: 1
+    cols: 4
+    cell: [48, 36]
+    gap: 8
+    tone: kv
+    style: faded
+    cells:
+      - {at: [0, 0], text: "5", style: solid}
+      - {at: [0, 1], text: "2", style: solid}
+      - {at: [0, 2], text: "4"}
+      - {at: [0, 3], text: "6", style: solid}
 links:
-  - {from: [572, 130], to: [382, 289], via: [[572, 207], [382, 207]], tone: comm}
+  - {from: [770, 136], to: [650, 218], via: [[770, 180], [650, 180]], tone: comm}
 texts:
-  - {at: [60, 199], text: "本步选中 {2,5}；2已命中", strong: true}
-  - {at: [595, 192], text: "加载缺失行5", tone: comm}
-  - {at: [60, 369], text: "4个热槽 · 示例替换位置6"}
-  - {at: [610, 369], text: "仍驻设备，容量另计"}
+  - {at: [34, 88], text: 主机内存：8 行历史, size: 12, note: true}
+  - {at: [34, 202], text: 设备热槽（4 个）, size: 12, note: true}
+  - {at: [34, 280], text: 槽里装着 0、2、4、6, size: 12}
+  - {at: [34, 302], text: 最久没用 → 0、4、2、6, size: 12, note: true}
+  - {at: [330, 280], text: 2、6 命中，直接用, size: 12}
+  - {at: [330, 302], text: 5 不在槽里 → 缺失 1 行, size: 12, tone: danger}
+  - {at: [626, 280], text: 只搬 1 行：5 顶掉 0, size: 12, tone: comm}
+  - {at: [626, 302], text: 0 这一步没被选中，最久没用, size: 12, note: true}
 pins:
-  - source: vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L1035-L1134
-    symbols: [onload_topk_kv]
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L1001-L1156
+    symbols: [onload_topk_kv, _resident_views]
+  - source: vllm-ascend@baa023ad:csrc/torch_binding.cpp#L2266-L2400
+    symbols: [process_one_lru_resident_row]

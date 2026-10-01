@@ -1,22 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 395" width="900" height="395" role="img" aria-label="预算教学例：6个空闲块，预测下一轮新增1块，余量2块、上限8块；从准入预算扣3块，剩3块×4位置=12。预留不是立即分配专属物理块。">
-  <title>预算教学例：6个空闲块，预测下一轮新增1块，余量2块、上限8块；从准入预算扣3块，剩3块×4位置=12。预留不是立即分配专属物理块。</title>
-  <defs></defs>
-  <rect x="55" y="85" width="125" height="50" fill="var(--color-token, #087f73)"/>
-  <text x="117.5" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可准入</text>
-  <rect x="180" y="85" width="125" height="50" fill="var(--color-token, #087f73)"/>
-  <text x="242.5" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可准入</text>
-  <rect x="305" y="85" width="125" height="50" fill="var(--color-token, #087f73)"/>
-  <text x="367.5" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">可准入</text>
-  <rect x="430" y="85" width="125" height="50" fill="var(--color-kv-soft, #e8edff)"/>
-  <text x="492.5" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">预留预算</text>
-  <rect x="555" y="85" width="125" height="50" fill="var(--color-kv-soft, #e8edff)"/>
-  <text x="617.5" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">预留预算</text>
-  <rect x="680" y="85" width="125" height="50" fill="var(--color-kv-soft, #e8edff)"/>
-  <text x="742.5" y="114.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">预留预算</text>
-  <path d="M180 85v50M305 85v50M430 85v50M555 85v50M680 85v50" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="55" y="85" width="750" height="50" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <text x="35" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">本轮准入前：空闲 6 块</text>
-  <text x="35" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">预留 = min(1 + 2, 8) = 3 块</text>
-  <text x="35" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">准入预算 = (6 − 3) × 4 = 12 个位置</text>
-  <text x="450" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">B=4 为教学假设；真实混合缓存不能由此直接换算显存</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 490" width="880" height="490" role="img" aria-label="同一个池子、同样 6 块空闲的两种接法（数为示意）。上行先替 running 留 3 块，余额只够接 X，Y 等下一轮；下行不留，X、Y 都进来，下一步 A 借走最后 1 块，Y 被抢占。留着的块没有记到谁名下。">
+  <title>同一个池子、同样 6 块空闲的两种接法（数为示意）。上行先替 running 留 3 块，余额只够接 X，Y 等下一轮；下行不留，X、Y 都进来，下一步 A 借走最后 1 块，Y 被抢占。留着的块没有记到谁名下。</title>
+  <defs><marker id="batch-job-aware-scheduler-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M710 302 L724 302" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#batch-job-aware-scheduler-ah-ink)"/>
+  <path d="M710 414 L724 414" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#batch-job-aware-scheduler-ah-ink)"/>
+  <rect x="64" y="46" width="52" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="116" y="46" width="52" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="168" y="46" width="52" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="220" y="46" width="52" height="36" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="246" y="68.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">本步</text>
+  <rect x="64" y="82" width="52" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="116" y="82" width="52" height="36" fill="var(--color-kv, #4c65b6)"/>
+  <rect x="168" y="82" width="52" height="36" fill="var(--color-kv-soft, #e8edff)"/>
+  <text x="194" y="104.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#3a4f93" text-anchor="middle">本步</text>
+  <rect x="220" y="82" width="52" height="36" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M116 46v72M168 46v72M220 46v72M64 82h208" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="64" y="46" width="208" height="72" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="54" y="68.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">A</text>
+  <text x="54" y="104.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">B</text>
+  <rect x="104" y="280" width="96" height="44" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="152" y="306.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">空（留）</text>
+  <rect x="206" y="280" width="96" height="44" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="254" y="306.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">空（留）</text>
+  <rect x="308" y="280" width="96" height="44" rx="4" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="356" y="306.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#4d5652" text-anchor="middle">空（留）</text>
+  <rect x="410" y="280" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="458" y="306.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X</text>
+  <rect x="512" y="280" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="560" y="306.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X</text>
+  <rect x="614" y="280" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="662" y="306.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X</text>
+  <text x="94" y="306.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">预留</text>
+  <rect x="104" y="392" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="152" y="418.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X</text>
+  <rect x="206" y="392" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="254" y="418.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X</text>
+  <rect x="308" y="392" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="356" y="418.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X</text>
+  <rect x="410" y="392" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="458" y="418.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Y</text>
+  <rect x="512" y="392" width="96" height="44" rx="4" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="560" y="418.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Y</text>
+  <rect x="614" y="392" width="96" height="44" rx="4" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.45" stroke-width="1.2"/>
+  <text x="662" y="418.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">空</text>
+  <text x="94" y="418.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">不预留</text>
+  <rect x="24" y="170" width="200" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="124" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">X：提示词 10 个位置</text>
+  <text x="124" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">要 3 块</text>
+  <rect x="240" y="170" width="200" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="340" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Y：提示词 8 个位置</text>
+  <text x="340" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">要 2 块</text>
+  <rect x="724" y="280" width="150" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="799" y="298" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A 借到 1 块</text>
+  <text x="799" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">Y 下一轮再接</text>
+  <rect x="724" y="392" width="150" height="44" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="799" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">Y 被抢占</text>
+  <text x="799" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">A 借走最后 1 块</text>
+  <path d="M104 330 v8 h300 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="254" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">留 = 下一步 1 块 + 余量 2 块 = 3 块</text>
+  <path d="M410 330 v8 h300 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="560" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">余额 3 × 4 = 12 个位置，只够 X</text>
+  <text x="24" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">① running：先看下一步要不要新块</text>
+  <text x="296" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">A：本步写满这一块 → 下一步要借 1 块</text>
+  <text x="296" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">B：块里还空 1 格 → 下一步不用借</text>
+  <text x="24" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">② waiting：两条新请求在排队</text>
+  <text x="24" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">③ 同样 6 块空闲，两种接法；右边是下一步</text>
+  <text x="24" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">一块 4 个位置；深色是已写的，淡色是本步要写的</text>
 </svg>

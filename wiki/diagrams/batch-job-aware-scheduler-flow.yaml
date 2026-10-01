@@ -1,0 +1,46 @@
+layout: figure
+id: batch-job-aware-scheduler-flow
+caption: 第 2 站调度里，上游先排完 running，再扫 waiting；每接一条之前都问批作业感知队列「有能接的吗」。队列先算准入预算，为 0 就答「没有」；否则冷启动请求优先，其次按作业的长短和预算大小排先后，在排第一的作业桶里挑一条交回上游。上游照常截断、借块，这条进 running 后，预留器把它的下一步需求加进预留，再问下一条。请求自然结束时，它的输出长度更新所属作业的估计。
+size: [880, 664]
+items:
+  - { at: [230, 16], size: [420, 56], text: 第 2 站 调度：上游先把 running 排完, sub: 余下的 token 预算留给 waiting, style: plain }
+  - { at: [230, 108], size: [420, 56], text: waiting 循环：队列里有能接的吗？, sub: 每接一条都问一次, style: plain }
+  - { at: [230, 200], size: [420, 60], text: ① 准入预算 = (空闲块 − 预留块) × 块大小, sub: "预留 = min(running 下一步新块 + 余量, 上限)", tone: kv }
+  - { at: [676, 200], size: [172, 60], text: 预算为 0, sub: 答「没有」，本步不再接, tone: control, style: plain }
+  - { at: [230, 296], size: [420, 60], text: ② 有冷启动请求就先交它, sub: 作业的桶从空到有以后，最先进来的 3 条, tone: control }
+  - { at: [230, 392], size: [420, 60], text: ③ 作业分长短、排先后, sub: 估计输出 > 32 为长；预算 > 4096 长的在前，否则短的在前, tone: control }
+  - { at: [676, 392], size: [172, 60], text: 请求自然结束, sub: 输出长度更新作业估计, style: plain }
+  - { at: [230, 488], size: [420, 60], text: ④ 排第一的作业里挑一条, sub: 提示词 ≤ 预算的最长一条；都超出就挑最短的, tone: control }
+  - { at: [230, 584], size: [420, 60], text: ⑤ 交回上游：截断、借块，进入 running, sub: 预留器把这一条的下一步需求加进预留, tone: token }
+links:
+  - { from: [440, 72], to: [440, 108] }
+  - { from: [440, 164], to: [440, 200] }
+  - { from: [650, 230], to: [676, 230] }
+  - { from: [440, 260], to: [440, 296] }
+  - { from: [440, 356], to: [440, 392] }
+  - { from: [440, 452], to: [440, 488] }
+  - { from: [440, 548], to: [440, 584] }
+  - { from: [230, 326], to: [230, 604], via: [[196, 326], [196, 604]] }
+  - { from: [650, 614], to: [650, 136], via: [[866, 614], [866, 136]] }
+  - { from: [676, 422], to: [650, 422], dashed: true }
+texts:
+  - { at: [656, 220], text: 是, size: 13 }
+  - { at: [452, 284], text: 否, size: 13 }
+  - { at: [188, 470], text: 找到, size: 13, anchor: end }
+  - { at: [452, 380], text: 没有, size: 13 }
+  - { at: [856, 530], text: 回来问下一条, size: 13, anchor: end }
+pins:
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L509-L541
+    symbols: [_admission_budget, _find_admittable, _get_cold_start_request, _try_schedule_by_available_tokens]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L483-L495
+    symbols: [_COLD_START_MIN_SAMPLES]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L554-L609
+    symbols: [short_decode_token_threshold, low_available_tokens_threshold]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L315-L333
+    symbols: [peek_best_fit_request]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L218-L236
+    symbols: [_compute_one, _cached_predict_blocks]
+  - source: vllm-ascend@2ed6cbba:vllm_ascend/core/batch_job_aware_scheduler.py#L655-L662
+    symbols: [FINISHED_STOPPED, observe]
+  - source: vllm@568afb3a:vllm/v1/core/sched/scheduler.py#L669-L676
+    symbols: [skipped_waiting, token_budget]

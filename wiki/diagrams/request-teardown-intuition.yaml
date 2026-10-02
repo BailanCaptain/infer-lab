@@ -1,0 +1,56 @@
+layout: figure
+id: request-teardown-intuition
+caption: 请求 A 停下前后，三种进程里为它存的东西（数是示意；空闲块队列左边是队头、右边是队尾）。① 引擎在判停的同一步把 A 移出 running 队列，倒着还块（块 5 → 块 2 → 块 9），再删请求表项：块 5、块 2 的引用计数降到 0，排回队尾；块 9 是 A 和 B 共用的开头，计数只降到 1，留给 B。还回的块不擦数据。② 前端收到带结束原因的最后一份结果，删掉 A 的记录，输出槽交出最后一份后关闭。③ worker 等下一步的调度清单写明「A 已结束」，才删掉批次表里那一行。这是引擎先判停的顺序；停止字符串和客户端断开由前端先发现，① 和 ② 对调。
+size: [900, 704]
+frames:
+  - { at: [24, 52], size: [852, 132], label: 前端 · API server }
+  - { at: [24, 212], size: [852, 312], label: 引擎 · EngineCore }
+  - { at: [24, 552], size: [852, 128], label: worker · 每张卡一份 }
+items:
+  # 前端：之前
+  - { at: [196, 76], size: [150, 48], text: A 的记录, sub: 反分词进度, tone: token }
+  - { at: [356, 76], size: [150, 48], text: A 的输出槽, sub: 等 HTTP 任务来取, tone: token }
+  - { at: [196, 134], size: [310, 34], text: B、C 的记录和输出槽, style: plain }
+  # 前端：之后
+  - { at: [576, 76], size: [140, 48], text: A 的记录, sub: 已删, tone: token, style: faded }
+  - { at: [726, 76], size: [140, 48], text: A 的输出槽, sub: 交出最后一份后关闭, tone: token, style: faded }
+  - { at: [576, 134], size: [290, 34], text: B、C 的记录和输出槽, style: plain }
+  # 引擎：之前
+  - { at: [196, 236], size: [310, 40], text: A 的请求表项, sub: 算到哪、手里有哪些块, tone: control }
+  - { at: [196, 376], size: [96, 48], text: 块 9, sub: 计数 2, tone: kv }
+  - { at: [302, 376], size: [96, 48], text: 块 2, sub: 计数 1, tone: kv }
+  - { at: [408, 376], size: [96, 48], text: 块 5, sub: 计数 1, tone: kv }
+  # 引擎：之后
+  - { at: [576, 236], size: [290, 40], text: A 的请求表项, sub: 已删, tone: control, style: faded }
+  - { at: [576, 376], size: [150, 48], text: 块 9, sub: 计数 1 · 留给 B, tone: kv }
+grids:
+  - { at: [196, 312], rows: 1, cols: 3, cell: [56, 36], gap: 4, tone: control, style: plain, rowLabels: [running 队列], cells: [{ at: [0, 0], text: B }, { at: [0, 1], text: A, style: solid }, { at: [0, 2], text: C }] }
+  - { at: [576, 312], rows: 1, cols: 2, cell: [56, 36], gap: 4, tone: control, style: plain, cells: [{ at: [0, 0], text: B }, { at: [0, 1], text: C }] }
+  - { at: [196, 458], rows: 1, cols: 4, cell: [40, 36], gap: 4, tone: kv, style: plain, rowLabels: [空闲块队列], cells: [{ at: [0, 0], text: "3" }, { at: [0, 1], text: "4" }, { at: [0, 2], text: "6" }, { at: [0, 3], text: "7" }] }
+  - { at: [576, 458], rows: 1, cols: 6, cell: [40, 36], gap: 4, tone: kv, style: plain, cells: [{ at: [0, 0], text: "3" }, { at: [0, 1], text: "4" }, { at: [0, 2], text: "6" }, { at: [0, 3], text: "7" }, { at: [0, 4], text: "5", style: solid }, { at: [0, 5], text: "2", style: solid }] }
+  - { at: [196, 604], rows: 1, cols: 3, cell: [72, 36], gap: 4, tone: token, style: plain, rowLabels: [批次表], cells: [{ at: [0, 0], text: B 行 }, { at: [0, 1], text: A 行, style: solid }, { at: [0, 2], text: C 行 }] }
+  - { at: [576, 604], rows: 1, cols: 2, cell: [72, 36], gap: 4, tone: token, style: plain, cells: [{ at: [0, 0], text: B 行 }, { at: [0, 1], text: C 行 }] }
+links:
+  - { from: [512, 100], to: [568, 100], tone: token }
+  - { from: [512, 256], to: [568, 256], tone: control }
+  - { from: [512, 622], to: [568, 622], tone: token }
+badges:
+  - { at: [528, 226], n: 1 }
+  - { at: [528, 70], n: 2 }
+  - { at: [528, 592], n: 3 }
+texts:
+  - { at: [196, 22], text: A 停下之前, size: 14, strong: true }
+  - { at: [576, 22], text: A 停下之后, size: 14, strong: true }
+  - { at: [186, 405], text: A 手里的块, size: 13, anchor: end }
+  - { at: [736, 405], text: 块 9 是 A、B 共用的开头, size: 12, note: true }
+  - { at: [576, 450], text: 块 5、块 2 计数降到 0，排回队尾, size: 12 }
+  - { at: [576, 596], text: 下一步清单写明 A 已结束，才删, size: 12 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910
+    symbols: [_free_request, finished_req_ids, _free_blocks]
+  - source: vllm@0fc695fc:vllm/v1/core/block_pool.py#L419-L442
+    symbols: [free_blocks, ref_cnt]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L695-L708
+    symbols: [_finish_request, request_states]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1135-L1150
+    symbols: [finished_req_ids, remove_request]

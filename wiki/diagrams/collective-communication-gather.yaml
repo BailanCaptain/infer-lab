@@ -1,24 +1,48 @@
 layout: figure
 id: collective-communication-gather
-caption: Gather：每张卡各有一块，全部送到根卡 0，按卡号排好；其余卡手里的块只是用过的输入（灰字）。它正好是 Scatter 反过来。
-size: [880, 696]
-exchanges:
-  - at: [105, 8]
-    cards: [卡 0, 卡 1, 卡 2, 卡 3]
-    slots: 4
-    gap: [190, 96]
-    dots: true
-    tag: 数为示意
-    start:
-      - [1, null, null, null]
-      - [null, 2, null, null]
-      - [null, null, 3, null]
-      - [null, null, null, 4]
-    steps:
-      - title: 每张卡把自己那一块发给根卡 0
-        moves:
-          - { from: [1, 1], to: [0, 1] }
-          - { from: [2, 2], to: [0, 2] }
-          - { from: [3, 3], to: [0, 3] }
-        keep: [[0, 0], [0, 1], [0, 2], [0, 3]]
-    end: 通信后：只有根卡 0 收齐 [1, 2, 3, 4]
+caption: Gather：每张卡把自己那块发给根卡 0，根卡按卡号排好收齐。中间一格只有根卡 0 收数据，紫色箭头是经过通信送来的块，灰色虚线是根卡自己的那块，不用发；其余卡手里不变。
+size: [880, 482]
+frames:
+  - { label: 发之前：卡 k 只有第 k 块, at: [8, 30], size: [864, 90] }
+  - { label: 每张卡把自己那块发给根卡 0, at: [8, 158], size: [864, 188] }
+  - { label: '发之后：只有根卡 0 收齐 [1, 2, 3, 4]', at: [8, 384], size: [864, 90] }
+grids:
+  # 发之前：卡 k 只有第 k 块
+  - { at: [38, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1', style: faded }] }
+  - { at: [250, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 1,
+      cells: [{ at: [0, 1], text: '2', style: faded }] }
+  - { at: [462, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 2], text: '3', style: faded }] }
+  - { at: [674, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 3], text: '4', style: faded }] }
+  # 发：四张卡各自那块送到根卡 0
+  - { at: [41, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [38, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # 其余卡不收数据，手里不变
+  - { at: [250, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 1,
+      cells: [{ at: [0, 1], text: '2', style: faded }] }
+  - { at: [462, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 2], text: '3', style: faded }] }
+  - { at: [674, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 3], text: '4', style: faded }] }
+  # 发之后
+  - { at: [38, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [250, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 1,
+      cells: [{ at: [0, 1], text: '2', style: faded }] }
+  - { at: [462, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 2], text: '3', style: faded }] }
+  - { at: [674, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 3], text: '4', style: faded }] }
+links:
+  # 卡 c 的那块落进根卡 0 的第 c 块
+  - { from: [59, 218], to: [59, 276], tone: control, dashed: true }
+  - { from: [101, 218], to: [101, 276], tone: comm }
+  - { from: [143, 218], to: [143, 276], tone: comm }
+  - { from: [185, 218], to: [185, 276], tone: comm }
+texts:
+  - { at: [872, 18], text: 数为示意, size: 12.5, note: true, anchor: end }

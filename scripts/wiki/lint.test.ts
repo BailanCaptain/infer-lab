@@ -105,6 +105,26 @@ describe("lintPages", () => {
     expect(r.map((p) => p.rule).sort()).toEqual(["broken-link", "relation-missing", "unknown-chapter"]);
     expect(r.find((p) => p.rule === "broken-link")?.message).toContain("nope.md");
   });
+  it("link-outside-wiki：链接越出 wiki/ 就报，不看目标文件在不在", () => {
+    // 阅读页只发布 wiki/ 里的东西，越界的相对链接在站上一定是死链；
+    // 也不能把越界路径交给 existsFile——巡检那边的实现会因此抛错（2026-10-03 夜间崩溃）
+    const asked: string[] = [];
+    const r = lintPages([mk("a", {}, "[底稿](../../docs/mainline/02-forward.md#13-x) [ok](../raw/a.md)")], {
+      ...opts,
+      existsFile: (rel) => {
+        asked.push(rel);
+        return true;
+      },
+    });
+    expect(r).toEqual([
+      {
+        file: "concepts/a.md",
+        rule: "link-outside-wiki",
+        message: expect.stringContaining("../docs/mainline/02-forward.md"),
+      },
+    ]);
+    expect(asked).toEqual(["raw/a.md"]);
+  });
   it("relation-duplicate：有向边两边各写一次", () => {
     // 反向边由 wiki:build 派生，手写第二次会让「接着看」重复出现同一页
     const both = lintPages(

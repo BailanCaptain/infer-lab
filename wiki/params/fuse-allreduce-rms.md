@@ -41,6 +41,7 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L599-L607'
   - >-
     vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2163-L2168
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
 relations:
@@ -51,7 +52,7 @@ relations:
       npu_mm_all_reduce_base、不吸收后面的 Add+RMSNorm，本项走编译期 pattern 匹配、连 RMSNorm
       一起吃掉；main 上两条一起被删
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-10-02"
 rawSources:
   - >-
     raw/sha256-59a95308536d065059c9cc558e2d55136e4689c7d61259182be752ea3ba3e582.md
@@ -61,11 +62,11 @@ rawSources:
 
 ## 一句话
 
-`fuse_allreduce_rms` 是 `ascend_compilation_config` 下的一个布尔开关。开了它，torch.compile 会多注册一个图改写 pass，把 `matmul → AllReduce → 加残差 → RMSNorm` 这一段连续子图整个换成 `matmul_allreduce_add_rmsnorm` 一个融合算子 [C1]。
+`fuse_allreduce_rms` 是 `ascend_compilation_config` 下的一个布尔开关。开了它，torch.compile 会多注册一个图改写 pass，把 `matmul → AllReduce → 加残差 → RMSNorm` 这一段连续子图整个换成 `matmul_allreduce_add_rmsnorm` 一个融合算子 [C1]。它是 npugraph_ex 那套算子级融合规则里的一条，四条规则各自合哪两步、各自的额外条件在 [npugraph_ex](../concepts/npugraph-ex.md#怎么找出能合的一段又怎么替换)；本页只讲这一个开关自己。
 
 官方默认 `False`，理由写在参数表里：与序列并行冲突 [S9]。但 v0.23.0 上真正决定这个 pass 要不要注册的那段代码读的是另一个值、缺省写成 `True`——这个坑单独说，见下文 [!]。
 
-**本页旧算例用不到它。** 单卡 TP=1，子图里压根没有那次 TP AllReduce，pattern 无从匹配；就算有，37 个 token 也够不着 512 的门槛 [D]。要碰它得同时满足三件事：TP>1、走图模式、每步 token 数超过 512。
+**什么情况下它根本不可能生效。** 单卡（TP=1）时子图里压根没有那次 TP AllReduce，pattern 无从匹配；多卡但每步 token 数够不着 512 时也一样，门槛卡在编译区间上 [D]。要碰它得同时满足三件事：TP>1、走图模式、编译区间的 token 下界超过 512。
 
 **存在范围。** 它到 v0.24.0rc 为止还在，**v0.25.1rc 起**开关、`allreduce_rmsnorm_fusion_pass.py` 与官方表里的那一行一并删除，v0.26 分支（2026-09-17 的源码快照）和 main 上都没有，PR 号见下面「版本谱系」。**这个键是嵌套键，两边失效的方式不一样** [!]：v0.26 的 `AscendCompilationConfig.__init__` 仍带 `**kwargs`，`fuse_allreduce_rms` 被 kwargs 吞掉、没人再读 [C20]，配了不报错也不生效；main 的同一个类改成了 `extra="forbid"` 的类型化配置，同一份配置启动就被当拼写错误拒掉。
 
@@ -86,7 +87,7 @@ rawSources:
 
 ## 为什么存在
 
-张量并行下每个 Linear 的列切分结果都要做一次 AllReduce 才能拼回完整的 hidden，而 AllReduce 的下一步几乎总是「加残差 + RMSNorm」。朴素实现里这是四个背靠背的算子：通信整段阻塞，RMSNorm 只能等全部数据到齐才开始算。融合算子把 AllReduce 改写成 ReduceScatter + AllGather 两段，于是 RMSNorm 可以在 ReduceScatter 落下的那 1/tp 分片上先算起来，与还在飞的通信按 512 token 一块交叠。注意省下的不是字节数——ring AllReduce 与 RS+AG 的线上流量是同一量级——省的是串行等待。
+[张量并行](../concepts/tensor-parallel.md)下按行切的那半个 Linear 算出的是部分和，要做一次 [All-Reduce](../concepts/collective-communication.md) 把各卡的部分和加齐才能拼回完整的 hidden（为什么非得是 All-Reduce、形状怎么切成对使用，都在那两页，本页不重推），而 All-Reduce 的下一步几乎总是「加残差 + [RMSNorm](../concepts/mlp-residual-norm.md)」。朴素实现里这是四个背靠背的算子：通信整段阻塞，RMSNorm 只能等全部数据到齐才开始算。融合算子把 AllReduce 改写成 ReduceScatter + AllGather 两段，于是 RMSNorm 可以在 ReduceScatter 落下的那 1/tp 分片上先算起来，与还在飞的通信按 512 token 一块交叠。注意省下的不是字节数——ring AllReduce 与 RS+AG 的线上流量是同一量级——省的是串行等待。
 
 ```wiki-diagram
 file: fuse-allreduce-rms
@@ -112,7 +113,7 @@ vllm serve Qwen/Qwen3-0.6B \
 
 键必须嵌在 `ascend_compilation_config` 里 [C5]；写成顶层的 `{"fuse_allreduce_rms": true}` 会被静默忽略，因为 v0.23.0 用 `AscendCompilationConfig(**dict)` 构造、多余键由 `**kwargs` 吞掉。
 
-**代价一：序列并行会失效。** 若同时打开了 `compilation_config.pass_config.enable_sp`，SP 的两个 pass 仍会被注册，但匹配不到任何子图 [D]。想要 SP 就别开这个；想要这个就接受没有 SP。
+**代价一：序列并行会失效。** 若同时打开了 `compilation_config.pass_config.enable_sp`，SP 的两个 pass 仍会被注册，但匹配不到任何子图（上一节推的那条）。想要 SP 就别开这个；想要这个就接受没有 SP。
 
 **代价二：多一次图编译切分。** 开启后 `compile_ranges_endpoints` 会被插入 512，编译区间在此断开，意味着同一段图在 512 上下各编译一份，编译耗时与缓存条目相应增加 [D]。
 
@@ -127,6 +128,14 @@ vllm serve Qwen/Qwen3-0.6B \
 **这两件事不是同一版发生的。** v0.26 的 `configure` 在那三条之后还保留着一支 `if config.compilation_config.pass_config.enable_sp:`，照旧 append `SequenceParallelismPass` 与 `SequenceParallelismMoePass` [C21]；被删的只有融合这一方，所以 v0.26 恰好是「冲突消失、SP 还归昇腾侧管」的中间状态。到 main 才连 SP 那两个 pass 的注册也撤了，但 `pass_config.enable_sp` 仍被 `enable_sp_by_pass` 读取 [C15]，而 `platform.py` 转去调上游的 `update_sizes_for_sequence_parallelism`。合起来看，序列并行改由上游 vLLM 的 pass 承担是 main 才完成的一步 [I]。官方参数表里 `fuse_allreduce_rms` 这一行同步删除 [S16]。
 
 官方参数表见 <https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html>（v0.23.0），对应本地文件 `docs/source/user_guide/configuration/additional_config.md` 第 141 行。
+
+**放到 GLM 双机：候选点看着很多，按源码对照应当一处也匹配不到——这一条是推断，还没在真机上 dump 图确认。** 那套部署是 TP8，一次前向里 TP 域的 All-Reduce 有 91 次（拆分与单次载荷见[一次请求的逐层通信清单](../concepts/one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)，本页不重列）。按「All-Reduce 后面跟着归一化」去数，这些都像候选点，但按精度分三类看，pattern 的两端各有一端对不上：
+
+- **34 个 KDA 层的 `o_proj`**：按这份部署的量化配方是 BF16，开头那一端（未量化的 gemm）其实对得上，挡住它的是结尾。
+- **11 个 MLA 层的 `o_proj`、3 个稠密层与 42 层共享专家的 `down_proj`**：按配方走 W8A8，图里是量化 gemm，开头这一端就对不上。
+- **词嵌入那一次**：前面是查表不是 matmul，pattern 的第一步根本不存在。
+
+三类共同撞上的是同一堵墙：pattern 结尾要 `npu_add_rms_norm_bias`，而 GLM 每层把残差和归一化交给 mHC 的 `npu_hc_post`，`glm5_next.py` 里一次 `add_rms_norm` 都没有 [C22]。两端缺一端就不替换，所以照源码推，在这条线上把这个键打开也不该有任何一处变成 `matmul_allreduce_add_rmsnorm`；再加上 decode 步判定 MC2 路径的 token 数上界是 128，远够不着 512 的门槛，纯 decode 更谈不上命中。**待核**：逐层精度是按上游 `config.json` 推断的，本机没有 `quant_model_description.json`；也没有在真机上 dump 图确认过上面这个「零命中」；更没有任何开它的实测收益数——本页不给这个开关编任何加速比。
 
 ## 版本谱系
 

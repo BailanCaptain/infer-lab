@@ -15,7 +15,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-24'
+updated: '2026-10-02'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -62,7 +62,13 @@ sources:
     vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L492
   - >-
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L575
+  - 'vllm-ascend@baa023ad:vllm_ascend/utils.py#L177-L198'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L114-L122'
+  - >-
+    vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L573
 rawSources:
+  - >-
+    raw/sha256-439f3d59c68ccbab5b7c12b7f491d8ac3c3e1a37dc972643dfd812e5f797f6a2.md
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
@@ -78,13 +84,13 @@ rawSources:
 ---
 ## 一句话
 
-这是一个**回退开关**，不是一个特性开关。DCP 解码时各卡要先把 query all-gather 到一起，为了通信效率 gather 出来的是 head-major 布局，用完得转回 t-major。转回的方式有两种：`permute` 出一个零拷贝的 strided view（默认），或者再跟一次 `.contiguous()` 真把 `[T, H, D]` 的连续存储物化出来。这个键为真就选后者 [C5]。
+这是一个**回退开关**，不是一个特性开关。DCP（decode context parallel，解码期的上下文并行；历史位置怎么分着存见[上下文并行](../concepts/context-parallel.md#历史位置怎么分着存)）解码时各卡要先把 query all-gather 到一起，为了通信效率 gather 出来的是 head-major 布局，用完得转回 t-major。转回的方式有两种：`permute` 出一个零拷贝的 strided view（默认），或者再跟一次 `.contiguous()` 真把 `[T, H, D]` 的连续存储物化出来。这个键为真就选后者 [C5]。
 
 **默认 `false` 走的是优化后的那条路。** 引入它的 PR 标题写得很直白——「Optimize the DCP decode query-gather layout path」；代码注释也说，交给 `npu_sparse_flash_attention` 的那几段 query 一直都是 strided view（`torch.split` 从不拷贝），旧写法的 `permute + contiguous` 只是顺带把 t-major 存储物化了一遍，而这个键**把那次物化保留成可选项，供对照实验用** [C4]。
 
-**存在范围。** 只在 main 开发主线上有，2026-09-16 由 PR [#15970](https://github.com/vllm-project/vllm-ascend/pull/15970) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）上这个键、`enable_sfa_dcp_force_tmajor_restore` 这个函数、以及配套的 `ops/triton/query_gather_prep.py` 都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；main 是 `extra="forbid"` 的 pydantic 模型，拼错就起不来 [C15]。
+**存在范围。** 只在 main 开发主线上有，2026-09-16 由 PR [#15970](https://github.com/vllm-project/vllm-ascend/pull/15970) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）上这个键、`enable_sfa_dcp_force_tmajor_restore` 这个函数、以及配套的 `ops/triton/query_gather_prep.py` 都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；main 是 `extra="forbid"` 的 pydantic 模型，拼错就起不来 [C15]。本站 GLM 双机钉住的那个含 GLM 代码的提交 `db701c1f` 也一样没有这个键，它的 `AscendConfig` 和那两个分支同一套写法——逐键 `.get()`，所以写进 `additional_config` 既不报错也不生效。
 
-本页旧算例用不到它：Qwen3-0.6B 单卡，`decode_context_parallel_size` 是 1，也不是 SFA 稀疏模型，`resolve_sfa_impl` 选的是不带 CP 的 `AscendSFAImpl` [C12]。
+**放到 GLM 双机：这个键是个死键，而且不是因为没开 DCP。** 本站的 2×A2×8、TP8/DP2/EP16、W8A8 部署（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）启动命令没传 `--decode-context-parallel-size`，DCP = 1，PCP 也是 1，CP 两条路都没开（一句话在 [CP 页这一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)）。更靠前的一道门在 main 的源码里：`model_uses_sfa_sparse` 第一件事是调 `model_uses_kpool_indexer` 把 kpool indexer 这类模型排除掉，判据是 hf config 上有没有 `index_kpool` 这个字段——GLM 的配置里有，它就是稀疏 MLA 里 kpool 的粒度——那个函数的注释也点名「GLM-5.3-Flash 这一类」[C21]。**这道门只在 main 上有。** 钉住的 `db701c1f` 里同名函数没有这一句，连 `model_uses_kpool_indexer` 这个函数都还不存在，只查 `index_topk` 与 `compress_ratios` [C22]；不过那个提交上本键本身也不存在，所以两处读起来不冲突。回到 main：即便把 DCP 开到大于 1，`enable_sfa_dcp_replicated_indexer` 对 GLM 仍为假，`resolve_sfa_impl` 选不到带 DCP 的实现类，本键所在的那一行永远走不到。GLM 的稀疏 MLA 层走的是另一套 kpool 实现，后端怎么选出来见[注意力后端家族](../concepts/attention-backend-family.md#一个稀疏-mla-层其实注册了三个条目)。
 
 ## 事实表
 
@@ -92,7 +98,7 @@ rawSources:
 |---|---|---|
 | 类型 / 默认 | `bool` / `False` | 默认即「不物化」，也就是 PR 优化后的行为 |
 | 唯一消费点 | `AscendSFADCPImpl._execute_sparse_flash_attention_process` 里的 `keep_view=not enable_sfa_dcp_force_tmajor_restore()` [C4] | 全仓库只有这一处读它，没有第二条路径 |
-| 生效前提 | 模型走 SFA 稀疏注意力 **且** `decode_context_parallel_size > 1` [C13] | 两条缺一条，`resolve_sfa_impl` 就不会选到带 DCP 的实现类 |
+| 生效前提 | 模型走 SFA 稀疏注意力（kpool indexer 那一类被判断开头排除在外）**且** `decode_context_parallel_size > 1` [C13] | 两条缺一条，`resolve_sfa_impl` 就不会选到带 DCP 的实现类；GLM 卡在第一条上 |
 | 只影响哪一趟 | 批次里**没有** prefill 的那一趟 [C7] | 有 prefill 时走的是 KV-gather 分支、提前 `return`，那条分支自己写死 `.contiguous()`，与本键无关 [!] |
 | 开了多做什么 | 一次 `.contiguous()`，物化 `[T, H, D]` 连续存储 [C5] | 多一次设备端整张 query 的拷贝：`num_tokens × dcp_size × num_heads × (head_dim + rope_dim)` 个元素 [D] |
 | 关了少做什么 | `permute` 之后直接 `torch.split`，全程零拷贝 | 算子拿到的是非连续张量——这正是需要留一个回退开关的原因 |
@@ -122,6 +128,8 @@ return torch.split(gathered, context.split_sizes, dim=-1)
 ## 开了的代价
 
 **一次整张 query 的设备拷贝，每个解码步、每层。** 拷贝量是 gather 之后的 query：`num_tokens × dcp_size × num_heads × (head_dim + rope_dim)` 个元素 [D]。这是纯开销——功能上两条路等价，只差布局是不是连续。**正常部署不要开它**，它的用途是拿到一组可对比的数据，或者在怀疑非连续输入触发算子问题时二分。
+
+**注意这条代价是配置推出来的量，不是测出来的效果。** 上面那串乘法给的是被多拷贝一次的元素个数，由形状决定；它换成多少微秒要看搬运带宽和 kernel 的实际排布。引入它的那个 PR 只写了优化的理由（标题就是「Optimize the DCP decode query-gather layout path」），正文和官方文档都没有开/关的对照数据，本站这套部署也开不到它。待核：缺一组同模型、同 DCP 组大小下开与关的解码时延对照。
 
 **批次里只要有 prefill，这个键就不起作用。** `_execute_sparse_flash_attention_process` 先判 `_has_prefill`：有就走「gather 完整 KV、query 留本地」那条分支并直接 `return`，本键所在的那几行根本到不了 [C7]。连 query gather context 的记录都带着同一个判断 [C8]。所以在 chunked prefill 常开的部署里，它只在纯解码的那些步上有效 [!]。
 
@@ -167,8 +175,8 @@ return torch.split(gathered, context.split_sizes, dim=-1)
 | 标识 | `additional_config["sfa_dcp_force_tmajor_restore"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:575` [C20] |
-| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
+| 定义 | `vllm_ascend/ascend_config.py:573` [C23] |
+| 版本 | main · 4ebb3090fc3c13c26557dcaae353882e70246649 |
 
 字段注释：
 

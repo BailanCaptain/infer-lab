@@ -32,7 +32,10 @@
   <rect x="630" y="335" width="245" height="65" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
   <text x="752.5" y="363.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">图变换与执行复用</text>
   <text x="752.5" y="382.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">compilation/</text>
-  <text x="30" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">权重加载：model_loader/     精度与布局：quantization/</text>
-  <text x="30" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">候选与采样：spec_decode/ · sample/     设备扩展：根目录 csrc/</text>
+  <text x="30" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">model_loader/：选择权重加载方式</text>
+  <text x="470" y="450" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">quantization/：解释精度与布局</text>
+  <text x="30" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">spec_decode/：生成草稿候选</text>
+  <text x="470" y="480" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">sample/：采样与验证</text>
+  <text x="30" y="510" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">根目录 csrc/：设备扩展</text>
   <text x="30" y="535" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">同一职责可跨目录；箭头为主要协作关系，非完整调用栈</text>
 </svg>

@@ -178,7 +178,7 @@ vLLM 是主程序，vllm-ascend 是装在它上面的插件，不单独起自己
 file: request-call-chain-functions
 ```
 
-**① 入口为⑦返回留下接收点。** AsyncLLM 把输入包成引擎请求，并登记**反分词器**（detokenizer，把 token 编号还原成文字的组件）和输出队列；后续结果按请求 ID 回到这里。选 DP 组的规则见[数据并行](data-parallel.md)。
+**① 入口为⑦返回留下接收点。** AsyncLLM 把输入包成引擎请求，并登记**反分词器**（detokenizer，把 token 编号还原成文字的组件）和输出队列；后续结果按请求 ID 回到这里。选 DP 组的规则见[数据并行](data-parallel.md)；包成引擎请求之前，前端怎样检查、套模板、分词和定采样参数，见[API server 入口](api-server-entry.md)。
 
 **②的入口是等待队列，出口是本步清单。** [EngineCore](vllm-engine-core.md) 从输入队列取出请求，预处理后交给 scheduler 等候；下一圈调度决定本步工作并申请块号。running、waiting 与抢占的判断见[多条请求的调度图](concurrent-requests.md#第-2-站-调度一步-8192-个-token-怎样分给-13-条请求)。
 
@@ -192,7 +192,7 @@ file: request-call-chain-functions
 
 **⑥的向上箭头延续生成，向下箭头持续返回。** 结果更新按拒绝数修正进度，再追加 token、检查停止条件。结束时归还块号，完成的请求 ID 随下一份清单通知 worker 清理。每步结果都经 ZMQ 发回前端。
 
-**⑦沿请求 ID 找回①留下的队列。** 后台输出任务反分词并检查停止字符串；HTTP 侧从收集器取出文字，以 SSE（HTTP 上分段推送的格式）返回。两处停止判断怎样衔接，见[一条请求的返回与收尾](one-request.md#第-7-站-返回与收尾)。
+**⑦沿请求 ID 找回①留下的队列。** 后台输出任务反分词并检查停止字符串；HTTP 侧从收集器取出文字，以 SSE（HTTP 上分段推送的格式）返回。两处停止判断怎样衔接，见[一条请求的返回与收尾](one-request.md#第-7-站-返回与收尾)；增量反分词和 SSE 片段怎样拼出来，见[流式输出](streaming-output.md)。
 
 ## 同一条请求，第 1 步和第 2 步走的分支不同
 
@@ -332,7 +332,7 @@ file: request-call-chain-log-route
 - 第 3 站这一步没有 token 名额时，`execute_model` 在 `_prepare_inputs` 之前就返回空结果；第 4 站算完 `compute_logits` 把结果存进 `ExecuteModelState` 并返回空值，第 5 站从那里取 [C16]。
 - 第 4 站的 `set_ascend_forward_context` 保存宽度和 MoE 通信方式；第 6 站 `_free_request` 后，`finished_req_ids` 随下一份清单通知 worker，`EngineCoreOutputs` 经 ZMQ 回前端。
 - `NPUWorker.execute_model` 在这套部署下只记显存统计、按 msmonitor 配置计步，然后转交；流水线并行的收发分支因为只有一个 stage 不执行。
-- 草拟总走 eager：草稿器初始化时 `_is_glm_model` 为真就把 `use_cuda_graph` 置回 False，并打一条 `GLM series models with speculative decoding currently do not support graph mode` 的警告 [C51]。
+- 草拟总走 eager：草稿器初始化时 `_is_glm_model` 为真就把 `use_cuda_graph` 置回 False [C51]；`GLM series models with speculative decoding currently do not support graph mode` 这条警告只在草稿原本要录图（草稿配置没写 `enforce_eager: true`）时才打，官方双机命令写了，所以这套部署不打，见[投机解码的 GLM 双机一节](speculative-decoding.md#落到-glm-双机每步-1--3-个位置mtp-层连跑-3-遍)。
 
 **vllm-ascend 的六个接入点**
 

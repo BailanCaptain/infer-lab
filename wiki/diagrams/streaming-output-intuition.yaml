@@ -1,0 +1,46 @@
+layout: figure
+id: streaming-output-intuition
+caption: 示意：一条请求先后生成 3 个 token，第 4 步抽到结束 token。每一步，引擎交回新编号；前端的增量反分词把它接在已有字节后面还原，凑不成完整的字就先攒着；判停之后，把这一步新增的文字包成一个 SSE 片段推给客户端。第 2 步只拿到半个字的字节，推出去的片段是空的；结束 token 不显示成文字，只在最后一个片段里写结束原因，随后发 [DONE] 表示流结束。判停分两处：结束 token 和长度由引擎判，停止字符串由前端在反分词之后判；第 4 步的停是引擎判的，前端据此不还原这个编号。编号与字节沿用 token 页的「推理」「犇」两例
+size: [880, 500]
+texts:
+  - { at: [273, 44], text: 第 1 步, strong: true, anchor: middle }
+  - { at: [443, 44], text: 第 2 步, strong: true, anchor: middle }
+  - { at: [613, 44], text: 第 3 步, strong: true, anchor: middle }
+  - { at: [783, 44], text: 第 4 步, strong: true, anchor: middle }
+  - { at: [24, 94], text: 引擎交回的编号, strong: true }
+  - { at: [24, 194], text: 增量反分词, strong: true }
+  - { at: [24, 292], text: 判停（两处）, strong: true }
+  - { at: [24, 386], text: 推给客户端的片段, strong: true }
+items:
+  - { at: [200, 60], size: [146, 60], text: "9123", sub: 6 个字节, tone: token }
+  - { at: [370, 60], size: [146, 60], text: a, sub: 字节 E7 8A, tone: token }
+  - { at: [540, 60], size: [146, 60], text: b, sub: 字节 87, tone: token }
+  - { at: [710, 60], size: [146, 60], text: 结束 token, sub: 引擎当场判停, tone: token }
+  - { at: [200, 160], size: [146, 60], text: 推理, sub: 6 个字节凑成 2 个字, tone: token, style: faded }
+  - { at: [370, 160], size: [146, 60], text: （无）, sub: 半个字，先攒着, tone: token, style: plain }
+  - { at: [540, 160], size: [146, 60], text: 犇, sub: 和攒着的 E7 8A 凑齐, tone: token, style: faded }
+  - { at: [710, 160], size: [146, 60], text: （不显示）, sub: 已判停，不还原, tone: token, style: plain }
+  - { at: [200, 262], size: [146, 52], text: 不停, tone: control, style: plain }
+  - { at: [370, 262], size: [146, 52], text: 不停, tone: control, style: plain }
+  - { at: [540, 262], size: [146, 52], text: 不停, tone: control, style: plain }
+  - { at: [710, 262], size: [146, 52], text: 停, sub: 结束原因 stop, tone: danger }
+  - { at: [200, 354], size: [146, 56], text: 「推理」, tone: comm }
+  - { at: [370, 354], size: [146, 56], text: 空片段, sub: 没有新文字, tone: comm, style: faded }
+  - { at: [540, 354], size: [146, 56], text: 「犇」, tone: comm }
+  - { at: [710, 354], size: [146, 56], text: 结束原因 stop, tone: comm }
+  - { at: [710, 444], size: [146, 46], text: '[DONE]', sub: 流结束, tone: comm, style: faded }
+links:
+  - { from: [273, 120], to: [273, 160] }
+  - { from: [443, 120], to: [443, 160] }
+  - { from: [613, 120], to: [613, 160] }
+  - { from: [783, 120], to: [783, 160] }
+  - { from: [273, 220], to: [273, 262] }
+  - { from: [443, 220], to: [443, 262] }
+  - { from: [613, 220], to: [613, 262] }
+  - { from: [783, 220], to: [783, 262] }
+  - { from: [273, 314], to: [273, 354], tone: comm }
+  - { from: [443, 314], to: [443, 354], tone: comm }
+  - { from: [613, 314], to: [613, 354], tone: comm }
+  - { from: [783, 314], to: [783, 354], tone: comm }
+  - { from: [783, 410], to: [783, 444], tone: comm }
+  - { from: [516, 190], to: [540, 190], tone: token, dashed: true }

@@ -62,6 +62,8 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L721-L743'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L667-L671'
   - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L969-L973'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L95-L107'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L66-L75'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: S
 relations:
@@ -72,7 +74,7 @@ relations:
     kind: builds-on
     note: 开了之后上游那套 num_new_tokens 预算算完还要再被预测值截一刀，换的正是调度器这一层
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-10-02"
 origin: seed
 rawSources:
   - >-
@@ -83,11 +85,21 @@ rawSources:
 
 ## 一句话
 
-`profiling_chunk_config` 打开的是上游叫 **CPP（Dynamic Chunked Pipeline Parallel）** 的东西：启动时真跑几十次 forward，量出「这台机器上一段长 `l` 的 prefill 要多久」，运行时按这条曲线反解出每一步该切多少 token，好让流水线各级的每块耗时尽量相等。默认 `enabled: False` [C3]。
+`profiling_chunk_config` 打开的是上游叫 **CPP（Dynamic Chunked Pipeline Parallel）** 的东西：启动时真跑几十次 forward，量出「这台机器上一段长 `l` 的 prefill 要多久」，运行时按这条曲线反解出每一步该切多少 token，好让流水线各级的每块耗时尽量相等。默认 `enabled: False`（见下面事实表）。
 
-**它不是通用调优项。** 官方把它定位成 PD 分离部署里 **P（Prefiller）节点**上的长序列优化，D 节点不用配 [S13]；硬条件是 `pipeline_parallel_size > 1`、开着 chunked prefill、且不能与 balance scheduling 同开。本页旧算例是单卡 Qwen3-0.6B、37 个 token 的问题——**连 PP > 1 这条门槛都够不到，也根本切不出第二块**，这一页对它完全用不上。
+**它不是通用调优项。** 官方把它定位成 PD 分离部署里 **P（Prefiller）节点**上的长序列优化，D 节点不用配 [S13]；硬条件是 `pipeline_parallel_size > 1`、开着 chunked prefill、且不能与 balance scheduling 同开。
 
-**三个版本上都有这个参数**，差别不在能力。**配置写在哪**从 v0.26 分支（2026-09-17 的源码快照）起变了：要写进 `additional_config.scheduler_config`，顶层写法还认但会打弃用告警，两边都写以嵌套的为准，main 沿用这一套——这段写法上的账在[动态切块配置的机制页](../concepts/dynamic-chunked-pp.md)，这页不重抄。参数本身的默认值与校验，v0.26 与 v0.23 逐条相同 [C26]；两处真分叉都只在 main 上：`enabled=False` 却显式写 `need_timing=True` 时 main 告警并强制改回 `False`，以及下面第 8 条那个与 ShortRequestFirst 的关系 [!]。
+**GLM 双机这套部署用不上它，而且开了起不来。** 这套部署的四个并行维度是 TP8 / DP2 / EP16、**PP = 1**（45 层全在同一张卡的执行序列里，见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)），所以只要把 `enabled` 打开，启动校验就会直接抛 `ValueError`，三个版本的报错文案一字不差：
+
+```text
+profiling_chunk_config requires pipeline parallelism (pp > 1).
+Please set --pipeline-parallel-size to a value greater than 1,
+or disable profiling_chunk_config.
+```
+
+上面按源码里拼接前的三段字符串断行，实际日志里是一行。出处：v0.23 维护分支 [C8]、v0.26 分支 [C29]、main [C4]；GLM 实际跑的那个含 GLM 代码的提交（db701c1f）里也是同一条校验 [C30]。官方两机教程的启动命令里也没有传这个配置，所以本页讲的是「它在别的部署形态里怎么用」，不是 GLM 主线上的一步。
+
+**三个版本上都有这个参数**，差别不在能力。**配置写在哪**从 v0.26 分支（2026-09-17 的源码快照）起变了：要写进 `additional_config.scheduler_config`，顶层写法还认但会打弃用告警，两边都写以嵌套的为准，main 沿用这一套——这段写法上的账在[动态切块配置的机制页](../concepts/dynamic-chunked-pp.md)，这页不重抄。参数本身的默认值与校验，v0.26 与 v0.23 逐条相同（见下面事实表）；两处真分叉都只在 main 上：`enabled=False` 却显式写 `need_timing=True` 时 main 告警并强制改回 `False`，以及下面第 8 条那个与 ShortRequestFirst 的关系 [!]。
 
 ```wiki-diagram
 file: profiling-chunk-config
@@ -105,7 +117,7 @@ file: profiling-chunk-config
 | `smooth_factor` | `(0, 1]`，默认 1.0 | 同左 | 同左 | 1.0 = 完全信预测；官方建议开着在线校准时别动它，关了校准再调到 0.5–0.8 [S14] |
 | `min_chunk` | `> 0`，默认 4096 | 同左 | 同左 | 比 `max_num_batched_tokens` 大时被钳到后者，只有一条 warning |
 | `max_fit_chunk` | `<= 5` 报错，默认 30 | 同左 | 同左 | 报错文案说「建议至少 30 个点」，硬阈值却是 6；设计文档说拟合用 5–30 个点，所以 6–29 能过并不是 bug |
-| PP > 1 要求 | 开启且 `pp <= 1` 直接 `ValueError` | 同左 | 同左 | **三版都有**——旧版本页写「v0.23 材料未覆盖」是错的 [!] |
+| PP > 1 要求 | 开启且 `pp <= 1` 直接 `ValueError` | 同左 | 同左 | **三版都有**，不是只有新版本才校验；PP = 1 的部署（含 GLM 双机）开了就起不来 |
 | 与 balance scheduling | 同开 `ValueError`；还能用 `VLLM_ASCEND_BALANCE_SCHEDULING` 环境变量打开对方 | 同左 | 同开 `ValueError`；环境变量兜底已删 | 二选一，没有自动降级；v0.26 上残留一个 `=1` 照样能把服务顶掉 |
 | 与 ShortRequestFirst | v0.23 没有这个调度器 | 同开**直接** `ValueError` | 可以同开，但必须关掉异步调度 | 只在 v0.26 上是硬互斥；见下面第 8 条 |
 | 实现形式 | 普通类，`__init__` 里 `get` 完再 `float()` / `int()`，最后 `_validate()` | 同左 | pydantic `@config` dataclass，检查挪进 `mode="after"` 的 validator | main 上类型写错会在构造配置时就被拦下 |
@@ -163,15 +175,19 @@ chunk_size = ceil(chunk_size / align) * align
 
 变长请求、并发 4、前缀命中率 99% 的那组里，CPP2TP8 的输入吞吐是 22424 tps/卡，DP2TP8 是 16150、TP16 是 18875。三个分支的文档给的是同一组数 [S25]，所以这组数不区分版本。
 
+**这是官方的数，不是这套部署的数。** 上面两组都来自上游文档，测的是 Atlas A3 64 GB 上 PD 分离的 P 节点、DeepSeek-V3.1 与 Qwen3-235B；GLM 双机是 A2、PP = 1、这个开关关着，两边的硬件、模型和部署形态都不同，不能把上表的 TTFT 或吞吐当成「在我们这套部署上开它能省多少」。本页除这两组官方数以外的数字，全是配置默认值和公式示例。
+
 开关本身不改模型输出：它只决定每一步喂进去多少 token，采样与数值路径都不动 [D]。
 
 ## 开了的代价
 
-**1. 部署形态被锁死。** `pipeline_parallel_size > 1` 是硬门槛，`pp <= 1` 时直接 `ValueError`，三个分支都一样 [C4]。加上官方明确说它是给 PD 分离的 P 节点用的，实际能用上的是「PD 分离 + P 节点开 PP」这一种形态。
+**1. 部署形态被锁死。** `pipeline_parallel_size > 1` 是硬门槛，`pp <= 1` 时直接 `ValueError`（报错原文见「一句话」），三个分支都一样。加上官方明确说它是给 PD 分离的 P 节点用的，实际能用上的是「PD 分离 + P 节点开 PP」这一种形态。
 
 **2. 与 balance scheduling 硬互斥。** 同开报 `ValueError`，只能关掉一个。注意 v0.23 **与 v0.26** 上 balance scheduling 都还有 `VLLM_ASCEND_BALANCE_SCHEDULING` 这个环境变量入口——环境里残留一个 `=1`，就够让开了 CPP 的服务起不来；只有 main 把这个环境兜底删了。
 
 **3. 启动多付约 64 次 forward，几十秒。** 官方自己列在 Constraints 里 [S17]。profiling 复用现成的 dummy_run 机制，所以**运行期不额外占显存** [S24]——多付的是启动时间，不是内存。
+
+**同一条上还容易混的一层：别把它和启动时那轮显存试跑当成一件事。** 启动时那轮 profile run 量的是**显存峰值**，据此算出能给 KV cache 留多少块（GLM 双机的算例是[一张卡 3,855 块](../concepts/kv-cache-memory-profiling.md#放到-glm-双机一张卡的预算怎样扣)，[一块 640 个 token](../concepts/glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)）。CPP 这几十次 forward 量的是**时间**，只用来拟合那条延迟曲线；两种试跑量的东西、算出的结果和用处都不是一回事。**待核：CPP 这段 profiling 期间的显存峰值没有公开实测数**——官方只给了「复用 dummy_run、运行期不额外占显存」这一句话，没给数，我们在钉住的提交上也没测。
 
 **4. 校准期每步同步设备。** `need_timing` 默认跟随 `enabled`，为了量时间每步都要同步一次。可以显式写 `"need_timing": false` 躲掉，但官方说那样结果次优。**更要紧的是反过来那一面**：开着校准却没按标准流程走完，官方警告会出现严重性能劣化——这个参数没有「开了不管」的用法。
 

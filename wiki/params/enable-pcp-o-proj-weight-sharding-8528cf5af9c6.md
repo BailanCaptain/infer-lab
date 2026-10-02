@@ -4,7 +4,8 @@ title: enable_pcp_o_proj_weight_sharding
 type: param
 summary: >-
   开了 SFA-PCP 之后，让 o_proj 权重在加载期就按 PCP 组再切一刀、常驻只留 1/pcp_size，prefill 现 all-gather
-  出一份全量、decode 直接用本地片。默认 false，在册版本里只有 main 有，对 DSA-CP 无效。
+  出一份全量、decode 直接用本地片。默认 false；钉住的三个对照版本里只有 main 有，v0.23 / v0.26 没有，对 DSA-CP
+  无效。GLM 双机不开 PCP，用不到。
 origin: seed
 aliases:
   - PCP o_proj 权重分片
@@ -15,7 +16,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-24'
+updated: '2026-10-02'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -59,7 +60,11 @@ sources:
     vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L494
   - >-
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L577
+  - >-
+    vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L575
 rawSources:
+  - >-
+    raw/sha256-439f3d59c68ccbab5b7c12b7f491d8ac3c3e1a37dc972643dfd812e5f797f6a2.md
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
@@ -79,9 +84,9 @@ rawSources:
 
 **它是 `layer_sharding` 留下的那个缺口上唯一的用户旋钮。** 从 v0.24.0rc 删掉 [layer_sharding](layer-sharding.md) 到 v0.26 为止，关于「`o_proj` 权重怎么放」用户一个键都没有；main 上补回来的就是这一个，而且比原来管得少——切哪个权重（只有 `o_proj`）、按哪个域切（只有 PCP 组）都写死，用户只决定开不开。
 
-**存在范围。** 只在 main 开发主线上有，2026-09-07 由 PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）上这个键和 `vllm_ascend/weight_switch/` 整个目录都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；main 是 `extra="forbid"` 的 pydantic 模型，拼错就起不来 [C15]。
+**存在范围。** 2026-09-07 由 PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 引入，main 之外也进了后来拉出的 v0.28.0rc、v0.29.0rc 两条发布分支（见下面「版本谱系」）。**本库钉住的三个对照版本里，只有 main（`baa023ad`，2026-09-21）含它**；v0.23 维护分支（`2c59ff10`）与 v0.26 分支（`2ed6cbba`，2026-09-17 的源码快照）上这个键和 `vllm_ascend/weight_switch/` 整个目录都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；钉住 main 的顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，拼错就起不来 [C15]。
 
-本页旧算例用不到它：Qwen3-0.6B 单卡、`prefill_context_parallel_size` 是 1，也不是 SFA 稀疏注意力模型，`resolve_sfa_impl` 选的是不带任何 CP 的 `AscendSFAImpl` [C7]。
+**GLM 双机主线上它不生效。** 那套部署 `prefill_context_parallel_size` 是 1（PCP=1、DCP=1，见 [CP 页的 GLM 一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)），`resolve_sfa_impl` 选的是不带 CP 的 `AscendSFAImpl`，读这个键的那行代码不在选中的类里 [C7]；配上去也没有 warning。想开也开不了：GLM 的 34 层 KDA 在 PCP > 1 时 prefill 直接抛 `NotImplementedError`。顺带一提，11 层稀疏 MLA 里的 `o_proj` 本来就按 TP8 行切，切法与每卡形状见 [TP 页的稀疏 MLA 一节](../concepts/tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)，本页不重算。
 
 官方参数表：[latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)（v0.23.0 与 v0.26.0rc1 两版里没有这一行）。
 
@@ -102,7 +107,7 @@ rawSources:
 
 ## 为什么存在
 
-PCP 把 prefill 的 token 沿序列维切到多张卡上，但**权重是复制的**：PCP 组里每张卡都拿着一份一模一样的 TP-local `o_proj`。对 DeepSeek-V3.2 这类模型，`o_proj` 是整个 attention 里最大的那块矩阵，PCP 开到 2、4 就意味着这块权重在组里多存了 2、4 份——纯粹的冗余。
+PCP 把 prefill 的 token 沿序列维切到多张卡上，但**权重是复制的**：PCP 组里每张卡都拿着一份一模一样的 TP-local `o_proj`。对 DeepSeek-V3.2 这类模型，`o_proj` 是整个 attention 里最大的那块矩阵，PCP 开到 2、4，组里就存着 2、4 份一模一样的 `o_proj`（比不复制多出 1、3 份）——纯粹的冗余。
 
 这个键把冗余换成通信。切法是沿 **input 维**（row-parallel 的那一维）：`WeightSwitchConfig.from_group(get_pcp_group(), shard_axis="input")` [C4]。接下来两件事是它区别于「运行时切一刀」的关键：
 
@@ -124,6 +129,8 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 **配了但没开 PCP 等于没配。** `resolve_sfa_impl` 是按 `enable_dsa_cp` / DCP replicated indexer / `prefill_context_parallel_size > 1` 三个独立开关选实现类的；PCP 没开、或者 `enable_dsa_cp` 为真时，选中的类根本不含读这个键的那行代码。没有 warning，服务照常起来 [!]。
 
 **`lru_cache` 让它成为真正的启动期常量。** 读取函数只缓存一个结果，官方也明说「必须在服务启动时设定」[S12]。测试和 RL 这类会重建配置的场景要记得走 `clear_enable_sp()`，否则拿到的是上一次的值 [C11]。
+
+**待核。** 一是本库没有任何开着它的实测数字（显存、时延都没有）：上面「常驻只剩 `1/pcp_size`」和那条净省估式都是按切法推的量级，不能当实测收益，也不能拿 GLM 双机的主线数字充当它的效果。二是 PCP 与 DCP 同开的那个变体（`AscendSFAPCPDCPImpl`）本轮只核到它继承 `AscendSFAPCPImpl`、沿用同一套权重切换，prefill / decode 两条路径在 DCP 叠加下的行为没有逐行核过。三是 GLM 这类混合模型在 PCP > 1 时的那道 `NotImplementedError` 取自 context-parallel 页已核的结论，本页没有再核一遍源码。
 
 ## 版本谱系
 
@@ -164,8 +171,8 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 | 标识 | `additional_config["enable_pcp_o_proj_weight_sharding"]` |
 | 类型 | `bool` |
 | 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:577` [C20] |
-| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
+| 定义 | `vllm_ascend/ascend_config.py:575` [C21] |
+| 版本 | main · 4ebb3090fc3c13c26557dcaae353882e70246649 |
 
 字段注释：
 

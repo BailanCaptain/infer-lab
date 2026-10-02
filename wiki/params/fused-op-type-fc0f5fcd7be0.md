@@ -11,7 +11,11 @@ sources:
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L1633
   - >-
     vllm-ascend@b64b4d714484feaa6ca71edc99b98318fe6d2f0d:vllm_ascend/ascend_config.py#L1634
+  - >-
+    vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L1630
 rawSources:
+  - >-
+    raw/sha256-439f3d59c68ccbab5b7c12b7f491d8ac3c3e1a37dc972643dfd812e5f797f6a2.md
   - >-
     raw/sha256-487944627d866213f1a7080123d1b06364fdfd1236bf863485d634bc276f95bc.md
   - >-
@@ -30,8 +34,8 @@ rawSources:
 | 标识 | `additional_config["sparse_kv_offload_config"]["fused_op_type"]` |
 | 类型 | `str` |
 | 默认表达式 | `'none'` |
-| 定义 | `vllm_ascend/ascend_config.py:1634` [C2] |
-| 版本 | main · b64b4d714484feaa6ca71edc99b98318fe6d2f0d |
+| 定义 | `vllm_ascend/ascend_config.py:1630` [C3] |
+| 版本 | main · 4ebb3090fc3c13c26557dcaae353882e70246649 |
 
 字段注释：
 

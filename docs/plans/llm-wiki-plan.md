@@ -474,6 +474,7 @@ updated: "2026-09-07"             # 必须加引号，否则 YAML 会解析成�
 - `unknown-chapter`：chapters 含不存在的章节号。
 - `related-missing`：related 指向不存在的 id。
 - `broken-link`：正文相对链接指向不存在的文件。
+- `link-outside-wiki`：正文相对链接越出 `wiki/`（如 `../../docs/...`）。阅读页只发布 `wiki/` 里的内容，这种链接在站上必然打不开；lint 与夜间巡检共用 `wikiFileExists`，越界路径在这条规则就被挡下，不再交给文件存在性检查（2026-10-03 夜间崩溃的根因）。
 - `orphan`：concept / feature 页既没有 chapters，也没有任何页链接到它。
 - `log-format`：`log.md` 的 H2 不符合 `## [YYYY-MM-DD] ingest|build|review | 标题`。
 - `missing-term`（`--terms` 时）：`src/sim/model/forwardLayer.ts` 的 `Step.terms` 里有 id 没有页。

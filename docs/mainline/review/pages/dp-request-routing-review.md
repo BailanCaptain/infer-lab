@@ -146,3 +146,5 @@
 8. 部分改：aliases 补「前端路由」（TERMS router 行指定的叫法，查过无 dup）。**「DPLBAsyncMPClient」没加**：它已是 data-parallel.md 的 alias，lint 的 dup-alias 会报错；按范围纪律不动别的页的 frontmatter，是否把这个 alias 从 data-parallel 挪过来，留给主会话定。concurrent-requests / one-request 第 1 站的入链，审查自己标了「不是本批验收要求」，两页也不在本批授权改动名单里，未加。
 
 **验证。** `pnpm wiki:lint` 通过（本页 0 报错）；`pnpm wiki:diagrams --check` 271 张一致、本页两张无建议项；`pnpm wiki:audit` 通过（本页 22 条来源行号有效）。改后全文 7,563 字，其中教学正文 6,032（wc.py 口径）。
+
+- **收尾清扫（2026-10-02）P3-8 alias 归属已改。** 按「单一出处 + 别页链接」：data-parallel.md 正文不讲 DPLBAsyncMPClient，只在 L158 链到本页讲选组；本页 L207 是讲它的唯一出处。故把 `DPLBAsyncMPClient` 从 data-parallel.md 的 aliases 移除、加进本页 aliases（紧跟 DPAsyncMPClient）。复跑 `pnpm wiki:lint` 退出 0（无 dup-alias），`pnpm wiki:audit` 退出 0、两页写作标准全 ✓。

@@ -16,7 +16,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-09-24'
+updated: '2026-10-02'
 relations:
   - to: expert-parallel
     kind: builds-on
@@ -56,7 +56,11 @@ sources:
     vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L501
   - >-
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L584
+  - >-
+    vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L582
 rawSources:
+  - >-
+    raw/sha256-439f3d59c68ccbab5b7c12b7f491d8ac3c3e1a37dc972643dfd812e5f797f6a2.md
   - >-
     raw/sha256-79a5ae22b065a783af11ee034b70e8f7a2a05feeb4589e15b8dcd74952c8e662.md
   - >-
@@ -78,7 +82,7 @@ rawSources:
 
 **存在范围。** 在册版本里只有 main 有（上游后来分出的 v0.28/v0.29 rc 分支也带着它，不在册），2026-09-07 由 PR [#15441](https://github.com/vllm-project/vllm-ascend/pull/15441) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）在 `vllm_ascend/` 和 `docs/source/` 下都搜不到这个名字。那两个分支的 `AscendConfig` 还是逐键 `additional_config.get(...)` 的普通类 [C14]，配上它**既不报错也不生效**；main 反过来是 `extra="forbid"` 的 pydantic 模型 [C12]，名字拼错就启动失败（装了 vLLM-Omni 才降成一条 warning）[C13]。
 
-本页旧算例用不到它：Qwen3-0.6B 是 dense 模型，没有 MoE 层，MC2 这条通道根本不存在。要走到这里，至少得换成开了 [EP](../concepts/expert-parallel.md) 的 MoE 模型。
+**放到 GLM 双机。** 它管的是每个 MoE 层里专家算完、结果送回源卡的那一步，路线见 [expert parallel 的 combine 一节](../concepts/expert-parallel.md#4-combine拼回-token加共享输出)。本部署用的 v0.23 维护分支和含 GLM 代码的 db701c1f 都没有这个键，启动命令也没有传 additional config，所以 combine 的精度完全由推断决定。走 MC2 那条路时（token 多到改走 AllGather 时不经过这一步，怎么选见 [expert parallel · MC2 还是 AllGather](../concepts/expert-parallel.md#mc2-还是-allgather)）：W8A8 不是 MXFP，模型侧也没有显式给通信量化，combine 推出 0，专家结果按 BF16 送回，每个（token, 专家）副本至多 8,192 B；dispatch 那一侧按 W8A8 推成 int8，每个副本 4,100 B（4096 个 int8 加一个 FP32 系数，见[量化 · 为什么 EP dispatch 搬的是 int8](../concepts/quantization.md#为什么-ep-dispatch-搬的是-int8)）。也就是说，「发出去 int8、收回来 BF16」在主线上本来就是这样，这个键是 main 上把 combine 那一半单独改掉的旋钮，不是本部署的一部分。待核：main 上给 GLM W8A8 设 2 或 4 后，A2 上的 combine 算子是否接受这两种模式、每层 combine 实际搬多少字节、精度变化多少——在册资料里没有这组实测。
 
 官方参数表：[latest](https://docs.vllm.ai/projects/ascend/en/latest/user_guide/configuration/additional_config.html)（v0.23.0 与 v0.26.0rc1 两版的表里没有这一行）。
 
@@ -101,7 +105,7 @@ rawSources:
 
 MC2 是昇腾上 EP 的那对收发算子：`npu_moe_distribute_dispatch_v2` 把 token 按路由发到持有专家的 rank，专家算完，`npu_moe_distribute_combine_v2` 再按权重把结果收回来 [C5]。两次都是真·跨卡通信，量越大越贵，所以算子本身留了一个 `comm_quant_mode` 参数——通信时先把张量压到低精度再发。
 
-这个精度原本是**推**出来的，不是配的。combine 侧的顺序是三级兜底：模型侧显式给了 `quant.comm_quant_mode` 就用它，否则 `quant_type` 是 `W8A8MXFP` 就用 4，再否则 0（不量化）[C3]。dispatch 侧是另一套相似但不同的推断。推断的前提是「通信精度跟着权重量化类型走」，而这个前提在调优、验证新算子、或者权重量化类型与硬件支持的通信量化不匹配时就不成立了——于是加了一个把前两级全部短路掉的开关：
+这个精度原本是**推**出来的，不是配的。combine 侧的顺序是三级兜底：模型侧显式给了 `quant.comm_quant_mode` 就用它，否则 `quant_type` 是 `W8A8MXFP` 就用 4，再否则 0（不量化）[C3]。dispatch 侧是另一套相似但不同的推断。推断的前提是「通信精度跟着权重量化类型走」；想在不改权重量化的前提下单独换掉 combine 的通信精度（比如调优、对比精度），前两级都帮不上——于是加了一个把前两级全部短路掉的开关：
 
 ```python
 combine_quant_mode = get_ascend_config().combine_quant_mode
@@ -113,7 +117,7 @@ elif comm_quant_mode is not None:
 
 `if combine_quant_mode:` 用的是真值判断，所以 `0` 既是默认值也是「关闭」的表达方式，不需要额外的 `enable_` 开关。配置对象是进程内单例，这一行虽然在每次前向里现读，值在启动后不会变。
 
-**为什么只给 combine、不给 dispatch。** 两个方向的数据不一样重：dispatch 发的是 token 的 hidden states，combine 收的是专家输出并且紧接着要按 topk 权重加权求和，两侧对量化误差的容忍度和算子支持的模式都不同。上游只把 combine 这一侧开放成可配，dispatch 侧保持推断——这也是这个键叫 `combine_quant_mode` 而不是 `mc2_quant_mode` 的原因。
+**为什么只给 combine、不给 dispatch。** 两侧的默认推断本来就不对称：dispatch 遇到 W8A8 这类 int8 方案会自己推成 2，发出去就是 int8；combine 只有 W8A8MXFP 才推成 4，别的量化类型一律 0、按 BF16 收回 [C3] [C4]。缺口在 combine 这一侧，引入它的 PR 说明写的目的也正是让非 MXFP 的模型不改权重量化、也能给 combine 指定一种通信量化（举的例子是 4）。至于上游为什么不让 combine 默认跟着 dispatch 一起量化，代码和 PR 都没有写理由，本页不下结论；[量化](../concepts/quantization.md#为什么-ep-dispatch-搬的是-int8)那页也只陈述现状。
 
 ## 开了的代价
 
@@ -121,7 +125,7 @@ elif comm_quant_mode is not None:
 
 **它对 fused MC2 那条路无效，而且不会告诉你。** `FusedMC2CommImpl` 的 `fused_experts` 走的是 `torch.ops._C_ascend.dispatch_ffn_combine` 融合算子或 CANN MegaMoe，整条路径上没有 `token_combine` 这一步。也就是说 `--additional-config '{"enable_fused_mc2": 1, "combine_quant_mode": 4}'` 会正常启动、正常出结果，而 `combine_quant_mode` 一次都没被读到 [!]。要验证它是否生效，得先确认自己落在非融合的 `MC2CommImpl` 上。官方表给这一行的描述是「Fused MC2 configuration」，那是从上一行 `enable_fused_mc2` 抄过来的 [S10]——照它理解成「要先开融合 MC2」正好把结论弄反。
 
-**取值卡得比文档紧。** `Literal[0, 2, 3, 4]` 是编译期白名单：`1` 会被 pydantic 拒收，`"4"` 这种字符串同样拒收，上游为这两条各写了一个单测 [C11]。官方表让你「参考算子文档的有效取值范围」[S10]，但算子文档里合法的值不一定在这四个里——以代码为准，超出白名单的值根本递不到算子手上 [!]。
+**取值卡得比文档紧。** `Literal[0, 2, 3, 4]` 是启动期由 pydantic 校验的白名单：`1` 不在白名单里，会被 pydantic 拒收；`"4"`、`"true"` 这类字符串同样拒收，上游为这两种字符串各写了一个单测，`1` 没有专门的单测，靠白名单本身挡住 [C11]。引入它的 PR 说明里写的是字符串 `"4"` 会被宽松转成 4、显式的 `comm_quant_mode` 优先于这个键，这两条都和合入的代码与单测相反，以代码为准。官方表让你「参考算子文档的有效取值范围」[S10]，但算子文档里合法的值不一定在这四个里——以代码为准，超出白名单的值根本递不到算子手上 [!]。
 
 **升级方向上只有一种失败模式。** 这个键从 main 往回搬到 v0.23 / v0.26 是静默无效（逐键 `.get()` 不认识的键直接丢）[C14] [C15]；反过来不存在问题——它本来就是新加的。所以在旧分支上看到有人配了它，唯一正确的结论是「这行配置什么都没做」。
 
@@ -161,8 +165,8 @@ elif comm_quant_mode is not None:
 | 标识 | `additional_config["combine_quant_mode"]` |
 | 类型 | `Literal[0, 2, 3, 4]` |
 | 默认表达式 | `0` |
-| 定义 | `vllm_ascend/ascend_config.py:584` [C18] |
-| 版本 | main · 4d1412d102c16669af3ec73174fc5f8b359b56d9 |
+| 定义 | `vllm_ascend/ascend_config.py:582` [C19] |
+| 版本 | main · 4ebb3090fc3c13c26557dcaae353882e70246649 |
 
 字段注释：
 

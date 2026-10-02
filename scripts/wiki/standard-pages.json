@@ -83,7 +83,24 @@
     "fine-grained-tp",
     "mooncake-connector",
     "ucm",
-    "sampling"
+    "sampling",
+    "rfork",
+    "vllm-ascend-repo-map",
+    "ai-core",
+    "api-server-entry",
+    "speculative-decoding",
+    "op-to-ai-core",
+    "streaming-output",
+    "npugraph-ex",
+    "rfork-layout",
+    "rfork-maintenance",
+    "rfork-config",
+    "rfork-transfer",
+    "rfork-identity",
+    "rfork-lifecycle",
+    "rfork-startup",
+    "rfork-troubleshooting",
+    "request-teardown"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

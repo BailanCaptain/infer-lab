@@ -799,7 +799,7 @@ finalize：TP8 All-Gather，每卡发 1 行（8,192 B），收 7 行
 - R1 prefill 只要最后 1 个位置：本地 `[1, 19360]` = 38,720 B，All-Gather 后 `[1, 154880]` = 309,760 B。`[D]`
 - `154880 % 8 == 0` 且 `% 64 == 0`，所以 `org_vocab_size` 和 padding 后的大小相同，第 7 步的 `logits[..., :org_vocab_size]` 是空切。`[D]`
 
-`[D]` **为什么 logits 这么贵**：lm_head 的 GEMM 是 `[n, 4096] × [4096, 19360]`，n=4 时只有 0.63 GFLOP，但要把 151.25 MiB 的权重从 HBM 读一遍。decode 步里它是纯访存受限的：lm_head 占每卡权重的 0.73%，却在每一步被全量读一遍。作为对比，MoE 的 432 MiB/层里每步只有被选中的那几个本地专家会被读到——R1 那种 4 token 的小 batch 每卡期望只命中 2 行、远不到 18 个专家；batch 变大后 18 个专家才会全部被触及。`[D]`
+`[D]` **为什么 logits 这么贵**：lm_head 的 GEMM 是 `[n, 4096] × [4096, 19360]`，n=4 时只有 0.63 GFLOP，但要把 151.25 MiB 的权重从 HBM 读一遍。decode 步里它是纯访存受限的：lm_head 只占每卡权重的约 0.72%（151.25 MiB ÷ 每卡约 21,078 MiB），却在每一步被全量读一遍。作为对比，MoE 的 432 MiB/层里每步只有被选中的那几个本地专家会被读到——R1 那种 4 token 的小 batch 每卡期望只命中 2 行、远不到 18 个专家；batch 变大后 18 个专家才会全部被触及。`[D]`
 
 哪些位置需要 logits 由 model runner 的 `logits_indices` 决定（MTP 下是全部验证位置），这属于 A5 站，见 `03-sample-decode.md`。
 

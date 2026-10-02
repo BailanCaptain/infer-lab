@@ -1,32 +1,71 @@
 layout: figure
 id: collective-communication-broadcast
-caption: Broadcast：根卡 0 的整份数据复制到组里每张卡，其余卡原来只有空的接收位置。
-size: [880, 696]
-exchanges:
-  - at: [105, 8]
-    cards: [卡 0, 卡 1, 卡 2, 卡 3]
-    slots: 4
-    gap: [190, 96]
-    dots: true
-    tag: 数为示意
-    start:
-      - [1, 2, 3, 4]
-      - [null, null, null, null]
-      - [null, null, null, null]
-      - [null, null, null, null]
-    steps:
-      - title: 根卡 0 把整份数据复制给其余每张卡
-        moves:
-          - { from: [0, 0], to: [1, 0] }
-          - { from: [0, 1], to: [1, 1] }
-          - { from: [0, 2], to: [1, 2] }
-          - { from: [0, 3], to: [1, 3] }
-          - { from: [0, 0], to: [2, 0] }
-          - { from: [0, 1], to: [2, 1] }
-          - { from: [0, 2], to: [2, 2] }
-          - { from: [0, 3], to: [2, 3] }
-          - { from: [0, 0], to: [3, 0] }
-          - { from: [0, 1], to: [3, 1] }
-          - { from: [0, 2], to: [3, 2] }
-          - { from: [0, 3], to: [3, 3] }
-    end: 通信后：4 张卡都有 [1, 2, 3, 4]
+caption: Broadcast：根卡 0 的整份数据复制给组里每张卡。中间一格每列是一张收数据的卡，紫色箭头是经过通信送来的块，灰色虚线是根卡自己的那份，不用发。
+size: [880, 482]
+frames:
+  - { label: 发之前：只有根卡 0 有数据，其余卡只有空的接收位置, at: [8, 30], size: [864, 90] }
+  - { label: 根卡 0 把整份 4 块发给其余每张卡, at: [8, 158], size: [864, 188] }
+  - { label: '发之后：每张卡都是 [1, 2, 3, 4]', at: [8, 384], size: [864, 90] }
+grids:
+  # 发之前：只有根卡 0 有数
+  - { at: [38, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [250, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 1 }
+  - { at: [462, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 2 }
+  - { at: [674, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 3 }
+  # 发：根卡 0 自己的那份不用发
+  - { at: [41, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 0, 卡 0, 卡 0],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [38, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # 发：卡 0 的 4 块送到卡 1
+  - { at: [253, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 0, 卡 0, 卡 0],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [250, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # 发：卡 0 的 4 块送到卡 2
+  - { at: [465, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 0, 卡 0, 卡 0],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [462, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 2,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # 发：卡 0 的 4 块送到卡 3
+  - { at: [677, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 0, 卡 0, 卡 0],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [674, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # 发之后
+  - { at: [38, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [250, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [462, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 2,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [674, 406], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+links:
+  # 卡 0 自己的 4 块原地留着
+  - { from: [59, 218], to: [59, 276], tone: control, dashed: true }
+  - { from: [101, 218], to: [101, 276], tone: control, dashed: true }
+  - { from: [143, 218], to: [143, 276], tone: control, dashed: true }
+  - { from: [185, 218], to: [185, 276], tone: control, dashed: true }
+  # 卡 0 的第 c 块落进卡 1 的第 c 块
+  - { from: [271, 218], to: [271, 276], tone: comm }
+  - { from: [313, 218], to: [313, 276], tone: comm }
+  - { from: [355, 218], to: [355, 276], tone: comm }
+  - { from: [397, 218], to: [397, 276], tone: comm }
+  # 卡 0 的第 c 块落进卡 2 的第 c 块
+  - { from: [483, 218], to: [483, 276], tone: comm }
+  - { from: [525, 218], to: [525, 276], tone: comm }
+  - { from: [567, 218], to: [567, 276], tone: comm }
+  - { from: [609, 218], to: [609, 276], tone: comm }
+  # 卡 0 的第 c 块落进卡 3 的第 c 块
+  - { from: [695, 218], to: [695, 276], tone: comm }
+  - { from: [737, 218], to: [737, 276], tone: comm }
+  - { from: [779, 218], to: [779, 276], tone: comm }
+  - { from: [821, 218], to: [821, 276], tone: comm }
+texts:
+  - { at: [872, 18], text: 数为示意, size: 12.5, note: true, anchor: end }

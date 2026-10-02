@@ -1,55 +1,144 @@
 layout: figure
 id: collective-communication-ring
-caption: ring All-Reduce（SUM）：4 张卡首尾相连，每一步每张卡只把 1 块发给顺时针下一张卡。前 3 步是 Reduce-Scatter，收到就加进同位置，圆点一步多一个；后 3 步是 All-Gather，把加齐的块沿环传一圈、收到就覆盖。
-size: [880, 2416]
-exchanges:
-  - at: [105, 8]
-    cards: [卡 0, 卡 1, 卡 2, 卡 3]
-    slots: 4
-    gap: [190, 96]
-    dots: true
-    tag: 数为示意
-    start:
-      - [1, 2, 3, 4]
-      - [10, 20, 30, 40]
-      - [100, 200, 300, 400]
-      - [1000, 2000, 3000, 4000]
-    steps:
-      - title: 第 1 步（Reduce-Scatter）：每张卡发 1 块给下一张，对方加进同位置
-        moves:
-          - { from: [0, 0], to: [1, 0], op: add }
-          - { from: [1, 1], to: [2, 1], op: add }
-          - { from: [2, 2], to: [3, 2], op: add }
-          - { from: [3, 3], to: [0, 3], op: add }
-      - title: 第 2 步：把刚加过的那块接着往下传，再加一次
-        moves:
-          - { from: [0, 3], to: [1, 3], op: add }
-          - { from: [1, 0], to: [2, 0], op: add }
-          - { from: [2, 1], to: [3, 1], op: add }
-          - { from: [3, 2], to: [0, 2], op: add }
-      - title: 第 3 步：再传一次，这一块就加进了全部 4 张卡
-        moves:
-          - { from: [0, 2], to: [1, 2], op: add }
-          - { from: [1, 3], to: [2, 3], op: add }
-          - { from: [2, 0], to: [3, 0], op: add }
-          - { from: [3, 1], to: [0, 1], op: add }
-        keep: [[0, 1], [1, 2], [2, 3], [3, 0]]
-      - title: 第 4 步（All-Gather）：把加齐的那块发给下一张，直接覆盖
-        moves:
-          - { from: [0, 1], to: [1, 1] }
-          - { from: [1, 2], to: [2, 2] }
-          - { from: [2, 3], to: [3, 3] }
-          - { from: [3, 0], to: [0, 0] }
-      - title: 第 5 步：把刚收到的加齐块接着往下传
-        moves:
-          - { from: [0, 0], to: [1, 0] }
-          - { from: [1, 1], to: [2, 1] }
-          - { from: [2, 2], to: [3, 2] }
-          - { from: [3, 3], to: [0, 3] }
-      - title: 第 6 步：最后传一次
-        moves:
-          - { from: [0, 3], to: [1, 3] }
-          - { from: [1, 0], to: [2, 0] }
-          - { from: [2, 1], to: [3, 1] }
-          - { from: [3, 2], to: [0, 2] }
-    end: 6 步后：每张卡 4 块都加齐，每步每张卡只发了 1 块
+caption: ring All-Reduce（SUM）：4 张卡首尾相连成环（卡 0→1→2→3→0），每一步每张卡只把 1 块发给下一张卡。前 3 步是 Reduce-Scatter，收到就加进同位置；后 3 步是 All-Gather，把加齐的块沿环传一圈，收到就覆盖。每格每列是一张收数据的卡，块上方写着它从哪张卡来；浅色是还没加齐的数，深色是四张卡都加进来的块；最后一格圆圈里是第几步收到。
+size: [880, 1032]
+frames:
+  - { label: 发之前：每张卡各有自己的 4 块数, at: [8, 30], size: [864, 90] }
+  - { label: 第 1 步（Reduce-Scatter）：每张卡把 1 块发给环上下一张卡（卡 3 的下一张是卡 0），对方加进同位置, at: [8, 158], size: [864, 188] }
+  - { label: 第 2 步：把刚加过的那块接着往下传，再加一次, at: [8, 384], size: [864, 188] }
+  - { label: 第 3 步：再传一次，每张卡各有 1 块加进了全部 4 张卡的数, at: [8, 610], size: [864, 188] }
+  - { label: 第 4–6 步（All-Gather）：加齐的块沿环往下传，每步收 1 块、直接覆盖, at: [8, 836], size: [864, 188] }
+grids:
+  # 发之前
+  - { at: [38, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  - { at: [250, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }, { at: [0, 2], text: '30' }, { at: [0, 3], text: '40' }] }
+  - { at: [462, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 2,
+      cells: [{ at: [0, 0], text: '100' }, { at: [0, 1], text: '200' }, { at: [0, 2], text: '300' }, { at: [0, 3], text: '400' }] }
+  - { at: [674, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1000' }, { at: [0, 1], text: '2000' }, { at: [0, 2], text: '3000' }, { at: [0, 3], text: '4000' }] }
+  # 第 1 步：卡 i 把第 i 块发给卡 i+1
+  - { at: [167, 190], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 3],
+      cells: [{ at: [0, 0], text: '4000' }] }
+  - { at: [38, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4004' }] }
+  - { at: [253, 190], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 0],
+      cells: [{ at: [0, 0], text: '1' }] }
+  - { at: [250, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '20' }, { at: [0, 2], text: '30' }, { at: [0, 3], text: '40' }] }
+  - { at: [507, 190], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 1],
+      cells: [{ at: [0, 0], text: '20' }] }
+  - { at: [462, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 2,
+      cells: [{ at: [0, 0], text: '100' }, { at: [0, 1], text: '220' }, { at: [0, 2], text: '300' }, { at: [0, 3], text: '400' }] }
+  - { at: [761, 190], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 2],
+      cells: [{ at: [0, 0], text: '300' }] }
+  - { at: [674, 278], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1000' }, { at: [0, 1], text: '2000' }, { at: [0, 2], text: '3300' }, { at: [0, 3], text: '4000' }] }
+  # 第 2 步：卡 i 把刚加过的那块发给卡 i+1
+  - { at: [125, 416], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 3],
+      cells: [{ at: [0, 0], text: '3300' }] }
+  - { at: [38, 504], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3303' }, { at: [0, 3], text: '4004' }] }
+  - { at: [379, 416], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 0],
+      cells: [{ at: [0, 0], text: '4004' }] }
+  - { at: [250, 504], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '20' }, { at: [0, 2], text: '30' }, { at: [0, 3], text: '4044' }] }
+  - { at: [465, 416], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 1],
+      cells: [{ at: [0, 0], text: '11' }] }
+  - { at: [462, 504], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 2,
+      cells: [{ at: [0, 0], text: '111' }, { at: [0, 1], text: '220' }, { at: [0, 2], text: '300' }, { at: [0, 3], text: '400' }] }
+  - { at: [719, 416], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 2],
+      cells: [{ at: [0, 0], text: '220' }] }
+  - { at: [674, 504], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1000' }, { at: [0, 1], text: '2220' }, { at: [0, 2], text: '3300' }, { at: [0, 3], text: '4000' }] }
+  # 第 3 步：再传一次，落下的那块加齐
+  - { at: [83, 642], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 3],
+      cells: [{ at: [0, 0], text: '2220' }] }
+  - { at: [38, 730], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2222', style: solid }, { at: [0, 2], text: '3303' }, { at: [0, 3], text: '4004' }] }
+  - { at: [337, 642], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 0],
+      cells: [{ at: [0, 0], text: '3303' }] }
+  - { at: [250, 730], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '20' }, { at: [0, 2], text: '3333', style: solid }, { at: [0, 3], text: '4044' }] }
+  - { at: [591, 642], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 1],
+      cells: [{ at: [0, 0], text: '4044' }] }
+  - { at: [462, 730], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 2,
+      cells: [{ at: [0, 0], text: '111' }, { at: [0, 1], text: '220' }, { at: [0, 2], text: '300' }, { at: [0, 3], text: '4444', style: solid }] }
+  - { at: [677, 642], rows: 1, cols: 1, cell: [36, 28], gap: 6, tone: token, style: faded, colLabels: [卡 2],
+      cells: [{ at: [0, 0], text: '111' }] }
+  - { at: [674, 730], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1111', style: solid }, { at: [0, 1], text: '2220' }, { at: [0, 2], text: '3300' }, { at: [0, 3], text: '4000' }] }
+  # 第 4–6 步：每张卡从上一张卡收齐另外 3 块加齐的块
+  - { at: [41, 868], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 3, 卡 0, 卡 3, 卡 3],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [38, 956], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [253, 868], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 0, 卡 0, 卡 1, 卡 0],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [250, 956], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [465, 868], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 1, 卡 1, 卡 1, 卡 2],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [462, 956], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 2,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [677, 868], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 3, 卡 2, 卡 2, 卡 2],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  - { at: [674, 956], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+links:
+  # 第 1 步
+  - { from: [185, 218], to: [185, 276], tone: comm }
+  - { from: [271, 218], to: [271, 276], tone: comm }
+  - { from: [525, 218], to: [525, 276], tone: comm }
+  - { from: [779, 218], to: [779, 276], tone: comm }
+  # 第 2 步
+  - { from: [143, 444], to: [143, 502], tone: comm }
+  - { from: [397, 444], to: [397, 502], tone: comm }
+  - { from: [483, 444], to: [483, 502], tone: comm }
+  - { from: [737, 444], to: [737, 502], tone: comm }
+  # 第 3 步
+  - { from: [101, 670], to: [101, 728], tone: comm }
+  - { from: [355, 670], to: [355, 728], tone: comm }
+  - { from: [609, 670], to: [609, 728], tone: comm }
+  - { from: [695, 670], to: [695, 728], tone: comm }
+  # 第 4–6 步：卡 0
+  - { from: [59, 896], to: [59, 954], tone: comm }
+  - { from: [101, 896], to: [101, 954], tone: control, dashed: true }
+  - { from: [143, 896], to: [143, 954], tone: comm }
+  - { from: [185, 896], to: [185, 954], tone: comm }
+  # 卡 1
+  - { from: [271, 896], to: [271, 954], tone: comm }
+  - { from: [313, 896], to: [313, 954], tone: comm }
+  - { from: [355, 896], to: [355, 954], tone: control, dashed: true }
+  - { from: [397, 896], to: [397, 954], tone: comm }
+  # 卡 2
+  - { from: [483, 896], to: [483, 954], tone: comm }
+  - { from: [525, 896], to: [525, 954], tone: comm }
+  - { from: [567, 896], to: [567, 954], tone: comm }
+  - { from: [609, 896], to: [609, 954], tone: control, dashed: true }
+  # 卡 3
+  - { from: [695, 896], to: [695, 954], tone: control, dashed: true }
+  - { from: [737, 896], to: [737, 954], tone: comm }
+  - { from: [779, 896], to: [779, 954], tone: comm }
+  - { from: [821, 896], to: [821, 954], tone: comm }
+badges:
+  # 第几步收到这块
+  - { at: [59, 924], n: 4, tone: comm }
+  - { at: [143, 924], n: 6, tone: comm }
+  - { at: [185, 924], n: 5, tone: comm }
+  - { at: [271, 924], n: 5, tone: comm }
+  - { at: [313, 924], n: 4, tone: comm }
+  - { at: [397, 924], n: 6, tone: comm }
+  - { at: [483, 924], n: 6, tone: comm }
+  - { at: [525, 924], n: 5, tone: comm }
+  - { at: [567, 924], n: 4, tone: comm }
+  - { at: [737, 924], n: 6, tone: comm }
+  - { at: [779, 924], n: 5, tone: comm }
+  - { at: [821, 924], n: 4, tone: comm }
+texts:
+  - { at: [872, 18], text: 数为示意, size: 12.5, note: true, anchor: end }

@@ -150,10 +150,14 @@
 
 **（5）为什么草拟单独走 eager**
 
-17. proposer 初始化时先按用户配置算 `use_cuda_graph`，然后有一条针对 GLM 系列的硬性覆盖：只要目标模型的
-    `model_type` 里含 `glm`，就把 `use_cuda_graph` 置回 False，并打印「GLM 系列 + 投机解码暂不支持图模式，草拟已
-    自动切回 eager」
+17. proposer 初始化时先按用户配置算 `use_cuda_graph = runner._use_aclgraph() and not speculative_config.enforce_eager`
+    （`#L217`），然后有一条针对 GLM 系列的硬性覆盖：只要目标模型的 `model_type` 里含 `glm`，就把 `use_cuda_graph`
+    无条件置回 False（`#L227`、`#L236`）。那条「GLM 系列 + 投机解码暂不支持图模式，草拟已自动切回 eager」的警告
+    **不是必打**：它包在 `if self.use_cuda_graph:` 里（`#L228-L235`），只有草稿原本要录图时才打印，即主模型开着
+    图模式、且 `--speculative-config` 没写 `enforce_eager: true`。GLM 双机这一档按官方命令给草稿写了
+    `enforce_eager: true`（01 底稿 L250），`#L217` 算出来就是 False，所以**不打这条警告**，草稿照样是 eager。
     `[C]` `vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L141-L149`、`#L217`、`#L227-L236`。
+    （2026-10-02 按 speculative-decoding 审查 P2-1 修正：原写成无条件打印。）
 18. 这条覆盖的直接后果：`_maybe_share_lm_head` 末尾那个「把草拟包进 `ACLGraphWrapper`」的分支要求
     `use_cuda_graph` 为真，于是不成立，`self._runnable` 保持为普通 Python 函数 `_run_merged_draft`
     `[C]` `vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L266`、`#L598-L613`。

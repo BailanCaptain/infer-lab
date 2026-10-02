@@ -21,8 +21,11 @@ links:
   - { from: [452, 335], to: [565, 180], via: [[452, 295], [565, 295]], tone: comm }
   - { from: [752, 335], to: [762, 180], via: [[752, 275], [762, 275]], tone: kv }
 texts:
-  - { at: [30, 465], text: 权重加载：model_loader/     精度与布局：quantization/, size: 15 }
-  - { at: [30, 500], text: 候选与采样：spec_decode/ · sample/     设备扩展：根目录 csrc/, size: 15 }
+  - { at: [30, 450], text: 'model_loader/：选择权重加载方式', size: 15 }
+  - { at: [470, 450], text: 'quantization/：解释精度与布局', size: 15 }
+  - { at: [30, 480], text: 'spec_decode/：生成草稿候选', size: 15 }
+  - { at: [470, 480], text: 'sample/：采样与验证', size: 15 }
+  - { at: [30, 510], text: '根目录 csrc/：设备扩展', size: 15 }
   - { at: [30, 535], text: 同一职责可跨目录；箭头为主要协作关系，非完整调用栈, note: true }
 pins:
   - { source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L482', symbols: [step] }

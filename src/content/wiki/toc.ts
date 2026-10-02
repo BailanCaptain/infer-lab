@@ -56,7 +56,10 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
   models: [
     { title: "输入表示与张量计算", pages: ["token", "embedding", "matmul-and-weights"] },
     { title: "数值表示与量化", pages: ["quantization"] },
-    { title: "Decoder 层、MoE 与 lm_head", pages: ["layers-and-hidden", "mlp-residual-norm", "moe"] },
+    {
+      title: "Decoder 层、MoE 与 lm_head",
+      pages: ["layers-and-hidden", "mlp-residual-norm", "moe", "lm-head"],
+    },
     {
       title: "Attention 与位置编码",
       pages: [
@@ -73,6 +76,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
   inference: [
     { title: "Prefill、Decode 与 KV cache", pages: ["prefill", "kv-cache", "kv-cache-spec"] },
     { title: "Block table 与 prefix caching", pages: ["block-table", "prefix-caching"] },
+    { title: "Sampling 与返回", pages: ["sampling", "streaming-output", "request-teardown"] },
     { title: "Chunked prefill 与 speculative decoding", pages: ["chunked-prefill", "speculative-decoding"] },
     {
       title: "调度与执行重叠",
@@ -93,7 +97,13 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
   architecture: [
     {
       title: "组件、职责与进程",
-      pages: ["vllm-v1-shape", "vllm-ascend-overview", "engine-processes", "request-call-chain"],
+      pages: [
+        "vllm-v1-shape",
+        "vllm-ascend-overview",
+        "engine-processes",
+        "api-server-entry",
+        "request-call-chain",
+      ],
     },
     {
       title: "启动与平台适配",
@@ -141,7 +151,10 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
       ],
     },
     { title: "并行策略进阶", pages: ["fine-grained-tp", "dynamic-chunked-pp", "large-scale-ep", "kvpp"] },
-    { title: "DP 组分流与 expert 负载", pages: ["balance-scheduling", "eplb", "dyntra-lb"] },
+    {
+      title: "DP 组分流与 expert 负载",
+      pages: ["dp-request-routing", "balance-scheduling", "eplb", "dyntra-lb"],
+    },
     { title: "贯穿案例", pages: ["glm-5-3-flash-two-node"] },
     {
       title: "PD 分离与 KV 传输",

@@ -1,0 +1,44 @@
+{
+  "layout": "figure",
+  "id": "npugraph-ex-flow",
+  "caption": "同一批规则在启动时登记两处，之后由哪条编译路径应用取决于一个开关；录完图还要到 B4 再判一次这一轮能不能回放。",
+  "size": [880, 712],
+  "items": [
+    {"at": [210, 32], "size": [460, 46], "text": "启动：平台按图模式档位决定还编不编", "tone": "control"},
+    {"at": [180, 116], "size": [520, 46], "text": "规则登记两处：上游匹配器 + 外部后端的替换接口", "tone": "control"},
+    {"at": [250, 200], "size": [380, 46], "text": "外部编译后端还开着吗？", "tone": "control"},
+    {"at": [40, 300], "size": [350, 52], "text": "开：外部后端编译并替换", "tone": "weight"},
+    {"at": [490, 300], "size": [350, 52], "text": "关：inductor 编译，本地 pass manager 应用", "tone": "weight"},
+    {"at": [40, 392], "size": [350, 52], "text": "可选 static kernel：筛出宽度提前编译", "tone": "weight"},
+    {"at": [490, 392], "size": [350, 52], "text": "按编译区间逐条判断哪条规则适用", "tone": "weight"},
+    {"at": [210, 492], "size": [460, 50], "text": "启动期按各个宽度分别录图", "tone": "control"},
+    {"at": [190, 580], "size": [500, 46], "text": "B4：本轮整齐、宽度在档内、两组模式一致？", "tone": "control"},
+    {"at": [60, 650], "size": [290, 34], "text": "是 → 用新数据回放那一份", "tone": "token"},
+    {"at": [530, 650], "size": [290, 34], "text": "否 → 这一轮逐个算子提交", "tone": "ink"}
+  ],
+  "links": [
+    {"from": [440, 78], "to": [440, 116]},
+    {"from": [440, 162], "to": [440, 200]},
+    {"from": [340, 246], "to": [215, 300]},
+    {"from": [560, 246], "to": [665, 300]},
+    {"from": [215, 352], "to": [215, 392]},
+    {"from": [665, 352], "to": [665, 392]},
+    {"from": [215, 444], "to": [340, 492]},
+    {"from": [665, 444], "to": [560, 492]},
+    {"from": [440, 542], "to": [440, 580]},
+    {"from": [320, 626], "to": [205, 650]},
+    {"from": [560, 626], "to": [675, 650]}
+  ],
+  "texts": [
+    {"at": [250, 274], "text": "开（默认）"},
+    {"at": [640, 274], "text": "关（仍然编译）"},
+    {"at": [440, 376], "text": "两条路用的是同一批规则，换的只是谁来应用", "anchor": "middle"},
+    {"at": [440, 472], "text": "档位是 NONE 时上面这段整个不做", "anchor": "middle"},
+    {"at": [440, 568], "text": "编译成功与本轮命中图是两次判断", "anchor": "middle"}
+  ],
+  "pins": [
+    {"source": "vllm-ascend@db701c1f:vllm_ascend/compilation/compiler_interface.py#L278-L301", "symbols": ["enable_npugraph_ex", "npugraph_ex_compile"]},
+    {"source": "vllm-ascend@db701c1f:vllm_ascend/compilation/graph_fusion_pass_manager.py#L36-L79", "symbols": ["configure", "fuse_norm_quant"]},
+    {"source": "vllm-ascend@db701c1f:vllm_ascend/platform.py#L589-L634", "symbols": ["enable_npugraph_ex", "splitting_ops"]}
+  ]
+}

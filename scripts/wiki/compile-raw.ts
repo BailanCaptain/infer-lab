@@ -14,7 +14,7 @@ import { CHAPTER_IDS, CHAPTER_TITLES } from "../../src/content/wiki/chapters";
 import { buildIndex, citedPageLinks } from "../../src/content/wiki/retrieve";
 import { ID_RE, parseRawRef } from "../../src/content/wiki/schema";
 import { type AgentRequest, type AgentResult, positiveInteger, type RunAgent, runBatch } from "./batch";
-import { lintPages, splitProblems } from "./lint";
+import { lintPages, splitProblems, wikiFileExists } from "./lint";
 import { relevantPageIds } from "./navigation";
 import { loadPages, parsePage } from "./pages";
 import { prepareRawInput } from "./prepare-input";
@@ -186,7 +186,7 @@ export async function compileRaw(
     const issues = splitProblems(
       lintPages([...loaded.pages.filter((p) => p.fm.id !== input.id), parsed.page], {
         chapterIds: CHAPTER_IDS,
-        existsFile: (p) => existsSync(join(wiki, p)),
+        existsFile: wikiFileExists(wiki),
       }),
     ).errors;
     if (loaded.problems.length || issues.length)

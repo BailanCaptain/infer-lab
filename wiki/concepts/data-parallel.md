@@ -3,7 +3,7 @@ id: data-parallel
 title: "Data parallel：请求怎样分进两组，空闲的组为什么陪跑"
 type: feature
 summary: DP 把整份模型复制几份、每份一组卡，请求分给各组各自排队调度，同一个请求的前向不拆开，为的是同时服务更多请求。MoE 模型里专家只放一份、摊在所有组的卡上，MoE 层横跨各组，所以空闲组也要用假输入陪跑同一步；这由 MoE 触发，与是否开 EP 无关。最后落到 GLM 双机的 DP2。
-aliases: [Data Parallel, 数据并行, DP, DP rank, data_parallel_size, dp_size, DPEngineCoreProc, DPCoordinator, DP coordinator, DPLBAsyncMPClient, data-parallel-size, 前端负载均衡, dummy run, dummy batch, execute_dummy_batch, 陪跑, DP 执行组, DP 通信组, request wave, START_DP_WAVE]
+aliases: [Data Parallel, 数据并行, DP, DP rank, data_parallel_size, dp_size, DPEngineCoreProc, DPCoordinator, DP coordinator, data-parallel-size, 前端负载均衡, dummy run, dummy batch, execute_dummy_batch, 陪跑, DP 执行组, DP 通信组, request wave, START_DP_WAVE]
 chapters: ["13"]
 order: 30
 sources:

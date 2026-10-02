@@ -71,6 +71,31 @@ it("checks source and documentation changes against tracked tips, never age alon
     f.cleanup();
   }
 });
+/**
+ * 2026-10-03 夜间任务崩在这里：正文链接 `../../docs/mainline/…` 越出 wiki/，
+ * 巡检的存在性检查抛「非法审阅路径」，把整晚的 sync 一起带崩。单跑 lint 对同一条链接不抛。
+ * 越界链接应当和死链一样记成问题，巡检照常跑完。
+ */
+it("reports a link that leaves wiki/ as a finding and keeps patrolling instead of throwing", () => {
+  const f = wikiFixture();
+  try {
+    f.write("docs/mainline/02-forward.md", "# 底稿");
+    f.write(
+      "wiki/sources/a.md",
+      page("a", "[底稿](../../docs/mainline/02-forward.md#13-x) [broken](missing.md)"),
+    );
+    const pages = loadPages(join(f.root, "wiki")).pages;
+    const findings = patrolFindings(pages, { repos: {}, features: [] }, f.root, "2026-09-15", 30);
+    expect(findings).toContainEqual({
+      file: "sources/a.md",
+      rule: "link-outside-wiki",
+      message: expect.stringContaining("../docs/mainline/02-forward.md"),
+    });
+    expect(findings.some((p) => p.message.includes("missing.md"))).toBe(true);
+  } finally {
+    f.cleanup();
+  }
+});
 it("records content drift and idempotent rewrite work without calling it a fact change", async () => {
   const f = wikiFixture();
   try {

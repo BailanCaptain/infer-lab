@@ -1,6 +1,6 @@
 layout: scene
 id: enable-async-exponential
-caption: 开关只挪动一件事——那批 q 是在 softmax 之后现填，还是在 28 层 forward 开始之前就填好（vllm-ascend v0.23 维护分支）
+caption: 开关只挪动一件事——那批 q 是在 softmax 之后现填，还是在 model forward 开始之前就填好（vllm-ascend v0.23 维护分支）
 size: [900, 630]
 
 regions:
@@ -10,7 +10,7 @@ regions:
     size: [860, 214]
     tone: upstream
   - label: 开：q 在 forward 之前就填好了
-    note: 同一批 q 改到 forward 之前填。副流那次 exponential_ 与 28 层前向并行，采样时它早就躺在那儿了。
+    note: 同一批 q 改到 forward 之前填。副流那次 exponential_ 与整段前向并行，采样时它早就躺在那儿了。
     at: [20, 262]
     size: [860, 320]
     tone: ascend
@@ -18,7 +18,7 @@ regions:
 boxes:
   - at: [36, 128]
     size: [186, 84]
-    title: 28 层 model forward
+    title: 各层 model forward
     sub: 主流自己算
     fn: execute_model
     tone: upstream
@@ -44,7 +44,7 @@ boxes:
 
   - at: [36, 352]
     size: [420, 84]
-    title: 28 层 model forward
+    title: 各层 model forward
     sub: 主流一路算下去，一眼都不看 q
     fn: execute_model
     tone: ascend

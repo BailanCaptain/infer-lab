@@ -62,6 +62,15 @@ export interface LintOptions {
   knownRefs?: string[];
 }
 
+/**
+ * LintOptions.existsFile 的唯一实现：lint、夜间巡检、草稿准入都用它。
+ * 越出 wiki/ 的链接在 lintPages 里先报 link-outside-wiki，不会走到这里。
+ */
+export const wikiFileExists =
+  (wikiRoot: string) =>
+  (rel: string): boolean =>
+    existsSync(join(wikiRoot, rel));
+
 const LINK_RE = /\]\(([^)\s]+)\)/g;
 
 function linkTargets(page: WikiPage): string[] {
@@ -448,7 +457,14 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
     for (const t of linkTargets(p)) {
       const target = pages.find((q) => q.file === t);
       if (target) inbound.add(target.fm.id);
-      else if (!files.has(t) && !opts.existsFile(t)) {
+      else if (t === ".." || t.startsWith("../")) {
+        // 阅读页只发布 wiki/ 里的内容，越界的相对链接在站上必然打不开
+        problems.push({
+          file: p.file,
+          rule: "link-outside-wiki",
+          message: `链接 ${t} 越出 wiki/ 目录，阅读页上打不开——改链站内页，或改成不带链接的文字`,
+        });
+      } else if (!files.has(t) && !opts.existsFile(t)) {
         problems.push({ file: p.file, rule: "broken-link", message: `链接 ${t} 不存在` });
       }
     }
@@ -723,7 +739,7 @@ export function runLint(
       problems.push({ file: page.file, rule: "raw-integrity", message: String(error) });
     }
   }
-  const opts: LintOptions = { chapterIds: CHAPTER_IDS, existsFile: (rel) => existsSync(join(wikiRoot, rel)) };
+  const opts: LintOptions = { chapterIds: CHAPTER_IDS, existsFile: wikiFileExists(wikiRoot) };
   // 不带仓库前缀的版本沿用社区分支名；独立工作版用 repo:ref，避免混淆两个 main。
   const refsByRepo = configuredRefs(rootDir);
   const knownRefs = [

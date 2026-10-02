@@ -10,7 +10,7 @@ regions:
     size: [860, 494]
     tone: ascend
   - label: 关掉（默认）时
-    note: 共享专家和路由都留在默认流上按顺序跑，prepare() 里照样 all-gather 两份：hidden_states 和 router_logits。
+    note: 共享专家和路由留在默认流上顺序跑；SP 开着、走 AllGather 时，prepare() 照样 all-gather 两份：hidden_states 和 router_logits。
     at: [20, 536]
     size: [860, 96]
     tone: muted

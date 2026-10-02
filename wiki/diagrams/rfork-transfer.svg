@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680" role="img" aria-label="B 的第 r 号卡从 A 的第 r 号卡借权重，按编号走四步。1 B 先把放权重的三段空位登记给传输引擎（A 当 seed 时已经登记过自己那份）；2 通过 HTTP 向 A 要清单，拿到的只是描述，没有权重本身；3 把 A 的清单和自己的逐项对照，整份一致才往下走；4 由 B 发起，按批把 A 显存里的字节读进自己的空位，一批累计不超过 1 GiB，所以 W3 另起一批。两个框下面的小方块是读完以后：B 的三段填满，和 A 一模一样；A 的三块原样还在，这是读、不是搬走，A 继续当 seed。任何一步失败，都先注销登记、撤掉半成品模型，再改走默认加载。三块权重的大小是示意数。">
+  <title>B 的第 r 号卡从 A 的第 r 号卡借权重，按编号走四步。1 B 先把放权重的三段空位登记给传输引擎（A 当 seed 时已经登记过自己那份）；2 通过 HTTP 向 A 要清单，拿到的只是描述，没有权重本身；3 把 A 的清单和自己的逐项对照，整份一致才往下走；4 由 B 发起，按批把 A 显存里的字节读进自己的空位，一批累计不超过 1 GiB，所以 W3 另起一批。两个框下面的小方块是读完以后：B 的三段填满，和 A 一模一样；A 的三块原样还在，这是读、不是搬走，A 继续当 seed。任何一步失败，都先注销登记、撤掉半成品模型，再改走默认加载。三块权重的大小是示意数。</title>
+  <defs><marker id="rfork-transfer-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="rfork-transfer-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="rfork-transfer-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
+  <rect x="30" y="270" width="210" height="230" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="46" y="258" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">实例 A · 第 r 号卡（seed · 已登记）</text>
+  <rect x="660" y="270" width="210" height="230" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="676" y="258" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">实例 B · 第 r 号卡（新启动）</text>
+  <path d="M666 60 L234 60" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-start="url(#rfork-transfer-ah-control)" marker-end="url(#rfork-transfer-ah-control)"/>
+  <path d="M199 330 L701 330" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-transfer-ah-comm)"/>
+  <path d="M199 381 L701 381" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-transfer-ah-comm)"/>
+  <path d="M199 442 L701 442" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-transfer-ah-comm)"/>
+  <path d="M314 646 L356 646" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#rfork-transfer-ah-danger)"/>
+  <path d="M574 646 L616 646" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-transfer-ah-control)"/>
+  <rect x="336" y="140" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="374" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="412" y="140" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="450" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="488" y="140" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="526" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="336" y="166" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="374" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="412" y="166" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="450" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="488" y="166" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="526" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="336" y="192" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="374" y="209.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="412" y="192" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="450" y="209.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <rect x="488" y="192" width="76" height="26" fill="var(--color-surface-sunken, #ece9df)"/>
+  <text x="526" y="209.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#4d5652" text-anchor="middle">一致</text>
+  <path d="M412 140v78M488 140v78M336 166h228M336 192h228" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="336" y="140" width="228" height="78" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="326" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">W1</text>
+  <text x="326" y="183.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">W2</text>
+  <text x="326" y="209.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">W3</text>
+  <text x="374" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">元素个数</text>
+  <text x="450" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">每个几字节</text>
+  <text x="526" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">类型</text>
+  <text x="450" y="240" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">A 的清单逐项对 B 自己的清单</text>
+  <rect x="40" y="36" width="190" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A 的 seed 服务</text>
+  <text x="135" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">HTTP · 只发描述</text>
+  <rect x="670" y="36" width="190" height="48" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="765" y="56" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">B 的 seed 客户端</text>
+  <text x="765" y="75" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">HTTP · 要清单</text>
+  <rect x="75" y="300" width="120" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W1</text>
+  <text x="135" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.6 GiB</text>
+  <rect x="75" y="366" width="120" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W2 · 0.3 GiB</text>
+  <rect x="75" y="402" width="120" height="80" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W3</text>
+  <text x="135" y="457" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">0.8 GiB</text>
+  <rect x="705" y="300" width="120" height="60" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="765" y="326" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">W1 空位</text>
+  <text x="765" y="345" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">已登记 · 0.6 GiB</text>
+  <rect x="705" y="366" width="120" height="30" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="765" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">W2 空位 · 已登记</text>
+  <rect x="705" y="402" width="120" height="80" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="765" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">W3 空位</text>
+  <text x="765" y="457" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">已登记 · 0.8 GiB</text>
+  <rect x="63" y="524" width="44" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="85" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W1</text>
+  <rect x="113" y="524" width="44" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="135" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W2</text>
+  <rect x="163" y="524" width="44" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="185" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W3</text>
+  <rect x="693" y="524" width="44" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="715" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W1</text>
+  <rect x="743" y="524" width="44" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="765" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W2</text>
+  <rect x="793" y="524" width="44" height="30" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="815" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">W3</text>
+  <rect x="110" y="626" width="200" height="40" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="651" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">任何一步失败</text>
+  <rect x="360" y="626" width="210" height="40" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="465" y="651" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">注销登记 · 撤掉半成品</text>
+  <rect x="620" y="626" width="230" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="735" y="651" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">改走默认加载，从存储读</text>
+  <text x="318" y="47" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">要清单：每块的名字、地址、个数、类型</text>
+  <text x="580" y="166" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">整份一致，才读第一个字节</text>
+  <text x="580" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229">有一格不一致：一个字节都不读</text>
+  <text x="318" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">B 发起，把 A 的字节读进自己的地址</text>
+  <text x="450" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">批 1 = W1 + W2 = 0.9 GiB</text>
+  <text x="450" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">批 2 = W3 = 0.8 GiB</text>
+  <text x="135" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">读完：三块原样还在，继续当 seed</text>
+  <text x="765" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">读完：三段填满，和 A 一模一样</text>
+  <circle cx="705" cy="300" r="11" fill="var(--color-ink, #17211f)"/><text x="705" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
+  <circle cx="300" cy="42" r="11" fill="var(--color-ink, #17211f)"/><text x="300" y="47" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <circle cx="296" cy="136" r="11" fill="var(--color-ink, #17211f)"/><text x="296" y="141" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <circle cx="300" cy="296" r="11" fill="var(--color-ink, #17211f)"/><text x="300" y="301" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+</svg>

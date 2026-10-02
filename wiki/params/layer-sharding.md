@@ -4,7 +4,7 @@ title: layer_sharding
 type: param
 summary: >-
   点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc
-  起已整体删除，v0.26 上照旧配置会被静默忽略、main 上直接报错。
+  起已整体删除，v0.26 上照旧配置会被静默忽略、main 上直接报错。GLM 双机是混部，在钉住版本上配了启动即报错。
 aliases:
   - Layer Sharding Linear
   - 层间权重分片
@@ -60,7 +60,7 @@ relations:
       同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
       的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-10-02"
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -74,9 +74,9 @@ rawSources:
 
 该碰它的只有一种人：跑 DeepSeek-V3 这类深层模型、做了 PD 分离、而且 P 节点显存已经放不下的运维。别的场景要么根本起不来——`kv_role` 不是 `kv_producer` 就抛 `ValueError` [C2]——要么是净亏。
 
-**存在范围。** 这一页讲的整套机制只活在 v0.23 维护分支上：它在那里就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 则因 `extra="forbid"` 在配置解析阶段就拒收。
+**存在范围。** 这一页讲的整套机制只活在 v0.23 这一代代码里：维护分支 `2c59ff10` 和本站 GLM 双机钉住的含 GLM 代码提交 `db701c1f` 都有（启动校验在同一行）；下面事实表那一列按维护分支写。它在 v0.23 就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（`2ed6cbba`）与 main 开发主线（`baa023ad`）上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 则因 `extra="forbid"` 在配置解析阶段就拒收。
 
-**本页旧算例用不到它。** Qwen3-0.6B 单卡、没有 `kv_transfer_config`，在 v0.23 上把这个键配上连启动都过不去。
+**本站 GLM 双机用不到它。** 这套部署是混部、没有 `kv_transfer_config`，在钉住的 `db701c1f` 上把这个键配上连启动都过不去，报错原文和「就算在 P 节点上开」会怎样，见「开了的代价」末段。
 
 官方文档对应页：[Layer Sharding Linear Guide](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/feature_guide/layer_sharding.html)、[Additional Configuration](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html)、[Release Notes](https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/release_notes.html)（latest 版下前两者已不存在）。
 
@@ -99,7 +99,7 @@ rawSources:
 
 深层模型里有一类权重矩阵，**每层结构完全一样、数值各不相同，而且每层都必须以完整形态驻留**。最典型的是 DeepSeek-V3/R1 这类 61 层模型的 `o_proj`：一旦开了 FlashComm2 或 DSA-CP，输出投影矩阵在该层前向时需要全量在手，没法靠 TP 继续摊薄。61 份全量矩阵压在每张卡上，纯粹是容量问题——不是算得慢，是放不下。
 
-`layer_sharding` 的做法是换一个维度切：**TP 切的是层内（一个矩阵切给多张卡），它切的是层间（多个矩阵轮流放）**。注册时，不归本卡的层直接 `dispose_tensor` 把张量置空，并把 `weight_loader` 换成 no-op——连从磁盘读都省了 [C4]。前向时靠 `reach_layer` 发一个异步 `dist.broadcast`，到该层 `forward` 入口再 `wait_weight` 收。因为 `prefetch_step` 恒为 1 [C6]，能用来遮掩这次通信的，正好是一层 attention 的计算时间。
+`layer_sharding` 的做法是换一个维度切：**TP 切的是层内（一个矩阵切给多张卡），它切的是层间（多个矩阵轮流放）**。它和 [PP（流水线并行）](../concepts/pipeline-parallel.md#pp-是什么)都按层分，但 PP 连计算一起分，每张卡只算自己那一段层、段与段之间传激活；它只分「权重存在哪张卡」，每张卡照样从头算到尾，传的是权重本身。注册时，不归本卡的层直接 `dispose_tensor` 把张量置空，并把 `weight_loader` 换成 no-op——连从磁盘读都省了 [C4]。前向时靠 `reach_layer` 发一个异步 [Broadcast](../concepts/collective-communication.md#broadcast)（`dist.broadcast`，常驻卡把整层权重发给组里其余的卡），到该层 `forward` 入口再 `wait_weight` 收。因为 `prefetch_step` 恒为 1 [C6]，能用来遮掩这次通信的，正好是一层 attention 的计算时间。
 
 ```wiki-diagram
 file: layer-sharding
@@ -127,9 +127,15 @@ file: layer-sharding
 
 承接这件事的代码在 main 上也搬了家。`vllm_ascend/quantization/tp_weight_switch.py` 在 `78cd10de`（PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814)）里被拆成 `vllm_ascend/weight_switch/linear.py` 和 `o_proj.py`：`TPWeightSwitchMixin` 改名 `WeightSwitchMixin`，统一开关位 `supports_tp_weight_switch` 改名 `supports_weight_switch`，适用范围从 TP 一个并行域扩到了多个 [C22]。要在 main 上找这套机制，别再照 `tp_weight_switch` 这个名字搜。
 
-**真要用户点名的那个开关，只有 main 上才有，叫 `enable_pcp_o_proj_weight_sharding`。** `bool`、默认 `False`，让 SFA-PCP 在加载期把 `o_proj` 权重按 PCP 组切开、运行时在本地视图与 gather 视图之间切换；官方表明确写着它不影响 DSA-CP [S27]。和 `layer_sharding` 的差别在于用户说了算的范围小了一圈：切哪个权重、按哪个并行域切都定死了，你只能决定开不开。**v0.26 分支上连这个开关也没有**——从 v0.24.0rc 到 v0.26，关于 `o_proj` 权重怎么放，用户没有任何旋钮可拧。
+**真要用户点名的那个开关，钉住的三个版本里只有 main 有（v0.28.0rc / v0.29.0rc 发布分支也已带上），叫 [`enable_pcp_o_proj_weight_sharding`](enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md)。** `bool`、默认 `False`，让 SFA-PCP 在加载期把 `o_proj` 权重按 PCP 组切开、运行时在本地视图与 gather 视图之间切换；官方表明确写着它不影响 DSA-CP [S27]。和 `layer_sharding` 的差别在于用户说了算的范围小了一圈：切哪个权重、按哪个并行域切都定死了，你只能决定开不开。**v0.26 分支上连这个开关也没有**——从 v0.24.0rc 到 v0.26，关于 `o_proj` 权重怎么放，用户没有任何旋钮可拧。
 
 **新版上的过时文字还在，别当真。** GLM5.2、GLM5 两篇教程以及两份部署模板里都还留着「开了 FlashComm 后 `layer_sharding` 不能包含 `o_proj`」[S23]，v0.26 分支上这三篇教程同样原样留着，feature guide 的目录页甚至还挂着一条指向已删除文件的 `layer_sharding` 条目 [S31]。`vllm_ascend/` 里既没有 `layer_sharding` 也没有 FlashComm2，这句话现在两头都落空。
+
+**放到 GLM 双机：配上就起不来；挪到 P 节点，按现有参数推断也切不到什么。** 本站 GLM 双机（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）是混部，没有 `kv_transfer_config`。钉住的 `db701c1f` 在 platform 的启动检查里第一个就查这个键：列表非空、而本实例又不是 `kv_producer`，就抛出下面这句（与 v0.23 维护分支同一行同一句）[C2]：
+
+> additional_config.layer_sharding can only be enabled in PD-disaggregated's P node.
+
+假如改成 PD 分离、在 P 节点上开，也要先看谁会被登记。按源码，登记只发生在 MLA 和 SFA 两个注意力后端里，切的是这两个后端里点名的投影（如 `o_proj`、`q_b_proj`）。GLM 主干 45 层里 34 层是 KDA，不经过这两个后端；剩下 11 层稀疏 MLA 用的是继承 SFA 实现的 GLM 专用类，构造时先走 SFA 的构造，而 SFA 只在开了 DSA-CP 时才登记。DSA-CP 要在 `additional_config` 里写 `enable_dsa_cp`、还要打开 SP（FlashComm1），本站部署参数里两样都没设。所以按现有参数推断，P 节点上配了也一层都不会被切。待核：GLM 在 P 节点上若开 DSA-CP，主干 11 层稀疏 MLA（MTP 的第 45 层也是稀疏 MLA，走同一路径）的投影分到几张卡、每卡能省多少——本站没有推导，也没有任何实测。GLM 每张卡现在放了多少权重，见[每张卡上放了什么](../concepts/glm-5-3-flash-two-node.md#每张卡上放了什么)。
 
 ## 版本谱系
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createReaderStore } from "./reader-store";
 
 function snapshot(version: string) {
@@ -95,5 +95,25 @@ describe("reader snapshot state", () => {
     }, controller.signal);
     expect(await result).toBe(false);
     expect(store.getState().mode).toBe("build");
+  });
+
+  it("skipped pages stay out of the list, are known as unavailable, and their reasons go to console only", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const skipped = [{ id: "bad", file: "concepts/bad.md", reason: "[schema] summary: Required" }];
+      const store = createReaderStore({ ...snapshot("a"), skipped });
+      expect(store.getState().pages.map((p) => p.id)).toEqual(["a"]);
+      expect(store.getPage("a")?.body).toBe("a");
+      expect(store.getPage("bad")).toBeUndefined();
+      expect(store.getState().skipped.has("bad")).toBe(true);
+      expect(warn).toHaveBeenCalledOnce();
+      expect(warn.mock.calls[0]?.[0]).toContain("concepts/bad.md：[schema] summary: Required");
+      // 坏页修好了：新快照里没有跳过的页，也不再 warn
+      store.install(snapshot("b"));
+      expect(store.getState().skipped.size).toBe(0);
+      expect(warn).toHaveBeenCalledOnce();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

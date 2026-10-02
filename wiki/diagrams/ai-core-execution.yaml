@@ -1,0 +1,34 @@
+layout: figure
+id: ai-core-execution
+caption: A4 专家计算的普通 W8A8 量化 MC2 分支；融合分支按源码条件选择，所有路径汇合到第二次矩阵乘
+size: [860, 700]
+items:
+  - { at: [230, 25], size: [400, 50], text: A4 逐层前向 · 专家输入已派发到本卡, tone: token }
+  - { at: [230, 110], size: [400, 50], text: 输入是否带有量化尺度？, tone: control }
+  - { at: [55, 205], size: [310, 50], text: 已量化：沿用输入与尺度, tone: token }
+  - { at: [495, 205], size: [310, 50], text: 尚未量化：动态量化, tone: token }
+  - { at: [190, 300], size: [480, 50], text: MC2 且无 scale_bias / offset：选择 gmm1 路径, tone: control }
+  - { at: [25, 420], size: [250, 65], text: 自定义融合算子, tone: weight }
+  - { at: [305, 420], size: [250, 65], text: DeviceOperator 融合算子, tone: weight }
+  - { at: [585, 420], size: [250, 65], text: 矩阵乘 → 激活与量化, tone: weight }
+  - { at: [210, 550], size: [440, 50], text: gmm2：第二次矩阵乘，恢复隐藏向量宽度, tone: weight }
+  - { at: [230, 635], size: [400, 45], text: 专家结果交给后续收回与组合, tone: token }
+links:
+  - { from: [430, 75], to: [430, 110], tone: control }
+  - { from: [230, 135], to: [210, 205], via: [[210, 135]], tone: control }
+  - { from: [630, 135], to: [650, 205], via: [[650, 135]], tone: control }
+  - { from: [210, 255], to: [310, 300], via: [[210, 280], [310, 280]], tone: token }
+  - { from: [650, 255], to: [550, 300], via: [[650, 280], [550, 280]], tone: token }
+  - { from: [270, 350], to: [150, 420], via: [[150, 375]], tone: control }
+  - { from: [430, 350], to: [430, 420], tone: control }
+  - { from: [590, 350], to: [710, 420], via: [[710, 375]], tone: control }
+  - { from: [150, 485], to: [300, 550], via: [[150, 525], [300, 525]], tone: token }
+  - { from: [430, 485], to: [430, 550], tone: token }
+  - { from: [710, 485], to: [560, 550], via: [[710, 525], [560, 525]], tone: token }
+  - { from: [430, 600], to: [430, 635], tone: token }
+texts:
+  - { at: [185, 187], text: 是, anchor: middle, note: true }
+  - { at: [675, 187], text: 否, anchor: middle, note: true }
+  - { at: [150, 400], text: 自定义融合条件满足, anchor: middle, note: true }
+  - { at: [430, 400], text: 否则，普通融合条件满足, anchor: middle, note: true }
+  - { at: [710, 400], text: 否则，分开调用, anchor: middle, note: true }

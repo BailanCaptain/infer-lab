@@ -109,3 +109,5 @@ KVPP 是把 TP 组里那几份一模一样的 MLA KV cache 拆开：每层只让
 - **P3-2 已修。** 官方 TTFT 补 64K 一行（单机 +1.52%、双机 +8.53%），并加一句「输入越长，越藏不住」。
 - **P3-3 未改，按审查意见属批次收尾。** `wiki/index.md` 是 `pnpm wiki:build` 的派生物、全批共用，不在本页写手的改动范围内，留给主会话收尾时重建。
 - **检查。** `pnpm wiki:lint`、`pnpm wiki:diagrams --check`、`pnpm wiki:audit` 本页均 0 报错；三项的全库报错都来自 kv-cache-sparse-offload（别的写手正在改，图 svg 未生成）。`checkStandard`：教学正文 4,868 字，行内代码 0，角标 0，calc 0.82/千字，免责 1.4%，均通过。
+
+- **收尾清扫（2026-10-02）P3-3 已改。** 查实 `wiki/index.md` 是 `scripts/wiki-build.ts` 的派生物，已跑 `pnpm wiki:build`（139 页）重建 index.md 与 registry.json；本页条目现为新标题「KVPP：KV cache 按层分给各卡常驻，算到时整层广播」，旧标题 0 处。`pnpm wiki:lint` 退出 0。

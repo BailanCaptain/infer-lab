@@ -303,3 +303,5 @@
 - 它在 GLM 路径上的角色：由 indexer 在 `#L1298` 构造（`self.state_cache`），是 kpool 尾状态那一份缓存的持有者，前向为空，只为让 Runner 按它自己的缓存规格分配和管理这份缓存。加上 `IndexerKPoolMLACacheLayer`（`ops/indexer_kpool_mla.py#L136-L137`）与 `AscendGlm5NextIndexerKPoolCache`（`glm5_next.py#L306-L307`），三个缓存层确实各自返回自己的后端，上节的说法成立。
 
 验证：`pnpm wiki:lint` 退出码 0（`ok wiki:lint 通过（另有 17 处待留意）`，17 处中无本页）；`pnpm wiki:audit` 退出码 0（`行号越界 0、文件不存在 0`，名单 40 页全部达标）。未起服务、未提交 git。
+
+- **修正（2026-10-02，主会话裁定，随 speculative-decoding 审查 P2-1）。** 正文 L335「草拟总走 eager」一条原写成无条件打 GLM 警告；按 `vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L217`、`#L227-L236`，警告包在 `if self.use_cuda_graph:` 里，只在草稿原本要录图（没写 `enforce_eager: true`）时打，官方双机命令写了，所以不打。已改成一句话加链接到 speculative-decoding 的 GLM 双机一节，口径同底稿 03 §A5-17；只改这一处。改后 `pnpm wiki:lint`、`pnpm wiki:audit` 退出码均为 0。

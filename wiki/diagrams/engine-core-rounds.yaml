@@ -1,50 +1,77 @@
 layout: figure
 id: engine-core-rounds
-caption: 示意请求 R：提示词 3 个 token（编号 7、2、9），回答 2 个 token（5、8），格子下面是位置。第 1 圈 R 第一次上场，计划带着完整提示词发给 Worker；第 2 圈 Worker 手里已经有自己采样出的 5，计划只写「R 这一步算 1 个位置」。每圈的新 token 都经 EngineCore 记账后再送回前端。
-size: [900, 1420]
-exchanges:
-  - at: [7, 8]
-    cards: [前端（API server）, EngineCore, Worker]
-    perRow: 3
-    slots: 5
-    cell: [42, 34]
-    gap: [80, 96]
-    labels: [位置 0, 位置 1, 位置 2, 位置 3, 位置 4]
-    tag: 编号为示意
-    start:
-      - [7, 2, 9, null, null]
-      - [null, null, null, null, null]
-      - [null, null, null, null, null]
-    steps:
-      - title: 收消息：前端把 3 个提示词编号发给 EngineCore，R 进等待队列
-        moves:
-          - { from: [0, 0], to: [1, 0] }
-          - { from: [0, 1], to: [1, 1] }
-          - { from: [0, 2], to: [1, 2] }
-      - title: 第 1 圈调度：R 算 3 个位置，第一次上场，计划带上完整提示词
-        moves:
-          - { from: [1, 0], to: [2, 0] }
-          - { from: [1, 1], to: [2, 1] }
-          - { from: [1, 2], to: [2, 2] }
-      - title: 第 1 圈执行：Worker 前向一次，用最后一个位置选出新 token 5
-        sets:
-          - { at: [2, 3], value: 5 }
-      - title: 第 1 圈更新：5 交回 EngineCore，记账「已算 3 个位置」
-        moves:
-          - { from: [2, 3], to: [1, 3] }
-      - title: 送回：5 放进输出队列发给前端，前端还原成文字推给用户
-        moves:
-          - { from: [1, 3], to: [0, 3] }
-      - title: 第 2 圈：计划只写「R 算 1 个位置」，Worker 拿手里的 5 算出 8
-        sets:
-          - { at: [2, 4], value: 8 }
-      - title: 第 2 圈更新：8 交回 EngineCore，是结束记号，R 完成、还块
-        moves:
-          - { from: [2, 4], to: [1, 4] }
-      - title: 送回：8 发给前端，前端结束这条回答
-        moves:
-          - { from: [1, 4], to: [0, 4] }
-    end: 两圈后：三处都有 R 的 5 个编号，EngineCore 下一份计划通知 Worker 删掉 R 的缓存
+caption: 示意请求 R：提示词 3 个 token（编号 7、2、9），回答 2 个 token（5、8）。每格三行依次是前端（API server）、EngineCore、Worker 手里 R 的 token 编号，格子上面是位置；圆圈里的 1–4 是一圈里的收消息、调度、执行、更新（正文的 ①–④）。紫色箭头是在进程之间送过去的编号或消息，灰色虚线是 Worker 手里已经有、不用再发的编号。第 1 圈计划带着完整提示词；第 2 圈计划只写「R 算 1 个位置」；新 token 每圈都经 EngineCore 记账后再送回前端。
+size: [880, 608]
+frames:
+  - { label: 第 1 圈：R 第一次上场，计划带上 3 个提示词编号, at: [8, 30], size: [428, 266] }
+  - { label: 第 2 圈：计划只写「R 算 1 个位置」，5 不用再发, at: [444, 30], size: [428, 266] }
+  - { label: 两圈之后：R 已完成、还了块；下一份计划带上「R 已结束」，Worker 删掉缓存, at: [8, 334], size: [864, 266] }
+grids:
+  # 第 1 圈：前端
+  - { at: [153, 70], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty,
+      rowLabels: [前端], colLabels: [位置 0, 位置 1, 位置 2, 位置 3, 位置 4],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: solid }] }
+  # 第 1 圈：EngineCore
+  - { at: [153, 158], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty, rowLabels: [EngineCore],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: solid }] }
+  # 第 1 圈：Worker
+  - { at: [153, 246], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty, rowLabels: [Worker],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: solid }] }
+  # 第 2 圈：前端
+  - { at: [589, 70], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty,
+      rowLabels: [前端], colLabels: [位置 0, 位置 1, 位置 2, 位置 3, 位置 4],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: faded }, { at: [0, 4], text: '8', style: solid }] }
+  # 第 2 圈：EngineCore
+  - { at: [589, 158], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty, rowLabels: [EngineCore],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: faded }, { at: [0, 4], text: '8', style: solid }] }
+  # 第 2 圈：Worker
+  - { at: [589, 246], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty, rowLabels: [Worker],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: faded }, { at: [0, 4], text: '8', style: solid }] }
+  # 两圈之后：前端留着整条回答
+  - { at: [371, 374], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty,
+      rowLabels: [前端], colLabels: [位置 0, 位置 1, 位置 2, 位置 3, 位置 4],
+      cells: [{ at: [0, 0], text: '7', style: faded }, { at: [0, 1], text: '2', style: faded }, { at: [0, 2], text: '9', style: faded },
+              { at: [0, 3], text: '5', style: faded }, { at: [0, 4], text: '8', style: faded }] }
+  # 两圈之后：EngineCore 已放掉 R
+  - { at: [371, 462], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty, rowLabels: [EngineCore] }
+  # 两圈之后：Worker 删掉 R 的缓存
+  - { at: [371, 550], rows: 1, cols: 5, cell: [44, 32], tone: token, style: empty, rowLabels: [Worker] }
+links:
+  # 第 1 圈 ①：前端把 3 个提示词编号发给 EngineCore
+  - { from: [175, 104], to: [175, 156], tone: comm }
+  - { from: [219, 104], to: [219, 156], tone: comm }
+  - { from: [263, 104], to: [263, 156], tone: comm }
+  # 第 1 圈 ②：计划带着 3 个提示词编号发给 Worker
+  - { from: [175, 192], to: [175, 244], tone: comm }
+  - { from: [219, 192], to: [219, 244], tone: comm }
+  - { from: [263, 192], to: [263, 244], tone: comm }
+  # 第 1 圈 ④：新 token 5 交回 EngineCore，再送回前端
+  - { from: [307, 244], to: [307, 192], tone: comm }
+  - { from: [307, 156], to: [307, 104], tone: comm }
+  # 第 2 圈 ②：5 在 Worker 手里已经有，不用再发
+  - { from: [743, 192], to: [743, 244], tone: control, dashed: true }
+  # 第 2 圈 ④：新 token 8 交回 EngineCore，再送回前端
+  - { from: [787, 244], to: [787, 192], tone: comm }
+  - { from: [787, 156], to: [787, 104], tone: comm }
+  # 两圈之后：下一份计划通知 Worker
+  - { from: [593, 478], to: [593, 566], via: [[622, 478], [622, 566]], tone: comm }
+badges:
+  - { at: [135, 130], n: 1 }
+  - { at: [135, 218], n: 2 }
+  - { at: [329, 278], n: 3 }
+  - { at: [325, 218], n: 4 }
+  - { at: [725, 218], n: 2 }
+  - { at: [809, 278], n: 3 }
+  - { at: [805, 218], n: 4 }
+texts:
+  - { at: [872, 18], text: 编号为示意, size: 12.5, note: true, anchor: end }
+  - { at: [634, 527], text: R 已结束, size: 13 }
 pins:
   - source: vllm@0fc695fc:vllm/v1/core/sched/output.py#L181-L215
     symbols: [scheduled_new_reqs, scheduled_cached_reqs, num_scheduled_tokens, finished_req_ids]

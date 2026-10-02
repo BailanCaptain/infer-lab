@@ -177,3 +177,28 @@ frontmatter 的 sources 区未改。
 - `pnpm wiki:diagrams --check`：本页 4 张图 0 条；整体仍因 `sequence-parallel` 的 SVG 不一致失败（别页）。
 - `pnpm wiki:audit`：本页 0 条；整体 1 处失败在 `prepare-inputs-flow` 的图引用（别页）。
 - 截图：首屏（summary、别名变了）和气泡图（配色变了）已重截，覆盖 `pipeline-parallel-shot-1/2.png`；切法图、GLM 图另用静帧检查，无重叠、无越框。
+
+## 动图改静态分格（10-03）
+
+用户 10-02 拍板：exchanges 动图全部改成静态分格图，样板是集合通信页的 All-Reduce。本节把 `pipeline-parallel-flow` 按样板改掉。
+
+### 改了什么
+
+- `wiki/diagrams/pipeline-parallel-flow.yaml`：不再用 `exchanges`（原来是 8 格播放），改用 `frames`、`grids`、`links`、`texts` 拼。没有改渲染器。原文件是 JSON 写法，这次换成和样板一样的 YAML 写法。画布 880×1000。坐标由 scratchpad 的 `gen-pp.mjs` 算出来，脚本核对了终点是 [9, 8]。
+- 4 格，一段一格（每一段都是先算后发，所以不另设「发之前 / 发之后」）。每格一行是 4 张卡，每张卡中间的琥珀色小块是它放的 2 层，上面一排是送进这一段的隐藏向量，下面一排是这一段算出来的：
+  1. 卡 0：embedding 查得 [1, 0]，过第 0、1 层得 [3, 2]，紫色箭头交给卡 1。
+  2. 卡 1 过第 2、3 层得 [5, 4]，交给卡 2。
+  3. 卡 2 过第 4、5 层得 [7, 6]，交给卡 3。
+  4. 卡 3 过第 6、7 层得 [9, 8]，出口采样出下一个 token。
+- 每格里不在算的卡，上下两排都空着，这表示它在等。4 格从上往下看，在算的卡沿对角线走一遍，和正文「任何时刻都只有一张卡在为这个 token 干活」对得上。紫色箭头只带 2 个数，层留在原卡，对应「权重不跟着走」。多个请求怎么排流水，仍然由后面的气泡图 `pipeline-parallel-bubble` 讲，本图没有重复。
+- 画面纪律：一个张量一排连在一起的格子；颜色沿用（隐藏向量青、层琥珀、通信紫）；线不交叉；图上的字只有右上角「数为示意 · 每过一层每个数加 1」。
+- 正文只改了一句：「点『下一步』，看这 2 个数怎样从卡 0 走到卡 3」改成按四格读图的说明。
+
+### 验证（本轮实跑）
+
+- 单图校验（scratchpad 的 one-diagram.mts，调用仓库的 figureSpecSchema / figureProblems / figureAdvisories / renderDiagram，只写本图）：spec 合法，0 处出界或压字，0 条提醒。
+- `pnpm wiki:lint`：exit 0（另有 4 处别页 mark-flood 待留意，不阻塞）。
+- `pnpm wiki:diagrams --check`：exit 0，「290 张图与 spec 一致」；提醒里没有本图。
+- `pnpm wiki:audit`：exit 0，名单 100 页全部达标。
+- 截图：5193 当时没有在跑（curl 连不上），按约定不起停服务，所以没能在页面里打开、也没查播放器按钮是否消失。改用 Playwright（1440 宽）直接渲染仓库里的新 SVG，存在会话 scratchpad。页面内验收尚未做。
+- 截图：`static-pp.png`。

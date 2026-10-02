@@ -1,0 +1,48 @@
+layout: figure
+id: rfork-lifecycle-threads
+caption: 一个 Worker 传完权重以后，几条线程各干各的（示意数）。启动线程第 3 秒就把模型交出去，接着往下启动。还租约线程第一次收到 503，隔 30 秒再还，第 34 秒确认还上，接着在同一条线程里发布 seed。发布成功后 seed 服务开始应答，心跳线程先等 30 秒才报第一次平安。
+size: [900, 268]
+
+timelines:
+  - at: [10, 40]
+    scale: 11
+    start: 0
+    end: 70
+    ticks: 10
+    unit: 秒
+    labelW: 100
+    laneH: 32
+    gap: 10
+    lanes:
+      - label: 启动线程
+        spans:
+          - { from: 0, to: 3, tone: weight }
+          - { from: 3, to: 70, tone: control, style: faded, text: 前 3 秒做后处理；之后交出模型，vLLM 接着往下启动 }
+      - label: 还租约线程
+        spans:
+          - { from: 0, to: 2, tone: comm }
+          - { from: 2, to: 32, style: hatch, text: 收到 503，等 30 秒再试 }
+          - { from: 32, to: 34, tone: comm }
+          - { from: 34, to: 36, tone: comm, style: faded }
+      - label: seed 服务
+        spans:
+          - { from: 36, to: 70, tone: comm, style: faded, text: 服务中 }
+      - label: 心跳线程
+        spans:
+          - { from: 36, to: 66, style: hatch, text: 先等 30 秒 }
+          - { from: 66, to: 67, tone: comm }
+    marks:
+      - { t: 3, label: 延期 }
+      - { t: 34, label: 确认还上 }
+      - { t: 66, label: 首次心跳 }
+
+texts:
+  - { at: [121, 252], text: ↑ 第 1 次还, size: 11.5, tone: comm, anchor: middle }
+  - { at: [482, 252], text: 第 2 次还 ↑, size: 11.5, tone: comm, anchor: end }
+  - { at: [496, 252], text: ↑ 起服务、首次登记, size: 11.5, tone: comm }
+
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L170-L250
+    symbols: [_retry_seed_lease_release, _promote_deferred_seed_locked, RELEASED]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L237-L267
+    symbols: [run_seed_heartbeat, initial_delay]

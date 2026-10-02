@@ -1,65 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" role="img" aria-label="分离架构的典型数据路径；省略部分搬运与控制部件，不表示核数、物理比例或缓冲容量">
-  <title>分离架构的典型数据路径；省略部分搬运与控制部件，不表示核数、物理比例或缓冲容量</title>
-  <defs><marker id="ai-core-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="ai-core-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
-  <rect x="195" y="70" width="610" height="160" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="211" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AIC · 矩阵计算与标量控制</text>
-  <rect x="195" y="325" width="610" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="211" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AIV · 向量计算与标量控制</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 580" width="860" height="580" role="img" aria-label="一张 NPU 内的典型分离架构数据流；矩阵结果经 GM 交给向量侧。图省略部分缓冲、搬运与控制部件，框数不代表核数或容量">
+  <title>一张 NPU 内的典型分离架构数据流；矩阵结果经 GM 交给向量侧。图省略部分缓冲、搬运与控制部件，框数不代表核数或容量</title>
+  <defs><marker id="ai-core-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="165" y="75" width="665" height="185" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="181" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AIC · 矩阵侧，含 Scalar 控制</text>
+  <rect x="165" y="360" width="665" height="155" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="181" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AIV · 向量侧，含 Scalar 控制</text>
   <g data-hardware="memory">
-  <rect x="25" y="123" width="130" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M30 175h120M30 179h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="90" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 输入</text>
+  <rect x="20" y="105" width="115" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M25 157h105M25 161h105" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="77.5" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 输入</text>
   </g>
   <g data-hardware="memory">
-  <rect x="225" y="123" width="85" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M230 175h75M230 179h75" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="267.5" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">L1</text>
+  <rect x="185" y="105" width="85" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M190 157h75M190 161h75" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="227.5" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">L1</text>
   </g>
   <g data-hardware="memory">
-  <rect x="340" y="123" width="95" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M345 175h85M345 179h85" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="387.5" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">L0A/B</text>
+  <rect x="310" y="105" width="100" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M315 157h90M315 161h90" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="360" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">L0A/B</text>
   </g>
   <g data-hardware="memory">
-  <rect x="610" y="123" width="85" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M615 175h75M615 179h75" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="652.5" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">L0C</text>
+  <rect x="635" y="105" width="125" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M640 157h115M640 161h115" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="697.5" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">L0C</text>
   </g>
   <g data-hardware="memory">
-  <rect x="845" y="123" width="130" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M850 175h120M850 179h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="910" y="157" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 输出</text>
+  <rect x="585" y="285" width="225" height="55" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M590 332h215M590 336h215" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="697.5" y="316.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 中间结果</text>
   </g>
   <g data-hardware="memory">
-  <rect x="25" y="373" width="130" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M30 425h120M30 429h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="90" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 输入</text>
+  <rect x="315" y="395" width="170" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M320 447h160M320 451h160" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="400" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">UB 片上缓冲</text>
   </g>
   <g data-hardware="memory">
-  <rect x="265" y="373" width="150" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M270 425h140M270 429h140" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="340" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">UB 缓冲</text>
+  <rect x="20" y="395" width="115" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <path d="M25 447h105M25 451h105" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
+  <text x="77.5" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 输出</text>
   </g>
-  <g data-hardware="memory">
-  <rect x="845" y="373" width="130" height="60" rx="3" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <path d="M850 425h120M850 429h120" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.5"/>
-  <text x="910" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">GM 输出</text>
-  </g>
-  <path d="M155 153 L225 153" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ai-core-ah-ink)"/>
-  <path d="M310 153 L340 153" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ai-core-ah-ink)"/>
-  <path d="M435 153 L475 153" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ai-core-ah-ink)"/>
-  <path d="M570 153 L610 153" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ai-core-ah-ink)"/>
-  <path d="M695 153 L845 153" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ai-core-ah-ink)"/>
-  <path d="M155 403 L265 403" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#ai-core-ah-ink)"/>
-  <path d="M415 403 L570 403" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-start="url(#ai-core-ah-token)" marker-end="url(#ai-core-ah-token)"/>
-  <path d="M340 433 L340 457 L820 457 L820 418 L845 418" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
-  <rect x="475" y="128" width="95" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="522.5" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Cube</text>
-  <rect x="570" y="378" width="155" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
-  <text x="647.5" y="408" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Vector</text>
-  <text x="25" y="35" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">存储位置 → 搬运 → 计算 → 保存</text>
-  <text x="735" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">Fixpipe</text>
-  <text x="495" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">读 / 写</text>
-  <text x="25" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">对照：耦合架构中的 Cube / Vector 位于同一核心</text>
-  <text x="25" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">UB = Unified Buffer    矩阵结果另一可选去向：L1</text>
+  <path d="M135 135 L185 135" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M270 135 L310 135" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M410 135 L450 135" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M595 135 L635 135" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M697 165 L697 200" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M697 240 L697 285" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M585 313 L400 313 L400 395" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M485 425 L575 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-start="url(#ai-core-ah-token)" marker-end="url(#ai-core-ah-token)"/>
+  <path d="M315 425 L135 425" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-ah-token)"/>
+  <rect x="450" y="110" width="145" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="522.5" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Cube 矩阵乘</text>
+  <rect x="635" y="200" width="125" height="40" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="697.5" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Fixpipe</text>
+  <rect x="575" y="400" width="205" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="677.5" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Vector 逐项计算</text>
+  <text x="20" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">搬入输入和权重 → 矩阵乘 → 交接结果 → 逐项处理 → 写回</text>
+  <text x="20" y="185" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">输入与权重</text>
+  <text x="190" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">另一条可选路径：Fixpipe 将结果写回 L1</text>
+  <text x="425" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">经 GM 交接</text>
+  <text x="530" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">读 / 写</text>
+  <text x="190" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">搬运单元负责传数据；Scalar 负责地址、循环等控制</text>
+  <text x="20" y="550" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">GM 是全局内存；L1、L0、UB 是片上存储。等待数据也是执行成本。</text>
 </svg>

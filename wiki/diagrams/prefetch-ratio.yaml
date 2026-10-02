@@ -1,58 +1,65 @@
 layout: scene
 id: prefetch-ratio
-caption: 五个比例各管一条路，走的却是同一个算式：ratio × 单卡权重字节数，再被 18 MiB 夹一次（vllm-ascend v0.23 维护分支）
-size: [900, 716]
+caption: 五个比例各管一条路，走的却是同一个算式：ratio × 单卡权重字节数；之后 mlp 在 Python 侧截到 18 MiB，attn / moe 的后端上限待核（vllm-ascend v0.23 维护分支）
+size: [900, 786]
 
 regions:
-  - label: 三组比例，三道各自的门
+  - label: 三组比例，四个各自的入口
     note: mlp 与 moe 按模型类型互斥，一次运行最多有一组生效；attn 那一组还要模型是 W8A8 静态量化
     at: [20, 44]
-    size: [860, 206]
+    size: [860, 300]
     tone: ascend
   - label: 写进去的小数怎么变成搬运字节数
-    note: 三组共用这条算式，差别只在谁来夹上限
-    at: [20, 302]
+    note: 三组共用这条算式，差别在于截不截、由谁来截
+    at: [20, 372]
     size: [860, 208]
     tone: neutral
 
 boxes:
-  - at: [40, 142]
-    size: [256, 96]
+  - at: [40, 108]
+    size: [390, 96]
     title: attn.qkv / attn.o
-    sub: 起点在量化线性层内部
+    sub: 静态 W8A8 的 apply 内，按类名精确匹配
     fn: AscendW8A8LinearMethod
     tone: ascend
     icon: chip
-  - at: [318, 142]
-    size: [256, 96]
+  - at: [460, 108]
+    size: [390, 96]
     title: moe.gate_up
-    sub: 门控 top_k 之前，token ≥ 96
+    sub: token ≥ 96，还要取得到 w13_weight
     fn: select_experts
     tone: ascend
     icon: pick
-  - at: [596, 142]
-    size: [256, 96]
-    title: mlp.gate_up / down
-    sub: 稠密模型，token < 500
+  - at: [40, 220]
+    size: [390, 96]
+    title: mlp.gate_up
+    sub: 稠密模型、token < 500，入口在行并行 apply
+    fn: CustomRowParallelOp
+    tone: ascend
+    icon: layers
+  - at: [460, 220]
+    size: [390, 96]
+    title: mlp.down
+    sub: 同样的门槛，走带钩子的 SwiGLU
     fn: AscendSiluAndMul
     tone: ascend
     icon: layers
 
-  - at: [40, 396]
+  - at: [40, 466]
     size: [258, 96]
     title: ① 乘成字节数
     sub: 单卡权重字节 × 这一项的比例
     fn: prefetch_ratio
     tone: neutral
     icon: calc
-  - at: [320, 396]
+  - at: [320, 466]
     size: [258, 96]
-    title: ② 夹到 18 MiB
-    sub: mlp 自己夹，其余靠后端夹
+    title: ② 看要不要截
+    sub: mlp 截到 18 MiB；其余待核
     fn: MAX_PREFETCH_WEIGHT_SIZE
     tone: neutral
     icon: gear
-  - at: [600, 396]
+  - at: [600, 466]
     size: [258, 96]
     title: ③ 副流上发预取
     sub: 计算流在 postprocess 处等回来
@@ -60,7 +67,7 @@ boxes:
     tone: accent
     icon: bolt
 
-  - at: [40, 560]
+  - at: [40, 630]
     size: [820, 84]
     title: "漏写一项不是「不预取」，是 100% 预取"
     sub: 比例取不到按 0 算，而 max_size ≤ 0 会被改写成整块权重——方向正好反了
@@ -69,21 +76,19 @@ boxes:
     icon: bolt
 
 arrows:
-  - { from: [298, 444], to: [318, 444], tone: neutral }
-  - { from: [578, 444], to: [598, 444], tone: neutral }
-  - { from: [169, 250], to: [169, 300], tone: ascend }
-  - { from: [447, 250], to: [447, 300], tone: ascend }
-  - { from: [725, 250], to: [725, 300], tone: ascend }
+  - { from: [298, 514], to: [318, 514], tone: neutral }
+  - { from: [578, 514], to: [598, 514], tone: neutral }
+  - { from: [445, 320], to: [445, 370], tone: ascend }
 
 brackets:
-  - { at: [320, 518], span: 258, dir: down, label: 权重一超过 22.5 MiB，0.8 和 1.0 在这里被夹成同一个数, tone: accent }
+  - { at: [320, 588], span: 258, dir: down, label: "mlp 这一侧超过 18 MiB 就被截平，0.8 与 1.0 可能等价；attn / moe 要等后端上限核实", tone: accent }
 
 notes:
-  - at: [20, 674]
+  - at: [20, 744]
     text: "想关掉一组，唯一正确的写法是把该组每一项都写成 0——全 0 时这一组的 enable 被置 False；写成空 dict 或整组不写，都会回退到内建默认值。"
     size: 12.5
     width: 860
-  - at: [20, 700]
+  - at: [20, 770]
     text: "越界值（1.2、-0.5）在构造阶段被静默丢出字典，随后就落进上面那条「按 0 算」的分支。"
     size: 12.5
     width: 860
@@ -96,3 +101,5 @@ pins:
     symbols: [select_experts]
   - source: vllm-ascend@2c59ff10:vllm_ascend/ops/activation.py#L37-L43
     symbols: [AscendSiluAndMul]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L153-L158
+    symbols: [CustomRowParallelOp]

@@ -1,0 +1,37 @@
+layout: figure
+id: api-server-entry
+caption: 左列是同一条请求在前端被一步步改写的样子（编号是示意数）：JSON 变成带角色标记的文本，再变成一串编号，最后连同采样参数包成引擎请求。⑥ 先在本进程留下回程的接收点，⑦ 才把请求发过进程边界。① 和 ④ 查出问题就直接回错误，请求不会进引擎。
+size: [900, 720]
+frames:
+  - { at: [20, 40], size: [600, 660], label: API server 进程 · 在 CPU 上做 }
+  - { at: [650, 420], size: [230, 280], label: 选中那一组的 EngineCore 进程 }
+items:
+  - { at: [40, 64], size: [300, 62], text: HTTP 请求 · 一段 JSON, sub: 用户说「你好」，要求流式返回, tone: token, style: plain }
+  - { at: [40, 156], size: [300, 62], text: ① 检查, sub: 模型名 · 模板来源 · 工具选项, tone: control, style: plain }
+  - { at: [40, 248], size: [300, 62], text: ② 套聊天模板, sub: '<|user|>你好<|assistant|>', tone: token }
+  - { at: [40, 340], size: [300, 62], text: ③ 分词, sub: '[7, 31, 1052, 9]：4 个编号', tone: token }
+  - { at: [40, 432], size: [300, 62], text: ④ 定输出上限和采样参数, sub: 太长就拒；temperature、top-p…, tone: control, style: plain }
+  - { at: [40, 524], size: [300, 62], text: ⑤ 包成 EngineCoreRequest, sub: 编号 + 采样参数 + 请求 ID, tone: control }
+  - { at: [400, 156], size: [200, 62], text: 返回错误, sub: 400 / 404，不进引擎, tone: danger, style: faded }
+  - { at: [400, 524], size: [200, 62], text: ⑥ 登记回程接收点, sub: 反分词器 + 输出槽, tone: kv }
+  - { at: [400, 616], size: [200, 62], text: ⑦ 选 DP 组并发送, sub: 看请求头，没有就打分, tone: comm }
+  - { at: [670, 450], size: [190, 62], text: 每一步算出的编号, sub: 之后一批批回来, tone: token, style: faded }
+  - { at: [670, 616], size: [190, 62], text: 收下，建 Request, sub: 输入线程做，与计算并行, tone: control, style: plain }
+  - { at: [670, 534], size: [190, 56], text: waiting 队列, sub: 下一圈开头由调度器取, tone: control }
+links:
+  - { from: [190, 126], to: [190, 156] }
+  - { from: [190, 218], to: [190, 248] }
+  - { from: [190, 310], to: [190, 340] }
+  - { from: [190, 402], to: [190, 432] }
+  - { from: [190, 494], to: [190, 524] }
+  - { from: [340, 187], to: [400, 187], tone: danger }
+  - { from: [340, 463], via: [[500, 463]], to: [500, 218], tone: danger }
+  - { from: [340, 555], to: [400, 555] }
+  - { from: [500, 586], to: [500, 616] }
+  - { from: [600, 647], to: [670, 647], tone: comm }
+  - { from: [765, 616], to: [765, 590] }
+  - { from: [670, 481], via: [[636, 481], [636, 555]], to: [600, 555], tone: token, dashed: true }
+texts:
+  - { at: [635, 637], text: ZMQ, anchor: middle, note: true }
+  - { at: [512, 340], text: 提示词太长, note: true }
+  - { at: [636, 470], text: 回程, anchor: middle, note: true }

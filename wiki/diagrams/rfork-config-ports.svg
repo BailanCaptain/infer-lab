@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="借一次权重涉及的四类端口：1 业务方连 API 端口；2 A、B 各自 Worker 里的 RFork 会话都去连 Planner；3 B 向 A 的 seed 元数据服务取清单；4 B 经两边的传输引擎端点读 A 显存里的权重字节">
+  <title>借一次权重涉及的四类端口：1 业务方连 API 端口；2 A、B 各自 Worker 里的 RFork 会话都去连 Planner；3 B 向 A 的 seed 元数据服务取清单；4 B 经两边的传输引擎端点读 A 显存里的权重字节</title>
+  <defs><marker id="rfork-config-ports-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="rfork-config-ports-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="rfork-config-ports-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <g data-hardware="server">
+  <rect x="20" y="140" width="370" height="260" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M24 152v236M386 152v236" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="205" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">实例 A：已在服务，当 seed</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="510" y="140" width="370" height="260" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M514 152v236M876 152v236" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="695" y="130" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">实例 B：新起，来借权重</text>
+  </g>
+  <g data-hardware="chip">
+  <rect x="53" y="313" width="94" height="48" rx="5" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M72.5 305v8M72.5 361v8M45 321h8M147 321h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M100 305v8M100 361v8M45 337h8M147 337h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M127.5 305v8M127.5 361v8M45 353h8M147 353h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="100" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU：权重</text>
+  </g>
+  <g data-hardware="chip">
+  <rect x="753" y="313" width="94" height="48" rx="5" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M772.5 305v8M772.5 361v8M745 321h8M847 321h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M800 305v8M800 361v8M745 337h8M847 337h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M827.5 305v8M827.5 361v8M745 353h8M847 353h8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="800" y="341" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU：空位</text>
+  </g>
+  <path d="M115 74 L115 175" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#rfork-config-ports-ah-token)"/>
+  <path d="M292 140 L292 50 L365 50" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-config-ports-ah-control)"/>
+  <path d="M607 175 L607 50 L535 50" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-config-ports-ah-control)"/>
+  <path d="M530 202 L370 202" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-config-ports-ah-control)"/>
+  <path d="M370 337 L530 337" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#rfork-config-ports-ah-comm)"/>
+  <path d="M155 337 L215 337" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <path d="M685 337 L745 337" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4"/>
+  <rect x="40" y="22" width="150" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">业务方</text>
+  <text x="115" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">发推理请求</text>
+  <rect x="365" y="22" width="170" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="46" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Planner</text>
+  <text x="450" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">独立服务，自己定端口</text>
+  <rect x="40" y="175" width="150" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">API 前端</text>
+  <text x="115" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">端口：启动命令定</text>
+  <rect x="215" y="175" width="155" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="292.5" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">seed 元数据服务</text>
+  <text x="292.5" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">随机端口或基数+rank</text>
+  <rect x="215" y="310" width="155" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="292.5" y="333" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">传输引擎端点</text>
+  <text x="292.5" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本机 IP + 空闲端口</text>
+  <rect x="530" y="175" width="155" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="607.5" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">RFork 加载器</text>
+  <text x="607.5" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">启动时借一次</text>
+  <rect x="705" y="175" width="150" height="54" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="780" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">API 前端</text>
+  <text x="780" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">加载完才开放</text>
+  <rect x="530" y="310" width="155" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="607.5" y="333" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">传输引擎端点</text>
+  <text x="607.5" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本机 IP + 空闲端口</text>
+  <text x="131" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">推理请求</text>
+  <text x="308" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">A 的 RFork 会话：登记、心跳</text>
+  <text x="591" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="end">借、还租约</text>
+  <text x="450" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">取清单（HTTP）</text>
+  <text x="450" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">读权重字节</text>
+  <circle cx="115" cy="104" r="11" fill="var(--color-token, #087f73)"/><text x="115" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1</text>
+  <circle cx="292" cy="102" r="11" fill="var(--color-control, #66716d)"/><text x="292" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <circle cx="607" cy="102" r="11" fill="var(--color-control, #66716d)"/><text x="607" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2</text>
+  <circle cx="450" cy="202" r="11" fill="var(--color-control, #66716d)"/><text x="450" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3</text>
+  <circle cx="450" cy="337" r="11" fill="var(--color-comm, #9a4b86)"/><text x="450" y="342" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4</text>
+</svg>

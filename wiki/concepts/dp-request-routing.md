@@ -3,7 +3,7 @@ id: dp-request-routing
 title: DP 请求路由：新请求派给哪一个 DP 组
 type: concept
 summary: 开了 DP 以后，前端给每条新请求挑一个 DP 组：请求头写了组号就直接去，否则按 waiting × 4 + running 取分数最小的组，并在本地先记一笔。讲清计数从哪来、为什么会过时、挑偏的代价（排队、KV 池、每步对齐、前缀缓存），几种部署方式与各版本打分差异，以及 GLM 双机上怎样选。
-aliases: ["DP 请求路由","DP routing","DP 负载均衡","DP load balancing","选 DP 组","前端路由","get_core_engine_for_request","X-data-parallel-rank","data_parallel_rank","data_parallel_hybrid_lb","external LB","hybrid LB","internal LB","DPAsyncMPClient","lb_engines","engine_inflight"]
+aliases: ["DP 请求路由","DP routing","DP 负载均衡","DP load balancing","选 DP 组","前端路由","get_core_engine_for_request","X-data-parallel-rank","data_parallel_rank","data_parallel_hybrid_lb","external LB","hybrid LB","internal LB","DPAsyncMPClient","DPLBAsyncMPClient","lb_engines","engine_inflight"]
 chapters: ["13"]
 order: 35
 sources:
@@ -47,7 +47,7 @@ origin: seed
 
 **DP 请求路由，是开了 DP 以后前端给每条新请求挑一个 DP 组的那一步。对生成文字的请求，vLLM 默认的前端有两条路：请求头里写明了组号，就直接派给那组；没写，就按每组排队和在算的请求条数打一个分，派给分数最小的那组。派定以后，这条请求一直留在那组。**
 
-先把几个词说清。[DP（data parallel，数据并行）](data-parallel.md)把请求分给几组卡去算，每组叫一个 DP 组：稠密模型每组各放一份完整权重；[MoE](moe.md)（mixture of experts，混合专家）模型把一部分层换成许多并排的「专家」小网络，专家只放一份、摊在所有组的卡上，几组合起来才是一份完整模型。每组各有一个 EngineCore（这一组的引擎进程）和它里面的 scheduler（调度器，每一步决定这组算哪些请求）。scheduler 手里有两个队列：**running** 放已经开始算的请求，**waiting** 放已经到了、还没开始算的请求。**前端**是接 HTTP、做分词的 API server 进程，所有请求都先到它这里，再由它交给某一组的引擎（各进程怎样分布，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)）。
+先把几个词说清。[DP（data parallel，数据并行）](data-parallel.md)把请求分给几组卡去算，每组叫一个 DP 组：稠密模型每组各放一份完整权重；[MoE](moe.md)（mixture of experts，混合专家）模型把一部分层换成许多并排的「专家」小网络，专家只放一份、摊在所有组的卡上，几组合起来才是一份完整模型。每组各有一个 EngineCore（这一组的引擎进程）和它里面的 scheduler（调度器，每一步决定这组算哪些请求）。scheduler 手里有两个队列：**running** 放已经开始算的请求，**waiting** 放已经到了、还没开始算的请求。**前端**是接 HTTP、做分词的 API server 进程，所有请求都先到它这里，再由它交给某一组的引擎（各进程怎样分布，见[七站分在三种进程里](request-call-chain.md#七站分在三种进程里)）。选组之前，前端已经做完检查、套模板、分词和定采样参数，见[API server 入口](api-server-entry.md)。
 
 看一个例子（数为示意）：两组 DP0、DP1，此刻 DP0 有 6 条请求在算，DP1 有 3 条，两组都没有排队的。
 

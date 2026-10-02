@@ -1,23 +1,52 @@
 layout: figure
 id: collective-communication
-caption: 两张卡各算出一份部分和，交换后都拿到对应位置之和。紫色块是正在发的数据，沿箭头送到对方；青色实心块是刚加好的；每块下面的圆点表示这块里有哪几张卡的数。
-size: [600, 328]
-exchanges:
-  - at: [40, 8]
-    cards: [卡 0, 卡 1]
-    slots: 2
-    cell: [64, 40]
-    gap: [230, 96]
-    dots: true
-    tag: 数为示意
-    start:
-      - [1, 2]
-      - [10, 20]
-    steps:
-      - title: 交换：各把两块发给对方，对方加进同位置
-        moves:
-          - { from: [0, 0], to: [1, 0], op: add }
-          - { from: [0, 1], to: [1, 1], op: add }
-          - { from: [1, 0], to: [0, 0], op: add }
-          - { from: [1, 1], to: [0, 1], op: add }
-    end: 交换后：两张卡都是 [11, 22]
+caption: 两张卡各算出一份部分和，交换后都拿到对应位置之和。中间一格每列是一张收数据的卡：每块上方是两张卡同一位置的数，紫色箭头是从对方卡送来的，灰色虚线是本卡自己的那块，不用发。
+size: [600, 504]
+frames:
+  - { label: 发之前：两张卡各有一份部分和, at: [8, 30], size: [584, 90] }
+  - { label: 交换：各把两块发给对方，对方加进同位置, at: [8, 158], size: [584, 210] }
+  - { label: '发之后：两张卡都是 [11, 22]', at: [8, 406], size: [584, 90] }
+grids:
+  # 发之前
+  - { at: [60, 52], rows: 1, cols: 2, cell: [100, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }] }
+  - { at: [340, 52], rows: 1, cols: 2, cell: [100, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }] }
+  # 交换：卡 0 收第 0 块、第 1 块
+  - { at: [71, 190], rows: 1, cols: 2, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1], cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '10' }] }
+  - { at: [171, 190], rows: 1, cols: 2, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1], cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '20' }] }
+  - { at: [60, 300], rows: 1, cols: 2, cell: [100, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '22' }] }
+  # 交换：卡 1 收第 0 块、第 1 块
+  - { at: [351, 190], rows: 1, cols: 2, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1], cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '10' }] }
+  - { at: [451, 190], rows: 1, cols: 2, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1], cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '20' }] }
+  - { at: [340, 300], rows: 1, cols: 2, cell: [100, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '22' }] }
+  # 发之后
+  - { at: [60, 428], rows: 1, cols: 2, cell: [100, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '22' }] }
+  - { at: [340, 428], rows: 1, cols: 2, cell: [100, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '11' }, { at: [0, 1], text: '22' }] }
+links:
+  # 卡 0 第 0 块：自己的 1 加上卡 1 送来的 10
+  - { from: [89, 218], to: [110, 272], curve: [[89, 245], [110, 245]], tone: control, dashed: true, ends: none }
+  - { from: [131, 218], to: [110, 272], curve: [[131, 245], [110, 245]], tone: comm, ends: none }
+  - { from: [110, 272], to: [110, 298], tone: comm }
+  # 卡 0 第 1 块
+  - { from: [189, 218], to: [210, 272], curve: [[189, 245], [210, 245]], tone: control, dashed: true, ends: none }
+  - { from: [231, 218], to: [210, 272], curve: [[231, 245], [210, 245]], tone: comm, ends: none }
+  - { from: [210, 272], to: [210, 298], tone: comm }
+  # 卡 1 第 0 块：卡 0 送来的 1 加上自己的 10
+  - { from: [369, 218], to: [390, 272], curve: [[369, 245], [390, 245]], tone: comm, ends: none }
+  - { from: [411, 218], to: [390, 272], curve: [[411, 245], [390, 245]], tone: control, dashed: true, ends: none }
+  - { from: [390, 272], to: [390, 298], tone: comm }
+  # 卡 1 第 1 块
+  - { from: [469, 218], to: [490, 272], curve: [[469, 245], [490, 245]], tone: comm, ends: none }
+  - { from: [511, 218], to: [490, 272], curve: [[511, 245], [490, 245]], tone: control, dashed: true, ends: none }
+  - { from: [490, 272], to: [490, 298], tone: comm }
+texts:
+  - { at: [592, 18], text: 数为示意, size: 12.5, note: true, anchor: end }

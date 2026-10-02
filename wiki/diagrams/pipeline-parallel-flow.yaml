@@ -1,216 +1,122 @@
-{
-  "size": [
-    900,
-    1100
-  ],
-  "caption": "一个 token 的隐藏向量依次流过 4 段（示意：隐藏向量 2 个数，每过一层每个数加 1）",
-  "exchanges": [
-    {
-      "at": [
-        46,
-        8
-      ],
-      "cards": [
-        "卡 0 · 层 0–1",
-        "卡 1 · 层 2–3",
-        "卡 2 · 层 4–5",
-        "卡 3 · 层 6–7"
-      ],
-      "perRow": 4,
-      "slots": 2,
-      "cell": [
-        40,
-        30
-      ],
-      "gap": [
-        120,
-        96
-      ],
-      "start": [
-        [
-          1,
-          0
-        ],
-        [
-          null,
-          null
-        ],
-        [
-          null,
-          null
-        ],
-        [
-          null,
-          null
-        ]
-      ],
-      "tag": "数为示意",
-      "steps": [
-        {
-          "title": "卡 0：embedding 查得 [1, 0]，再过第 0、1 层，每个数 +2",
-          "sets": [
-            {
-              "at": [
-                0,
-                0
-              ],
-              "value": 3
-            },
-            {
-              "at": [
-                0,
-                1
-              ],
-              "value": 2
-            }
-          ]
-        },
-        {
-          "title": "卡 0 → 卡 1：只发这 2 个数",
-          "moves": [
-            {
-              "from": [
-                0,
-                0
-              ],
-              "to": [
-                1,
-                0
-              ]
-            },
-            {
-              "from": [
-                0,
-                1
-              ],
-              "to": [
-                1,
-                1
-              ]
-            }
-          ]
-        },
-        {
-          "title": "卡 1 过第 2、3 层：每个数 +2",
-          "sets": [
-            {
-              "at": [
-                1,
-                0
-              ],
-              "value": 5
-            },
-            {
-              "at": [
-                1,
-                1
-              ],
-              "value": 4
-            }
-          ]
-        },
-        {
-          "title": "卡 1 → 卡 2",
-          "moves": [
-            {
-              "from": [
-                1,
-                0
-              ],
-              "to": [
-                2,
-                0
-              ]
-            },
-            {
-              "from": [
-                1,
-                1
-              ],
-              "to": [
-                2,
-                1
-              ]
-            }
-          ]
-        },
-        {
-          "title": "卡 2 过第 4、5 层：每个数 +2",
-          "sets": [
-            {
-              "at": [
-                2,
-                0
-              ],
-              "value": 7
-            },
-            {
-              "at": [
-                2,
-                1
-              ],
-              "value": 6
-            }
-          ]
-        },
-        {
-          "title": "卡 2 → 卡 3",
-          "moves": [
-            {
-              "from": [
-                2,
-                0
-              ],
-              "to": [
-                3,
-                0
-              ]
-            },
-            {
-              "from": [
-                2,
-                1
-              ],
-              "to": [
-                3,
-                1
-              ]
-            }
-          ]
-        },
-        {
-          "title": "卡 3 过第 6、7 层：每个数 +2",
-          "sets": [
-            {
-              "at": [
-                3,
-                0
-              ],
-              "value": 9
-            },
-            {
-              "at": [
-                3,
-                1
-              ],
-              "value": 8
-            }
-          ],
-          "keep": [
-            [
-              3,
-              0
-            ],
-            [
-              3,
-              1
-            ]
-          ]
-        }
-      ],
-      "end": "卡 3 的 [9, 8] 进出口，采样出下一个 token"
-    }
-  ],
-  "layout": "figure",
-  "id": "pipeline-parallel-flow"
-}
+layout: figure
+id: pipeline-parallel-flow
+caption: 一个 token 的隐藏向量依次流过 4 段（示意：隐藏向量缩成 2 个数，每过一层每个数加 1）。每格一行是 4 张卡，每张卡中间的琥珀色小块是它放的 2 层，上面一排是送进这一段的隐藏向量，下面一排是这一段算出来的；紫色箭头是交给下一段的隐藏向量，只有这 2 个数，层的权重留在原卡。一格里只有一张卡在算，其余的卡在等。
+size: [880, 1000]
+frames:
+  - { label: '① 卡 0：embedding 查得 [1, 0]，过第 0、1 层，把 [3, 2] 发给卡 1', at: [8, 30], size: [864, 212] }
+  - { label: '② 卡 1 过第 2、3 层，把 [5, 4] 发给卡 2', at: [8, 280], size: [864, 212] }
+  - { label: '③ 卡 2 过第 4、5 层，把 [7, 6] 发给卡 3', at: [8, 530], size: [864, 212] }
+  - { label: '④ 卡 3 过第 6、7 层得 [9, 8]，出口采样出下一个 token', at: [8, 780], size: [864, 212] }
+grids:
+  # ① 卡 0 的输入
+  - { at: [76, 52], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '0' }] }
+  - { at: [94, 102], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 0 }, { at: [1, 0], text: 层 1 }] }
+  # ① 卡 0 算出的
+  - { at: [76, 174], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 0, style: solid,
+      cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '2' }] }
+  # ① 卡 1 的输入
+  - { at: [288, 52], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '2' }] }
+  - { at: [306, 102], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 2 }, { at: [1, 0], text: 层 3 }] }
+  # ① 卡 1 算出的
+  - { at: [288, 174], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 1 }
+  # ① 卡 2 的输入（空着，在等）
+  - { at: [500, 52], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [518, 102], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 4 }, { at: [1, 0], text: 层 5 }] }
+  # ① 卡 2 算出的
+  - { at: [500, 174], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 2 }
+  # ① 卡 3 的输入（空着，在等）
+  - { at: [712, 52], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [730, 102], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 6 }, { at: [1, 0], text: 层 7 }] }
+  # ① 卡 3 算出的
+  - { at: [712, 174], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 3 }
+  # ② 卡 0 的输入（空着，在等）
+  - { at: [76, 302], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [94, 352], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 0 }, { at: [1, 0], text: 层 1 }] }
+  # ② 卡 0 算出的
+  - { at: [76, 424], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 0 }
+  # ② 卡 1 的输入
+  - { at: [288, 302], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '2' }] }
+  - { at: [306, 352], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 2 }, { at: [1, 0], text: 层 3 }] }
+  # ② 卡 1 算出的
+  - { at: [288, 424], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 1, style: solid,
+      cells: [{ at: [0, 0], text: '5' }, { at: [0, 1], text: '4' }] }
+  # ② 卡 2 的输入
+  - { at: [500, 302], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '5' }, { at: [0, 1], text: '4' }] }
+  - { at: [518, 352], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 4 }, { at: [1, 0], text: 层 5 }] }
+  # ② 卡 2 算出的
+  - { at: [500, 424], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 2 }
+  # ② 卡 3 的输入（空着，在等）
+  - { at: [712, 302], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [730, 352], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 6 }, { at: [1, 0], text: 层 7 }] }
+  # ② 卡 3 算出的
+  - { at: [712, 424], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 3 }
+  # ③ 卡 0 的输入（空着，在等）
+  - { at: [76, 552], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [94, 602], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 0 }, { at: [1, 0], text: 层 1 }] }
+  # ③ 卡 0 算出的
+  - { at: [76, 674], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 0 }
+  # ③ 卡 1 的输入（空着，在等）
+  - { at: [288, 552], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [306, 602], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 2 }, { at: [1, 0], text: 层 3 }] }
+  # ③ 卡 1 算出的
+  - { at: [288, 674], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 1 }
+  # ③ 卡 2 的输入
+  - { at: [500, 552], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '5' }, { at: [0, 1], text: '4' }] }
+  - { at: [518, 602], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 4 }, { at: [1, 0], text: 层 5 }] }
+  # ③ 卡 2 算出的
+  - { at: [500, 674], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 2, style: solid,
+      cells: [{ at: [0, 0], text: '7' }, { at: [0, 1], text: '6' }] }
+  # ③ 卡 3 的输入
+  - { at: [712, 552], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '7' }, { at: [0, 1], text: '6' }] }
+  - { at: [730, 602], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 6 }, { at: [1, 0], text: 层 7 }] }
+  # ③ 卡 3 算出的
+  - { at: [712, 674], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 3 }
+  # ④ 卡 0 的输入（空着，在等）
+  - { at: [76, 802], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [94, 852], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 0 }, { at: [1, 0], text: 层 1 }] }
+  # ④ 卡 0 算出的
+  - { at: [76, 924], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 0 }
+  # ④ 卡 1 的输入（空着，在等）
+  - { at: [288, 802], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [306, 852], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 2 }, { at: [1, 0], text: 层 3 }] }
+  # ④ 卡 1 算出的
+  - { at: [288, 924], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 1 }
+  # ④ 卡 2 的输入（空着，在等）
+  - { at: [500, 802], rows: 1, cols: 2, cell: [46, 30], tone: token }
+  - { at: [518, 852], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 4 }, { at: [1, 0], text: 层 5 }] }
+  # ④ 卡 2 算出的
+  - { at: [500, 924], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 2 }
+  # ④ 卡 3 的输入
+  - { at: [712, 802], rows: 1, cols: 2, cell: [46, 30], tone: token, style: faded,
+      cells: [{ at: [0, 0], text: '7' }, { at: [0, 1], text: '6' }] }
+  - { at: [730, 852], rows: 2, cols: 1, cell: [56, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: 层 6 }, { at: [1, 0], text: 层 7 }] }
+  # ④ 卡 3 算出的
+  - { at: [712, 924], rows: 1, cols: 2, cell: [46, 30], tone: token, label: 卡 3, style: solid,
+      cells: [{ at: [0, 0], text: '9' }, { at: [0, 1], text: '8' }] }
+links:
+  # ① 卡 0 过本卡 2 层
+  - { from: [122, 82], to: [122, 100], tone: weight }
+  - { from: [122, 154], to: [122, 172], tone: weight }
+  # ① 卡 0 把算出的隐藏向量交给卡 1
+  - { from: [168, 189], via: [[228, 189], [228, 67]], to: [286, 67], tone: comm }
+  # ② 卡 1 过本卡 2 层
+  - { from: [334, 332], to: [334, 350], tone: weight }
+  - { from: [334, 404], to: [334, 422], tone: weight }
+  # ② 卡 1 把算出的隐藏向量交给卡 2
+  - { from: [380, 439], via: [[440, 439], [440, 317]], to: [498, 317], tone: comm }
+  # ③ 卡 2 过本卡 2 层
+  - { from: [546, 582], to: [546, 600], tone: weight }
+  - { from: [546, 654], to: [546, 672], tone: weight }
+  # ③ 卡 2 把算出的隐藏向量交给卡 3
+  - { from: [592, 689], via: [[652, 689], [652, 567]], to: [710, 567], tone: comm }
+  # ④ 卡 3 过本卡 2 层
+  - { from: [758, 832], to: [758, 850], tone: weight }
+  - { from: [758, 904], to: [758, 922], tone: weight }
+texts:
+  - { at: [872, 18], text: 数为示意 · 每过一层每个数加 1, size: 12.5, note: true, anchor: end }

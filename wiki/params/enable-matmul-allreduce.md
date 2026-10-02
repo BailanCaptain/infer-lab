@@ -4,7 +4,7 @@ title: enable_matmul_allreduce
 type: param
 summary: >-
   把 RowParallelLinear 的「矩阵乘完再 AllReduce」换成 MC2 融合算子
-  npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 与 v0.24.0rc 有，v0.25.1rc 起整体移除，v0.26 上配了被静默忽略、main 上直接报错。
+  npu_mm_all_reduce_base，让通信藏进计算里；v0.23.0 与 v0.24.0rc 有，v0.25.1rc 起整体移除，v0.26 上配了被静默忽略、main 上直接报错。GLM 双机部署没开，W8A8 下按源码看开了也走不通。
 aliases:
   - matmul allreduce 开关
   - VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE
@@ -46,11 +46,18 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - >-
     vllm-ascend@2ed6cbba:vllm_ascend/compilation/graph_fusion_pass_manager.py#L49-L74
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L167-L172'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L427-L441'
+  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L127-L128'
+  - 'vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md#L237-L353'
 verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
 evidence: C
-relations: []
+relations:
+  - to: tensor-parallel
+    kind: builds-on
+    note: 行并行线性只算出部分和，必须 All-Reduce 合齐；本开关把这一对矩阵乘和归约换成一个融合算子
 contradicts: []
-updated: "2026-09-22"
+updated: "2026-10-02"
 rawSources:
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
@@ -62,16 +69,18 @@ rawSources:
 
 TP>1 时，RowParallelLinear 默认是先把本 rank 的矩阵乘算完、再发一次 AllReduce，两件事严格串行。打开 `enable_matmul_allreduce`，这一对被换成昇腾 MC2 通算融合算子 `torch_npu.npu_mm_all_reduce_base`，在算子内部按块流水，让通信藏进计算背后 [C6]。`bool`，默认 `False`，纯加速开关，不改变计算语义。
 
-该碰它的是在 A2 上跑长 prefill、大 chunk、高并发的人，而且要用 `--enforce-eager`。**本页旧算例用不到它**：单卡 TP=1，融合分支的前提 `reduce_results and tp_size > 1` 不成立，开了等于没开 [C5]。
+该碰它的是在 A2 上跑长 prefill、大 chunk、高并发的人，而且要用 `--enforce-eager`。融合分支的前提是 `reduce_results and tp_size > 1`：单卡 TP=1 时这一条不成立，开了等于没开 [C5]。
 
 **存在范围。** v0.23.0 上它是官方参数表里的一个开关，迁移期还能用环境变量 `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE` 配 [S9]；它比同批的几个开关多活了一个版本，到 v0.24.0rc 还在，**v0.25.1rc 起**开关、环境变量、背后的 `MatmulAllreduceRowParallelOp` 才一起被删干净，v0.26 分支（2026-09-17 的源码快照）与 main 上都不剩一处引用，PR 号见下面「版本谱系」。**两边留着这个键的后果不一样** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C24]，服务起得来、融合算子一次都不会被调到；main 的 `extra="forbid"` 则直接拒收。
+
+GLM 双机部署跑的是含 GLM 代码的 db701c1f 快照，它带着这个开关、默认关，官方双机教程没配，所以没开；开了会怎样，见「开了的代价」里的「放到 GLM 双机」。
 
 ## 事实表
 
 | 项 | v0.23 维护分支 | v0.26 分支 | main 开发主线 | 意味着什么 |
 |---|---|---|---|---|
 | 是否存在 | 有，官方参数表在列 | 无，字段、环境变量、算子实现全删；键被静默忽略 | 无，同左；键被 `extra="forbid"` 拒收 | 两边都要把这个 key 从启动命令里摘掉——v0.26 上不摘是悄悄少一档加速，main 上不摘是起不来 |
-| 类型 / 默认值 | `bool` / `False` | — | — | 默认不启用，是纯粹的加速开关，不影响正确性语义 |
+| 类型 / 默认值；GLM 双机 | `bool` / `False`；本部署跑的 db701c1f 有、没开（维护分支同样有） | — | — | 默认不启用，是纯粹的加速开关，不影响正确性语义；但在 GLM 的 W8A8 部署上打开，按源码推断会在 int8 层出错（见下文「放到 GLM 双机」） |
 | 环境变量 | `VLLM_ASCEND_ENABLE_MATMUL_ALLREDUCE`，默认 `"0"`，按 `bool(int(...))` 解析 | 已从 envs.py 与迁移表移除 | 同左 | 只认 `0`/`1`；写 `true` 会 `ValueError` |
 | 两者优先级 | `additional_config` 命中就直接返回，环境变量只作回落 | — | — | 两个都设时环境变量无效，且不会有冲突告警 |
 | 落地算子 | `torch_npu.npu_mm_all_reduce_base` | — | — | 属昇腾 MC2 通算融合族 |
@@ -83,18 +92,18 @@ TP>1 时，RowParallelLinear 默认是先把本 rank 的矩阵乘算完、再发
 
 ## 为什么存在
 
-TP 把一个 RowParallelLinear 的权重按输入维切开，每个 rank 只算出一份**部分和**，必须做一次 AllReduce 才能拼出完整输出。默认实现里这是两个独立算子：`quant_method.apply` 算完 → HCCL AllReduce 发出去 → 等回来。矩阵乘占着 cube 单元，AllReduce 占着互联带宽，两种资源互不相干，却被时间轴串成了一条线。
+TP 把一个 RowParallelLinear 的权重按输入维切开，每个 rank 只算出一份**部分和**，必须做一次 AllReduce 才能拼出完整输出（为什么是「加起来」，见 [TP 页的两种切法](../concepts/tensor-parallel.md#两种切法各算一遍拼起来还是加起来)）。默认实现里这是两个独立算子：`quant_method.apply` 算完 → HCCL AllReduce 发出去 → 等回来。矩阵乘占着 cube 单元，AllReduce 占着互联带宽，两种资源互不相干，却被时间轴串成了一条线。
 
 昇腾的 MC2 算子族就是为消掉这段串行而做的：把通信与计算的操作过程融合，使二者流水并行，典型成员包括 `AllGatherMatMul`、`MatMulReduceScatter`、`MatMulAllReduce`，官方给的量级是 GPT-3 整网约 10% [S20]。`enable_matmul_allreduce` 就是在 vllm-ascend 里接上这条路的开关：它让 `_get_row_parallel_op` 返回 `MatmulAllreduceRowParallelOp`，其 `apply_impl` 直接调 `torch_npu.npu_mm_all_reduce_base(input_parallel, weight.t(), hcomm_info, bias=bias_)`。
 
 **省的不是通信量，是通信的暴露时间。** 融合算子内部把 AllReduce 拆成 ReduceScatter + AllGather 两段，按 512 行一块切分 M 维，第 i 块的通信与第 i+1 块的矩阵乘重叠 [C11]。搬运的字节数和原来的 ring allreduce 同量级，只是不再需要干等。
 
-拿 Qwen3-0.6B（H=1024、n_q=16、d_h=128、28 层）在 TP=2 上走一遍 o_proj：权重 `[2048, 1024]` 按输入维切开，每 rank 拿到 `[1024, 1024]`。
+拿一组示意数走一遍：某个行并行线性这一步有 2048 行要过。
 
-- prefill 一个 2048 token 的 chunk：本 rank 矩阵乘 `2 × 2048 × 1024 × 1024 = 4.29 GFLOP`；待规约的部分和是 `2048 × 1024 × 2 B = 4 MiB`。
-- 按 512 行一块切，2048 行正好 4 块；理想流水下只有最后一块的通信暴露在外，约 1/4。这里的 512 是从图模式那条同族路径的常量推广过来的，eager 路径上算子内部怎么切分源码里看不到 [D]。
-- decode 时 M=1：部分和只有 `1 × 1024 × 2 B = 2 KiB`，一个切分块都填不满，没有第二块可以拿来重叠，只剩融合算子自身的固定开销 [D]。这正是官方那句「eager mode will get better performance」的另一面——收益跟着**每步的 token 数**走，不跟着模型大小走。
-- 一次前向里会被替换掉的调用点是 `28 层 × 2 个行并行线性（o_proj、mlp.down_proj）= 56 处` [D]——因为派发分支没有 prefix 过滤。
+- 不融合：2048 行的矩阵乘全部算完，才把整份部分和交给 AllReduce，这段通信全程露在外面。
+- 融合：按 512 行一块切成 4 块，第 1 块算完就开始发，同时算第 2 块，依此类推；理想流水下只有最后一块的通信露在外面，暴露的通信约剩 1/4。这里的 512 是从图模式那条同族路径的常量推广过来的，eager 路径上算子内部怎么切分源码里看不到 [D]。
+- 只有 1 行（单个请求的 decode 步）：一块都填不满，没有第二块可以拿来重叠，只剩融合算子自身的固定开销。这正是官方那句「eager mode will get better performance」的另一面——收益跟着**每步的 token 数**走，不跟着模型大小走。
+- 派发分支没有 prefix 过滤，注意力输出投影、稠密 MLP 降维投影这些满足前提的行并行线性一律被换掉（GLM 上是 48 处，见下文「放到 GLM 双机」）。
 
 派发次序是这个开关最容易踩的地方：
 
@@ -110,19 +119,34 @@ file: enable-matmul-allreduce
 
 ```bash
 export HCCL_BUFFSIZE=500          # 门禁用例与它同时设置，融合算子的通信缓冲更吃内存
-vllm serve Qwen/Qwen3-0.6B \
+vllm serve <未量化的 BF16 模型> \
   --tensor-parallel-size 2 \
   --enforce-eager \
   --additional-config '{"enable_matmul_allreduce": true}'
 ```
 
-`--tensor-parallel-size 2` 是下限：算子只在 `reduce_results and tp_size > 1` 时才真正走融合分支。`--enforce-eager` 对应官方那句 eager 收益更好，也避开与图模式里 [fuse_allreduce_rms](fuse-allreduce-rms.md) 那条同族路径重复。`HCCL_BUFFSIZE=500` 抄自唯一一个开启此特性的门禁用例。官方参数表见本地 `docs/source/user_guide/configuration/additional_config.md` L96 与线上 <https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html>。
+模型必须是未量化的（原因见下面「量化模型走不通」，GLM 双机的 W8A8 部署不适用）。`--tensor-parallel-size 2` 是下限：算子只在 `reduce_results and tp_size > 1` 时才真正走融合分支。`--enforce-eager` 对应官方那句 eager 收益更好，也避开与图模式里 [fuse_allreduce_rms](fuse-allreduce-rms.md) 那条同族路径重复。`HCCL_BUFFSIZE=500` 抄自唯一一个开启此特性的门禁用例。官方参数表见本地 `docs/source/user_guide/configuration/additional_config.md` L96 与线上 <https://docs.vllm.ai/projects/ascend/en/v0.23.0/user_guide/configuration/additional_config.html>。
 
 **什么规模下才划算。** 门槛在 token 数上，不在模型大小上。图模式那条同族路径写死了 `compile_range.start > 512` 才启用融合 [C12]，可以拿来当 eager 侧的量级参考：每步 token 数远小于 512（纯 decode、小并发）时，融合算子没有第二个切分块可供重叠，只会白付一次算子调度开销。长 prefill、大 chunk、高并发的连续批处理才是它的场景。
 
 **会静默吃掉别的特性。** 因为派发分支排在前面且无 prefix 过滤，开了它就等于关掉 FlashComm2 的 o_proj 路径和 SP 的全部行并行路径，而代码里没有任何互斥检查或告警。同时配了 `flashcomm2_parallel_size` 却发现毫无效果，多半就是踩到了这里。
 
-**量化模型走不通。** 融合分支直接把 `self.layer.weight.t()` 交给 `npu_mm_all_reduce_base`，完全绕过 `quant_method.apply`；只有 `reduce_results`/`tp_size` 不满足时才落回量化路径。因此它实际上只对非量化权重成立——这一条是从「融合分支不接 quant_method」推出来的，源码里没有显式断言 [D]。
+**量化模型走不通。** 融合分支直接把 `self.layer.weight.t()` 交给 `npu_mm_all_reduce_base`，完全绕过 `quant_method.apply`；只有 `reduce_results`/`tp_size` 不满足时才落回量化路径。因此它实际上只对非量化权重成立——这一条是从「融合分支不接 quant_method」推出来的，源码里没有显式断言 [D]。量化权重加载后排布还会变（W8A8 动态量化把 int8 权重转成「输入 × 输出」），所以不只是缺了缩放系数，连形状都对不上；GLM 双机正是这种情况，见下一段「放到 GLM 双机」。
+
+**放到 GLM 双机：本部署没开；按源码看，开了也跑不通。** 本部署跑的是含 GLM 代码的 db701c1f 快照，它带着这个开关、默认关 [C26]，v0.23 维护分支同样带着、同样默认关；官方 GLM 双机教程的启动命令里既没有这个键，也没有对应的环境变量 [S29]，所以本部署停在默认的关闭。
+
+假如打开：TP8 满足生效前提；融合这条分支在派发里排第五（上文派发次序图），本身不看层名、也不看权重是否量化，而排在它前面的几条细粒度切分本部署都没开（教程里没有任何 additional_config），所以一次前向会有 48 处行并行线性被换成融合算子——45 层注意力的输出投影（34 层 KDA、11 层 MLA）加前 3 层稠密 MLP 的降维投影，也就是 R1 那 91 次 TP8 All-Reduce 里的 48 次（账见 [TP 页的 R1 通信账](../concepts/tensor-parallel.md#从一层走到整次前向r1-的通信账)）。词嵌入那 1 次不经过行并行线性；共享专家那 42 次由外层归约（见 [TP 页的共享专家一节](../concepts/tensor-parallel.md#共享专家切法仍是列接行归约由外层安排)），它的降维投影不自己做 All-Reduce，融合分支的前提不成立。
+
+问题出在 W8A8。按源码推出来的链条是这样的：
+
+1. 融合分支不经过量化路径：前提成立时直接把这一层的权重转置一次交给融合算子，只有前提不成立才走量化方法 [C27]。
+2. int8 权重加载后排布已经变了：W8A8 动态量化在加载后把权重转成「输入 × 输出」[C28]，融合分支再转置一次就变回「输出 × 输入」，和融合算子要的排布正好相反。以稠密 MLP 的降维投影为例，每卡这一份输入 1536、输出 4096，两边不等，形状必然对不上；而且传进去的是 int8 张量，这条调用没带任何反量化参数。
+3. 哪些层是 int8：MLA 的输出投影和稠密 MLP 是 int8，KDA 的全部投影是 BF16，所以 KDA 层的输出投影能过。
+4. 先在哪出错：第 0–2 层的注意力是 KDA，MLP 是稠密 int8，第一处失败就是第 0 层稠密 MLP 的降维投影。启动时的显存探测会先跑一遍真实前向，所以服务在启动阶段就起不来 [D]。
+
+待核：实际报错原文（哪个算子抛、报形状还是报类型），需要在设备上实跑。
+
+就算只看能走融合的 KDA 层：R1 一步每次归约只有 32,768 B（4 个 token × 4096 × 2 B），按上文 512 行一块的假设连一块都填不满；场景 M 里 DP0 一步 6,048 行、每次归约 47.25 MiB，按同一假设约切成 12 块，才谈得上流水。GLM 上没有这个开关的收益实测，本页不给收益数字。
 
 **别把它当 prefill-only。** v0.23.0 的 release note 写的是 "Implement the fusion of allreduce and matmul in prefill phase"，但代码里 `matmul_allreduce_enable()` 只读一个布尔，`MatmulAllreduceRowParallelOp` 也不看 forward context，decode 步一样会走融合算子 [!]。文档描述的是它的**受益场景**，不是它的**生效条件**。
 

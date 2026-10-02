@@ -179,7 +179,7 @@ Runner 里确实有一条「在侧流上刷新整图注意力参数」的路径�
 
 ## 旁边的另外两条路：一条默认开着，一条默认关着
 
-- **编译期融合按固定源码是开着的**，而且和本页讲的回放叠在一起用。官方命令没有关它，这一档配置又不需要分段编译，模型也带着编译装饰器进来，于是编译走昇腾自己的后端。它改的是「算什么」（由一串 pass 改写计算图、替换算子实现），回放改的是「怎么提交」，两者互不替代。**npugraph_ex 只是这一层默认用的编译后端，不等于融合本身**：把它关掉只是换一条编译路径，昇腾的 pass manager 照样把同一批融合（归一化与量化、qk 归一化与 RoPE、AllReduce 与 RMSNorm、乘加）做掉，这几项各有自己的开关且默认全开。细节见 [npugraph-ex](npugraph-ex.md)。到底有多少改写真正匹配上，要看启动日志，本库没有实测。
+- **编译期融合按固定源码是开着的**，而且和本页讲的回放叠在一起用。官方命令没有关它，这一档配置又不需要分段编译，模型也带着编译装饰器进来，于是编译走昇腾自己的后端。它改的是「算什么」（由一串 pass 改写计算图、替换算子实现），回放改的是「怎么提交」，两者互不替代。**npugraph_ex 只是这一层默认用的编译后端，不等于融合本身**：同一批登记好的融合规则（归一化与量化、qk 归一化与 RoPE、AllReduce 与 RMSNorm、乘加）默认由这个后端来应用；把它关掉，才轮到昇腾自己的 pass manager 来应用——同一批规则、换人应用。这几项各有自己的开关且默认全开。细节见 [npugraph-ex](npugraph-ex.md)。到底有多少改写真正匹配上，要看启动日志，本库没有实测。
 - **torchair** 不是另开的一条路，而是融合这条路的兼容退路：只有 npugraph_ex 这个包导入失败时才落到它。
 - **xlite** 才是默认关着的那条：要在额外配置里单独打开；它的执行进程和模型运行器只是在昇腾原有的两个上薄薄包一层。打开后平台会把主模型的档位降到 `FULL_DECODE_ONLY`，或者干脆关掉图。
 
@@ -211,7 +211,7 @@ Runner 里确实有一条「在侧流上刷新整图注意力参数」的路径�
 
 **编译期融合在这套命令下是开着的。** 昇腾编译配置里 `enable_npugraph_ex` 默认为真，只有 310P 会被强制关掉[C31]；平台只在图档位为 `NONE` 或需要分段编译时把它置假，`FULL_DECODE_ONLY` 走的是清空 `splitting_ops` 那一支，不动这个开关。默认优化档的编译模式是 `VLLM_COMPILE`，GLM 主模型带 `@support_torch_compile`[C34]，编译后端又是 `AscendCompiler`，所以开关为真时走 `npugraph_ex_compile`[C33]；只有 `import npugraph_ex` 失败才落到 torchair 后端。
 
-**关掉 `enable_npugraph_ex` 并不等于关掉融合。** 开关为假时 `AscendCompiler` 改走 `fusion_pass_compile`，照样把编译配置里的 pass manager 作用到计算图上[C35]；这个 manager 默认挂着 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_allreduce_rms`、`fuse_muls_add` 四个融合 pass，四个开关都在 `ascend_compilation_config` 里、默认都取真[C36]。要在保留图的前提下排除融合层，得把这几个开关逐个关掉；本库没有实测，只能按源码说到这一步。
+**关掉 `enable_npugraph_ex` 并不等于关掉融合。** 开关为假时 `AscendCompiler` 改走 `fusion_pass_compile`，改由编译配置里的 pass manager 把同一批规则作用到计算图上[C35]；这个 manager 默认挂着 `fuse_norm_quant`、`fuse_qknorm_rope`、`fuse_allreduce_rms`、`fuse_muls_add` 四个融合 pass，四个开关都在 `ascend_compilation_config` 里、默认都取真[C36]。要在保留图的前提下排除融合层，得把这几个开关逐个关掉；本库没有实测，只能按源码说到这一步。
 
 **强制 eager（`--enforce-eager`）关的是两层。** 上游在配置阶段就把 `mode` 和 `cudagraph_mode` 一起设成 `NONE`，日志原话是等价于 `-cc.mode=none -cc.cudagraph_mode=none`[C30]；昇腾平台随后也把自己的编译模式关掉，并在图档位为 `NONE` 时置假 `enable_npugraph_ex`。`compile_sizes` 默认为空，所以热身循环这时没有尺寸可跑[I]，末尾的捕获也整个跳过[C18]。
 

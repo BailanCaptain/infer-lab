@@ -187,6 +187,42 @@ describe("buildToc · 知识主题目录", () => {
       expect(row.part, row.id).toBe(expected[row.id]);
     }
   });
+  it("请求入口、lm_head、sampling、流式输出、请求收尾与 DP 路由排在相邻页旁，不进待编排", () => {
+    const rows = locations([
+      page("request-call-chain"),
+      page("api-server-entry"),
+      page("engine-processes"),
+      page("speculative-decoding"),
+      page("request-teardown"),
+      page("streaming-output"),
+      page("sampling"),
+      page("prefix-caching"),
+      page("lm-head"),
+      page("moe"),
+      page("balance-scheduling"),
+      page("dp-request-routing"),
+    ]);
+    expect(rows.filter((p) => p.part === "architecture").map((p) => p.id)).toEqual([
+      "engine-processes",
+      "api-server-entry",
+      "request-call-chain",
+    ]);
+    expect(rows.filter((p) => p.part === "models")).toEqual([
+      { id: "moe", part: "models", section: "Decoder 层、MoE 与 lm_head" },
+      { id: "lm-head", part: "models", section: "Decoder 层、MoE 与 lm_head" },
+    ]);
+    expect(rows.filter((p) => p.part === "inference").map((p) => [p.id, p.section])).toEqual([
+      ["prefix-caching", "Block table 与 prefix caching"],
+      ["sampling", "Sampling 与返回"],
+      ["streaming-output", "Sampling 与返回"],
+      ["request-teardown", "Sampling 与返回"],
+      ["speculative-decoding", "Chunked prefill 与 speculative decoding"],
+    ]);
+    expect(rows.filter((p) => p.part === "distributed")).toEqual([
+      { id: "dp-request-routing", part: "distributed", section: "DP 组分流与 expert 负载" },
+      { id: "balance-scheduling", part: "distributed", section: "DP 组分流与 expert 负载" },
+    ]);
+  });
   it("真实知识库每页恰好出现一次，所有现有教学页都有主题，全部分组有名称", () => {
     const toc = buildToc(registry.pages);
     const rows = locations(registry.pages);

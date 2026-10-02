@@ -1,22 +1,98 @@
 layout: figure
 id: rfork-identity
-caption: 两次哈希：配置先算成兼容性指纹；指纹再加上分片编号和主 / 草稿角色，算成 seed key
-size: [900, 300]
-
+caption: 每张卡、每个模型各有一把钥匙（seed key）。钥匙由三样东西合成：部署指纹说明「两边整套部署一不一样」，分片编号说明「要的是哪一份」，最后一格说明是主模型还是 speculative decoding 用的草稿模型。新实例 B 的每把钥匙只能和 A 上一字不差的那一把配上：B 卡 0 的主模型配 A 卡 0 的主模型，草稿配草稿，四对各配各的。实例 C 加载的是同一个模型没量化的 BF16 版本，量化方式不同，指纹就不同，编号再一样也配不上。图中是两张卡（TP2）的示意实例，F、G 代表两个不同的指纹值。
+size: [900, 480]
+frames:
+  - { label: 实例 A · 已在服务（seed）· W8A8 · TP2, at: [20, 180], size: [340, 190] }
+  - { label: 实例 B · 正在启动 · W8A8 · TP2, at: [540, 180], size: [340, 190] }
+  - { label: 实例 C · 正在启动 · BF16 · TP2, at: [540, 392], size: [340, 70] }
 items:
-  - { at: [40, 40], size: [300, 64], text: 配置描述, sub: 版本、数值类型、并行大小、布局, tone: control, style: plain }
-  - { at: [440, 40], size: [200, 64], text: 兼容性指纹, tone: control }
-  - { at: [40, 170], size: [300, 64], text: 分片编号和角色, sub: TP / PP / EP 编号、主 / 草稿, tone: weight, style: plain }
-  - { at: [640, 170], size: [220, 64], text: seed key, tone: weight }
-
+  - { at: [620, 28], size: [200, 44], text: seed key, sub: 再算一次哈希, tone: control }
+  - { at: [385, 150], size: [130, 44], text: Planner, sub: 按钥匙逐字查, tone: control, style: plain }
+grids:
+  # 钥匙的三段
+  - at: [40, 30]
+    rows: 1
+    cols: 3
+    cell: [160, 40]
+    gap: 4
+    tone: control
+    style: plain
+    cells:
+      - { at: [0, 0], text: 部署指纹, style: solid }
+      - { at: [0, 1], text: 分片编号, tone: weight, style: faded }
+      - { at: [0, 2], text: 主 / 草稿 }
+  # 实例 A 的四把钥匙
+  - at: [78, 200]
+    rows: 4
+    cols: 3
+    cell: [86, 30]
+    gap: 6
+    tone: control
+    style: plain
+    rowLabels: [卡 0, 卡 0, 卡 1, 卡 1]
+    cells:
+      - { at: [0, 0], text: 指纹 F, style: solid }
+      - { at: [0, 1], text: TP 0, tone: weight, style: faded }
+      - { at: [0, 2], text: 主 }
+      - { at: [1, 0], text: 草稿的指纹, style: solid }
+      - { at: [1, 1], text: TP 0, tone: weight, style: faded }
+      - { at: [1, 2], text: 草稿 }
+      - { at: [2, 0], text: 指纹 F, style: solid }
+      - { at: [2, 1], text: TP 1, tone: weight, style: faded }
+      - { at: [2, 2], text: 主 }
+      - { at: [3, 0], text: 草稿的指纹, style: solid }
+      - { at: [3, 1], text: TP 1, tone: weight, style: faded }
+      - { at: [3, 2], text: 草稿 }
+  # 实例 B 的四把钥匙，和 A 一一相同
+  - at: [598, 200]
+    rows: 4
+    cols: 3
+    cell: [86, 30]
+    gap: 6
+    tone: control
+    style: plain
+    rowLabels: [卡 0, 卡 0, 卡 1, 卡 1]
+    cells:
+      - { at: [0, 0], text: 指纹 F, style: solid }
+      - { at: [0, 1], text: TP 0, tone: weight, style: faded }
+      - { at: [0, 2], text: 主 }
+      - { at: [1, 0], text: 草稿的指纹, style: solid }
+      - { at: [1, 1], text: TP 0, tone: weight, style: faded }
+      - { at: [1, 2], text: 草稿 }
+      - { at: [2, 0], text: 指纹 F, style: solid }
+      - { at: [2, 1], text: TP 1, tone: weight, style: faded }
+      - { at: [2, 2], text: 主 }
+      - { at: [3, 0], text: 草稿的指纹, style: solid }
+      - { at: [3, 1], text: TP 1, tone: weight, style: faded }
+      - { at: [3, 2], text: 草稿 }
+  # 实例 C：只画卡 0 的主模型
+  - at: [598, 416]
+    rows: 1
+    cols: 3
+    cell: [86, 30]
+    gap: 6
+    tone: control
+    style: plain
+    rowLabels: [卡 0]
+    cells:
+      - { at: [0, 0], text: 指纹 G, tone: danger, style: solid }
+      - { at: [0, 1], text: TP 0, tone: weight, style: faded }
+      - { at: [0, 2], text: 主 }
 links:
-  - { from: [340, 72], to: [440, 72], tone: control }
-  - { from: [640, 72], to: [750, 170], via: [[750, 72]], tone: control }
-  - { from: [340, 202], to: [640, 202], tone: weight }
-
+  - { from: [532, 50], to: [616, 50], tone: control }
+  - { from: [352, 215], to: [552, 215], ends: both, tone: control, dashed: true }
+  - { from: [352, 251], to: [552, 251], ends: both, tone: control, dashed: true }
+  - { from: [352, 287], to: [552, 287], ends: both, tone: control, dashed: true }
+  - { from: [352, 323], to: [552, 323], ends: both, tone: control, dashed: true }
 texts:
-  - { at: [40, 276], text: 两次都只看配置，不读权重内容, tone: danger, strong: true }
-
+  - { at: [120, 92], text: 整套部署一不一样, anchor: middle, note: true }
+  - { at: [284, 92], text: 要的是哪一份, anchor: middle, note: true }
+  - { at: [448, 92], text: 主模型还是草稿模型, anchor: middle, note: true }
+  - { at: [452, 208], text: 一字不差 · 可借, anchor: middle, size: 12, tone: control }
+  - { at: [520, 436], text: 指纹不同：编号一样也配不上, anchor: end, tone: danger, strong: true }
 pins:
   - source: rfork@3284850b:vllm_ascend/model_loader/rfork/identity.py#L196-L287
     symbols: [build_compatibility_fingerprint, build_seed_key]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L441-L463
+    symbols: [_ensure_rfork_session]

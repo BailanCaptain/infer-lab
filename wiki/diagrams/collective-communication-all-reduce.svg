@@ -1,209 +1,309 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 1136" width="880" height="1136" role="img" aria-label="All-Reduce（SUM）拆成两步看：先像 Reduce-Scatter 一样，第 k 块都送到卡 k 加起来；再像 All-Gather 一样，卡 k 把这一块的和发给其余每张卡。">
-  <title>All-Reduce（SUM）拆成两步看：先像 Reduce-Scatter 一样，第 k 块都送到卡 k 加起来；再像 All-Gather 一样，卡 k 把这一块的和发给其余每张卡。</title>
-  <defs></defs>
-  <g class="wiki-anim-band" data-ms="7250">
-  <rect class="wiki-anim-box" x="0" y="8" width="880" height="376" fill="none"/>
-  <g class="wiki-anim-title">
-  <text x="105" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步：第 k 块都送到卡 k，加起来</text>
-  </g>
-  <text x="775" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
-  <rect x="105" y="44" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="121" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
-  <rect x="121" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="147" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1</text>
-  <g class="wiki-anim-cue" data-show="0.2345" opacity="0"><rect x="121" y="76" width="52" height="34" fill="var(--color-token, #087f73)"/><text x="147" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text></g>
-  <rect x="173" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="199" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text>
-  <rect x="225" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="251" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text>
-  <rect x="277" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="303" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4</text>
-  <rect x="121" y="76" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M173 76v34M225 76v34M277 76v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="535" y="44" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="551" y="66" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
-  <rect x="551" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="577" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">10</text>
-  <rect x="603" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="629" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">20</text>
-  <g class="wiki-anim-cue" data-show="0.4897" opacity="0"><rect x="603" y="76" width="52" height="34" fill="var(--color-token, #087f73)"/><text x="629" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text></g>
-  <rect x="655" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="681" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">30</text>
-  <rect x="707" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="733" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">40</text>
-  <rect x="551" y="76" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M603 76v34M655 76v34M707 76v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="535" y="280" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="551" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
-  <rect x="551" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="577" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">100</text>
-  <rect x="603" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="629" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">200</text>
-  <rect x="655" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="681" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">300</text>
-  <g class="wiki-anim-cue" data-show="0.7448" opacity="0"><rect x="655" y="294" width="52" height="34" fill="var(--color-token, #087f73)"/><text x="681" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text></g>
-  <rect x="707" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="733" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">400</text>
-  <rect x="551" y="294" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M603 294v34M655 294v34M707 294v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="105" y="280" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="121" y="350" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
-  <rect x="121" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="147" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1000</text>
-  <rect x="173" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="199" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2000</text>
-  <rect x="225" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="251" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3000</text>
-  <rect x="277" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="303" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4000</text>
-  <g class="wiki-anim-cue" data-show="1" opacity="0"><rect x="277" y="294" width="52" height="34" fill="var(--color-token, #087f73)"/><text x="303" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text></g>
-  <rect x="121" y="294" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M173 294v34M225 294v34M277 294v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <g class="wiki-anim-cue" data-show="0.0966" data-hide="0.1862" opacity="0"><text x="109" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.0966" data-hide="0.1862" opacity="0"><text x="109" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.0966" data-hide="0.1862" opacity="0"><text x="109" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.3517" data-hide="0.4414" opacity="0"><text x="591" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.3517" data-hide="0.4414" opacity="0"><text x="591" y="197" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.3517" data-hide="0.4414" opacity="0"><text x="591" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.6069" data-hide="0.6966" opacity="0"><text x="643" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.6069" data-hide="0.6966" opacity="0"><text x="643" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.6069" data-hide="0.6966" opacity="0"><text x="643" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.8621" data-hide="0.9517" opacity="0"><text x="265" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.8621" data-hide="0.9517" opacity="0"><text x="265" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-cue" data-show="0.8621" data-hide="0.9517" opacity="0"><text x="265" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="18" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">+</text></g>
-  <g class="wiki-anim-move" data-keys="0 - 0.0966 0.1862 0.2345" data-show="0" data-hide="0.2345" data-fade="0.1862 0.2345" opacity="0"><path class="wiki-anim-route" d="M577 93 L577 149 L147 149 L147 149 L147 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="551" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="577" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">10</text></g></g>
-  <g class="wiki-anim-move" data-keys="0 - 0.0966 0.1862 0.2345" data-show="0" data-hide="0.2345" data-fade="0.1862 0.2345" opacity="0"><path class="wiki-anim-route" d="M577 311 L577 191 L147 191 L147 191 L147 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="551" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="577" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">100</text></g></g>
-  <g class="wiki-anim-move" data-keys="0 0.0966 0.1862 0.2345" data-show="0" data-hide="0.2345" data-fade="0.1862 0.2345" opacity="0"><path class="wiki-anim-route" d="M147 311 L147 233 L147 233 L147 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="121" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="147" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1000</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.2552 - 0.3517 0.4414 0.4897" data-show="0.2552" data-hide="0.4897" data-fade="0.4414 0.4897" opacity="0"><path class="wiki-anim-route" d="M199 93 L199 149 L629 149 L629 149 L629 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="173" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="199" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.2552 - 0.3517 0.4414 0.4897" data-show="0.2552" data-hide="0.4897" data-fade="0.4414 0.4897" opacity="0"><path class="wiki-anim-route" d="M199 311 L199 191 L629 191 L629 191 L629 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="173" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="199" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2000</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.2552 0.3517 0.4414 0.4897" data-show="0.2552" data-hide="0.4897" data-fade="0.4414 0.4897" opacity="0"><path class="wiki-anim-route" d="M629 311 L629 233 L629 233 L629 93" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="603" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="629" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">200</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.5103 - 0.6069 0.6966 0.7448" data-show="0.5103" data-hide="0.7448" data-fade="0.6966 0.7448" opacity="0"><path class="wiki-anim-route" d="M251 311 L251 255 L681 255 L681 255 L681 311" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="225" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="251" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3000</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.5103 - 0.6069 0.6966 0.7448" data-show="0.5103" data-hide="0.7448" data-fade="0.6966 0.7448" opacity="0"><path class="wiki-anim-route" d="M251 93 L251 213 L681 213 L681 213 L681 311" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="225" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="251" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.5103 0.6069 0.6966 0.7448" data-show="0.5103" data-hide="0.7448" data-fade="0.6966 0.7448" opacity="0"><path class="wiki-anim-route" d="M681 93 L681 171 L681 171 L681 311" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="655" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="681" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">30</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.7655 - 0.8621 0.9517 1" data-show="0.7655" data-hide="1" data-fade="0.9517 1" opacity="0"><path class="wiki-anim-route" d="M733 311 L733 255 L303 255 L303 255 L303 311" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="707" y="294" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="733" y="315.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">400</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.7655 - 0.8621 0.9517 1" data-show="0.7655" data-hide="1" data-fade="0.9517 1" opacity="0"><path class="wiki-anim-route" d="M733 93 L733 213 L303 213 L303 213 L303 311" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="707" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="733" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">40</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.7655 0.8621 0.9517 1" data-show="0.7655" data-hide="1" data-fade="0.9517 1" opacity="0"><path class="wiki-anim-route" d="M303 93 L303 171 L303 171 L303 311" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="277" y="76" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="303" y="97.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4</text></g></g>
-  </g>
-  <g class="wiki-anim-band" data-ms="6330">
-  <rect class="wiki-anim-box" x="0" y="384" width="880" height="376" fill="none"/>
-  <g class="wiki-anim-title">
-  <text x="105" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">第 2 步：卡 k 把第 k 块的和发给其余每张卡</text>
-  </g>
-  <text x="775" y="406" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
-  <rect x="105" y="420" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="121" y="442" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
-  <rect x="121" y="452" width="52" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="147" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
-  <rect x="173" y="452" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="199" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
-  <rect x="225" y="452" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="251" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
-  <rect x="277" y="452" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="303" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
-  <rect x="121" y="452" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M173 452v34M225 452v34M277 452v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="535" y="420" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="551" y="442" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
-  <rect x="551" y="452" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="577" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">10</text>
-  <rect x="603" y="452" width="52" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="629" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
-  <rect x="655" y="452" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="681" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">30</text>
-  <rect x="707" y="452" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="733" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">40</text>
-  <rect x="551" y="452" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M603 452v34M655 452v34M707 452v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="535" y="656" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="551" y="726" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
-  <rect x="551" y="670" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="577" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">100</text>
-  <rect x="603" y="670" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="629" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">200</text>
-  <rect x="655" y="670" width="52" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="681" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
-  <rect x="707" y="670" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="733" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">400</text>
-  <rect x="551" y="670" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M603 670v34M655 670v34M707 670v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="105" y="656" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="121" y="726" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
-  <rect x="121" y="670" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="147" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1000</text>
-  <rect x="173" y="670" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="199" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2000</text>
-  <rect x="225" y="670" width="52" height="34" fill="var(--color-surface, #fbfaf6)"/>
-  <text x="251" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3000</text>
-  <rect x="277" y="670" width="52" height="34" fill="var(--color-token, #087f73)"/>
-  <text x="303" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
-  <rect x="121" y="670" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M173 670v34M225 670v34M277 670v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <g class="wiki-anim-move" data-keys="0.0442 - 0.1469" data-show="0.0442" opacity="0"><path class="wiki-anim-route" d="M147 525 L577 525 L577 469" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="121" y="508" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="147" y="529.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.1295 - 0.2322" data-show="0.1295" opacity="0"><path class="wiki-anim-route" d="M147 631 L577 631 L577 687" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="121" y="614" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="147" y="635.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text></g></g>
-  <g class="wiki-anim-move" data-keys="0 0.0442 0.0853 0.1295 0.1706 0.2148" data-show="0" opacity="0"><path class="wiki-anim-route" d="M147 469 L147 525 L147 525 L147 631 L147 631 L147 687" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="121" y="452" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="147" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.3002 - 0.4028" data-show="0.3002" opacity="0"><path class="wiki-anim-route" d="M629 525 L199 525 L199 469" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="603" y="508" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="629" y="529.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.3855 - 0.4882" data-show="0.3855" opacity="0"><path class="wiki-anim-route" d="M629 631 L199 631 L199 687" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="603" y="614" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="629" y="635.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.2559 0.3002 0.3412 0.3855 0.4265 0.4708" data-show="0.2559" opacity="0"><path class="wiki-anim-route" d="M629 469 L629 525 L629 525 L629 631 L629 631 L629 687" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="603" y="452" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="629" y="473.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.5561 - 0.6588" data-show="0.5561" opacity="0"><path class="wiki-anim-route" d="M681 631 L251 631 L251 687" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="655" y="614" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="681" y="635.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.6414 - 0.7441" data-show="0.6414" opacity="0"><path class="wiki-anim-route" d="M681 525 L251 525 L251 469" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="655" y="508" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="681" y="529.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.5118 0.5561 0.5972 0.6414 0.6825 0.7267" data-show="0.5118" opacity="0"><path class="wiki-anim-route" d="M681 687 L681 631 L681 631 L681 525 L681 525 L681 469" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="655" y="670" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="681" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.812 - 0.9147" data-show="0.812" opacity="0"><path class="wiki-anim-route" d="M303 631 L733 631 L733 687" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="277" y="614" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="303" y="635.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.8973 - 1" data-show="0.8973" opacity="0"><path class="wiki-anim-route" d="M303 525 L733 525 L733 469" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="277" y="508" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="303" y="529.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text></g></g>
-  <g class="wiki-anim-move" data-keys="0.7678 0.812 0.8531 0.8973 0.9384 0.9826" data-show="0.7678" opacity="0"><path class="wiki-anim-route" d="M303 687 L303 631 L303 631 L303 525 L303 525 L303 469" fill="none" stroke="none"/><g class="wiki-anim-payload"><rect x="277" y="670" width="52" height="34" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/><text x="303" y="691.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text></g></g>
-  </g>
-  <g class="wiki-anim-band">
-  <rect class="wiki-anim-box" x="0" y="760" width="880" height="376" fill="none"/>
-  <g class="wiki-anim-title">
-  <text x="105" y="782" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">通信后：每张卡都是 [1111, 2222, 3333, 4444]</text>
-  </g>
-  <text x="775" y="782" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end">数为示意</text>
-  <rect x="105" y="796" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="121" y="818" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 0</text>
-  <rect x="121" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="147" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">1111</text>
-  <rect x="173" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="199" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2222</text>
-  <rect x="225" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="251" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3333</text>
-  <rect x="277" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="303" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4444</text>
-  <rect x="121" y="828" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M173 828v34M225 828v34M277 828v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="535" y="796" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="551" y="818" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 1</text>
-  <rect x="551" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="577" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1111</text>
-  <rect x="603" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="629" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">2222</text>
-  <rect x="655" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="681" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3333</text>
-  <rect x="707" y="828" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="733" y="849.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4444</text>
-  <rect x="551" y="828" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M603 828v34M655 828v34M707 828v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="535" y="1032" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="551" y="1102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 2</text>
-  <rect x="551" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="577" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1111</text>
-  <rect x="603" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="629" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2222</text>
-  <rect x="655" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="681" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">3333</text>
-  <rect x="707" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="733" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4444</text>
-  <rect x="551" y="1046" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M603 1046v34M655 1046v34M707 1046v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  <rect x="105" y="1032" width="240" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
-  <text x="121" y="1102" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">卡 3</text>
-  <rect x="121" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="147" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1111</text>
-  <rect x="173" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="199" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2222</text>
-  <rect x="225" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="251" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3333</text>
-  <rect x="277" y="1046" width="52" height="34" fill="var(--color-token-soft, #ddf4ef)"/>
-  <text x="303" y="1067.6" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="600" fill="#065f56" text-anchor="middle">4444</text>
-  <rect x="121" y="1046" width="208" height="34" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
-  <path d="M173 1046v34M225 1046v34M277 1046v34" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 730" width="880" height="730" role="img" aria-label="All-Reduce（SUM）拆成两步：第 1 步同 Reduce-Scatter，每张卡的第 k 块都送到卡 k 加起来；第 2 步同 All-Gather，卡 k 把这块的和发给其余每张卡。中间两格每列是一张收数据的卡，紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。">
+  <title>All-Reduce（SUM）拆成两步：第 1 步同 Reduce-Scatter，每张卡的第 k 块都送到卡 k 加起来；第 2 步同 All-Gather，卡 k 把这块的和发给其余每张卡。中间两格每列是一张收数据的卡，紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。</title>
+  <defs><marker id="collective-communication-all-reduce-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="collective-communication-all-reduce-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="8" y="30" width="864" height="90" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="24" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">发之前：每张卡的部分和切成 4 块（一块 = 部分和张量的连续一段，真实 8 卡切 8 段）</text>
+  <rect x="8" y="158" width="864" height="210" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="24" y="146" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第 1 步（同 Reduce-Scatter）：第 k 块都送到卡 k，在卡 k 上加起来</text>
+  <rect x="8" y="406" width="864" height="188" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="24" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">第 2 步（同 All-Gather）：卡 k 把第 k 块的和发给其余每张卡</text>
+  <rect x="8" y="632" width="864" height="90" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="24" y="620" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">发之后：每张卡都是 [1111, 2222, 3333, 4444]</text>
+  <path d="M59 218 L59 272" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M101 218 C 101 245, 59 245, 59 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M143 218 C 143 245, 59 245, 59 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M185 218 C 185 245, 59 245, 59 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M59 272 L59 298" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M271 218 C 271 245, 313 245, 313 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M313 218 L313 272" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M355 218 C 355 245, 313 245, 313 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M397 218 C 397 245, 313 245, 313 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M313 272 L313 298" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M483 218 C 483 245, 567 245, 567 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M525 218 C 525 245, 567 245, 567 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M567 218 L567 272" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M609 218 C 609 245, 567 245, 567 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M567 272 L567 298" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M695 218 C 695 245, 821 245, 821 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M737 218 C 737 245, 821 245, 821 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M779 218 C 779 245, 821 245, 821 272" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2"/>
+  <path d="M821 218 L821 272" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M821 272 L821 298" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M59 466 L59 524" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#collective-communication-all-reduce-ah-control)"/>
+  <path d="M101 466 L101 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M143 466 L143 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M185 466 L185 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M271 466 L271 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M313 466 L313 524" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#collective-communication-all-reduce-ah-control)"/>
+  <path d="M355 466 L355 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M397 466 L397 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M483 466 L483 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M525 466 L525 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M567 466 L567 524" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#collective-communication-all-reduce-ah-control)"/>
+  <path d="M609 466 L609 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M695 466 L695 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M737 466 L737 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M779 466 L779 524" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#collective-communication-all-reduce-ah-comm)"/>
+  <path d="M821 466 L821 524" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#collective-communication-all-reduce-ah-control)"/>
+  <rect x="38" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="59" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1</text>
+  <rect x="80" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="101" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="122" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="143" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="164" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="185" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4</text>
+  <path d="M80 52v30M122 52v30M164 52v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="38" y="52" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="122" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0</text>
+  <rect x="250" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="271" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">10</text>
+  <rect x="292" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="313" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">20</text>
+  <rect x="334" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="355" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">30</text>
+  <rect x="376" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="397" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">40</text>
+  <path d="M292 52v30M334 52v30M376 52v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="250" y="52" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="334" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1</text>
+  <rect x="462" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="483" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">100</text>
+  <rect x="504" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="525" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">200</text>
+  <rect x="546" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="567" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">300</text>
+  <rect x="588" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="609" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">400</text>
+  <path d="M504 52v30M546 52v30M588 52v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="462" y="52" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="546" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 2</text>
+  <rect x="674" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="695" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1000</text>
+  <rect x="716" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="737" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2000</text>
+  <rect x="758" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="779" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3000</text>
+  <rect x="800" y="52" width="42" height="30" fill="var(--color-token-soft, #ddf4ef)"/>
+  <text x="821" y="71.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4000</text>
+  <path d="M716 52v30M758 52v30M800 52v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="674" y="52" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="758" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 3</text>
+  <rect x="41" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="59" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1</text>
+  <rect x="83" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="101" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">10</text>
+  <rect x="125" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="143" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">100</text>
+  <rect x="167" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="185" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">1000</text>
+  <text x="59" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="101" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="143" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="185" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="38" y="300" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="59" y="319.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="80" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="122" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="164" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M80 300v30M122 300v30M164 300v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="38" y="300" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="122" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0</text>
+  <rect x="253" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="271" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2</text>
+  <rect x="295" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="313" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">20</text>
+  <rect x="337" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="355" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">200</text>
+  <rect x="379" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="397" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">2000</text>
+  <text x="271" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="313" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="355" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="397" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="250" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="292" y="300" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="313" y="319.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="334" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="376" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M292 300v30M334 300v30M376 300v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="250" y="300" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="334" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1</text>
+  <rect x="465" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="483" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3</text>
+  <rect x="507" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="525" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">30</text>
+  <rect x="549" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="567" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">300</text>
+  <rect x="591" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="609" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">3000</text>
+  <text x="483" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="525" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="567" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="609" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="462" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="504" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="546" y="300" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="567" y="319.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="588" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <path d="M504 300v30M546 300v30M588 300v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="462" y="300" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="546" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 2</text>
+  <rect x="677" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="695" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4</text>
+  <rect x="719" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="737" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">40</text>
+  <rect x="761" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="779" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">400</text>
+  <rect x="803" y="190" width="36" height="28" rx="4" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="821" y="208.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="#065f56" text-anchor="middle">4000</text>
+  <text x="695" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="737" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="779" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="821" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="674" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="716" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="758" y="300" width="42" height="30" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="800" y="300" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="821" y="319.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M716 300v30M758 300v30M800 300v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="674" y="300" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="758" y="352" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 3</text>
+  <rect x="41" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="59" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="83" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="101" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="125" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="143" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="167" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="185" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <text x="59" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="101" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="143" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="185" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="38" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="59" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="80" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="101" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="122" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="143" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="164" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="185" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M80 526v30M122 526v30M164 526v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="38" y="526" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="122" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0</text>
+  <rect x="253" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="271" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="295" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="313" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="337" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="355" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="379" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="397" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <text x="271" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="313" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="355" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="397" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="250" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="271" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="292" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="313" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="334" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="355" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="376" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="397" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M292 526v30M334 526v30M376 526v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="250" y="526" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="334" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1</text>
+  <rect x="465" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="483" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="507" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="525" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="549" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="567" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="591" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="609" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <text x="483" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="525" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="567" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="609" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="462" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="483" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="504" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="525" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="546" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="567" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="588" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="609" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M504 526v30M546 526v30M588 526v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="462" y="526" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="546" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 2</text>
+  <rect x="677" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="695" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="719" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="737" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="761" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="779" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="803" y="438" width="36" height="28" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="821" y="456.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <text x="695" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 0</text>
+  <text x="737" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 1</text>
+  <text x="779" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 2</text>
+  <text x="821" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">卡 3</text>
+  <rect x="674" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="695" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="716" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="737" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="758" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="779" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="800" y="526" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="821" y="545.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M716 526v30M758 526v30M800 526v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="674" y="526" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="758" y="578" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 3</text>
+  <rect x="38" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="59" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="80" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="101" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="122" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="143" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="164" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="185" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M80 654v30M122 654v30M164 654v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="38" y="654" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="122" y="706" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0</text>
+  <rect x="250" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="271" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="292" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="313" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="334" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="355" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="376" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="397" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M292 654v30M334 654v30M376 654v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="250" y="654" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="334" y="706" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1</text>
+  <rect x="462" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="483" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="504" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="525" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="546" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="567" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="588" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="609" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M504 654v30M546 654v30M588 654v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="462" y="654" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="546" y="706" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 2</text>
+  <rect x="674" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="695" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">1111</text>
+  <rect x="716" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="737" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">2222</text>
+  <rect x="758" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="779" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">3333</text>
+  <rect x="800" y="654" width="42" height="30" fill="var(--color-token, #087f73)"/>
+  <text x="821" y="673.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">4444</text>
+  <path d="M716 654v30M758 654v30M800 654v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="674" y="654" width="168" height="30" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="758" y="706" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 3</text>
+  <text x="872" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="end" font-style="italic">数为示意</text>
 </svg>

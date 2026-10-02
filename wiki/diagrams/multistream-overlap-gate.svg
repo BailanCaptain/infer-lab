@@ -6,7 +6,7 @@
   <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条副流各自起飞、各自 join；跨流传结果靠一个模块级全局单例，不是参数传递。</text>
   <rect x="20" y="536" width="860" height="96" rx="12" fill="var(--color-canvas, #f5f2ea)"/>
   <rect x="36" y="550" width="116.5" height="26.5" rx="13.3" fill="var(--color-ink-faint, #8a928f)"/><text x="47" y="568.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">关掉（默认）时</text>
-  <text x="38" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">共享专家和路由都留在默认流上按顺序跑，prepare() 里照样 all-gather 两份：hidden_states 和 router_logits。</text>
+  <text x="38" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">共享专家和路由留在默认流上顺序跑；SP 开着、走 AllGather 时，prepare() 照样 all-gather 两份：hidden_states 和 router_logits。</text>
   <line x1="240" y1="112" x2="240" y2="470" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>
   <text x="240" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-accent, #e85b32)" text-anchor="middle">gate_stream 从这里起飞</text>
   <line x1="648" y1="112" x2="648" y2="470" stroke="var(--color-accent, #e85b32)" stroke-width="2.5" stroke-dasharray="7 5"/>

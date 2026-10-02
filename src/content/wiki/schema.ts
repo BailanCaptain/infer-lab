@@ -192,6 +192,12 @@ export const registrySchema = z.object({
 });
 export type Registry = z.infer<typeof registrySchema>;
 
+/**
+ * 读者快照里被跳过的坏页：id 取自文件名，供路由给出「暂不可用」；reason 只给写手看（console），不上页面。
+ */
+export const skippedPageSchema = z.object({ id: z.string(), file: z.string(), reason: z.string() });
+export type SkippedPage = z.infer<typeof skippedPageSchema>;
+
 /** The build and local API deliver the same complete reader payload. */
 export const readerSnapshotSchema = z
   .object({
@@ -200,6 +206,8 @@ export const readerSnapshotSchema = z
     pageTexts: z.array(z.object({ file: z.string(), text: z.string() })),
     /** 正文 ```wiki-diagram 围栏引用的图，渲染层直接内联这段 SVG */
     diagrams: z.array(z.object({ id: z.string().regex(ID_RE), svg: z.string().min(1) })).default([]),
+    /** 不合法、没进快照的页；其余页照常显示 */
+    skipped: z.array(skippedPageSchema).default([]),
   })
   .superRefine(({ registry, pageTexts }, ctx) => {
     const paths = new Set(pageTexts.map((p) => p.file));

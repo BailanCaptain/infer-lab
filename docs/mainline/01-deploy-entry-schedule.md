@@ -419,7 +419,7 @@ RFork 只替换「权重字节从哪里来」。HCCL 建域（A0 第 5 步）、
 2. **绕过条件**：`_is_dynamic_eplb_enabled`（`[C]` `rfork_loader.py#L373-L383`）判三个量：`enable_eplb`、`eplb_config.dynamic_eplb`、`eplb_config.expert_map_record_path`。任一为真就直接走默认 loader，只打一条 warning（`#L540-L561`）。教程两机命令里 `enable-eplb` 出现 0 次，不触发。
 3. **算身份、建空模型**：`_ensure_rfork_session`（`[C]` `#L441-L490`）先取四个编号：`global_rank`、`tp_rank`、`ep_rank = get_ep_group().rank_in_group`（`#L153-L161`）、`pp_rank`（PP = 1 时为 `None`，`#L164-L171`）。
    然后做两次 SHA256：
-   - 兼容性指纹 `build_compatibility_fingerprint`（`identity.py#L196-L251`），输入是 `model_url`、strategy、revision、dtype、`quantization`、量化配置摘要、架构描述、TP/PP/EP/DP 大小、`enable_expert_parallel`、`weight_nz_mode`、硬件布局策略；
+   - 兼容性指纹 `build_compatibility_fingerprint`（`identity.py#L196-L251`），输入是 `model_url`、strategy、revision、dtype、`quantization`、量化配置摘要、架构描述、TP/PP/DP 大小、`enable_expert_parallel`、`is_moe_model`、`weight_nz_mode`、硬件布局策略；EP 大小那一栏 `expert_world_size` 有键但值恒为空：它按 `expert_parallel_size` / `ep_size` 取值、取不到用默认 `None`（`identity.py#L160-L167`、`#L233-L235`），而工作版配套的 vLLM v0.26.0（`rfork@3284850b:Dockerfile#L54`）的 `ParallelConfig` 没有这两个属性（`vllm@568afb3a:vllm/config/parallel.py`，只有 `is_moe_model` 在 `#L161`）。EP16 只由 TP、DP 大小与 `enable_expert_parallel` 隐含（EP 组 = DP × PCP × TP，`vllm@568afb3a:vllm/distributed/parallel_state.py#L1893-L1906`）`[C]`；
    - seed key `build_seed_key`（`#L254-L287`），输入是指纹 + `tp_rank` + `pp_rank` + `ep_rank` + `is_draft_worker`。
 
    然后在 `with target_device:` 里调 `initialize_model`（`rfork_loader.py#L572-L577`）。
@@ -508,7 +508,7 @@ RFork 只替换「权重字节从哪里来」。HCCL 建域（A0 第 5 步）、
 - **YuanRong TransferEngine**：每个实例都要装 `yr.datasystem`，缺了会 `ImportError`（`[C]` `transfer_backend.py#L207-L217`；官方前提 `[S]` `rfork.md#L36-L39`）。
 - **Planner**：要实现 `/get_seed`、`/put_seed`、`/remove_seed`、`/add_seed` 四条路由（`[C]` `planner_client.py#L73`、`#L127`、`#L188`、`#L218`）。仓库里带的是 mock：`rfork@3284850b:examples/rfork/rfork_planner.py`。
 - **第二个实例**：我们的部署是一个实例，DP2 在实例内部。第一次冷启动必然借不到 seed，走第 8 步回退，还多付一次第 3–4 步（建模型 + 对空参数做后处理）的时间。收益只在扩副本或重启时出现。
-  seed 实例还必须同为 TP8 / DP2 / EP16 / W8A8、同一份 checkpoint、同一 `weight_nz_mode`，否则指纹不同，Planner 配不上。`[C]+[D]`
+  seed 实例还必须同为 TP8 / DP2 / 开 EP / W8A8、同一份 checkpoint、同一 `weight_nz_mode`，否则指纹不同，Planner 配不上。EP16 本身不单独进指纹（`expert_world_size` 恒为空，见上文「怎么走的」第 3 步），由 TP8、DP2 与 `enable_expert_parallel` 隐含（EP 组 = DP × PCP × TP，`vllm@568afb3a:vllm/distributed/parallel_state.py#L1893-L1906`）。`[C]+[D]`
 - **官方 GLM 教程**：`vllm-ascend@0576b647:docs/source/tutorials/models/GLM5.3-Flash.md` 里 `load-format`、`rfork` 各出现 0 次（`grep -c` 核过），A0 主线走的是 A0.7。`[S]`
 - **官方测试过的模型**（`[S]` `rfork.md#L80-L91`）：Qwen2.5-7B、Qwen3-32B、Qwen3-235B-A22B（BF16），DeepSeek-V4-Flash-W8A8-MTP（W8A8，带 MTP 草稿），GLM5-W4A8，Kimi2.5-W4A8，硬件都是 A2。表里没有 GLM-5.3-Flash W8A8。
 - **代码基**：工作版 `rfork@3284850b` 树里没有 GLM-5.3-Flash 的模型实现（无 `vllm_ascend/models/glm5_next*.py`），本节是「工作版 RFork loader + `db701c1f` 的 GLM 模型」的组合推演（见本节开头的版本口径）。和上一条「官方测试表里没有 GLM-5.3-Flash W8A8」并列，都是真跑之前要先确认的前提。`[C]`

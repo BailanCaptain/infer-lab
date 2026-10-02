@@ -16,7 +16,7 @@ origin: seed
 verified:
   - main
 evidence: C
-updated: '2026-09-22'
+updated: '2026-10-02'
 relations:
   - to: kvpp-config-0445bd352140
     kind: builds-on
@@ -52,7 +52,7 @@ rawSources:
 
 这个 `size` 是 `KVPPConfig` 里**唯一的字段**，也是 [KVPP](../concepts/kvpp.md) 那套机制里唯一的数：**一个 PP stage 上的层，要分成几份**。`int`、默认 `1`，而 `1` 就等于关——所有消费点写的都是 `size > 1`。开了 KVPP 之后它等于 `tensor_parallel_size × prefill_context_parallel_size` [C2]，你没法单独指定；能不能往 `additional_config` 里写、写了会怎样，见 [`kvpp_config`](kvpp-config-0445bd352140.md)。
 
-**存在范围。** 只在 main 开发主线上有。v0.23 维护分支与 v0.26 分支（2026-09-17 源码快照）上没有 KVPP，`git grep -i kvpp -- vllm_ascend docs/source` 在这两个提交上一条都不返回 [D]。这一页讲的是这个数在运行时被谁除、除完影响什么。
+**存在范围。** 本站跟踪的三个版本里只有 main 开发主线有（`releases/v0.28.0rc`、`releases/v0.29.0rc` 两个发布分支也已带上：那段 `KVPPConfig` 与 main 逐字相同，v0.23.0 到 v0.27.1rc 则没有）。v0.23 维护分支与 v0.26 分支（2026-09-17 源码快照）上没有 KVPP，`git grep -i kvpp -- vllm_ascend docs/source` 在这两个提交上一条都不返回；本站 GLM 双机钉住的那个含 GLM 代码的提交 `db701c1f` 也一样没有 [D]。这一页讲的是这个数在运行时被谁除、除完影响什么。
 
 ## 事实表
 
@@ -67,7 +67,7 @@ rawSources:
 | 本卡在组里的编号 | `get_tp_group().rank_in_group % size` [C5] | PCP=1 时它就是 TP 组内序号；owner 编号与 TP 编号一一对应 |
 | MTP 的 cache | 不参与划分，每张卡各留一份 [C4] | 开 MTP 时省下的比例比 `size` 暗示的小 |
 | `size == 1` 时 | 建组、校验、换分配路径三件事全不发生 | 单卡上写 `enable_kvpp: true` 不报错也不生效 |
-| 覆盖版本 | 只有 main | 两个发布分支上这个字段与整套 KVPP 都不存在 |
+| 覆盖版本 | 本站跟踪的三个版本里只有 main 有（v0.28.0rc / v0.29.0rc 发布分支也已带上，见「版本谱系」） | v0.23 / v0.26 两个分支上这个字段与整套 KVPP 都不存在 |
 
 ## 为什么存在
 
@@ -95,9 +95,13 @@ rawSources:
 
 **`size` 跟着 TP 走，意味着调 TP 会连带改变 KV 的物理摆法。** 同一份模型从 TP8 改到 TP4，除了权重切法变了，每张卡常驻的层数也从 `L/8` 变成 `L/4`，每卡 KV 容量因此掉一截；反过来把 TP 加大，省的是 KV 但每层广播的字节数不变、次数不变。两件本该独立的事被这条乘法绑在了一起。
 
-**层数除不尽时，亏的是拿得最多的那张卡。** `divmod` 给的是「前 `remainder` 个 rank 多一层」[C4]，而块数由 `get_num_blocks` 按本卡实际字节算 [C6]——各卡算出的块数会不一样，最终全局块数取的是最小的那个，等于让多拿一层的卡决定全局容量 [I]。层数刚好是 `size` 整数倍时没有这笔损失。
+**层数除不尽时，亏的是拿得最多的那张卡。** `divmod` 给的是「前 `remainder` 个 rank 多一层」[C4]，而块数由 `get_num_blocks` 按本卡实际字节算 [C6]——各卡算出的块数会不一样，最终全局块数取的是最小的那个，等于让多拿一层的卡决定全局容量 [I]。每层先报什么规格、规格怎么变成缓存池里的一页，在[KV cache 规格](../concepts/kv-cache-spec.md#一层要存的状态怎样变成缓存池里的一页)那页讲过。层数刚好是 `size` 整数倍时没有这笔损失。
 
-**`size == 1` 是最安静的失败态。** 单卡或 TP=1、PCP=1 的场景下它恒为 1，`validate()` 那六条硬校验一条都不跑 [C7]，服务照常起来，日志里没有任何一句说 KVPP 没生效。要确认它真的开了，只能看有没有建出 `kvpp` 通信组。
+**`size == 1` 是最安静的失败态。** 单卡或 TP=1、PCP=1 的场景下它恒为 1，`validate()` 那七条硬校验一条都不跑 [C7]，服务照常起来，日志里没有任何一句说 KVPP 没生效。逐条的报错原文见概念页的[会报什么错](../concepts/kvpp.md#会报什么错)（那张表里还有一条 `enable_kvpp` 不是布尔值的检查，它不在 `validate()` 里，读开关时就查）。要确认它真的开了，只能看有没有建出 `kvpp` 通信组。
+
+**放到本站 GLM 双机，这个数只有 1 和 8 两种可能，两种都用不上。** 钉住的 `db701c1f` 里没有 KVPP，`enable_kvpp` 写进去被静默忽略，`size` 恒为 1；换到 main 写 `enable_kvpp: true`，TP8、PCP1 按那条乘法算出 `size = 8`，于是 `validate()` 开跑，先撞「只支持 eager」（主线配置录了 decode 图），补上 `--enforce-eager` 后再撞「只支持非混合 MLA」，建组、分层、换分配路径一步都走不到，来龙去脉见概念页的 [GLM 一节](../concepts/kvpp.md#放到-glm-双机这套部署能开-kvpp-吗)。所以本页上面那些倍数都是按层数和字节算出来的**容量比**，不是测出来的效果；本站这套部署开不到 KVPP，没有任何实测数。待核：缺一组真开起来的每卡 KV 容量与解码时延对照。
+
+**别把下面那张「版本谱系」表当成这个字段的引入时间。** 那张表按标识符的文本匹配算，而 `size` 是个到处都有的通用词，每个发布分支都能匹配到几百个文件；这个字段真正的覆盖范围是上面事实表「覆盖版本」那一行。
 
 ## 版本谱系
 

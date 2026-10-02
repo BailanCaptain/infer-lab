@@ -133,3 +133,11 @@
 6. relations 里的 vllm-v1-shape 在正文有了链接：邻居表前一句链到 [两道边界上，每一圈交接什么](../../../../wiki/concepts/vllm-v1-shape.md#两道边界上每一圈交接什么)。
 
 **验证。** `pnpm wiki:lint`：通过，本页 0 报错（14 处待留意均为别页）；`pnpm wiki:diagrams --check`：241 张图与 spec 一致（本页三张图用只渲染自己的脚本重生成，`engine-core-loop`、`engine-core-flow` 两张 SVG 更新）；`pnpm wiki:audit`：通过，本页 35 条来源行号有效。`checkStandard` 单独实测：教学正文 5,534 字，行内代码 0，对照源码之上角标 0，calc 2 处，表与 calc 相邻 0，免责句 0%；全页角标 23 处（C 16 / D 5 / I 2）。未开浏览器。
+
+## 动图改静态分格（10-03）
+
+- **改了什么。** `wiki/diagrams/engine-core-rounds.yaml` 原来是 exchanges 分镜（8 步加一个结束格，播放器逐格演），改成 figure 静态分格，按圈切成 3 格：「第 1 圈」「第 2 圈」并排（正文要讲的就是「两圈里走的四格完全一样，差别在计划里装了什么」，并排最好比），下面一格「两圈之后」。画面纪律照 all-reduce 样板：每格一句短标题，右上角「编号为示意」，紫色箭头是在进程之间送过去的编号或消息，灰色虚线是 Worker 手里已经有、不用再发的编号；一格一个 token 编号加格子线，这一圈新出的 token 实色、已有的淡色。示意数沿用原图与正文（提示词 7、2、9，回答 5、8）。
+- **怎么画机制。** 每格三行依次是前端、EngineCore、Worker 手里 R 的编号，按位置上下对齐，所以每支箭头都竖直落在对应位置的格子上，不交叉；圆圈 1–4 对应正文的 ①–④。第 1 圈：① 前端把 7、2、9 发给 EngineCore；② 计划带着 7、2、9 发给 Worker；③ Worker 在位置 3 选出 5；④ 5 交回 EngineCore 再送前端。第 2 圈：② 位置 3 的 5 只画灰虚线（不再发）；③ Worker 用手里的 5 在位置 4 选出 8；④ 8 交回再送前端。两圈之后：前端留着整条回答，EngineCore 这一行空了，下一份计划带上「R 已结束」，Worker 这一行也空了。
+- **源码口径核对（钉住版本 vllm@0fc695fc）。** `vllm/v1/core/sched/output.py` L181–L215：第一次上场的请求放 `scheduled_new_reqs`，资料缓存在 worker 进程里；之后放 `scheduled_cached_reqs` 只发差量；`num_scheduled_tokens` 是每条请求这一步算几个位置；`finished_req_ids` 通知 worker 释放已结束请求的缓存。L112–L120：`new_token_ids` 只在 PP 时用，不开 PP 时为空，所以第 2 圈的 5 不用再发。`vllm/v1/core/sched/scheduler.py` L1888–L1910：`_free_request` 把请求号加进 `finished_req_ids`，`_free_blocks` 还块并从 `self.requests` 删掉这条请求。据此修正了原图结束格「三处都有 R 的 5 个编号」：R 结束后 EngineCore 已经放掉它，所以「两圈之后」里 EngineCore 这一行画成空的。图的 pins 没改，图上不放代码名。
+- **正文同步（只改一句）。** 图前「下面把……交接演一遍……格子下面是它在这条请求里的位置」改为「按圈画出来，一圈一格……每格三行依次是前端、EngineCore、Worker 手里的编号……格子上面是它在这条请求里的位置，圆圈里的 1–4 对应上面的 ①–④」。caption 同步改写。
+- **验证（本轮实跑）。** 本图用只渲染本图的脚本重生成 SVG；`pnpm wiki:lint` 退出码 0（4 处待留意均为他页 mark-flood）；`pnpm wiki:diagrams --check` 退出码 0，290 张与 spec 一致；`pnpm wiki:audit` 退出码 0，本页写作标准全 ✓（含图先行、图宽）。Playwright 1440 宽打开 `#/wiki/vllm-engine-core` 截图：图是静态 SVG、没有播放器按钮，三格、箭头、圆圈编号与正文一致。

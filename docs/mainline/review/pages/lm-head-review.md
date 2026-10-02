@@ -103,3 +103,5 @@ lm_head 是模型最后一步的一次矩阵乘：拿最后的隐藏向量和「
 4. 「其余 5 列照做」：在「两个分数怎么来」calc 末加旁注行「你、喜欢、看、。四列的权重未逐一列出，分数按同样算法得出（示意）」。
 
 **验证（10-02）。** `pnpm wiki:lint` 通过（本页 0 条，新增跨页锚点 sampling / tensor-parallel / embedding / one-request / prefill 全部通过硬校验）；`pnpm wiki:diagrams --check` 通过（271 张一致）；`pnpm wiki:audit` 通过（本页 26 条来源行号有效）。`checkStandard` 自查：教学正文 4,401 字、行内代码 0、对照源码之上角标 0、calc 0.68/千字、相邻块 0、图先行、免责 1.4%、图宽合格。未起服务、未在站点截图。
+
+**收尾清扫（2026-10-02）两条跨页遗留已处理。** P3-2：底稿 `docs/mainline/02-forward.md` L802「占每卡权重的 0.73%」改为「约 0.72%（151.25 MiB ÷ 每卡约 21,078 MiB）」。P3-3：查实 `scripts/wiki/standard-pages.json` 已含 `lm-head`、`toc.ts` 已把它编进「Decoder 层、MoE 与 lm_head」（工作区已有改动，本次未动）；`pnpm wiki:audit` 本页写作标准全 ✓，`pnpm wiki:lint` 退出 0。

@@ -99,7 +99,7 @@ function diagramId(node: unknown): string | null {
 
 export function WikiPage() {
   const { id } = useParams();
-  const { pages, revision, mode, diagrams } = useSyncExternalStore(subscribeReader, getReaderState);
+  const { pages, revision, mode, diagrams, skipped } = useSyncExternalStore(subscribeReader, getReaderState);
   const [panel, setPanel] = useState<"closed" | "chat" | "review" | "status">("closed");
   const [snapshotError, setSnapshotError] = useState("");
   const refresh = useCallback(async (signal?: AbortSignal) => {
@@ -187,13 +187,7 @@ export function WikiPage() {
 
       <main className="wiki-main">
         {!id && <Landing count={pages.length} guide={getPage(GUIDE_ID)?.fm} />}
-        {id && !page && (
-          <div className="wiki-empty" data-testid="wiki-notfound">
-            <BookOpen size={28} />
-            <strong>知识库里还没有「{id}」这一页</strong>
-            <p>可以从左侧目录挑一页读，或让灌种流程补上这个词条。</p>
-          </div>
-        )}
+        {id && !page && <MissingPage id={id} skipped={skipped} />}
         {page && <Article page={page.fm} body={page.body} diagrams={diagrams} />}
       </main>
 
@@ -210,6 +204,26 @@ export function WikiPage() {
           }
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * 路由指向的页不在快照里。被跳过的坏页（写手存了半页、校验没过）只说「暂不可用」，
+ * 校验细节在 console 里给写手看，不堆给读者；快照里根本没有的页才说「还没有」。
+ */
+export function MissingPage({ id, skipped }: { id: string; skipped: ReadonlySet<string> }) {
+  return skipped.has(id) ? (
+    <div className="wiki-empty" data-testid="wiki-unavailable">
+      <BookOpen size={28} />
+      <strong>{id}</strong>
+      <p>该页暂不可用</p>
+    </div>
+  ) : (
+    <div className="wiki-empty" data-testid="wiki-notfound">
+      <BookOpen size={28} />
+      <strong>知识库里还没有「{id}」这一页</strong>
+      <p>可以从左侧目录挑一页读，或让灌种流程补上这个词条。</p>
     </div>
   );
 }

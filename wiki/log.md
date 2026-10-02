@@ -516,3 +516,18 @@ vllm-ascend@releases/v0.23.0 1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8 → 2bcf78
 ## [2026-09-28] review | 周期维护
 
 本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-02] ingest | 参数增量
+
+vllm-ascend@main b64b4d714484feaa6ca71edc99b98318fe6d2f0d → 4ebb3090fc3c13c26557dcaae353882e70246649；新增 2 / 删除 3 / 变更 2。
+
+- enable_pcp_embedding_lmhead_weight_sharding: 默认表达式 "True" → "True"
+- finegrained_tp_config: 默认表达式 "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())" → "dataclasses.field(default_factory=lambda: FinegrainedTPConfig())"
+
+## [2026-10-02] ingest | 参数增量
+
+vllm-ascend@releases/v0.26.0rc 57179dd3e5d05a547a9fdea8b6958f66717e6098 → d3e4c109bf5c02041ad3c781f38f7f8651012d60；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-02] review | 周期维护
+
+本轮维护失败，未完成步骤的检查点保留；详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录。未自动重试收费调用。

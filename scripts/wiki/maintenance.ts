@@ -1,10 +1,10 @@
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { gitText } from "./git";
 import type { Seeds } from "./ingest";
-import { lintPages } from "./lint";
+import { lintPages, wikiFileExists } from "./lint";
 import { loadPages, type WikiPage } from "./pages";
 import { enqueueInLock } from "./queue";
 import { localFile } from "./review-files";
@@ -16,7 +16,7 @@ export function patrolFindings(pages: WikiPage[], seeds: Seeds, root: string, no
     throw new Error("巡检日期或年龄阈值无效");
   const findings = lintPages(pages, {
     chapterIds: [...CHAPTER_IDS],
-    existsFile: (path) => existsSync(localFile(root, `wiki/${path}`)),
+    existsFile: wikiFileExists(join(root, "wiki")),
   });
   for (const page of pages) {
     if (Date.parse(now) - Date.parse(page.fm.updated) < maxAgeDays * 86400000) continue;

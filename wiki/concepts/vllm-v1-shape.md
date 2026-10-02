@@ -67,7 +67,7 @@ file: vllm-v1-shape
 
 图里的方框各管一件事：
 
-- **前端**：接 HTTP 请求，套聊天模板，用分词器把文字切成 token 编号，包成一条请求消息交给 EngineCore；结果回来时做反分词，按流式格式一段段吐回客户端。前端里负责这件事的对象叫 AsyncLLM（异步引擎接口：一边收新请求，一边在后台收结果）。
+- **前端**：接 HTTP 请求，套聊天模板，用分词器把文字切成 token 编号，包成一条请求消息交给 EngineCore；结果回来时做反分词，按流式格式一段段吐回客户端。前端里负责这件事的对象叫 AsyncLLM（异步引擎接口：一边收新请求，一边在后台收结果）。进门这几步各做什么、在哪里拒绝请求，见[API server 入口](api-server-entry.md)。
 - **Scheduler**（调度器）：在 EngineCore 里，每一步决定「这一步算哪些请求、每条算几个 token、新借哪些 KV cache 块」。KV cache 是每层为已经算过的位置留下的历史，下一步的注意力要读它；它在卡上按块存放，Scheduler 手里只记块的编号。
 - **Executor**（执行器）：也在 EngineCore 里，只负责传话：把同一份计划发给它管的每个 Worker，再把结果收回来。它不排调度。
 - **Worker**：每张卡一个。收到计划后，里面的 NPUModelRunner（昇腾版的 model runner，负责把计划翻成张量、组织前向和采样）准备好这一步的输入，跑模型前向，采样出新 token。权重和 KV cache 的张量都在卡上，只有 Worker 碰得到。

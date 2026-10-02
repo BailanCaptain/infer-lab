@@ -1,16 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { buildRegistry, renderIndex } from "../scripts/wiki/build";
 import { diagramRefs, loadDiagrams } from "../scripts/wiki/diagrams";
 import { sliceHandbook } from "../scripts/wiki/handbook";
-import { loadPages, parsePage } from "../scripts/wiki/pages";
+import { loadPages, type PageProblem, parsePage } from "../scripts/wiki/pages";
 import { readRawSnapshot } from "../scripts/wiki/raw";
 import { listReviews } from "../scripts/wiki/review";
 import { localFile } from "../scripts/wiki/review-files";
 import { atomicText, digest, WorkflowStore } from "../scripts/wiki/workflow";
 import { buildIndex } from "../src/content/wiki/retrieve";
-import { parseRawRef, readerSnapshotSchema } from "../src/content/wiki/schema";
+import { parseRawRef, readerSnapshotSchema, type SkippedPage } from "../src/content/wiki/schema";
 
 /** Each new request observes one complete publication; an interrupted publication is unavailable. */
 export function readKnowledgeSnapshot(root: string) {
@@ -19,20 +19,66 @@ export function readKnowledgeSnapshot(root: string) {
 
 /** Caller must hold WorkflowStore.locked; shared by reads and atomic result publication checks. */
 export function readKnowledgeSnapshotInLock(root: string) {
+  return collectSnapshot(root, "reject");
+}
+
+/**
+ * 有一页不合法时怎么办。问答（reject）要一份完整一致的知识，整份拒绝；
+ * 读者（skip）把坏页拿出快照、记下原因，其余页照常显示。
+ * 2026-10-02 前读者也走 reject：写手存了半页草稿，整站就打不开。
+ */
+type InvalidPagePolicy = "reject" | "skip";
+
+const reasonOf = (problems: PageProblem[]) => problems.map((p) => `[${p.rule}] ${p.message}`).join("；");
+
+function collectSnapshot(root: string, policy: InvalidPagePolicy) {
   if (listReviews(root).some((r) => r.state === "publishing"))
     throw new Error("知识库发布尚未恢复，暂不接受新问答");
   const wiki = join(root, "wiki");
+  const skipped: SkippedPage[] = [];
+  // id 取文件名：frontmatter 坏了读不出 id，而路由 #/wiki/<id> 本来就要求 id 与文件名一致
+  const invalid = (rejectMessage: string, file: string, reason: string) => {
+    if (policy === "reject") throw new Error(rejectMessage);
+    skipped.push({ id: basename(file, ".md"), file, reason });
+  };
   const { pages: inventory, problems } = loadPages(wiki);
-  if (problems.length) throw new Error("知识库页面不合法，暂不接受新问答");
-  const pageTexts = inventory.map((page) => ({
-    file: page.file,
-    text: readFileSync(localFile(root, `wiki/${page.file}`), "utf8"),
-  }));
-  const pages = pageTexts.map((p) => {
-    const parsed = parsePage(p.file, p.text);
-    if (!parsed.page || parsed.problems.length) throw new Error("知识库页面在读取时改变，请重试");
-    return parsed.page;
+  const badFiles = new Set(problems.map((p) => p.file));
+  for (const file of badFiles)
+    invalid(
+      "知识库页面不合法，暂不接受新问答",
+      file,
+      reasonOf(problems.filter((p) => p.file === file)),
+    );
+  const read = inventory
+    .filter((page) => !badFiles.has(page.file))
+    .flatMap((page) => {
+      const text = readFileSync(localFile(root, `wiki/${page.file}`), "utf8");
+      const parsed = parsePage(page.file, text);
+      if (parsed.page && !parsed.problems.length) return [{ text, page: parsed.page }];
+      invalid("知识库页面在读取时改变，请重试", page.file, reasonOf(parsed.problems));
+      return [];
+    });
+  // 图也进快照：spec 是问答 agent 真正能读的那一份（nodes / edges 是显式的），
+  // SVG 是渲染层读的那一份。两者都必须进 digest，否则改了图 revision 不变，
+  // 快照保证就有个洞——问答会拿旧版本号引用新画面。
+  const { diagrams, problems: diagramProblems } = loadDiagrams(wiki);
+  if (policy === "reject" && diagramProblems.length) throw new Error("知识库图 spec 不合法，暂不接受新问答");
+  const brokenDiagrams = new Set(diagramProblems.map((p) => basename(p.file, ".yaml")));
+  const diagramIssue = (id: string): string[] => {
+    const diagram = diagrams.get(id);
+    if (!diagram) return [`正文引用的图 ${id} 不存在`];
+    if (brokenDiagrams.has(id)) return [`正文引用的图 ${id} 的 spec 不合法`];
+    if (!existsSync(localFile(root, `wiki/${diagram.svgFile}`))) return [`正文引用的图 ${id} 还没有 SVG`];
+    return [];
+  };
+  const kept = read.filter(({ page }) => {
+    const issues = [...new Set(diagramRefs(page.body))].flatMap(diagramIssue);
+    if (!issues.length) return true;
+    invalid(issues[0] ?? "", page.file, issues.join("；"));
+    return false;
   });
+  const pages = kept.map((r) => r.page);
+  const pageTexts = kept.map((r) => ({ file: r.page.file, text: r.text }));
   const registry = buildRegistry(pages);
   const handbookText = readFileSync(localFile(root, "wiki/HANDBOOK.md"), "utf8");
   const indexMd = renderIndex(pages);
@@ -45,11 +91,6 @@ export function readKnowledgeSnapshotInLock(root: string) {
       }),
     ]),
   );
-  // 图也进快照：spec 是问答 agent 真正能读的那一份（nodes / edges 是显式的），
-  // SVG 是渲染层读的那一份。两者都必须进 digest，否则改了图 revision 不变，
-  // 快照保证就有个洞——问答会拿旧版本号引用新画面。
-  const { diagrams, problems: diagramProblems } = loadDiagrams(wiki);
-  if (diagramProblems.length) throw new Error("知识库图 spec 不合法，暂不接受新问答");
   const diagramFiles = [...new Set(pages.flatMap((p) => diagramRefs(p.body)))].sort().flatMap((id) => {
     const diagram = diagrams.get(id);
     if (!diagram) throw new Error(`正文引用的图 ${id} 不存在`);
@@ -77,15 +118,18 @@ export function readKnowledgeSnapshotInLock(root: string) {
     registry,
     handbook: sliceHandbook(handbookText),
     index: buildIndex(registry.pages.map((page) => ({ ...page, text: textByFile.get(page.file)! }))),
+    skipped,
   };
 }
 
 export type KnowledgeSnapshot = Awaited<ReturnType<typeof readKnowledgeSnapshot>>;
 
-/** Shared payload for static builds and the live reader API. */
+/** Shared payload for static builds and the live reader API. Invalid pages are skipped, not fatal. */
 export async function readReaderSnapshot(root: string) {
-  const { registry, pageTexts, revision, diagrams } = await readKnowledgeSnapshot(root);
-  return readerSnapshotSchema.parse({ registry, pageTexts, revision, diagrams });
+  const { registry, pageTexts, revision, diagrams, skipped } = await new WorkflowStore(root).locked(() =>
+    collectSnapshot(root, "skip"),
+  );
+  return readerSnapshotSchema.parse({ registry, pageTexts, revision, diagrams, skipped });
 }
 
 /** An atomic ready pointer exposes a complete immutable directory, without a Windows directory rename. */

@@ -35,7 +35,7 @@ relations:
   - { to: one-request, kind: builds-on, note: R1 在第 4 站的位置清单（4 行 × 2051）逐行内容与 11 层稀疏 MLA 的形状 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 每个查询都要把全部历史读一遍吗？

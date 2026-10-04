@@ -70,7 +70,7 @@ relations:
   - {to: async-scheduling, kind: builds-on, note: 本部署异步调度开着，引擎这一步的结果在下一步开跑后才回收、发往前端}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## 流式输出是什么：模型一个个吐出编号，用户怎样一段段看到文字？

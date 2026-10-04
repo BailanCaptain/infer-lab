@@ -43,7 +43,7 @@ verified: []
 evidence: C
 contradicts: []
 updated: "2026-09-27"
-origin: seed
+origin: direct
 ---
 
 ## 部署前提

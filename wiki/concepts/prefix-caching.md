@@ -43,7 +43,7 @@ relations:
   - { to: linear-attention, kind: builds-on, note: KDA 递推状态没有逐 token 的 K/V，只能按档恢复 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 两条请求开头相同，开头要算两遍吗？

@@ -47,7 +47,7 @@ relations:
   - {to: npu-worker-lifecycle, kind: builds-on, note: Worker 初始化时建立本进程的配置状态}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 昇腾的开关不止一个入口：有的是 vLLM 自己的命令行参数，有的要写进启动命令附带的一段 JSON，还有一些只认环境变量。**AscendConfig 是 vllm-ascend 在每个进程里建的那个配置对象：它把这段 JSON 按键拆成几组子配置，执行时各处读到的昇腾开关，取值都来自它。** 这件事发生在服务启动的时候，对应主线的[启动那一站](glm-5-3-flash-two-node.md#启动时发生了什么)；一次定下来，之后每条请求都按它执行。

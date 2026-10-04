@@ -56,7 +56,7 @@ relations:
   - { to: linear-attention, kind: builds-on, note: KDA 一份状态有多大、为什么每组每请求 4 块，在线性注意力页推导 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一层要存的状态，怎样变成缓存池里的一页？

@@ -23,7 +23,7 @@ relations:
   - {to: vllm-engine-core, kind: builds-on, note: 理解引擎批队列与结果更新}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## PP 是什么？

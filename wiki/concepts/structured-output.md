@@ -76,7 +76,7 @@ relations:
   - {to: async-scheduling, kind: builds-on, note: 本部署异步调度开着，受约束请求上一步的 token 未确认时，本步整批采样要推迟}
 contradicts: []
 updated: '2026-09-28'
-origin: seed
+origin: direct
 ---
 
 ## 结构化输出怎样让模型只写出合法格式？

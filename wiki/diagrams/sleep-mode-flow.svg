@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 850" width="860" height="850" role="img" aria-label="vLLM 0fc695fc 与 Ascend db701c1f 的控制路径。sleep 在调度与 Worker 之间切换整台引擎的状态；分标签唤醒期间，调用方仍须阻止新请求进入。">
+  <title>vLLM 0fc695fc 与 Ascend db701c1f 的控制路径。sleep 在调度与 Worker 之间切换整台引擎的状态；分标签唤醒期间，调用方仍须阻止新请求进入。</title>
+  <defs><marker id="sleep-mode-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="sleep-mode-flow-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <rect x="16" y="30" width="828" height="138" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">主线位置：请求入口 → EngineCore 调度 → Worker 执行</text>
+  <rect x="16" y="242" width="828" height="256" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">显存分支：每个 NPUWorker 各处理本卡</text>
+  <rect x="16" y="570" width="828" height="240" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="558" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">恢复分支：调用方先确认训练已让出显存</text>
+  <path d="M256 98 L320 98" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M538 98 L600 98" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M430 132 L430 208 L216 208 L216 276" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M430 208 L644 208 L644 276" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M216 344 L216 372 L330 372 L330 400" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-weight)"/>
+  <path d="M644 344 L644 372 L530 372 L530 400" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-weight)"/>
+  <path d="M430 466 L430 536 L216 536 L216 608" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M430 536 L644 536 L644 608" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M216 676 L216 706 L330 706 L330 732" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <path d="M644 676 L644 706 L530 706 L530 732" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-flow-ah-control)"/>
+  <rect x="40" y="66" width="214" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="147" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">sleep 请求</text>
+  <text x="147" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">API / Python 调用</text>
+  <rect x="322" y="66" width="214" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="429" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">暂停调度并处理在途请求</text>
+  <text x="429" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EngineCore.sleep</text>
+  <rect x="602" y="66" width="214" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="709" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">level 0 到此返回</text>
+  <text x="709" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">显存保持原样</text>
+  <rect x="40" y="278" width="352" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="216" y="306" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">level 1：备份 weights 到 CPU</text>
+  <text x="216" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">CaMemAllocator.sleep</text>
+  <rect x="468" y="278" width="352" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="644" y="306" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">level 2：不备份权重池</text>
+  <text x="644" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">另存模型 buffers</text>
+  <rect x="222" y="402" width="416" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="429" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">释放可睡眠池的 NPU 物理内存</text>
+  <text x="430" y="448" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV 旧内容丢弃；持久分配保留</text>
+  <rect x="40" y="610" width="352" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="216" y="638" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">level 1：wake_up 全部标签</text>
+  <text x="216" y="657" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重拷回，缓存空间重新分配</text>
+  <rect x="468" y="610" width="352" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="644" y="638" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">level 2：先唤醒 weights</text>
+  <text x="644" y="657" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">外部重载后，再唤醒 kv_cache</text>
+  <rect x="222" y="734" width="416" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="764" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重与缓存均就绪 → 放行下一批请求</text>
+  <text x="444" y="192" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">level ≥ 1：清缓存，再交给执行器</text>
+  <text x="444" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">训练阶段结束后唤醒</text>
+</svg>

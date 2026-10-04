@@ -38,7 +38,7 @@ relations:
   - {to: device-memory, kind: builds-on, note: 区分权重主体与设备峰值显存，主机内存另记账}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 权重是什么？模型为什么离不开矩阵乘？

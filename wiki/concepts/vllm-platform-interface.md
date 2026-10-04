@@ -54,7 +54,7 @@ relations:
   - {to: glm-5-3-flash-two-node, kind: builds-on, note: A0 启动顺序、卡数与显存预算以双机部署页为准}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 换一种设备，vLLM 怎样知道该用哪套实现？

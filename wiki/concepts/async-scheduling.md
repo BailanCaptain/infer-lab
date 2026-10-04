@@ -51,7 +51,7 @@ relations:
   - {to: speculative-decoding, kind: builds-on, note: 候选被拒后已算数怎样回退；异步下先按全接受排、回来再改正}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 卡在算这一步时，CPU 能不能先把下一步排好？

@@ -40,7 +40,7 @@ relations:
   - {to: prefix-caching, kind: builds-on, note: 前缀缓存只在一组自己的池子里命中，派到别组要重算}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 一条新请求进来，派给哪一个 DP 组？

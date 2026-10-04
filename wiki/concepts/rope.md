@@ -46,7 +46,7 @@ relations:
   - {to: block-table, kind: builds-on, note: 位置编号决定旋转角度，块表只决定缓存存在哪一格}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 注意力怎样知道两个 token 相隔多远？

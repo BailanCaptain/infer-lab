@@ -2,6 +2,7 @@
 id: concurrent-requests
 title: "多条请求：在官方双机部署上一步怎样装下它们"
 type: concept
+origin: direct
 summary: 沿场景 M（DP0 上 12 条请求在 decode 时来了一条 6000 token 的新请求，DP1 上 7 条在 decode）和 DP1 空闲的变体 M′，在官方双机部署上看多条请求时每一站多出来的事：选组、分预算、拼输入、抢占、图尺寸补齐与两组对齐、MoE 从 MC2 翻到 AllGather、空闲组陪跑。
 aliases: [多请求推理, 并发请求, 连续批处理, continuous batching, 混合批次, 请求边界, 场景 M, 变体 M′, 空闲组陪跑, 图尺寸补齐, 两组对齐]
 chapters: ["00"]

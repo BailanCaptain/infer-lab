@@ -40,7 +40,7 @@ relations:
   - { to: linear-attention, kind: alternative-to, note: GLM 的 KDA 层不存逐位置的 K、V，历史压进固定大小的状态 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 几个查询头能不能共读一组 K、V？

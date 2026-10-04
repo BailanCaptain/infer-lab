@@ -60,7 +60,7 @@ relations:
   - {to: collective-communication, kind: builds-on, note: 理解收集与归约分片的输入输出}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 细粒度 TP 是什么？

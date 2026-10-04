@@ -44,7 +44,7 @@ relations:
   - { to: linear-attention, kind: alternative-to, note: GLM 中与稀疏 MLA 交替使用的 KDA 状态机制 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 每个历史位置都要把各个头的 K 和 V 全存下来吗？

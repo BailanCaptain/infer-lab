@@ -46,7 +46,7 @@ relations:
   - {to: quantization, kind: builds-on, note: W8A8 的量化方法决定线性层调哪个算子}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一次矩阵乘，到底是谁在算？

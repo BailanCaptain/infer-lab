@@ -51,7 +51,7 @@ relations:
   - {to: mooncake-connector, kind: builds-on, note: P2P 模式由 Mooncake 承担 P 到 D 的传输}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## UCM 是什么？

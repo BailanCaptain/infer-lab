@@ -54,7 +54,7 @@ relations:
   note: 决定本轮用不用图、把数据写进固定缓冲的是它
 contradicts: []
 updated: '2026-09-29'
-origin: seed
+origin: direct
 ---
 
 ## 一步里的几百个任务，能不能一次交给设备

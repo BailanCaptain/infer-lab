@@ -46,7 +46,7 @@ relations:
   - {to: sequence-parallel, kind: builds-on, note: 区分局部激活分片与跨位置注意力}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 上下文并行是什么？

@@ -61,7 +61,7 @@ relations:
   - { to: rope, kind: builds-on, note: 普通注意力存进缓存的 K 已按位置旋转；GLM 的 MLA 与 indexer 不带 RoPE 段 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## KV cache 是什么？

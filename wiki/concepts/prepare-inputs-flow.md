@@ -50,7 +50,7 @@ relations:
   - { to: concurrent-requests, kind: builds-on, note: 13 条请求拼成 6048 行，以及补到图尺寸、两组对齐的账 }
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 调度器只说「算谁、各算几个」，模型要的却是几张对齐的表：中间谁来翻译？

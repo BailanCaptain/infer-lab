@@ -65,7 +65,7 @@ relations:
     note: 288 选 8、共享专家、每层维度和全模型参数量的出处
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## MoE 是什么？

@@ -531,3 +531,11 @@ vllm-ascend@releases/v0.26.0rc 57179dd3e5d05a547a9fdea8b6958f66717e6098 → d3e4
 ## [2026-10-02] review | 周期维护
 
 本轮维护失败，未完成步骤的检查点保留；详见 wiki/_jobs/sync/last-run.json 和同目录逐次运行记录。未自动重试收费调用。
+
+## [2026-10-03] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-04] review | 直接撰写页如实标注 origin: direct
+
+没有 rawSources 的 93 页（concepts 92、sources 1）批量标为 origin: direct（页头显示「直接撰写」）：88 页原写 origin: seed 的那一行换成 direct，5 页原无 origin 行、在 type 行后插一行；sources 等其余 frontmatter 与正文未动。依据用户 2026-10-03 决定：agent 直接撰写、没有 raw 快照的页如实标注，不事后补 raw。schema 同步加 direct，wiki:lint 新增 origin-direct-raw（direct 与 rawSources 互斥）。记录见 docs/mainline/review/pages/origin-direct-1004.md。

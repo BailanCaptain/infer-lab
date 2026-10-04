@@ -79,7 +79,7 @@ relations:
   - {to: linear-attention, kind: builds-on, note: KDA 的数学机制；设备实现走 CustomOp 登记，不走 patch}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 昇腾怎样把 vLLM 里的函数换成自己的？
@@ -202,7 +202,7 @@ API server 这一侧，还有三项 global patch 挂在 chat 请求的必经之�
 其余导入了的 patch，按和 GLM 请求路径的关系分四种：
 
 - **给别的模型用的。** MiniMax、Qwen 系列（上表的 qwen3_next_mtp 除外）、Kimi-K2.5 视觉部分、DeepSeek 的 MTP 与权重加载、EAGLE-3 与 DFlash 草稿、GQA 量化等 patch，换的都是那些模型的类；GLM 用的是昇腾自写的 AscendGlm5Next 系列模型类和 AscendGlm5NextMTP，不经过它们。Triton patch 里换 vLLM 自带 GDN 与卷积内核的那几行也属于这一类：GLM 的 KDA 层调的是昇腾自己的内核。同一个文件还给 Triton 模块塞了一个 next_power_of_2 函数，因为 torch_npu 自带的 Triton 缺这个函数，而上游和昇腾代码有很多处调它；这一条对所有用到它的 Triton 代码都生效。
-- **给没开的功能用的。** 工具调用解析器（GLM-4.7、DeepSeek-V4、MiniMax-M2 三种）只在启动命令指定了解析器时才被用到，官方教程只在 FAQ 里给出带解析器的写法，双机启动命令没有；MiniMax 的用量统计只绑在 MiniMax 的服务对象上；睡眠模式的显存分配器、强化学习的权重同步、KDA 状态拷贝工具，分别要开睡眠模式、权重同步、align 缓存模式才走到。
+- **给没开的功能用的。** 工具调用解析器（GLM-4.7、DeepSeek-V4、MiniMax-M2 三种）只在启动命令指定了解析器时才被用到，官方教程只在 FAQ 里给出带解析器的写法，双机启动命令没有；MiniMax 的用量统计只绑在 MiniMax 的服务对象上；睡眠模式的显存分配器、[强化学习的权重同步](vllm-ascend-for-rl.md#训练端和推理端怎样交接显存与权重)、KDA 状态拷贝工具，分别要开睡眠模式、权重同步、align 缓存模式才走到。
 - **是否经过还没核清。** 装了 npugraph_ex 才导入的那个 patch 改的是另一套图编译器的内部结构；global patch 里把 torch.accelerator 的四个显存函数（释放缓存的 empty_cache，查询用的 memory_stats、memory_reserved，重置峰值统计的 reset_peak_memory_stats）转到 torch.npu 的一个、把上游 MLA prefill 后端选择函数换成昇腾后端的一个，替换都无条件发生，但 GLM 路径上有没有代码调到它们，见页末待核。
 - **条件在 patch 内部。** platform 下的 patch_distributed 被导入了，但只有检测到 310P 芯片才替换，在 A2 上什么也不换。流水线并行与 MTP 的校验 patch 确实换掉了模型配置的并行校验方法，建草稿配置时也会被调用，但只在流水线并行大于 1 时改动校验，本部署流水线并行为 1，直接转回原方法。
 

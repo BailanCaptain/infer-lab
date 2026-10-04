@@ -65,7 +65,7 @@ relations:
   note: 适配器状态参与捕获图分派。
 contradicts: []
 updated: '2026-09-29'
-origin: seed
+origin: direct
 ---
 
 ## LoRA 是什么：基座一个数不动，旁边挂两个小矩阵

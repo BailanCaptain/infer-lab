@@ -37,7 +37,7 @@ relations:
   - {to: device-memory, kind: builds-on, note: 编号列表与设备中的权重和历史状态要分开记内存账}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## Token 是什么？

@@ -43,7 +43,7 @@ relations:
   - {to: batch-job-aware-scheduler, kind: alternative-to, note: 另一种改等待顺序的策略，两者不能同开}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 短请求排在长请求后面，只能干等吗？

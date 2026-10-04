@@ -44,7 +44,7 @@ relations:
   - {to: kv-pool, kind: alternative-to, note: 池按内容指纹存前缀段，谁的开头对上谁能取；换出只存被抢占的这一条，只有它恢复时取回}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 被抢占的请求，KV 能不能先存到主机、回来再搬回？

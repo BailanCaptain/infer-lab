@@ -1,0 +1,35 @@
+layout: figure
+id: sleep-mode-intuition
+caption: 同一张 NPU 暂停推理后让出显存。level 1 的权重有 CPU 备份，level 2 的权重须从外部重装；两条路都丢弃旧 KV cache。图只画权重和缓存，其他常驻内存见正文。
+size: [860, 610]
+frames:
+  - { label: 清醒：同一张 NPU 正在推理, at: [220, 30], size: [420, 90] }
+  - { label: level 1：以后继续用旧权重, at: [16, 196], size: [398, 380] }
+  - { label: level 2：以后装入所需权重, at: [446, 196], size: [398, 380] }
+items:
+  - { at: [246, 54], size: [154, 44], text: 模型权重, tone: weight }
+  - { at: [460, 54], size: [154, 44], text: KV cache, tone: kv }
+  - { at: [42, 230], size: [156, 54], text: CPU 权重备份, tone: weight }
+  - { at: [238, 230], size: [150, 54], text: 旧缓存丢弃, tone: kv, style: faded }
+  - { at: [472, 230], size: [150, 54], text: 旧权重丢弃, tone: weight, style: faded }
+  - { at: [668, 230], size: [150, 54], text: 旧缓存丢弃, tone: kv, style: faded }
+  - { at: [42, 334], size: [346, 50], text: NPU 腾出的空间交给训练, tone: token, style: plain }
+  - { at: [472, 334], size: [346, 50], text: NPU 腾出的空间交给训练, tone: token, style: plain }
+  - { at: [42, 494], size: [156, 54], text: 权重拷回 NPU, tone: weight }
+  - { at: [238, 494], size: [150, 54], text: 缓存重新分配, tone: kv }
+  - { at: [472, 494], size: [150, 54], text: 外部重载权重, tone: weight }
+  - { at: [668, 494], size: [150, 54], text: 缓存重新分配, tone: kv }
+links:
+  - { from: [323, 100], to: [120, 228], via: [[323, 148], [120, 148]], tone: weight }
+  - { from: [323, 100], to: [547, 228], via: [[323, 174], [547, 174]], tone: weight }
+  - { from: [537, 100], to: [313, 228], via: [[537, 162], [313, 162]], tone: kv }
+  - { from: [537, 100], to: [743, 228], via: [[537, 136], [743, 136]], tone: kv }
+  - { from: [215, 286], to: [215, 332], tone: control }
+  - { from: [645, 286], to: [645, 332], tone: control }
+  - { from: [120, 386], to: [120, 492], tone: weight }
+  - { from: [313, 386], to: [313, 492], tone: kv }
+  - { from: [547, 386], to: [547, 492], tone: weight }
+  - { from: [743, 386], to: [743, 492], tone: kv }
+texts:
+  - { at: [215, 446], text: 唤醒：拷回备份 + 重建缓存空间, anchor: middle, size: 13 }
+  - { at: [645, 446], text: 唤醒：先分配权重空间，再重载, anchor: middle, size: 13 }

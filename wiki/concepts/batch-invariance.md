@@ -65,7 +65,7 @@ relations:
   note: 跨卡求和的顺序同样要钉死。
 contradicts: []
 updated: '2026-09-29'
-origin: seed
+origin: direct
 ---
 
 ## 单独重跑同一个问题，回答却分叉了
@@ -235,7 +235,7 @@ VLLM_BATCH_INVARIANT=1 vllm serve <model> \
 - 文档对开销只给一句定性说明：以性能换可复现性，没有倍数、没有基准。[S17]
 - 定性的开销有四处：`mm` / `matmul` 的 Triton 回退用固定 `128 × 128 × 64` 分块，不按形状调优，`linear` 那条也钉死了 K 方向 [C5]；自定义算子整层下线 [C8]；带残差的归一化从一个融合算子拆成两步；采样退回上游通用实现 [C12]。
 - 互斥与不支持：chunked prefill、prefix caching、抢占（main 文档明说且不会自动关）；v0.23 / v0.26 的文档要求只用分段捕获；`enable_matmul_allreduce` 在 v0.23 由代码强制置 `False`，v0.26 起这一行删了、保护没了，见 [enable_matmul_allreduce](../params/enable-matmul-allreduce.md)。[C24]
-- 什么时候别开：追吞吐的线上服务不要开。它的用处是排查——要拿到可复现的文本、要做严格的数值对照、或者要做强化学习的 rollout 时才开。
+- 什么时候别开：追吞吐的线上服务不要开。它的用处是排查——要拿到可复现的文本、要做严格的数值对照、或者要做[强化学习的 rollout](vllm-ascend-for-rl.md#为什么-rl-需要推理端配合代价花在哪里) 时才开。
 - 混合 attention 模型要格外当心：线性 attention 走的是另一套专用核，不在替换名单里，官方测过的模型名单里也没有混合 attention 模型，逐位相同对这类模型没有官方背书。
 
 ### 版本差异

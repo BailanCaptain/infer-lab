@@ -46,7 +46,7 @@ relations:
   - {to: vllm-platform-interface, kind: builds-on, note: 平台契约决定何时能查询设备，不能把通用接口当作提前初始化的许可}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 权重在主机里，为什么还要搬进显存？

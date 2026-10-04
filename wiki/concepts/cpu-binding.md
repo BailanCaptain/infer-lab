@@ -60,7 +60,7 @@ relations:
   note: 另一条减少主机侧下发开销的路；两者管同一段主机时间，可以同时开
 contradicts: []
 updated: '2026-09-28'
-origin: seed
+origin: direct
 ---
 
 ## 绑核把 Worker 钉在哪些核上？

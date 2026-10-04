@@ -40,7 +40,7 @@ relations:
   - { to: hardware-devices, kind: builds-on, note: 通信组的逻辑参与者运行在具体设备上 }
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 两张卡交换以后，各自手里多了什么？

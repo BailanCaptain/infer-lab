@@ -56,7 +56,7 @@ relations:
   - { to: concurrent-requests, kind: builds-on, note: 主线满载时被抢占的一条还回多少块、本机重算几步，整批账在那一页 }
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## D 节点的块不够了，被让出的那条请求去哪？

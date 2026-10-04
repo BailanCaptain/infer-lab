@@ -2,6 +2,7 @@
 id: learning-guide
 title: "阅读指南：这个知识库讲什么，按什么顺序读"
 type: concept
+origin: direct
 summary: 知识库入口：模型固定为 GLM-5.3-Flash、部署固定为官方双机 16 卡，沿「一条请求」读完五页主线，再按问题展开各分组；另有术语、证据角标与问答侧栏的用法。
 aliases: [学习路线, 阅读顺序, 入门指南, 无设备学习]
 chapters: ["00"]

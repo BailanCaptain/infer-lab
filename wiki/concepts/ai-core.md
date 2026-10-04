@@ -26,7 +26,7 @@ relations:
   - {to: ops-and-kernels, kind: builds-on, note: 区分数学算子、软件入口与设备上的执行程序}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## AI Core 怎样把矩阵乘变成设备上的计算？

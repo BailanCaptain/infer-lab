@@ -3,9 +3,7 @@ id: cann-hccl
 title: CANN 与 HCCL：计算、通信和物理链路
 type: concept
 summary: CANN 提供昇腾计算软件能力，HCCL 负责组内通信；沿框架请求、通信库和物理链路看数据怎样到另一张卡，再解释 GLM 双机通信域与 AI QoS 的适用边界。
-aliases: [CANN, 昇腾软件栈, HCCL, 集合通信库, Huawei Collective Communication Library,
-  AI QoS, AI QoS Feature, ai_qos, 流量 QoS, 虚拟通道 VL, Virtual Lane, UB 交换机 QoS, hccs qos remap,
-  严格优先级调度, MASTER_ID_SDMA, aiqos_table, tools/ai_qos.py]
+aliases: [CANN, 昇腾软件栈, HCCL, 集合通信库, Huawei Collective Communication Library]
 chapters: ["07", "09", "08"]
 order: 130
 sources:
@@ -47,7 +45,7 @@ relations:
   - {to: tensor-parallel, kind: builds-on, note: 张量并行把一层分给多张卡，部分和要靠 HCCL 合齐，具体数据流在张量并行页读}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一张卡上的通信请求，怎样到达另一张卡？
@@ -119,7 +117,7 @@ HCCS 与 RoCE 的带宽规格在[硬件设备](hardware-devices.md#官方带宽�
 
 在支持的 Unified Bus 拓扑中，**Virtual Lane（VL，虚拟通道）**把流量分到不同逻辑通道，再按优先级调度。高优先级先服务，可减少关键通信的排队；当高优先级流量占住出口时，低优先级就要继续等待。总链路带宽仍由硬件决定，请求什么时候进入模型仍由推理调度器决定（例如 [ShortRequestFirst](short-request-first.md)、[Batch-Job-Aware Scheduler](batch-job-aware-scheduler.md)），VL 不读取提示词、生成进度或 token 预算。
 
-本节的 UB 是 Unified Bus；[AI Core](ai-core.md)中的 UB 是片上 Unified Buffer。这里的 SP 表示 strict priority（严格优先级），与[序列并行](sequence-parallel.md)缩写相同、含义不同。固定文档把 AI QoS 限定在 Atlas 800T A3 / Atlas 900 A3 SuperPoD；本页 A2 双机主线没有启用它的证据。下面将其配置和版本边界单列，便于在相应硬件上查用。
+本节的 UB 是 Unified Bus；[AI Core](ai-core.md)中的 UB 是片上 Unified Buffer。这里的 SP 表示 strict priority（严格优先级），与[序列并行](sequence-parallel.md)缩写相同、含义不同。固定文档把 AI QoS 限定在 Atlas 800T A3 / Atlas 900 A3 SuperPoD；本页 A2 双机主线没有启用它的证据。下面将其配置和版本边界单列，便于在相应硬件上查用。流量怎样分类并映射到虚拟通道、分开排队后一次等待怎样变化，见[AI QoS](ai-qos.md)。
 
 ## 常见误解
 

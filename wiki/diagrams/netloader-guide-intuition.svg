@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410" width="880" height="410" role="img" aria-label="两个实例各用一张卡。旧实例先从存储装好权重；新实例先建立相同模型的空位，再从旧卡接收权重。复制完成后两边各自持有权重，新实例继续完成启动。紫色箭头搬的是权重，不是请求或计算结果。">
+  <title>两个实例各用一张卡。旧实例先从存储装好权重；新实例先建立相同模型的空位，再从旧卡接收权重。复制完成后两边各自持有权重，新实例继续完成启动。紫色箭头搬的是权重，不是请求或计算结果。</title>
+  <defs><marker id="netloader-guide-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="netloader-guide-intuition-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="netloader-guide-intuition-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="12" y="30" width="856" height="100" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="28" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">先有一份可用权重</text>
+  <rect x="12" y="165" width="856" height="105" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="28" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">新实例启动：向旧实例取同一份权重</text>
+  <rect x="12" y="305" width="856" height="90" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="28" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">接收完成：两边各有自己的权重</text>
+  <path d="M258 82 L565 82" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#netloader-guide-intuition-ah-weight)"/>
+  <path d="M298 220 L565 220" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#netloader-guide-intuition-ah-comm)"/>
+  <path d="M298 238 L490 285 L490 355 L298 355" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#netloader-guide-intuition-ah-control)"/>
+  <path d="M690 243 L690 332" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#netloader-guide-intuition-ah-comm)"/>
+  <rect x="48" y="59" width="210" height="46" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="153" y="87" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">存储里的模型文件</text>
+  <rect x="565" y="59" width="250" height="46" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="690" y="87" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">旧实例 · 卡上的权重</text>
+  <rect x="48" y="197" width="250" height="46" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="173" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">旧实例 · 卡上的权重</text>
+  <rect x="565" y="197" width="250" height="46" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="690" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">新实例 · 等待填入的空位</text>
+  <rect x="48" y="332" width="250" height="46" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="173" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">旧实例 · 保留权重</text>
+  <rect x="565" y="332" width="250" height="46" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="690" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新实例 · 收到权重</text>
+  <text x="411" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">先加载</text>
+  <text x="431" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#7a3a6a" text-anchor="middle">卡间直接发送 → 接收</text>
+</svg>

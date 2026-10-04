@@ -131,3 +131,65 @@ sampling 和 lm-head 的审查文件里，入链已由各自的修订轮补好�
 1. async-scheduling「对照源码 › 待核」里「普通抢占与取消路径下，在途结果怎样处理」那条，取消路径的一半 request-teardown 已核过（审查 C3 ✓）。要不要把这条改成只留「普通抢占」，属于改结论，留给该页写手或主会话定。
 2. `src/content/wiki/registry.json` 工作区有别人的改动，这次没碰；toc.test 的位置用例不依赖它。
 3. 没碰 `wiki/params/weight-prefetch-config.md`，没提交 git。
+
+## 10-04 新页（netloader-guide、ai-qos、vllm-ascend-for-rl）
+
+### 目录
+
+| 页 | 主题 › 小节 | 位置 | 理由 |
+| --- | --- | --- | --- |
+| `netloader-guide` | 性能与工程优化 › **新节「启动与权重加载」** | 该节唯一页，排在「Graph mode 与主机资源」之前 | 写手建议的位置；它要解决的是启动时少读一遍权重文件，有开关、有回退、有开销，属于工程优化。读者顺序是先启动装权重，再看运行时图模式和数值一致性。写手说的「与容量规划相邻」指 `kv-cache-memory-profiling`，那页在「vLLM 与 Ascend 架构 › 启动与平台适配」，为它搬页超出本次范围，没做 |
+| `ai-qos` | Ascend 硬件与软件栈 › 软件栈与互连 | `cann-hccl` 之后 | 写手、审查员、09-27 清单一致；两页 chapters 都是 07/09，QoS 的概述本来就在 cann-hccl 那一节 |
+| `vllm-ascend-for-rl` | 服务能力 › **新节「RL 与权重更新」** | 该节唯一页，接在「LoRA 与 structured output」之后 | 写手建议服务篇。本页讲的是推理端被训练框架当 rollout 引擎用（暂停、换权重、交回样本），和 LoRA、structured output 一样回答「这个引擎还能怎么用」，不是一项优化。sleep-mode 还在待审、没有正式页，所以没有给它留位置，小节也没按「sleep 与 RL」命名 |
+
+同时把「服务能力」的 blurb 从「适配器与受约束的输出生成」改成「适配器、受约束的输出生成与 RL 权重更新」：新节进来后原文字已经不覆盖这一组的内容。
+
+测试：在 `src/content/wiki/toc.test.ts` 新增用例「netloader、AI QoS 与 RL 权重更新落到各自主题，不进待编排」，输入里打乱放进三页和各自的邻页。先跑是红的（三页都落进「待编排」）→ 改 `toc.ts` 后绿，12/12 通过。`registry.json` 仍停在这三页之前，所以「真实知识库每页恰好出现一次」那条用例覆盖不到它们，位置由新用例锁定（与 10-02 同一情况）。
+
+### 入链
+
+| # | 建议来源 | 改在哪 | 加了什么 | 结果 |
+| --- | --- | --- | --- | --- |
+| 1 | netloader 审查（`platform-plugin-registration:183`，Netloader 名称处） | 同页「五个入口分别登记了什么」表里 `ascend_model_loader` 那一行（L111） | 「登记两种昇腾自带的权重加载器」后补「：[Netloader](netloader-guide.md) 与 RFork」 | 已加。没改在建议的 L183：那行是源码函数名清单，表里这一行先出现、又正好缺「哪两种」，读者在那里才会想点 |
+| 2 | netloader 审查（`vllm-ascend-overview:119`） | 原句「登记 KV 连接器与权重传输引擎、netloader 与 rfork 加载器」 | 给 `netloader` 四个字加链接 | 已加。审查还提到别把「装上包就生效」读成默认启用网络加载；没有改写原句，这一点由目标页自己讲清楚 |
+| 3 | ai-qos 审查第 1 条（`cann-hccl:114–120`） | cann-hccl「AI QoS 怎样处理共享链路上的争用？」末段末（L120） | 补一句：流量怎样分类并映射到虚拟通道、分开排队后一次等待怎样变化，见[AI QoS] | 已加。建议里的「把概述压成一句」属于重写别人的段落，没做，只补链接 |
+| 4 | ai-qos 审查第 3 条（「其他可选入链…由主会话核定」） | `kv-cache-layerwise-offload`「为什么能按层拆」里「搬运和计算同时抢带宽」那条（L85） | 条末补「受支持的 A3 网络上还能按流量类别安排谁先走，见 [AI QoS]」 | 已加。同一条列表的上一条就是「…见 [ACL Graph]」，写法一致 |
+| 5 | rl 写手表（`ascend-patch-system:205`） | 「落到 GLM 双机：哪些 patch 真的起作用」里「强化学习的权重同步」 | 该词组加链接 → `#训练端和推理端怎样交接显存与权重` | 已加（带节锚点） |
+| 6 | rl 写手表（`attention-backend-family:183`） | 「开销和什么时候别开」里「在训推一致场景下启用可能带来性能下降」 | 「训推一致」四字加链接 → `#为什么训推一致和批不变要分开选择` | 已加（带节锚点）。同页 L196 的版本差异行也提到同一开关，按「同页同目标只加一处」没加，首次出现在 L183 |
+| 7 | rl 写手表（`batch-invariance:238`） | 「开销和什么时候别开」里「要做强化学习的 rollout 时才开」 | 「强化学习的 rollout」加链接 → `#为什么-rl-需要推理端配合代价花在哪里` | 已加（带节锚点）。该页 L221/L253 讲的是 `rl_config` 这条开关路径，同页只留这一处 |
+| 8 | rl 写手表（`params/enable-sleep-mode-extra-cleanup:114`） | 「为什么存在」首段末（讲完 RL 循环与两种 sleep level 之后） | 补一句：生成与训练怎样交替、新权重怎样换回推理端，见[vLLM-Ascend for RL] | 已加。该页另有 7 处建议（85/99/129/137 等），都要改写参数页自己的结论或示例，按同页一处只留这一条 |
+
+没加的：
+
+- ai-qos 审查第 2 条（把 `ai-core:89` 的链接从 cann-hccl 的 AI QoS 锚点改指 ai-qos 首节）。ai-core 那句是 Unified Buffer / Unified Bus 的同名术语说明，而这条说明本身留在 cann-hccl（`ai-qos.md:49` 自己也写着「UB/SP 的同名术语…见 CANN/HCCL 的 AI QoS 概述」）。改指过去会让读者再被弹回来，所以原链接没动。
+- rl 写手表里 `params/enable-pcp-o-proj-weight-sharding…:131`（写手本来就判「保留，不并入」）、`wiki/index.md:122`（派生文件，不手工改）、`attention-backend-family:9/222` 与 `batch-invariance:221/253`（别名和证据索引，不该用跨页链接取代）。
+
+共加 8 条。每页对每个目标只有一处正文链接：`grep -c '](…vllm-ascend-for-rl.md' ` 等逐页都是 1。浏览器里源页显示 2 个指向目标的链接，多出来的一个是 frontmatter `relations` 生成的反向关系条目，和 10-02 那轮一样，没动。`git diff -U0` 每处只改 1 行、只在原句里插字；`ascend-patch-system` 是 CRLF，改法是整文件字符串替换，行尾没变。
+
+### 检查
+
+| 检查 | 结果 |
+| --- | --- |
+| `npx vitest run src/content/wiki/toc.test.ts` | 先红（新用例 1 failed / 11 passed）→ 后绿，12/12 通过 |
+| `pnpm typecheck` | exit 0 |
+| `pnpm lint`（biome check .） | exit 0；仍是既有的 14 warning、2 info，都在 CSS |
+| `pnpm wiki:lint` | 每改一页跑一次，全部 exit 0；最后一次 exit 0（4 处 mark-flood 待留意，都不是本次改的页） |
+| `pnpm wiki:audit` | exit 0；142 页、3827 条来源，无效 commit/缺文件/越界/未知仓库均 0；名单 103 页全部达标 |
+| `pnpm wiki:diagrams --check` | exit 0，299 张图与 spec 一致 |
+
+### 浏览器实测（Playwright，桌面宽 1440，只读访问 5193）
+
+脚本 `toc-np-check.cjs`，日志 `toc-np-check.log`（都在 scratchpad）。
+
+- 目录：三页各出现 1 次，没有「待编排」。netloader-guide 在 `toc-performance` 的「启动与权重加载」；ai-qos 在 `toc-hardware` 的「软件栈与互连」，组内顺序 cann-hccl → ai-qos；vllm-ascend-for-rl 在 `toc-serving` 的「RL 与权重更新」。
+- 从目录点开：三页都能打开，h1 与标题一致，正文各约 1.2 万字。
+- 入链点击 2 条：cann-hccl 的「AI QoS」跳到 ai-qos 页首；ascend-patch-system 的「强化学习的权重同步」跳到 vllm-ascend-for-rl，目标标题「训练端和推理端怎样交接显存与权重？」落在视口内（top=16px）。
+- 控制台：0 个 502，没有其他 error 或 pageerror（8790 这次在运行）。
+- 截图（scratchpad）：`toc-np-directory-netloader-guide.png`、`toc-np-directory-ai-qos.png`、`toc-np-directory-vllm-ascend-for-rl.png`、`toc-np-open-*.png`（三页各一张）、`toc-np-jump-ai-qos.png`、`toc-np-jump-vllm-ascend-for-rl.png`。
+
+### 遗留
+
+1. sleep-mode 还在待审、没有正式页。它定稿后要决定是并进「RL 与权重更新」还是进「启动与权重加载」，顺带再看 `vllm-ascend-for-rl` 与它的相邻关系。
+2. netloader-guide 和 `kv-cache-memory-profiling`（容量规划）仍分属两个主题，写手希望它们相邻；要满足得搬动已编排的页，留给主会话或后续编排定。
+3. `registry.json` 不含这三页（工作区还有别人的改动），没跑 `wiki:build`。
+4. 没碰 `wiki/_drafts/`、`scripts/wiki/standard-pages.json`、rfork 页，没有做 git 提交。

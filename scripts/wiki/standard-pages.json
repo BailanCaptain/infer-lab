@@ -100,7 +100,10 @@
     "rfork-lifecycle",
     "rfork-startup",
     "rfork-troubleshooting",
-    "request-teardown"
+    "request-teardown",
+    "netloader-guide",
+    "ai-qos",
+    "vllm-ascend-for-rl"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

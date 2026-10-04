@@ -83,7 +83,7 @@ relations:
     note: 本页用示例请求 R1 说明清单只发差量；R1 每一站的数字和块号怎么来，在那一页
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一个推理服务为什么是好几个进程

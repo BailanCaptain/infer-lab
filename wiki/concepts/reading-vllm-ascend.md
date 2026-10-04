@@ -37,7 +37,7 @@ relations:
   - {to: ascend-patch-system, kind: builds-on, note: 理解直接绑定和注册分派如何改变实现}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 读 vllm-ascend 的源码之前：它是什么，怎样接进 vLLM

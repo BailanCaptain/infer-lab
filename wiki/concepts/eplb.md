@@ -58,7 +58,7 @@ relations:
   - {to: collective-communication, kind: builds-on, note: 理解专家激活和权重搬运的不同通信}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## EPLB 是什么？

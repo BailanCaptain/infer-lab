@@ -54,7 +54,7 @@ relations:
   - {to: npu-worker-lifecycle, kind: builds-on, note: 选出的 Worker 类接着做起卡、量显存、切块}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 你写在命令里的配置，为什么不是最后生效的那一份

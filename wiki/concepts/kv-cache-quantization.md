@@ -49,7 +49,7 @@ relations:
   - {to: kv-cache-spec, kind: builds-on, note: 改精度改的是缓存规格里的字段，实际每页几个位置、怎样对齐看规格页}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## KV cache 量化是什么？

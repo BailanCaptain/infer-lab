@@ -54,7 +54,7 @@ verified: []
 evidence: C
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## vLLM 怎样把一条请求变成一步一步的计算？

@@ -344,9 +344,14 @@ function Article({
             title="生产入口，与事实证据等级分开记录"
           >
             {
-              { seed: "源码提取", drop: "资料投喂", chat: "问答沉淀", pr: "PR 整理", gap: "缺口补充" }[
-                page.origin
-              ]
+              {
+                seed: "源码提取",
+                drop: "资料投喂",
+                chat: "问答沉淀",
+                pr: "PR 整理",
+                gap: "缺口补充",
+                direct: "直接撰写",
+              }[page.origin]
             }
           </span>
           <span className="wiki-updated">更新于 {page.updated}</span>

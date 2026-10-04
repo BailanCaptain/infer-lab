@@ -52,7 +52,7 @@ relations:
   - { to: graph-mode-layer, kind: builds-on, note: 主模型的验证步要整齐才能回放图，录图尺寸按 1 + K 的倍数取 }
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## Speculative decoding 是什么：先猜几个 token，再让主模型一次验完？

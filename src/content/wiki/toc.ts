@@ -41,7 +41,7 @@ const PARTS: Pick<TocPart<never>, "id" | "title" | "blurb">[] = [
   { id: "hardware", title: "Ascend 硬件与软件栈", blurb: "从设备与内存到计算、通信和互连" },
   { id: "distributed", title: "分布式推理与部署", blurb: "并行维度、通信与服务拓扑" },
   { id: "performance", title: "性能与工程优化", blurb: "容量规划、执行优化与数值一致性" },
-  { id: "serving", title: "服务能力", blurb: "适配器与受约束的输出生成" },
+  { id: "serving", title: "服务能力", blurb: "适配器、受约束的输出生成与 RL 权重更新" },
   { id: "rfork", title: "RFork 工作版", blurb: "独立演进的权重加载实现：机制、术语与故障定位" },
   { id: "params", title: "参数参考", blurb: "配置定义、默认值与版本谱系" },
   { id: "references", title: "来源与更新记录", blurb: "固定依据、PR、问答及尚待编排的新教学页" },
@@ -135,7 +135,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
   ],
   hardware: [
     { title: "设备、内存与计算单元", pages: ["hardware-devices", "device-memory", "ai-core"] },
-    { title: "软件栈与互连", pages: ["cann-hccl"] },
+    { title: "软件栈与互连", pages: ["cann-hccl", "ai-qos"] },
   ],
   distributed: [
     { title: "集合通信与 HCCL", pages: ["collective-communication", "gap-a5164fe10fa9184412f8"] },
@@ -162,13 +162,17 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
     },
   ],
   performance: [
+    { title: "启动与权重加载", pages: ["netloader-guide"] },
     {
       title: "Graph mode 与主机资源",
       pages: ["graph-mode-layer", "acl-graph", "npugraph-ex", "cpu-binding"],
     },
     { title: "数值一致性", pages: ["batch-invariance"] },
   ],
-  serving: [{ title: "LoRA 与 structured output", pages: ["lora", "structured-output"] }],
+  serving: [
+    { title: "LoRA 与 structured output", pages: ["lora", "structured-output"] },
+    { title: "RL 与权重更新", pages: ["vllm-ascend-for-rl"] },
+  ],
 };
 
 const byOrder = <P extends TocPage>(a: P, b: P) => a.order - b.order || a.title.localeCompare(b.title, "zh");

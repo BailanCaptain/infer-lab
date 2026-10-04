@@ -51,7 +51,7 @@ relations:
   - {to: short-request-first, kind: alternative-to, note: 另一种改 waiting 顺序的调度器，两者同开启动即报错}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 一大批请求排着队，这一步该放几条新请求进来？

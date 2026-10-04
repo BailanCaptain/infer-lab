@@ -40,7 +40,7 @@ relations:
   - {to: mlp-residual-norm, kind: builds-on, note: 理解逐 token 的归一化和残差}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 序列并行是什么？

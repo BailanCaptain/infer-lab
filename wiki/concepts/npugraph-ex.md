@@ -64,7 +64,7 @@ relations:
   note: 融合规则里最常命中的那一对，先理解残差加与归一化的数据依赖
 contradicts: []
 updated: '2026-10-02'
-origin: seed
+origin: direct
 ---
 
 ## 两步计算能不能合着做，再反复用？

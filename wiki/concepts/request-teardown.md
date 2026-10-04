@@ -86,7 +86,7 @@ relations:
   - {to: concurrent-requests, kind: builds-on, note: 池子不够时抢占的整批推导在那一页；本页只讲抢占和收尾的区别}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## 请求收尾是什么：一条请求停下以后，它占着的东西去哪了？

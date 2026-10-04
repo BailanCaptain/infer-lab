@@ -56,7 +56,7 @@ relations:
   - {to: eplb, kind: builds-on, note: 每卡专家变少后，热门专家的负载怎样调整}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 大规模 EP 是什么？

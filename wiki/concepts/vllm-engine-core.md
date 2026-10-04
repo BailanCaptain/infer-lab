@@ -51,7 +51,7 @@ relations:
   - {to: concurrent-requests, kind: builds-on, note: 多条请求挤进同一圈、空闲的 DP 组陪跑}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## EngineCore 是什么：谁在一圈一圈地推着请求往前走？

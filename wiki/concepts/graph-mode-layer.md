@@ -51,7 +51,7 @@ relations:
   - {to: npugraph-ex, kind: alternative-to, note: 另一条路径：改写计算图本身，不是录执行次序}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 **graph mode**（图模式）把一次前向里成百上千次「Host（CPU 侧的执行进程）把任务交给设备」的动作按次序录成一张图，之后遇到形状相同的一轮，一次提交就让设备照录好的次序重跑一遍。它省下的是提交次数，计算量一点没少。

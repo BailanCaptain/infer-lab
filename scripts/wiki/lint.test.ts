@@ -183,6 +183,14 @@ describe("lintPages", () => {
     ).toEqual([]);
     expect(lintPages([mk("doc", { chapters: [], type: "source" })], opts)).toEqual([]);
   });
+  it("origin-direct-raw：直接撰写（direct）的页不应再带 rawSources", () => {
+    const raw = [`raw/sha256-${"a".repeat(64)}.md`];
+    expect(lintPages([mk("a", { origin: "direct" })], opts)).toEqual([]);
+    expect(lintPages([mk("a", { rawSources: raw })], opts)).toEqual([]);
+    expect(lintPages([mk("a", { origin: "direct", rawSources: raw })], opts).map((p) => p.rule)).toEqual([
+      "origin-direct-raw",
+    ]);
+  });
   it("missing-term 只在给了 requiredTerms 时检查", () => {
     expect(lintPages([mk("a")], { ...opts, requiredTerms: ["a", "kv-cache"] })).toEqual([
       {

@@ -50,7 +50,7 @@ relations:
     note: 按词表切 lm_head 是列切的一个实例，分数各卡算完即真值，用 All-Gather 拼接
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## lm_head 是什么？

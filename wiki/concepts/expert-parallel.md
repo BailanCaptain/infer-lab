@@ -55,7 +55,7 @@ relations:
   - {to: tensor-parallel, kind: builds-on, note: 路由专家按完整专家分给 EP，共享专家的矩阵仍由机内 TP8 合切}
 contradicts: []
 updated: "2026-09-27"
-origin: seed
+origin: direct
 ---
 
 ## EP 是什么？

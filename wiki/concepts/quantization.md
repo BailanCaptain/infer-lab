@@ -40,7 +40,7 @@ relations:
   - {to: kv-cache-quantization, kind: alternative-to, note: 同样是降精度，但对象是历史状态、写在缓存里，收益和误差都另算}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 量化是什么？

@@ -45,7 +45,7 @@ relations:
   - {to: dyntra-lb, kind: alternative-to, note: 用 KV 块数而不是请求条数估计负载，main 上与本特性二选一}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## Balance Scheduling 是什么？

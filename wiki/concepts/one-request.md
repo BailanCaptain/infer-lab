@@ -2,6 +2,7 @@
 id: one-request
 title: "一条请求：在官方双机部署上从提示词走到回答结束"
 type: concept
+origin: direct
 summary: 沿一条 4 个 token 的示例请求 R1，在两台 Atlas 800 A2、DP2×TP8、EP16、MTP 草拟 3 个的官方部署上走完七站：入口、调度、准备输入、45 层前向、采样与草拟、结果更新、返回收尾；每站给出每张卡上的形状、次数和字节数。
 aliases: [单请求推理, 单请求全过程, 请求生命周期, 首 token, 自回归闭环, decode 输入反馈, single request,
   一条请求的七站, 示例请求 R1, qwen-request-legacy, 那条请求, 样例请求, 贯穿例子, 贯穿全站的例子,

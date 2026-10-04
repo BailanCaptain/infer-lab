@@ -77,7 +77,7 @@ relations:
     note: TP8、MTP 3 个候选、133120 的长度上限等部署取值的出处
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## Sampling 是什么：分数出来了，下一个 token 怎么定？

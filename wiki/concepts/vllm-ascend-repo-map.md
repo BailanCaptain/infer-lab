@@ -27,7 +27,7 @@ relations:
   - {to: request-call-chain, kind: builds-on, note: 用实际数据交接定位源文件}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## 想找一段推理逻辑，先打开哪个目录？

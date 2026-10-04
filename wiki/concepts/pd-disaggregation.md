@@ -76,7 +76,7 @@ relations:
   - {to: chunked-prefill, kind: alternative-to, note: 不拆实例，把长提示词切块混进 decode 步，是限制 prefill 干扰的另一条路}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 一条请求的 prefill 和 decode，为什么要交给两组机器？

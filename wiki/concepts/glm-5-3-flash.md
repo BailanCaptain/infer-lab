@@ -2,6 +2,7 @@
 id: glm-5-3-flash
 title: "认识 GLM-5.3-Flash：模型长什么样，每种层从哪里来"
 type: concept
+origin: direct
 summary: GLM-5.3-Flash 模型形状的唯一出处：45 层里 34 层 KDA、11 层稀疏 MLA，四条 residual 流，前 3 层稠密 MLP、其余 42 层 288 选 8 的 MoE，外加 1 个 MTP 层；每种层先讲它从哪个基础机制演变来，再给 GLM 的具体维度、参数量与权重精度。
 aliases: [GLM 模型总览, GLM-5.3-Flash 模型结构, 模型计算全景, GLM 层型表, GLM-5.3-Flash 配置, GLM 参数量, 模型维度, 路由专家, 四路残差, 词表分数, 索引器, kpool, DSA, DeepSeek Sparse Attention, lightning indexer]
 chapters: ["00"]

@@ -35,7 +35,7 @@ relations:
   - {to: recompute-cpu-offload, kind: alternative-to, note: 同样把 KV 存到主机，但在抢占那一刻只存被抢占的那条请求}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 显存放不下的 KV cache，能先存到 CPU 内存吗？

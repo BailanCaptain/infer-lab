@@ -37,7 +37,7 @@ relations:
   - {to: kv-pool, kind: builds-on, note: 想继续了解内存池化时，区分外部对象缓存与本地状态池}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一张“卡”和一台“机器”有什么区别？

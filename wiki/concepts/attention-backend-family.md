@@ -59,7 +59,7 @@ relations:
   - {to: kv-cache-spec, kind: builds-on, note: 分组用的缓存规格就是那一页讲的 spec}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 这一层的注意力，最后是谁在算？
@@ -180,7 +180,7 @@ GLM 这边没有开关：层类型由模型配置里的层类型表决定，后�
 
 换后端的代价不在开关，在验证：机制、状态布局、dtype、head 形状、并行约束五项有一项对不上，结果就是错的而不是慢的。所以"某后端在别的模型上更快"不构成切换理由，先确认它能表达这一层的机制。
 
-FA3 只适合密集 MHA/GQA，官方文档把它列为 A2/A3 上的 beta，并说明在训推一致场景下启用可能带来性能下降，图模式建议配 PIECEWISE。后端初始化还会拒绝 sliding window，以及非 eager 条件下的 `FULL_DECODE_ONLY`。
+FA3 只适合密集 MHA/GQA，官方文档把它列为 A2/A3 上的 beta，并说明在[训推一致](vllm-ascend-for-rl.md#为什么训推一致和批不变要分开选择)场景下启用可能带来性能下降，图模式建议配 PIECEWISE。后端初始化还会拒绝 sliding window，以及非 eager 条件下的 `FULL_DECODE_ONLY`。
 
 ### 版本差异
 

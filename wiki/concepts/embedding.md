@@ -44,7 +44,7 @@ relations:
     note: 嵌入表按词表轴切分、入口求和的规则以 TP 页为准，本页只讲入口这一次
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## embedding 是什么？

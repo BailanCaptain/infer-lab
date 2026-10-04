@@ -33,7 +33,7 @@ relations:
   - { to: one-request, kind: builds-on, note: R1 在 34 层 KDA 与 11 层稀疏 MLA 里的逐卡形状 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 历史越来越长，每一步注意力要读多少？

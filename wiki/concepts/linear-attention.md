@@ -47,7 +47,7 @@ relations:
   - { to: mla, kind: alternative-to, note: 每 4 层里那 1 层用另一条路线，保留按位置访问的历史 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## KDA 是什么，历史怎样装进一个固定大小的状态？

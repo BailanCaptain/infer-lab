@@ -54,7 +54,7 @@ relations:
   - { to: vllm-scheduler, kind: builds-on, note: 调度器怎样决定每步算多少 token；本页只讲它向池子要块这一步 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 请求要存 KV 时，块从哪里来、用完去哪里？

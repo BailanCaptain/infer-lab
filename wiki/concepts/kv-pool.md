@@ -61,7 +61,7 @@ relations:
   - {to: kv-cache-cpu-offload, kind: alternative-to, note: 同样把 KV 放到显存之外，存放位置、共享范围和回填时机不同}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## KV Pool 是什么？

@@ -58,7 +58,7 @@ relations:
   - { to: sparse-attention, kind: builds-on, note: 稀疏注意力选出的历史位置，就是按这张表到缓存池里取的 }
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 请求里的第 p 个位置，KV 该写进缓存池的哪一格？

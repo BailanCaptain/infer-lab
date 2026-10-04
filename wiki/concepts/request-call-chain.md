@@ -85,7 +85,7 @@ relations:
     note: 本页给出一条请求沿途的入口函数，那一页讲整个仓库的目录怎么分工
 contradicts: []
 updated: "2026-09-27"
-origin: seed
+origin: direct
 ---
 
 [调用链](#七站分在三种进程里)是一串函数的调用关系：A 调 B，B 再调 C。本页沿[一条请求](one-request.md)的七站，跟着提示词为 4 token 的示例请求 R1，看代码在哪个进程里跑、跨进程怎样交接，以及报错时该打开哪个文件；形状、通信字节与 [KV block](kv-cache.md)（保存历史的显存块）用量见前页。

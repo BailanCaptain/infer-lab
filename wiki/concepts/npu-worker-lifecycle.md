@@ -45,7 +45,7 @@ relations:
   - {to: graph-mode-layer, kind: builds-on, note: 第六步录下的图，运行时怎样被选中和回放}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一张卡上的 Worker，启动时按什么顺序做准备？

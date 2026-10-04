@@ -292,6 +292,8 @@ pnpm wiki:versions [--from <ref>] [--to <ref>] [--mark <id,id>] [--init] [--out 
 
 `rawSources` 仅关联保存的摘录，不替代下面的 `sources`，不提升证据等级，也不证明摘录与上游原文一致。旧页没有此字段时仍读取 `raw/<id>.md`，无需批量迁移。快照格式的机器契约由 `src/content/wiki/schema.ts` 承接，存取和完整性校验共用 `scripts/wiki/raw.ts`；`.gitattributes` 对快照禁用换行转换，保留 hash 所对应的字节。
 
+页面来路分两类：有外部来源的页照上面的规定由引擎关联 `rawSources`；由 agent 直接撰写、没有外部来源的页如实标 `origin: direct`（直接撰写）。这类页本来就没有上游摘录，不得为其事后补造 raw 快照或 `rawSources`。
+
 RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.yaml`，不得用社区版本覆盖。正文首次说明工作版边界；需要展开的内容拆成多篇互链的教学页；长度见「页面格式」开头的读者规则，不设上限。`rfork/source/` 保存入库源码、测试与许可证；原始补丁、历史衔接差异与核验方法见仓库根 `rfork/README.md`。这次内容由当前模型编写，用户已明确允许，不冒称 Opus 或付费 ingest 产物。
 
 `sources` 每项四种写法：

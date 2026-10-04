@@ -41,6 +41,7 @@ describe("pageFrontmatterSchema", () => {
     expect(r.contradicts).toEqual([]);
     expect(r.origin).toBe("seed");
     expect(pageFrontmatterSchema.parse({ ...ok, origin: "drop" }).origin).toBe("drop");
+    expect(pageFrontmatterSchema.parse({ ...ok, origin: "direct" }).origin).toBe("direct");
   });
   it("空 sources 拒收", () => {
     expect(() => pageFrontmatterSchema.parse({ ...ok, sources: [] })).toThrow(/sources/);

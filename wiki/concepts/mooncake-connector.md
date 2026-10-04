@@ -74,7 +74,7 @@ relations:
   - {to: large-scale-ep, kind: builds-on, note: 多个 DP rank 共用一个握手端口基址时，每个 rank 的端口怎样排}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## Mooncake 连接器是什么？

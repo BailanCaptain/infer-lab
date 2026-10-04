@@ -42,7 +42,7 @@ relations:
   - {to: expert-parallel, kind: builds-on, note: 路由专家怎样按 EP16 分到 16 张卡、token 怎样派发与收回}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 一个子层怎样更新 hidden，又不丢掉原来的输入？

@@ -41,7 +41,7 @@ relations:
   - {to: npu-worker-lifecycle, kind: builds-on, note: 注册完成之后，worker 才真正建设备、建模型、装权重}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 装上一个包，vLLM 怎么就会用昇腾了
@@ -108,7 +108,7 @@ file: plugin-registration-flow
 |---|---|---|
 | `ascend`（平台组） | 交回昇腾平台类的名字 | 平台选择那一步，选中后实例化 |
 | `ascend_kv_connector`（通用组） | 登记 KV 连接器与权重传输引擎 | 按传输配置挑实现 |
-| `ascend_model_loader`（通用组） | 登记两种昇腾自带的权重加载器 | 指定加载方式时创建加载器 |
+| `ascend_model_loader`（通用组） | 登记两种昇腾自带的权重加载器：[Netloader](netloader-guide.md) 与 RFork | 指定加载方式时创建加载器 |
 | `ascend_service_profiling`（通用组） | 生成服务级性能采集的配置 | 采集功能初始化时 |
 | `ascend_model`（通用组） | 往模型注册表加「架构名 → 实现类」 | 按模型配置里的架构名查实现 |
 

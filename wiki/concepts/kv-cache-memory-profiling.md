@@ -41,7 +41,7 @@ relations:
   - {to: acl-graph, kind: builds-on, note: decode 图在切完 KV 之后才录，图内存从预算外支付}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 启动时怎样知道还能给 KV cache 多少显存？

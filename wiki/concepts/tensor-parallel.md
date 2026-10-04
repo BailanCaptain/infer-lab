@@ -60,7 +60,7 @@ relations:
   - {to: ops-and-kernels, kind: builds-on, note: Ascend 通过算子注册替换上游 Linear 类}
 contradicts: []
 updated: "2026-09-27"
-origin: seed
+origin: direct
 ---
 
 

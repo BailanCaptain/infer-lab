@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 735" width="880" height="735" role="img" aria-label="固定 GLM 提交中的启动分支。选择 Netloader 后，每个 Worker 独立取来源、握手、接收；没有来源或传输返回失败就回默认加载。两路随后尝试启动供其他实例取权重的监听服务，再完成所需的权重后处理。主模型带草稿模型时还有加载草稿前的同步；后续才到 KV cache、预热和请求处理。">
+  <title>固定 GLM 提交中的启动分支。选择 Netloader 后，每个 Worker 独立取来源、握手、接收；没有来源或传输返回失败就回默认加载。两路随后尝试启动供其他实例取权重的监听服务，再完成所需的权重后处理。主模型带草稿模型时还有加载草稿前的同步；后续才到 KV cache、预热和请求处理。</title>
+  <defs><marker id="netloader-guide-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="netloader-guide-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="netloader-guide-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="netloader-guide-flow-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M340 80 L340 108 L190 108 L190 135" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-control)"/>
+  <path d="M540 80 L540 108 L665 108 L665 135" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-control)"/>
+  <path d="M665 193 L665 245" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-control)"/>
+  <path d="M520 164 L385 164 L385 330 L190 330 L190 355" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#netloader-guide-flow-ah-control)"/>
+  <path d="M665 303 L665 355" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#netloader-guide-flow-ah-comm)"/>
+  <path d="M520 274 L450 274 L450 340 L300 340 L300 355" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#netloader-guide-flow-ah-danger)"/>
+  <path d="M520 395 L320 395" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#netloader-guide-flow-ah-danger)"/>
+  <path d="M190 413 L190 450 L350 450 L350 478" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-weight)"/>
+  <path d="M665 413 L665 450 L540 450 L540 478" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-weight)"/>
+  <path d="M440 536 L440 579" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-weight)"/>
+  <path d="M440 637 L440 680" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#netloader-guide-flow-ah-control)"/>
+  <path d="M60 165 L28 165 L28 702 L250 702" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#netloader-guide-flow-ah-control)"/>
+  <rect x="250" y="28" width="380" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="50" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 启动：选择模型加载器</text>
+  <text x="440" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Netloader 位于接请求之前</text>
+  <rect x="60" y="135" width="260" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="190" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">默认加载器</text>
+  <text x="190" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">未选择 Netloader</text>
+  <rect x="520" y="135" width="290" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Netloader 检查当前 rank 来源</text>
+  <text x="665" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">来源按进程编号匹配</text>
+  <rect x="520" y="245" width="290" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">建空模型 → TCP 握手</text>
+  <text x="665" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">比较 rank、模型路径、TP、PP</text>
+  <rect x="520" y="355" width="290" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">HCCL 接收权重 → 等齐</text>
+  <text x="665" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">临时通信组收完后销毁</text>
+  <rect x="60" y="355" width="260" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="190" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">回退：默认加载器读存储</text>
+  <text x="190" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">传输失败先清理再重建</text>
+  <rect x="250" y="478" width="380" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="503" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">尝试启动 Netloader 监听服务</text>
+  <text x="440" y="522" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">量化原始 int8 缓存在这里建立</text>
+  <rect x="250" y="579" width="380" height="58" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="604" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按需做权重后处理 → 返回模型</text>
+  <text x="440" y="623" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有草稿模型时先做主模型同步</text>
+  <rect x="250" y="680" width="380" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="707" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">后续：KV cache → 预热 → 接请求</text>
+  <text x="679" y="225" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">有来源</text>
+  <text x="393" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">无来源</text>
+  <text x="679" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">匹配</text>
+  <text x="458" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#8f3229">握手失败</text>
+  <text x="419" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#8f3229" text-anchor="middle">接收失败</text>
+</svg>

@@ -50,7 +50,7 @@ relations:
   - { to: kv-cache, kind: builds-on, note: 请求能不能推进，还要看有没有空闲 KV 块存下它的历史 }
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 一步要算哪些请求、各算几个 token，谁来定？

@@ -35,7 +35,7 @@ relations:
   - {to: one-request, kind: builds-on, note: 本页的计算发生在主线第 4 站逐层前向，R1 每站形状在主线页}
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## attention 是什么？

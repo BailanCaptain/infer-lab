@@ -2,6 +2,7 @@
 id: glm-5-3-flash-baseline
 title: GLM-5.3-Flash：模型配置与官方双机来源基线
 type: source
+origin: direct
 summary: 固定 GLM 主线的模型配置、双机教程、控制流与执行侧提交，区分配置、源码推导、量化假设和镜像证据；最终安装产物与权重配套仍待核实，尚未实机部署。
 aliases: [GLM-5.3-Flash, GLM5Next, GLM 双机基线, GLM 模型配置]
 chapters: []

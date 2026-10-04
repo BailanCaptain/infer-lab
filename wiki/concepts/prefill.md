@@ -41,7 +41,7 @@ relations:
   - { to: glm-5-3-flash-two-node, kind: builds-on, note: 每步 8192 个位置、32 条请求、MTP 3 个候选等部署取值的出处 }
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 回答的第一个字出来之前，模型在算什么？

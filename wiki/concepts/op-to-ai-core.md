@@ -39,7 +39,7 @@ relations:
   - {to: prepare-inputs-flow, kind: builds-on, note: 往前追踪 A3 的块表、槽位和注意力元数据}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## 一次算子调用，卡里究竟谁在干活？

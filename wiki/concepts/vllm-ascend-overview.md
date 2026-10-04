@@ -54,7 +54,7 @@ verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: C
 contradicts: []
 updated: "2026-09-28"
-origin: seed
+origin: direct
 ---
 
 ## 装上 vllm-ascend 以后，vLLM 里哪些部分换成了昇腾的？
@@ -116,7 +116,7 @@ file: ascend-vs-upstream
 
 ### 怎么开
 
-装上包就生效，没有开关。GLM 基线声明两组 entry point、共 5 个入口名 [C1]：平台组 `vllm.platform_plugins` 只有 `ascend = vllm_ascend:register`，只返回字符串 `"vllm_ascend.platform.NPUPlatform"`，由 vLLM 自己导入；通用组 `vllm.general_plugins` 有四个，登记 KV 连接器与权重传输引擎、netloader 与 rfork 加载器、服务级 profiling 配置、模型实现 [C3]。平台组在每个进程第一次访问当前平台时加载 [C4][C5]。
+装上包就生效，没有开关。GLM 基线声明两组 entry point、共 5 个入口名 [C1]：平台组 `vllm.platform_plugins` 只有 `ascend = vllm_ascend:register`，只返回字符串 `"vllm_ascend.platform.NPUPlatform"`，由 vLLM 自己导入；通用组 `vllm.general_plugins` 有四个，登记 KV 连接器与权重传输引擎、[netloader](netloader-guide.md) 与 rfork 加载器、服务级 profiling 配置、模型实现 [C3]。平台组在每个进程第一次访问当前平台时加载 [C4][C5]。
 
 四个通用入口里三个先调 `_ensure_global_patch()`，模型入口不调：vLLM 在 EngineCore 子进程里加载通用插件，端到端测试的 conftest 钩子到不了那里，global patch 只能借这些入口打上 [C2]。
 

@@ -50,7 +50,7 @@ relations:
   - {to: glm-5-3-flash-two-node, kind: builds-on, note: GLM 变体推导用到的每 token 字节与块数}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## KVPP 是什么？

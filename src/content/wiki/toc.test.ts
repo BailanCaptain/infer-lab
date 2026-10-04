@@ -223,6 +223,30 @@ describe("buildToc · 知识主题目录", () => {
       { id: "balance-scheduling", part: "distributed", section: "DP 组分流与 expert 负载" },
     ]);
   });
+  it("netloader、AI QoS 与 RL 权重更新落到各自主题，不进待编排", () => {
+    const rows = locations([
+      page("vllm-ascend-for-rl"),
+      page("batch-invariance"),
+      page("cann-hccl"),
+      page("netloader-guide"),
+      page("graph-mode-layer"),
+      page("ai-qos"),
+      page("structured-output"),
+    ]);
+    expect(rows.filter((p) => p.part === "hardware").map((p) => [p.id, p.section])).toEqual([
+      ["cann-hccl", "软件栈与互连"],
+      ["ai-qos", "软件栈与互连"],
+    ]);
+    expect(rows.filter((p) => p.part === "performance").map((p) => [p.id, p.section])).toEqual([
+      ["netloader-guide", "启动与权重加载"],
+      ["graph-mode-layer", "Graph mode 与主机资源"],
+      ["batch-invariance", "数值一致性"],
+    ]);
+    expect(rows.filter((p) => p.part === "serving").map((p) => [p.id, p.section])).toEqual([
+      ["structured-output", "LoRA 与 structured output"],
+      ["vllm-ascend-for-rl", "RL 与权重更新"],
+    ]);
+  });
   it("真实知识库每页恰好出现一次，所有现有教学页都有主题，全部分组有名称", () => {
     const toc = buildToc(registry.pages);
     const rows = locations(registry.pages);

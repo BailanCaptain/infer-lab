@@ -410,6 +410,13 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
           message: `verified 里的「${ref}」不是 seeds 登记过的版本（有 ${opts.knownRefs?.join("、")}）`,
         });
     }
+    // direct 的意思就是「没有 raw 快照、直接撰写」；两样都有说明标注不如实
+    if (p.fm.origin === "direct" && p.fm.rawSources)
+      problems.push({
+        file: p.file,
+        rule: "origin-direct-raw",
+        message: "origin: direct（直接撰写）的页不应有 rawSources；有 raw 快照就按实际入口标",
+      });
     // 旧的无类型 related 只做迁移提示，不再检查对称性——新模型只写单向
     if (isLegacyPage(p)) {
       problems.push({

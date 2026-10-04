@@ -69,7 +69,7 @@ relations:
   - {to: dp-request-routing, kind: builds-on, note: 入口最后一步派给哪一组的打分规则，计数从哪来、为什么会过时}
 contradicts: []
 updated: "2026-10-02"
-origin: seed
+origin: direct
 ---
 
 ## 一个 HTTP 请求进了 API server，出来的是什么？

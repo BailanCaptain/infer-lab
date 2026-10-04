@@ -32,7 +32,7 @@ relations:
   - {to: prefix-caching, kind: builds-on, note: 外部前缀复用要求一致的数据身份}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 显存里的缓存没了，还能上哪儿找回来？

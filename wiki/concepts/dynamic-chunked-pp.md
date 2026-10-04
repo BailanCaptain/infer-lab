@@ -48,7 +48,7 @@ relations:
   - {to: profiling-chunk-config, kind: builds-on, note: 查阅字段及各版本定义}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 长提示词切块送进流水线，每块该切多大？

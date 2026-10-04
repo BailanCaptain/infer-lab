@@ -45,7 +45,7 @@ relations:
   - {to: tensor-parallel, kind: builds-on, note: 一个 DP 组内部的 8 张卡用 TP 合作算同一批请求}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## DP 是什么？

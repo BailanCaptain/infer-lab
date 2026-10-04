@@ -47,7 +47,7 @@ relations:
   - { to: pd-disaggregation, kind: alternative-to, note: 分块把 prefill 压到每步预算内；PD 分离让 prefill 和 decode 不在同一步 }
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 一条很长的提示词，能不能分几步算完？

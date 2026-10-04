@@ -50,7 +50,7 @@ relations:
   - {to: vllm-scheduler, kind: builds-on, note: running 与 waiting，以及真正的抢占怎样收回 KV 块}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## DyntraLB 是什么？

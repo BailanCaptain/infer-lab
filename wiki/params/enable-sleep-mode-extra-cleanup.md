@@ -111,7 +111,7 @@ RL 后训练里推理引擎和训练进程抢同一张卡，`sleep()` 默认只�
 
 ## 为什么存在
 
-sleep mode 是给 RL 后训练（PPO / GRPO / DPO 这类在线算法）准备的：生成阶段用 vLLM 跑自回归，训练阶段要同一张 NPU 做前反向，两个阶段的并行策略还常常不同，所以生成一结束就得把显存让出来。`llm.sleep()` 做的就是这件事——level 1 把权重换出到 CPU、丢弃 KV cache，level 2 连权重一起丢。
+sleep mode 是给 RL 后训练（PPO / GRPO / DPO 这类在线算法）准备的：生成阶段用 vLLM 跑自回归，训练阶段要同一张 NPU 做前反向，两个阶段的并行策略还常常不同，所以生成一结束就得把显存让出来。`llm.sleep()` 做的就是这件事——level 1 把权重换出到 CPU、丢弃 KV cache，level 2 连权重一起丢。生成与训练怎样交替、新权重怎样换回推理端，见[vLLM-Ascend for RL](../concepts/vllm-ascend-for-rl.md)。
 
 但 `sleep()` 只管 `CaMemAllocator` 这个内存池里的东西（这个分配器构造时还会断言 `PYTORCH_NPU_ALLOC_CONF` 里没有 `expandable_segments:True`；开了 sleep mode 时它在加载权重那一步就构造，所以这个断言是**启动时**就炸，不会等到 `sleep()`）[C35]。池子之外还压着两块显存：HCCL 通信域自带的缓冲区，以及 ACL 图捕获时留下的 attention workspace。推理侧睡着了，这两块仍占着卡，训练侧就少了这么多可用显存。这个开关就是把这两块也一并退还；省下来具体是多少，取决于通信域个数和图捕获的尺寸表，源码里不会算出一个固定值，官方也没给过数。
 

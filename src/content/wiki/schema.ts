@@ -27,7 +27,11 @@ export const paramEntrySchema = z.object({
 export type ParamEntry = z.infer<typeof paramEntrySchema>;
 
 export const PAGE_TYPES = ["concept", "feature", "param", "source", "pr"] as const;
-export const PAGE_ORIGINS = ["seed", "drop", "chat", "pr", "gap"] as const;
+/**
+ * 页面的生产入口。direct = agent 直接撰写、没有 raw 快照（rawSources）的页：如实标注，不事后补 raw
+ *（用户 2026-10-03 决定）。direct 与 rawSources 互斥，由 wiki:lint 的 origin-direct-raw 检查。
+ */
+export const PAGE_ORIGINS = ["seed", "drop", "chat", "pr", "gap", "direct"] as const;
 export type PageType = (typeof PAGE_TYPES)[number];
 
 /** 证据等级，沿用 PLAN.md §1.4 七档 */

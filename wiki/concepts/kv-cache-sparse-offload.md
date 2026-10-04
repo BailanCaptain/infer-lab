@@ -39,7 +39,7 @@ relations:
   - {to: pd-disaggregation, kind: builds-on, note: 它只能开在 PD 分离的 D 端，先看两端怎样交接历史}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 历史全放在主机内存里，每一步只搬回这次要用的几行？

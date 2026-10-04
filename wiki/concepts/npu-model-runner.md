@@ -56,7 +56,7 @@ relations:
   - {to: glm-5-3-flash, kind: builds-on, note: Runner 调用的是已构建的 GLM 模型，各层计算由模型实现组织}
 contradicts: []
 updated: "2026-09-29"
-origin: seed
+origin: direct
 ---
 
 ## 每张卡上，是谁把「这一步算谁」跑成「这一步出了哪些 token」？

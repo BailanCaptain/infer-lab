@@ -1,0 +1,37 @@
+layout: figure
+id: sleep-mode-flow
+caption: vLLM 0fc695fc 与 Ascend db701c1f 的控制路径。sleep 在调度与 Worker 之间切换整台引擎的状态；分标签唤醒期间，调用方仍须阻止新请求进入。
+size: [860, 850]
+frames:
+  - { label: 主线位置：请求入口 → EngineCore 调度 → Worker 执行, at: [16, 30], size: [828, 138] }
+  - { label: 显存分支：每个 NPUWorker 各处理本卡, at: [16, 242], size: [828, 256] }
+  - { label: 恢复分支：调用方先确认训练已让出显存, at: [16, 570], size: [828, 240] }
+items:
+  - { at: [40, 66], size: [214, 64], text: sleep 请求, sub: API / Python 调用, tone: control }
+  - { at: [322, 66], size: [214, 64], text: 暂停调度并处理在途请求, sub: EngineCore.sleep, tone: control }
+  - { at: [602, 66], size: [214, 64], text: level 0 到此返回, sub: 显存保持原样, tone: control, style: plain }
+  - { at: [40, 278], size: [352, 64], text: level 1：备份 weights 到 CPU, sub: CaMemAllocator.sleep, tone: weight }
+  - { at: [468, 278], size: [352, 64], text: level 2：不备份权重池, sub: 另存模型 buffers, tone: weight }
+  - { at: [222, 402], size: [416, 62], text: 释放可睡眠池的 NPU 物理内存, sub: KV 旧内容丢弃；持久分配保留, tone: kv }
+  - { at: [40, 610], size: [352, 64], text: level 1：wake_up 全部标签, sub: 权重拷回，缓存空间重新分配, tone: weight }
+  - { at: [468, 610], size: [352, 64], text: level 2：先唤醒 weights, sub: 外部重载后，再唤醒 kv_cache, tone: weight }
+  - { at: [222, 734], size: [416, 50], text: 权重与缓存均就绪 → 放行下一批请求, tone: token }
+links:
+  - { from: [256, 98], to: [320, 98], tone: control }
+  - { from: [538, 98], to: [600, 98], tone: control }
+  - { from: [430, 132], to: [216, 276], via: [[430, 208], [216, 208]], tone: control }
+  - { from: [430, 208], to: [644, 276], via: [[644, 208]], tone: control }
+  - { from: [216, 344], to: [330, 400], via: [[216, 372], [330, 372]], tone: weight }
+  - { from: [644, 344], to: [530, 400], via: [[644, 372], [530, 372]], tone: weight }
+  - { from: [430, 466], to: [216, 608], via: [[430, 536], [216, 536]], tone: control }
+  - { from: [430, 536], to: [644, 608], via: [[644, 536]], tone: control }
+  - { from: [216, 676], to: [330, 732], via: [[216, 706], [330, 706]], tone: control }
+  - { from: [644, 676], to: [530, 732], via: [[644, 706], [530, 706]], tone: control }
+texts:
+  - { at: [444, 192], text: level ≥ 1：清缓存，再交给执行器, size: 13 }
+  - { at: [444, 526], text: 训练阶段结束后唤醒, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L727-L783
+    symbols: [sleep, wake_up]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L216-L280
+    symbols: [NPUWorker, CaMemAllocator, weights, kv_cache]

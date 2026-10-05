@@ -17,6 +17,7 @@ const sessionSchema = z
   .object({
     id: uuid,
     revision: z.string().regex(/^[a-f0-9]{64}$/),
+    modelKey: z.string().default("claude"),
     agentSessionId: uuid.optional(),
     /** 当前模型会话已答的轮数；换会话时从头数 */
     turns: z.number().int().nonnegative().default(0),
@@ -29,10 +30,11 @@ export interface ChatLease {
   id: string;
   token: string;
   revision: string;
+  modelKey: string;
   agentSessionId?: string | undefined;
   previousQuestions: string[];
   contextQuestions: string[];
-  resetReason?: "knowledge-updated" | "session-unavailable" | "turn-limit" | undefined;
+  resetReason?: "knowledge-updated" | "session-unavailable" | "turn-limit" | "model-changed" | undefined;
 }
 const pathOf = (root: string, id: string) =>
   localFile(root, `wiki/_jobs/chat-sessions/${uuid.parse(id)}.json`);
@@ -53,32 +55,41 @@ const alive = (pid: number) => {
 };
 
 /** Application session IDs never become unrestricted caller-supplied --resume arguments. */
-export function beginChat(root: string, revision: string, id?: string): Promise<ChatLease> {
+export function beginChat(
+  root: string,
+  revision: string,
+  id?: string,
+  modelKey = "claude",
+): Promise<ChatLease> {
   return new WorkflowStore(root).locked(() => {
     const known = id && uuid.safeParse(id).success && existsSync(pathOf(root, id));
     const session: Session = known
       ? read(root, id)
-      : { id: randomUUID(), revision, turns: 0, questions: [] };
+      : { id: randomUUID(), revision, modelKey, turns: 0, questions: [] };
     if (session.active && alive(session.active.pid))
       throw new HttpError(409, "这段会话正在回答，请等待结束后再提问");
     const changed = session.revision !== revision;
     const exhausted = !changed && session.turns >= MAX_SESSION_TURNS;
-    const fresh = changed || exhausted;
+    const modelChanged = session.modelKey !== modelKey;
+    const fresh = changed || exhausted || modelChanged || !session.agentSessionId;
     const token = randomUUID();
     const lease: ChatLease = {
       id: session.id,
       token,
       revision,
+      modelKey,
       agentSessionId: fresh ? undefined : session.agentSessionId,
       previousQuestions: fresh ? session.questions : [],
       contextQuestions: session.questions,
       resetReason: changed
         ? "knowledge-updated"
-        : exhausted
-          ? "turn-limit"
-          : id && !known
-            ? "session-unavailable"
-            : undefined,
+        : modelChanged
+          ? "model-changed"
+          : exhausted
+            ? "turn-limit"
+            : id && !known
+              ? "session-unavailable"
+              : undefined,
     };
     session.active = { token, pid: process.pid };
     write(root, session);
@@ -97,6 +108,7 @@ export function finishChat(
     if (session.active?.token !== lease.token) throw new Error("会话 attempt 已过期，拒绝回写");
     if (result.ok) {
       session.revision = lease.revision;
+      session.modelKey = lease.modelKey;
       session.agentSessionId = uuid.safeParse(result.sessionId).success ? result.sessionId : undefined;
       // 续上旧会话就累加；这轮开的是新会话就从 1 数起
       session.turns = lease.agentSessionId ? session.turns + 1 : 1;

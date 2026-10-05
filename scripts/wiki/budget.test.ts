@@ -13,6 +13,27 @@ const request = {
   allowedWrites: [],
 };
 
+it("records Codex account usage without inventing a USD price or appending Claude flags", async () => {
+  const f = wikiFixture();
+  try {
+    await initBudget(f.root, { limitUsd: 1, priorChargedUsd: 1, reserveUsd: 0.3, maxCalls: 1 });
+    const req = { ...request, provider: "codex" as const };
+    const result = await withBudget(f.root, "chat", req, async (bounded) => {
+      expect(bounded.args).not.toContain("--max-budget-usd");
+      return { ok: true, usage: { input_tokens: 10, output_tokens: 2 } };
+    });
+    expect(result.ok).toBe(true);
+    const b = readBudget(f.root);
+    expect(b.paused).toBe(false);
+    expect(b.chargedUsd).toBe(1);
+    expect(b.calls[0]).toMatchObject({ billing: "chatgpt", state: "finished", usage: { input_tokens: 10 } });
+    expect(b.calls[0].costUsd).toBeUndefined();
+    await expect(withBudget(f.root, "chat", req, async () => ({ ok: true }))).rejects.toThrow(/次数/);
+  } finally {
+    f.cleanup();
+  }
+});
+
 it("resumes only the reviewed budget state, keeping unknown costs and an audit record", async () => {
   const f = wikiFixture();
   try {

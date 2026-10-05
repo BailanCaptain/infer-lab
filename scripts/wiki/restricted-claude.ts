@@ -1,9 +1,9 @@
 import type { AgentRequest, RunAgent } from "./batch";
 import { resolveClaudeCommand, spawnClaude } from "./claude-cli";
-import { WORK_MODEL } from "./model-use";
+import { MODEL_ID, WORK_MODEL } from "./model-use";
 
 export const RESTRICTED_PROFILE = "restricted-text-v1";
-export function restrictedArgs(rules: string, budget?: number): string[] {
+export function restrictedArgs(rules: string, budget?: number, model = WORK_MODEL): string[] {
   return [
     "-p",
     "--output-format",
@@ -20,7 +20,7 @@ export function restrictedArgs(rules: string, budget?: number): string[] {
     "--setting-sources",
     "",
     "--model",
-    WORK_MODEL,
+    model,
     "--system-prompt",
     rules,
     ...(budget === undefined ? [] : ["--max-budget-usd", String(budget)]),
@@ -41,10 +41,11 @@ export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
   });
   if (
     !rules ||
+    !MODEL_ID.test(req.model ?? WORK_MODEL) ||
     !Number.isFinite(budget) ||
     budget <= 0 ||
     req.allowedWrites.length ||
-    JSON.stringify(req.args) !== JSON.stringify(restrictedArgs(rules, budget))
+    JSON.stringify(req.args) !== JSON.stringify(restrictedArgs(rules, budget, req.model ?? WORK_MODEL))
   )
     return reject("受限编译配置不匹配");
   // Empty --tools argv must survive Windows quoting exactly. Never use shell fallback.

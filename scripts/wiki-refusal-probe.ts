@@ -20,9 +20,9 @@ import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { parseArgs } from "node:util";
 import type { AgentRequest } from "./wiki/batch";
-import { withBudget } from "./wiki/budget";
 import { PAGE_DIRS } from "./wiki/pages";
-import { restrictedArgs, runRestrictedClaude } from "./wiki/restricted-claude";
+import { restrictedArgs } from "./wiki/restricted-claude";
+import { selectedAgent } from "./wiki/selected-agent";
 
 const root = process.cwd();
 const rel = (p: string) => relative(root, p).replace(/\\/g, "/");
@@ -166,7 +166,7 @@ async function probeOnce({ label, text }: Piece, budget: number): Promise<Verdic
     timeoutMs: 300_000,
     allowedWrites: [],
   };
-  const r = await withBudget(root, `refusal-probe:${label}`, req, runRestrictedClaude);
+  const r = await selectedAgent(root, `refusal-probe:${label}`)(req);
   const costUsd = r.costUsd ?? 0;
   const refusal = r.models?.switches.find((s) => s.event === "model_refusal_fallback");
   const [kind, verdict]: [Verdict["kind"], string] = refusal

@@ -91,6 +91,18 @@ export function planRawCompile(root: string, input: RawCompileInput) {
     mode: "local-material",
     id: input.id,
     purpose: input.purpose,
+    outputContract:
+      input.purpose === "answer-record"
+        ? {
+            format: "Return only a complete Markdown page with YAML frontmatter, no surrounding prose.",
+            id: input.id,
+            type: "source",
+            evidence: "I",
+            sources: [input.source],
+            links: listed.map((page) => ({ title: page.fm.title, href: `../${page.file}` })),
+            note: "The output is staged in _drafts/. Include at least one supplied page link using exactly the href above; do not shorten it to a bare filename. Preserve the answer as an inference, not primary evidence.",
+          }
+        : undefined,
     answerPages: input.answerPages,
     context,
     navigation,
@@ -143,9 +155,10 @@ export async function compileRaw(
     const before = readOptional(join(wiki, draft));
     stage = mkdtempSync(join(tmpdir(), "wiki-compile-"));
     const request: AgentRequest = {
+      ...attempt.selection,
       id: input.id,
       cwd: stage,
-      args: [...plan.args, "--max-budget-usd", String(attempt.reservedUsd)],
+      args: [...plan.args, "--max-budget-usd", String(attempt.reservedUsd || policy.reserveUsd)],
       stdin: plan.stdin,
       timeoutMs: input.timeoutMs,
       allowedWrites: [],
@@ -199,6 +212,8 @@ export async function compileRaw(
       {
         ok: true,
         costUsd: result.costUsd,
+        billing: result.billing,
+        usage: result.usage,
         artifacts: { [draft]: digest(text), [path]: plan.prepared.receipt.rawHash },
       },
       () => {
@@ -219,7 +234,13 @@ export async function compileRaw(
     };
   } catch (error) {
     const reason = String(error);
-    await store.finish(job.id, attempt.token, { ok: false, costUsd: result.costUsd, reason });
+    await store.finish(job.id, attempt.token, {
+      ok: false,
+      costUsd: result.costUsd,
+      billing: result.billing,
+      usage: result.usage,
+      reason,
+    });
     return { ...result, output: undefined, ok: false, reason };
   } finally {
     try {

@@ -93,9 +93,13 @@ test("代码与算式里的中文不再落到新宋体；算式用正文字体�
   await expect(expr).toHaveCSS("font-size", "15px");
   await expect(expr).toHaveCSS("font-variant-numeric", "tabular-nums");
   expect(await expr.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/^"Inter Variable"/);
-  const fonts = (await platformFonts(page, ".wiki-calc .wiki-calc-row:nth-of-type(2) .wiki-calc-expr")).join(
-    ",",
-  );
+  await expect(expr).toContainText("卷积");
+  const fonts = (
+    await platformFonts(
+      page,
+      '[data-specimen="calc"] .wiki-calc .wiki-calc-row:nth-of-type(2) .wiki-calc-expr',
+    )
+  ).join(",");
   expect(fonts).toMatch(/Noto Sans SC/);
   expect(fonts).not.toMatch(/SimSun|JetBrains/i);
 });
@@ -131,7 +135,11 @@ test("算式块是默认样式：认得出的 ```text 块排成算式块，认�
       });
   expect(await frame(".wiki-calc")).toBe(await frame(".wiki-diagram"));
   // ```text 块没有 title，框下不拿标签拼标题
-  await expect(body.locator(".wiki-calc-caption")).toHaveCount(0);
+  await openSpecimen(page);
+  const textCalcs = page
+    .locator('[data-specimen="calc"] .wiki-calc')
+    .filter({ hasNot: page.locator(".wiki-calc-caption") });
+  await expect(textCalcs).toHaveCount(4);
 });
 
 test("桌面一项一行：标签不折行、正文色；结果栏右对齐加粗、上下对齐；多步推导留在算式栏", async ({ page }) => {

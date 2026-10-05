@@ -110,7 +110,10 @@ test("持续拖动跟随浏览器刷新，松手后停止绘制", async ({ page 
           }),
         );
         ticks++;
-        if (now - start < 2000) requestAnimationFrame(step);
+        // SwiftShader may produce only 10 frames in 2 seconds. The first no-op move and
+        // final queued draw then dominate the ratio; keep the duration and require a
+        // meaningful sample without relaxing the 80% scheduling threshold.
+        if (now - start < 2000 || ticks < 30) requestAnimationFrame(step);
         else resolve();
       }
       requestAnimationFrame(step);

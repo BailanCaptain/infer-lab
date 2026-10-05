@@ -283,7 +283,20 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     "",
     `只允许写这两个文件（相对当前目录）：${draft}、${raw}。写完回复 DONE ${f.id} sources=<数量>。`,
   ].join("\n");
-  return { id: f.id, cwd: ctx.wikiRoot, args, stdin, timeoutMs: ctx.timeoutMs, allowedWrites: [draft, raw] };
+  return {
+    id: f.id,
+    cwd: ctx.wikiRoot,
+    args,
+    stdin,
+    timeoutMs: ctx.timeoutMs,
+    allowedWrites: [draft, raw],
+    evidenceFiles: targets.flatMap((t) =>
+      [...f.entry, ...f.docs].map((path) => ({
+        label: `${f.repo}@${t.commit}:${path}`,
+        path: join(t.root, path),
+      })),
+    ),
+  };
 }
 
 /** 整合阶段需要知道的最少信息，草稿与现有页共用这个形状 */
@@ -400,6 +413,9 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     "按「整合」规则处理，写 _drafts/_integration.json，回复 DONE integrate promoted=<n> merged=<n> rejected=<n>。",
   ].join("\n");
   return {
+    evidenceFiles: [...drafts.map((d) => `_drafts/${d.id}.md`), ...relevant.map((p) => p.file!)].map(
+      (path) => ({ label: path, path }),
+    ),
     id: "_integrate",
     cwd: ctx.wikiRoot,
     args,

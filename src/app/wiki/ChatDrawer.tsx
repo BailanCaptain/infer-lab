@@ -107,6 +107,7 @@ function TraceResult({ trace }: { trace: TraceView }) {
 
 /** 服务端 model 事件；形状见 server/chat-route.ts，换手记录见 scripts/wiki/model-use.ts */
 interface ModelView {
+  provider?: "claude" | "codex";
   requested?: string;
   answeredBy?: string;
   switched: boolean;
@@ -296,9 +297,11 @@ export function useChat() {
                       versionNotice:
                         v.resetReason === "knowledge-updated"
                           ? "知识库已更新，本轮重新检索；旧回答仅保留显示。"
-                          : v.resetReason === "turn-limit"
-                            ? `这段对话已答满 ${v.maxTurns ?? 3} 轮，本轮开新会话重新检索（续得越长每轮越贵）；此前的问题只用来理解指代。`
-                            : "原会话不可用，本轮重新检索。",
+                          : v.resetReason === "model-changed"
+                            ? "已切换模型，本轮重新检索；此前的问题只用来理解指代。"
+                            : v.resetReason === "turn-limit"
+                              ? `这段对话已答满 ${v.maxTurns ?? 3} 轮，本轮开新会话重新检索（续得越长每轮越贵）；此前的问题只用来理解指代。`
+                              : "原会话不可用，本轮重新检索。",
                     }
                   : {}),
               }));
@@ -369,9 +372,12 @@ export function ChatPane({
                 {m.reading && m.reading.length > 0 && (
                   <p className="wiki-chat-reading">正在读：{m.reading.join("、")}</p>
                 )}
-                {m.model?.answeredBy && (
+                {(m.model?.answeredBy || m.model?.requested) && (
                   <p className="wiki-chat-reading" data-testid="chat-model">
-                    作答模型 {m.model.answeredBy}
+                    {m.model.answeredBy
+                      ? `作答模型 ${m.model.answeredBy}`
+                      : `请求模型 ${m.model.requested}（CLI 未返回实际模型回执）`}
+                    {m.model.provider === "codex" && " · Codex 账户额度"}
                   </p>
                 )}
               </div>

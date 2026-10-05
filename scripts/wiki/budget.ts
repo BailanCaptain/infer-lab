@@ -28,6 +28,8 @@ const callSchema = z.object({
   reason: z.string().optional(),
   /** 实际作答模型；2026-09-23 晚加这项之前的账目没有 */
   models: modelUseSchema.optional(),
+  billing: z.literal("chatgpt").optional(),
+  usage: z.record(z.number().int().nonnegative()).optional(),
 });
 const stateSchema = z
   .object({
@@ -136,7 +138,13 @@ export async function initBudget(root: string, input: z.infer<typeof policySchem
 
 /** A local admission limit; the provider may bill more than its soft per-request flag. */
 export async function withBudget<
-  T extends { ok: boolean; costUsd?: number; reason?: string; models?: ModelUse },
+  T extends {
+    ok: boolean;
+    costUsd?: number;
+    reason?: string;
+    models?: ModelUse;
+    usage?: Record<string, number | undefined>;
+  },
 >(
   root: string,
   purpose: string,
@@ -144,6 +152,7 @@ export async function withBudget<
   run: (request: AgentRequest) => Promise<T>,
 ): Promise<T> {
   const store = new WorkflowStore(root);
+  const subscription = request.provider === "codex";
   const claim = await store.locked(() => {
     const state = read(root);
     for (const call of state.calls.filter((c) => c.state === "running")) {
@@ -158,7 +167,7 @@ export async function withBudget<
       if (!alive) {
         call.state = "unknown";
         call.reason = "调用所属进程已退出或旧回执无所属进程，保留全部预留等待账单核对";
-        state.paused = true;
+        if (call.billing !== "chatgpt") state.paused = true;
       }
     }
     if (state.paused) atomicText(pathOf(root), JSON.stringify(state));
@@ -169,13 +178,16 @@ export async function withBudget<
     );
     if (values.length > 1 || values.some((n) => !Number.isFinite(n) || n <= 0))
       throw new Error("单次模型预算无效");
-    const reserve = Math.min(state.policy.reserveUsd, values[0] ?? state.policy.reserveUsd);
-    if (charged(state) + reserve > state.policy.limitUsd + 1e-9)
+    const reserve = subscription
+      ? 0
+      : Math.min(state.policy.reserveUsd, values[0] ?? state.policy.reserveUsd);
+    if (!subscription && charged(state) + reserve > state.policy.limitUsd + 1e-9)
       throw new Error("共享剩余预算不足，未启动模型");
     const args = [...request.args];
     const index = args.indexOf("--max-budget-usd");
-    if (index < 0) args.push("--max-budget-usd", String(reserve));
-    else args[index + 1] = String(reserve);
+    if (subscription && index >= 0) throw new Error("Codex 账户额度不能使用美元调用限额");
+    if (!subscription && index < 0) args.push("--max-budget-usd", String(reserve));
+    else if (!subscription) args[index + 1] = String(reserve);
     const req = { ...request, args };
     const call = {
       id: randomUUID(),
@@ -185,24 +197,33 @@ export async function withBudget<
       startedAt: new Date().toISOString(),
       ownerPid: process.pid,
       state: "running" as const,
+      ...(subscription ? { billing: "chatgpt" as const } : {}),
     };
     state.calls.push(call);
     atomicText(pathOf(root), JSON.stringify(state));
     return { call, req };
   });
-  const finish = async (costUsd: number | undefined, reason?: string, models?: ModelUse) =>
+  const finish = async (
+    costUsd: number | undefined,
+    reason?: string,
+    models?: ModelUse,
+    usage?: T["usage"],
+  ) =>
     store.locked(() => {
       const state = read(root);
       const call = state.calls.find((c) => c.id === claim.call.id)!;
       const known = typeof costUsd === "number" && Number.isFinite(costUsd) && costUsd >= 0;
-      const failure = !known
-        ? "费用未知，共享预算暂停"
-        : costUsd > call.reservedUsd
-          ? "实际消耗超过单次预留，共享预算暂停"
-          : undefined;
-      call.state = known ? "finished" : "unknown";
+      const failure = subscription
+        ? undefined
+        : !known
+          ? "费用未知，共享预算暂停"
+          : costUsd > call.reservedUsd
+            ? "实际消耗超过单次预留，共享预算暂停"
+            : undefined;
+      call.state = subscription || known ? "finished" : "unknown";
       call.finishedAt = new Date().toISOString();
-      if (known) call.costUsd = costUsd;
+      if (known && !subscription) call.costUsd = costUsd;
+      if (usage) call.usage = z.record(z.number().int().nonnegative()).parse(usage);
       if (models) call.models = models;
       call.reason = [failure, reason].filter(Boolean).join("；") || undefined;
       state.paused ||= !!failure;
@@ -216,7 +237,7 @@ export async function withBudget<
     await finish(undefined, String(error));
     throw error;
   }
-  const failure = await finish(result.costUsd, result.reason, result.models);
+  const failure = await finish(result.costUsd, result.reason, result.models, result.usage);
   return failure
     ? { ...result, ok: false, reason: [failure, result.reason].filter(Boolean).join("；") }
     : result;

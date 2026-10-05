@@ -96,7 +96,14 @@ export async function runWorkRequest(
     if (request.args.includes("--max-budget-usd"))
       throw new Error("agent 费用限制由任务策略统一设置，不能重复传入");
     const batch = await runBatch(
-      [{ ...request, cwd: stage, args: [...request.args, "--max-budget-usd", String(attempt.reservedUsd)] }],
+      [
+        {
+          ...request,
+          ...attempt.selection,
+          cwd: stage,
+          args: [...request.args, "--max-budget-usd", String(attempt.reservedUsd || policy.reserveUsd)],
+        },
+      ],
       {
         concurrency: 1,
         runAgent: deps.runAgent,
@@ -123,6 +130,8 @@ export async function runWorkRequest(
       {
         ok: true,
         costUsd: result.costUsd,
+        billing: result.billing,
+        usage: result.usage,
         artifacts: { [draft]: digest(bound.text), [bound.path]: digest(rawText) },
       },
       () => {
@@ -147,7 +156,13 @@ export async function runWorkRequest(
     return { ...result, ok: final.state === "draft", reason: final.attempts.at(-1)?.reason };
   } catch (error) {
     const reason = String(error);
-    await store.finish(job.id, attempt.token, { ok: false, costUsd: result.costUsd, reason });
+    await store.finish(job.id, attempt.token, {
+      ok: false,
+      costUsd: result.costUsd,
+      billing: result.billing,
+      usage: result.usage,
+      reason,
+    });
     return { ...result, ok: false, reason };
   } finally {
     try {

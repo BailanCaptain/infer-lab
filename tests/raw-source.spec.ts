@@ -55,7 +55,9 @@ test("local citation opens the original lines without executing HTML", async ({ 
     await route.fulfill({ response });
   });
   await page.goto("/#/wiki/block-table");
-  const link = page.locator(`a[href="${rawSourceHref(ref)}"]`).first();
+  const sources = page.getByTestId("wiki-sources");
+  await sources.locator("summary").click();
+  const link = sources.locator(`a[href="${rawSourceHref(ref)}"]`);
   await expect(link).toBeVisible();
   const popupPromise = context.waitForEvent("page");
   await link.click();

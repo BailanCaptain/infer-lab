@@ -360,17 +360,18 @@ test.describe("知识库阅读页", () => {
     expect(from).toBeGreaterThan(500);
 
     // 1) 正文里不带锚点的站内链接
-    const plain = page
+    const plainHref = await page
       .getByTestId("wiki-body")
-      .locator('a[href^="#/wiki/"]:not([href*="#/wiki/"][href*="#"][href$="#"])')
-      .filter({ hasNot: page.locator("span.wiki-evidence") })
-      .first();
-    const plainHref = await plain.getAttribute("href");
+      .locator('a[href^="#/wiki/"]')
+      .evaluateAll((links) =>
+        links.map((a) => a.getAttribute("href")).find((href) => href && !href.slice(1).includes("#")),
+      );
+    expect(plainHref).toBeTruthy();
     expect(plainHref?.slice(1).includes("#")).toBe(false);
+    const plain = page.getByTestId("wiki-body").locator(`a[href="${plainHref}"]`).first();
     await plain.click();
     await expect(page).toHaveURL((url) => url.hash === plainHref);
-    await page.waitForTimeout(400);
-    expect(await page.evaluate(() => Math.round(window.scrollY))).toBeLessThanOrEqual(2);
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBeLessThanOrEqual(2);
     await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
 
     // 2) 左侧目录里的链接同样落到顶部
@@ -380,13 +381,13 @@ test.describe("知识库阅读页", () => {
       .getByRole("link", { name: /^一条请求/ })
       .first()
       .click();
-    await page.waitForTimeout(400);
-    expect(await page.evaluate(() => Math.round(window.scrollY))).toBeLessThanOrEqual(2);
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBeLessThanOrEqual(2);
 
     // 3) 带锚点的链接仍然落到那一节标题
     const anchorLink = page
       .getByTestId("wiki-body")
       .getByRole("link", { name: "剩下的显存变成多少 KV cache" });
+    await page.evaluate(() => document.fonts.ready);
     await anchorLink.scrollIntoViewIfNeeded();
     const leftAt = await page.evaluate(() => Math.round(window.scrollY));
     await anchorLink.click();
@@ -398,9 +399,9 @@ test.describe("知识库阅读页", () => {
     expect(leftAt).toBeGreaterThan(200);
     await page.goBack();
     await expect(page).toHaveURL(/#\/wiki\/one-request$/);
-    await page.waitForTimeout(600);
-    const back = await page.evaluate(() => Math.round(window.scrollY));
-    expect(Math.abs(back - leftAt), `后退落在 ${back}，离开时是 ${leftAt}`).toBeLessThanOrEqual(80);
+    await expect
+      .poll(async () => Math.abs((await page.evaluate(() => Math.round(window.scrollY))) - leftAt))
+      .toBeLessThanOrEqual(80);
   });
 
   // 正文角标写的是「来源 3」，来源列表却不显示编号，读者没法数到第 3 条
@@ -534,6 +535,35 @@ function sse(frames: [string, unknown][]): string {
 }
 
 test.describe("问答抽屉", () => {
+  test("Codex 显示账户额度与请求模型，不伪造实际模型回执", async ({ page }) => {
+    await page.route("**/api/wiki/chat", (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { "content-type": "text/event-stream" },
+        body: sse([
+          ["text", { text: "见 [Sleep Mode](concepts/sleep-mode.md)。" }],
+          ["model", { provider: "codex", requested: "gpt-6.1-sol", switched: false, switches: [] }],
+          ["cite", { cited: true, selfDeclaredUncovered: false }],
+          ["done", { answerId: "a".repeat(64) }],
+        ]),
+      }),
+    );
+    await page.route("**/api/wiki/status", (route) =>
+      route.fulfill({ json: { models: { chatProvider: "codex" } } }),
+    );
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    await page.getByTestId("chat-input").fill("Sleep Mode？");
+    await page.getByTestId("chat-send").click();
+    await expect(page.getByTestId("chat-model")).toContainText("请求模型 gpt-6.1-sol");
+    await expect(page.getByTestId("chat-model")).toContainText("Codex 账户额度");
+    await expect(page.getByTestId("chat-model")).toContainText("未返回实际模型回执");
+    await page.getByRole("button", { name: "存进 Wiki", exact: true }).click();
+    await expect(page.getByText(/使用「状态」中选择的模型编译/)).toBeVisible();
+    await expect(page.getByText(/使用 Codex 的 ChatGPT 账户额度，最多尝试两次/)).toBeVisible();
+    await expect(page.getByRole("spinbutton")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "生成待审草稿" })).toBeEnabled();
+  });
   test("标出实际作答模型；换了模型时说清谁拒答、谁接手（2026-09-23 问答全被换成 Opus 5）", async ({
     page,
   }, info) => {
@@ -868,7 +898,7 @@ test.describe("状态页签", () => {
     },
   });
 
-  test("把预算、夜间维护和会不会自己花钱摆到明面上，且没有任何写操作", async ({ page }, info) => {
+  test("把预算、夜间维护和会不会自己花钱摆到明面上，打开状态不自动写入", async ({ page }, info) => {
     const writes: string[] = [];
     page.on("request", (r) => {
       if (r.url().includes("/api/wiki/") && r.method() !== "GET") writes.push(r.url());
@@ -886,12 +916,53 @@ test.describe("状态页签", () => {
     await expect(pane).toContainText("其中 1 条合并了不同说法");
     // 2026-09-23：拒答换模型要在这里看得到，夜间无人值守的调用只能从这里查
     await expect(pane).toContainText("CLI 默认（没有固定）");
-    await expect(pane).toContainText("claude-opus-5-5[1m]（固定）");
+    await expect(pane).toContainText("问答、编译、导入整合、后台模型任务");
+    await expect(pane).not.toContainText("仍使用 Claude");
     await expect(pane).toContainText("8 / 9 次");
     await expect(pane).toContainText("claude-opus-5-5[1m] → claude-opus-5（frontier_llm）");
     await page.screenshot({ path: info.outputPath("status-models.png"), fullPage: true });
-    await expect(pane.getByRole("button")).toHaveCount(0);
+    await expect(pane.getByRole("button", { name: "保存选择" })).toBeDisabled();
     expect(writes).toEqual([]);
+  });
+
+  test("状态内选择接入和模型，显式保存后持久化，错误不会假报成功", async ({ page }) => {
+    const saved = status();
+    Object.assign(saved.models, { chatProvider: "claude", chatModel: "claude-opus-5-5" });
+    const writes: unknown[] = [];
+    let fail = false;
+    await page.route("**/api/wiki/status", (route) => route.fulfill({ json: saved }));
+    await page.route("**/api/wiki/status/model", (route) => {
+      const input = route.request().postDataJSON();
+      writes.push(input);
+      if (fail) return route.fulfill({ status: 503, json: { error: "配置暂时无法保存" } });
+      Object.assign(saved.models, input);
+      return route.fulfill({ json: input });
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/#/wiki");
+    await page.getByTestId("chat-open").click();
+    await page.getByRole("tab", { name: "状态" }).click();
+    const pane = page.getByTestId("status-pane");
+    await pane.getByRole("combobox", { name: "接入方式", exact: true }).selectOption("codex");
+    await pane.getByRole("combobox", { name: "模型", exact: true }).selectOption("gpt-6-astra");
+    expect(writes).toEqual([]);
+    await pane.getByRole("button", { name: "保存选择" }).click();
+    await expect(pane.getByRole("status")).toContainText("已保存，后续所有模型任务生效");
+    expect(writes).toEqual([{ chatProvider: "codex", chatModel: "gpt-6-astra" }]);
+    await page.reload();
+    await page.getByTestId("chat-open").click();
+    await page.getByRole("tab", { name: "状态" }).click();
+    await expect(pane.getByRole("combobox", { name: "模型", exact: true })).toHaveValue("gpt-6-astra");
+    await pane.getByRole("combobox", { name: "模型", exact: true }).selectOption("custom");
+    await pane.getByLabel("自定义模型名").fill("gpt-custom");
+    fail = true;
+    await pane.getByRole("button", { name: "保存选择" }).click();
+    await expect(pane.getByRole("alert")).toContainText("配置暂时无法保存");
+    await expect(pane.getByRole("status")).toHaveCount(0);
+    fail = false;
+    await pane.getByRole("button", { name: "保存选择" }).click();
+    await expect(pane.getByRole("status")).toContainText("已保存");
+    await expect(pane.getByLabel("自定义模型名")).toHaveValue("gpt-custom");
   });
 
   test("预算暂停时说清楚问答用不了和原因", async ({ page }) => {
@@ -915,7 +986,7 @@ test.describe("P3 最终验收：桌面", () => {
   };
 
   test("算式块：冒号旧写法的第一步不被吞进标签；结果后的说明文字不进结果栏", async ({ page }) => {
-    await open(page, "concurrent-requests");
+    await page.goto("/#/dev/wiki-specimen");
     const row = page.locator(".wiki-calc-row").filter({
       has: page.locator(".wiki-calc-label", { hasText: /^N 的第 2 步$/ }),
     });
@@ -1018,7 +1089,7 @@ test.describe("P3 最终验收：桌面", () => {
     for (const [t, h] of Object.entries(groups)) expect(h, t).toBeLessThan(30);
 
     await open(page, "glm-5-3-flash-two-node");
-    const long = await heightOf(["TP（tensor parallel，张量并行）", "PP（pipeline parallel，流水线并行）"]);
+    const long = await heightOf(["TP（tensor parallel）", "PP（pipeline parallel，流水线并行）"]);
     expect(Object.keys(long).length).toBe(2);
     for (const [t, h] of Object.entries(long)) expect(h, t).toBeLessThan(50);
     // 长标签折行也只在空格、标点处折：中文词不被拆成「张量并 / 行」
@@ -1182,9 +1253,10 @@ test.describe("P4 最终验收：桌面", () => {
   });
 
   test("纯文本块按字符格对齐：汉字占两个半角字宽，作者用空格排的每一列都落在该落的位置", async ({ page }) => {
-    await open(page, "one-request");
-    const blocks = page.locator("[data-testid=wiki-body] pre > code.language-text");
-    await expect(blocks).toHaveCount(8);
+    await page.goto("/#/dev/wiki-specimen");
+    const blocks = page.locator('[data-specimen="plain-text"] pre > code.language-text');
+    await expect(blocks).toHaveCount(7);
+    await page.evaluate(() => document.fonts.ready);
     const off = await blocks.evaluateAll((codes) => {
       // 东亚宽字符（与 markdown.ts 的 WIDE_CHAR 同一组码位）占两个半角格
       const WIDE: [number, number][] = [

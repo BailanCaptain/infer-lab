@@ -8,6 +8,7 @@ import { handleChat } from "../../server/chat-route";
 import { handlePages } from "../../server/pages";
 import { handleReview } from "../../server/review";
 import { readKnowledgeSnapshot } from "../../server/snapshot";
+import { handleStatus } from "../../server/status";
 import { retrieve } from "../../src/content/wiki/retrieve";
 
 const root = process.argv[2]!;
@@ -32,6 +33,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   if (await handlePages(req, res, root)) return;
+  if (await handleStatus(req, res, root)) return;
   if (await handleReview(req, res, root)) return;
   if (
     await handleChat(req, res, root, {

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { buildChatRequest, CHAT_TIMEOUT_MS, runChat } from "../../server/chat";
 import { retrieveChatContext } from "../../server/chat-route";
 import { checkAnswerCitations } from "../../server/citations";
+import { codexEvidencePages } from "../../server/codex-chat";
 import {
   materializeSnapshot,
   readKnowledgeSnapshot,
@@ -16,6 +17,7 @@ import { MODEL_ID, WORK_MODEL } from "./model-use";
 import { readTask } from "./queue";
 import { readReview } from "./review";
 import { localFile } from "./review-files";
+import { selectedModel } from "./sync-config";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 
 const caseSchema = z
@@ -32,6 +34,7 @@ const planSchema = z
     beforeRevision: z.string(),
     /** 前测与后测必须同一个模型，所以冻结在计划里；不写就用 WORK_MODEL */
     model: z.string().regex(MODEL_ID).default(WORK_MODEL),
+    provider: z.enum(["claude", "codex"]).optional(),
     reserveUsd: z.number().positive().finite(),
     cases: caseSchema.array().length(4),
   })
@@ -55,7 +58,13 @@ export const hasRetestPlan = (root: string, taskId: string) => existsSync(pathOf
 /** Freeze holdouts before compilation. Rubrics are operational data excluded from all knowledge snapshots. */
 export async function prepareRetest(root: string, input: Omit<z.input<typeof planSchema>, "beforeRevision">) {
   const snapshot = await readKnowledgeSnapshot(root);
-  const plan = planSchema.parse({ ...input, beforeRevision: snapshot.revision });
+  const selection = selectedModel(root);
+  if (
+    (input.model && input.model !== selection.model) ||
+    (input.provider && input.provider !== selection.provider)
+  )
+    throw new Error("复测模型必须与状态中的全局选择一致");
+  const plan = planSchema.parse({ ...input, ...selection, beforeRevision: snapshot.revision });
   const task = readTask(root, plan.taskId);
   if (task.input.kind !== "gap" || task.result?.compilationStarted || task.state === "closed")
     throw new Error("必须在缺口补写前冻结复测问题");
@@ -94,6 +103,9 @@ export async function runRetest(
   execute: typeof runChat = runChat,
 ) {
   const plan = planSchema.parse(JSON.parse(readFileSync(pathOf(root, taskId, "plan"), "utf8")));
+  const selection = selectedModel(root);
+  if (selection.provider !== (plan.provider ?? "claude") || selection.model !== plan.model)
+    throw new Error("全局模型已变化，不能混用模型进行前后复测；请使用原模型或建立新的复测计划");
   const phase = reviewId ? "after" : "before";
   const review = reviewId ? readReview(root, reviewId) : undefined;
   if (review && review.state !== "published") throw new Error("复测前必须已批准发布");
@@ -141,16 +153,27 @@ export async function runRetest(
       results.push(cached);
       continue;
     }
-    const req = buildChatRequest(
-      { message: c.question, ...retrieveChatContext(c.question, snapshot) },
-      snapshot.handbook,
-      {
-        wikiRoot: location,
-        revision: snapshot.revision,
-        timeoutMs: CHAT_TIMEOUT_MS,
-        control: { model: plan.model, maxCostUsd: plan.reserveUsd },
-      },
-    );
+    const context = retrieveChatContext(c.question, snapshot);
+    const pages =
+      selection.provider === "codex"
+        ? codexEvidencePages(
+            snapshot.pageTexts.filter((p) =>
+              snapshot.registry.pages.some(
+                (r) => r.file === p.file && context.hits.some((h) => h.id === r.id),
+              ),
+            ),
+          )
+        : snapshot.pageTexts;
+    const req = buildChatRequest({ message: c.question, ...context }, snapshot.handbook, {
+      wikiRoot: location,
+      revision: snapshot.revision,
+      timeoutMs: CHAT_TIMEOUT_MS,
+      ...selection,
+      pages,
+      ...(selection.provider === "claude"
+        ? { control: { model: plan.model, maxCostUsd: plan.reserveUsd } }
+        : {}),
+    });
     let answer = "";
     let executeStarted = false;
     let outcome: Awaited<ReturnType<typeof runChat>>;
@@ -187,7 +210,7 @@ export async function runRetest(
       question: c.question,
       answer,
       outcome,
-      citations: checkAnswerCitations(answer, snapshot.pageTexts),
+      citations: checkAnswerCitations(answer, pages),
       revision: snapshot.revision,
       reviewId,
       planHash: digest(JSON.stringify(plan)),

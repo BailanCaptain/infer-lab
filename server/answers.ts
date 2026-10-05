@@ -3,7 +3,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { z } from "zod";
 import type { RunAgent } from "../scripts/wiki/batch";
-import { budgetedAgent } from "../scripts/wiki/budget";
+import { selectedModel } from "../scripts/wiki/sync-config";
+import { selectedAgent } from "../scripts/wiki/selected-agent";
 import { compileRaw, planRawCompile } from "../scripts/wiki/compile-raw";
 import { loadHandbook } from "../scripts/wiki/handbook";
 import { localDate } from "../scripts/wiki/ingest";
@@ -12,7 +13,6 @@ import { validateIntegration } from "../scripts/wiki/integration-check";
 import { prepareSourceReview } from "../scripts/wiki/integration-run";
 import { configuredRepoRoots } from "../scripts/wiki/repo-roots";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
-import { runRestrictedClaude } from "../scripts/wiki/restricted-claude";
 import { listReviews, readReview } from "../scripts/wiki/review";
 import { localFile } from "../scripts/wiki/review-files";
 import { atomicText, digest, WorkflowStore, workIdentity } from "../scripts/wiki/workflow";
@@ -34,7 +34,7 @@ const mappingSchema = z
   .object({ jobId: hash, budgetUsd: z.number().positive(), raw: z.string(), rules: z.string() })
   .strict();
 export const saveAnswerInput = z
-  .object({ budgetUsd: z.number().finite().positive(), retry: z.boolean().optional() })
+  .object({ budgetUsd: z.number().finite().positive().optional(), retry: z.boolean().optional() })
   .strict();
 const recordPath = (id: string) => `wiki/_jobs/answers/${hash.parse(id)}.json`;
 const mappingPath = (id: string) => `wiki/_jobs/answer-saves/${hash.parse(id)}.json`;
@@ -80,6 +80,8 @@ export async function saveAnswer(
   deps: { runAgent?: RunAgent } = {},
 ) {
   const checked = saveAnswerInput.parse(input);
+  if (selectedModel(root).provider === "claude" && checked.budgetUsd === undefined)
+    throw new Error("Claude 编译需要本次美元预算");
   const receipt = receiptSchema.parse(JSON.parse(readFileSync(localFile(root, recordPath(id)), "utf8")));
   if (digest(JSON.stringify(receipt)) !== id) throw new Error("回答记录已改变，不能保存");
   const citations = checkAnswerCitations(receipt.answer, receipt.pages);
@@ -90,7 +92,7 @@ export async function saveAnswer(
     const path = localFile(root, mappingPath(id));
     if (existsSync(path)) {
       const old = mappingSchema.parse(JSON.parse(readFileSync(path, "utf8")));
-      if (old.budgetUsd !== checked.budgetUsd) throw new Error("已有保存任务的预算不能更改或重置");
+      if (checked.budgetUsd !== undefined && old.budgetUsd !== checked.budgetUsd) throw new Error("已有保存任务的预算不能更改或重置");
       return old;
     }
     const bundle = json({
@@ -112,7 +114,7 @@ export async function saveAnswer(
     });
     // Job identity follows the existing canonical input ordering, including the frozen recipe.
     const { id: jobId } = workIdentity(planned.work);
-    const value = { jobId, budgetUsd: checked.budgetUsd, raw: planned.prepared.receipt.source, rules };
+    const value = { jobId, budgetUsd: checked.budgetUsd ?? 1, raw: planned.prepared.receipt.source, rules };
     mkdirSync(join(root, "wiki/_jobs/answer-saves"), { recursive: true });
     atomicText(path, json(value));
     return value;
@@ -140,7 +142,7 @@ export async function saveAnswer(
           },
           policy,
           {
-            runAgent: deps.runAgent ?? budgetedAgent(root, "answer-compile", runRestrictedClaude),
+            runAgent: deps.runAgent ?? selectedAgent(root, "answer-compile"),
             retry: checked.retry,
           },
         );

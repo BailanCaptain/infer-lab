@@ -3,14 +3,13 @@ import { basename, extname, join, resolve } from "node:path";
 import { z } from "zod";
 import { sourceLines } from "./audit";
 import type { RunAgent } from "./batch";
-import { budgetedAgent } from "./budget";
 import { COMPILE_TIMEOUT_MS, compileRaw } from "./compile-raw";
 import { prepareDraftReview } from "./draft-review";
 import { loadHandbook } from "./handbook";
 import { readRawSnapshot, saveRawSnapshot } from "./raw";
-import { runRestrictedClaude } from "./restricted-claude";
 import { localFile } from "./review-files";
 import { sanitizeRawInput } from "./sanitize";
+import { selectedAgent } from "./selected-agent";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 import { type WorkflowPolicy, workflowPolicySchema } from "./workflow-policy";
 
@@ -135,7 +134,7 @@ export async function acceptDrop(
       context: { why: record.why, sourceId: record.source },
     },
     input.policy,
-    { runAgent: deps.runAgent ?? budgetedAgent(root, "drop", runRestrictedClaude), retry: deps.retry },
+    { runAgent: deps.runAgent ?? selectedAgent(root, "drop"), retry: deps.retry },
   );
   const review = result.ok ? await prepareDraftReview(root, id, input.policy, deps) : undefined;
   return store.locked(() => {

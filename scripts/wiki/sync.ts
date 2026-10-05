@@ -8,7 +8,6 @@ import { gitText } from "./git";
 import { parseSeeds } from "./ingest";
 import { appendWikiLog } from "./log";
 import { patrol } from "./maintenance";
-import { MODEL_ID } from "./model-use";
 import { loadPages } from "./pages";
 import { ParameterBulkDeferred, publishParamSync } from "./params/publish-sync";
 import { scanRepo } from "./params/scan";
@@ -21,40 +20,10 @@ import { syncGithub } from "./sync-github";
 import { checkUrls, collectUrls, httpFetcher, urlFindings } from "./urls";
 import { workerDue, workOne } from "./worker";
 import { atomicText, digest, WorkflowStore } from "./workflow";
-import { workflowPolicySchema } from "./workflow-policy";
 
-export const syncConfigSchema = z
-  .object({
-    seeds: z.string().default("wiki/seeds/vllm-ascend.yaml"),
-    fetch: z.boolean().default(false),
-    parameters: z.boolean().default(true),
-    python: z.string().min(1).optional(),
-    maxNewParamPages: z.number().int().min(0).max(10).default(10),
-    github: z.boolean().default(false),
-    githubRepo: z.string().default("vllm-project/vllm-ascend"),
-    patrolAgeDays: z.number().int().nonnegative().default(30),
-    /** 巡检时把站外链接真的请求一遍（不调模型）；404 / 410 进巡检问题清单 */
-    checkUrls: z.boolean().default(false),
-    paid: workflowPolicySchema.optional(),
-    maxTasks: z.number().int().min(0).max(10).default(0),
-    reconcileBatches: z.number().int().min(0).max(10).default(0),
-    driftSample: z.number().int().min(0).max(10).default(0),
-    /** 网页问答固定用的模型（交给 --model）；不填走 CLI 默认。想换模型试时写进本机覆盖文件 */
-    chatModel: z.string().regex(MODEL_ID).optional(),
-  })
-  .strict();
+export { readSyncConfig, syncConfigSchema } from "./sync-config";
 
-/**
- * 读同步配置：共享的那份进仓库，旁边同名的 `*.local.json` 是本机覆盖（不进仓库）。
- *
- * 本机才有的东西只有一样值得覆盖——参数扫描用的 Python 解释器路径。它原先写死在共享配置里，
- * 指向这台机器上另一个工具的私有目录；别人克隆下来一跑就是「找不到解释器」。不写 `python` 时
- * 扫描器退回环境变量 `WIKI_PYTHON`，再退回 PATH 上的 `python`（上游源码要 3.12+ 才解析得了）。
- */
-export function readSyncConfig(path: string): z.output<typeof syncConfigSchema> {
-  const read = (file: string) => (existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {});
-  return syncConfigSchema.parse({ ...read(path), ...read(path.replace(/\.json$/, ".local.json")) });
-}
+import { syncConfigSchema } from "./sync-config";
 
 async function runSync(
   root: string,

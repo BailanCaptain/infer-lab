@@ -1,6 +1,6 @@
 {
   "id": "3f1d5fe900963f0adea184c6f74df0540f074413d6d4bc447fec5c5c8667e923",
-  "state": "pending",
+  "state": "rejected",
   "payload": {
     "base": {
       "wiki/_drafts/sleep-mode.md": "5383cd98c852741ce87e97c88a8b9d31f34f24564cb1a56eb7aa3bd2c209bddc"
@@ -32,5 +32,6 @@
       "vllm": "C:\\Users\\-\\Desktop\\infra-view-new-llm-wiki\\tools\\repos\\vllm"
     },
     "log": "## [2026-10-04] ingest | \"Sleep Mode：暂停推理时怎样把显存让给训练\"\n晋升 concepts/sleep-mode.md\n\n"
-  }
+  },
+  "reason": "送审后草稿补充了显存交接示意演算；旧包已过期，由最新草稿生成的 efee29553d5d21b45ff3a6b888fd080af57dc483adb93511d7b6da3d7e108eae 替代。保留最新草稿。"
 }

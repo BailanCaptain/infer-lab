@@ -5,8 +5,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { positiveInteger } from "./wiki/batch";
-import { budgetedAgent } from "./wiki/budget";
-import { formatDryRun, runClaude } from "./wiki/claude-cli";
+import { formatDryRun } from "./wiki/claude-cli";
 import { worktreeDir } from "./wiki/clone";
 import { keepUsed, parseDocVars } from "./wiki/docvars";
 import { gitText } from "./wiki/git";
@@ -29,6 +28,7 @@ import { runStagedIntegration } from "./wiki/integration-run";
 import { factsTable } from "./wiki/lint";
 import { loadPages, parsePage } from "./wiki/pages";
 import { runPersistentExtract, syncFailureProjection } from "./wiki/persistent-extract";
+import { selectedAgent } from "./wiki/selected-agent";
 import { WorkflowStore } from "./wiki/workflow";
 import { workflowPolicySchema } from "./wiki/workflow-policy";
 
@@ -174,7 +174,7 @@ async function main() {
         store,
         policy,
         retry: flag("--retry-failed"),
-        runAgent: budgetedAgent(process.cwd(), "seed-extract", runClaude),
+        runAgent: selectedAgent(process.cwd(), "seed-extract"),
         concurrency,
         log: (s) => console.log(s),
       });
@@ -237,7 +237,7 @@ async function main() {
       Object.entries(seeds.repos).map(([name, repo]) => [name, resolve(root, repo.path)]),
     );
     const r = await runStagedIntegration(root, req, draftIds, today, {
-      runAgent: budgetedAgent(process.cwd(), "integrate", runClaude),
+      runAgent: selectedAgent(process.cwd(), "integrate"),
       onEvent: (e) => {
         if (e.kind === "tool") console.log(`  integrate: ${e.name} ${e.target ?? ""}`);
       },

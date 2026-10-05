@@ -32,6 +32,7 @@ sources:
 verified: ["releases/v0.23.0", "releases/v0.26.0rc", "main"]
 evidence: "C"
 relations:
+  - {to: sleep-mode, kind: builds-on, note: 同卡训练与生成交替时，先理解显存释放、分阶段唤醒与权重恢复的顺序}
   - {to: one-request, kind: builds-on, note: RL 沿用生成请求的七站；本页补充两轮生成之间的权重更新}
   - {to: glm-5-3-flash-two-node, kind: builds-on, note: 固定双机是在线推理部署，未配置训练端和权重传输}
   - {to: batch-invariance, kind: builds-on, note: 需要稳定 rollout 时继续核对批不变的算子与调度限制}

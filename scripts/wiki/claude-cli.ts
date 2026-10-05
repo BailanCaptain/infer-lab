@@ -134,6 +134,11 @@ export function spawnClaude(
     let isError = false;
     const models = trackModels();
     let stderr = "";
+    let inputError: string | undefined;
+    // Authentication/configuration failures can exit while the evidence prompt is still being written.
+    child.stdin.on("error", (err) => {
+      inputError = `stdin-error: ${err.message}`;
+    });
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
@@ -178,6 +183,7 @@ export function spawnClaude(
       if (used) base.models = used;
       if (timedOut) resolve({ ...base, reason: `timeout ${req.timeoutMs}ms` });
       else if (code !== 0) resolve({ ...base, reason: `exit ${code}` });
+      else if (inputError) resolve({ ...base, reason: inputError });
       else if (isError) resolve({ ...base, reason: "result.is_error" });
       else resolve({ ...base, ok: true });
     });

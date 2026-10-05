@@ -162,7 +162,7 @@ const CURATED: Partial<Record<TocPart<never>["id"], TocSection<string>[]>> = {
     },
   ],
   performance: [
-    { title: "启动与权重加载", pages: ["netloader-guide"] },
+    { title: "启动与权重加载", pages: ["netloader-guide", "sleep-mode"] },
     {
       title: "Graph mode 与主机资源",
       pages: ["graph-mode-layer", "acl-graph", "npugraph-ex", "cpu-binding"],

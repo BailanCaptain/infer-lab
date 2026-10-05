@@ -16,6 +16,7 @@ import { z } from "zod";
 import { ID_RE, PAGE_ORIGINS } from "../../src/content/wiki/schema";
 import { parsePage } from "./pages";
 import { type Screening, screeningSchema } from "./screening";
+import { selectedModel } from "./sync-config";
 import { type WorkflowPolicy, workflowPolicySchema } from "./workflow-policy";
 
 export const originSchema = z.enum(PAGE_ORIGINS);
@@ -31,7 +32,10 @@ const attemptSchema = z.object({
   ownerPid: z.number().int().positive(),
   startedAt: z.string(),
   finishedAt: z.string().optional(),
-  reservedUsd: z.number().finite().positive(),
+  reservedUsd: z.number().finite().nonnegative(),
+  billing: z.literal("chatgpt").optional(),
+  selection: z.object({ provider: z.enum(["claude", "codex"]), model: z.string() }).optional(),
+  usage: z.record(z.number().int().nonnegative()).optional(),
   costUsd: z.number().finite().nonnegative().optional(),
   state: z.enum(["running", "draft", "failed"]),
   reason: z.string().optional(),
@@ -216,17 +220,22 @@ export class WorkflowStore {
       )
         throw new Error("另一个任务正在处理相同目标");
       if (job.attempts.length >= job.policy.maxAttempts) throw new Error("已达到尝试次数上限");
+      const selection = selectedModel(this.root);
+      const subscription = selection.provider === "codex";
       const charged = job.attempts.reduce(
-        (sum, attempt) => sum + (attempt.costUsd ?? attempt.reservedUsd),
+        (sum, attempt) =>
+          sum + (attempt.billing === "chatgpt" ? 0 : (attempt.costUsd ?? attempt.reservedUsd)),
         0,
       );
-      if (charged + job.policy.reserveUsd > job.policy.maxCostUsd + 1e-9)
+      if (!subscription && charged + job.policy.reserveUsd > job.policy.maxCostUsd + 1e-9)
         throw new Error("剩余预算不足；未知费用仍保留预留额度");
       const attempt = {
         token: randomUUID(),
         ownerPid: this.pid,
         startedAt: new Date().toISOString(),
-        reservedUsd: job.policy.reserveUsd,
+        reservedUsd: subscription ? 0 : job.policy.reserveUsd,
+        selection,
+        ...(subscription ? { billing: "chatgpt" as const } : {}),
         state: "running" as const,
       };
       job.attempts.push(attempt);
@@ -238,7 +247,14 @@ export class WorkflowStore {
   async finish(
     id: string,
     token: string,
-    result: { ok: boolean; costUsd?: number; reason?: string; artifacts?: Record<string, string> },
+    result: {
+      ok: boolean;
+      costUsd?: number;
+      billing?: "chatgpt";
+      usage?: Record<string, number | undefined>;
+      reason?: string;
+      artifacts?: Record<string, string>;
+    },
     publish?: () => void,
   ): Promise<Job> {
     return this.locked(() => {
@@ -246,7 +262,13 @@ export class WorkflowStore {
       const attempt = job.attempts.at(-1);
       if (job.state !== "running" || !attempt || attempt.token !== token)
         throw new Error("过期 attempt，拒绝回写");
-      const cost = result.costUsd;
+      if (result.billing) {
+        attempt.billing = result.billing;
+        attempt.reservedUsd = 0;
+        delete attempt.costUsd;
+      }
+      if (result.usage) attempt.usage = z.record(z.number().int().nonnegative()).parse(result.usage);
+      const cost = attempt.billing === "chatgpt" ? undefined : result.costUsd;
       if (cost !== undefined && Number.isFinite(cost) && cost >= 0) attempt.costUsd = cost;
       let reason = result.ok ? undefined : (result.reason ?? "执行失败");
       if (cost !== undefined && (!Number.isFinite(cost) || cost < 0)) reason = "费用非法，实际消耗待核对";

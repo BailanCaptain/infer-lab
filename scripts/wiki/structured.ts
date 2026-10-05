@@ -12,10 +12,10 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import type { z } from "zod";
 import { type RunAgent, runBatch } from "./batch";
-import { budgetedAgent } from "./budget";
-import { restrictedArgs, runRestrictedClaude } from "./restricted-claude";
+import { restrictedArgs } from "./restricted-claude";
 import { localFile } from "./review-files";
 import { sanitizeRawInput } from "./sanitize";
+import { selectedAgent } from "./selected-agent";
 import { atomicText, digest, WorkflowStore, type WorkInput } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
@@ -85,11 +85,14 @@ export async function runStructured<T>(
   const attempt = await store.claim(job.id, deps.retry);
   const stage = mkdtempSync(join(tmpdir(), "wiki-decision-"));
   let costUsd: number | undefined = 0;
+  let billing: "chatgpt" | undefined;
+  let usage: Record<string, number | undefined> | undefined;
   try {
     const req = {
+      ...attempt.selection,
       id: job.input.targets[0]!,
       cwd: stage,
-      args: restrictedArgs(input.rules, attempt.reservedUsd),
+      args: restrictedArgs(input.rules, attempt.reservedUsd || input.policy.reserveUsd),
       stdin,
       timeoutMs: input.timeoutMs ?? DECISION_TIMEOUT_MS,
       allowedWrites: [],
@@ -102,15 +105,18 @@ export async function runStructured<T>(
     costUsd = undefined;
     const batch = await runBatch([req], {
       concurrency: 1,
-      runAgent: deps.runAgent ?? budgetedAgent(root, input.kind, runRestrictedClaude),
+      runAgent: deps.runAgent ?? selectedAgent(root, input.kind),
     });
     const result = batch.results[0]!;
     costUsd = result.costUsd;
+    billing = result.billing;
+    usage = result.usage;
     atomicText(
       localFile(root, `wiki/_jobs/decisions/${job.id}.${attempt.token}.output.json`),
       JSON.stringify(result),
     );
-    if (!result.ok || costUsd === undefined) throw new Error(result.reason ?? "判定失败或费用未知");
+    if (!result.ok || (costUsd === undefined && billing !== "chatgpt"))
+      throw new Error(result.reason ?? "判定失败或费用未知");
     if (readdirSync(stage).length || !result.output || result.output.length > 128_000)
       throw new Error("判定越界或缺少有效输出");
     const value = input.schema.parse(parseStructuredJson(result.output));
@@ -118,14 +124,20 @@ export async function runStructured<T>(
     const finished = await store.finish(
       job.id,
       attempt.token,
-      { ok: true, costUsd, artifacts: { [file]: digest(text) } },
+      { ok: true, costUsd, billing, usage, artifacts: { [file]: digest(text) } },
       () => atomicText(localFile(root, `wiki/${file}`), text),
     );
     if (finished.state !== "draft") throw new Error(finished.attempts.at(-1)?.reason ?? "判定未采纳");
     return { jobId: job.id, value };
   } catch (error) {
     if (store.get(job.id).state === "running")
-      await store.finish(job.id, attempt.token, { ok: false, costUsd, reason: String(error) });
+      await store.finish(job.id, attempt.token, {
+        ok: false,
+        costUsd,
+        billing,
+        usage,
+        reason: String(error),
+      });
     throw error;
   } finally {
     if (existsSync(stage) && !lstatSync(stage).isSymbolicLink()) {

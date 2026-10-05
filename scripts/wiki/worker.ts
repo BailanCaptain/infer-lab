@@ -5,7 +5,6 @@ import { assessGap, prepareCoverageReview } from "../../server/coverage-work";
 import { readKnowledgeSnapshot } from "../../server/snapshot";
 import { sourceLines } from "./audit";
 import type { RunAgent } from "./batch";
-import { budgetedAgent } from "./budget";
 import { COMPILE_TIMEOUT_MS, compileRaw } from "./compile-raw";
 import { readCorpus } from "./corpus";
 import { prepareDraftReview } from "./draft-review";
@@ -15,10 +14,10 @@ import { loadHandbook } from "./handbook";
 import { prMaterial } from "./pr-material";
 import { type QueueTask, readTask, runTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
-import { runRestrictedClaude } from "./restricted-claude";
 import { hasRetestPlan, runRetest } from "./retest";
 import { readReview } from "./review";
 import { localFile } from "./review-files";
+import { selectedAgent } from "./selected-agent";
 import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
 import { digest, WorkflowStore } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
@@ -99,7 +98,7 @@ export async function workOne(
           },
         };
       }
-      const runner = deps.runAgent ?? budgetedAgent(root, "worker-compile", runRestrictedClaude);
+      const runner = deps.runAgent ?? selectedAgent(root, "worker-compile");
       const store = new WorkflowStore(root);
       let id: string;
       let source: string;

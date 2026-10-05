@@ -12,10 +12,10 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { z } from "zod";
 import { positiveInteger, type RunAgent, runBatch } from "../scripts/wiki/batch";
-import { budgetedAgent } from "../scripts/wiki/budget";
+import { selectedAgent } from "../scripts/wiki/selected-agent";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { parsePage } from "../scripts/wiki/pages";
-import { RESTRICTED_PROFILE, restrictedArgs, runRestrictedClaude } from "../scripts/wiki/restricted-claude";
+import { RESTRICTED_PROFILE, restrictedArgs } from "../scripts/wiki/restricted-claude";
 import { CATALOG_MAX, relevantPageIds } from "../scripts/wiki/navigation";
 import { localFile } from "../scripts/wiki/review-files";
 import { sanitizeRawInput } from "../scripts/wiki/sanitize";
@@ -323,6 +323,8 @@ export async function assessGap(
   const paths = filesOf(job.id);
   let stage: string | undefined;
   let costUsd: number | undefined = 0;
+  let billing: "chatgpt" | undefined;
+  let usage: Record<string, number | undefined> | undefined;
   try {
     mkdirSync(rootPath(root), { recursive: true });
     const requestText = `${JSON.stringify({ gapKey: key, revision: snapshot.revision, observationHash, rules, stdin, screening: { version: screened.version, findings: screened.findings } }, null, 2)}\n`;
@@ -336,23 +338,26 @@ export async function assessGap(
       [
         {
           id: work.targets[0]!,
+          ...attempt.selection,
           cwd: stage,
-          args: restrictedArgs(rules, attempt.reservedUsd),
+          args: restrictedArgs(rules, attempt.reservedUsd || policy.reserveUsd),
           stdin,
           timeoutMs,
           allowedWrites: [],
         },
       ],
-      { concurrency: 1, runAgent: deps.runAgent ?? budgetedAgent(root, "coverage", runRestrictedClaude) },
+      { concurrency: 1, runAgent: deps.runAgent ?? selectedAgent(root, "coverage") },
     );
     const result = batch.results[0]!;
     costUsd = result.costUsd;
+    billing = result.billing;
+    usage = result.usage;
     atomicText(
       localFile(root, `wiki/_jobs/coverage/${job.id}.${attempt.token}.output.json`),
       `${JSON.stringify(result, null, 2)}\n`,
     );
     if (!result.ok) throw new Error(result.reason ?? "覆盖判定调用失败");
-    if (costUsd === undefined) throw new Error("覆盖判定费用尚未核实，保留预留额并停止采纳");
+    if (costUsd === undefined && billing !== "chatgpt") throw new Error("覆盖判定费用尚未核实，保留预留额并停止采纳");
     if (readdirSync(stage).length) throw new Error("无工具覆盖判定产生了文件");
     if (Buffer.byteLength(result.output ?? "") > 128_000) throw new Error("覆盖判定输出过长");
     const decision = coverageDecisionSchema.parse(JSON.parse(result.output ?? ""));
@@ -408,7 +413,7 @@ export async function assessGap(
       attempt.token,
       {
         ok: true,
-        costUsd,
+        costUsd, billing, usage,
         artifacts: { [paths.input]: digest(requestText), [paths.result]: digest(output) },
       },
       () => {
@@ -420,7 +425,7 @@ export async function assessGap(
       ? { ok: true, ...receipt }
       : { ok: false, jobId: job.id, reason: finished.attempts.at(-1)?.reason };
   } catch (error) {
-    const finished = await store.finish(job.id, attempt.token, { ok: false, costUsd, reason: String(error) });
+    const finished = await store.finish(job.id, attempt.token, { ok: false, costUsd, billing, usage, reason: String(error) });
     return { ok: false, jobId: job.id, reason: finished.attempts.at(-1)?.reason ?? String(error) };
   } finally {
     try {

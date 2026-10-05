@@ -539,3 +539,13 @@ vllm-ascend@releases/v0.26.0rc 57179dd3e5d05a547a9fdea8b6958f66717e6098 → d3e4
 ## [2026-10-04] review | 直接撰写页如实标注 origin: direct
 
 没有 rawSources 的 93 页（concepts 92、sources 1）批量标为 origin: direct（页头显示「直接撰写」）：88 页原写 origin: seed 的那一行换成 direct，5 页原无 origin 行、在 type 行后插一行；sources 等其余 frontmatter 与正文未动。依据用户 2026-10-03 决定：agent 直接撰写、没有 raw 快照的页如实标注，不事后补 raw。schema 同步加 direct，wiki:lint 新增 origin-direct-raw（direct 与 rawSources 互斥）。记录见 docs/mainline/review/pages/origin-direct-1004.md。
+
+## [2026-10-04] ingest | 参数增量
+
+vllm-ascend@main 4ebb3090fc3c13c26557dcaae353882e70246649 → 7df96048756856e4d30f29618129e9942ba6985c；新增 0 / 删除 0 / 变更 0。
+
+## [2026-10-04] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+## [2026-10-05] ingest | "Sleep Mode：暂停推理时怎样把显存让给训练"
+晋升 concepts/sleep-mode.md

@@ -10,6 +10,23 @@ import {
   WINDOWS_COMMAND_LINE_LIMIT,
 } from "./claude-cli";
 
+it("a CLI that exits before reading a long evidence prompt returns failure without crashing the server", async () => {
+  const result = await spawnClaude(
+    {
+      id: "early-exit",
+      cwd: tmpdir(),
+      args: ["-e", "process.exit(17)"],
+      stdin: "evidence".repeat(300_000),
+      timeoutMs: 5000,
+      allowedWrites: [],
+    },
+    () => undefined,
+    { command: process.execPath, shell: false },
+  );
+  expect(result.ok).toBe(false);
+  expect(result.exitCode).toBe(17);
+});
+
 describe("resolveClaudeCommand", () => {
   it("顺序：CLAUDE_CLI 环境变量 → ~/.local/bin/claude(.exe) → 裸 claude（shell）", () => {
     expect(resolveClaudeCommand({ CLAUDE_CLI: "C:/x/claude.exe" }, () => true)).toEqual({

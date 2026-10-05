@@ -24,10 +24,7 @@ async function setup(
 ) {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write(
-    "wiki/HANDBOOK.md",
-    handbookFixture(),
-  );
+  f.write("wiki/HANDBOOK.md", handbookFixture());
   f.write("wiki/sources/a.md", original);
   const server = createServer((req, res) => {
     void handleChat(req, res, f.root, { runChat: run, ...extra });
@@ -58,6 +55,18 @@ const traceFrames = (body: string) =>
     .filter((part) => part.startsWith("event: trace\n"))
     .map((part) => JSON.parse(part.split("\ndata: ")[1]!));
 
+it("does not validate or save a Codex citation to a page omitted from its evidence window", async () => {
+  const f = await setup(async (_req, on) => {
+    on.text("默认值为 1，见 [A](sources/a.md)。");
+    return { ok: true };
+  });
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
+  f.write("wiki/sources/a.md", original + "\n" + "x".repeat(80_001));
+  const response = await (await f.request({ message: "A 的默认值？" })).text();
+  expect(frame(response, "cite").cited).toBe(false);
+  expect(frame(response, "done").answerId).toBeUndefined();
+});
+
 it("贴报错时把 GitHub 在线候选推给界面、交给问答模型；普通提问不去查（F003 AC4 聊天层接入）", async () => {
   const REPO = "vllm-project/vllm-ascend";
   const trace: ChatTrace = {
@@ -84,7 +93,12 @@ it("贴报错时把 GitHub 在线候选推给界面、交给问答模型；普�
               commit: "a".repeat(40),
               pins: [
                 { ref: "releases/v0.26.0rc", commit: "b".repeat(40), contains: true },
-                { ref: "releases/v0.23.0", commit: "c".repeat(40), contains: false, sameNumberCommit: "d".repeat(40) },
+                {
+                  ref: "releases/v0.23.0",
+                  commit: "c".repeat(40),
+                  contains: false,
+                  sameNumberCommit: "d".repeat(40),
+                },
               ],
               tags: ["v0.26.0rc2"],
               moreTags: 0,
@@ -314,7 +328,12 @@ it("标出实际作答模型：换了模型要推给界面，也写进问答记�
     requested: "claude-opus-5-5[1m]",
     answered: ["claude-opus-5"],
     switches: [
-      { event: "model_refusal_fallback", from: "claude-opus-5-5[1m]", to: "claude-opus-5", reason: "frontier_llm" },
+      {
+        event: "model_refusal_fallback",
+        from: "claude-opus-5-5[1m]",
+        to: "claude-opus-5",
+        reason: "frontier_llm",
+      },
     ],
   };
   let args: string[] = [];
@@ -324,8 +343,9 @@ it("标出实际作答模型：换了模型要推给界面，也写进问答记�
     return { ok: true, sessionId: randomUUID(), models };
   });
   const response = await (await f.request({ message: "A 的默认值？" })).text();
-  expect(args).not.toContain("--model");
+  expect(args[args.indexOf("--model") + 1]).toBe("claude-opus-5-5[1m]");
   expect(frame(response, "model")).toEqual({
+    provider: "claude",
     requested: "claude-opus-5-5[1m]",
     answeredBy: "claude-opus-5",
     switched: true,
@@ -339,6 +359,45 @@ it("标出实际作答模型：换了模型要推给界面，也写进问答记�
   f.write("wiki/sync.config.local.json", JSON.stringify({ chatModel: "claude-fable-5-1" }));
   await (await f.request({ message: "A 的默认值？" })).text();
   expect(args[args.indexOf("--model") + 1]).toBe("claude-fable-5-1");
+});
+
+it("Codex receives current page bodies and follow-up context, without resuming Claude or launching a hidden Claude judge", async () => {
+  const requests: Parameters<typeof runChat>[0][] = [];
+  let judges = 0;
+  const f = await setup(
+    async (req, on) => {
+      requests.push(req);
+      on.text("默认值为 1，见 [A](sources/a.md)。");
+      return {
+        ok: true,
+        ...(req.provider === "codex"
+          ? { models: { requested: "gpt-6.1-sol", answered: [], switches: [] } }
+          : { sessionId: randomUUID() }),
+      };
+    },
+    {
+      judgeGap: async () => {
+        judges++;
+        return undefined;
+      },
+    },
+  );
+  const first = await (await f.request({ message: "A 的默认值？" })).text();
+  const sessionId = frame(first, "done").sessionId;
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6.1-sol" }));
+  const second = await (await f.request({ message: "A 的默认值为何？", sessionId })).text();
+  expect(requests[1].provider).toBe("codex");
+  expect(requests[1].stdin).toContain("默认值为 1");
+  expect(requests[1].stdin).toContain("A 的默认值？");
+  expect(requests[1].args).not.toContain("--resume");
+  expect(frame(second, "knowledge").resetReason).toBe("model-changed");
+  expect(frame(second, "done").answerId).toBeTruthy();
+  expect(frame(second, "model").requested).toBe("gpt-6.1-sol");
+  expect(frame(second, "model").answeredBy).toBeUndefined();
+  await (await f.request({ message: "还有其他限制吗？", sessionId })).text();
+  expect(requests[2].stdin).toContain("A 的默认值为何？");
+  expect(requests[2].stdin).toContain("默认值为 1");
+  expect(judges).toBe(0);
 });
 
 it("说法不同的缺口按判定归进已有那条；判定失败照旧新建一条，不丢记录", async () => {

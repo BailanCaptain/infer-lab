@@ -12,7 +12,7 @@ import { Link } from "react-router";
 import { CalcBlock } from "../../../content/wiki/CalcBlock";
 import { parseCalcFence, textFenceAsCalc } from "../../../content/wiki/calc";
 import { rewriteRelativeLink, routePathOf } from "../../../content/wiki/index";
-import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../../content/wiki/markdown";
+import { textOf, WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../../content/wiki/markdown";
 import { EvidenceBadge } from "../../../content/wiki/Term";
 import { rehypeNumericColumns } from "../../../content/wiki/tableAlign";
 import "../../../design/wiki.css";
@@ -106,6 +106,10 @@ const CALC_FENCE_MD = [
   "```",
 ].join("\n");
 
+// 冻结 2026-10-05 一条请求中的七组字符格样例，正文改写不改变排版验收覆盖。
+const PLAIN_TEXT_MD =
+  "```text\n进入第 0 层前   [4, 4096] → 复制 → [4, 4, 4096]   R1 占 4 × 4 × 4096 × 2 B = 128 KiB\n每个子层之前    4 条流 → 加权求和 → [4, 4096]     送进注意力或 MLP；同时算出 4×4 混合矩阵\n每个子层之后    输出 [4, 4096] → 写回并混合 → [4, 4, 4096]\n第 44 层之后    4 条流求平均 → [4, 4096]\n```\n\n```text\ngate_up_proj  [4, 4096] × [4096, 3072] → [4, 3072]   每卡 3072 = 2 × 12288 ÷ 8\n激活          silu(gate) × up          → [4, 1536]\ndown_proj     [4, 1536] × [1536, 4096] → [4, 4096]   只是部分和\nAll-Reduce    TP8 相加部分和            → 完整 [4, 4096]，单次张量 32,768 B\n每卡权重      (3072 + 1536) × 4096 × 1 B = 18.0 MiB（int8），3 层 54.0 MiB\n```\n\n```text\nq/k/v_proj    [4, 4096] → 各 [4, 1024]              每卡 1024 = 8 头 × 128\n短卷积        [4, 3072] 与本请求的卷积状态 (3072, 6) 拼接，宽度 4\n递推          8 个头各更新一个 [128, 128] FP32 状态\no_proj        [4, 1024] × [1024, 4096] → [4, 4096]   部分和\nAll-Reduce    TP8，单次张量 32,768 B\n每卡权重      34.61 MiB/层（BF16 为主），34 层 1.149 GiB\n```\n\n```text\nrouter        [4, 4096] × [4096, 288]（FP32）→ [4, 288] → 每个 token 选 8 个专家\n补齐与切片    4 行补到 8 行，TP8 每卡分 1 行；机内编号 0–3 的卡拿到真 token，4–7 的卡拿到填充行\ndispatch      每卡发出 ≤ 1 个 token × 8 个专家 × (4096 B int8 + 4 B 缩放系数) = 32,800 B\n专家计算      落到本卡 18 个专家上的（token, 专家）对，期望 4 × 8 × 18 ÷ 288 = 2 行\ncombine       每卡收回 ≤ 1 × 8 × 4096 × 2 B = 65,536 B\n拼回          TP8 All-Gather，每卡发 1 行 8,192 B，拼回完整 [4, 4096]\n共享专家      在完整 [4, 4096] 上算，按 TP8 切，每卡 3.0 MiB；之后 TP8 All-Reduce，单次张量 32,768 B\n```\n\n```text\n每卡权重              [19360, 4096] BF16 = 151.25 MiB\nprefill 只取最后位置   [1, 4096] × [4096, 19360] → [1, 19360]，38,720 B\nTP8 All-Gather        拼成 [1, 154880]，309,760 B\n```\n\n```text\n第 1 遍  token 输入 = [p₁, p₂, p₃, y₀] 的嵌入，位置 [0, 1, 2, 3]\n         隐藏输入   = 主模型这一步的隐藏向量 [4, 4096]\n         两者各做一次归一化后拼成 [4, 8192] → 投影回 [4, 4096]\n         → 一层稀疏 MLA + MoE → 词表投影 → 取最后一行 → d₁（位置 5）\n第 2 遍  token 输入 = d₁，位置 +1，隐藏输入 = 第 1 遍的输出   → d₂（位置 6）\n第 3 遍  token 输入 = d₂，位置 +1，隐藏输入 = 第 2 遍的输出   → d₃（位置 7）\n```\n\n```text\n第 0 行（位置 4 的输出）预测位置 5：分数最大的是 d₁   与候选 d₁ 相同 → 接受\n第 1 行（位置 5 的输出）预测位置 6：分数最大的是 y₂   与候选 d₂ 不同 → 写下 y₂，停止\n本圈产出：y₁ = d₁、y₂，共 2 个 token\n```";
+
 type HastNode = { children?: { type: string; tagName?: string; properties?: Record<string, unknown> }[] };
 
 /** 与阅读页（WikiPage.tsx 的 Article）一致的几处组件：算式块、表格外包横滚容器、角标、站内链接 */
@@ -113,7 +117,8 @@ const COMPONENTS: Components = {
   pre: ({ children, node }) => {
     const code = (node as HastNode | undefined)?.children?.[0];
     const cls = code?.tagName === "code" ? code.properties?.className : undefined;
-    const text = (code as { children?: { value?: string }[] } | undefined)?.children?.[0]?.value ?? "";
+    // rehypeTextGrid 已把中文分进 span；与正式阅读页一致，拼回完整原文再识别算式。
+    const text = code ? textOf(code) : "";
     if (Array.isArray(cls) && cls.includes("language-calc")) {
       const { title, rows } = parseCalcFence(text);
       return <CalcBlock rows={rows} title={title} />;
@@ -203,6 +208,12 @@ export function WikiSpecimenPage() {
           </Section>
           <Section id="table" title="表格">
             <Body>{TABLE_MD}</Body>
+          </Section>
+          <Section id="legacy-calc" title="冒号旧写法回归样例">
+            <Body>{"```text\nN 的第 2 步： ceil(6003 / 640) + 14 = 10 + 14 = 24 块\n```"}</Body>
+          </Section>
+          <Section id="plain-text" title="纯文本字符格回归样例">
+            <Body>{PLAIN_TEXT_MD}</Body>
           </Section>
         </article>
       </main>

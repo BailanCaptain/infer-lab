@@ -103,7 +103,8 @@
     "request-teardown",
     "netloader-guide",
     "ai-qos",
-    "vllm-ascend-for-rl"
+    "vllm-ascend-for-rl",
+    "sleep-mode"
   ],
   "skip": {
     "learning-guide": ["source-sections", "diagram-first"]

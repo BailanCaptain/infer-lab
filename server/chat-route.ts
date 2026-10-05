@@ -7,7 +7,7 @@ import { attachCorpusProvenance, corpusDocuments } from "../scripts/wiki/corpus-
 import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { recordGapObservation } from "../scripts/wiki/gap-ledger";
 import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
-import { readSyncConfig } from "../scripts/wiki/sync";
+import { selectedModel as readSelectedModel } from "../scripts/wiki/sync-config";
 import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
 import { neighborhood } from "../src/content/wiki/relations";
 import { type CitationVerdict, retrieve } from "../src/content/wiki/retrieve";
@@ -22,6 +22,7 @@ import {
   sseFrame,
 } from "./chat";
 import { beginChat, type ChatLease, finishChat, MAX_SESSION_TURNS } from "./chat-session";
+import { codexEvidencePages } from "./codex-chat";
 import { answerCitationGuide, checkAnswerCitations } from "./citations";
 import { coverageSignals } from "./coverage";
 import { HttpError, readJson, send } from "./http";
@@ -65,12 +66,6 @@ export function retrieveChatContext(
   return { hits, graph, citationGuide };
 }
 
-/** 同步配置里的 chatModel，本机覆盖文件优先；每轮现读，改了配置不用重启服务 */
-function chatModel(root: string): { model?: string } {
-  const model = readSyncConfig(join(root, "wiki/sync.config.json")).chatModel;
-  return model ? { model } : {};
-}
-
 /** Both production HTTP and fixture browsers use this exact orchestration. */
 export async function handleChat(
   req: IncomingMessage,
@@ -95,8 +90,18 @@ export async function handleChat(
     message = input.message;
     const snapshot = await readKnowledgeSnapshot(root);
     const location = await materializeSnapshot(root, snapshot);
-    lease = await beginChat(root, snapshot.revision, input.sessionId);
-    const context = retrieveChatContext(message, snapshot, corpusDocuments(root));
+    const selectedModel = readSelectedModel(root);
+    lease = await beginChat(
+      root,
+      snapshot.revision,
+      input.sessionId,
+      `${selectedModel.provider}:${selectedModel.model ?? "default"}`,
+    );
+    const retrievalQuery =
+      selectedModel.provider === "codex"
+        ? [message, ...lease.contextQuestions.slice(-2)].join("\n")
+        : message;
+    const context = retrieveChatContext(retrievalQuery, snapshot, corpusDocuments(root));
     const hits = attachCorpusProvenance(root, context.hits);
     const graph = context.graph;
     res.writeHead(200, {
@@ -111,6 +116,7 @@ export async function handleChat(
       maxTurns: MAX_SESSION_TURNS,
       // 网页问答永远给联网工具（离线对照只走内部评测）；界面照实标出来
       online: chatOnline({}),
+      provider: selectedModel.provider,
     });
     emit("hits", { hits });
     // 贴的是报错才在线查 GitHub（F003 AC4 聊天层接入）；普通提问一个网络请求都不发
@@ -124,6 +130,26 @@ export async function handleChat(
       }
       emit("trace", publicTrace(github));
     }
+    const evidencePages =
+      selectedModel.provider === "codex"
+        ? codexEvidencePages(
+            [
+              ...new Set([
+                ...hits.map((h) => h.id),
+                ...graph.flatMap((g) =>
+                  [
+                    ...g.neighborhood.foundations,
+                    ...g.neighborhood.dependents,
+                    ...g.neighborhood.siblings,
+                  ].map((edge) => edge.id),
+                ),
+              ]),
+            ].flatMap((id) => {
+              const file = snapshot.registry.pages.find((p) => p.id === id)?.file;
+              return snapshot.pageTexts.filter((p) => p.file === file);
+            }),
+          )
+        : snapshot.pageTexts;
     const request = buildChatRequest(
       {
         message,
@@ -135,7 +161,13 @@ export async function handleChat(
         ...(github && github.status !== "skipped" ? { github } : {}),
       },
       snapshot.handbook,
-      { wikiRoot: location, revision: snapshot.revision, timeoutMs: CHAT_TIMEOUT_MS, ...chatModel(root) },
+      {
+        wikiRoot: location,
+        revision: snapshot.revision,
+        timeoutMs: CHAT_TIMEOUT_MS,
+        ...selectedModel,
+        pages: evidencePages,
+      },
     );
     const execute: typeof runChat =
       deps.runChat ?? ((req, on) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on)));
@@ -153,24 +185,25 @@ export async function handleChat(
     // 失败的轮次也发：拒答换手常常就出在这种时候
     if (outcome.models)
       emit("model", {
+        provider: selectedModel.provider,
         ...(outcome.models.requested ? { requested: outcome.models.requested } : {}),
-        answeredBy: answeredBy(outcome.models),
+        answeredBy:
+          selectedModel.provider === "codex" ? outcome.models.answered.at(-1) : answeredBy(outcome.models),
         switched: modelSwitched(outcome.models),
         switches: outcome.models.switches,
       });
     verifySnapshot(root, location, snapshot);
     if (outcome.ok && !answer.trim()) outcome = { ok: false, reason: "问答没有返回正文" };
-    if (outcome.ok) citations = checkAnswerCitations(answer, snapshot.pageTexts);
+    if (outcome.ok) citations = checkAnswerCitations(answer, evidencePages);
     if (outcome.ok && citations.cited) emit("related", { pages: relatedReading(answer, snapshot) });
     // 给了联网工具、一次没用、却说自己联不了网：读者得知道这条回答没有联网核对
     if (outcome.ok && chatOnline({}) && webTools.length === 0 && claimsOffline(answer))
       emit("notice", {
         kind: "offline-claim",
-        message:
-          "服务端本轮已提供联网工具（WebFetch / WebSearch），模型没有用就说无法联网；这条回答没有经过联网核对。",
+        message: "服务端本轮已提供联网工具，模型没有用就说无法联网；这条回答没有经过联网核对。",
       });
     if (outcome.ok && answer.trim() && !res.destroyed)
-      answerId = await captureAnswer(root, message, answer, snapshot.pageTexts, outcome.models);
+      answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
     if (!outcome.ok) emit("error", { message: outcome.reason ?? "agent 失败" });
     if (outcome.ok && !res.destroyed) {
       const signals = coverageSignals(answer, webTools);

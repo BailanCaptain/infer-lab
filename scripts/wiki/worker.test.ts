@@ -7,7 +7,6 @@ import { readKnowledgeSnapshot } from "../../server/snapshot";
 import type { RunAgent } from "./batch";
 import { initBudget } from "./budget";
 import { recordGapObservation } from "./gap-ledger";
-import { WORK_MODEL } from "./model-use";
 import { listTasks, readTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { acceptRetest, prepareRetest, runRetest } from "./retest";
@@ -80,6 +79,10 @@ it("a budget admission failure does not permanently block an unstarted retest", 
       expected: "有依据",
       forbidden: "编造",
     }));
+    f.write(
+      "wiki/sync.config.local.json",
+      JSON.stringify({ chatProvider: "claude", chatModel: "fixture-model" }),
+    );
     await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
     let calls = 0;
     const timeouts: number[] = [];
@@ -117,6 +120,10 @@ it.each([false, true])(
         expected: "正确且有证据",
         forbidden: "没有版本边界",
       }));
+      f.write(
+        "wiki/sync.config.local.json",
+        JSON.stringify({ chatProvider: "claude", chatModel: "fixture-model" }),
+      );
       await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
       await initBudget(f.root, { limitUsd: 2, priorChargedUsd: 0, reserveUsd: 0.1, maxCalls: 8 });
       let chatCalls = 0;
@@ -240,6 +247,10 @@ it("requires a frozen retest plan before compiling and requeues after human prep
     });
     expect(calls).toBe(1);
     expect(existsSync(join(f.root, "wiki/_drafts"))).toBe(false);
+    f.write(
+      "wiki/sync.config.local.json",
+      JSON.stringify({ chatProvider: "claude", chatModel: "fixture-model" }),
+    );
     await prepareRetest(f.root, {
       taskId: f.task.id,
       model: "fixture-model",
@@ -268,6 +279,10 @@ it("审阅被驳回后带着驳回原因重编一次；重编结果与被驳回�
       expected: "正确且有证据",
       forbidden: "没有版本边界",
     }));
+    f.write(
+      "wiki/sync.config.local.json",
+      JSON.stringify({ chatProvider: "claude", chatModel: "fixture-model" }),
+    );
     await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
     await initBudget(f.root, { limitUsd: 2, priorChargedUsd: 0, reserveUsd: 0.1, maxCalls: 8 });
     let chatCalls = 0;
@@ -377,6 +392,10 @@ it("an undetermined assessment continues to the material decision once a retest 
       expected: "正确且有证据",
       forbidden: "没有版本边界",
     }));
+    f.write(
+      "wiki/sync.config.local.json",
+      JSON.stringify({ chatProvider: "claude", chatModel: "fixture-model" }),
+    );
     await prepareRetest(f.root, { taskId: f.task.id, model: "fixture-model", reserveUsd: 0.1, cases });
     await initBudget(f.root, { limitUsd: 2, priorChargedUsd: 0, reserveUsd: 0.1, maxCalls: 8 });
     const chat: typeof import("../../server/chat").runChat = async (_req, on) => {
@@ -424,7 +443,7 @@ it("binds a material decision by the archived reference and checks the quote lin
   expect(boundSource(sources, { source: "raw:x.md#L1-L5", quote: "  " })).toBeUndefined();
 });
 
-it("复测计划不写模型时默认用 WORK_MODEL（夜间固定 Opus 5.5）；写了就按冻结的来", async () => {
+it("复测计划冻结全局选择，切换后不混用其他模型跑旧计划", async () => {
   const question = "B 的上限？";
   const f = await setup(question);
   try {
@@ -434,9 +453,18 @@ it("复测计划不写模型时默认用 WORK_MODEL（夜间固定 Opus 5.5）�
       expected: "有依据",
       forbidden: "编造",
     }));
+    f.write(
+      "wiki/sync.config.local.json",
+      JSON.stringify({ chatProvider: "claude", chatModel: "fixture-model" }),
+    );
     await prepareRetest(f.root, { taskId: f.task.id, reserveUsd: 0.1, cases });
     const plan = JSON.parse(readFileSync(join(f.root, `wiki/_jobs/retests/${f.task.id}.plan.json`), "utf8"));
-    expect(plan.model).toBe(WORK_MODEL);
+    expect(plan.model).toBe("fixture-model");
+    f.write(
+      "wiki/sync.config.local.json",
+      JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6-astra" }),
+    );
+    await expect(runRetest(f.root, f.task.id)).rejects.toThrow("全局模型已变化");
   } finally {
     f.cleanup();
   }

@@ -2,6 +2,11 @@ import type { ModelUse } from "./model-use";
 
 /** Shared execution contract. Entry adapters own prompts and artifact validation. */
 export interface AgentRequest {
+  /** Omitted means the existing Claude runner and USD accounting. */
+  provider?: "claude" | "codex";
+  model?: string;
+  /** Explicit evidence files for tool-free file generation; relative paths follow staged cwd. */
+  evidenceFiles?: { label: string; path: string }[];
   id: string;
   cwd: string;
   args: string[];
@@ -23,6 +28,8 @@ export interface AgentResult {
   exitCode: number | null;
   sessionId?: string;
   costUsd?: number;
+  billing?: "chatgpt";
+  usage?: Record<string, number | undefined>;
   /** 实际作答模型与换手记录，启动器从 stream-json 里认出来的 */
   models?: ModelUse;
   reason?: string;
@@ -95,6 +102,8 @@ export async function runBatch(
   return {
     results,
     costUsd: results.reduce((sum, result) => sum + (result.costUsd ?? 0), 0),
-    unknownCostIds: results.filter((result) => result.costUsd === undefined).map((result) => result.id),
+    unknownCostIds: results
+      .filter((result) => result.costUsd === undefined && result.billing !== "chatgpt")
+      .map((result) => result.id),
   };
 }

@@ -1,16 +1,20 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
+import { z } from "zod";
 import { readBudget } from "../scripts/wiki/budget";
 import { listGaps } from "../scripts/wiki/gap-ledger";
-import { answeredBy, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
+import { answeredBy, MODEL_ID, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
 import { collectStepTerms } from "../scripts/wiki/lint";
 import { listTasks } from "../scripts/wiki/queue";
 import { listReviews } from "../scripts/wiki/review";
-import { readSyncConfig } from "../scripts/wiki/sync";
-import { send } from "./http";
+import { readSyncConfig, syncConfigSchema } from "../scripts/wiki/sync-config";
+import { checkWriter, HttpError, readJson, send } from "./http";
+import { DEFAULT_CODEX_MODEL } from "./codex-chat";
+import { atomicText, WorkflowStore } from "../scripts/wiki/workflow";
 
-const json = (path: string): unknown => (existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined);
+const json = (path: string): unknown =>
+  existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
 const pageIds = (root: string, dir: string) =>
   existsSync(join(root, "wiki", dir))
     ? readdirSync(join(root, "wiki", dir))
@@ -25,7 +29,14 @@ const pageIds = (root: string, dir: string) =>
  */
 export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.config.json")) {
   let budget:
-    | { limitUsd: number; chargedUsd: number; calls: number; maxCalls: number; paused: boolean; pauseReason?: string }
+    | {
+        limitUsd: number;
+        chargedUsd: number;
+        calls: number;
+        maxCalls: number;
+        paused: boolean;
+        pauseReason?: string;
+      }
     | undefined;
   let calls: ReturnType<typeof readBudget>["calls"] = [];
   try {
@@ -38,15 +49,20 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
       calls: b.calls.length,
       maxCalls: b.policy.maxCalls,
       paused: b.paused,
-      ...(b.paused && unknown ? { pauseReason: `${unknown.startedAt.slice(0, 10)} ${unknown.reason ?? ""}` } : {}),
+      ...(b.paused && unknown
+        ? { pauseReason: `${unknown.startedAt.slice(0, 10)} ${unknown.reason ?? ""}` }
+        : {}),
     };
   } catch {
     budget = undefined; // 没建账本
   }
 
-  const config = existsSync(syncConfigPath) ? readSyncConfig(syncConfigPath) : undefined;
+  const config =
+    existsSync(syncConfigPath) || existsSync(syncConfigPath.replace(/\.json$/, ".local.json"))
+      ? readSyncConfig(syncConfigPath)
+      : undefined;
   // 账本从 2026-09-23 晚起记模型，更早的调用没有这项，不算进分母
-  const recorded = calls.filter((call) => call.models);
+  const recorded = calls.filter((call) => call.models && call.billing !== "chatgpt");
   const switched = recorded.filter((call) => modelSwitched(call.models));
   const last = switched.at(-1);
   // CLI 没报换手、只是作答模型对不上时，按启动时的模型 → 实际作答模型记
@@ -56,8 +72,14 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     ...last.models.switches.at(-1),
   };
   const models = {
-    ...(config?.chatModel ? { chatModel: config.chatModel } : {}),
-    workModel: WORK_MODEL,
+    chatProvider: config?.chatProvider ?? "claude",
+    ...(config?.chatModel
+      ? { chatModel: config.chatModel }
+      : config?.chatProvider === "codex"
+        ? { chatModel: DEFAULT_CODEX_MODEL }
+        : {}),
+    codexCalls: calls.filter((c) => c.billing === "chatgpt").length,
+    workModel: config?.chatModel ?? (config?.chatProvider === "codex" ? DEFAULT_CODEX_MODEL : WORK_MODEL),
     recorded: recorded.length,
     switched: switched.length,
     ...(last && hop ? { last: { at: last.startedAt, purpose: last.purpose, ...hop } } : {}),
@@ -111,8 +133,45 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
 }
 export type WikiStatus = ReturnType<typeof readStatus>;
 
-export async function handleStatus(req: IncomingMessage, res: ServerResponse, root: string): Promise<boolean> {
-  if (new URL(req.url ?? "/", "http://localhost").pathname !== "/api/wiki/status") return false;
+const modelSelectionSchema = z
+  .object({
+    chatProvider: z.enum(["claude", "codex"]),
+    chatModel: z.string().trim().min(1).max(200).regex(MODEL_ID, "模型名格式不正确"),
+  })
+  .strict();
+
+/** Only these two fields can be changed from the status panel. Never starts a model. */
+export async function saveChatModel(root: string, input: unknown) {
+  const selection = modelSelectionSchema.parse(input);
+  return new WorkflowStore(root).locked(() => {
+    const path = join(root, "wiki/sync.config.local.json");
+    const current = (json(path) ?? {}) as Record<string, unknown>;
+    const next = { ...current, ...selection };
+    syncConfigSchema.parse({ ...((json(join(root, "wiki/sync.config.json")) as object) ?? {}), ...next });
+    atomicText(path, `${JSON.stringify(next, null, 2)}\n`);
+    return selection;
+  });
+}
+
+export async function handleStatus(
+  req: IncomingMessage,
+  res: ServerResponse,
+  root: string,
+): Promise<boolean> {
+  const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
+  if (pathname === "/api/wiki/status/model") {
+    try {
+      if (req.method !== "POST") throw new HttpError(405, "需要 POST");
+      checkWriter(req);
+      send(res, 200, await saveChatModel(root, await readJson(req)));
+    } catch (error) {
+      send(res, error instanceof HttpError ? error.status : error instanceof z.ZodError ? 400 : 503, {
+        error: error instanceof z.ZodError ? "请选择接入方式，并填写有效模型名" : String(error),
+      });
+    }
+    return true;
+  }
+  if (pathname !== "/api/wiki/status") return false;
   if (req.method !== "GET") send(res, 405, { error: "需要 GET" });
   else
     try {

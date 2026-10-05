@@ -12,6 +12,7 @@ import { MODEL_ID, type ModelUse } from "../scripts/wiki/model-use";
 import type { Neighborhood } from "../src/content/wiki/relations";
 import type { Hit } from "../src/content/wiki/retrieve";
 import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
+import { codexChatRequest, runCodexChat, type CodexUsage } from "./codex-chat";
 
 /** 问答只读页、不写页：只拿记号含义、可引来源与查询规则，不拿整片写页规则（见 handbook.ts HANDBOOK_H3） */
 export type ChatHandbook = Pick<HandbookSlices, "reading" | "citable" | "query">;
@@ -22,6 +23,8 @@ export interface ChatContext {
   revision?: string;
   /** 同步配置里的 chatModel；不填就用 CLI 默认模型 */
   model?: string;
+  provider?: "claude" | "codex";
+  pages?: { file: string; text: string }[];
   /** Internal evaluation only; HTTP callers cannot select this profile. */
   control?: { model: string; maxCostUsd: number };
 }
@@ -100,7 +103,10 @@ function graphBlock(graph?: { id: string; title: string; neighborhood: Neighborh
     section("同层", n.siblings);
   }
   if (out.length) {
-    out.push("", "子图里的页要真的打开读，不要只拿上面这几行拼答案。");
+    out.push(
+      "",
+      "需要依据相关页时必须读其正文，不要只拿上面这几行拼答案。正文未提供且没有读取工具时明确说明证据不足。",
+    );
   }
   return out;
 }
@@ -163,24 +169,24 @@ function traceBlock(trace?: ChatTrace): string[] {
 
 export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: ChatContext): AgentRequest {
   const control = ctx.control;
+  if (control && ctx.provider === "codex") throw new Error("美元限额离线对照仅支持 Claude");
   if (control) {
     if (input.sessionId !== undefined || input.previousQuestions?.length)
       throw new Error("离线对照必须使用独立新会话，不接受历史问题");
     if (input.github) throw new Error("离线对照只依据知识快照，不接受在线检索结果");
-    if (
-      !MODEL_ID.test(control.model) ||
-      !Number.isFinite(control.maxCostUsd) ||
-      control.maxCostUsd <= 0
-    )
+    if (!MODEL_ID.test(control.model) || !Number.isFinite(control.maxCostUsd) || control.maxCostUsd <= 0)
       throw new Error("离线对照必须显式指定模型和正数调用额度");
   }
   if (ctx.model !== undefined && !MODEL_ID.test(ctx.model)) throw new Error(`问答模型名不合法：${ctx.model}`);
   const model = control?.model ?? ctx.model;
   const allowed = chatOnline(ctx) ? [...LOCAL_TOOLS, ...WEB_TOOLS] : LOCAL_TOOLS;
   // 手册只说「若本轮提供联网工具…」，模型得自己猜有没有；这里按实际给的工具写死，猜错就没借口了
-  const toolsLine = chatOnline(ctx)
-    ? `本轮工具：${LOCAL_TOOLS.join("、")} 只读当前快照；${WEB_TOOLS.join("、")} 可用——知识库没有时按手册查官方来源，并写明「知识库未收录，以下来自官方来源」。不要说本轮没有联网工具。`
-    : `本轮工具：只有 ${LOCAL_TOOLS.join("、")}，不联网。`;
+  const toolsLine =
+    ctx.provider === "codex"
+      ? "本轮知识库证据已由程序完整注入下方 JSON；没有本地文件或命令工具。可用 web_search 查询官方来源，库外结论写明尚未收录，并链接真实来源。只引用已注入的页面，不得声称已打开未提供的页面或本地原始文件。"
+      : chatOnline(ctx)
+        ? `本轮工具：${LOCAL_TOOLS.join("、")} 只读当前快照；${WEB_TOOLS.join("、")} 可用——知识库没有时按手册查官方来源，并写明「知识库未收录，以下来自官方来源」。不要说本轮没有联网工具。`
+        : `本轮工具：只有 ${LOCAL_TOOLS.join("、")}，不联网。`;
   const system = [
     handbook.reading.trim(),
     handbook.citable.trim(),
@@ -188,7 +194,11 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
     COVERAGE_REPORT_INSTRUCTION,
     toolsLine,
     // 2026-09-23 前这里是整份 index.md（每页约 228 字符），库越大系统提示越长；它就在快照目录里，按需搜即可
-    "知识库目录是当前目录下的 index.md，列出全部页面的标题与一句话摘要。程序在问题下面给了预检索的候选页；要找别的页，用 Grep 在 index.md 里搜关键词，不要整份读入。",
+    ...(ctx.provider === "codex"
+      ? []
+      : [
+          "知识库目录是当前目录下的 index.md，列出全部页面的标题与一句话摘要。程序在问题下面给了预检索的候选页；要找别的页，用 Grep 在 index.md 里搜关键词，不要整份读入。",
+        ]),
     ...(ctx.revision
       ? [`本轮知识版本：${ctx.revision}。本地文件仅从当前快照目录读取，目录外路径不可用。`]
       : []),
@@ -232,7 +242,7 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
   const lines = [`学习者的问题：${input.message}`];
   if (input.previousQuestions?.length)
     lines.push(
-      "知识库已更新，未恢复旧模型会话。以下只是此前的问题，用来理解指代，不是事实证据；必须读取当前页重新核对。指代不清时先澄清：",
+      "未恢复旧模型会话。以下只是此前的问题，用来理解指代，不是事实证据；必须依据当前知识重新核对。指代不清时先澄清：",
       JSON.stringify(input.previousQuestions),
     );
   if (input.hits?.length) {
@@ -256,6 +266,7 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
       JSON.stringify(input.citationGuide.map(({ pageLink }) => pageLink)),
     );
 
+  if (ctx.provider === "codex") return codexChatRequest(ctx, system, lines.join("\n"));
   return {
     id: "chat",
     cwd: ctx.wikiRoot,
@@ -334,7 +345,15 @@ export function sseFrame(event: string, data: unknown): string {
 export async function runChat(
   req: AgentRequest,
   on: { text: (t: string) => void; tool?: (name: string, target?: string) => void },
-): Promise<{ ok: boolean; sessionId?: string; costUsd?: number; reason?: string; models?: ModelUse }> {
+): Promise<{
+  ok: boolean;
+  sessionId?: string;
+  costUsd?: number;
+  reason?: string;
+  models?: ModelUse;
+  usage?: CodexUsage;
+}> {
+  if (req.provider === "codex") return runCodexChat(req, on);
   const { spawnClaude, resolveClaudeCommand } = await import("../scripts/wiki/claude-cli");
   if (resolveClaudeCommand().shell)
     return { ok: false, reason: "问答隔离需要可直接执行的 claude 二进制路径（CLAUDE_CLI）" };

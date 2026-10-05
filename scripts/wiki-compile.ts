@@ -1,9 +1,8 @@
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { budgetedAgent } from "./wiki/budget";
 import { compileRaw, planRawCompile } from "./wiki/compile-raw";
 import { loadHandbook } from "./wiki/handbook";
-import { runRestrictedClaude } from "./wiki/restricted-claude";
+import { selectedAgent } from "./wiki/selected-agent";
 import { originSchema, WorkflowStore } from "./wiki/workflow";
 import { workflowPolicySchema } from "./wiki/workflow-policy";
 
@@ -53,7 +52,7 @@ try {
         maxAttempts: Number(values["max-attempts"]),
       });
       const result = await compileRaw(new WorkflowStore(root), input, policy, {
-        runAgent: budgetedAgent(root, "raw-compile", runRestrictedClaude),
+        runAgent: selectedAgent(root, "raw-compile"),
         retry: values["retry-failed"],
       });
       console.log(JSON.stringify(result, null, 2));

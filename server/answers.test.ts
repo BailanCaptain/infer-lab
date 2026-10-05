@@ -23,9 +23,11 @@ async function setup(answer = "综合解释，见 [A](sources/a.md)。") {
   const id = await captureAnswer(f.root, "如何理解 A？", answer, [{ file: "sources/a.md", text: page }]);
   return { ...f, id };
 }
-it.each([false,true])("compiles the server receipt once, including hidden coverage metadata: %s", async (metadata) => {
+it.each(["claude", "codex", "metadata"])("compiles the server receipt once with the selected billing: %s", async (mode) => {
+  const metadata = mode === "metadata";
   const f = await setup(metadata ? '综合解释，见 [A](sources/a.md)。\n\n<!-- wiki-coverage: {"satisfied":true,"reason":"证据充分"} -->' : undefined);
   expect(f.id).toBeTruthy();
+  if (mode === "codex") f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6-astra" }));
   let calls = 0;
   const runAgent: import("../scripts/wiki/batch").RunAgent = async (req) => {
     calls++;
@@ -38,14 +40,20 @@ it.each([false,true])("compiles the server receipt once, including hidden covera
       ok: true,
       exitCode: 0,
       stderrTail: "",
-      costUsd: 0.1,
+      ...(mode === "codex" ? { billing: "chatgpt" as const, usage: { input_tokens: 10, output_tokens: 5 } } : { costUsd: 0.1 }),
       output: `---\nid: ${req.id}\ntitle: A 的解释\ntype: source\nsummary: 组合解释\nsources: [${source}]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n综合解释见 [A](../sources/a.md)。\n`,
     };
   };
-  const result = await saveAnswer(f.root, f.id!, { budgetUsd: 1 }, { runAgent });
+  const input = mode === "codex" ? {} : { budgetUsd: 1 };
+  const result = await saveAnswer(f.root, f.id!, input, { runAgent });
   expect(readReview(f.root, result.reviewId).state).toBe("pending");
   expect(readFileSync(join(f.root, "wiki/sources/a.md"), "utf8")).toBe(page);
-  expect((await saveAnswer(f.root, f.id!, { budgetUsd: 1 }, { runAgent })).reviewId).toBe(result.reviewId);
+  expect((await saveAnswer(f.root, f.id!, input, { runAgent })).reviewId).toBe(result.reviewId);
+  if (mode === "codex") {
+    const attempt = new WorkflowStore(f.root).get(result.jobId!).attempts[0]!;
+    expect(attempt.billing).toBe("chatgpt");
+    expect(attempt.costUsd).toBeUndefined();
+  }
   expect(calls).toBe(1);
 });
 it("does not offer an uncited or invented-page answer as a knowledge source", async () => {

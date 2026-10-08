@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" width="900" height="520" role="img" aria-label="配置在代码里的先后：解析参数后建 VllmConfig，平台先跑校验再建配置并按角色改写，每个 Worker 进程在构造函数里各建一份，之后各处取。建的那一步先问缓存能不能复用，不能才重新逐键解析，组合不合法就在这一步报错；未识别的键在多数组里静默走默认值，只有 EplbConfig 那一组会报错。">
+  <title>配置在代码里的先后：解析参数后建 VllmConfig，平台先跑校验再建配置并按角色改写，每个 Worker 进程在构造函数里各建一份，之后各处取。建的那一步先问缓存能不能复用，不能才重新逐键解析，组合不合法就在这一步报错；未识别的键在多数组里静默走默认值，只有 EplbConfig 那一组会报错。</title>
+  <defs><marker id="config-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="config-flow-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="config-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="config-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
+  <path d="M149 122 L149 146" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#config-flow-ah-control)"/>
+  <path d="M149 204 L149 228" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#config-flow-ah-control)"/>
+  <path d="M149 302 L149 326" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#config-flow-ah-token)"/>
+  <path d="M149 384 L149 408" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#config-flow-ah-kv)"/>
+  <path d="M274 265 L312 265 L312 225 L350 225" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#config-flow-ah-control)"/>
+  <path d="M274 355 L312 355 L312 255 L350 255" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#config-flow-ah-token)"/>
+  <path d="M580 220 L610 220 L610 181 L640 181" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#config-flow-ah-control)"/>
+  <path d="M580 250 L610 250 L610 293 L640 293" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#config-flow-ah-token)"/>
+  <path d="M755 336 L755 366" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#config-flow-ah-danger)"/>
+  <rect x="24" y="64" width="250" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="89" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">解析命令行参数</text>
+  <text x="149" y="108" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台钩子补 --quantization</text>
+  <rect x="24" y="146" width="250" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="171" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">建 VllmConfig</text>
+  <text x="149" y="190" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">附带的 JSON 原样存下</text>
+  <rect x="24" y="228" width="250" height="74" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台校验与改写</text>
+  <text x="149" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">四个校验在建配置之前</text>
+  <rect x="24" y="326" width="250" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="351" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个 Worker 进程</text>
+  <text x="149" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">构造函数里各建一份</text>
+  <rect x="24" y="408" width="250" height="58" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="433" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">各处来取这一份</text>
+  <text x="149" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">没建过就直接报错</text>
+  <rect x="350" y="200" width="230" height="74" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="465" y="233" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">缓存能复用吗</text>
+  <text x="465" y="252" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">绑定同一个 VllmConfig</text>
+  <rect x="640" y="150" width="230" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">复用旧的那一份</text>
+  <rect x="640" y="250" width="230" height="86" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="289" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新建 AscendConfig</text>
+  <text x="755" y="308" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">逐键取，多数组静默</text>
+  <rect x="640" y="366" width="230" height="62" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="393" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">组合不合法就报错</text>
+  <text x="755" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EplbConfig 还拒未识别键</text>
+  <text x="24" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">谁来建、谁会改、谁去取</text>
+  <text x="596" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#4d5652">是</text>
+  <text x="596" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#065f56">否</text>
+  <text x="350" y="452" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">平台那一步和每个 Worker 进程走的是同一个建配置函数，缓存各在自己的进</text>
+  <text x="350" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">程里</text>
+  <text x="350" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">每个进程各建一份，改了自己那一份别的进程看不到</text>
+</svg>

@@ -1,21 +1,21 @@
-> 章节草稿始于 2026-09-21；2026-10-05 同步知识库与四问口径。章号待统一编；模型与硬件画面的独立会话进度未在本次核验。
+> 章节草稿始于 2026-09-21；2026-10-08 同步知识库合入 main；四问口径保留 10-05 核对结果。章号待统一编；模型与硬件画面的独立会话进度未在本次核验。
 
 # 项目地图
 
-## 知识库现状与四问口径（2026-10-05）
+## 知识库现状与四问口径（2026-10-08）
 
-知识库工作树位于 `../infra-view-new-llm-wiki`，预览为 `http://localhost:5193/#/wiki`。P1–P5 的 30 批 119 页主线重建已提交；当前已发布 143 页，正式写作标准名单 104 页，本轮审计 104/104 通过。14 张机制动图已改为静态分格，Sleep Mode 已由用户批准发布。状态页可统一选择 Claude Code / Codex 及模型，当前使用 Codex / `gpt-6.1-sol`；已有真实问答与临时库编译验证，完整模型质量验收仍待完成。11 张无引用旧图已删除，保留 288 张现用图。最新检查点、工程回归和剩余功能统一见[知识库交接](../infra-view-new-llm-wiki/docs/plans/2026-09-28-session-handoff.md)及[P6 验收对账](../infra-view-new-llm-wiki/docs/plans/2026-10-05-p6-acceptance.md)。
+知识库 F001–F005 已完成约定开发与验收，并合入本仓库 `main`；预览入口为 `http://localhost:5193/#/wiki`。正式库 145 页，课程入口 30/30，104 页通过写作标准审计。网页 Drop、批次恢复、建链、整组审批与多版本问答均已验收；状态页统一选择 Claude Code / Codex 及模型。10-08 整体独立审查的 1 项 P1、4 项 P2 已全部闭合，最终内容已获用户批准发布。最新状态以[知识库交接](HANDOFF-LLM-WIKI.md)、[最终验收](docs/plans/wiki-final-acceptance.md)和[整体审查报告](docs/plans/wiki-overall-review-2026-10-08.md)为准。Sleep Mode 硬件证据缺口仍保留，夜间模型配额为 0；这些边界不等于整个教学站已完成。
 
 以下四问仍放在**模型讲解的最后**。固定口径统一为 GLM-5.3-Flash 的官方双机部署：2×Atlas 800 A2×8、TP8/DP2/EP16、W8A8。知识库中的教学推导已经有出处，不代表主仓已实现 GLM config 解析器、工作台页面或耗时预测器。
 
 | 四问 | 当前可引用的答案与边界 | 单一出处 |
 |---|---|---|
-| 每生成一个 token 的 KV 显存 | GLM 混合历史包括逐位置缓存与固定状态，不能用统一的普通 K/V 公式。此部署逻辑块为 640 token，每卡每块号 8,355,840 B，折合每 token 13,056 B 是块容量口径；实际请求分配还受缓存组、固定状态和块取整影响 | [部署页：一个 token 的历史占多少](../infra-view-new-llm-wiki/wiki/concepts/glm-5-3-flash-two-node.md)与[单请求调度的 15 个块号](../infra-view-new-llm-wiki/wiki/concepts/one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号) |
-| 总参数量与激活参数量 | 主干约 3133 亿、每 token 激活约 174 亿；主干口径与模型卡 320B/18B 不同。每卡权重教学账约 20.58 GiB，精度分支与额外开销须保留适用条件 | [模型页：参数量](../infra-view-new-llm-wiki/wiki/concepts/glm-5-3-flash.md#参数量3133-亿里-97-是路由专家)、[部署页：每张卡上放了什么](../infra-view-new-llm-wiki/wiki/concepts/glm-5-3-flash-two-node.md#每张卡上放了什么) |
-| 给定输入、输出与 batch 的部署方案 | 先用固定双机作为贯穿示例。每卡 64 GiB、预算比例 0.85、激活与非 torch 占用 3.4 GiB 均属教学假设；示例余量 30 GiB 对应 3,855 块，使用精确权重后为 3,908 块。不能把总容量直接当成任意输入长度下的并发承诺；通用方案求解器仍未完成 | [部署页：剩下的显存变成多少 KV cache](../infra-view-new-llm-wiki/wiki/concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)、[多请求](../infra-view-new-llm-wiki/wiki/concepts/concurrent-requests.md) |
-| Prefill / Decode 理论耗时 | 已有七站形状、通信次数和字节账；尚无可在本地图中引用的完整耗时结论。算力、有效带宽、通信等待、调度与 MTP 接受率需逐项建立模型并与设备实测核对，不能用 910C 表或理想峰值填成双机 A2 的预测结果 | [单请求：开销和什么时候别开](../infra-view-new-llm-wiki/wiki/concepts/one-request.md#开销和什么时候别开) |
+| 每生成一个 token 的 KV 显存 | GLM 混合历史包括逐位置缓存与固定状态，不能用统一的普通 K/V 公式。此部署逻辑块为 640 token，每卡每块号 8,355,840 B，折合每 token 13,056 B 是块容量口径；实际请求分配还受缓存组、固定状态和块取整影响 | [部署页：一个 token 的历史占多少](wiki/concepts/glm-5-3-flash-two-node.md)与[单请求调度的 15 个块号](wiki/concepts/one-request.md#第-2-站-调度4-个-token-的预算和-15-个块号) |
+| 总参数量与激活参数量 | 主干约 3133 亿、每 token 激活约 174 亿；主干口径与模型卡 320B/18B 不同。每卡权重教学账约 20.58 GiB，精度分支与额外开销须保留适用条件 | [模型页：参数量](wiki/concepts/glm-5-3-flash.md#参数量3133-亿里-97-是路由专家)、[部署页：每张卡上放了什么](wiki/concepts/glm-5-3-flash-two-node.md#每张卡上放了什么) |
+| 给定输入、输出与 batch 的部署方案 | 先用固定双机作为贯穿示例。每卡 64 GiB、预算比例 0.85、激活与非 torch 占用 3.4 GiB 均属教学假设；示例余量 30 GiB 对应 3,855 块，使用精确权重后为 3,908 块。不能把总容量直接当成任意输入长度下的并发承诺；通用方案求解器仍未完成 | [部署页：剩下的显存变成多少 KV cache](wiki/concepts/glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)、[多请求](wiki/concepts/concurrent-requests.md) |
+| Prefill / Decode 理论耗时 | 已有七站形状、通信次数和字节账；尚无可在本地图中引用的完整耗时结论。算力、有效带宽、通信等待、调度与 MTP 接受率需逐项建立模型并与设备实测核对，不能用 910C 表或理想峰值填成双机 A2 的预测结果 | [单请求：开销和什么时候别开](wiki/concepts/one-request.md#开销和什么时候别开) |
 
-下方章节安排保留用户已定顺序。特性覆盖表中的 13/51、缺 38 项等是 **09-21 的盘点基线**，不再代表现库；它也不能由“143 页”换算成最新官方特性覆盖率，重新逐项映射前不宣称全覆盖。知识库静态分格决定只适用于知识库，不改变模型与硬件舞台的动画方向。硬件物体仍最后接入。
+下方章节安排保留用户已定顺序。特性覆盖表中的 13/51、缺 38 项等是 **09-21 的盘点基线**，不再代表现库；它也不能由“145 页”换算成最新官方特性覆盖率，重新逐项映射前不宣称全覆盖。知识库静态分格决定只适用于知识库，不改变模型与硬件舞台的动画方向。硬件物体仍最后接入。
 
 ## 一句话
 
@@ -29,7 +29,7 @@
 | **地基** | 主仓 `src/sim/`、`src/timeline/` | 完成、有测试；Qwen3-0.6B 一层前向 21 步真实数据 + 昇腾 910B 驻留/搬运规则 + 播放引擎。**目前没有任何画面在消费它** | 让「模型层」和「硬件层」每一步对得上的数据来源 |
 | **模型物体（GLM）** | `infra-view-hardware-study-20260906/glm-flow/master/`，`python tools/serve_preview.py` → `http://localhost:4178/glm-flow/master/model.html` | GLM 整模型 3D 母版（09-25 用户定）：真实比例、照 bbycroft 排，45 层 + MTP + 头尾，形状和参数对照官方代码与权重文件；还没有能播的段，未接入主仓；准绳是该目录的 `MASTER-DESIGN.md` | Part 1「模型计算层」各章的舞台 |
 | **硬件物体** | 同目录 `whole/`，同一个服务 → `http://localhost:4178/whole/` | 「算力群岛 · 机柜到芯片」，DGX H100 / Atlas 800T A2，机柜→整机→内部→模组；可用，未接入主仓 | Part 2「硬件执行层」各章的舞台 |
-| **知识库** | 工作树 `infra-view-new-llm-wiki`（分支 `feat/llm-wiki`），后端 8790 + 前端 `localhost:5193/#/wiki` | 143 页、104 页通过正式标准审计；当前 P6 工程验收通过（1,021 单测、82 浏览器用例、构建），完整功能与模型质量验收仍有缺项，详见本文件开头 | Part 3/4 各章的底稿；同时是每章右侧的「不懂就问」 |
+| **知识库** | 主仓 `infra-view-new`（`main`），后端 8790 + 前端 `localhost:5193/#/wiki` | F001–F005 已完成并合入；145 页、104 页通过正式标准审计，验收与剩余证据边界见本文件开头 | Part 3/4 各章的底稿；同时是每章右侧的「不懂就问」 |
 | **模型工作台**（PLAN.md §1.2） | 主仓 `src/sim/modelspec/`（`analyze.ts`），没有页面 | 数字引擎有一半：有测试，Qwen3 的参数量、激活参数、每 token KV 字节已能算；第 3、4 问（部署方案、理论耗时）没做；页面没做；GLM 的 config 解析器没做（现有解析器只认 qwen3 / qwen3_moe / qwen2 / llama） | Part 1 收尾那一章的交互部分，也是「母版」的落点：贴另一份 `config.json`，3D 模型物体和四个答案一起变 |
 
 同目录还有 `glm/`（用户自己的版本）和主仓里用户自己的素材包——谁都不动。
@@ -88,7 +88,7 @@
 | 1 | 代码全流程（上）：上游 vLLM 的骨架 | 三个进程怎么起、EngineCore 那个 while 循环转一圈干什么、调度器怎么做减法、KV 块什么时候分出来，以及一条请求从 HTTP 到 token 的调用链 | 见下面的小节表 |
 | 2 | 代码全流程（下）：昇腾怎么挂进来 | 插件怎么注册、平台接口是哪几个方法、NPUPlatform 改了什么、配置与 patch 怎么落地、Worker 的生命周期、NPUModelRunner 怎么读、准备输入产出哪四个张量、vLLM 和昇腾各管什么 | 见下面的小节表 |
 
-**小节与底稿页以 `C:/Users/-/Desktop/infra-view-new-llm-wiki/src/content/wiki/toc.ts` 的 `CURATED.flow` 为准**，下面这两张表是把 `CURATED.flow` 的五组按上/下拆开的结果。
+**小节与底稿页以 `src/content/wiki/toc.ts` 的 `CURATED.flow` 为准**，下面这两张表是把 `CURATED.flow` 的五组按上/下拆开的结果。
 
 上章 · 上游 vLLM 的骨架：
 

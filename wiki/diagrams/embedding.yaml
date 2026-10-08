@@ -1,0 +1,75 @@
+layout: figure
+id: embedding
+caption: 示意小表：词表 6 个 token、每行 4 个数。编号 0、2、3 各选中 E 的第 0、2、3 行，整行照抄，按输入顺序摞成 3 行 4 列的 [3, 4]。表里的数是编的，查法和真实模型相同
+size: [900, 330]
+texts:
+  - { at: [50, 58], text: 输入编号, strong: true }
+  - { at: [442, 30], text: 嵌入表 E, strong: true, anchor: middle }
+  - { at: [784, 84], text: 按输入顺序摞起来, strong: true, anchor: middle }
+items:
+  - { at: [50, 73], size: [110, 28], text: '我：0', tone: token }
+  - { at: [50, 141], size: [110, 28], text: '喜欢：2', tone: token }
+  - { at: [50, 175], size: [110, 28], text: '猫：3', tone: token }
+grids:
+  - at: [330, 70]
+    rows: 6
+    cols: 4
+    cell: [56, 34]
+    tone: weight
+    style: faded
+    rowLabels: ['0 我', '1 你', '2 喜欢', '3 猫', '4 看', '5 。']
+    colLabels: ['第 1 个', '第 2 个', '第 3 个', '第 4 个']
+    label: '形状 [6, 4]：6 行，每行 4 个数'
+    cells:
+      - { at: [0, 0], text: '0.2', style: solid }
+      - { at: [0, 1], text: '−0.1', style: solid }
+      - { at: [0, 2], text: '0.5', style: solid }
+      - { at: [0, 3], text: '0.3', style: solid }
+      - { at: [1, 0], text: '0.1' }
+      - { at: [1, 1], text: '0.4' }
+      - { at: [1, 2], text: '−0.2' }
+      - { at: [1, 3], text: '0.6' }
+      - { at: [2, 0], text: '−0.3', style: solid }
+      - { at: [2, 1], text: '0.8', style: solid }
+      - { at: [2, 2], text: '0.1', style: solid }
+      - { at: [2, 3], text: '0.0', style: solid }
+      - { at: [3, 0], text: '0.7', style: solid }
+      - { at: [3, 1], text: '0.2', style: solid }
+      - { at: [3, 2], text: '−0.4', style: solid }
+      - { at: [3, 3], text: '0.9', style: solid }
+      - { at: [4, 0], text: '0.5' }
+      - { at: [4, 1], text: '−0.6' }
+      - { at: [4, 2], text: '0.3' }
+      - { at: [4, 3], text: '−0.1' }
+      - { at: [5, 0], text: '0.0' }
+      - { at: [5, 1], text: '−0.2' }
+      - { at: [5, 2], text: '0.6' }
+      - { at: [5, 3], text: '0.4' }
+  - at: [680, 104]
+    rows: 3
+    cols: 4
+    cell: [52, 34]
+    tone: token
+    style: solid
+    rowLabels: ['位置 0', '位置 1', '位置 2']
+    label: '取出的向量 [3, 4]'
+    cells:
+      - { at: [0, 0], text: '0.2' }
+      - { at: [0, 1], text: '−0.1' }
+      - { at: [0, 2], text: '0.5' }
+      - { at: [0, 3], text: '0.3' }
+      - { at: [1, 0], text: '−0.3' }
+      - { at: [1, 1], text: '0.8' }
+      - { at: [1, 2], text: '0.1' }
+      - { at: [1, 3], text: '0.0' }
+      - { at: [2, 0], text: '0.7' }
+      - { at: [2, 1], text: '0.2' }
+      - { at: [2, 2], text: '−0.4' }
+      - { at: [2, 3], text: '0.9' }
+links:
+  - { from: [160, 87], to: [268, 87] }
+  - { from: [160, 155], to: [268, 155] }
+  - { from: [160, 189], to: [268, 189] }
+  - { from: [554, 87], to: [620, 121], via: [[590, 87], [590, 121]], tone: token }
+  - { from: [554, 155], to: [620, 155], tone: token }
+  - { from: [554, 189], to: [620, 189], tone: token }

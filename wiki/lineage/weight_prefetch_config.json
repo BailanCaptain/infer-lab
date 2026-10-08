@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "term": "weight_prefetch_config",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 6
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8",
+      "files": 5
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "325293616f96dc09a2dce1ece5ee412190dddbb4",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.28.0rc",
+      "commit": "df7d511e9282745ccbef73509495637b01e160b4",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.29.0rc",
+      "commit": "a71b766ce6fc0a9669a412e15a5cf53f7f827093",
+      "files": 0
+    },
+    {
+      "ref": "main",
+      "commit": "39fef3f8fe71e71a8b7a684ae0f62b85ff18661f",
+      "files": 0
+    }
+  ],
+  "events": [
+    {
+      "commit": "ff3757593614964f7ab91dab3da0c4aee568bec8",
+      "date": "2025-10-09",
+      "subject": "[1/N][Feat] Add weight prefetch feature for Attention layers (#3146)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 10,
+          "removed": 14
+        },
+        {
+          "path": "vllm_ascend/attention/mla_v1.py",
+          "added": 13,
+          "removed": 13
+        },
+        {
+          "path": "vllm_ascend/torchair/torchair_mla.py",
+          "added": 13,
+          "removed": 13
+        },
+        {
+          "path": "vllm_ascend/torchair/models/torchair_deepseek_v2.py",
+          "added": 5,
+          "removed": 4
+        },
+        {
+          "path": "vllm_ascend/ascend_forward_context.py",
+          "added": 11,
+          "removed": 2
+        }
+      ],
+      "pr": 3146,
+      "containedIn": {
+        "tags": [
+          "v0.11.0",
+          "v0.11.0rc1",
+          "v0.11.0rc2",
+          "v0.11.0rc3",
+          "v0.12.0rc1",
+          "v0.13.0",
+          "v0.13.0rc1",
+          "v0.13.0rc2",
+          "v0.13.0rc3",
+          "v0.14.0rc1",
+          "v0.15.0rc1",
+          "v0.16.0rc1",
+          "v0.17.0rc1",
+          "v0.18.0",
+          "v0.18.0rc1",
+          "v0.19.1rc1",
+          "v0.20.2rc1",
+          "v0.21.0rc1",
+          "v0.22.1rc1",
+          "v0.23.0",
+          "v0.23.0.post1",
+          "v0.23.0rc1",
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.13.0",
+          "origin/releases/v0.18.0",
+          "origin/releases/v0.20.2rc",
+          "origin/releases/v0.21.0rc",
+          "origin/releases/v0.22.1rc",
+          "origin/releases/v0.23.0",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/revert-13905-releases/v0.23.0_bugbix_w8a8_mxfp8_for_rl",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/community-contrib",
+          "origin/rfc/megakernel",
+          "origin/rfc/vllm_cann",
+          "origin/v0.11.0-dev"
+        ]
+      }
+    },
+    {
+      "commit": "e77502ef715f612f2cc6f3c833174431f26cb765",
+      "date": "2026-07-16",
+      "subject": "[Refactor] Remove weight prefetch config (#11949)",
+      "kind": "removed",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/ops/weight_prefetch.py",
+          "added": 0,
+          "removed": 238
+        },
+        {
+          "path": "vllm_ascend/ops/register_custom_ops.py",
+          "added": 1,
+          "removed": 40
+        },
+        {
+          "path": "vllm_ascend/utils.py",
+          "added": 1,
+          "removed": 25
+        },
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 0,
+          "removed": 22
+        },
+        {
+          "path": "vllm_ascend/quantization/methods/w8a8_static.py",
+          "added": 0,
+          "removed": 15
+        }
+      ],
+      "pr": 11949,
+      "containedIn": {
+        "tags": [
+          "v0.24.0rc1",
+          "v0.25.1rc1",
+          "v0.26.0rc1",
+          "v0.26.0rc2"
+        ],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/labeler-7",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.24.0rc",
+          "origin/releases/v0.25.1rc",
+          "origin/releases/v0.26.0rc",
+          "origin/releases/v0.27.1rc",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/revert-15210-glm52_v2_dspark",
+          "origin/revert-15908-new-refactor",
+          "origin/rfc/0.26.0rc1-bugfix",
+          "origin/rfc/megakernel"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": [
+    "v0.11.0",
+    "v0.11.0rc1",
+    "v0.11.0rc2",
+    "v0.11.0rc3",
+    "v0.12.0rc1",
+    "v0.13.0",
+    "v0.13.0rc1",
+    "v0.13.0rc2",
+    "v0.13.0rc3",
+    "v0.14.0rc1",
+    "v0.15.0rc1",
+    "v0.16.0rc1",
+    "v0.17.0rc1",
+    "v0.18.0",
+    "v0.18.0rc1",
+    "v0.19.1rc1",
+    "v0.20.2rc1",
+    "v0.21.0rc1",
+    "v0.22.1rc1",
+    "v0.23.0",
+    "v0.23.0.post1",
+    "v0.23.0rc1"
+  ]
+}

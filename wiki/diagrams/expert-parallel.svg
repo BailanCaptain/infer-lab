@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 850" width="900" height="850" role="img" aria-label="第 4 站的两条 MoE 执行路径，分别从上往下读。MC2 先分源 token，combine 合齐专家贡献后再拼回 token；AllGather 先收齐输入，本地算专家，再跨两级组归约。共享分支始终使用本组完整输入。">
+  <title>第 4 站的两条 MoE 执行路径，分别从上往下读。MC2 先分源 token，combine 合齐专家贡献后再拼回 token；AllGather 先收齐输入，本地算专家，再跨两级组归约。共享分支始终使用本组完整输入。</title>
+  <defs><marker id="expert-parallel-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="expert-parallel-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="18" y="42" width="416" height="750" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="34" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">MC2 · R1 · 本组 4 行</text>
+  <rect x="466" y="42" width="416" height="750" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="482" y="30" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">AllGather · 场景 M · 本组 6048 行</text>
+  <path d="M226 142 L226 184" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M226 246 L226 288" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-ah-comm)"/>
+  <path d="M226 350 L226 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M226 454 L226 496" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-ah-comm)"/>
+  <path d="M226 558 L226 600" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M226 662 L226 704" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M674 142 L674 184" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M674 246 L674 288" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-ah-comm)"/>
+  <path d="M674 350 L674 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M674 454 L674 496" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <path d="M674 558 L674 600" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#expert-parallel-ah-comm)"/>
+  <path d="M674 662 L674 704" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#expert-parallel-ah-ink)"/>
+  <rect x="38" y="80" width="376" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">router → prepare</text>
+  <text x="226" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">打分 [4,288]；4 行补 8，切成每卡 1 行</text>
+  <rect x="38" y="184" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">top-8 → MC2 dispatch</text>
+  <text x="226" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EP16 · 发送 INT8 hidden + FP32 scale</text>
+  <rect x="38" y="288" width="376" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">目的卡 · 本地 18 个完整专家</text>
+  <text x="226" y="334" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">接收 Nᵣ 行，按专家分组计算</text>
+  <rect x="38" y="392" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="419" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MC2 combine → 源卡</text>
+  <text x="226" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EP16 · 返回 BF16 结果并加权 → [1,4096]</text>
+  <rect x="38" y="496" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="523" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">finalize · TP8 All-Gather</text>
+  <text x="226" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼回 token：[8,4096] → 去补位 [4,4096]</text>
+  <rect x="38" y="600" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="627" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享专家 → TP8 All-Reduce</text>
+  <text x="226" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">从原始 [4,4096] 计算，单独合齐共享输出</text>
+  <rect x="38" y="704" width="376" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="226" y="731" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">路由输出 + 共享输出</text>
+  <text x="226" y="750" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[4,4096] · 本组完整 MoE 输出</text>
+  <rect x="486" y="80" width="376" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">router → prepare</text>
+  <text x="674" y="126" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本地 hidden [6048,4096]；分数 [6048,288]</text>
+  <rect x="486" y="184" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DP2 All-Gather × 2</text>
+  <text x="674" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收齐两组 hidden 与分数 → 12096 行</text>
+  <rect x="486" y="288" width="376" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">top-8 → 本地 dispatch → 本地专家</text>
+  <text x="674" y="334" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡内筛出命中本卡 18 个专家的 Nᵣ 行</text>
+  <rect x="486" y="392" width="376" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="419" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本地 combine</text>
+  <text x="674" y="438" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">[12096,4096] · 只含本卡专家贡献</text>
+  <rect x="486" y="496" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="523" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">finalize · DP2 Reduce-Scatter</text>
+  <text x="674" y="542" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[6048,4096] · 一对 EP rank 的贡献</text>
+  <rect x="486" y="600" width="376" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="627" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">加上共享专家的 TP 部分和</text>
+  <text x="674" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">共享分支使用本组原始 [6048,4096]</text>
+  <rect x="486" y="704" width="376" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="674" y="731" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">TP8 All-Reduce · 合齐两种贡献</text>
+  <text x="674" y="750" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">[6048,4096] · 本组完整 MoE 输出</text>
+  <text x="226" y="827" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每层 4 次集合通信</text>
+  <text x="674" y="827" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每层 4 次集合通信</text>
+</svg>

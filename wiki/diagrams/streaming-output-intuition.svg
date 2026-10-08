@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 500" width="880" height="500" role="img" aria-label="示意：一条请求先后生成 3 个 token，第 4 步抽到结束 token。每一步，引擎交回新编号；前端的增量反分词把它接在已有字节后面还原，凑不成完整的字就先攒着；判停之后，把这一步新增的文字包成一个 SSE 片段推给客户端。第 2 步只拿到半个字的字节，推出去的片段是空的；结束 token 不显示成文字，只在最后一个片段里写结束原因，随后发 [DONE] 表示流结束。判停分两处：结束 token 和长度由引擎判，停止字符串由前端在反分词之后判；第 4 步的停是引擎判的，前端据此不还原这个编号。编号与字节沿用 token 页的「推理」「犇」两例">
+  <title>示意：一条请求先后生成 3 个 token，第 4 步抽到结束 token。每一步，引擎交回新编号；前端的增量反分词把它接在已有字节后面还原，凑不成完整的字就先攒着；判停之后，把这一步新增的文字包成一个 SSE 片段推给客户端。第 2 步只拿到半个字的字节，推出去的片段是空的；结束 token 不显示成文字，只在最后一个片段里写结束原因，随后发 [DONE] 表示流结束。判停分两处：结束 token 和长度由引擎判，停止字符串由前端在反分词之后判；第 4 步的停是引擎判的，前端据此不还原这个编号。编号与字节沿用 token 页的「推理」「犇」两例</title>
+  <defs><marker id="streaming-output-intuition-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="streaming-output-intuition-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="streaming-output-intuition-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M273 120 L273 160" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M443 120 L443 160" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M613 120 L613 160" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M783 120 L783 160" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M273 220 L273 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M443 220 L443 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M613 220 L613 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M783 220 L783 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#streaming-output-intuition-ah-ink)"/>
+  <path d="M273 314 L273 354" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#streaming-output-intuition-ah-comm)"/>
+  <path d="M443 314 L443 354" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#streaming-output-intuition-ah-comm)"/>
+  <path d="M613 314 L613 354" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#streaming-output-intuition-ah-comm)"/>
+  <path d="M783 314 L783 354" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#streaming-output-intuition-ah-comm)"/>
+  <path d="M783 410 L783 444" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#streaming-output-intuition-ah-comm)"/>
+  <path d="M516 190 L540 190" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#streaming-output-intuition-ah-token)"/>
+  <rect x="200" y="60" width="146" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="273" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">9123</text>
+  <text x="273" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">6 个字节</text>
+  <rect x="370" y="60" width="146" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="443" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">a</text>
+  <text x="443" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">字节 E7 8A</text>
+  <rect x="540" y="60" width="146" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="613" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">b</text>
+  <text x="613" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">字节 87</text>
+  <rect x="710" y="60" width="146" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="783" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束 token</text>
+  <text x="783" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引擎当场判停</text>
+  <rect x="200" y="160" width="146" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="273" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">推理</text>
+  <text x="273" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">6 个字节凑成 2 个字</text>
+  <rect x="370" y="160" width="146" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="443" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">（无）</text>
+  <text x="443" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">半个字，先攒着</text>
+  <rect x="540" y="160" width="146" height="60" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="613" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">犇</text>
+  <text x="613" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">和攒着的 E7 8A 凑齐</text>
+  <rect x="710" y="160" width="146" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="783" y="186" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">（不显示）</text>
+  <text x="783" y="205" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">已判停，不还原</text>
+  <rect x="200" y="262" width="146" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="273" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">不停</text>
+  <rect x="370" y="262" width="146" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="443" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">不停</text>
+  <rect x="540" y="262" width="146" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="613" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">不停</text>
+  <rect x="710" y="262" width="146" height="52" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="783" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">停</text>
+  <text x="783" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束原因 stop</text>
+  <rect x="200" y="354" width="146" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="273" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">「推理」</text>
+  <rect x="370" y="354" width="146" height="56" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="443" y="378" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">空片段</text>
+  <text x="443" y="397" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">没有新文字</text>
+  <rect x="540" y="354" width="146" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="613" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">「犇」</text>
+  <rect x="710" y="354" width="146" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="783" y="387" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束原因 stop</text>
+  <rect x="710" y="444" width="146" height="46" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="783" y="463" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">[DONE]</text>
+  <text x="783" y="482" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">流结束</text>
+  <text x="273" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 1 步</text>
+  <text x="443" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 2 步</text>
+  <text x="613" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 3 步</text>
+  <text x="783" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">第 4 步</text>
+  <text x="24" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">引擎交回的编号</text>
+  <text x="24" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">增量反分词</text>
+  <text x="24" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">判停（两处）</text>
+  <text x="24" y="386" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">推给客户端的片段</text>
+</svg>

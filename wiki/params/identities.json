@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "bindings": [
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"c8_enable_reshape_optim\"]",
+      "pageId": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"weight_prefetch_config\"]",
+      "pageId": "weight-prefetch-config",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"layer_sharding\"]",
+      "pageId": "layer-sharding",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"multistream_overlap_gate\"]",
+      "pageId": "multistream-overlap-gate",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"enable_sleep_mode_extra_cleanup\"]",
+      "pageId": "enable-sleep-mode-extra-cleanup",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"enable_matmul_allreduce\"]",
+      "pageId": "enable-matmul-allreduce",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "additional_config[\"enable_async_exponential\"]",
+      "pageId": "enable-async-exponential",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
+      "json_path": "vllm_config.additional_config.get('ascend_compilation_config', {})[\"fuse_allreduce_rms\"]",
+      "pageId": "fuse-allreduce-rms",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "WeightPrefetchConfig",
+      "json_path": "additional_config[\"prefetch_ratio\"]",
+      "pageId": "prefetch-ratio",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/compilation/graph_fusion_pass_manager.py",
+      "class": "",
+      "json_path": "self.ascend_compilation_config[\"fuse_allreduce_rms\"]",
+      "pageId": "fuse-allreduce-rms",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/model_loader/rfork/rfork_loader.py",
+      "class": "",
+      "json_path": "additional_config[\"layer_sharding\"]",
+      "pageId": "layer-sharding",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ops/weight_prefetch.py",
+      "class": "ModuleWeightPrefetchConfig",
+      "json_path": "ModuleWeightPrefetchConfig[\"prefetch_ratio\"]",
+      "pageId": "prefetch-ratio",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/platform.py",
+      "class": "",
+      "json_path": "additional_config[\"layer_sharding\"]",
+      "pageId": "layer-sharding",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "SparseKVOffloadConfig",
+      "json_path": "additional_config[\"sparse_kv_offload_config\"][\"use_fused_overlap\"]",
+      "pageId": "use-fused-overlap-75a180fff6ab",
+      "role": "definition"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/backend/yuanrong_backend.py",
+      "class": "YuanrongConfig",
+      "json_path": "YuanrongConfig[\"use_layerwise\"]",
+      "pageId": "use-layerwise-b475778cd352",
+      "role": "definition"
+    }
+  ]
+}

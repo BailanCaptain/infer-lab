@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 790" width="900" height="790" role="img" aria-label="七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。">
+  <title>七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。</title>
+  <defs><marker id="request-call-chain-functions-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="request-call-chain-functions-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="request-call-chain-functions-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="24" y="44" width="402" height="122" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① API server · 入口</text>
+  <rect x="24" y="216" width="402" height="330" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore · 调度与记账</text>
+  <rect x="474" y="216" width="402" height="330" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="490" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">worker · 每张卡执行</text>
+  <rect x="24" y="614" width="402" height="136" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="602" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑦ API server · 返回</text>
+  <path d="M225 142 L225 248" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-call-chain-functions-ah-comm)"/>
+  <path d="M410 281 L490 281" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-call-chain-functions-ah-comm)"/>
+  <path d="M675 314 L675 350" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-functions-ah-ink)"/>
+  <path d="M675 416 L675 452" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-call-chain-functions-ah-ink)"/>
+  <path d="M490 485 L410 485" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-call-chain-functions-ah-comm)"/>
+  <path d="M225 452 L225 314" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#request-call-chain-functions-ah-control)"/>
+  <path d="M225 518 L225 646" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-call-chain-functions-ah-comm)"/>
+  <rect x="40" y="76" width="370" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="105" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">OpenAIServingChat.create_chat_completion</text>
+  <text x="225" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">套模板、分词、登记输出接收点</text>
+  <rect x="40" y="248" width="370" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">② Scheduler.schedule</text>
+  <text x="225" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本步算谁、各算几个、分哪些块</text>
+  <rect x="490" y="248" width="370" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ NPUWorker.execute_model</text>
+  <text x="675" y="296" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">准备张量，在本次调用中进入④</text>
+  <rect x="510" y="350" width="350" height="66" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="685" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ _model_forward</text>
+  <text x="685" y="398" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">在③内部：逐层前向后计算 logits</text>
+  <rect x="490" y="452" width="370" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="675" y="481" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ NPUModelRunner.sample_tokens</text>
+  <text x="675" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 token、记账、草拟下一步候选</text>
+  <rect x="40" y="452" width="370" height="66" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="481" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑥ Scheduler.update_from_output</text>
+  <text x="225" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">回退计数 → 追加 token → 检查停止</text>
+  <rect x="40" y="646" width="370" height="76" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="225" y="680" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">OutputProcessor.process_outputs</text>
+  <text x="225" y="699" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">反分词、检查 stop string、流式返回</text>
+  <text x="240" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">选 DP 组 → ZMQ 发送请求</text>
+  <text x="450" y="243" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">RPC</text>
+  <text x="450" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#7a3a6a" text-anchor="middle">响应队列</text>
+  <text x="242" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">继续 → 下一步</text>
+  <text x="242" y="410" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#3a4f93">结束 → 归还块号</text>
+  <text x="240" y="582" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="#7a3a6a">ZMQ · 每步的新 token</text>
+  <text x="490" y="653" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">第 4 站的 logits 留在 worker</text>
+  <text x="490" y="685" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">第 5 站由第二次 RPC 触发</text>
+</svg>

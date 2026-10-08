@@ -1,0 +1,245 @@
+{
+  "size": [
+    900,
+    470
+  ],
+  "caption": "同一个 8 层模型放到 4 张卡上（示意）：TP 把每一层切成 4 片，PP 把 8 层按顺序切成 4 段；两种切法每张卡都放 1/4 的权重",
+  "frames": [
+    {
+      "at": [
+        30,
+        50
+      ],
+      "size": [
+        400,
+        400
+      ],
+      "label": "TP：每一层内部切成 4 片"
+    },
+    {
+      "at": [
+        470,
+        50
+      ],
+      "size": [
+        400,
+        400
+      ],
+      "label": "PP：层与层之间切成 4 段"
+    }
+  ],
+  "grids": [
+    {
+      "at": [
+        120,
+        140
+      ],
+      "rows": 8,
+      "cols": 4,
+      "cell": [
+        64,
+        26
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "rowLabels": [
+        "层 0",
+        "层 1",
+        "层 2",
+        "层 3",
+        "层 4",
+        "层 5",
+        "层 6",
+        "层 7"
+      ],
+      "colLabels": [
+        "卡 0",
+        "卡 1",
+        "卡 2",
+        "卡 3"
+      ]
+    },
+    {
+      "at": [
+        560,
+        122
+      ],
+      "rows": 2,
+      "cols": 1,
+      "cell": [
+        150,
+        26
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "rowLabels": [
+        "层 0",
+        "层 1"
+      ]
+    },
+    {
+      "at": [
+        560,
+        198
+      ],
+      "rows": 2,
+      "cols": 1,
+      "cell": [
+        150,
+        26
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "rowLabels": [
+        "层 2",
+        "层 3"
+      ]
+    },
+    {
+      "at": [
+        560,
+        274
+      ],
+      "rows": 2,
+      "cols": 1,
+      "cell": [
+        150,
+        26
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "rowLabels": [
+        "层 4",
+        "层 5"
+      ]
+    },
+    {
+      "at": [
+        560,
+        350
+      ],
+      "rows": 2,
+      "cols": 1,
+      "cell": [
+        150,
+        26
+      ],
+      "gap": 0,
+      "tone": "weight",
+      "style": "plain",
+      "rowLabels": [
+        "层 6",
+        "层 7"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "from": [
+        635,
+        174
+      ],
+      "to": [
+        635,
+        198
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        635,
+        250
+      ],
+      "to": [
+        635,
+        274
+      ],
+      "tone": "comm"
+    },
+    {
+      "from": [
+        635,
+        326
+      ],
+      "to": [
+        635,
+        350
+      ],
+      "tone": "comm"
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        726,
+        153
+      ],
+      "text": "卡 0",
+      "strong": true
+    },
+    {
+      "at": [
+        726,
+        229
+      ],
+      "text": "卡 1",
+      "strong": true
+    },
+    {
+      "at": [
+        726,
+        305
+      ],
+      "text": "卡 2",
+      "strong": true
+    },
+    {
+      "at": [
+        726,
+        381
+      ],
+      "text": "卡 3",
+      "strong": true
+    },
+    {
+      "at": [
+        648,
+        190
+      ],
+      "text": "交隐藏向量",
+      "size": 12,
+      "tone": "comm"
+    },
+    {
+      "at": [
+        248,
+        385
+      ],
+      "text": "每张卡：8 层 × 每层 1/4 = 2 层的量",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        248,
+        410
+      ],
+      "text": "每层合两次：attention 后、MLP 后各一次",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        670,
+        435
+      ],
+      "text": "每张卡：完整的 2 层",
+      "anchor": "middle"
+    }
+  ],
+  "layout": "figure",
+  "id": "pipeline-parallel-split"
+}

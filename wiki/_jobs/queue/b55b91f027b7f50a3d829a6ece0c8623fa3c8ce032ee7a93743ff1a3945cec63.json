@@ -1,0 +1,21 @@
+{
+  "id": "b55b91f027b7f50a3d829a6ece0c8623fa3c8ce032ee7a93743ff1a3945cec63",
+  "input": {
+    "kind": "gap",
+    "key": "a5164fe10fa9184412f89f7dab6fda13de17c3bd5600e773b996e8586ff7e8a2"
+  },
+  "state": "closed",
+  "createdAt": "2026-09-23T03:27:55.381Z",
+  "attempts": 4,
+  "result": {
+    "draftId": "gap-a5164fe10fa9184412f8",
+    "compileJob": "89f03ffee693030c11349b3bb0211af6a62c64ded44a893e89c4bc39baecfad3",
+    "reviewId": "700c047d058af6db74676719445e4874e908421240acdba6ee1453c10224f616",
+    "beforeRevision": "08dc0e63651e46a5e7a127289ac06292477ddb205fe8d47c8d6d3d90231c57b0",
+    "compilationStarted": true,
+    "next": "请在审阅面板或 wiki:review show 700c047d058af6db74676719445e4874e908421240acdba6ee1453c10224f616 核对完整变更；批准后独立问题复测",
+    "retestReviewHash": "e631c96856fb64e22ba97d992fdbe873312a56d720c443492d085dd925238d39",
+    "closureBasis": "explicit-semantic-review",
+    "closureObservationCount": 5
+  }
+}

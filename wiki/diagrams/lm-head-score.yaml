@@ -1,0 +1,66 @@
+layout: figure
+id: lm-head-score
+caption: 示意：隐藏向量 h = [1.0, 0.5, −1.0, 2.0] 和输出权重里「猫」那一列 [0.6, 0.2, −0.4, 0.5] 对齐，逐位相乘得到 [0.6, 0.1, 0.4, 1.0]，加起来是 2.1，就是「猫」的分数。其余 5 列照样各做一次，得到下面一排 6 个分数；表里的数都是为演示编的。
+size: [900, 390]
+texts:
+  - { at: [30, 34], text: 先只看「猫」这一列：对齐的位置相乘，再全部加起来, strong: true }
+  - { at: [170, 158], text: '×', anchor: middle, size: 22 }
+  - { at: [300, 158], text: '=', anchor: middle, size: 22 }
+  - { at: [60, 318], text: 6 列各算一次, strong: true }
+grids:
+  - at: [70, 80]
+    rows: 4
+    cols: 1
+    cell: [64, 36]
+    tone: token
+    style: solid
+    label: 隐藏向量 h
+    cells:
+      - { at: [0, 0], text: '1.0' }
+      - { at: [1, 0], text: '0.5' }
+      - { at: [2, 0], text: '−1.0' }
+      - { at: [3, 0], text: '2.0' }
+  - at: [202, 80]
+    rows: 4
+    cols: 1
+    cell: [64, 36]
+    tone: weight
+    style: solid
+    label: 「猫」这一列
+    cells:
+      - { at: [0, 0], text: '0.6' }
+      - { at: [1, 0], text: '0.2' }
+      - { at: [2, 0], text: '−0.4' }
+      - { at: [3, 0], text: '0.5' }
+  - at: [334, 80]
+    rows: 4
+    cols: 1
+    cell: [64, 36]
+    tone: token
+    style: faded
+    label: 逐位相乘
+    cells:
+      - { at: [0, 0], text: '0.6' }
+      - { at: [1, 0], text: '0.1' }
+      - { at: [2, 0], text: '0.4' }
+      - { at: [3, 0], text: '1.0' }
+  - at: [240, 296]
+    rows: 1
+    cols: 6
+    cell: [60, 36]
+    tone: token
+    style: faded
+    colLabels: ['我', '你', '喜欢', '猫', '看', '。']
+    label: 6 个分数（logits）
+    cells:
+      - { at: [0, 0], text: '−0.4' }
+      - { at: [0, 1], text: '−0.5' }
+      - { at: [0, 2], text: '0.2' }
+      - { at: [0, 3], text: '2.1', style: solid }
+      - { at: [0, 4], text: '0.8' }
+      - { at: [0, 5], text: '1.0' }
+items:
+  - { at: [470, 128], size: [220, 52], text: '加起来：2.1', sub: 0.6 + 0.1 + 0.4 + 1.0, tone: token }
+links:
+  - { from: [402, 154], to: [466, 154] }
+  - { from: [160, 314], to: [236, 314] }

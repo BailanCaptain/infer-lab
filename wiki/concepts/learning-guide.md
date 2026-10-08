@@ -1,0 +1,109 @@
+---
+id: learning-guide
+title: "阅读指南：这个知识库讲什么，按什么顺序读"
+type: concept
+origin: direct
+summary: 知识库入口：模型固定为 GLM-5.3-Flash、部署固定为官方双机 16 卡，沿「一条请求」读完五页主线，再按问题展开各分组；另有术语、证据角标与问答侧栏的用法。
+aliases: [学习路线, 阅读顺序, 入门指南, 无设备学习]
+chapters: ["00"]
+order: 1
+sources:
+  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/eb9eb208eb0d988989d07a6a12d0fdeb5f52574a/config.json
+relations: []
+verified: []
+evidence: I
+contradicts: []
+updated: "2026-09-27"
+---
+
+## 这个知识库讲什么
+
+一段文字交给一套真实的推理服务，它被怎样算成了回答——这个知识库只讲这一件事，从模型里的一次乘法一直讲到进程之间的一条消息。
+
+所有例子用同一套模型、部署和源码前提，换页时可以接着前面的背景读。
+
+| 固定的前提 | 一句话结论 | 展开在哪一页 |
+| --- | --- | --- |
+| 模型 | GLM-5.3-Flash。attention 把前文信息汇到当前位置；MoE（mixture of experts）把前馈计算分给多个专家，每个位置只挑少数几个来算 | [模型结构与配置数字](glm-5-3-flash.md) |
+| 部署 | vLLM 是开源推理引擎，vllm-ascend 是它的昇腾适配层；主线采用官方双机配置，W8A8 表示权重和激活都用 8 位整数表示 | [硬件、并行规模与关键参数](glm-5-3-flash-two-node.md#部署前提) |
+| 源码 | 以官方教程的镜像为基线；需要逐行核对时，再看页末[版本差异](#版本差异) | [来源基线](../sources/glm-5-3-flash-baseline.md#镜像固定与源码对应) |
+
+部署里有三个分工名称，先记住各自分的是什么：
+
+- **TP（tensor parallel）分矩阵计算**：同一层的矩阵交给多张卡，先按列切、再按行切，成对使用；各卡先算出完整的几列，再算出下一次乘法的部分和，最后相加。
+- **DP（data parallel）分请求**：把请求分给不同执行组，各组分别安排自己的请求在哪一步计算；这里每台机器是一个执行组。
+- **EP（expert parallel）分专家**：把不同专家放到不同卡上，需要哪个专家，就把输入送到那张卡，算完收回结果；这里两台机器共同持有完整的专家集合。
+
+具体哪些层量化、每卡放什么，继续读[部署页](glm-5-3-flash-two-node.md#每张卡上放了什么)。
+
+用纸笔就能跟着例子复算形状、次数和字节数；需要 NPU（neural processing unit，昇腾的计算设备）实测才能确定的事项，列在页末「对照源码」的**待核**条目里。
+
+## 按顺序读的五页主线
+
+第一次读，按下面五页的顺序走：模型 → 部署 → 单条请求 → 多条请求 → 代码路径。
+
+| 顺序 | 读哪一页 | 读完能回答的问题 |
+| --- | --- | --- |
+| 1 | [认识 GLM-5.3-Flash](glm-5-3-flash.md) | 一次前向里到底算了什么？一层里的两段计算各做什么？两种 attention 怎样用历史？生成一个 token（词元，分词器切出来的最小单位，不一定是一个字）之后留下了哪些状态？ |
+| 2 | [我们的部署](glm-5-3-flash-two-node.md) | 16 张卡上各放了什么？为什么要两台机器？启动时按顺序做完了哪几件事？权重占掉之后，剩下的显存变成多少 KV cache（保存历史位置的中间结果，让后面的 token 不用重算前面的内容）？ |
+| 3 | [一条请求](one-request.md) | 一条请求要走过哪七站？每一站在每张卡上的形状、次数和字节数是多少？第一个 token（prefill，把提示词里还没算过的位置算出来，可以整段也可以分块）和后面的 token（decode，在已有历史上继续往前走，一步不一定只走一个位置）走的路差在哪？ |
+| 4 | [多个请求](concurrent-requests.md) | 新请求先进哪个调度组？一步的 token 预算怎么分给十几条请求？显存不够时谁让位？两个组为什么要互相等对方？ |
+| 5 | [代码路径](request-call-chain.md) | 每一站在哪个进程里执行？经过哪些类和函数？进程之间走哪条通道？出问题时怎么判断请求停在哪一站？ |
+
+前四页只要会矩阵乘就能读；第 5 页开始需要能看懂 Python 调用栈。读完这五页，再按下一节的表挑分组。
+
+```wiki-diagram
+file: learning-guide-route
+```
+
+## 每个分组展开主线的哪一步
+
+按主线的步骤找到该读的分组；点击小节名可进入该小节的第一页。
+
+| 分组 | 小节 | 展开主线的哪一步 | 什么时候读 |
+| --- | --- | --- | --- |
+| 开始学习 | 阅读路线（就是你正在读的这页）；[模型与请求概览](glm-5-3-flash.md) | 主线入口、模型计算、单请求与多请求 | 第一次阅读时，从本页进入五页主线 |
+| 模型结构与计算 | [输入表示与张量计算](token.md)；[数值表示与量化](quantization.md)；[Decoder 层、MoE 与 lm_head](layers-and-hidden.md)；[Attention 与位置编码](attention-qkv.md) | 部署时的权重表示；准备输入与逐层前向 | 读完第 1 页，展开 embedding（词向量）、矩阵乘和 attention；读第 2 页权重预算时查量化 |
+| 推理过程 | [Prefill、Decode 与 KV cache](prefill.md)；[Block table 与 prefix caching](block-table.md)；[Chunked prefill 与 speculative decoding](chunked-prefill.md)；[调度与执行重叠](async-scheduling.md)；[KV cache 量化与分层存储](kv-cache-quantization.md)；[外部 KV cache 与 connector](kv-pool.md) | 部署时的缓存预算；请求调度、decode 与缓存复用 | 读完第 3 页展开缓存与生成过程；读完第 4 页展开调度；缓存容量问题从第 2 页接入 |
+| vLLM 与 Ascend 架构 | [组件、职责与进程](vllm-v1-shape.md)；[启动与平台适配](platform-plugin-registration.md)；[EngineCore、Scheduler 与 KV block 分配](vllm-engine-core.md)；[Model runner 与 attention backend](prepare-inputs-flow.md)；[源码阅读](vllm-ascend-repo-map.md) | 部署与启动；从请求入口、调度、执行到返回的代码实现 | 读第 5 页或开始查源码时；启动问题可从第 2 页接入 |
+| Ascend 硬件与软件栈 | [设备、内存与计算单元](hardware-devices.md)；[软件栈与互连](cann-hccl.md) | 部署时的设备与显存；逐层前向的计算与通信 | 读完第 2 页，想了解卡、显存和卡间通信时 |
+| 分布式推理与部署 | [集合通信与 HCCL](collective-communication.md)；[并行维度](tensor-parallel.md)；[并行策略进阶](fine-grained-tp.md)；[DP 组分流与 expert 负载](balance-scheduling.md)；[贯穿案例](glm-5-3-flash-two-node.md)；[PD 分离与 KV 传输](pd-disaggregation.md) | 部署与分组、前向中的卡间通信、多请求分流与专家负载 | 第 2 页前补通信与并行基础；第 4 页后看负载；主线读完再看进阶部署 |
+| 性能与工程优化 | [Graph mode 与主机资源](graph-mode-layer.md)；[数值一致性](batch-invariance.md) | 前向执行与图尺寸补齐；批次变化对结果的影响 | 读完第 4 页的图尺寸，或需要复现结果时 |
+| 服务能力 | [LoRA 与 structured output](lora.md) | 模型适配、采样约束与返回格式 | 需要定制模型或约束输出格式时 |
+
+剩下三个分组不在上表里，用法各不相同：
+
+- **RFork 工作版**是一套独立演进的实现，只动主线上的一个位置——启动时加载权重那一步：新实例从一个已经加载好权重的 worker（管一张卡、真正跑前向的执行角色）那里直接读权重，省掉重新从磁盘加载。前向、调度和采样每一步都照旧。沿[总览](rfork.md)进去，版本边界写在那一章里。
+- **参数参考**是字典，不是课文：正文里出现一个参数名，想知道它的定义、默认值和版本差异时，到这里查一条。先在正文里读懂机制，再来查参数，顺序反过来会很难懂。
+- **来源与更新记录**是底稿：固定的配置与源码依据、PR 记录、历史问答，以及还没编排进目录的新页都在这里。核对某一页的结论时，从这里找一手材料。
+
+## 怎么用这个知识库
+
+**术语。** 术语用英文原名，和源码、日志、官方文档里看到的写法一致；第一次出现时，旁边的中文解释帮助你理解它在做什么。
+
+**对照源码怎么读。** 第一次读可以先看正文，理解机制。需要配置功能、排查报错或核对实现时，再查「对照源码」中的相应小节：开关用法、报错条件、开销、版本差异和源码位置；概念页按内容选用，特性页按这五项补齐。源码位置表可帮你找到对应的类、函数或配置。
+
+**角标是什么意思。** 来源处的角标说明结论的依据：S 官方文档或论文、C 固定 commit 的源码、M 离线可复现实测、D 推导、A 教学假设、I 推断或本站编排、! 版本冲突、实验状态或当前禁配。悬停可看说明；点击带编号的 S、C、M 可打开来源。页头的证据等级概括整页的依据。
+
+**接着看与问答侧栏。** 每页底部的「接着看」列出相关页面，悬停可预览标题、摘要和证据等级。遇到不熟悉的名词或报错，可以打开右侧「问答」侧栏，输入问题或粘贴报错；回答附有来源角标和相关阅读链接。窄屏上点击「问答」打开抽屉。
+
+## 对照源码
+
+### 版本差异
+
+模型总览、双机部署、一条请求、多个请求和调用链这五页主线，以官方 GLM-5.3-Flash 教程所用的镜像为基线：执行侧源码已核到 **`vllm-ascend@db701c1f`**；控制流按镜像元数据中的 `VLLM_TAG=v0.23.0`，取 **vLLM v0.23.0（`vllm@0fc695fc`）** 讲解。**待核：**容器内最终安装的上游 vLLM 代码，需逐项比对安装产物。镜像与源码的对应见[来源基线](../sources/glm-5-3-flash-baseline.md#镜像固定与源码对应)，控制流的代码入口见[调用链](request-call-chain.md)。[!]
+
+知识库同时跟踪以下三条分支；下表列出版本登记中的固定快照，读源码时可按 commit 切到同一份代码。
+
+| 分支 | 固定的代码版本 | 阅读时怎么用 |
+| --- | --- | --- |
+| v0.23 | vllm-ascend `releases/v0.23.0`：[2c59ff10](https://github.com/vllm-project/vllm-ascend/commit/2c59ff10)；配套 vLLM v0.23.0：[0fc695fc](https://github.com/vllm-project/vllm/commit/0fc695fc) | 查维护分支的特性；主线的 GLM 执行侧使用上面的专用镜像提交 |
+| v0.26 | vllm-ascend `releases/v0.26.0rc`：[2ed6cbba](https://github.com/vllm-project/vllm-ascend/commit/2ed6cbba)；配套 vLLM v0.26.0：[568afb3a](https://github.com/vllm-project/vllm/commit/568afb3a) | 查这一发布分支的特性、默认值与行为 |
+| main | vllm-ascend：[baa023ad](https://github.com/vllm-project/vllm-ascend/commit/baa023ad) | 查知识库固定的开发分支快照 |
+
+读到具体特性时，到特性页的「对照源码」一节里查「版本差异」小节：哪条分支有这个特性、默认值是什么、行为有什么不同。各页正按这个结构补齐；阅读尚在整理的页面时，可先沿来源链接核对固定版本。
+
+### 源码位置
+
+模型层数 45、隐藏维度 4096、词表 154880 等配置见模型页及官方配置 [S1]。阅读顺序、分组入口与统一背景是本站编排 [I]。
+

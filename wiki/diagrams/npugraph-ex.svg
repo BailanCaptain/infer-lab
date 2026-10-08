@@ -1,0 +1,233 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 540" width="900" height="540" role="img" aria-label="同一段「乘系数再相加」：不融合时中间结果要写进显存再读回，融合实现可以让它留在算子内部。4 行 8 列、每个数 2 字节是教学示意。">
+  <title>同一段「乘系数再相加」：不融合时中间结果要写进显存再读回，融合实现可以让它留在算子内部。4 行 8 列、每个数 2 字节是教学示意。</title>
+  <defs><marker id="npugraph-ex-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="336" y="56" width="214" height="126" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="352" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">设备显存</text>
+  <rect x="330" y="266" width="250" height="200" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="346" y="254" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">一个融合算子</text>
+  <path d="M200 108 L220 108" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <path d="M316 108 L336 108" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <path d="M550 108 L570 108" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <path d="M666 108 L700 108" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <path d="M200 312 L330 322" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <path d="M200 418 L330 400" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <path d="M580 360 L700 364" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#npugraph-ex-ah-ink)"/>
+  <rect x="40" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <path d="M60 68v68M80 68v68M100 68v68M120 68v68M140 68v68M160 68v68M180 68v68M40 85h160M40 102h160M40 119h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="40" y="68" width="160" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="352" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="372" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="392" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="412" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="432" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="452" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="472" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="492" y="76" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="352" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="372" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="392" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="412" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="432" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="452" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="472" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="492" y="93" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="352" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="372" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="392" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="412" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="432" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="452" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="472" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="492" y="110" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="352" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="372" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="392" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="412" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="432" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="452" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="472" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="492" y="127" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <path d="M372 76v68M392 76v68M412 76v68M432 76v68M452 76v68M472 76v68M492 76v68M352 93h160M352 110h160M352 127h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="352" y="76" width="160" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="700" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="68" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="700" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="85" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="700" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="102" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="700" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="119" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <path d="M720 68v68M740 68v68M760 68v68M780 68v68M800 68v68M820 68v68M840 68v68M700 85h160M700 102h160M700 119h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="700" y="68" width="160" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="40" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="278" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="295" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="312" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="329" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <path d="M60 278v68M80 278v68M100 278v68M120 278v68M140 278v68M160 278v68M180 278v68M40 295h160M40 312h160M40 329h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="40" y="278" width="160" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="40" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="384" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="401" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="418" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="40" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="60" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="80" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="100" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="120" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="140" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="160" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="180" y="435" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <path d="M60 384v68M80 384v68M100 384v68M120 384v68M140 384v68M160 384v68M180 384v68M40 401h160M40 418h160M40 435h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="40" y="384" width="160" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="700" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="330" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="700" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="347" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="700" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="364" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="700" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="720" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="740" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="760" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="780" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="800" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="820" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <rect x="840" y="381" width="20" height="17" fill="var(--color-token, #087f73)"/>
+  <path d="M720 330v68M740 330v68M760 330v68M780 330v68M800 330v68M820 330v68M840 330v68M700 347h160M700 364h160M700 381h160" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="700" y="330" width="160" height="68" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="220" y="86" width="96" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="268" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">× 系数</text>
+  <rect x="570" y="86" width="96" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="618" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">＋ y</text>
+  <rect x="352" y="300" width="206" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="455" y="333" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">乘完直接加</text>
+  <text x="40" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">不融合：中间结果进显存，再整块读回来</text>
+  <text x="443" y="202" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">中间结果 64 B</text>
+  <text x="443" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">写出 64 B + 读回 64 B = 128 B</text>
+  <text x="760" y="156" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">结果</text>
+  <text x="40" y="258" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">融合：中间结果不出算子</text>
+  <text x="120" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">x</text>
+  <text x="120" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">y</text>
+  <text x="455" y="392" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">这块 64 B 不再往返</text>
+</svg>

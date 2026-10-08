@@ -1,0 +1,18 @@
+{
+  "kind": "holdout",
+  "question": "按 main 的固定源码快照，预测值为8192、基准块为4096、smooth_factor=0.25、min_chunk=4096、page_size=128，平滑并对齐后的 chunk 是多少？这个权重越小会更靠近哪一个值？",
+  "answer": "先打开 profiling-chunk-config 页面找公式。找到了完整的公式，直接套入计算。\n\n公式（来自[动态切块配置](params/profiling-chunk-config.md)第 128–143 行）：\n\n```text\nsmoothed   = base_chunk_size + smooth_factor × (x − base_chunk_size)\nchunk_size = max(int(smoothed), min_chunk)\nalign      = max(page_size, 64)\nchunk_size = ceil(chunk_size / align) × align\n```\n\n代入题目给的数：\n- `base_chunk_size = 4096`，`x（预测值）= 8192`，`smooth_factor = 0.25`\n- `min_chunk = 4096`，`page_size = 128`\n\n**逐步计算：**\n\n1. 平滑：`4096 + 0.25 × (8192 − 4096) = 4096 + 0.25 × 4096 = 4096 + 1024 = 5120`\n2. 下限：`max(5120, 4096) = 5120`\n3. 对齐单位：`max(128, 64) = 128`\n4. 向上对齐：`ceil(5120 / 128) × 128 = 40 × 128 = 5120`（5120 本身已是 128 的整数倍）\n\n**平滑并对齐后的 chunk 是 5120。** [D]\n\n---\n\n关于\"权重越小靠近哪边\"：`smooth_factor` 是在**基准块**（`base_chunk_size = 4096`）和**本次预测**（8192）之间做线性插值。系数越小，插值结果越靠近**基准块**（4096）；系数为 0 时 `smoothed = base_chunk_size`，系数为 1 时 `smoothed` 就等于原始预测值。[D] 依据见[动态切块配置](params/profiling-chunk-config.md)。\n\n<!-- wiki-coverage: {\"satisfied\":true,\"reason\":\"profiling-chunk-config 页面第128-143行给出了完整的平滑公式和对齐规则，包括 smooth_factor 的语义说明，足以支持此次数值计算。\"} -->",
+  "outcome": {
+    "ok": true,
+    "sessionId": "847ba056-2a54-4515-9acf-b606f5f97351",
+    "costUsd": 0.09855449999999999
+  },
+  "citations": {
+    "cited": true,
+    "selfDeclaredUncovered": false
+  },
+  "revision": "277c7dbeff558738de7a5c59142f6756d8bb602e10546c067c6c6a5b4f0ea21d",
+  "reviewId": "137c15321ae02fd3c6b3c7a2529b6e4bb2df310cd3d62592432d1613a8b79831",
+  "planHash": "3017373ce63230e68ff7c3b996a44d6200f6407b1aa662ca3943681519c63790",
+  "semanticStatus": "needs-human-review"
+}

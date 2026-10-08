@@ -1,0 +1,42 @@
+layout: figure
+id: engine-processes
+caption: API server、EngineCore、Worker 三类进程各占一个框（Worker 画了两个），各有各的内存，框之间只能发消息。请求消息每条请求只发一次；清单每一步发一次，所有 Worker 收到同一份；没配 KV connector、也没开 PP 时，本步结果只由本组 TP 编号为 0 的 Worker 回传。两个 Worker 之间的虚线是卡与卡交换张量。多个 DP 组之间的对齐和 DP coordinator 的消息没有画，见正文。左下是整个服务只用一张卡的情形：Worker 不另起进程，成了 EngineCore 进程里的一个对象
+size: [900, 560]
+frames:
+  - { at: [24, 64], size: [300, 196], label: API server 进程 }
+  - { at: [420, 64], size: [456, 196], label: EngineCore 进程 }
+  - { at: [420, 360], size: [216, 150], label: Worker 0 进程 }
+  - { at: [660, 360], size: [216, 150], label: Worker 1 进程 }
+  - { at: [24, 360], size: [300, 150], label: 只有一张卡时：EngineCore 进程 }
+items:
+  - { at: [44, 100], size: [260, 56], text: 收请求、分词, sub: 文字 → token id, tone: token }
+  - { at: [44, 184], size: [260, 56], text: 反分词、流式返回, sub: token id → 文字, tone: token }
+  - { at: [440, 100], size: [200, 56], text: scheduler, sub: 这一步算谁、各算几个, tone: control }
+  - { at: [656, 100], size: [200, 56], text: 块号账本, sub: 每条请求占了哪些 KV 块, tone: control }
+  - { at: [440, 184], size: [416, 56], text: executor, sub: 把清单交给 Worker，收回本步结果, tone: control }
+  - { at: [436, 396], size: [184, 48], text: 卡 0 的模型分片, tone: weight }
+  - { at: [436, 452], size: [184, 44], text: 卡 0 的 KV cache, tone: kv }
+  - { at: [676, 396], size: [184, 48], text: 卡 1 的模型分片, tone: weight }
+  - { at: [676, 452], size: [184, 44], text: 卡 1 的 KV cache, tone: kv }
+  - { at: [44, 396], size: [116, 64], text: scheduler, sub: + executor, tone: control }
+  - { at: [188, 396], size: [116, 64], text: Worker, sub: 进程内的对象, tone: weight, style: faded }
+links:
+  - { from: [304, 128], to: [440, 128], tone: control }
+  - { from: [440, 212], to: [304, 212], tone: token }
+  - { from: [600, 240], to: [600, 360], tone: control }
+  - { from: [840, 240], to: [840, 360], tone: control }
+  - { from: [560, 360], to: [560, 240], tone: token }
+  - { from: [636, 470], to: [660, 470], tone: comm, dashed: true, ends: both }
+  - { from: [160, 428], to: [188, 428], tone: control }
+texts:
+  - { at: [372, 118], text: 请求消息, size: 12, tone: control, anchor: middle }
+  - { at: [372, 234], text: 新 token, size: 12, tone: token, anchor: middle }
+  - { at: [720, 300], text: 同一份清单，每步一次, size: 12, tone: control, anchor: middle }
+  - { at: [552, 300], text: 本步结果, size: 12, tone: token, anchor: end }
+  - { at: [648, 530], text: 卡间通信, size: 12, tone: comm, anchor: middle }
+  - { at: [174, 488], text: 直接函数调用，不跨进程, size: 12, tone: control, anchor: middle }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L132-L192
+    symbols: [rpc_broadcast_mq, make_worker_process]
+  - source: vllm@0fc695fc:vllm/v1/executor/uniproc_executor.py#L45-L63
+    symbols: [UniProcExecutor, WorkerWrapperBase]

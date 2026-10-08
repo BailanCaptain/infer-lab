@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "term": "use_fused_overlap",
+  "paths": [
+    "vllm_ascend/"
+  ],
+  "interpretation": "textual-presence-not-runtime-behavior",
+  "presence": [
+    {
+      "ref": "releases/v0.13.0",
+      "commit": "f92eadfca968666893715f0a295f036c7bc9d207",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.18.0",
+      "commit": "35b0fdf7d57aee5bd93793e03506ae2d85959595",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.20.2rc",
+      "commit": "792ea0c6de317f364d542aff0e758af383ce9aec",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.21.0rc",
+      "commit": "b4884b4200a377240d92ec0d1630bdb091a7f3a1",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.22.1rc",
+      "commit": "6fb87d07d99cd9f7f16220b7599aaa9ce1494fb2",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.23.0",
+      "commit": "1cdb8c4db6e50f36f1fb3283b3e3dd618f6821e8",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.24.0rc",
+      "commit": "b19127c7e855af6a1ee6a67d3825205086a87a8e",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.25.1rc",
+      "commit": "73953fc05401783b8da544cabe2e8280d4f1c1cf",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.26.0rc",
+      "commit": "16b0f0612a95d142d5bdf0b7e84fcd4d43a785a2",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.27.1rc",
+      "commit": "325293616f96dc09a2dce1ece5ee412190dddbb4",
+      "files": 0
+    },
+    {
+      "ref": "releases/v0.28.0rc",
+      "commit": "df7d511e9282745ccbef73509495637b01e160b4",
+      "files": 3
+    },
+    {
+      "ref": "releases/v0.29.0rc",
+      "commit": "a71b766ce6fc0a9669a412e15a5cf53f7f827093",
+      "files": 3
+    },
+    {
+      "ref": "main",
+      "commit": "39fef3f8fe71e71a8b7a684ae0f62b85ff18661f",
+      "files": 3
+    }
+  ],
+  "events": [
+    {
+      "commit": "1493369b754840da75c117651b50034a4cc7ae2d",
+      "date": "2026-09-07",
+      "subject": "[Feature][Attention] Add fused sparse attention overlap decode support for Ascend SFA KV offload (#14957)",
+      "kind": "introduced",
+      "topFiles": [
+        {
+          "path": "vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload.cpp",
+          "added": 0,
+          "removed": 336
+        },
+        {
+          "path": "vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py",
+          "added": 498,
+          "removed": 40
+        },
+        {
+          "path": "vllm_ascend/attention/sfa_kv_offload.py",
+          "added": 687,
+          "removed": 1
+        },
+        {
+          "path": "vllm_ascend/ascend_config.py",
+          "added": 1,
+          "removed": 0
+        }
+      ],
+      "pr": 14957,
+      "containedIn": {
+        "tags": [],
+        "branches": [
+          "main",
+          "origin/dependabot/github_actions/actions/setup-python-7.0.0",
+          "origin/main",
+          "origin/releases/v0.28.0rc",
+          "origin/releases/v0.29.0rc",
+          "origin/revert-15908-new-refactor"
+        ]
+      }
+    }
+  ],
+  "tagsWithTerm": []
+}

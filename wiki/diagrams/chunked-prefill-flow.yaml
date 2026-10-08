@@ -1,0 +1,41 @@
+layout: figure
+id: chunked-prefill-flow
+caption: 一条长提示词的一段怎样走完一步：调度器按「还差几个」和剩余预算定下这一段有多长，排完立刻把已算数往前推；准备输入从已算数起排位置号、按块表找到写历史的格号，并给整批贴执行标签；前向读已存的历史、写下本段的历史；每条请求都在自己最后一个位置采样一次，提示词没算完的这一次结果丢掉，下一步从新的已算数接着排。
+size: [880, 668]
+items:
+  - { at: [230, 16], size: [420, 60], text: 第 2 站 调度：这一段排几个位置, sub: "本步 = min(还差几个, 剩余预算)", tone: token }
+  - { at: [674, 16], size: [190, 60], text: 这一步不再接新请求, sub: 分块关着且整段超出余量, tone: control }
+  - { at: [230, 112], size: [420, 56], text: 排完立刻把已算数往前推, sub: 下一步从这里接着排；标记提示词没算完, style: plain }
+  - { at: [230, 204], size: [420, 60], text: 第 3 站 准备输入：位置号和格号, sub: "位置号 = 已算数 + 0, 1, 2 …；格号查块表得到", tone: kv }
+  - { at: [16, 204], size: [196, 60], text: 给整批贴执行标签, sub: 本例是 ChunkedPrefill, style: plain }
+  - { at: [230, 300], size: [420, 60], text: 第 4 站 前向：读已存的历史，写下本段的, sub: 注意力读前面各段的 KV；线性注意力接着上一段的状态, tone: kv }
+  - { at: [230, 396], size: [420, 56], text: 第 5 站 采样：每条请求在最后一个位置选一次, tone: token }
+  - { at: [230, 488], size: [420, 52], text: 这条请求的提示词算完了吗？, style: plain }
+  - { at: [16, 584], size: [320, 60], text: 没算完：这次选出的丢掉, sub: 不追加、不返回，下一步回到调度, tone: danger }
+  - { at: [544, 584], size: [320, 60], text: 算完：选出的就是第一个输出 token, sub: 之后按 decode 每步排, tone: token }
+links:
+  - { from: [440, 76], to: [440, 112] }
+  - { from: [650, 46], to: [674, 46] }
+  - { from: [440, 168], to: [440, 204] }
+  - { from: [230, 234], to: [212, 234] }
+  - { from: [440, 264], to: [440, 300] }
+  - { from: [440, 360], to: [440, 396] }
+  - { from: [440, 452], to: [440, 488] }
+  - { from: [230, 514], to: [176, 584], via: [[176, 514]] }
+  - { from: [650, 514], to: [704, 584], via: [[704, 514]] }
+  - { from: [16, 614], to: [230, 46], via: [[8, 614], [8, 46]], dashed: true }
+texts:
+  - { at: [186, 506], text: 否, size: 14 }
+  - { at: [690, 506], text: 是, size: 14 }
+  - { at: [16, 102], text: 下一步, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700
+    symbols: [num_computed_tokens, token_budget, enable_chunked_prefill]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019
+    symbols: [num_computed_tokens, is_prefill_chunk]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L858-L867
+    symbols: [num_computed_tokens_cpu, positions_np]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1444-L1470
+    symbols: [_build_attn_state, ChunkedPrefill]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1078-L1099
+    symbols: [discard_requests_mask, discard_request_indices]

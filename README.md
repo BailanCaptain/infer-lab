@@ -2,24 +2,43 @@
 
 以 vLLM-Ascend 为主线的大模型推理交互式教学平台。学习者从 Token、向量、矩阵出发，看懂 Transformer 的计算，看懂请求如何流经 CPU、NPU、HBM、互联与机柜，理解 vLLM / vLLM-Ascend 的调度、KV Cache、并行与执行机制，最终能读源码并分析 PR 对特性、数据流和性能指标的影响。
 
-## 原则
+## 无设备阅读知识库
 
-- **教学优先**：每章按「问题 → 前置概念 → 交互实验 → 逐步观察形状变化 → 连接硬件/特性/源码 → 小结」组织。
-- **两层数据流对应**：模型计算层与硬件执行层在每一步同步。
-- **真实尺寸**：教学章按真实模型（默认 Qwen3-0.6B）维度计算与渲染；权重为固定种子生成，页面明确标注。
-- **事实纪律**：以 vLLM-Ascend 文档与固定 commit 源码为依据；结论带证据标记 `[S] 官方 / [C] 源码 / [D] 推导 / [A] 假设 / [I] 推断 / [M] 实测 / [!] 冲突`。
+知识库以 **GLM-5.3-Flash** 为贯穿模型，从模型计算、单请求与多请求进入 vLLM / vllm-ascend 架构，再学习硬件、缓存与并行。模型和官方双机案例的固定材料见 [来源基线](wiki/sources/glm-5-3-flash-baseline.md)，学习路径见 [阅读指南](wiki/concepts/learning-guide.md)。
 
-事实基线：vLLM `cacc429f` + vLLM-Ascend `28bf3a2e`（2026-08-29 核验）；页面同时标注最新稳定版 v0.23.0。
+阅读静态正文、结构图和通信演示不需要 NPU、驱动、模型权重、外部源码仓库或 glm-flow 本机服务。问答后端与真实部署是另行配置的能力；未启动后端时，正文仍可阅读。双机页是经过来源核读的工程参考，没有设备与性能实测。
 
-## 开发
+需要 Node.js 22.21+（22.x）或 24.5+，以及 `package.json` 中固定的 pnpm 版本。首次安装依赖需要访问包仓库：
 
 ```powershell
-pnpm install
-pnpm dev          # 本地开发
-pnpm check        # typecheck + lint + 单测 + 依赖方向 + 内容校验
-pnpm build        # 产物在 dist/
-pnpm test:e2e     # Playwright 浏览器验收
+pnpm install --frozen-lockfile
+pnpm wiki:build
+pnpm dev
 ```
+
+打开终端实际打印的本地地址并进入 `/#/wiki`。Vite 默认端口为 5173；端口被占用时以启动输出为准。生产静态构建与本地预览：
+
+```powershell
+pnpm build
+pnpm preview
+```
+
+产物位于 `dist/`。浏览器从页面内加载仓库打包的正文与图；来源外链的访问需要网络。部署到静态主机不提供问答/更新服务。
+
+## 内容与开发验证
+
+```powershell
+pnpm wiki:diagrams         # 图 YAML → SVG，修改图后执行
+pnpm wiki:build            # 正文 → 索引与 registry
+pnpm wiki:lint             # 页面、关系和证据格式
+pnpm check                # 类型、代码、单测、依赖与内容检查
+pnpm build                # 生产构建
+pnpm test:e2e             # 需要本机浏览器依赖的完整验收
+```
+
+`pnpm wiki:audit` 用固定源码仓库核对路径和行号，需要按 seeds 准备 `tools/repos/`；它不是普通阅读或静态构建的前提，也不证明每条结论的语义正确。RFork 的入库快照可用 `pnpm rfork:verify` 独立检查，进一步 Git 重放需要完整源码仓库。开发问答功能时使用 `pnpm dev:all`，服务设置见现有交接文档。
+
+知识库与历史模拟实验分别声明模型：历史 `src/sim/` 中的 Qwen 教学配置、固定种子权重和真实 trace 保留原身份，不能当作 GLM 的执行结果。正文中的官方资料、源码、推导、假设、推断和实测分别标注，新的模型资料也不会自动改写贯穿案例。
 
 目录与依赖方向：`design ← sim ← timeline ← viz2d ← content ← app`，见 `scripts/check-deps.ts`。
 
@@ -28,15 +47,20 @@ pnpm test:e2e     # Playwright 浏览器验收
 | 文件 | 作用 |
 |---|---|
 | `PLAN.md` | **总体大纲**：22 章蓝图、模型工作台、技术架构、M1 任务分解、里程碑 |
-| `HANDOFF.md` | 当前状态与下一步，新会话先读这一页 |
+| `HANDOFF.md` | 主干（首页 / 教学表现层）的当前状态与下一步 |
+| `HANDOFF-LLM-WIKI.md` | 已合入 `main` 的知识库当前状态与下一步；页数、预算等会变的数字在那里给了现查命令 |
 | `DESIGN.md` | 设计真相源：配色、字阶、圆角、组件、画面纪律 |
 | `PITFALLS.md` | 踩过的坑 |
 | `CLAUDE.md` / `AGENTS.md` | 协作规则（两份内容相同，改动要同步） |
+| `docs/features/` | 单个 feature 的聚合文件（Why / What / AC / 决策 / Timeline），**验收状态的唯一真相源**就是每份里的验收表；索引见 `PLAN.md` 七 |
 | `docs/plans/` | 单个 feature 的分步实施计划 |
+| `wiki/HANDBOOK.md` | 知识库 schema 真相源（F001） |
 
 ## 参考与授权
 
 - 并行策略教学图包（`reference/parallelism-teaching-dark/`）：只使用其事实与证据账本，图全部重做为交互组件。
-- InferFlux（CC BY-NC）：只借鉴教学与交互思路，不复制代码。
+- InferFlux：只借鉴教学与交互思路，不复制其代码或图；原材料的授权条件不推广到本项目。
 - LLM Visualization、Transformer Explainer（MIT）：借鉴叙事与交互设计。
 - 站内嵌入的 vLLM / vLLM-Ascend 源码片段遵循 Apache-2.0，标注固定 commit 与行号。
+
+本轮知识库图形来源与复用范围见 [资产与署名记录](docs/wiki-assets-and-attribution.md)。仓库当前没有统一的项目 LICENSE；本地构建可用性不等于已完成公开发行授权。公开前仍须由维护者确定项目许可，并处理既有 RFork 原补丁与其他材料的权属事项。

@@ -1,0 +1,46 @@
+layout: figure
+id: rfork-lifecycle
+caption: B 的一个 Worker 借完权重以后的几种状态。上排是模型这条线：权重传完、交出模型，等整个实例的 Worker 都备好才开始接请求。中排是「当 seed」这条线：借来的租约还上了才发布，还没还上就先记作延期，被拒或次数用完就不当 seed，模型照常推理。左列是失败这条线：读权重中途出错先清理，清干净才回退到从存储读。右下是进程退出时的收尾。
+size: [900, 420]
+
+items:
+  - { at: [20, 60], size: [180, 56], text: 读权重, sub: 中途失败就要清理, tone: weight, style: faded }
+  - { at: [240, 60], size: [180, 56], text: 权重传完, sub: 列出的读取全部返回, tone: weight }
+  - { at: [460, 60], size: [180, 56], text: 交出模型, sub: 后处理、切推理模式, tone: weight }
+  - { at: [680, 60], size: [200, 56], text: 实例接请求, sub: 所有 Worker 都备好之后, tone: control }
+  - { at: [20, 190], size: [180, 56], text: 清理, sub: 停服务 · 注销显存, tone: danger, style: plain }
+  - { at: [240, 190], size: [180, 56], text: 等租约还上, sub: 当 seed 先记作延期, tone: control, style: faded }
+  - { at: [460, 190], size: [180, 56], text: 发布 seed, sub: 起服务 · 首次登记, tone: comm }
+  - { at: [680, 190], size: [200, 56], text: 服务中, sub: 定时心跳报平安, tone: comm, style: faded }
+  - { at: [20, 320], size: [180, 56], text: 回退, sub: 从存储重读一遍, tone: control, style: plain }
+  - { at: [240, 320], size: [180, 56], text: 不当 seed, sub: 模型照常推理, tone: danger, style: plain }
+  - { at: [680, 320], size: [200, 56], text: 关停收尾, sub: 停心跳 · 撤登记 · 关服务, tone: control, style: plain }
+
+links:
+  - { from: [200, 88], to: [240, 88], tone: weight }
+  - { from: [420, 88], to: [460, 88], tone: weight }
+  - { from: [640, 88], to: [680, 88], tone: control }
+  - { from: [110, 116], to: [110, 190], tone: danger }
+  - { from: [110, 246], to: [110, 320], tone: danger, dashed: true }
+  - { from: [500, 116], to: [330, 190], via: [[500, 150], [330, 150]], tone: control, dashed: true }
+  - { from: [600, 116], to: [600, 190], tone: comm }
+  - { from: [420, 218], to: [460, 218], tone: comm }
+  - { from: [300, 246], to: [300, 320], tone: danger, dashed: true }
+  - { from: [640, 218], to: [680, 218], tone: comm }
+  - { from: [780, 246], to: [780, 320], tone: control, dashed: true }
+
+texts:
+  - { at: [118, 160], text: 任一步失败, tone: danger, size: 12 }
+  - { at: [118, 292], text: 清干净才回退, tone: danger, size: 12 }
+  - { at: [340, 176], text: 还没还上, tone: control, size: 12 }
+  - { at: [608, 160], text: 已还上, tone: comm, size: 12 }
+  - { at: [424, 184], text: 还上了, tone: comm, size: 11 }
+  - { at: [308, 292], text: 被拒或次数用完, tone: danger, size: 12 }
+  - { at: [788, 292], text: 进程退出, tone: control, size: 12 }
+  - { at: [460, 404], text: 回退加载完的模型同样交出，也照样可以去当 seed, anchor: middle, note: true }
+
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/types.py#L12-L50
+    symbols: [TRANSFERRED, READY, SERVING, DEFERRED, can_schedule_seed]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L296-L347
+    symbols: [start_seed_service, DEFERRED]

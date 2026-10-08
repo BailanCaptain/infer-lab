@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 396" width="900" height="396" role="img" aria-label="每卡、每步主模型 42 个 MoE 层的逻辑通信载荷。条长统一按 MiB 线性缩放：纯 decode 的 MC2 上界 55.1 MiB，混入 6000-token prefill 的 AllGather 为 6.09 GiB；两档载荷比约 113 倍。两批次的宽度和路径同时变化，延迟由实测确定。">
+  <title>每卡、每步主模型 42 个 MoE 层的逻辑通信载荷。条长统一按 MiB 线性缩放：纯 decode 的 MC2 上界 55.1 MiB，混入 6000-token prefill 的 AllGather 为 6.09 GiB；两档载荷比约 113 倍。两批次的宽度和路径同时变化，延迟由实测确定。</title>
+  <defs></defs>
+  <rect x="24" y="170" width="5.5" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="24" y="290" width="623.3" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="24" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">每卡 / 每步 · 主模型 42 个 MoE 层</text>
+  <text x="24" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">纯 decode · MC2</text>
+  <text x="24" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">两组执行宽度：64 行</text>
+  <text x="48" y="191" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">≤55.1 MiB（源侧上界）</text>
+  <text x="24" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">混入 prefill · AllGather</text>
+  <text x="24" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">两组执行宽度：6048 行</text>
+  <text x="647" y="275" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">6.09 GiB ≈ 6232.6 MiB</text>
+  <text x="24" y="370" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="#7a3a6a">同一线性比例 · 两档载荷相差约 113 倍</text>
+</svg>

@@ -1,0 +1,56 @@
+layout: figure
+id: request-teardown-flow
+caption: 四条结束的路怎样汇到同一个释放动作。引擎先判停（结束 token、停止 token、长度、重复检测）或出错时，在结果更新的同一步释放，再把这步 token 和结束原因发回前端；前端删记录、放最后一份，这时引擎已停，走「否」，不再通知引擎。停止字符串和客户端断开由前端先发现：前端先删自己的记录、放最后一份，再发中止消息；引擎在前向算完、处理结果之前先处理中止，不认识或已结束的 ID 直接跳过。释放之后，已结束的 ID 随下一份调度清单发到每个 worker，worker 在准备下一步输入时删掉那一行。
+size: [880, 812]
+frames:
+  - { at: [24, 40], size: [832, 260], label: ⑦ API server · 前端 }
+  - { at: [24, 330], size: [832, 346], label: ⑥ EngineCore · 引擎 }
+  - { at: [24, 712], size: [832, 80], label: ③ worker · 下一步准备输入时 }
+items:
+  - { at: [44, 64], size: [250, 56], text: 命中停止字符串, sub: 还原成文字后才看得出, tone: token }
+  - { at: [314, 64], size: [250, 56], text: 客户端断开, sub: HTTP 任务被取消, tone: comm }
+  - { at: [584, 64], size: [252, 56], text: 收到带结束原因的结果, sub: 引擎先判停的那条路, tone: comm, style: faded }
+  - { at: [44, 148], size: [792, 52], text: 删掉这条请求的记录，往输出槽放最后一份结果, tone: token }
+  - { at: [44, 228], size: [600, 52], text: 引擎还没停，发中止消息, sub: 只发前端还记着的 ID；两个 DP 组时按路由表发给那一组, tone: comm }
+  - { at: [44, 354], size: [380, 56], text: 结果更新时判停或出错, sub: 结束 token、停止 token、长度、重复；出错记 error, tone: control }
+  - { at: [456, 354], size: [380, 56], text: 收到中止消息, sub: 前向算完、处理结果之前先处理, tone: comm }
+  - { at: [456, 438], size: [380, 52], text: 这个 ID 还在、还没结束？, sub: 不在或已结束就跳过，重复或晚到都不出错, style: plain }
+  - { at: [44, 520], size: [792, 56], text: 释放：移出队列，ID 记进已结束清单；倒着还块，删请求表项, sub: 有 KV connector 要先把 KV 发走时，还块和删请求表项推后, tone: kv }
+  - { at: [44, 604], size: [380, 52], text: 下一份调度清单带上已结束的 ID, tone: control }
+  - { at: [456, 604], size: [380, 52], text: 把这步 token 和结束原因发回前端, sub: 中止的请求不再发, tone: comm }
+  - { at: [44, 734], size: [792, 44], text: 删掉这条请求的缓存状态和批次表里那一行, tone: token }
+links:
+  - { from: [169, 120], to: [169, 148] }
+  - { from: [439, 120], to: [439, 148] }
+  - { from: [710, 120], to: [710, 148] }
+  - { from: [440, 200], to: [440, 228] }
+  - { from: [750, 200], to: [750, 238] }
+  - { from: [560, 280], to: [560, 354], tone: comm }
+  - { from: [646, 410], to: [646, 438] }
+  - { from: [646, 490], to: [646, 520] }
+  - { from: [234, 410], to: [234, 520] }
+  - { from: [234, 576], to: [234, 604] }
+  - { from: [646, 576], to: [646, 604] }
+  - { from: [836, 630], to: [836, 92], via: [[868, 630], [868, 92]], tone: comm }
+  - { from: [234, 656], to: [234, 734], tone: control }
+texts:
+  - { at: [550, 322], text: ZMQ · 中止消息, size: 13, tone: comm, anchor: end }
+  - { at: [660, 262], text: 否：引擎已释放，到此为止, size: 13 }
+  - { at: [450, 220], text: 是, size: 13 }
+  - { at: [860, 322], text: ZMQ · 结果, size: 13, tone: comm, anchor: end }
+  - { at: [656, 512], text: 是, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1825-L1886
+    symbols: [finish_requests]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910
+    symbols: [_free_request, finished_req_ids]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1535-L1540
+    symbols: [aborts_queue]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L450-L510
+    symbols: [abort_requests]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L666-L708
+    symbols: [reqs_to_abort, _finish_request]
+  - source: vllm@0fc695fc:vllm/entrypoints/serve/utils/api_utils.py#L37-L90
+    symbols: [listen_for_disconnect, with_cancellation]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1135-L1150
+    symbols: [finished_req_ids, remove_request]

@@ -1,0 +1,57 @@
+layout: figure
+id: glm-flash-overview
+caption: GLM-5.3-Flash 的文字路径：token 编号查 embedding 得到隐藏向量，复制成四条 residual 流走过 45 层；右侧展开 45 层 attention 的排法，虚线接回下一轮输入
+size: [900, 790]
+frames:
+  - { at: [110, 300], size: [310, 108], label: "45 层 · 顺序执行", inside: true }
+items:
+  - { at: [165, 38], size: [54, 42], text: x₁, tone: token }
+  - { at: [238, 38], size: [54, 42], text: x₂, tone: token }
+  - { at: [338, 38], size: [54, 42], text: xₚ, tone: token }
+  - { at: [165, 118], size: [200, 42], text: embedding 查表, style: plain }
+  - { at: [145, 338], size: [115, 46], text: attention, tone: token }
+  - { at: [282, 338], size: [110, 46], text: MLP, tone: token }
+  - { at: [165, 447], size: [200, 42], text: 四条流求平均, style: plain }
+  - { at: [165, 523], size: [200, 42], text: 最终 RMSNorm, style: plain }
+  - { at: [165, 601], size: [200, 42], text: 输出投影, style: plain }
+  - { at: [545, 711], size: [275, 42], text: 生成策略 → 下一个 token, tone: token }
+rows:
+  - { at: [165, 220], count: 4, w: 44, h: 36, gap: 8, tone: token }
+nodes:
+  - { at: [495, 330], r: 20, text: K }
+  - { at: [560, 330], r: 20, text: K }
+  - { at: [625, 330], r: 20, text: K }
+  - { at: [690, 330], r: 20, text: S }
+  - { at: [815, 330], r: 20, text: K }
+brackets:
+  - { from: 473, to: 713, y: 360, label: 这组类型顺序重复 11 次 }
+matrices:
+  - { at: [605, 38], w: 76, h: 154, cols: 4, rows: 10, tone: weight, label: embedding 权重, dims: "154880 × 4096", mark: { row: 6 } }
+  - { at: [545, 603], w: 275, h: 30, cols: 11, tone: token, label: 生成位置的词表分数, dims: "154880 个 logits" }
+links:
+  - { from: [192, 80], to: [192, 118] }
+  - { from: [265, 80], to: [265, 118] }
+  - { from: [365, 80], to: [337, 118] }
+  - { from: [515, 330], to: [540, 330] }
+  - { from: [580, 330], to: [605, 330] }
+  - { from: [645, 330], to: [670, 330] }
+  - { from: [713, 330], to: [795, 330] }
+  - { from: [605, 139], to: [365, 139], tone: weight }
+  - { from: [265, 160], to: [265, 215] }
+  - { from: [265, 260], to: [265, 300] }
+  - { from: [260, 361], to: [282, 361] }
+  - { from: [265, 408], to: [265, 447] }
+  - { from: [265, 489], to: [265, 523] }
+  - { from: [265, 565], to: [265, 601] }
+  - { from: [365, 622], to: [545, 622] }
+  - { from: [682, 677], to: [682, 711] }
+  - { from: [545, 732], to: [165, 139], via: [[62, 732], [62, 139]], dashed: true }
+texts:
+  - { at: [410, 178], text: 每个 token 得到 4096 维表示 }
+  - { at: [410, 250], text: 复制成四条 residual 流，各宽 4096 }
+  - { at: [315, 65], text: …, anchor: middle }
+  - { at: [478, 294], text: K = KDA 层    S = 稀疏 MLA 层, strong: true }
+  - { at: [815, 385], text: 第 44 层, anchor: middle, size: 12.5 }
+  - { at: [478, 417], text: 前 3 层稠密 MLP，后 42 层 MoE }
+  - { at: [410, 550], text: 取生成位置的表示，投影到词表 }
+  - { at: [130, 774], text: 虚线 = 未停止时的下一轮输入, note: true }

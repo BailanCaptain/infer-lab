@@ -1,0 +1,64 @@
+layout: figure
+id: sparse-attention-intuition
+caption: 一个查询（位置 11）面对 12 个可见历史位置：indexer 先给每个位置打分，取分数最高的 k 个（示意 k = 4），主 attention 只读这些位置的 K/V。虚线格本次没被选中，仍留在缓存里。
+size: [880, 530]
+grids:
+  - at: [140, 56]
+    rows: 1
+    cols: 12
+    cell: [44, 44]
+    gap: 6
+    tone: kv
+    style: solid
+    rowLabels: [历史 K/V]
+    colLabels: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
+  - at: [140, 240]
+    rows: 1
+    cols: 12
+    cell: [44, 44]
+    gap: 6
+    tone: weight
+    style: faded
+    rowLabels: [indexer 分数]
+    cells:
+      - { at: [0, 1], text: 高, style: solid }
+      - { at: [0, 5], text: 高, style: solid }
+      - { at: [0, 8], text: 高, style: solid }
+      - { at: [0, 10], text: 高, style: solid }
+  - at: [140, 350]
+    rows: 1
+    cols: 12
+    cell: [44, 44]
+    gap: 6
+    tone: kv
+    style: solid
+    rowLabels: [主 attention]
+    cells:
+      - { at: [0, 0], style: ghost }
+      - { at: [0, 2], style: ghost }
+      - { at: [0, 3], style: ghost }
+      - { at: [0, 4], style: ghost }
+      - { at: [0, 6], style: ghost }
+      - { at: [0, 7], style: ghost }
+      - { at: [0, 9], style: ghost }
+      - { at: [0, 11], style: ghost }
+items:
+  - { at: [20, 140], size: [170, 60], text: 查询 q, sub: 当前位置 11, tone: token }
+  - { at: [230, 140], size: [504, 60], text: ① indexer 给每个位置打一个分, sub: 头少、维度小，比主 attention 便宜得多, tone: weight }
+  - { at: [140, 450], size: [594, 64], text: 主 attention 只在这 4 个位置上打分、softmax、汇合 V, sub: softmax 的分母只含这 4 项 → 位置 11 的输出, tone: token }
+texts:
+  - { at: [750, 83], text: 全部留在缓存, note: true }
+  - { at: [750, 267], text: ② 取最高的 4 个 }
+  - { at: [750, 377], text: ③ 只读这 4 个 }
+links:
+  - { from: [190, 170], to: [230, 170] }
+  - { from: [487, 100], to: [487, 140] }
+  - { from: [487, 200], to: [487, 240] }
+  - { from: [212, 284], to: [212, 350] }
+  - { from: [412, 284], to: [412, 350] }
+  - { from: [562, 284], to: [562, 350] }
+  - { from: [662, 284], to: [662, 350] }
+  - { from: [212, 394], to: [212, 450] }
+  - { from: [412, 394], to: [412, 450] }
+  - { from: [562, 394], to: [562, 450] }
+  - { from: [662, 394], to: [662, 450] }

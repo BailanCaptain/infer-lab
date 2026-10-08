@@ -1,0 +1,32 @@
+layout: figure
+id: vllm-ascend-repo-map
+caption: 按职责定位目录：运行时主线从引擎进入执行、模型与算子；配置注册、通信及图执行提供相应支持
+size: [900, 560]
+frames:
+  - { at: [20, 50], size: [225, 195], label: 上游 vLLM }
+  - { at: [285, 50], size: [590, 195], label: Ascend 运行时路径 }
+items:
+  - { at: [40, 115], size: [185, 65], text: EngineCore / Executor, sub: v1/engine · v1/executor, tone: control }
+  - { at: [305, 115], size: [155, 65], text: Worker / Runner, sub: worker/, tone: control }
+  - { at: [485, 115], size: [160, 65], text: GLM 模型, sub: models/, tone: weight }
+  - { at: [670, 115], size: [185, 65], text: 后端与算子, sub: attention/ · ops/, tone: token }
+  - { at: [30, 335], size: [245, 65], text: 配置与实现选择, sub: platform · config · patch, tone: control }
+  - { at: [330, 335], size: [245, 65], text: 分片与数据传递, sub: distributed/, tone: comm }
+  - { at: [630, 335], size: [245, 65], text: 图变换与执行复用, sub: compilation/, tone: kv }
+links:
+  - { from: [225, 147], to: [305, 147], tone: control }
+  - { from: [460, 147], to: [485, 147], tone: token }
+  - { from: [645, 147], to: [670, 147], tone: token }
+  - { from: [152, 335], to: [382, 180], via: [[152, 275], [382, 275]], tone: control }
+  - { from: [452, 335], to: [565, 180], via: [[452, 295], [565, 295]], tone: comm }
+  - { from: [752, 335], to: [762, 180], via: [[752, 275], [762, 275]], tone: kv }
+texts:
+  - { at: [30, 450], text: 'model_loader/：选择权重加载方式', size: 15 }
+  - { at: [470, 450], text: 'quantization/：解释精度与布局', size: 15 }
+  - { at: [30, 480], text: 'spec_decode/：生成草稿候选', size: 15 }
+  - { at: [470, 480], text: 'sample/：采样与验证', size: 15 }
+  - { at: [30, 510], text: '根目录 csrc/：设备扩展', size: 15 }
+  - { at: [30, 535], text: 同一职责可跨目录；箭头为主要协作关系，非完整调用栈, note: true }
+pins:
+  - { source: 'vllm@0fc695fc:vllm/v1/engine/core.py#L443-L482', symbols: [step] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2287-L2427', symbols: [execute_model] }

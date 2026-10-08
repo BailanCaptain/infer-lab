@@ -1,0 +1,41 @@
+layout: figure
+id: request-call-chain-branches
+caption: R1 的两步沿同一主干前进，调度来源、图模式与采样器分别判断。图中 decode 回放图以两组对齐后可用为前提；MTP 草拟在这两步都走 eager。
+size: [880, 760]
+items:
+  - { at: [214, 16], size: [452, 48], text: Scheduler.schedule：请求来自哪个队列？, style: plain }
+  - { at: [48, 122], size: [350, 58], text: waiting → 首次分块, sub: R1 开始计算提示词, style: plain }
+  - { at: [482, 122], size: [350, 58], text: running → 续算与续块, sub: 上一步已安排，继续推进, style: plain }
+  - { at: [48, 244], size: [350, 58], text: 提示词尚未算完, sub: 判为 eager，按本地输入宽度执行, style: plain }
+  - { at: [482, 244], size: [350, 58], text: 提示词已完成且每条 4 个 token, sub: 两组满足图条件 → 选捕获尺寸, style: plain }
+  - { at: [48, 366], size: [350, 58], text: 直接执行前向, sub: 逐个下发模型算子, tone: weight }
+  - { at: [482, 366], size: [350, 58], text: 回放捕获图, sub: 按选定尺寸完成模型前向, tone: weight }
+  - { at: [48, 488], size: [350, 76], text: 本步没有待验证候选, sub: AscendSampler → 首 token, tone: token }
+  - { at: [482, 488], size: [350, 76], text: 本步带候选, sub: AscendRejectionSampler → 接受或修正, tone: token }
+  - { at: [214, 666], size: [452, 66], text: 草拟下一步候选 → 更新结果, sub: 两路都草拟；按拒绝数回退计数在第 6 站, style: plain }
+links:
+  - { from: [330, 64], to: [223, 122], via: [[223, 78]] }
+  - { from: [550, 64], to: [657, 122], via: [[657, 78]] }
+  - { from: [223, 180], to: [223, 244] }
+  - { from: [657, 180], to: [657, 244] }
+  - { from: [223, 302], to: [223, 366] }
+  - { from: [657, 302], to: [657, 366] }
+  - { from: [223, 424], to: [223, 488] }
+  - { from: [657, 424], to: [657, 488] }
+  - { from: [223, 564], to: [330, 666], via: [[223, 636], [330, 636]] }
+  - { from: [657, 564], to: [550, 666], via: [[657, 636], [550, 636]] }
+texts:
+  - { at: [48, 108], text: 第 1 步 · prefill, strong: true, size: 14 }
+  - { at: [482, 108], text: 第 2 步 · decode, strong: true, size: 14 }
+  - { at: [440, 215], text: 准备输入后判断图模式，并跨 DP 对齐, anchor: middle, size: 14 }
+  - { at: [440, 337], text: 主模型前向, anchor: middle, size: 14 }
+  - { at: [440, 459], text: sample_tokens 中选择采样器, anchor: middle, size: 14 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
+    symbols: [Scheduler, schedule]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2582
+    symbols: [_sample, sample_tokens, propose_draft_token_ids]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2898-L2996
+    symbols: [_determine_batch_execution_and_padding, _sync_metadata_across_dp]
+  - source: vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L259
+    symbols: [__call__]

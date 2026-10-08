@@ -1,0 +1,119 @@
+layout: scene
+id: multistream-overlap-gate
+caption: 门控做的是把共享专家和路由整体搬到副流，塞进 prepare 期那段等通信的时间里（vllm-ascend v0.23 维护分支）
+size: [900, 684]
+
+regions:
+  - label: 开着门控时，这一层 MoE 的 prepare 期
+    note: 两条副流各自起飞、各自 join；跨流传结果靠一个模块级全局单例，不是参数传递。
+    at: [20, 26]
+    size: [860, 494]
+    tone: ascend
+  - label: 关掉（默认）时
+    note: 共享专家和路由留在默认流上顺序跑；SP 开着、走 AllGather 时，prepare() 照样 all-gather 两份：hidden_states 和 router_logits。
+    at: [20, 536]
+    size: [860, 96]
+    tone: muted
+
+boundaries:
+  - at: 240
+    from: 112
+    to: 470
+    label: gate_stream 从这里起飞
+  - at: 648
+    from: 112
+    to: 470
+    label: 两条副流 join 回默认流
+
+boxes:
+  - at: [36, 128]
+    size: [196, 84]
+    title: 先把共享专家挂上
+    sub: 带共享专家的 MoE 才走这条
+    fn: shared_forward_impl
+    tone: ascend
+  - at: [248, 128]
+    size: [190, 84]
+    title: 动态量化隐藏态
+    sub: W8A8 这一路
+    fn: npu_dynamic_quant
+    tone: ascend
+  - at: [660, 128]
+    size: [198, 84]
+    title: join 回来，才开始算
+    sub: 读 context 里的 topk_ids
+    fn: _quant_method.apply
+    tone: ascend
+
+  - at: [248, 252]
+    size: [150, 84]
+    title: 共享专家 FFN
+    sub: 本地隐藏态直接算
+    fn: shared_experts
+    tone: accent
+  - at: [410, 252]
+    size: [230, 84]
+    title: 路由 + 写回 context
+    sub: select_experts 出 topk_ids
+    fn: set_flash_common3_context
+    tone: accent
+
+  - at: [340, 376]
+    size: [300, 84]
+    title: 副流上做 EP All-Gather
+    sub: 走单独的 fc3_quant_x 通信组
+    fn: fc3_all_gather_and_maybe_unpad_impl
+    tone: accent
+
+arrows:
+  - { from: [234, 170], to: [246, 170], tone: ascend }
+  - { from: [440, 170], to: [656, 170], tone: ascend, label: 等两条副流 }
+  - { from: [180, 214], via: [[180, 294]], to: [242, 294], tone: accent }
+  - { from: [400, 294], to: [408, 294], tone: accent }
+  - { from: [646, 294], via: [[712, 294]], to: [712, 216], tone: accent }
+  - { from: [646, 418], via: [[740, 418]], to: [740, 216], tone: accent }
+
+brackets:
+  - { at: [248, 470], span: 392, dir: down, label: 真正的重叠窗口只有这一段, tone: accent }
+
+notes:
+  - at: [36, 120]
+    text: 默认流
+    size: 12.5
+  - at: [36, 244]
+    text: gate_stream（类级单例）
+    size: 12.5
+  - at: [36, 368]
+    text: quant_stream（类级单例）
+    size: 12.5
+  - at: [20, 656]
+    text: main（baa023ad）上整套 FlashComm3 都没了：FlashCommon3Context、fc3_quant_x 通信组、两条副流和这个键一并删除，留着它启动就失败。
+    size: 12.5
+    width: 860
+    strong: true
+
+pins:
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L600-L640
+    symbols:
+      - shared_forward_impl
+      - shared_experts
+      - set_flash_common3_context
+      - select_experts
+      - topk_weights
+      - topk_ids
+      - gate_stream
+      - AscendMoERunner
+      - _quant_method.apply
+  - source: vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399
+    symbols:
+      - npu_dynamic_quant
+      - fc3_all_gather_and_maybe_unpad_impl
+      - quant_stream
+      - PrepareAndFinalize
+      - hidden_states
+      - router_logits
+      - W8A8
+  - source: vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L104-L108
+    symbols: [fc3_quant_x]
+  - source: vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L41
+    symbols: [FlashCommon3Context]

@@ -1,0 +1,33 @@
+layout: figure
+id: engine-processes-startup
+caption: 进程由上往下一个拉起一个。两个分叉各决定一件事：启动方法决定子进程一出生是否带着父进程已经换好的名字；卡数决定 Worker 是独立进程还是 EngineCore 里的对象。不管走哪条分支，每个进程都会经过自己那一站的补丁入口，所以最后每个进程都打齐了补丁
+size: [900, 610]
+items:
+  - { at: [150, 30], size: [600, 64], text: 启动进程（node0 上它就是 API server）, sub: 解析参数：加载通用插件、调平台钩子 → 全局补丁；建配置 → Ascend 配置缓存, tone: control }
+  - { at: [60, 160], size: [360, 60], text: fork, sub: 复制父进程内存，已换好的名字一起带过来, style: plain }
+  - { at: [480, 160], size: [360, 60], text: spawn, sub: 全新的解释器，父进程里的替换都不在, style: plain }
+  - { at: [150, 276], size: [600, 64], text: EngineCore 进程初始化, sub: 再加载一次通用插件 → 全局补丁（本进程已打过就跳过）, tone: control }
+  - { at: [60, 406], size: [360, 60], text: 整个服务只有 1 张卡：uni, sub: Worker 是本进程里的一个对象, style: plain }
+  - { at: [480, 406], size: [360, 60], text: 多于 1 张卡：mp, sub: 每张卡起一个 Worker 进程，启动方法同上, style: plain }
+  - { at: [150, 522], size: [600, 64], text: Worker 初始化（NPUWorker）, sub: Worker 补丁 → 登记昇腾算子 → Ascend 配置缓存, tone: weight }
+links:
+  - { from: [300, 94], to: [240, 160], via: [[300, 112], [240, 112]], tone: control }
+  - { from: [600, 94], to: [660, 160], via: [[600, 112], [660, 112]], tone: control }
+  - { from: [240, 220], to: [300, 276], via: [[240, 248], [300, 248]], tone: control }
+  - { from: [660, 220], to: [600, 276], via: [[660, 248], [600, 248]], tone: control }
+  - { from: [300, 340], to: [240, 406], via: [[300, 358], [240, 358]], tone: control }
+  - { from: [600, 340], to: [660, 406], via: [[600, 358], [660, 358]], tone: control }
+  - { from: [240, 466], to: [300, 522], via: [[240, 494], [300, 494]], tone: weight }
+  - { from: [660, 466], to: [600, 522], via: [[660, 494], [600, 494]], tone: weight }
+texts:
+  - { at: [450, 140], text: 拉起 EngineCore：用哪种启动方法？, size: 13, strong: true, anchor: middle }
+  - { at: [450, 386], text: 选执行器：整个服务一共几张卡？, size: 13, strong: true, anchor: middle }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/__init__.py#L18-L69
+    symbols: [_ensure_global_patch, register_connector]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L120
+    symbols: [NPUWorker, adapt_patch, init_ascend_config]
+  - source: vllm@0fc695fc:vllm/utils/system_utils.py#L126-L180
+    symbols: [get_mp_context, VLLM_WORKER_MULTIPROC_METHOD]
+  - source: vllm@0fc695fc:vllm/config/parallel.py#L845-L890
+    symbols: [distributed_executor_backend, world_size_across_dp]

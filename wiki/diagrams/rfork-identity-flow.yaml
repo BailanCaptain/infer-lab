@@ -1,0 +1,45 @@
+layout: figure
+id: rfork-identity-flow
+caption: B 的一个 Worker 先算钥匙，再搭空模型，然后只带这一把钥匙去问 Planner。算钥匙这几步里任何一处报错（没配 Planner 地址、缺模型地址或策略名、并行组没建好），钥匙就没算出来，加载器接住报错后回退。问 Planner 回来有三种结果：借到了，就拿着租约去读权重；Planner 说这把钥匙下没有可用的 seed，是真的匹配不到；地址配了但网络出错、回了别的状态码或者回复缺项，是没问成。三种没借到都改从存储加载、启动不会停下，但日志不同：钥匙没算出来打的是「传输失败、回退」的警告，回退后这张卡不登记成 seed；没问成和匹配不到打的是同一句「没有可用的 seed」，回退后登记成 seed。
+size: [900, 400]
+items:
+  - { at: [20, 40], size: [150, 56], text: 取编号和角色, sub: 分片编号 · 主或草稿, tone: control, style: plain }
+  - { at: [195, 40], size: [150, 56], text: 算部署指纹, sub: 配置描述 → SHA256, tone: control, style: plain }
+  - { at: [370, 40], size: [150, 56], text: 算 seed key, sub: 指纹 + 编号 + 角色, tone: control, style: plain }
+  - { at: [545, 40], size: [150, 56], text: 搭空模型, sub: 先开好放权重的空位, tone: control, style: plain }
+  - { at: [720, 40], size: [160, 56], text: 向 Planner 借, sub: 只带这一把钥匙, tone: control }
+  - { at: [20, 180], size: [190, 56], text: 钥匙没算出来, sub: 缺配置 · 并行组没建好, tone: danger, style: plain }
+  - { at: [240, 180], size: [200, 56], text: 没问成, sub: 网络错 · 别的状态码 · 缺项, tone: danger, style: plain }
+  - { at: [470, 180], size: [210, 56], text: Planner 说没有, sub: 无 seed 或名额都占满, tone: control, style: plain }
+  - { at: [720, 180], size: [160, 56], text: 借到：拿到租约, sub: 回复里四项齐全, tone: control }
+  - { at: [20, 300], size: [660, 56], text: 改从存储加载，启动不停, sub: 先清理已登记的内存和半成品模型，再走默认路径, tone: control, style: faded }
+  - { at: [720, 300], size: [160, 56], text: 按地址读权重, sub: 读前先核清单, tone: weight }
+links:
+  - { from: [170, 68], to: [195, 68], tone: control }
+  - { from: [345, 68], to: [370, 68], tone: control }
+  - { from: [520, 68], to: [545, 68], tone: control }
+  - { from: [695, 68], to: [720, 68], tone: control }
+  # 算钥匙的三步报错：都落到「钥匙没算出来」
+  - { from: [95, 96], to: [95, 180], tone: danger, dashed: true }
+  - { from: [270, 96], to: [150, 180], via: [[270, 122], [150, 122]], tone: danger, dashed: true }
+  - { from: [445, 96], to: [270, 122], via: [[445, 122]], ends: none, tone: danger, dashed: true }
+  # 问 Planner 的三种结果
+  - { from: [800, 96], to: [800, 180], tone: control }
+  - { from: [800, 150], to: [575, 180], via: [[575, 150]], tone: control }
+  - { from: [800, 150], to: [340, 180], via: [[340, 150]], tone: danger, dashed: true }
+  # 回退与读权重
+  - { from: [115, 236], to: [115, 300], tone: danger, dashed: true }
+  - { from: [340, 236], to: [340, 300], tone: danger, dashed: true }
+  - { from: [575, 236], to: [575, 300], tone: control }
+  - { from: [800, 236], to: [800, 300], tone: weight }
+texts:
+  - { at: [125, 272], text: 回退后不登记成 seed, size: 12, tone: danger }
+  - { at: [457, 270], text: 同一句「没有可用的 seed」, anchor: middle, size: 12 }
+  - { at: [350, 382], text: 三种「没借到」都回退，看日志分清是哪一种, anchor: middle, note: true }
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L563-L577
+    symbols: [_ensure_rfork_session, initialize_model]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/planner_client.py#L69-L109
+    symbols: [acquire_seed]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L710
+    symbols: [_RForkSeedUnavailable, _start_rfork_seed_service]

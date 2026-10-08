@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 630" width="880" height="630" role="img" aria-label="索引器先写状态并压池，再同时得到选中的完整池位置和因果尾部。两部分合起来交给主 attention；彩色区域标出 GLM 在 DSA 结构上增加的按池处理。">
+  <title>索引器先写状态并压池，再同时得到选中的完整池位置和因果尾部。两部分合起来交给主 attention；彩色区域标出 GLM 在 DSA 结构上增加的按池处理。</title>
+  <defs><marker id="glm-flash-indexer-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="20" y="212" width="840" height="212" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">两项都执行 · GLM 的按池选择与补尾</text>
+  <path d="M440 80 L440 112" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-indexer-flow-ah-ink)"/>
+  <path d="M440 176 L440 212" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-indexer-flow-ah-ink)"/>
+  <path d="M265 316 L265 348" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-indexer-flow-ah-ink)"/>
+  <path d="M440 424 L440 464" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-indexer-flow-ah-ink)"/>
+  <path d="M440 522 L440 562" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-indexer-flow-ah-ink)"/>
+  <rect x="210" y="16" width="460" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">索引器投影</text>
+  <text x="440" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">Q（32 头）、共用 K、每头权重；另算压池门控</text>
+  <rect x="210" y="112" width="460" height="64" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">写状态；每 4 个位置压成一个池</text>
+  <text x="440" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个通道在 4 个位置间做 softmax 加权</text>
+  <rect x="40" y="252" width="450" height="64" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">给完整池打分，选最多 512 个</text>
+  <text x="265" y="299" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">池分 = Σ 头权重 ×（q · 池 K）</text>
+  <rect x="40" y="348" width="450" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="372" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">展开池编号 → 最多 2048 个位置</text>
+  <text x="265" y="391" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个选中的池对应 4 个位置</text>
+  <rect x="540" y="290" width="300" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="690" y="321" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取未成池的因果尾部</text>
+  <text x="690" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">当前及之前的 0–3 个位置</text>
+  <rect x="210" y="464" width="460" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="489" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">合并读取位置</text>
+  <text x="440" y="508" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">完整池位置 + 尾部，最多 2051 个</text>
+  <rect x="210" y="562" width="460" height="54" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="585" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">稀疏 MLA 主 attention</text>
+  <text x="440" y="604" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">读取对应的压缩 KV，汇合并投影</text>
+</svg>

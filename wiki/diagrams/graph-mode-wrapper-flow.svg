@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 660" width="900" height="660" role="img" aria-label="包装器每一轮的固定动作：模式与描述符由上游给定，它只负责透传、回放或在启动窗口内录制。判断顺序自上而下，右侧是两个出口。">
+  <title>包装器每一轮的固定动作：模式与描述符由上游给定，它只负责透传、回放或在启动窗口内录制。判断顺序自上而下，右侧是两个出口。</title>
+  <defs><marker id="graph-mode-wrapper-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M274 76 L274 116" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <path d="M524 148 L560 148" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <path d="M274 180 L274 220" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <path d="M274 284 L274 324" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <path d="M524 356 L560 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <path d="M274 388 L274 440" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <path d="M274 512 L274 556" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#graph-mode-wrapper-flow-ah-ink)"/>
+  <rect x="24" y="16" width="500" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="274" y="42" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">取出本轮的模式与描述符</text>
+  <text x="274" y="61" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Runner 已算好并放进执行上下文</text>
+  <rect x="24" y="116" width="500" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="274" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">模式是 NONE，或与本包装的模式不同？</text>
+  <rect x="560" y="116" width="316" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="718" y="144" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">是：直接调用原模型</text>
+  <text x="718" y="163" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本轮逐个提交任务</text>
+  <rect x="24" y="220" width="500" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="274" y="248" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">否：按描述符在缓存里查这张图</text>
+  <text x="274" y="267" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">描述符含宽度与是否整齐 decode</text>
+  <rect x="24" y="324" width="500" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="274" y="361" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">查到了吗？</text>
+  <rect x="560" y="324" width="316" height="76" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="718" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">没查到：只有启动捕获窗口里才录</text>
+  <text x="718" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">窗口之外，合法性检查直接报错</text>
+  <rect x="24" y="440" width="500" height="72" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="274" y="472" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">查到了：回放</text>
+  <text x="274" y="491" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">FULL 先等设备做完上一轮，再提交整串</text>
+  <rect x="24" y="556" width="500" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="274" y="582" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">返回录制时的那块输出</text>
+  <text x="274" y="601" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本轮结果写在同一组固定地址里</text>
+  <text x="560" y="470" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">包装器不判断本轮该不该用图；</text>
+  <text x="560" y="492" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">那是上游 Runner 与分派器的事</text>
+</svg>

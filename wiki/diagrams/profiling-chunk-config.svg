@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700" role="img" aria-label="开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）">
+  <title>开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）</title>
+  <rect width="900" height="700" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="170" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="132.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">启动期 · 只做一次</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">拟合的是「这台机器上，一段长 l 的 prefill 要多久」，不是预设公式——所以换硬件不用改参数。</text>
+  <rect x="20" y="216" width="860" height="412" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="230" width="256.1" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="248.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">每个 prefill 步 · 算出这一步切多少</text>
+  <text x="38" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">目标是让每块耗时相等：前缀越长，注意力越贵，块就得切得越小，流水线才不空转。</text>
+  <rect x="52" y="292" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="52" y="292" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(75.8 309.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
+  <text x="110" y="317" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">① 定目标时间</text>
+  <text x="110" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">T = f(base_chunk_size) − f(0)，一块「应该」花多久</text>
+  <rect x="738" y="307.5" width="123" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="799.5" y="325" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">target_latency</text>
+  <rect x="52" y="356" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="52" y="356" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(75.8 373.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2"/></g>
+  <text x="110" y="381" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">② 解二次方程取正根</text>
+  <text x="110" y="401" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">a·x² + (2aL + b)·x − T = 0，L 是这条请求已经算过的前缀长度</text>
+  <rect x="753" y="371.5" width="108" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="807" y="389" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">discriminant</text>
+  <rect x="52" y="420" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="52" y="420" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(75.8 437.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v14M18 7v14M6 7c0 6 12 2 12 8"/></g>
+  <text x="110" y="445" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ 平滑</text>
+  <text x="110" y="465" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">smoothed = base_chunk_size + smooth_factor × (x − base_chunk_size)</text>
+  <rect x="745.5" y="435.5" width="115.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="803.3" y="453" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">smooth_factor</text>
+  <rect x="52" y="484" width="828" height="56" rx="10" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="52" y="484" width="5" height="56" rx="2.5" fill="var(--color-weight, #b87a00)"/>
+  <g transform="translate(75.8 501.8) scale(0.85)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></g>
+  <text x="110" y="509" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">④ 下限 + 对齐</text>
+  <text x="110" y="529" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">max(int(smoothed), min_chunk)，再向上取整到 max(page_size, 64) 的倍数</text>
+  <rect x="775.5" y="499.5" width="85.5" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1"/><text x="818.3" y="517" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)" text-anchor="middle">min_chunk</text>
+  <rect x="52" y="548" width="828" height="56" rx="10" fill="var(--color-accent-soft, #fff0e9)"/>
+  <rect x="52" y="548" width="5" height="56" rx="2.5" fill="var(--color-accent, #e85b32)"/>
+  <g transform="translate(75.8 565.8) scale(0.85)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h6m0 0l-4-4m4 4l-4 4M14 5h6v6h-6zM14 13h6v6h-6z"/></g>
+  <text x="110" y="573" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑤ 截断</text>
+  <text x="110" y="593" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">num_new_tokens = min(predicted_chunk, num_new_tokens)；返回 None 就不截</text>
+  <rect x="708" y="563.5" width="153" height="21.5" rx="10.8" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1"/><text x="784.5" y="581" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)" text-anchor="middle">predict_chunk_size</text>
+  <rect x="36" y="112" width="266" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="52" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">采 64 个 chunk size</text>
+  <text x="52" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">从 base_chunk_size 一路采到接近 0</text>
+  <rect x="318" y="112" width="250" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="334" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">每个都真跑一次 forward</text>
+  <text x="334" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">量毫秒级延迟</text>
+  <rect x="584" y="112" width="274" height="70" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="600" y="143.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">最小二乘拟合二次模型</text>
+  <text x="600" y="161.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">f(l) = a·l² + b·l + c</text>
+  <path d="M304 147 L316 147" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M316 147 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M570 147 L582 147" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M582 147 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <text x="20" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">关掉时这五步一步都不跑，一步切多少只受 max_num_batched_tokens 这个固定上限管。</text>
+  <text x="20" y="670" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开着的三个硬条件：PP &gt; 1、开 chunked prefill、不能和 balance scheduling 同开；启动多付约 64 次 forward。</text>
+</svg>

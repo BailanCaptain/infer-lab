@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "d62efdcfe3eb8661c629434a724d3f6d25f7a23fe3995dbc30a9d4440ca970a0",
+  "input": {
+    "sources": [
+      {
+        "ref": "draft-integration-v1",
+        "hash": "cf331e02ba0b4db6316f6c6ca0b896efb5dfb932386e4b4517e3ca7071bf2d32"
+      }
+    ],
+    "targets": [
+      "decision-cf331e02ba0b4db6316f6c6ca0b896efb5dfb932386e4b4517e3ca7071bf2d32"
+    ],
+    "recipeHash": "1799c8b983fe064b9d1d17049aa5c7e78f1fefda428faa11791f1891bb0de2f7"
+  },
+  "origins": [
+    "pr"
+  ],
+  "state": "draft",
+  "policy": {
+    "maxAttempts": 3,
+    "maxCostUsd": 6,
+    "reserveUsd": 2
+  },
+  "attempts": [
+    {
+      "token": "6b35535e-0b9a-4d3c-80c9-e68f836d30e6",
+      "ownerPid": 68588,
+      "startedAt": "2026-09-21T17:44:01.906Z",
+      "finishedAt": "2026-09-21T17:44:01.959Z",
+      "reservedUsd": 2,
+      "costUsd": 0,
+      "state": "draft"
+    }
+  ],
+  "artifacts": {
+    "_jobs/decisions/d62efdcfe3eb8661c629434a724d3f6d25f7a23fe3995dbc30a9d4440ca970a0.json": "1de25caaa6610d542a2523abcc76d933d707e9a0d7e4b19bade135133ce458be"
+  },
+  "createdAt": "2026-09-21T17:44:01.891Z",
+  "updatedAt": "2026-09-21T17:44:01.959Z"
+}

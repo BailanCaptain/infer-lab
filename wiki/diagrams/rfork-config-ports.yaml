@@ -1,0 +1,49 @@
+{
+  "layout": "figure",
+  "id": "rfork-config-ports",
+  "size": [900, 420],
+  "caption": "借一次权重涉及的四类端口：1 业务方连 API 端口；2 A、B 各自 Worker 里的 RFork 会话都去连 Planner；3 B 向 A 的 seed 元数据服务取清单；4 B 经两边的传输引擎端点读 A 显存里的权重字节",
+  "hardware": [
+    { "kind": "server", "at": [20, 140], "size": [370, 260], "label": "实例 A：已在服务，当 seed" },
+    { "kind": "server", "at": [510, 140], "size": [370, 260], "label": "实例 B：新起，来借权重" },
+    { "kind": "chip", "at": [45, 305], "size": [110, 64], "label": "NPU：权重" },
+    { "kind": "chip", "at": [745, 305], "size": [110, 64], "label": "NPU：空位" }
+  ],
+  "items": [
+    { "at": [40, 22], "size": [150, 52], "text": "业务方", "sub": "发推理请求", "tone": "token", "style": "plain" },
+    { "at": [365, 22], "size": [170, 56], "text": "Planner", "sub": "独立服务，自己定端口", "tone": "control", "style": "plain" },
+    { "at": [40, 175], "size": [150, 54], "text": "API 前端", "sub": "端口：启动命令定", "tone": "token", "style": "plain" },
+    { "at": [215, 175], "size": [155, 54], "text": "seed 元数据服务", "sub": "随机端口或基数+rank", "tone": "control", "style": "plain" },
+    { "at": [215, 310], "size": [155, 54], "text": "传输引擎端点", "sub": "本机 IP + 空闲端口", "tone": "comm", "style": "plain" },
+    { "at": [530, 175], "size": [155, 54], "text": "RFork 加载器", "sub": "启动时借一次", "tone": "control", "style": "plain" },
+    { "at": [705, 175], "size": [150, 54], "text": "API 前端", "sub": "加载完才开放", "tone": "token", "style": "faded" },
+    { "at": [530, 310], "size": [155, 54], "text": "传输引擎端点", "sub": "本机 IP + 空闲端口", "tone": "comm", "style": "plain" }
+  ],
+  "links": [
+    { "from": [115, 74], "to": [115, 175], "tone": "token" },
+    { "from": [292, 140], "via": [[292, 50]], "to": [365, 50], "tone": "control", "dashed": true },
+    { "from": [607, 175], "via": [[607, 50]], "to": [535, 50], "tone": "control", "dashed": true },
+    { "from": [530, 202], "to": [370, 202], "tone": "control" },
+    { "from": [370, 337], "to": [530, 337], "tone": "comm" },
+    { "from": [155, 337], "to": [215, 337], "tone": "ink", "ends": "none" },
+    { "from": [685, 337], "to": [745, 337], "tone": "ink", "ends": "none" }
+  ],
+  "badges": [
+    { "at": [115, 104], "n": 1, "tone": "token" },
+    { "at": [292, 102], "n": 2, "tone": "control" },
+    { "at": [607, 102], "n": 2, "tone": "control" },
+    { "at": [450, 202], "n": 3, "tone": "control" },
+    { "at": [450, 337], "n": 4, "tone": "comm" }
+  ],
+  "texts": [
+    { "at": [131, 109], "text": "推理请求" },
+    { "at": [308, 107], "text": "A 的 RFork 会话：登记、心跳" },
+    { "at": [591, 107], "text": "借、还租约", "anchor": "end" },
+    { "at": [450, 186], "text": "取清单（HTTP）", "anchor": "middle" },
+    { "at": [450, 321], "text": "读权重字节", "anchor": "middle", "tone": "comm" }
+  ],
+  "pins": [
+    { "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L364-L392", "symbols": ["seed_port_base", "start_rfork_server", "report_seed_once"] },
+    { "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L220-L229", "symbols": ["get_open_port", "initialize"] }
+  ]
+}

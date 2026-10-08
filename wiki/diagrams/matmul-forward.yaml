@@ -1,0 +1,35 @@
+layout: figure
+id: matmul-forward
+caption: A4 中 attention 之后按层型进入稠密 MLP 或 MoE；稠密分支的逻辑顺序是合并投影、门控、降维、归约，再回到残差流。
+size: [860, 760]
+items:
+  - { at: [220, 25], size: [420, 50], text: A3 准备输入 → A4 各层前向, tone: control, style: plain }
+  - { at: [220, 110], size: [420, 60], text: attention → mHC 写回与再次混合, sub: MLP 入口归一化后选择层型, tone: token }
+  - { at: [50, 245], size: [400, 62], text: 稠密 MLP · 合并 gate/up 投影, sub: 合并 gate 和 up 的本卡投影, tone: weight }
+  - { at: [50, 355], size: [400, 62], text: 门控 · SwiGLU, sub: 先限制 gate/up，再算 SiLU(gate) × up, tone: token }
+  - { at: [50, 465], size: [400, 62], text: down 投影 → All-Reduce, sub: 本卡降维部分和 → 组内合齐, tone: comm }
+  - { at: [510, 245], size: [300, 90], text: MoE 分支, sub: 选择专家并计算，另加共享结果, tone: weight, style: plain }
+  - { at: [220, 595], size: [420, 60], text: mHC 写回残差流 → 后续层, sub: 三个逻辑投影的输出重新进入层间状态, tone: token }
+  - { at: [220, 690], size: [420, 45], text: 全部层结束 → A5 采样与草拟, tone: control, style: plain }
+links:
+  - { from: [430, 75], to: [430, 110] }
+  - { from: [430, 170], via: [[430, 207], [250, 207]], to: [250, 245] }
+  - { from: [430, 170], via: [[430, 207], [660, 207]], to: [660, 245] }
+  - { from: [250, 307], to: [250, 355], tone: token }
+  - { from: [250, 417], to: [250, 465], tone: token }
+  - { from: [250, 527], via: [[250, 563], [430, 563]], to: [430, 595], tone: token }
+  - { from: [660, 335], via: [[660, 563], [430, 563]], to: [430, 595], tone: token }
+  - { from: [430, 655], to: [430, 690] }
+texts:
+  - { at: [185, 232], text: 前三层, note: true }
+  - { at: [615, 232], text: 后续层, note: true }
+  - { at: [555, 416], text: 分支二选一, strong: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L34-L58
+    symbols: [SiluAndMulWithClamp, forward_oot]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442
+    symbols: [AscendGlm5NextMLP, gate_up_proj, act_fn, down_proj]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2106-L2160
+    symbols: [AscendGlm5NextMoE, AscendGlm5NextMLP]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2239
+    symbols: [hc_pre, hc_post, post_attention_layernorm]

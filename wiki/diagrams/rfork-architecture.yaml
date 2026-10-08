@@ -1,0 +1,245 @@
+{
+  "size": [
+    900,
+    465
+  ],
+  "caption": "模型加载的控制与数据通道：Planner 协调来源和租约，HTTP 传元数据，B 主动把 A 的权重字节读取到本地设备存储；服务器轮廓仅表示示例部署",
+  "hardware": [
+    {
+      "kind": "server",
+      "at": [
+        30,
+        145
+      ],
+      "size": [
+        330,
+        265
+      ],
+      "label": "来源 A"
+    },
+    {
+      "kind": "server",
+      "at": [
+        540,
+        145
+      ],
+      "size": [
+        330,
+        265
+      ],
+      "label": "接收 B"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        60,
+        320
+      ],
+      "size": [
+        84,
+        64
+      ],
+      "label": "NPU"
+    },
+    {
+      "kind": "chip",
+      "at": [
+        756,
+        320
+      ],
+      "size": [
+        84,
+        64
+      ],
+      "label": "NPU"
+    }
+  ],
+  "items": [
+    {
+      "at": [
+        360,
+        25
+      ],
+      "size": [
+        180,
+        52
+      ],
+      "text": "Planner",
+      "tone": "control",
+      "style": "plain",
+      "sub": "来源与租约"
+    },
+    {
+      "at": [
+        60,
+        204
+      ],
+      "size": [
+        270,
+        52
+      ],
+      "text": "张量元数据",
+      "tone": "control",
+      "style": "plain",
+      "sub": "名称 / 形状 / 类型 / 地址"
+    },
+    {
+      "at": [
+        570,
+        204
+      ],
+      "size": [
+        270,
+        52
+      ],
+      "text": "本地清单校验",
+      "tone": "control",
+      "style": "plain"
+    },
+    {
+      "at": [
+        180,
+        325
+      ],
+      "size": [
+        150,
+        52
+      ],
+      "text": "权重存储",
+      "tone": "weight"
+    },
+    {
+      "at": [
+        570,
+        325
+      ],
+      "size": [
+        150,
+        52
+      ],
+      "text": "目标存储",
+      "tone": "weight",
+      "style": "faded"
+    }
+  ],
+  "links": [
+    {
+      "to": [
+        360,
+        51
+      ],
+      "tone": "control",
+      "via": [
+        [
+          195,
+          51
+        ]
+      ],
+      "dashed": true,
+      "from": [
+        195,
+        145
+      ]
+    },
+    {
+      "to": [
+        705,
+        145
+      ],
+      "tone": "control",
+      "via": [
+        [
+          705,
+          51
+        ]
+      ],
+      "dashed": true,
+      "from": [
+        540,
+        51
+      ]
+    },
+    {
+      "to": [
+        570,
+        230
+      ],
+      "tone": "control",
+      "from": [
+        330,
+        230
+      ]
+    },
+    {
+      "to": [
+        570,
+        351
+      ],
+      "tone": "comm",
+      "from": [
+        330,
+        351
+      ]
+    }
+  ],
+  "texts": [
+    {
+      "at": [
+        205,
+        105
+      ],
+      "text": "登记 / 心跳"
+    },
+    {
+      "at": [
+        695,
+        105
+      ],
+      "text": "申请 / 归还",
+      "anchor": "end"
+    },
+    {
+      "at": [
+        450,
+        216
+      ],
+      "text": "HTTP 元数据",
+      "anchor": "middle"
+    },
+    {
+      "at": [
+        450,
+        336
+      ],
+      "text": "读取权重字节",
+      "anchor": "middle",
+      "tone": "comm"
+    },
+    {
+      "at": [
+        450,
+        445
+      ],
+      "text": "本地模型存储和推理历史分别分配",
+      "anchor": "middle",
+      "note": true
+    }
+  ],
+  "pins": [
+    {
+      "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/session.py#L103-L148",
+      "symbols": [
+        "transfer_from_seed",
+        "fetch_seed_transfer_info"
+      ]
+    },
+    {
+      "source": "rfork@3284850b:vllm_ascend/model_loader/rfork/transfer_backend.py#L758-L793",
+      "symbols": [
+        "batch_transfer_sync_read"
+      ]
+    }
+  ],
+  "layout": "figure",
+  "id": "rfork-architecture"
+}

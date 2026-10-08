@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" width="900" height="250" role="img" aria-label="同一段 4,096 个位置的开头（示意数）：有效带宽 16 GiB/s 时搬回约 31 ms，重算要 250 ms；带宽掉到 2 GiB/s，搬回也要 250 ms，两者持平">
+  <title>同一段 4,096 个位置的开头（示意数）：有效带宽 16 GiB/s 时搬回约 31 ms，重算要 250 ms；带宽掉到 2 GiB/s，搬回也要 250 ms，两者持平</title>
+  <defs><pattern id="kv-cache-cpu-offload-cost-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--color-surface-sunken, #ece9df)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--color-ink-muted, #66716d)" stroke-width="2"/></pattern></defs>
+  <text x="208" y="69.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">搬回（16 GiB/s）</text>
+  <path d="M220 80H870" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="220" y="50" width="81.3" height="30" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="260.6" y="69.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">31 ms</text>
+  <text x="208" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">搬回（2 GiB/s）</text>
+  <path d="M220 124H870" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="220" y="94" width="650" height="30" rx="4" fill="url(#kv-cache-cpu-offload-cost-hatch)" stroke="var(--color-ink-muted, #66716d)" stroke-width="1.3"/>
+  <text x="545" y="113.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">250 ms，与重算持平</text>
+  <text x="208" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">重算 4,096 个位置</text>
+  <rect x="220" y="138" width="650" height="30" rx="4" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="545" y="157.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">250 ms</text>
+  <path d="M220 180H870" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M220 180v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="220" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M350 180v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="350" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">50</text>
+  <path d="M480 180v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="480" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">100</text>
+  <path d="M610 180v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="610" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">150</text>
+  <path d="M740 180v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="740" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">200</text>
+  <path d="M870 180v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="870" y="200" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">250 ms</text>
+  <text x="20" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">示意数：512 MiB，每秒重算 16,384 个位置</text>
+</svg>

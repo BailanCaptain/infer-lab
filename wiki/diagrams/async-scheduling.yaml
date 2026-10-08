@@ -1,0 +1,61 @@
+layout: figure
+id: async-scheduling
+caption: 同一条请求连走 3 步的示意时间轴，CPU 上的一段活记 1 格，NPU 算一步记 3 格。上：同步时，NPU 每算完一步都要等 CPU 收完结果、排好下一步（斜线格），3 步共 13 格。下：开了 async scheduling，NPU 在算第 1 步时 CPU 已经把第 2 步排好，此后收结果和排下一步都落在 NPU 计算的时间里，3 步共 11 格。两条时间轴右上角写着 NPU 在其中忙了几格。计算本身仍是一步接一步，提前的只是 CPU 上的调度；格数是示意，不是实测。
+size: [900, 430]
+texts:
+  - { at: [20, 28], text: 同一条请求连走 3 步（示意格数）, strong: true, size: 15 }
+  - { at: [20, 64], text: 同步：结果回到 CPU 才排下一步, strong: true }
+  - { at: [20, 246], text: async scheduling：算这步时已排好下一步, strong: true }
+  - { at: [110, 412], text: 排 2 时第 1 步的 token 未回：先记 1 个占位, note: true }
+  - { at: [800, 64], text: NPU 忙 9 / 13 格, anchor: end, tone: token, strong: true }
+  - { at: [880, 246], text: NPU 忙 9 / 11 格, anchor: end, tone: token, strong: true }
+timelines:
+  - at: [20, 80]
+    scale: 56
+    start: 0
+    end: 13
+    ticks: 1
+    labelW: 90
+    laneH: 34
+    gap: 10
+    unit: 格
+    lanes:
+      - label: CPU
+        spans:
+          - { from: 0, to: 1, tone: control, text: 排1 }
+          - { from: 4, to: 5, tone: control, text: 收1 排2 }
+          - { from: 8, to: 9, tone: control, text: 收2 排3 }
+          - { from: 12, to: 13, tone: control, text: 收3 }
+      - label: NPU
+        spans:
+          - { from: 1, to: 4, tone: token, text: 算第 1 步 }
+          - { from: 4, to: 5, style: hatch, text: 空等 }
+          - { from: 5, to: 8, tone: token, text: 算第 2 步 }
+          - { from: 8, to: 9, style: hatch, text: 空等 }
+          - { from: 9, to: 12, tone: token, text: 算第 3 步 }
+    marks:
+      - { t: 13, label: 13 格 }
+  - at: [20, 262]
+    scale: 56
+    start: 0
+    end: 13
+    ticks: 1
+    labelW: 90
+    laneH: 34
+    gap: 10
+    unit: 格
+    lanes:
+      - label: CPU
+        spans:
+          - { from: 0, to: 1, tone: control, text: 排1 }
+          - { from: 1, to: 2, tone: control, text: 排2 }
+          - { from: 4, to: 5, tone: control, text: 收1 排3 }
+          - { from: 7, to: 8, tone: control, text: 收2 }
+          - { from: 10, to: 11, tone: control, text: 收3 }
+      - label: NPU
+        spans:
+          - { from: 1, to: 4, tone: token, text: 算第 1 步 }
+          - { from: 4, to: 7, tone: token, text: 算第 2 步 }
+          - { from: 7, to: 10, tone: token, text: 算第 3 步 }
+    marks:
+      - { t: 11, label: 11 格 }

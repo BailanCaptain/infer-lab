@@ -1,0 +1,57 @@
+layout: figure
+id: async-scheduling-flow
+caption: 开着 async scheduling 时，一圈里两个进程各做什么。左边 EngineCore 进程跑的是上游代码：排第 k+1 步时，还没回来的 token 用占位顶上（①），排完当场记账（②），提交后只要批次队列没满就不等结果、回到 ① 再排；满了才等最老的第 k 步，按结果销账（⑤），把新 token 发回前端（⑥）。右边 Worker 进程由昇腾的 NPUModelRunner 实现：主机侧 token 表只写 −1，真值和候选留在卡上，准备输入时在卡上抄进去（⑦）；带投机解码时先按候选全被接受排位置，再按上一步拷回的有效数改正；算完的采样值一份留在卡上给下一步，一份由单独的拷贝流拷回主机，一圈之后由 ④ 收下。图中站号对应一条请求走过的七站。
+size: [880, 648]
+texts:
+  - { at: [24, 24], text: EngineCore 进程（上游代码）, strong: true }
+  - { at: [472, 24], text: Worker 进程（昇腾 NPUModelRunner）, strong: true }
+  - { at: [30, 281], text: 没满：不等结果，回到 ①, size: 12.5, note: true }
+  - { at: [232, 367], text: 满了, size: 12.5 }
+  - { at: [434, 230], text: 提交, size: 12.5 }
+  - { at: [452, 632], text: 这一步的结果，下一圈由 ④ 收下, size: 12.5, note: true }
+items:
+  - { at: [24, 40], size: [400, 62], text: ① 第 2 站 · 排第 k+1 步, sub: 还差 = 已知 + 候选占位 + 输出占位 − 已算, tone: control }
+  - { at: [24, 126], size: [400, 62], text: ② 当场记账, sub: 已算加上本步位置，输出占位加 1 + 候选数, tone: control }
+  - { at: [24, 212], size: [400, 52], text: ③ 提交给 Worker，回执入队, tone: control }
+  - { at: [24, 288], size: [400, 62], text: 批次队列满了吗？, sub: 最多 2 批在途, style: plain }
+  - { at: [24, 374], size: [400, 52], text: ④ 等最老一批（第 k 步）的结果, tone: token }
+  - { at: [24, 450], size: [400, 72], text: ⑤ 第 6 站 · 按结果销账, sub: 被拒的：已算和占位各减；收到的：占位再减, tone: token }
+  - { at: [24, 546], size: [400, 52], text: ⑥ 第 7 站 · 新 token 发回前端, tone: token }
+  - { at: [472, 212], size: [392, 72], text: ⑦ 接 ③ · 第 3 站 · 准备第 k+1 步输入, sub: 主机侧写 −1，卡上抄入采样值与候选, tone: weight }
+  - { at: [472, 308], size: [392, 62], text: 带投机解码：先按全接受排位置, sub: 再用上一步拷回的有效数改正, style: plain }
+  - { at: [472, 394], size: [392, 62], text: ⑧ 第 4–5 站 · 前向、采样、草拟, sub: FULL 图回放前先等上一步做完, tone: weight }
+  - { at: [472, 480], size: [188, 72], text: 采样值留在卡上, sub: 下一步 ⑦ 直接用, tone: kv }
+  - { at: [676, 480], size: [188, 72], text: 拷贝流拷回主机, sub: 带完成事件交回, tone: comm }
+links:
+  - { from: [224, 102], to: [224, 126] }
+  - { from: [224, 188], to: [224, 212] }
+  - { from: [224, 264], to: [224, 288] }
+  - { from: [224, 350], to: [224, 374] }
+  - { from: [224, 426], to: [224, 450] }
+  - { from: [224, 522], to: [224, 546] }
+  - { from: [24, 319], to: [24, 71], via: [[10, 319], [10, 71]] }
+  - { from: [24, 572], to: [24, 71], via: [[10, 572], [10, 71]] }
+  - { from: [424, 238], to: [472, 238] }
+  - { from: [668, 284], to: [668, 308] }
+  - { from: [668, 370], to: [668, 394] }
+  - { from: [566, 456], to: [566, 480] }
+  - { from: [770, 456], to: [770, 480] }
+  - { from: [770, 552], to: [424, 400], via: [[770, 612], [440, 612], [440, 400]] }
+  - { from: [472, 516], to: [472, 262], via: [[456, 516], [456, 262]], dashed: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/async_scheduler.py#L19-L67
+    symbols: [_update_after_schedule, num_output_placeholders, _update_request_with_output]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1414-L1432
+    symbols: [num_rejected, num_output_placeholders]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598
+    symbols: [step_with_batch_queue, batch_queue]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1700-L1826
+    symbols: [_prepare_input_ids, prev_sampled_token_ids]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2684-L2710
+    symbols: [prev_sampled_token_ids]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2569-L2582
+    symbols: [AsyncGPUModelRunnerOutput, async_output_copy_stream]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1580-L1598
+    symbols: [_correct_optimistic_seq_lens_cpu]
+  - source: vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L244-L258
+    symbols: [synchronize, replay]

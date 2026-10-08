@@ -1,0 +1,137 @@
+layout: figure
+id: collective-communication-all-reduce
+caption: All-Reduce（SUM）拆成两步：第 1 步同 Reduce-Scatter，每张卡的第 k 块都送到卡 k 加起来；第 2 步同 All-Gather，卡 k 把这块的和发给其余每张卡。中间两格每列是一张收数据的卡，紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。
+size: [880, 730]
+frames:
+  - { label: 发之前：每张卡的部分和切成 4 块（一块 = 部分和张量的连续一段，真实 8 卡切 8 段）, at: [8, 30], size: [864, 90] }
+  - { label: 第 1 步（同 Reduce-Scatter）：第 k 块都送到卡 k，在卡 k 上加起来, at: [8, 158], size: [864, 210] }
+  - { label: 第 2 步（同 All-Gather）：卡 k 把第 k 块的和发给其余每张卡, at: [8, 406], size: [864, 188] }
+  - { label: '发之后：每张卡都是 [1111, 2222, 3333, 4444]', at: [8, 632], size: [864, 90] }
+grids:
+  # 发之前：卡 0
+  - { at: [38, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '2' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # 发之前：卡 1
+  - { at: [250, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '10' }, { at: [0, 1], text: '20' }, { at: [0, 2], text: '30' }, { at: [0, 3], text: '40' }] }
+  # 发之前：卡 2
+  - { at: [462, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 2,
+      cells: [{ at: [0, 0], text: '100' }, { at: [0, 1], text: '200' }, { at: [0, 2], text: '300' }, { at: [0, 3], text: '400' }] }
+  # 发之前：卡 3
+  - { at: [674, 52], rows: 1, cols: 4, cell: [42, 30], tone: token, style: faded, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1000' }, { at: [0, 1], text: '2000' }, { at: [0, 2], text: '3000' }, { at: [0, 3], text: '4000' }] }
+  # 第 1 步：四张卡的第 0 块送到卡 0
+  - { at: [41, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '10' }, { at: [0, 2], text: '100' }, { at: [0, 3], text: '1000' }] }
+  # 第 1 步之后：卡 0 只有第 0 块的和
+  - { at: [38, 300], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1111', style: solid }] }
+  # 第 1 步：四张卡的第 1 块送到卡 1
+  - { at: [253, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '20' }, { at: [0, 2], text: '200' }, { at: [0, 3], text: '2000' }] }
+  # 第 1 步之后：卡 1 只有第 1 块的和
+  - { at: [250, 300], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 1,
+      cells: [{ at: [0, 1], text: '2222', style: solid }] }
+  # 第 1 步：四张卡的第 2 块送到卡 2
+  - { at: [465, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '30' }, { at: [0, 2], text: '300' }, { at: [0, 3], text: '3000' }] }
+  # 第 1 步之后：卡 2 只有第 2 块的和
+  - { at: [462, 300], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 2], text: '3333', style: solid }] }
+  # 第 1 步：四张卡的第 3 块送到卡 3
+  - { at: [677, 190], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: faded,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '4' }, { at: [0, 1], text: '40' }, { at: [0, 2], text: '400' }, { at: [0, 3], text: '4000' }] }
+  # 第 1 步之后：卡 3 只有第 3 块的和
+  - { at: [674, 300], rows: 1, cols: 4, cell: [42, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 3], text: '4444', style: solid }] }
+  # 第 2 步：四张卡各自的和送到卡 0
+  - { at: [41, 438], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步之后：卡 0
+  - { at: [38, 526], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步：四张卡各自的和送到卡 1
+  - { at: [253, 438], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步之后：卡 1
+  - { at: [250, 526], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步：四张卡各自的和送到卡 2
+  - { at: [465, 438], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步之后：卡 2
+  - { at: [462, 526], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 2,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步：四张卡各自的和送到卡 3
+  - { at: [677, 438], rows: 1, cols: 4, cell: [36, 28], gap: 6, tone: token, style: solid,
+      colLabels: [卡 0, 卡 1, 卡 2, 卡 3],
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 第 2 步之后：卡 3
+  - { at: [674, 526], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 发之后：卡 0
+  - { at: [38, 654], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 发之后：卡 1
+  - { at: [250, 654], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 发之后：卡 2
+  - { at: [462, 654], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 2,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+  # 发之后：卡 3
+  - { at: [674, 654], rows: 1, cols: 4, cell: [42, 30], tone: token, style: solid, label: 卡 3,
+      cells: [{ at: [0, 0], text: '1111' }, { at: [0, 1], text: '2222' }, { at: [0, 2], text: '3333' }, { at: [0, 3], text: '4444' }] }
+links:
+  # 第 1 步送到卡 0：四块在卡 0 第 0 块上方汇成一支箭头
+  - { from: [59, 218], to: [59, 272], tone: control, dashed: true, ends: none }
+  - { from: [101, 218], to: [59, 272], curve: [[101, 245], [59, 245]], tone: comm, ends: none }
+  - { from: [143, 218], to: [59, 272], curve: [[143, 245], [59, 245]], tone: comm, ends: none }
+  - { from: [185, 218], to: [59, 272], curve: [[185, 245], [59, 245]], tone: comm, ends: none }
+  - { from: [59, 272], to: [59, 298], tone: comm }
+  # 第 1 步送到卡 1：四块在卡 1 第 1 块上方汇成一支箭头
+  - { from: [271, 218], to: [313, 272], curve: [[271, 245], [313, 245]], tone: comm, ends: none }
+  - { from: [313, 218], to: [313, 272], tone: control, dashed: true, ends: none }
+  - { from: [355, 218], to: [313, 272], curve: [[355, 245], [313, 245]], tone: comm, ends: none }
+  - { from: [397, 218], to: [313, 272], curve: [[397, 245], [313, 245]], tone: comm, ends: none }
+  - { from: [313, 272], to: [313, 298], tone: comm }
+  # 第 1 步送到卡 2：四块在卡 2 第 2 块上方汇成一支箭头
+  - { from: [483, 218], to: [567, 272], curve: [[483, 245], [567, 245]], tone: comm, ends: none }
+  - { from: [525, 218], to: [567, 272], curve: [[525, 245], [567, 245]], tone: comm, ends: none }
+  - { from: [567, 218], to: [567, 272], tone: control, dashed: true, ends: none }
+  - { from: [609, 218], to: [567, 272], curve: [[609, 245], [567, 245]], tone: comm, ends: none }
+  - { from: [567, 272], to: [567, 298], tone: comm }
+  # 第 1 步送到卡 3：四块在卡 3 第 3 块上方汇成一支箭头
+  - { from: [695, 218], to: [821, 272], curve: [[695, 245], [821, 245]], tone: comm, ends: none }
+  - { from: [737, 218], to: [821, 272], curve: [[737, 245], [821, 245]], tone: comm, ends: none }
+  - { from: [779, 218], to: [821, 272], curve: [[779, 245], [821, 245]], tone: comm, ends: none }
+  - { from: [821, 218], to: [821, 272], tone: control, dashed: true, ends: none }
+  - { from: [821, 272], to: [821, 298], tone: comm }
+  # 第 2 步送到卡 0：第 c 块的和落进卡 0 的第 c 块
+  - { from: [59, 466], to: [59, 524], tone: control, dashed: true }
+  - { from: [101, 466], to: [101, 524], tone: comm }
+  - { from: [143, 466], to: [143, 524], tone: comm }
+  - { from: [185, 466], to: [185, 524], tone: comm }
+  # 第 2 步送到卡 1：第 c 块的和落进卡 1 的第 c 块
+  - { from: [271, 466], to: [271, 524], tone: comm }
+  - { from: [313, 466], to: [313, 524], tone: control, dashed: true }
+  - { from: [355, 466], to: [355, 524], tone: comm }
+  - { from: [397, 466], to: [397, 524], tone: comm }
+  # 第 2 步送到卡 2：第 c 块的和落进卡 2 的第 c 块
+  - { from: [483, 466], to: [483, 524], tone: comm }
+  - { from: [525, 466], to: [525, 524], tone: comm }
+  - { from: [567, 466], to: [567, 524], tone: control, dashed: true }
+  - { from: [609, 466], to: [609, 524], tone: comm }
+  # 第 2 步送到卡 3：第 c 块的和落进卡 3 的第 c 块
+  - { from: [695, 466], to: [695, 524], tone: comm }
+  - { from: [737, 466], to: [737, 524], tone: comm }
+  - { from: [779, 466], to: [779, 524], tone: comm }
+  - { from: [821, 466], to: [821, 524], tone: control, dashed: true }
+texts:
+  - { at: [872, 18], text: 数为示意, size: 12.5, note: true, anchor: end }

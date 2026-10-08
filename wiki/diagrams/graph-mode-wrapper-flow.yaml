@@ -1,0 +1,31 @@
+layout: figure
+id: graph-mode-wrapper-flow
+caption: 包装器每一轮的固定动作：模式与描述符由上游给定，它只负责透传、回放或在启动窗口内录制。判断顺序自上而下，右侧是两个出口。
+size: [900, 660]
+items:
+  - { at: [24, 16], size: [500, 60], text: 取出本轮的模式与描述符, sub: Runner 已算好并放进执行上下文, tone: control }
+  - { at: [24, 116], size: [500, 64], text: 模式是 NONE，或与本包装的模式不同？, style: plain }
+  - { at: [560, 116], size: [316, 64], text: 是：直接调用原模型, sub: 本轮逐个提交任务, style: plain }
+  - { at: [24, 220], size: [500, 64], text: 否：按描述符在缓存里查这张图, sub: 描述符含宽度与是否整齐 decode, tone: token }
+  - { at: [24, 324], size: [500, 64], text: 查到了吗？, style: plain }
+  - { at: [560, 324], size: [316, 76], text: 没查到：只有启动捕获窗口里才录, sub: 窗口之外，合法性检查直接报错, tone: danger }
+  - { at: [24, 440], size: [500, 72], text: 查到了：回放, sub: FULL 先等设备做完上一轮，再提交整串, tone: token }
+  - { at: [24, 556], size: [500, 60], text: 返回录制时的那块输出, sub: 本轮结果写在同一组固定地址里, tone: weight }
+texts:
+  - { at: [560, 470], text: 包装器不判断本轮该不该用图；, size: 13.5, note: true }
+  - { at: [560, 492], text: 那是上游 Runner 与分派器的事, size: 13.5, note: true }
+links:
+  - { from: [274, 76], to: [274, 116] }
+  - { from: [524, 148], to: [560, 148] }
+  - { from: [274, 180], to: [274, 220] }
+  - { from: [274, 284], to: [274, 324] }
+  - { from: [524, 356], to: [560, 356] }
+  - { from: [274, 388], to: [274, 440] }
+  - { from: [274, 512], to: [274, 556] }
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170'
+    symbols: [ACLGraphWrapper, ACLGraphEntry]
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L216-L259'
+    symbols: [replay]
+  - source: 'vllm@0fc695fc:vllm/compilation/monitor.py#L88-L100'
+    symbols: [validate_cudagraph_capturing_enabled]

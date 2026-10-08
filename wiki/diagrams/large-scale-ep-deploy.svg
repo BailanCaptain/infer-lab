@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 466" width="900" height="466" role="img" aria-label="vllm-ascend 官方示例（DeepSeek-R1，8 台 Atlas 800T A3，每台 16 颗 NPU）。P 一侧 4 台各自是一个 EP16，彼此不交换 token；D 一侧 4 台合成一个 EP64，每层 64 个 rank 一起交换。proxy 只挑服务、转交传输参数，KV cache 由连接器从 P 直接传到 D。">
+  <title>vllm-ascend 官方示例（DeepSeek-R1，8 台 Atlas 800T A3，每台 16 颗 NPU）。P 一侧 4 台各自是一个 EP16，彼此不交换 token；D 一侧 4 台合成一个 EP64，每层 64 个 rank 一起交换。proxy 只挑服务、转交传输参数，KV cache 由连接器从 P 直接传到 D。</title>
+  <defs><marker id="large-scale-ep-deploy-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="large-scale-ep-deploy-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <rect x="18" y="124" width="400" height="326" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="34" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P 一侧：4 个互不相干的 EP16</text>
+  <rect x="482" y="124" width="400" height="326" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="498" y="112" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">D 一侧：合起来一个 EP64</text>
+  <g data-hardware="server">
+  <rect x="38" y="162" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M42 174v80M204 174v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="123" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 机 1</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="228" y="162" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M232 174v80M394 174v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 机 2</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="38" y="332" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M42 344v80M204 344v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="123" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 机 3</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="228" y="332" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M232 344v80M394 344v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">P 机 4</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="502" y="162" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M506 174v80M668 174v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="587" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 机 1</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="692" y="162" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M696 174v80M858 174v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="777" y="152" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 机 2</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="502" y="332" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M506 344v80M668 344v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="587" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 机 3</text>
+  </g>
+  <g data-hardware="server">
+  <rect x="692" y="332" width="170" height="104" rx="8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <path d="M696 344v80M858 344v80" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="777" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">D 机 4</text>
+  </g>
+  <path d="M340 72 L380 124" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#large-scale-ep-deploy-ah-control)"/>
+  <path d="M560 72 L840 124" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#large-scale-ep-deploy-ah-control)"/>
+  <path d="M418 290 L482 290" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#large-scale-ep-deploy-ah-kv)"/>
+  <rect x="300" y="18" width="300" height="54" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="41" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">proxy（外部路由）</text>
+  <text x="450" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先挑 P，再挑 D</text>
+  <rect x="50" y="176" width="146" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="123" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 rank × TP8</text>
+  <rect x="50" y="220" width="146" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="123" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本机 EP16</text>
+  <rect x="240" y="176" width="146" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 rank × TP8</text>
+  <rect x="240" y="220" width="146" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="242" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本机 EP16</text>
+  <rect x="50" y="346" width="146" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="123" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 rank × TP8</text>
+  <rect x="50" y="390" width="146" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="123" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本机 EP16</text>
+  <rect x="240" y="346" width="146" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="368" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">2 个 rank × TP8</text>
+  <rect x="240" y="390" width="146" height="34" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="412" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本机 EP16</text>
+  <rect x="514" y="192" width="146" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="587" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">16 个 rank</text>
+  <text x="587" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每个 rank TP1</text>
+  <rect x="704" y="192" width="146" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="777" y="210" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">16 个 rank</text>
+  <text x="777" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每个 rank TP1</text>
+  <rect x="514" y="362" width="146" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="587" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">16 个 rank</text>
+  <text x="587" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每个 rank TP1</text>
+  <rect x="704" y="362" width="146" height="44" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="777" y="380" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">16 个 rank</text>
+  <text x="777" y="399" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每个 rank TP1</text>
+  <rect x="502" y="272" width="360" height="30" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="682" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">EP64：每层 64 个 rank 一起 dispatch、combine</text>
+  <text x="450" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="#3a4f93" text-anchor="middle">KV cache</text>
+</svg>

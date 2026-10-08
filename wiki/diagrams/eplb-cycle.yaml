@@ -1,0 +1,85 @@
+layout: figure
+id: eplb-cycle
+caption: EPLB 的一轮循环（数为示意）：两张卡、四个专家，「对」是 token–expert 配对的个数。① 窗口 1 里卡 0 的 E0、E1 各接 8 对，合计 16，卡 1 只有 4；② 后台算出把 E1 和 E2 对调，计划两边各 10；③ 一层一层传权重，收到的先放进接收区，这一步结束时等传完，换掉两张表、把权重写进位置；④ 下一个窗口流量变了，E0 涨到 12 对，卡 0 又到 14，于是进入下一轮。虚线框是还没落地的计划或正在传的权重；每个专家接了几对写在专家块里，每张卡的合计写在卡名旁，负载条只表示长短。
+size: [900, 540]
+frames:
+  - { label: 卡 0 · 合计 16, at: [24, 64], size: [196, 150] }
+  - { label: 卡 1 · 合计 4, at: [236, 64], size: [196, 150] }
+  - { label: 卡 0 · 计划 10, at: [484, 64], size: [196, 150] }
+  - { label: 卡 1 · 计划 10, at: [696, 64], size: [196, 150] }
+  - { label: 卡 0, at: [484, 334], size: [196, 150] }
+  - { label: 卡 1, at: [696, 334], size: [196, 150] }
+  - { label: 卡 0 · 合计 14, at: [24, 334], size: [196, 150] }
+  - { label: 卡 1 · 合计 6, at: [236, 334], size: [196, 150] }
+items:
+  - { at: [36, 78], size: [82, 48], text: E0, sub: 8 对, tone: weight }
+  - { at: [126, 78], size: [82, 48], text: E1, sub: 8 对, tone: weight }
+  - { at: [248, 78], size: [82, 48], text: E2, sub: 2 对, tone: weight }
+  - { at: [338, 78], size: [82, 48], text: E3, sub: 2 对, tone: weight }
+  - { at: [496, 78], size: [82, 48], text: E0, sub: 8 对, tone: weight }
+  - { at: [586, 78], size: [82, 48], text: E2, sub: 2 对, tone: weight, style: faded }
+  - { at: [708, 78], size: [82, 48], text: E1, sub: 8 对, tone: weight, style: faded }
+  - { at: [798, 78], size: [82, 48], text: E3, sub: 2 对, tone: weight }
+  - { at: [496, 348], size: [82, 44], text: E0, tone: weight }
+  - { at: [586, 348], size: [82, 44], text: E1, sub: 发出, tone: weight }
+  - { at: [708, 348], size: [82, 44], text: E2, sub: 发出, tone: weight }
+  - { at: [798, 348], size: [82, 44], text: E3, tone: weight }
+  - { at: [496, 426], size: [172, 44], text: 接收区, sub: 收 E2, tone: comm, style: faded }
+  - { at: [708, 426], size: [172, 44], text: 接收区, sub: 收 E1, tone: comm, style: faded }
+  - { at: [36, 348], size: [82, 48], text: E0, sub: 12 对, tone: weight }
+  - { at: [126, 348], size: [82, 48], text: E2, sub: 2 对, tone: weight }
+  - { at: [248, 348], size: [82, 48], text: E1, sub: 4 对, tone: weight }
+  - { at: [338, 348], size: [82, 48], text: E3, sub: 2 对, tone: weight }
+bars:
+  - at: [36, 146]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 8, tone: token }
+      - { value: 8, tone: token }
+  - at: [248, 146]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 2, tone: token }
+      - { value: 2, tone: token }
+  - at: [496, 146]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 8, tone: token }
+      - { value: 2, tone: token }
+  - at: [708, 146]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 8, tone: token }
+      - { value: 2, tone: token }
+  - at: [36, 416]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 12, tone: token }
+      - { value: 2, tone: token }
+  - at: [248, 416]
+    h: 22
+    scale: 10
+    segments:
+      - { value: 4, tone: token }
+      - { value: 2, tone: token }
+links:
+  - { from: [440, 139], to: [476, 139] }
+  - { from: [688, 222], to: [688, 318] }
+  - { from: [476, 409], to: [440, 409] }
+  - { from: [228, 318], to: [228, 222] }
+  - { from: [627, 392], to: [760, 426], tone: comm }
+  - { from: [749, 392], to: [616, 426], tone: comm }
+texts:
+  - { at: [24, 30], text: ① 数：窗口 1 各专家接了多少对, strong: true }
+  - { at: [484, 30], text: ② 算：后台排新摆法, strong: true }
+  - { at: [484, 300], text: ③ 搬：传权重，传完再换表, strong: true }
+  - { at: [24, 300], text: ④ 再数：流量变了, strong: true }
+  - { at: [24, 244], text: 最忙 16 ÷ 平均 10 = 1.6, note: true }
+  - { at: [484, 244], text: E1 与 E2 对调, note: true }
+  - { at: [484, 514], text: 步末等传完，换表并写入权重, note: true }
+  - { at: [24, 514], text: 最忙 14 ÷ 平均 10 = 1.4，回到 ① 再调, note: true }

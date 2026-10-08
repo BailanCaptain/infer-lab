@@ -1,0 +1,193 @@
+layout: figure
+id: tensor-parallel-two-splits
+caption: 同一个 x·W₁ 交给两张卡（数为示意）。上：按列切，每张卡算出 4 个数里的 2 个，都已是真值，按卡号拼起来即可。下：按行切，每张卡只配 x 里对应的那个数，算出 4 个数，形状齐全，但每个数只加了一半（浅色是部分和），必须对应位置相加。虚线格是这张卡没有或用不到的数。两种切法最后都得到 [5, 1, 3, −2]。
+size: [880, 520]
+grids:
+  # ---- 按列切
+  - at: [60, 85]
+    rows: 1
+    cols: 2
+    cell: [34, 30]
+    tone: token
+    style: solid
+    rowLabels: ['卡 0']
+    colLabels: ['x₁', 'x₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [154, 70]
+    rows: 2
+    cols: 2
+    cell: [34, 30]
+    tone: weight
+    style: solid
+    label: 第 1、2 列
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '3' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '−1' }
+  - at: [340, 85]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], style: ghost }
+      - { at: [0, 3], style: ghost }
+  - at: [60, 195]
+    rows: 1
+    cols: 2
+    cell: [34, 30]
+    tone: token
+    style: solid
+    rowLabels: ['卡 1']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  - at: [154, 180]
+    rows: 2
+    cols: 2
+    cell: [34, 30]
+    tone: weight
+    style: solid
+    label: 第 3、4 列
+    cells:
+      - { at: [0, 0], text: '−1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '2' }
+      - { at: [1, 1], text: '−2' }
+  - at: [340, 195]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: token
+    style: solid
+    label: 数值完整，形状不全
+    cells:
+      - { at: [0, 0], style: ghost }
+      - { at: [0, 1], style: ghost }
+      - { at: [0, 2], text: '3' }
+      - { at: [0, 3], text: '−2' }
+  - at: [680, 141]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: token
+    style: solid
+    label: 每张卡都有完整的一行
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '3' }
+      - { at: [0, 3], text: '−2' }
+  # ---- 按行切
+  - at: [60, 368]
+    rows: 1
+    cols: 2
+    cell: [34, 30]
+    tone: token
+    style: solid
+    rowLabels: ['卡 0']
+    colLabels: ['x₁', 'x₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2', style: ghost }
+  - at: [154, 368]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: weight
+    style: solid
+    label: 第 1 行
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '3' }
+      - { at: [0, 2], text: '−1' }
+      - { at: [0, 3], text: '2' }
+  - at: [340, 368]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: token
+    style: faded
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '3' }
+      - { at: [0, 2], text: '−1' }
+      - { at: [0, 3], text: '2' }
+  - at: [60, 448]
+    rows: 1
+    cols: 2
+    cell: [34, 30]
+    tone: token
+    style: solid
+    rowLabels: ['卡 1']
+    cells:
+      - { at: [0, 0], text: '1', style: ghost }
+      - { at: [0, 1], text: '2' }
+  - at: [154, 448]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: weight
+    style: solid
+    label: 第 2 行
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '−1' }
+      - { at: [0, 2], text: '2' }
+      - { at: [0, 3], text: '−2' }
+  - at: [340, 448]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: token
+    style: faded
+    label: 形状完整，数值只是部分和
+    cells:
+      - { at: [0, 0], text: '4' }
+      - { at: [0, 1], text: '−2' }
+      - { at: [0, 2], text: '4' }
+      - { at: [0, 3], text: '−4' }
+  - at: [680, 418]
+    rows: 1
+    cols: 4
+    cell: [34, 30]
+    tone: token
+    style: solid
+    label: 每张卡都有完整的一行
+    cells:
+      - { at: [0, 0], text: '5' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '3' }
+      - { at: [0, 3], text: '−2' }
+items:
+  - { at: [540, 130], size: [110, 52], text: All-Gather, sub: 按卡号拼接, tone: comm }
+  - { at: [540, 407], size: [110, 52], text: All-Reduce, sub: 对应位置相加, tone: comm }
+links:
+  - { from: [226, 100], to: [336, 100] }
+  - { from: [226, 210], to: [336, 210] }
+  - { from: [294, 383], to: [336, 383] }
+  - { from: [294, 463], to: [336, 463] }
+  - { from: [476, 100], to: [540, 146], via: [[508, 100], [508, 146]], tone: comm }
+  - { from: [476, 210], to: [540, 166], via: [[508, 210], [508, 166]], tone: comm }
+  - { from: [650, 156], to: [680, 156], tone: comm }
+  - { from: [476, 383], to: [540, 423], via: [[508, 383], [508, 423]], tone: comm }
+  - { from: [476, 463], to: [540, 443], via: [[508, 463], [508, 443]], tone: comm }
+  - { from: [650, 433], to: [680, 433], tone: comm }
+nodes:
+  - { at: [141, 100], r: 10, text: × }
+  - { at: [141, 210], r: 10, text: × }
+  - { at: [141, 383], r: 10, text: × }
+  - { at: [141, 463], r: 10, text: × }
+texts:
+  - { at: [20, 26], text: 按列切：两张卡都拿完整的 x，各拿 W₁ 的两列, size: 14, strong: true }
+  - { at: [188, 52], text: W₁ 的两列, size: 12.5, note: true, anchor: middle }
+  - { at: [408, 52], text: 本卡算出, size: 12.5, note: true, anchor: middle }
+  - { at: [20, 318], text: 按行切：各拿 W₁ 的一行，只配 x 里对应的那个数, size: 14, strong: true }
+  - { at: [222, 350], text: W₁ 的一行, size: 12.5, note: true, anchor: middle }
+  - { at: [408, 350], text: 本卡算出, size: 12.5, note: true, anchor: middle }

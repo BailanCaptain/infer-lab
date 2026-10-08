@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 648" width="880" height="648" role="img" aria-label="开着 async scheduling 时，一圈里两个进程各做什么。左边 EngineCore 进程跑的是上游代码：排第 k+1 步时，还没回来的 token 用占位顶上（①），排完当场记账（②），提交后只要批次队列没满就不等结果、回到 ① 再排；满了才等最老的第 k 步，按结果销账（⑤），把新 token 发回前端（⑥）。右边 Worker 进程由昇腾的 NPUModelRunner 实现：主机侧 token 表只写 −1，真值和候选留在卡上，准备输入时在卡上抄进去（⑦）；带投机解码时先按候选全被接受排位置，再按上一步拷回的有效数改正；算完的采样值一份留在卡上给下一步，一份由单独的拷贝流拷回主机，一圈之后由 ④ 收下。图中站号对应一条请求走过的七站。">
+  <title>开着 async scheduling 时，一圈里两个进程各做什么。左边 EngineCore 进程跑的是上游代码：排第 k+1 步时，还没回来的 token 用占位顶上（①），排完当场记账（②），提交后只要批次队列没满就不等结果、回到 ① 再排；满了才等最老的第 k 步，按结果销账（⑤），把新 token 发回前端（⑥）。右边 Worker 进程由昇腾的 NPUModelRunner 实现：主机侧 token 表只写 −1，真值和候选留在卡上，准备输入时在卡上抄进去（⑦）；带投机解码时先按候选全被接受排位置，再按上一步拷回的有效数改正；算完的采样值一份留在卡上给下一步，一份由单独的拷贝流拷回主机，一圈之后由 ④ 收下。图中站号对应一条请求走过的七站。</title>
+  <defs><marker id="async-scheduling-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M224 102 L224 126" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M224 188 L224 212" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M224 264 L224 288" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M224 350 L224 374" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M224 426 L224 450" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M224 522 L224 546" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M24 319 L10 319 L10 71 L24 71" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M24 572 L10 572 L10 71 L24 71" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M424 238 L472 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M668 284 L668 308" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M668 370 L668 394" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M566 456 L566 480" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M770 456 L770 480" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M770 552 L770 612 L440 612 L440 400 L424 400" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <path d="M472 516 L456 516 L456 262 L472 262" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#async-scheduling-flow-ah-ink)"/>
+  <rect x="24" y="40" width="400" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="67" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 第 2 站 · 排第 k+1 步</text>
+  <text x="224" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">还差 = 已知 + 候选占位 + 输出占位 − 已算</text>
+  <rect x="24" y="126" width="400" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="153" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 当场记账</text>
+  <text x="224" y="172" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已算加上本步位置，输出占位加 1 + 候选数</text>
+  <rect x="24" y="212" width="400" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="243" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ 提交给 Worker，回执入队</text>
+  <rect x="24" y="288" width="400" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">批次队列满了吗？</text>
+  <text x="224" y="334" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">最多 2 批在途</text>
+  <rect x="24" y="374" width="400" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="405" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 等最老一批（第 k 步）的结果</text>
+  <rect x="24" y="450" width="400" height="72" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="482" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 第 6 站 · 按结果销账</text>
+  <text x="224" y="501" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">被拒的：已算和占位各减；收到的：占位再减</text>
+  <rect x="24" y="546" width="400" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="224" y="577" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 第 7 站 · 新 token 发回前端</text>
+  <rect x="472" y="212" width="392" height="72" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="668" y="244" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ 接 ③ · 第 3 站 · 准备第 k+1 步输入</text>
+  <text x="668" y="263" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机侧写 −1，卡上抄入采样值与候选</text>
+  <rect x="472" y="308" width="392" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="668" y="335" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">带投机解码：先按全接受排位置</text>
+  <text x="668" y="354" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">再用上一步拷回的有效数改正</text>
+  <rect x="472" y="394" width="392" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="668" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑧ 第 4–5 站 · 前向、采样、草拟</text>
+  <text x="668" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">FULL 图回放前先等上一步做完</text>
+  <rect x="472" y="480" width="188" height="72" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="566" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样值留在卡上</text>
+  <text x="566" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一步 ⑦ 直接用</text>
+  <rect x="676" y="480" width="188" height="72" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="770" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拷贝流拷回主机</text>
+  <text x="770" y="531" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">带完成事件交回</text>
+  <text x="24" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 进程（上游代码）</text>
+  <text x="472" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">Worker 进程（昇腾 NPUModelRunner）</text>
+  <text x="30" y="281" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">没满：不等结果，回到 ①</text>
+  <text x="232" y="367" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">满了</text>
+  <text x="434" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">提交</text>
+  <text x="452" y="632" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">这一步的结果，下一圈由 ④ 收下</text>
+</svg>

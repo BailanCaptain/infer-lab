@@ -1,0 +1,28 @@
+layout: figure
+id: rfork-layout
+caption: 两条路都从 A 读权重，差别在后处理放在哪一侧：要转布局的，读之前先转好；按原形状搬的，读完再处理并刷新登记
+size: [900, 240]
+
+items:
+  - { at: [190, 40], size: [190, 60], text: 转布局 + 同步, tone: weight }
+  - { at: [430, 40], size: [190, 60], text: 从 A 读, tone: comm }
+  - { at: [670, 40], size: [190, 60], text: 直接发布, tone: control, style: plain }
+  - { at: [190, 150], size: [190, 60], text: 只搭骨架, tone: weight, style: plain }
+  - { at: [430, 150], size: [190, 60], text: 从 A 读, tone: comm }
+  - { at: [670, 150], size: [190, 60], text: 后处理 · 刷新登记, tone: weight }
+
+links:
+  - { from: [380, 70], to: [430, 70], tone: control }
+  - { from: [620, 70], to: [670, 70], tone: control }
+  - { from: [380, 180], to: [430, 180], tone: control }
+  - { from: [620, 180], to: [670, 180], tone: control }
+
+texts:
+  - { at: [40, 75], text: 要转布局, size: 15 }
+  - { at: [40, 185], text: 按原形状, size: 15 }
+
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L584-L644
+    symbols: [process_weights_after_loading, synchronize]
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L503-L519
+    symbols: [_requires_processed_layout_transfer]

@@ -1,0 +1,53 @@
+layout: figure
+id: request-call-chain-functions
+caption: 七站的主要调用与交接。④在③的执行调用内部完成；⑤由第二次 RPC 触发，消费④留在 worker 的 logits。第 6 站继续生成的请求回到调度，每步输出都送往第 7 站。
+size: [900, 790]
+frames:
+  - { at: [24, 44], size: [402, 122], label: ① API server · 入口 }
+  - { at: [24, 216], size: [402, 330], label: EngineCore · 调度与记账 }
+  - { at: [474, 216], size: [402, 330], label: worker · 每张卡执行 }
+  - { at: [24, 614], size: [402, 136], label: ⑦ API server · 返回 }
+items:
+  - { at: [40, 76], size: [370, 66], text: OpenAIServingChat.create_chat_completion, sub: 套模板、分词、登记输出接收点, tone: control, style: plain }
+  - { at: [40, 248], size: [370, 66], text: ② Scheduler.schedule, sub: 本步算谁、各算几个、分哪些块, tone: control, style: plain }
+  - { at: [490, 248], size: [370, 66], text: ③ NPUWorker.execute_model, sub: 准备张量，在本次调用中进入④, tone: token }
+  - { at: [510, 350], size: [350, 66], text: ④ _model_forward, sub: 在③内部：逐层前向后计算 logits, tone: weight }
+  - { at: [490, 452], size: [370, 66], text: ⑤ NPUModelRunner.sample_tokens, sub: 选 token、记账、草拟下一步候选, tone: token }
+  - { at: [40, 452], size: [370, 66], text: ⑥ Scheduler.update_from_output, sub: 回退计数 → 追加 token → 检查停止, tone: control, style: plain }
+  - { at: [40, 646], size: [370, 76], text: OutputProcessor.process_outputs, sub: 反分词、检查 stop string、流式返回, tone: token }
+links:
+  - { from: [225, 142], to: [225, 248], tone: comm }
+  - { from: [410, 281], to: [490, 281], tone: comm }
+  - { from: [675, 314], to: [675, 350] }
+  - { from: [675, 416], to: [675, 452] }
+  - { from: [490, 485], to: [410, 485], tone: comm }
+  - { from: [225, 452], to: [225, 314], tone: control }
+  - { from: [225, 518], to: [225, 646], tone: comm }
+texts:
+  - { at: [240, 195], text: 选 DP 组 → ZMQ 发送请求, size: 14 }
+  - { at: [450, 243], text: RPC, anchor: middle, tone: comm }
+  - { at: [450, 526], text: 响应队列, anchor: middle, tone: comm }
+  - { at: [242, 382], text: 继续 → 下一步, size: 14 }
+  - { at: [242, 410], text: 结束 → 归还块号, size: 14, tone: kv }
+  - { at: [240, 582], text: ZMQ · 每步的新 token, size: 14, tone: comm }
+  - { at: [490, 653], text: 第 4 站的 logits 留在 worker, size: 14 }
+  - { at: [490, 685], text: 第 5 站由第二次 RPC 触发, size: 14 }
+pins:
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L219-L356
+    symbols: [create_chat_completion, render_chat_request]
+  - source: vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L415
+    symbols: [add_request]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
+    symbols: [schedule]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L599-L666
+    symbols: [execute_model]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1917-L2370
+    symbols: [execute_model, _model_forward, compute_logits]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2582
+    symbols: [sample_tokens, _sample, propose_draft_token_ids]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1329-L1650
+    symbols: [update_from_output]
+  - source: vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L259
+    symbols: [__call__]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L660
+    symbols: [process_outputs]

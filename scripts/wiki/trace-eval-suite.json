@@ -1,0 +1,269 @@
+{
+  "observedAt": "2026-09-16",
+  "selection": "first 10 traceback issues from 30 latest-created search results, frozen after implementation and before scoring; no tuning on these cases",
+  "cases": [
+    {
+      "issue": 16581,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16581",
+      "query": "ERROR [core.py:1195] RuntimeError: npuSynchronizeDevice:../torch_npu/csrc/core/npu/NPUStream.cpp:576 NPU function error: AclrtSynchronizeDeviceWithTimeout, error code is 507015\nERROR [core.py:1195] RuntimeError: NPUModelRunner failed, error is npuSynchronizeDevice:../torch_npu/csrc/core/npu/NPUStream.cpp:576 NPU function error: AclrtSynchronizeDeviceWithTimeout, error code is 507015"
+    },
+    {
+      "issue": 16577,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16577",
+      "query": "          \"RuntimeError: Can't disable Kineto profiler when it's not running\" — it had already self-stopped)\n              AssertionError: collective_rpc should not be called on follower node\n(EngineCore_DP1) ERROR [core.py:1584] RuntimeError: cancelled\n(EngineCore_DP1) ERROR [core.py:1351] RuntimeError: Executor failed."
+    },
+    {
+      "issue": 16576,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16576",
+      "query": "frame : c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x9d (0x7f7bb6398f6d in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libc10.so)"
+    },
+    {
+      "issue": 16567,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16567",
+      "query": "3. The exception propagates through `AsyncLLM.generate()` (`except EngineDeadError: ... raise`), through vllm-ascend's `patch_glm_reasoning_usage_accounting._tracked_stream_results` wrapper (adds one more frame per round), up to `chat_completion_stream_generator`.\n4. vllm `serving.py`'s `except Exception: logger.exception(...)` prints the full accumulated traceback — once per request.\nvllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause."
+    },
+    {
+      "issue": 16535,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16535",
+      "query": "(Worker_DP1_TP1_DCP1_EP9 pid=289610) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015\n(Worker_DP1_TP1_DCP1_EP9 pid=289610) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015\n(Worker_DP1_TP1_DCP1_EP9 pid=289610) RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUEvent.cpp:215 NPU function error: aclrtSynchronizeEvent(event_), error code is 507015\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:37.461.278 [device_error_core_proc.cc:775]289907 CheckSmmuFault:Get isSmmuFault is 1.\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.821 [stream.cc:1743]289907 GetError:Stream Synchronize failed, stream_id=47, retCode=0x26, [aicore exception].\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.826 [stream.cc:1746]289907 GetError:AI Core kernel task execution failed, retCode=0x26.\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.863 [stream.cc:1746]289907 GetError:[AIC_INFO] after execute:args print end\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.870 [stream.cc:1746]289907 GetError:[AIC_INFO] after execute:mixCtx print end\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.875 [stream.cc:1746]289907 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=9, stream_id=47, report_stream_id=47, task_id=23064, flip_num=1564, fault kernel_name=MlaPrologV3_18fe44a5baeea9556147056b8f507600_1836449, fault kernel info ext=none, program id=135, hash=18193000615889917977.\nframe : c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0xc8 (0xffffa0615978 in "
+    },
+    {
+      "issue": 16488,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16488",
+      "query": "(Worker_TP0) ERROR [multiproc_executor.py:932] RuntimeError: expected src to have \n            → RuntimeError: src size = [8, 5120], slice size = [2, 5120]\n  RuntimeError: NPUModelRunner init failed, error is expected src to have a size "
+    },
+    {
+      "issue": 16446,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16446",
+      "query": "RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUEvent.cpp:215 NPU function error: aclrtSynchronizeEvent(event_), error code is 507034\n(Worker_DP1_TP1_EP9 pid=xxxxx) ERROR RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUEvent.cpp:215 NPU function error: aclrtSynchronizeEvent(event_), error code is 507034"
+    },
+    {
+      "issue": 16379,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16379",
+      "query": "(Worker_DP3_TP0_EP12 pid=32786) ERROR 09-11 10:34:04 [multiproc_executor.py:1007] RuntimeError: aclnnHcPre or aclnnHcPreGetWorkspaceSize not in libopapi.so, or libopapi.sonot found.`"
+    },
+    {
+      "issue": 16359,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16359",
+      "query": "  RuntimeError: npu_chunk_gated_delta_rule:../third_party/op-plugin/op_plugin/ops/opapi/ChunkGatedDeltaRuleKernelNpuOpApi.cpp:57 NPU function error: call aclnnChunkGatedDeltaRule failed, error code is 161002"
+    },
+    {
+      "issue": 16237,
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16237",
+      "query": "zmq.error.ZMQError: Address already in use (addr='tcp://10.246.224.8:60001')\n- 对端节点会同时出现 `RuntimeError: ... Connection closed by peer [10.246.224.8]:<port>`，即一端 worker bind 失败退出后，另一端 `dist.gather_object`/`all_gather` 握手被连带打断。\n3. 观察 worker 初始化阶段是否出现 `ZMQError: Address already in use (addr='tcp://<ip>:<port>')`。\n(Worker_PP1_TP15_EP15 pid=14470) ERROR [multiproc_executor.py:888] zmq.error.ZMQError: Address already in use (addr='tcp://10.246.224.8:60001')\nRuntimeError: [/pytorch/third_party/gloo/gloo/transport/tcp/pair.cc:547] Connection closed by peer [10.246.224.8]:25834"
+    }
+  ],
+  "corpus": [
+    {
+      "id": "github-issue-16631",
+      "title": "[RFC]: Add a process watchdog for stalled-process diagnosis in vllm-ascend",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16631",
+      "text": "",
+      "originalSha256": "88e2875ccf4d9e13e7973b92ef51a7229f624275da39295ef21b07b0ff0ad06e"
+    },
+    {
+      "id": "github-issue-16581",
+      "title": "[Bug]: ACL graph capture fails with error code 507015 (MTE DDR address out of range) on W8A8 large model with default config",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16581",
+      "text": "ERROR [core.py:1195] RuntimeError: npuSynchronizeDevice:../torch_npu/csrc/core/npu/NPUStream.cpp:576 NPU function error: AclrtSynchronizeDeviceWithTimeout, error code is 507015\nERROR [core.py:1195] RuntimeError: NPUModelRunner failed, error is npuSynchronizeDevice:../torch_npu/csrc/core/npu/NPUStream.cpp:576 NPU function error: AclrtSynchronizeDeviceWithTimeout, error code is 507015",
+      "originalSha256": "34b9f4234cf41d1691b22f0ddade9ba9ff641cac3c126babcb96c0c4abb2fced"
+    },
+    {
+      "id": "github-issue-16577",
+      "title": "[Bug]: torch profiler with_stack export kills all vLLM workers with glibc heap corruption (corrupted size vs. prev_size) - 8-node PD-disaggregated DCP16 cluster dies",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16577",
+      "text": "          \"RuntimeError: Can't disable Kineto profiler when it's not running\" — it had already self-stopped)\n              AssertionError: collective_rpc should not be called on follower node\n(EngineCore_DP1) ERROR [core.py:1584] RuntimeError: cancelled\n(EngineCore_DP1) ERROR [core.py:1351] RuntimeError: Executor failed.",
+      "originalSha256": "e9f9f320247f771120cce5bc8464c8e64405c7251d8ee186a33cf4564ba4e08a"
+    },
+    {
+      "id": "github-issue-16576",
+      "title": "[Bug]: v0.26.0rc1 DeepSeek-V4-Pro-0813-W4A8 + DSpark crashes with IndexCheck int64 out-of-bounds on A2 X86",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16576",
+      "text": "frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x9d (0x7f7bb6398f6d in /usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib/libc10.so)",
+      "originalSha256": "48d90cc9c5a4db0d19e6d7d9b9a3702551500c03d548b227864d589a6c659569"
+    },
+    {
+      "id": "github-issue-16567",
+      "title": "[Bug]:[main] Per-request EngineDeadError tracebacks accumulate stack frames and flood logs after a worker crash",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16567",
+      "text": "3. The exception propagates through `AsyncLLM.generate()` (`except EngineDeadError: ... raise`), through vllm-ascend's `patch_glm_reasoning_usage_accounting._tracked_stream_results` wrapper (adds one more frame per round), up to `chat_completion_stream_generator`.\n4. vllm `serving.py`'s `except Exception: logger.exception(...)` prints the full accumulated traceback — once per request.\nvllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause.",
+      "originalSha256": "dd840c2b56a9d492162e455d6d0ba481aa245bd1b78a2ca79b5fff11ac98dec4"
+    },
+    {
+      "id": "github-issue-16535",
+      "title": "[Bug]: GLM-5.2 1M上下文 A3 PD分离部署，decode节点plog出现kernel fault: MlaPrologV3 aicore 异常退出",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16535",
+      "text": "(Worker_DP1_TP1_DCP1_EP9 pid=289610) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015\n(Worker_DP1_TP1_DCP1_EP9 pid=289610) ERROR 09-10 08:52:41 [multiproc_executor.py:987] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507015\n(Worker_DP1_TP1_DCP1_EP9 pid=289610) RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUEvent.cpp:215 NPU function error: aclrtSynchronizeEvent(event_), error code is 507015\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:37.461.278 [device_error_core_proc.cc:775]289907 CheckSmmuFault:Get isSmmuFault is 1.\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.821 [stream.cc:1743]289907 GetError:Stream Synchronize failed, stream_id=47, retCode=0x26, [aicore exception].\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.826 [stream.cc:1746]289907 GetError:AI Core kernel task execution failed, retCode=0x26.\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.863 [stream.cc:1746]289907 GetError:[AIC_INFO] after execute:args print end\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.870 [stream.cc:1746]289907 GetError:[AIC_INFO] after execute:mixCtx print end\n[ERROR] RUNTIME(289610,):2026-09-10-08:52:41.377.875 [stream.cc:1746]289907 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=9, stream_id=47, report_stream_id=47, task_id=23064, flip_num=1564, fault kernel_name=MlaPrologV3_18fe44a5baeea9556147056b8f507600_1836449, fault kernel info ext=none, program id=135, hash=18193000615889917977.\nframe #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0xc8 (0xffffa0615978 in ",
+      "originalSha256": "73040dd1cac8fea3bdc0d9a7624e55613cfb8babdc751532a4f21376658a2059"
+    },
+    {
+      "id": "github-issue-16488",
+      "title": "[Bug]: CUDAGraph capture fails with slice_scatter shape mismatch on Qwen3.6-27B + Ascend NPU (TP=4)",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16488",
+      "text": "(Worker_TP0) ERROR [multiproc_executor.py:932] RuntimeError: expected src to have \n            → RuntimeError: src size = [8, 5120], slice size = [2, 5120]\n  RuntimeError: NPUModelRunner init failed, error is expected src to have a size ",
+      "originalSha256": "a9a18008aa8f3d9c79eaab67ff3ecc8b6a5e7c5d37f903818f6d3f33c9f1c9ab"
+    },
+    {
+      "id": "github-issue-16446",
+      "title": "[Bug]: vllm serve hangs with vector core timeout (507034) on DP>1 when FlashComm1 (SP) and multistream_overlap_shared_expert are both enabled",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16446",
+      "text": "RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUEvent.cpp:215 NPU function error: aclrtSynchronizeEvent(event_), error code is 507034\n(Worker_DP1_TP1_EP9 pid=xxxxx) ERROR RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUEvent.cpp:215 NPU function error: aclrtSynchronizeEvent(event_), error code is 507034",
+      "originalSha256": "0f303e2550b4803614a57100e7e10308b068bf768611192cb5159c499fca96cc"
+    },
+    {
+      "id": "github-issue-16379",
+      "title": "[Bug]: 【0.26.0rc1】【DeepSeek-v4-flash-0731】【A3】  DeepSeek-V4-Flash-0731-w8a8 在 A3 上按官方 单机混部DSpark 配置启动时调用 npu_hc_pre_v2，最终因 A3 不支持 aclnnHcPre 而启动失败。",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16379",
+      "text": "(Worker_DP3_TP0_EP12 pid=32786) ERROR 09-11 10:34:04 [multiproc_executor.py:1007] RuntimeError: aclnnHcPre or aclnnHcPreGetWorkspaceSize not in libopapi.so, or libopapi.sonot found.`",
+      "originalSha256": "da9938a07962fe5ba1b10dfc1395fc46c7d176ee69e6089c931947ad2804b4eb"
+    },
+    {
+      "id": "github-issue-16359",
+      "title": "[Bug][Upstream]: RuntimeError: npu_chunk_gated_delta_rule:../third_party/op-plugin/op_plugin/ops/opapi/ChunkGatedDeltaRuleKernelNpuOpApi.cpp:57 NPU function error: call aclnnChunkGatedDeltaRule failed, error code is 161002",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16359",
+      "text": "  RuntimeError: npu_chunk_gated_delta_rule:../third_party/op-plugin/op_plugin/ops/opapi/ChunkGatedDeltaRuleKernelNpuOpApi.cpp:57 NPU function error: call aclnnChunkGatedDeltaRule failed, error code is 161002",
+      "originalSha256": "c0d6b0d084d2fde871c85d4b43c7ea03bc9307f07ad7b50461bef20f895bd243"
+    },
+    {
+      "id": "github-issue-16237",
+      "title": "[Bug]: 0.23.0版本，PD分离，开启pp，多机 prefill 启动报 MessageQueue ZMQ bind \"Address already in use\"（shm_broadcast.py，get_open_port() 并发探测端口冲突）",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16237",
+      "text": "zmq.error.ZMQError: Address already in use (addr='tcp://10.246.224.8:60001')\n- 对端节点会同时出现 `RuntimeError: ... Connection closed by peer [10.246.224.8]:<port>`，即一端 worker bind 失败退出后，另一端 `dist.gather_object`/`all_gather` 握手被连带打断。\n3. 观察 worker 初始化阶段是否出现 `ZMQError: Address already in use (addr='tcp://<ip>:<port>')`。\n(Worker_PP1_TP15_EP15 pid=14470) ERROR [multiproc_executor.py:888] zmq.error.ZMQError: Address already in use (addr='tcp://10.246.224.8:60001')\nRuntimeError: [/pytorch/third_party/gloo/gloo/transport/tcp/pair.cc:547] Connection closed by peer [10.246.224.8]:25834",
+      "originalSha256": "ade0cc0d4cee204a1b8b25de88ce9da61bf7d0c7b20f6cc33e122cb27fef2e06"
+    },
+    {
+      "id": "github-issue-16235",
+      "title": "[Bug]: Model Runner V2不支持开启 n-grams",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16235",
+      "text": "(APIServer pid=174463) pydantic_core._pydantic_core.ValidationError: 1 validation error for VllmConfig",
+      "originalSha256": "c30ea033169dac366949e8b99dff9ec40027ec551e8b9b8ab91515c120692e77"
+    },
+    {
+      "id": "github-issue-16234",
+      "title": "[Bug]: nightly-releases-v0.24.0rc-a3部署MiniMax M3长稳运行崩溃",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16234",
+      "text": "(Worker_DP0_TP0_EP0 pid=2089224) ERROR 08-27 08:35:04 [multiproc_executor.py:1000] RuntimeError: operator():../torch_npu/csrc/aten/common/LocalScalarDenseNpu.cpp:23 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(copy_stream), error code is 507035\n[ERROR] RUNTIME(2089224,):2026-08-27-08:35:04.891.987 [device_error_core_proc.cc:399]2089313 CheckSmmuFault:Get isSmmuFault is 1.\n[ERROR] RUNTIME(2089224,):2026-08-27-08:35:04.896.627 [stream.cc:1473]2089313 GetError:Stream Synchronize failed, stream_id=46, retCode=0x31, [vector core exception].\n[ERROR] RUNTIME(2089224,):2026-08-27-08:35:04.896.630 [stream.cc:1476]2089313 GetError:AIV Kernel happen error, retCode=0x31.\n[ERROR] RUNTIME(2089224,):2026-08-27-08:35:04.896.651 [stream.cc:1476]2089313 GetError:[AIC_INFO] after execute:args print end\n[ERROR] RUNTIME(2089224,):2026-08-27-08:35:04.896.661 [stream.cc:1476]2089313 GetError:[DFX_INFO]Aicore kernel execute failed, device_id=0, stream_id=46, report_stream_id=46, task_id=24760, flip_num=661, fault kernel_name=_prepare_prefill_topk_scores_kernel_3, fault kernel info ext=_prepare_prefill_topk_scores_kernel, program id=1447, hash=2613567570915848696.",
+      "originalSha256": "5cc267ebf78942eeca0399ed492ed143703e62042f00fb0154f30f49b94149ff"
+    },
+    {
+      "id": "github-issue-16074",
+      "title": "[Bug]: vllm-ascend 0.26.0RC1在升腾npu上单机部署deepseek_v4_flash_w8a8，报错OSError: Could not load this library: /opt/huawei/miniconda3/lib/python3.12/site-packages/torchcodec/libtorchcodec_image.so",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16074",
+      "text": "OSError: libnvrtc.so.13: cannot open shared object file: No such file or directory\nOSError: Could not load this library: /opt/huawei/miniconda3/lib/python3.12/site-packages/torchcodec/libtorchcodec_image.so",
+      "originalSha256": "24ffff0c48f8dbcb6515bf64f11c943c7927adffa7db3fa8c535c65b7d6fbcff"
+    },
+    {
+      "id": "github-issue-16072",
+      "title": "[Bug]: GLM-5.3-Flash-w8a8长序列（1M）推理启动成功，AIME2026精度测试后台崩溃",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16072",
+      "text": "",
+      "originalSha256": "c914d1157fecd0d3b57aca7b5350efe0f9696b66228503f16720a82e2d7d2d04"
+    },
+    {
+      "id": "github-issue-16023",
+      "title": "[Bug]: 0.26.0rc1 A3 PD分离运行kimi k3 报错，短请求curl正常，百k输入prefill节点挂了。",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/16023",
+      "text": "(EngineCore_DP2 pid=57922) ERROR 09-08 06:48:59 [core.py:1332] RuntimeError: cancelled",
+      "originalSha256": "d486ba2f334f6c361a91d5822602ca9352c020e8e306f2488c05f33d4d3689bc"
+    },
+    {
+      "id": "github-issue-15985",
+      "title": "[Bug][v0.26.0rc1]: Known Issues for DeepSeek-V4-Flash/Pro service hang on A3",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15985",
+      "text": "",
+      "originalSha256": "afd5846bdb6b77d4d9d11d827d2d2adcaee0f0a6a59b919f9cc9fffe6284babc"
+    },
+    {
+      "id": "github-issue-15930",
+      "title": "[Bug]: v0.26.0rc1 DeepSeek-V4-Pro PD + DSpark crashes with IndexCheck int64 out-of-bounds on A3",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15930",
+      "text": "[ERROR] RUNTIME(942,):2026-09-06-20:56:10.641.924 [stream.cc:1743]1060 GetError:Stream Synchronize failed, stream_id=47, retCode=0x31, [vector core exception].\n[ERROR] RUNTIME(942,):2026-09-06-20:56:10.641.927 [stream.cc:1746]1060 GetError:Vector Core kernel execution failed, retCode=0x31.\n[ERROR] RUNTIME(942,):2026-09-06-20:56:10.641.952 [stream.cc:1746]1060 GetError:[AIC_INFO] after execute:args print end\n[ERROR] RUNTIME(942,):2026-09-06-20:56:10.641.960 [stream.cc:1746]1060 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=1, stream_id=47, report_stream_id=47, task_id=19639, flip_num=141, fault kernel_name=IndexCheck_int64_high_performance_0, fault kernel info ext=none, program id=26, hash=1090203426998263141.\nframe #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0xc8 (0xffff92ca5978 in /\n(Worker_DP0_TP1_EP1 pid=942) ERROR 09-06 20:56:10 [multiproc_executor.py:1007] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507035\n(Worker_DP0_TP1_EP1 pid=942) ERROR 09-06 20:56:10 [multiproc_executor.py:1007] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507035\n[ERROR] RUNTIME(778,):2026-09-06-21:05:20.839.178 [stream.cc:1743]895 GetError:Stream Synchronize failed, stream_id=47, retCode=0x30, [vector core timeout].\n[ERROR] RUNTIME(778,):2026-09-06-21:05:20.839.231 [stream.cc:1746]895 GetError:[DFX_INFO]AI Core kernel execution failed, device_id=3, stream_id=47, report_stream_id=47, task_id=29577, flip_num=137, fault kernel_name=MoeDistributeDispatchV2_e3e2549baf4795bf56c350e970d2218a_1028, fault kernel info ext=none, program id=93, hash=14547491022084889837.",
+      "originalSha256": "5abded401e1e4f1dad9e04a0128e69ebf18e98db9f2df7c2c5ba2f61fdc656a8"
+    },
+    {
+      "id": "github-issue-15892",
+      "title": "[Bug]: deepseek-v4-flash-0731+vllm-ascend-v0.26.0rc1,A3-3p1d，After the program runs for a period of time, node D crashes and the error message \"AclrtSynchronizeStreamWithTimeout\" is displayed.",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15892",
+      "text": "(Worker_DP6_EP6 pid=29379) ERROR 09-05 08:04:13 [multiproc_executor.py:1007] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507034\n(Worker_DP6_EP6 pid=29379) ERROR 09-05 08:04:13 [multiproc_executor.py:1007] RuntimeError: synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507034\n(EngineCore_DP6 pid=21942) ERROR 09-05 08:04:13 [core.py:1332] RuntimeError: Worker failed with error 'synchronize:../torch_npu/csrc/core/npu/NPUStream.cpp:414 NPU function error: c10_npu::acl::AclrtSynchronizeStreamWithTimeout(stream()), error code is 507034\n(APIServer pid=17121) ERROR 09-05 08:04:13 [async_llm.py:704] vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause.",
+      "originalSha256": "e05d04408d4f3ecd30687360db778f405a195aa4d36555db0bbce7677e5476ed"
+    },
+    {
+      "id": "github-issue-15836",
+      "title": "[Bug]: Feedback for 使用DeepSeek-V4-Flash-w8a8-mtp部署报错",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15836",
+      "text": "",
+      "originalSha256": "14789851c59bd60ca2fd260c60afe30bb07ef5febc5da637af421a68a8032610"
+    },
+    {
+      "id": "github-issue-15815",
+      "title": "[Bug]: Qwen3 MoE retains upstream FusedMoE factory when imported before the Ascend patch (v0.26.0rc1)",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15815",
+      "text": "AttributeError: 'UnquantizedFusedMoEMethod' object has no attribute 'is_monolithic'. Did you mean: 'apply_monolithic'?\nAttributeError: 'NoneType' object has no attribute 'is_monolithic'\nAttributeError: 'UnquantizedFusedMoEMethod' object has no attribute 'is_monolithic'",
+      "originalSha256": "5302847096340e6de0017bf7a50fcccdb3d27d831d7e3fdbe12031de1bc939a1"
+    },
+    {
+      "id": "github-issue-15802",
+      "title": "[Bug]: PD分离部署，P节点内存池化，AscendStoreConnector的load_async设置为true，多轮对话测试出现prefill hang现象",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15802",
+      "text": "",
+      "originalSha256": "5780116e165d8acb3f47e6a02e9a70bcef75c57dbf2b88c6544b350eca7b8caf"
+    },
+    {
+      "id": "github-issue-15712",
+      "title": "[Bug]: SFA indexer selects the quantized matmul path based on the activation, not on wq_b",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15712",
+      "text": "AttributeError: 'AscendReplicatedLinear' object has no attribute 'weight_scale'",
+      "originalSha256": "7fecd13b337d53734d7beca7cc384d544fce7541bbee0de2fb781aaee63006a0"
+    },
+    {
+      "id": "github-issue-15557",
+      "title": "[Bug]: Qwen3.8-27B-W8A8 conflicts with the aclgraph and Flashcomm1 features.",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15557",
+      "text": "(Worker_TP3 pid=53329) ERROR 09-02 15:04:28 [multiproc_executor.py:987] RuntimeError: expected src to have a size equal to the slice of self. src size = [24, 5120], slice size = [6, 5120]",
+      "originalSha256": "4d42270b39d896ef0e27df2299669deeb1b57c505225e3c7f450ebb7bf8f376d"
+    },
+    {
+      "id": "github-issue-15536",
+      "title": "[Bug]: Qwen3.6-27B在8张300I DUO卡上使用0.23.0RC1-310P镜像进行部署，一直报错Not allow to synchronize captured-stream, stream_id=35.",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15536",
+      "text": "(Worker_TPO pid=39004) ERROR 07-29 10:00:12 [multiproc_executor.py:987] RuntimeError: copy_between_host and device_opapi:../torch_npu/csrc/aten/ops/op_api/CopyKernelOpApi.cpp:55 NPU function error: aclrtMemcpy, error code is 107030",
+      "originalSha256": "6a2e44fc326ff63e38f19fbfa700e223901f5bf8499c70a054cc1d5bf5744af6"
+    },
+    {
+      "id": "github-issue-15527",
+      "title": "[Bug]: DeepSeekV4-flash-w8a8在双机800I A3使用0.23.0镜像进行PD分离部署，上下文长度设置为非1M（如40960或者128000），部署成功后进行curl请求，代理节点和D节点都报错\" D节点的url响应为400 Bad Request\",单独curl D节点url是没问题可正常返回结果",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15527",
+      "text": "httpx.HTTPStatusError: Client error '400 Bad Request' for url 'http://172.20.117.83:8078/v1/completions'",
+      "originalSha256": "41c091a241cb8cb4ac6f1dec1a3899d12a0e80a93e25f8fd8e8172a5cf928703"
+    },
+    {
+      "id": "github-issue-15523",
+      "title": "[Bug]: DeepSeekV4-flash-0731-w8a8在双机A3使用DeepSeekV4-flash-0731-a3镜像进行PD分离部署后，curl 代理的地址端口，D节点报错AttributeError: 'Request' object has no attribute 'num_in_flight_tokens'",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15523",
+      "text": "DeepSeekV4-flash-0731-w8a8在双机A3使用DeepSeekV4-flash-0731-a3镜像进行PD分离部署后，curl 代理的地址端口，D节点报错AttributeError: 'Request' object has no attribute 'num_in_flight_tokens'\n(EngineCore_DP0 pid=148852) ERROR 08-27 23:19:59 [core.py:1233] AttributeError: 'Request' object has no attribute 'num_in_flight_tokens'",
+      "originalSha256": "718a2226f0c32f41d0cc25da70b2f9f670f1c4d5168a37ce6d0edad18edc4c45"
+    },
+    {
+      "id": "github-issue-15472",
+      "title": "[Bug] Circular import between device_op and fused_moe when importing model_runner_v1",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15472",
+      "text": "ImportError: cannot import name 'DeviceOperator' from partially initialized module 'vllm_ascend.device.device_op' (most likely due to a circular import) (/home/tiger/vllm-ascend/vllm_ascend/device/device_op.py)",
+      "originalSha256": "afa256f3d591fe544c125108db8f962a3d22bf73c97855274e354c49c36dceae"
+    },
+    {
+      "id": "github-issue-15411",
+      "title": "[Bug]: A2/A3 main model runner v2 profiling报错",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15411",
+      "text": "(EngineCore pid=56233) ERROR 08-31 09:08:14 [core.py:1584] RuntimeError: cancelled\n(EngineCore pid=56233) ERROR 08-31 09:08:14 [core.py:1351] RuntimeError: Executor failed.\n(APIServer pid=55982) ERROR 08-31 09:08:14 [async_llm.py:724] vllm.v1.engine.exceptions.EngineDeadError: EngineCore encountered an issue. See stack trace (above) for the root cause.\n(APIServer pid=55982) Exception: Call to profile method failed: cancelled",
+      "originalSha256": "a9a575840be6b91eda169b666862135c49882d01baf7523d53b905ab35588159"
+    },
+    {
+      "id": "github-issue-15394",
+      "title": "[Bug]: vllm-ascend集成镜像v0.23.0-a3通过Atlas800I A3双机PD分离ROCE组网部署Qwen3.5-122B-A10B,性能测试时，P节点崩溃",
+      "url": "https://github.com/vllm-project/vllm-ascend/issues/15394",
+      "text": "",
+      "originalSha256": "a28b6155b6d704c04a3cc5f24bb773a0f56087edc0362f01f7686d57193bca44"
+    }
+  ],
+  "projection": "Exception-bearing lines only; live measurement used original full issue bodies. Hashes identify captured originals."
+}

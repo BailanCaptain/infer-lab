@@ -1,0 +1,86 @@
+layout: figure
+id: fine-grained-tp-intuition
+caption: 数为示意。4 张卡各跑自己的请求（DP4，普通 TP 为 1，每张卡原本都存一整份非专家权重）。按模块分组以后：词表嵌入和稠密 MLP 每 2 张卡合存一份、各存一半；attention 不分组，每张卡仍是一整份；路由专家照常按 EP 分到 4 张卡；lm_head 4 张卡合存一份、各存四分之一。分了组的模块，组里的卡服务的是不同请求，所以进这一层先收集组内各卡的输入，算完再把结果送回各自的卡。
+size: [900, 500]
+items:
+  # ---- 表头：每张卡服务一个请求
+  - { at: [175, 44], size: [140, 40], text: 卡 0 · 请求 A, tone: token }
+  - { at: [325, 44], size: [140, 40], text: 卡 1 · 请求 B, tone: token }
+  - { at: [475, 44], size: [140, 40], text: 卡 2 · 请求 C, tone: token }
+  - { at: [625, 44], size: [140, 40], text: 卡 3 · 请求 D, tone: token }
+  # ---- attention：不分组，每卡一整份
+  - { at: [175, 180], size: [140, 44], text: 整份, tone: weight }
+  - { at: [325, 180], size: [140, 44], text: 整份, tone: weight }
+  - { at: [475, 180], size: [140, 44], text: 整份, tone: weight }
+  - { at: [625, 180], size: [140, 44], text: 整份, tone: weight }
+  # ---- 路由专家：EP，每卡一部分完整专家
+  - { at: [175, 320], size: [140, 44], text: 专家 0–7, tone: weight, style: faded }
+  - { at: [325, 320], size: [140, 44], text: 专家 8–15, tone: weight, style: faded }
+  - { at: [475, 320], size: [140, 44], text: 专家 16–23, tone: weight, style: faded }
+  - { at: [625, 320], size: [140, 44], text: 专家 24–31, tone: weight, style: faded }
+  # ---- 右栏：进出这一层要不要跨卡交换
+  - { at: [782, 112], size: [108, 40], text: 收集 → 送回, tone: comm }
+  - { at: [782, 182], size: [108, 40], text: 不通信, style: plain }
+  - { at: [782, 252], size: [108, 40], text: 收集 → 送回, tone: comm }
+  - { at: [782, 318], size: [108, 48], text: dispatch, sub: combine, tone: comm, style: faded }
+  - { at: [782, 392], size: [108, 40], text: 收集 → 送回, tone: comm }
+grids:
+  # ---- 词表嵌入：2 卡一组，两组
+  - at: [175, 110]
+    rows: 1
+    cols: 2
+    cell: [145, 44]
+    tone: weight
+    style: solid
+    cells:
+      - { at: [0, 0], text: 词表前一半 }
+      - { at: [0, 1], text: 词表后一半 }
+  - at: [475, 110]
+    rows: 1
+    cols: 2
+    cell: [145, 44]
+    tone: weight
+    style: solid
+    cells:
+      - { at: [0, 0], text: 词表前一半 }
+      - { at: [0, 1], text: 词表后一半 }
+  # ---- 稠密 MLP：2 卡一组，两组
+  - at: [175, 250]
+    rows: 1
+    cols: 2
+    cell: [145, 44]
+    tone: weight
+    style: solid
+    cells:
+      - { at: [0, 0], text: MLP 1/2 }
+      - { at: [0, 1], text: MLP 2/2 }
+  - at: [475, 250]
+    rows: 1
+    cols: 2
+    cell: [145, 44]
+    tone: weight
+    style: solid
+    cells:
+      - { at: [0, 0], text: MLP 1/2 }
+      - { at: [0, 1], text: MLP 2/2 }
+  # ---- lm_head：4 卡一组
+  - at: [175, 390]
+    rows: 1
+    cols: 4
+    cell: [147.5, 44]
+    tone: weight
+    style: solid
+    cells:
+      - { at: [0, 0], text: 词表 1/4 }
+      - { at: [0, 1], text: 词表 2/4 }
+      - { at: [0, 2], text: 词表 3/4 }
+      - { at: [0, 3], text: 词表 4/4 }
+texts:
+  - { at: [450, 22], text: 同一个模型、4 张卡：每个模块各选自己的分组（示意）, anchor: middle, strong: true }
+  - { at: [836, 70], text: 进出这一层, anchor: middle, size: 13 }
+  - { at: [20, 137], text: 词表嵌入 · 2 卡一组, strong: true, size: 13 }
+  - { at: [20, 207], text: attention · 不分组, strong: true, size: 13 }
+  - { at: [20, 277], text: 稠密 MLP · 2 卡一组, strong: true, size: 13 }
+  - { at: [20, 347], text: 路由专家 · EP, strong: true, size: 13 }
+  - { at: [20, 417], text: lm_head · 4 卡一组, strong: true, size: 13 }
+  - { at: [450, 478], text: 普通 TP 只有一种切法：每一行都按同一组卡、同样份数切, anchor: middle, note: true }

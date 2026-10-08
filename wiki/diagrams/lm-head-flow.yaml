@@ -1,0 +1,41 @@
+layout: figure
+id: lm-head-flow
+caption: GLM 双机每张卡上从最后一层到采样的先后。两个开关在固定部署里都没设，走左边一列的默认路径：先挑出要打分的行，本卡乘自己那段权重，再一次 TP8 All-Gather 拼齐分数；右边两条是开关打开时的分支，本部署不经过。MTP 草拟复用同一张输出权重和同一条路径。
+size: [900, 770]
+items:
+  - { at: [180, 20], size: [420, 52], text: 最后一层之后：四路折回一条 → 最终 RMSNorm, sub: '每卡 [T, 4096]，8 张卡相同', tone: token }
+  - { at: [180, 104], size: [420, 52], text: 挑出要打分的行, sub: prefill 每请求 1 行；带 3 个候选的 decode 每请求 4 行, style: plain }
+  - { at: [180, 188], size: [420, 52], text: 进入 Ascend 版的打分函数, sub: 先看两个开关，决定走哪条路, style: plain }
+  - { at: [180, 272], size: [420, 48], text: 细粒度 TP 给输出头单独设了规模吗？, sub: 默认规模 0, style: plain }
+  - { at: [640, 266], size: [240, 60], text: 收集 hidden → 分段打分, sub: 再用 All-to-All 送回, tone: comm, style: faded }
+  - { at: [180, 356], size: [420, 56], text: '本卡矩阵乘 [n, 4096] × [4096, 19360]', sub: 得到本卡 19360 个词的分数, tone: weight }
+  - { at: [180, 448], size: [420, 48], text: 采样归约开了吗？, sub: 默认关, style: plain }
+  - { at: [640, 442], size: [240, 60], text: 不拼齐分数, sub: 各卡留自己那段，采样按分段做, tone: comm, style: faded }
+  - { at: [180, 532], size: [420, 56], text: 'TP8 All-Gather → [n, 154880]', sub: 8 张卡都拿到完整分数, tone: comm }
+  - { at: [180, 620], size: [420, 44], text: 去掉词表补齐的列, sub: 154880 没有补齐，这一步不删任何列, style: plain }
+  - { at: [180, 696], size: [420, 52], text: 采样：贪心取最大，或按温度抽, sub: MTP 草拟每遍也走这条路，取最大, tone: token }
+links:
+  - { from: [390, 72], to: [390, 100] }
+  - { from: [390, 156], to: [390, 184] }
+  - { from: [390, 240], to: [390, 268] }
+  - { from: [600, 296], to: [636, 296], dashed: true }
+  - { from: [390, 320], to: [390, 352] }
+  - { from: [390, 412], to: [390, 444] }
+  - { from: [600, 472], to: [636, 472], dashed: true }
+  - { from: [390, 496], to: [390, 528] }
+  - { from: [390, 588], to: [390, 616] }
+  - { from: [390, 664], to: [390, 692] }
+texts:
+  - { at: [618, 288], text: 设了, anchor: middle, size: 12 }
+  - { at: [618, 464], text: 开, anchor: middle, size: 12 }
+  - { at: [400, 342], text: 没设（本部署）, size: 12 }
+  - { at: [400, 518], text: 关（本部署）, size: 12 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2326-L2327
+    symbols: [logits_indices, compute_logits]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L285-L341
+    symbols: [_get_logits_lmheadtp, _get_logits_normal, enable_reduce_sample, all_to_all]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/logits_processor.py#L75-L104
+    symbols: [tensor_model_parallel_all_gather, org_vocab_size]
+  - source: vllm-ascend@db701c1f:vllm_ascend/utils.py#L877-L878
+    symbols: [lmhead_tensor_parallel_size]

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 610" width="860" height="610" role="img" aria-label="同一张 NPU 暂停推理后让出显存。level 1 的权重有 CPU 备份，level 2 的权重须从外部重装；两条路都丢弃旧 KV cache。图只画权重和缓存，其他常驻内存见正文。">
+  <title>同一张 NPU 暂停推理后让出显存。level 1 的权重有 CPU 备份，level 2 的权重须从外部重装；两条路都丢弃旧 KV cache。图只画权重和缓存，其他常驻内存见正文。</title>
+  <defs><marker id="sleep-mode-intuition-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="sleep-mode-intuition-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="sleep-mode-intuition-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="220" y="30" width="420" height="90" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="236" y="18" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">清醒：同一张 NPU 正在推理</text>
+  <rect x="16" y="196" width="398" height="380" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="32" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">level 1：以后继续用旧权重</text>
+  <rect x="446" y="196" width="398" height="380" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="462" y="184" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">level 2：以后装入所需权重</text>
+  <path d="M323 100 L323 148 L120 148 L120 228" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-weight)"/>
+  <path d="M323 100 L323 174 L547 174 L547 228" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-weight)"/>
+  <path d="M537 100 L537 162 L313 162 L313 228" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-kv)"/>
+  <path d="M537 100 L537 136 L743 136 L743 228" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-kv)"/>
+  <path d="M215 286 L215 332" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-control)"/>
+  <path d="M645 286 L645 332" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-control)"/>
+  <path d="M120 386 L120 492" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-weight)"/>
+  <path d="M313 386 L313 492" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-kv)"/>
+  <path d="M547 386 L547 492" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-weight)"/>
+  <path d="M743 386 L743 492" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#sleep-mode-intuition-ah-kv)"/>
+  <rect x="246" y="54" width="154" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="323" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型权重</text>
+  <rect x="460" y="54" width="154" height="44" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="537" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KV cache</text>
+  <rect x="42" y="230" width="156" height="54" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">CPU 权重备份</text>
+  <rect x="238" y="230" width="150" height="54" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="313" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">旧缓存丢弃</text>
+  <rect x="472" y="230" width="150" height="54" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="547" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">旧权重丢弃</text>
+  <rect x="668" y="230" width="150" height="54" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="743" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">旧缓存丢弃</text>
+  <rect x="42" y="334" width="346" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU 腾出的空间交给训练</text>
+  <rect x="472" y="334" width="346" height="50" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="645" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">NPU 腾出的空间交给训练</text>
+  <rect x="42" y="494" width="156" height="54" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="120" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重拷回 NPU</text>
+  <rect x="238" y="494" width="150" height="54" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="313" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">缓存重新分配</text>
+  <rect x="472" y="494" width="150" height="54" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="547" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">外部重载权重</text>
+  <rect x="668" y="494" width="150" height="54" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="743" y="526" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">缓存重新分配</text>
+  <text x="215" y="446" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">唤醒：拷回备份 + 重建缓存空间</text>
+  <text x="645" y="446" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">唤醒：先分配权重空间，再重载</text>
+</svg>

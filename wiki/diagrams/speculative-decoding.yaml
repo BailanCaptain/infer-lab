@@ -1,0 +1,50 @@
+layout: figure
+id: speculative-decoding
+caption: 一轮 speculative decoding 的循环（示意，按词切 token）。已确定的「猫」连同草稿猜的 3 个候选「坐 在 床」一起送进主模型（①）；主模型一次算 4 格，每格预测的是它的下一格（②），所以第 1 格的预测和第 1 个候选比、第 2 格和第 2 个比，依次错开一格（③，虚线是候选被拿来比的路线）。前两个对上；第 3 格主模型说「垫子」、候选是「床」，就在位置 8 写下主模型的「垫子」并停在这里，第 4 格读过错的「床」，作废（④）。草稿层接着「垫子」再猜 3 个，下一轮回到 ①。
+size: [900, 396]
+texts:
+  - { at: [210, 22], text: 位置 5, size: 12.5, anchor: middle, note: true }
+  - { at: [340, 22], text: 位置 6, size: 12.5, anchor: middle, note: true }
+  - { at: [470, 22], text: 位置 7, size: 12.5, anchor: middle, note: true }
+  - { at: [600, 22], text: 位置 8, size: 12.5, anchor: middle, note: true }
+  - { at: [16, 64], text: ① 送进主模型, strong: true }
+  - { at: [16, 146], text: ② 主模型的预测, strong: true }
+  - { at: [16, 240], text: ③ 预测和候选比, strong: true }
+  - { at: [16, 330], text: ④ 这一轮写下 3 个, strong: true }
+items:
+  - { at: [160, 34], size: [100, 50], text: 猫, sub: 已确定, tone: token }
+  - { at: [290, 34], size: [100, 50], text: 坐, sub: 候选 1, tone: token, style: faded }
+  - { at: [420, 34], size: [100, 50], text: 在, sub: 候选 2, tone: token, style: faded }
+  - { at: [550, 34], size: [100, 50], text: 床, sub: 候选 3, tone: token, style: faded }
+  - { at: [160, 124], size: [100, 46], text: 坐, sub: → 位置 6, tone: weight }
+  - { at: [290, 124], size: [100, 46], text: 在, sub: → 位置 7, tone: weight }
+  - { at: [420, 124], size: [100, 46], text: 垫子, sub: → 位置 8, tone: weight }
+  - { at: [550, 124], size: [100, 46], text: 上, sub: → 位置 9, tone: weight, style: faded }
+  - { at: [160, 214], size: [100, 44], text: ✓ 对上, sub: 坐 = 坐, tone: token }
+  - { at: [290, 214], size: [100, 44], text: ✓ 对上, sub: 在 = 在, tone: token }
+  - { at: [420, 214], size: [100, 44], text: ✗ 不对, sub: 垫子 ≠ 床, tone: danger }
+  - { at: [550, 214], size: [100, 44], text: 多出的一格, sub: 全对才用, tone: control, style: faded }
+  - { at: [160, 304], size: [100, 46], text: 坐, sub: 位置 6, tone: token }
+  - { at: [290, 304], size: [100, 46], text: 在, sub: 位置 7, tone: token }
+  - { at: [420, 304], size: [100, 46], text: 主模型的垫子, sub: 位置 8, tone: weight }
+  - { at: [550, 304], size: [100, 46], text: 作废, sub: 读过「床」, tone: control, style: faded }
+  - { at: [690, 34], size: [195, 50], text: 下一轮回到 ①, sub: 垫子 + 候选「上 打 盹」, tone: token, style: faded }
+  - { at: [690, 214], size: [195, 58], text: 草稿层接着猜 3 个, sub: 从「垫子」往后：上 打 盹, tone: weight, style: faded }
+links:
+  - { from: [210, 84], to: [210, 124] }
+  - { from: [340, 84], to: [340, 124] }
+  - { from: [470, 84], to: [470, 124] }
+  - { from: [600, 84], to: [600, 124] }
+  - { from: [210, 170], to: [210, 214] }
+  - { from: [340, 170], to: [340, 214] }
+  - { from: [470, 170], to: [470, 214] }
+  - { from: [600, 170], to: [600, 214], dashed: true }
+  - { from: [298, 84], to: [252, 214], tone: token, dashed: true }
+  - { from: [428, 84], to: [382, 214], tone: token, dashed: true }
+  - { from: [558, 84], to: [512, 214], tone: token, dashed: true }
+  - { from: [210, 258], to: [210, 304] }
+  - { from: [340, 258], to: [340, 304] }
+  - { from: [470, 258], to: [470, 304] }
+  - { from: [600, 258], to: [600, 304], dashed: true }
+  - { from: [470, 350], to: [787, 274], via: [[470, 374], [787, 374]] }
+  - { from: [787, 214], to: [787, 86] }

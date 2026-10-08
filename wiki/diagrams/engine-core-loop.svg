@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="EngineCore 每转一圈就是一步：① 收下前端送来的新请求和取消，② 调度出这一步的计划，③ 交给 Worker 在卡上算、等回每条请求的新 token，④ 按结果更新请求，新 token 编号送回前端，然后转下一圈。所有请求共用这一个循环；没有请求要算时，它停在 ① 等消息。">
+  <title>EngineCore 每转一圈就是一步：① 收下前端送来的新请求和取消，② 调度出这一步的计划，③ 交给 Worker 在卡上算、等回每条请求的新 token，④ 按结果更新请求，新 token 编号送回前端，然后转下一圈。所有请求共用这一个循环；没有请求要算时，它停在 ① 等消息。</title>
+  <defs><marker id="engine-core-loop-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="engine-core-loop-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="engine-core-loop-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="12" y="60" width="168" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="28" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">前端进程（API server）</text>
+  <rect x="248" y="60" width="420" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="264" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 进程</text>
+  <rect x="722" y="60" width="166" height="300" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="738" y="48" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker 进程</text>
+  <path d="M448 132 L468 132" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-control)"/>
+  <path d="M560 164 L560 256" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-control)"/>
+  <path d="M468 288 L448 288" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-token)"/>
+  <path d="M356 256 L356 164" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-token)"/>
+  <path d="M168 132 L264 132" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-ink)"/>
+  <path d="M264 300 L168 300" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-ink)"/>
+  <path d="M652 272 L734 272" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-ink)"/>
+  <path d="M734 306 L652 306" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#engine-core-loop-ah-ink)"/>
+  <rect x="24" y="100" width="144" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="96" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">接请求、分词</text>
+  <text x="96" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">文字 → token 编号</text>
+  <rect x="24" y="256" width="144" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="96" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">反分词、推给用户</text>
+  <text x="96" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">token 编号 → 文字</text>
+  <rect x="264" y="100" width="184" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="356" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 收消息</text>
+  <text x="356" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">新请求进等待队列</text>
+  <rect x="468" y="100" width="184" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="560" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 调度</text>
+  <text x="560" y="147" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">算谁、各几个位置、借块</text>
+  <rect x="468" y="256" width="184" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="560" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ 交出执行、等结果</text>
+  <text x="560" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拿回每条请求的新 token</text>
+  <rect x="264" y="256" width="184" height="64" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="356" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 按结果更新</text>
+  <text x="356" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">接 token、判停止、还块</text>
+  <rect x="734" y="240" width="142" height="100" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="805" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">前向与采样</text>
+  <text x="805" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每张卡算自己那份</text>
+  <text x="458" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">一圈 = 一步</text>
+  <text x="458" y="226" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">所有请求共用这一个循环</text>
+  <text x="216" y="122" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">请求消息</text>
+  <text x="216" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">token 编号</text>
+  <text x="693" y="264" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">计划</text>
+  <text x="693" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">新 token</text>
+  <text x="264" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">没有请求要算时，停在 ① 等消息，不空转</text>
+</svg>

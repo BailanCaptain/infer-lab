@@ -1,0 +1,157 @@
+layout: figure
+id: attention-backend-choice
+caption: 层的类型决定它交给哪个后端，后端决定最后调用哪个设备算子；GLM 的一次前向同时走两条分支
+size:
+- 900
+- 470
+items:
+- at:
+  - 25
+  - 155
+  size:
+  - 130
+  - 80
+  text: 第 n 层
+  sub: 查这层的类型
+  tone: token
+- at:
+  - 185
+  - 60
+  size:
+  - 170
+  - 72
+  text: KDA 线性注意力层
+  sub: 34 层
+  tone: weight
+  depth: 3
+- at:
+  - 185
+  - 205
+  size:
+  - 170
+  - 72
+  text: 稀疏 MLA 层
+  sub: 11 层 + MTP 第 45 层
+  tone: weight
+  depth: 2
+- at:
+  - 375
+  - 60
+  size:
+  - 240
+  - 72
+  text: GDN 后端
+  sub: 递推状态 + 卷积状态
+  tone: control
+- at:
+  - 375
+  - 205
+  size:
+  - 240
+  - 72
+  text: 稀疏 MLA 后端
+  sub: 块表 + 选中位置
+  tone: control
+- at:
+  - 375
+  - 345
+  size:
+  - 240
+  - 64
+  text: 同层再挂两个缓存后端
+  sub: 索引器 K 池 / kpool 尾状态
+  tone: kv
+- at:
+  - 645
+  - 60
+  size:
+  - 235
+  - 72
+  text: 设备算子
+  sub: 顺着状态一步步更新
+  tone: comm
+- at:
+  - 645
+  - 205
+  size:
+  - 235
+  - 72
+  text: 设备算子
+  sub: 只在选中位置上算
+  tone: comm
+- at:
+  - 645
+  - 345
+  size:
+  - 235
+  - 64
+  text: 不算注意力
+  sub: 只负责自己那份缓存
+  tone: kv
+fans:
+- from:
+  - 155
+  - 195
+  to:
+  - - 185
+    - 96
+  - - 185
+    - 241
+  tone: token
+links:
+- from:
+  - 355
+  - 96
+  to:
+  - 375
+  - 96
+  tone: weight
+- from:
+  - 355
+  - 241
+  to:
+  - 375
+  - 241
+  tone: weight
+- from:
+  - 615
+  - 96
+  to:
+  - 645
+  - 96
+  tone: control
+- from:
+  - 615
+  - 241
+  to:
+  - 645
+  - 241
+  tone: control
+- from:
+  - 270
+  - 277
+  to:
+  - 375
+  - 377
+  via:
+  - - 270
+    - 377
+  tone: kv
+- from:
+  - 615
+  - 377
+  to:
+  - 645
+  - 377
+  tone: kv
+texts:
+- at:
+  - 25
+  - 30
+  text: 一个 token 每经过一层，都要先回答「这层是什么注意力」
+  strong: true
+- at:
+  - 185
+  - 440
+  text: 两条分支各有状态与算子
+  note: true

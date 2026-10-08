@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 972" width="880" height="972" role="img" aria-label="本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取行算分数，提示词没算完的这次采样丢弃。圆圈编号对应请求主线的站。">
+  <title>本部署一步之内怎样认出 prefill：调度只按进度差排数量；runner 贴注意力状态标签，再判断能否回放 decode 图；前向按行分路；最后按请求取行算分数，提示词没算完的这次采样丢弃。圆圈编号对应请求主线的站。</title>
+  <defs><marker id="prefill-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M440 78 L440 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M320 176 L320 198 L155 198 L155 220" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M440 176 L440 220" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M560 176 L560 198 L725 198 L725 220" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M155 290 L155 315 L320 315 L320 340" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M440 290 L440 340" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M725 290 L725 315 L560 315 L560 340" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M320 398 L320 424 L220 424 L220 450" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M560 398 L560 424 L660 424 L660 450" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M220 512 L220 537 L320 537 L320 562" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M660 512 L660 537 L560 537 L560 562" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M440 624 L440 674" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M440 736 L440 786" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M320 844 L320 867 L220 867 L220 890" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <path d="M560 844 L560 867 L660 867 L660 890" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#prefill-flow-ah-ink)"/>
+  <rect x="200" y="20" width="480" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="45" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">② 调度：本步数量 = 进度差</text>
+  <text x="440" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">再被每组每步 8192 的预算和长度上限夹住</text>
+  <rect x="200" y="118" width="480" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ runner 给这一批贴注意力状态标签</text>
+  <text x="440" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">看每条请求算过没有、本步几个位置</text>
+  <rect x="20" y="220" width="270" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="155" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">全是新提示词</text>
+  <text x="155" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">PrefillNoCache · R1 第 1 步</text>
+  <rect x="305" y="220" width="270" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">全是 1 个确定 + 候选</text>
+  <text x="440" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">SpecDecoding · R1 第 2 步起</text>
+  <rect x="590" y="220" width="270" height="70" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="725" y="251" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">混合批或续算的分块</text>
+  <text x="725" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">ChunkedPrefill · 场景 M 第 2 步</text>
+  <rect x="200" y="340" width="480" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="365" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">④ 能回放 decode 图吗？</text>
+  <text x="440" y="384" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">要求提示词都已算完、每条宽度整齐</text>
+  <rect x="20" y="450" width="400" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="477" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">否：eager，逐个下发算子</text>
+  <text x="220" y="496" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">含 prefill 的步都走这里</text>
+  <rect x="460" y="450" width="400" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="477" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是：回放启动时录好的图</text>
+  <text x="660" y="496" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">尺寸 4…128，两组对齐后一起用</text>
+  <rect x="200" y="562" width="480" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 前向：同一套 45 层权重</text>
+  <text x="440" y="608" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">KDA 的 prefill 行分段算，decode 行逐位置递推</text>
+  <rect x="200" y="674" width="480" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="701" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⑤ 每条请求取哪几行算词表分数？</text>
+  <text x="440" y="720" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">没有候选取最后 1 行；有候选取 1 + 候选数行</text>
+  <rect x="200" y="786" width="480" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="820" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这条请求的提示词算完了吗？</text>
+  <rect x="20" y="890" width="400" height="62" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="220" y="917" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">否：这次采样结果丢弃</text>
+  <text x="220" y="936" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">分块 prefill 的中间段</text>
+  <rect x="460" y="890" width="400" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="660" y="917" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是：得到输出 token</text>
+  <text x="660" y="936" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">prefill 的最后一段产出首 token</text>
+</svg>

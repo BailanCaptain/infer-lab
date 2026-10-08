@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" width="900" height="380" role="img" aria-label="一张录好的图里存的是任务次序，加上每个任务读写哪块地址。每一轮都把本轮的 token、位置和 block table 三样全部写进捕获时定下的同一组缓冲（后一轮覆盖前一轮），再回放同一张图；结果也落回同一块输出缓冲。内容每轮都换，地址和宽度不换。">
+  <title>一张录好的图里存的是任务次序，加上每个任务读写哪块地址。每一轮都把本轮的 token、位置和 block table 三样全部写进捕获时定下的同一组缓冲（后一轮覆盖前一轮），再回放同一张图；结果也落回同一块输出缓冲。内容每轮都换，地址和宽度不换。</title>
+  <defs><marker id="acl-graph-buffers-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="acl-graph-buffers-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="acl-graph-buffers-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="306" y="66" width="268" height="216" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="322" y="54" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">捕获时定下的固定地址</text>
+  <path d="M224 120 L306 164" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#acl-graph-buffers-ah-ink)"/>
+  <path d="M224 212 L306 182" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#acl-graph-buffers-ah-ink)"/>
+  <path d="M560 108 L632 146" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#acl-graph-buffers-ah-control)"/>
+  <path d="M560 174 L632 166" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#acl-graph-buffers-ah-control)"/>
+  <path d="M560 240 L632 186" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#acl-graph-buffers-ah-control)"/>
+  <path d="M754 218 L754 258" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#acl-graph-buffers-ah-token)"/>
+  <rect x="24" y="90" width="200" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="124" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第 k 轮的内容</text>
+  <text x="124" y="135" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一批 token、位置、块表</text>
+  <rect x="24" y="182" width="200" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="124" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">第 k+1 轮的内容</text>
+  <text x="124" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">覆盖写入同一组地址</text>
+  <rect x="320" y="82" width="240" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入缓冲 · token 编号</text>
+  <rect x="320" y="148" width="240" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入缓冲 · 位置与已算长度</text>
+  <rect x="320" y="214" width="240" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="245" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入缓冲 · block table</text>
+  <rect x="632" y="114" width="244" height="104" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="754" y="162" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">录好的那张图</text>
+  <text x="754" y="181" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">任务次序固定，读写的地址也固定</text>
+  <rect x="632" y="258" width="244" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="754" y="284" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输出缓冲</text>
+  <text x="754" y="303" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">回放后本轮结果在这里</text>
+  <text x="24" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">每一轮：内容写进同一组地址，再回放同一张图</text>
+  <text x="24" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">每轮三块都重写 · 后一轮覆盖前一轮</text>
+  <text x="24" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">宽度变了换一张图 · 地址对不上就算错</text>
+</svg>

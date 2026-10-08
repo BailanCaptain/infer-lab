@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "714d07fc99fe2b04719774b15f4058ef418005c681bba570de6dc3cfc83153e5",
+  "input": {
+    "sources": [
+      {
+        "ref": "coverage-gap:62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
+        "hash": "3c6e7c1a45240adf608c514d3f13ee0b984490b6be2b726b6fe3f140dd47da95"
+      },
+      {
+        "ref": "knowledge:7ef9438da5fe24fda95723c21bccbfca7497b0663b43b3820b7e05afc8eed761",
+        "hash": "7ef9438da5fe24fda95723c21bccbfca7497b0663b43b3820b7e05afc8eed761"
+      }
+    ],
+    "targets": [
+      "coverage-62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba"
+    ],
+    "recipeHash": "dfb7644d618d6be68a407acc6f9ba323f82c50e3445f2ca1200052717234e479"
+  },
+  "origins": [
+    "gap"
+  ],
+  "state": "draft",
+  "policy": {
+    "maxAttempts": 1,
+    "maxCostUsd": 2,
+    "reserveUsd": 1
+  },
+  "attempts": [
+    {
+      "token": "a3d4c262-5606-4ff0-93c0-1259171e60bd",
+      "ownerPid": 16252,
+      "startedAt": "2026-09-16T16:47:37.578Z",
+      "finishedAt": "2026-09-16T16:47:53.559Z",
+      "reservedUsd": 1,
+      "costUsd": 0.15836850000000002,
+      "state": "draft"
+    }
+  ],
+  "artifacts": {
+    "_jobs/coverage/714d07fc99fe2b04719774b15f4058ef418005c681bba570de6dc3cfc83153e5.input.json": "5e17229826d649a947aaba8857ed3f441c65b052750fc3529b574f29c234bb1d",
+    "_jobs/coverage/714d07fc99fe2b04719774b15f4058ef418005c681bba570de6dc3cfc83153e5.json": "a651b5d960e6ed2bd432ac5adf3e336262365bf859d88414e08ad363be9ea699"
+  },
+  "createdAt": "2026-09-16T16:47:37.569Z",
+  "updatedAt": "2026-09-16T17:03:15.325Z"
+}

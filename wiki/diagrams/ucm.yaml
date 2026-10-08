@@ -1,0 +1,29 @@
+layout: figure
+id: ucm
+caption: PD 分离时 UCM 的两种站法。左边集中式：P、D 都挂 UCM，P 在计算过程中把这条请求的状态存进共享存储，D 开始前从同一个后端取回，共享存储就是交接点。右边 P2P：这一次的状态由 Mooncake 从 P 直接传给 D，UCM 只挂在 P 上，让以后开头相同的请求少算一段；D 只挂 Mooncake。
+size: [900, 390]
+frames:
+  - {label: 集中式 PD, at: [25, 45], size: [410, 310]}
+  - {label: P2P PD, at: [465, 45], size: [410, 310]}
+hardware:
+  - {kind: server, at: [50, 100], size: [150, 70], label: P 节点（prefill）}
+  - {kind: server, at: [260, 100], size: [150, 70], label: D 节点（decode）}
+  - {kind: memory, at: [125, 260], size: [210, 60], label: 共享存储}
+  - {kind: server, at: [490, 100], size: [150, 70], label: P 节点（prefill）}
+  - {kind: server, at: [700, 100], size: [150, 70], label: D 节点（decode）}
+  - {kind: memory, at: [490, 260], size: [190, 60], label: UCM 前缀存储}
+links:
+  - {from: [125, 175], to: [180, 255], tone: comm}
+  - {from: [280, 255], to: [335, 175], tone: comm}
+  - {from: [642, 135], to: [698, 135], tone: comm}
+  - {from: [530, 175], to: [530, 255], tone: comm, ends: both}
+texts:
+  - {at: [230, 66], text: 两端都挂 UCM, anchor: middle, note: true}
+  - {at: [89, 220], text: 保存, tone: comm}
+  - {at: [326, 220], text: 加载, tone: comm}
+  - {at: [670, 112], text: Mooncake 直传, anchor: middle, tone: comm, size: 11, width: 56}
+  - {at: [542, 220], text: 前缀复用, tone: comm}
+  - {at: [775, 196], text: 只挂 Mooncake, anchor: middle, note: true}
+pins:
+  - source: vllm-ascend@db701c1f:docs/source/user_guide/feature_guide/ucm_deployment.md#L202-L330
+    symbols: [MooncakeConnectorV1, UCMConnector]

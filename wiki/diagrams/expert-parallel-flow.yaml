@@ -1,0 +1,185 @@
+layout: figure
+id: expert-parallel-flow
+caption: EP 一层 MoE 分三步。发之前每张卡放 2 个专家（琥珀色框），下面一排格子一格一个 token，只有本卡 token 那格有数。① dispatch 和 ③ combine 两格每列是一张收数据的卡，上面的小块是送来的数，小块上方写着从哪张卡来；紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。① 把 token 复制到它选中专家所在的卡，原卡上没有它选中的专家时那一格空出来，不进本卡专家的计算（hidden 本身仍留在原卡）。② 每张卡把收到的 token 交给本卡专家（琥珀色小块）算，再乘这个 token 给该专家的组合权重（灰色小块）。③ 把结果送回 token 的原卡加起来。卡 1 放着 3 个 token 都选中的 E3，要算 4 份，其他卡只有 1–2 份。
+size: [880, 1036]
+frames:
+  - { label: 发之前：每张卡放 2 个专家，各有 1 个 token, at: [8, 30], size: [864, 148] }
+  - { label: ① dispatch：token 复制到它选中专家所在的卡, at: [8, 216], size: [864, 168] }
+  - { label: ② 各卡用本卡专家算，再乘组合权重, at: [8, 422], size: [864, 220] }
+  - { label: ③ combine：结果送回 token 的原卡，加起来, at: [8, 680], size: [864, 210] }
+  - { label: 发之后：每张卡拿回自己 token 的路由输出, at: [8, 928], size: [864, 100] }
+grids:
+  # 发之前：卡 0 放的专家
+  - { at: [61, 52], rows: 1, cols: 2, cell: [56, 26], gap: 10, tone: weight, style: faded,
+      cells: [{ at: [0, 0], text: E0 }, { at: [0, 1], text: E1 }] }
+  # 发之前：卡 0 只有「我」
+  - { at: [30, 112], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 0,
+      cells: [{ at: [0, 0], text: '2', style: faded }] }
+  # 发之前：卡 1 放的专家
+  - { at: [273, 52], rows: 1, cols: 2, cell: [56, 26], gap: 10, tone: weight, style: faded,
+      cells: [{ at: [0, 0], text: E2 }, { at: [0, 1], text: E3 }] }
+  # 发之前：卡 1 只有「吃」
+  - { at: [242, 112], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 1,
+      cells: [{ at: [0, 1], text: '5', style: faded }] }
+  # 发之前：卡 2 放的专家
+  - { at: [485, 52], rows: 1, cols: 2, cell: [56, 26], gap: 10, tone: weight, style: faded,
+      cells: [{ at: [0, 0], text: E4 }, { at: [0, 1], text: E5 }] }
+  # 发之前：卡 2 只有「了」
+  - { at: [454, 112], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 2,
+      cells: [{ at: [0, 2], text: '3', style: faded }] }
+  # 发之前：卡 3 放的专家
+  - { at: [697, 52], rows: 1, cols: 2, cell: [56, 26], gap: 10, tone: weight, style: faded,
+      cells: [{ at: [0, 0], text: E6 }, { at: [0, 1], text: E7 }] }
+  # 发之前：卡 3 只有「苹果」
+  - { at: [666, 112], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 3,
+      cells: [{ at: [0, 3], text: '4', style: faded }] }
+  # ① 送到卡 0 的 token
+  - { at: [80, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 1], cells: [{ at: [0, 0], text: '5' }] }
+  # ① 之后：卡 0 要交给本卡专家的 token
+  - { at: [30, 316], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 0,
+      cells: [{ at: [0, 1], text: '5', style: faded }] }
+  # ① 送到卡 1 的 token
+  - { at: [246, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 0], cells: [{ at: [0, 0], text: '2' }] }
+  - { at: [292, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 1], cells: [{ at: [0, 0], text: '5' }] }
+  - { at: [338, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 2], cells: [{ at: [0, 0], text: '3' }] }
+  - { at: [384, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 3], cells: [{ at: [0, 0], text: '4' }] }
+  # ① 之后：卡 1 要交给本卡专家的 token
+  - { at: [242, 316], rows: 1, cols: 4, cell: [46, 30], tone: token, style: faded, label: 卡 1,
+      cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '5' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # ① 送到卡 2 的 token
+  - { at: [458, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 0], cells: [{ at: [0, 0], text: '2' }] }
+  - { at: [596, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 3], cells: [{ at: [0, 0], text: '4' }] }
+  # ① 之后：卡 2 要交给本卡专家的 token
+  - { at: [454, 316], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 0], text: '2', style: faded }, { at: [0, 3], text: '4', style: faded }] }
+  # ① 送到卡 3 的 token
+  - { at: [762, 248], rows: 1, cols: 1, cell: [38, 28], tone: token, style: faded, colLabels: [卡 2], cells: [{ at: [0, 0], text: '3' }] }
+  # ① 之后：卡 3 要交给本卡专家的 token
+  - { at: [666, 316], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 2], text: '3', style: faded }] }
+  # ② 卡 0 收到的 token
+  - { at: [30, 454], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果],
+      cells: [{ at: [0, 1], text: '5', style: faded }] }
+  # ② 卡 0 的每个 token 交给哪个本卡专家（上），再乘组合权重（下）
+  - { at: [78, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E1 }, { at: [1, 0], text: '×0.4', tone: control }] }
+  # ② 之后：卡 0 算出的结果
+  - { at: [30, 574], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 0,
+      cells: [{ at: [0, 1], text: '2', style: solid }] }
+  # ② 卡 1 收到的 token
+  - { at: [242, 454], rows: 1, cols: 4, cell: [46, 30], tone: token, style: faded, colLabels: [我, 吃, 了, 苹果],
+      cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '5' }, { at: [0, 2], text: '3' }, { at: [0, 3], text: '4' }] }
+  # ② 卡 1 的每个 token 交给哪个本卡专家（上），再乘组合权重（下）
+  - { at: [244, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E3 }, { at: [1, 0], text: '×0.5', tone: control }] }
+  - { at: [290, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E2 }, { at: [1, 0], text: '×0.6', tone: control }] }
+  - { at: [336, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E3 }, { at: [1, 0], text: '×0.5', tone: control }] }
+  - { at: [382, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E3 }, { at: [1, 0], text: '×0.75', tone: control }] }
+  # ② 之后：卡 1 算出的结果
+  - { at: [242, 574], rows: 1, cols: 4, cell: [46, 30], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '6' }, { at: [0, 2], text: '4.5' }, { at: [0, 3], text: '9' }] }
+  # ② 卡 2 收到的 token
+  - { at: [454, 454], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果],
+      cells: [{ at: [0, 0], text: '2', style: faded }, { at: [0, 3], text: '4', style: faded }] }
+  # ② 卡 2 的每个 token 交给哪个本卡专家（上），再乘组合权重（下）
+  - { at: [456, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E4 }, { at: [1, 0], text: '×0.5', tone: control }] }
+  - { at: [594, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E5 }, { at: [1, 0], text: '×0.25', tone: control }] }
+  # ② 之后：卡 2 算出的结果
+  - { at: [454, 574], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 0], text: '4', style: solid }, { at: [0, 3], text: '5', style: solid }] }
+  # ② 卡 3 收到的 token
+  - { at: [666, 454], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果],
+      cells: [{ at: [0, 2], text: '3', style: faded }] }
+  # ② 卡 3 的每个 token 交给哪个本卡专家（上），再乘组合权重（下）
+  - { at: [760, 502], rows: 2, cols: 1, cell: [42, 24], gap: 4, tone: weight, style: faded, cells: [{ at: [0, 0], text: E7 }, { at: [1, 0], text: '×0.5', tone: control }] }
+  # ② 之后：卡 3 算出的结果
+  - { at: [666, 574], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 2], text: '10.5', style: solid }] }
+  # ③ 送回卡 0 的结果（「我」的两份）
+  - { at: [80, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 1], cells: [{ at: [0, 0], text: '3' }] }
+  - { at: [126, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 2], cells: [{ at: [0, 0], text: '4' }] }
+  # ③ 之后：卡 0 的「我」加起来
+  - { at: [30, 822], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 0,
+      cells: [{ at: [0, 0], text: '7', style: solid }] }
+  # ③ 送回卡 1 的结果（「吃」的两份）
+  - { at: [246, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 0], cells: [{ at: [0, 0], text: '2' }] }
+  - { at: [292, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 1], cells: [{ at: [0, 0], text: '6' }] }
+  # ③ 之后：卡 1 的「吃」加起来
+  - { at: [242, 822], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 1,
+      cells: [{ at: [0, 1], text: '8', style: solid }] }
+  # ③ 送回卡 2 的结果（「了」的两份）
+  - { at: [504, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 1], cells: [{ at: [0, 0], text: '4.5' }] }
+  - { at: [596, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 3], cells: [{ at: [0, 0], text: '10.5' }] }
+  # ③ 之后：卡 2 的「了」加起来
+  - { at: [454, 822], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 2,
+      cells: [{ at: [0, 2], text: '15', style: solid }] }
+  # ③ 送回卡 3 的结果（「苹果」的两份）
+  - { at: [716, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 1], cells: [{ at: [0, 0], text: '9' }] }
+  - { at: [762, 712], rows: 1, cols: 1, cell: [38, 28], tone: token, style: solid, colLabels: [卡 2], cells: [{ at: [0, 0], text: '5' }] }
+  # ③ 之后：卡 3 的「苹果」加起来
+  - { at: [666, 822], rows: 1, cols: 4, cell: [46, 30], tone: token, label: 卡 3,
+      cells: [{ at: [0, 3], text: '14', style: solid }] }
+  # 发之后：卡 0
+  - { at: [30, 960], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 0,
+      cells: [{ at: [0, 0], text: '7', style: solid }] }
+  # 发之后：卡 1
+  - { at: [242, 960], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 1,
+      cells: [{ at: [0, 1], text: '8', style: solid }] }
+  # 发之后：卡 2
+  - { at: [454, 960], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 2,
+      cells: [{ at: [0, 2], text: '15', style: solid }] }
+  # 发之后：卡 3
+  - { at: [666, 960], rows: 1, cols: 4, cell: [46, 30], tone: token, colLabels: [我, 吃, 了, 苹果], label: 卡 3,
+      cells: [{ at: [0, 3], text: '14', style: solid }] }
+links:
+  # ① 送到卡 0：竖直落进同一格
+  - { from: [99, 276], to: [99, 314], tone: comm }
+  # ① 送到卡 1：竖直落进同一格
+  - { from: [265, 276], to: [265, 314], tone: comm }
+  - { from: [311, 276], to: [311, 314], tone: control, dashed: true }
+  - { from: [357, 276], to: [357, 314], tone: comm }
+  - { from: [403, 276], to: [403, 314], tone: comm }
+  # ① 送到卡 2：竖直落进同一格
+  - { from: [477, 276], to: [477, 314], tone: comm }
+  - { from: [615, 276], to: [615, 314], tone: comm }
+  # ① 送到卡 3：竖直落进同一格
+  - { from: [781, 276], to: [781, 314], tone: comm }
+  # ② 卡 0：token 进本卡专家，出来是结果
+  - { from: [99, 484], to: [99, 500], tone: weight }
+  - { from: [99, 554], to: [99, 572], tone: weight }
+  # ② 卡 1：token 进本卡专家，出来是结果
+  - { from: [265, 484], to: [265, 500], tone: weight }
+  - { from: [265, 554], to: [265, 572], tone: weight }
+  - { from: [311, 484], to: [311, 500], tone: weight }
+  - { from: [311, 554], to: [311, 572], tone: weight }
+  - { from: [357, 484], to: [357, 500], tone: weight }
+  - { from: [357, 554], to: [357, 572], tone: weight }
+  - { from: [403, 484], to: [403, 500], tone: weight }
+  - { from: [403, 554], to: [403, 572], tone: weight }
+  # ② 卡 2：token 进本卡专家，出来是结果
+  - { from: [477, 484], to: [477, 500], tone: weight }
+  - { from: [477, 554], to: [477, 572], tone: weight }
+  - { from: [615, 484], to: [615, 500], tone: weight }
+  - { from: [615, 554], to: [615, 572], tone: weight }
+  # ② 卡 3：token 进本卡专家，出来是结果
+  - { from: [781, 484], to: [781, 500], tone: weight }
+  - { from: [781, 554], to: [781, 572], tone: weight }
+  # ③ 送回卡 0：两份在「我」那格上方汇成一支箭头
+  - { from: [99, 740], to: [53, 794], curve: [[99, 766.5], [53, 766.5]], tone: comm, ends: none }
+  - { from: [145, 740], to: [53, 794], curve: [[145, 766.5], [53, 766.5]], tone: comm, ends: none }
+  - { from: [53, 794], to: [53, 820], tone: comm }
+  # ③ 送回卡 1：两份在「吃」那格上方汇成一支箭头
+  - { from: [265, 740], to: [311, 794], curve: [[265, 766.5], [311, 766.5]], tone: comm, ends: none }
+  - { from: [311, 740], to: [311, 794], tone: control, dashed: true, ends: none }
+  - { from: [311, 794], to: [311, 820], tone: comm }
+  # ③ 送回卡 2：两份在「了」那格上方汇成一支箭头
+  - { from: [523, 740], to: [569, 794], curve: [[523, 766.5], [569, 766.5]], tone: comm, ends: none }
+  - { from: [615, 740], to: [569, 794], curve: [[615, 766.5], [569, 766.5]], tone: comm, ends: none }
+  - { from: [569, 794], to: [569, 820], tone: comm }
+  # ③ 送回卡 3：两份在「苹果」那格上方汇成一支箭头
+  - { from: [735, 740], to: [827, 794], curve: [[735, 766.5], [827, 766.5]], tone: comm, ends: none }
+  - { from: [781, 740], to: [827, 794], curve: [[781, 766.5], [827, 766.5]], tone: comm, ends: none }
+  - { from: [827, 794], to: [827, 820], tone: comm }
+texts:
+  - { at: [872, 18], text: 数为示意 · 专家 Ek 就是乘 k, size: 12.5, note: true, anchor: end }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339
+    symbols: [token_dispatch, token_combine]

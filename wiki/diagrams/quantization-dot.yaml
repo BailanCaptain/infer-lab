@@ -1,0 +1,80 @@
+layout: figure
+id: quantization-dot
+caption: 一个输出元素的四步（数为示意）：激活一行 x 和权重一列 w 各除以自己的缩放系数、舍入成 INT8；上下对齐的两个整数相乘，三个乘积相加得 10438；最后乘回 0.01 × 0.02，得到 2.0876。
+size: [900, 300]
+grids:
+  - at: [100, 60]
+    rows: 2
+    cols: 3
+    cell: [64, 34]
+    tone: token
+    style: faded
+    rowLabels: ['x', 'w']
+    cells:
+      - { at: [0, 0], text: '0.523' }
+      - { at: [0, 1], text: '−0.31' }
+      - { at: [0, 2], text: '1.27' }
+      - { at: [1, 0], text: '0.40', tone: weight }
+      - { at: [1, 1], text: '−2.54', tone: weight }
+      - { at: [1, 2], text: '0.86', tone: weight }
+  - at: [450, 60]
+    rows: 2
+    cols: 3
+    cell: [64, 34]
+    tone: token
+    style: solid
+    rowLabels: ['x 的整数', 'w 的整数']
+    cells:
+      - { at: [0, 0], text: '52' }
+      - { at: [0, 1], text: '−31' }
+      - { at: [0, 2], text: '127' }
+      - { at: [1, 0], text: '20', tone: weight }
+      - { at: [1, 1], text: '−127', tone: weight }
+      - { at: [1, 2], text: '43', tone: weight }
+  - at: [450, 176]
+    rows: 1
+    cols: 3
+    cell: [64, 34]
+    tone: control
+    style: plain
+    rowLabels: ['上下相乘']
+    cells:
+      - { at: [0, 0], text: '1040' }
+      - { at: [0, 1], text: '3937' }
+      - { at: [0, 2], text: '5461' }
+  - at: [744, 176]
+    rows: 1
+    cols: 1
+    cell: [72, 34]
+    tone: control
+    style: solid
+    cells:
+      - { at: [0, 0], text: '10438' }
+  - at: [744, 254]
+    rows: 1
+    cols: 1
+    cell: [72, 34]
+    tone: token
+    style: solid
+    cells:
+      - { at: [0, 0], text: '2.0876' }
+nodes:
+  - { at: [690, 193], r: 18, text: Σ }
+links:
+  - { from: [300, 77], to: [366, 77] }
+  - { from: [300, 111], to: [366, 111] }
+  - { from: [482, 132], to: [482, 172] }
+  - { from: [546, 132], to: [546, 172] }
+  - { from: [610, 132], to: [610, 172] }
+  - { from: [646, 193], to: [668, 193] }
+  - { from: [712, 193], to: [740, 193] }
+  - { from: [780, 214], to: [780, 250], tone: token }
+texts:
+  - { at: [40, 30], text: 一个输出元素：激活一行 × 权重一列, strong: true }
+  - { at: [336, 67], text: "÷ 0.01，舍入", size: 13, anchor: middle }
+  - { at: [336, 130], text: "÷ 0.02，舍入", size: 13, anchor: middle }
+  - { at: [666, 82], text: "x 的系数 = 1.27 ÷ 127", size: 13, note: true }
+  - { at: [666, 116], text: "w 的系数 = 2.54 ÷ 127", size: 13, note: true }
+  - { at: [546, 236], text: "1040 + 3937 + 5461 = 10438", size: 13, note: true, anchor: middle }
+  - { at: [770, 237], text: "× 0.01 × 0.02", size: 13, anchor: end }
+  - { at: [826, 276], text: 输出 ŷ, size: 13, strong: true }

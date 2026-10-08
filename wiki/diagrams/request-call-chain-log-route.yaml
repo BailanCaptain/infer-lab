@@ -1,0 +1,39 @@
+layout: figure
+id: request-call-chain-log-route
+caption: 按日志定位先找实际抛错的进程，再用最内层 traceback 认站。跨进程转达的异常要沿回传方向追到原始日志；RPC 超时则需要对齐各 worker 的时间线。
+size: [880, 700]
+items:
+  - { at: [240, 22], size: [400, 58], text: 读报错内容：转达、超时还是本地异常？, style: plain }
+  - { at: [24, 144], size: [260, 66], text: EngineCore encountered an issue, sub: 去 EngineCore 的原始 traceback, tone: danger, style: faded }
+  - { at: [310, 144], size: [260, 66], text: Worker failed with error, sub: 去 worker 的原始 traceback, tone: danger, style: faded }
+  - { at: [596, 144], size: [260, 66], text: RPC call … timed out, sub: 按时间对齐所有 worker 日志, tone: danger, style: faded }
+  - { at: [170, 290], size: [540, 58], text: 看原始日志前缀，再读最内层 traceback, style: plain }
+  - { at: [24, 428], size: [260, 80], text: APIServer, sub: 入口 → ①；输出处理 → ⑦, style: plain }
+  - { at: [310, 428], size: [260, 80], text: EngineCore_DP0 / DP1, sub: schedule → ②；更新结果 → ⑥, style: plain }
+  - { at: [596, 428], size: [260, 80], text: Worker_DP…_TP…_EP…, sub: 准备输入 ③ → 前向 ④ → 采样 ⑤, style: plain }
+  - { at: [170, 602], size: [540, 58], text: 打开该站的源码位置，核对输入与条件, sub: DPCoordinator 的日志另查负载汇总与唤醒, tone: control, style: plain }
+links:
+  - { from: [300, 80], to: [154, 144], via: [[154, 106]] }
+  - { from: [440, 80], to: [440, 144] }
+  - { from: [580, 80], to: [726, 144], via: [[726, 106]] }
+  - { from: [154, 210], to: [290, 290], via: [[154, 256], [290, 256]] }
+  - { from: [440, 210], to: [440, 290] }
+  - { from: [726, 210], to: [590, 290], via: [[726, 256], [590, 256]] }
+  - { from: [290, 348], to: [154, 428], via: [[290, 380], [154, 380]] }
+  - { from: [440, 348], to: [440, 428] }
+  - { from: [590, 348], to: [726, 428], via: [[590, 380], [726, 380]] }
+  - { from: [154, 508], to: [290, 602], via: [[154, 558], [290, 558]] }
+  - { from: [440, 508], to: [440, 602] }
+  - { from: [726, 508], to: [590, 602], via: [[726, 558], [590, 558]] }
+  - { from: [240, 51], to: [170, 319], via: [[8, 51], [8, 319]], dashed: true }
+texts:
+  - { at: [22, 282], text: 本地异常直接认站, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/exceptions.py#L9-L18
+    symbols: [EngineDeadError]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L307-L400
+    symbols: [collective_rpc]
+  - source: vllm@0fc695fc:vllm/v1/executor/multiproc_executor.py#L969-L1031
+    symbols: [worker_busy_loop]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
+    symbols: [schedule]

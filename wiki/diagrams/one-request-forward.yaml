@@ -1,0 +1,30 @@
+layout: figure
+id: one-request-forward
+caption: R1 第一步在 node0 每张卡上的前向（T = 4）。实线框是计算，标签是这一段的集合通信及次数，MLP 下的 ×3 + ×42 是 3 个稠密层加 42 个共享专家；除 MoE 的派发与组合走 16 张卡的 EP 组外，其余都在机内 8 张卡的 TP 组里
+size: [900, 520]
+frames:
+  - { at: [410, 64], size: [462, 230], label: 每一层，共 45 层 }
+items:
+  - { at: [24, 100], size: [150, 56], text: 词嵌入, sub: "[4] → [4, 4096]", tone: token }
+  - { at: [214, 100], size: [160, 56], text: 展开四路残差, sub: "[4, 4, 4096]", style: plain }
+  - { at: [430, 100], size: [190, 56], text: 注意力, sub: KDA 34 层 · MLA 11 层, tone: token }
+  - { at: [664, 100], size: [190, 56], text: MLP, sub: 稠密 3 层 · MoE 42 层, tone: token }
+  - { at: [664, 330], size: [190, 56], text: 四路求均值与归一化, sub: "[4, 4096]", style: plain }
+  - { at: [430, 330], size: [190, 56], text: 词表投影, sub: "最后 1 行 → [1, 154880]", tone: token }
+  - { at: [214, 330], size: [160, 56], text: 采样, sub: 选出 y₀, style: plain }
+links:
+  - { from: [174, 128], to: [214, 128] }
+  - { from: [374, 128], to: [430, 128] }
+  - { from: [620, 128], to: [664, 128] }
+  - { from: [854, 128], to: [854, 358], via: [[888, 128], [888, 358]] }
+  - { from: [664, 358], to: [620, 358] }
+  - { from: [430, 358], to: [374, 358] }
+tags:
+  - { at: [40, 180], text: All-Reduce ×1, tone: comm }
+  - { at: [446, 180], text: All-Reduce ×45, tone: comm }
+  - { at: [680, 180], text: All-Reduce ×3 + ×42, tone: comm }
+  - { at: [680, 216], text: MC2 派发与组合 ×84 · EP16, tone: comm }
+  - { at: [680, 252], text: All-Gather ×42, tone: comm }
+  - { at: [446, 410], text: All-Gather ×1, tone: comm }
+texts:
+  - { at: [24, 470], text: 每卡每步 218 次集合通信，数据量不超过 7.3 MiB, strong: true }

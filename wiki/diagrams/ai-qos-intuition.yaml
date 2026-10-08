@@ -1,0 +1,23 @@
+layout: figure
+id: ai-qos-intuition
+caption: 与正文时隙算例共用四份等长数据：三份状态先到、关键通信后到，出口刚空闲，四份都尚未发送。高优先级队列的通信先出，状态甲、乙、丙随后依次出；编号表示发送次序，每块占一个示意时隙，不表示真实耗时或中途抢占。
+size: [860, 590]
+frames:
+  - { at: [20, 40], size: [820, 125], label: 流量从哪里来 }
+  - { at: [20, 215], size: [820, 170], label: 交换机 }
+  - { at: [20, 435], size: [820, 130], label: 出口发送次序 }
+items:
+  - { at: [65, 75], size: [320, 60], text: 卡 0 → 卡 1 · 关键通信, sub: 计算等这份结果, tone: comm }
+  - { at: [475, 75], size: [320, 60], text: 主机 → 卡 1 · KV cache 预取, sub: 提前搬入后面要用的历史状态, tone: kv }
+grids:
+  - { at: [175, 275], rows: 1, cols: 1, cell: [100, 42], tone: comm, style: solid, label: 高优先级 VL,
+      cells: [{ at: [0, 0], text: 关键通信 }] }
+  - { at: [491, 275], rows: 1, cols: 3, cell: [96, 42], tone: kv, style: solid, label: 低优先级 VL · 甲先到，丙最后,
+      cells: [{ at: [0, 0], text: 状态甲 }, { at: [0, 1], text: 状态乙 }, { at: [0, 2], text: 状态丙 }] }
+  - { at: [175, 480], rows: 1, cols: 4, cell: [126, 42], tone: kv, style: solid,
+      cells: [{ at: [0, 0], text: '1 · 通信', tone: comm }, { at: [0, 1], text: '2 · 状态甲' }, { at: [0, 2], text: '3 · 状态乙' }, { at: [0, 3], text: '4 · 状态丙' }] }
+links:
+  - { from: [225, 135], to: [225, 275], tone: comm }
+  - { from: [635, 135], to: [635, 275], tone: kv }
+  - { from: [275, 296], to: [238, 480], via: [[355, 296], [355, 409], [238, 409]], tone: comm }
+  - { from: [779, 296], to: [490, 480], via: [[810, 296], [810, 419], [490, 419]], tone: kv, dashed: true }

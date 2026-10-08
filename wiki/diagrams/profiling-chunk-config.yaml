@@ -1,0 +1,103 @@
+layout: scene
+id: profiling-chunk-config
+caption: 开了之后，每个 prefill 步的 chunk 大小是当场解一个二次方程算出来的（vllm-ascend main 开发主线 baa023ad）
+size: [900, 700]
+
+regions:
+  - label: 启动期 · 只做一次
+    note: 拟合的是「这台机器上，一段长 l 的 prefill 要多久」，不是预设公式——所以换硬件不用改参数。
+    at: [20, 26]
+    size: [860, 170]
+    tone: upstream
+  - label: 每个 prefill 步 · 算出这一步切多少
+    note: 目标是让每块耗时相等：前缀越长，注意力越贵，块就得切得越小，流水线才不空转。
+    at: [20, 216]
+    size: [860, 412]
+    tone: ascend
+
+boxes:
+  - at: [36, 112]
+    size: [266, 70]
+    title: 采 64 个 chunk size
+    sub: 从 base_chunk_size 一路采到接近 0
+    tone: upstream
+  - at: [318, 112]
+    size: [250, 70]
+    title: 每个都真跑一次 forward
+    sub: 量毫秒级延迟
+    tone: upstream
+  - at: [584, 112]
+    size: [274, 70]
+    title: 最小二乘拟合二次模型
+    sub: f(l) = a·l² + b·l + c
+    tone: upstream
+
+arrows:
+  - { from: [304, 147], to: [316, 147], tone: upstream }
+  - { from: [570, 147], to: [582, 147], tone: upstream }
+
+bands:
+  - label: ① 定目标时间
+    sub: T = f(base_chunk_size) − f(0)，一块「应该」花多久
+    fn: target_latency
+    icon: clock
+    at: [52, 292]
+    size: [828, 56]
+    tone: ascend
+  - label: ② 解二次方程取正根
+    sub: a·x² + (2aL + b)·x − T = 0，L 是这条请求已经算过的前缀长度
+    fn: discriminant
+    icon: calc
+    at: [52, 356]
+    size: [828, 56]
+    tone: ascend
+  - label: ③ 平滑
+    sub: smoothed = base_chunk_size + smooth_factor × (x − base_chunk_size)
+    fn: smooth_factor
+    icon: diff
+    at: [52, 420]
+    size: [828, 56]
+    tone: ascend
+  - label: ④ 下限 + 对齐
+    sub: max(int(smoothed), min_chunk)，再向上取整到 max(page_size, 64) 的倍数
+    fn: min_chunk
+    icon: grid
+    at: [52, 484]
+    size: [828, 56]
+    tone: ascend
+  - label: ⑤ 截断
+    sub: num_new_tokens = min(predicted_chunk, num_new_tokens)；返回 None 就不截
+    fn: predict_chunk_size
+    icon: split
+    at: [52, 548]
+    size: [828, 56]
+    tone: accent
+
+notes:
+  - at: [20, 646]
+    text: 关掉时这五步一步都不跑，一步切多少只受 max_num_batched_tokens 这个固定上限管。
+    size: 12.5
+    width: 860
+    strong: true
+  - at: [20, 670]
+    text: 开着的三个硬条件：PP > 1、开 chunked prefill、不能和 balance scheduling 同开；启动多付约 64 次 forward。
+    size: 12.5
+    width: 860
+
+pins:
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/profiling_chunk_predictor.py#L288-L315
+    symbols:
+      - base_chunk_size
+      - target_latency
+      - discriminant
+      - smoothed
+      - smooth_factor
+      - min_chunk
+      - page_size
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/scheduler_profiling_chunk.py#L339-L351
+    symbols: [predict_chunk_size, predicted_chunk, num_new_tokens]
+  - source: vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L598
+    symbols: [max_num_batched_tokens]
+  - source: >-
+      vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/dynamic_chunked_pipeline_parallel.md#L54-L63
+    symbols: [base_chunk_size]

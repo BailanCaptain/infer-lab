@@ -1,0 +1,28 @@
+layout: figure
+id: acl-graph-buffers
+caption: 一张录好的图里存的是任务次序，加上每个任务读写哪块地址。每一轮都把本轮的 token、位置和 block table 三样全部写进捕获时定下的同一组缓冲（后一轮覆盖前一轮），再回放同一张图；结果也落回同一块输出缓冲。内容每轮都换，地址和宽度不换。
+size: [900, 380]
+texts:
+  - { at: [24, 28], text: 每一轮：内容写进同一组地址，再回放同一张图, strong: true, size: 15 }
+  - { at: [24, 262], text: 每轮三块都重写 · 后一轮覆盖前一轮, note: true }
+  - { at: [24, 344], text: 宽度变了换一张图 · 地址对不上就算错, note: true }
+frames:
+  - { at: [306, 66], size: [268, 216], label: 捕获时定下的固定地址 }
+items:
+  - { at: [24, 90], size: [200, 60], text: 第 k 轮的内容, sub: 这一批 token、位置、块表, tone: token }
+  - { at: [24, 182], size: [200, 60], text: 第 k+1 轮的内容, sub: 覆盖写入同一组地址, tone: token }
+  - { at: [320, 82], size: [240, 52], text: 输入缓冲 · token 编号, tone: weight }
+  - { at: [320, 148], size: [240, 52], text: 输入缓冲 · 位置与已算长度, tone: weight }
+  - { at: [320, 214], size: [240, 52], text: 输入缓冲 · block table, tone: weight }
+  - { at: [632, 114], size: [244, 104], text: 录好的那张图, sub: 任务次序固定，读写的地址也固定, tone: control }
+  - { at: [632, 258], size: [244, 60], text: 输出缓冲, sub: 回放后本轮结果在这里, tone: token }
+links:
+  - { from: [224, 120], to: [306, 164] }
+  - { from: [224, 212], to: [306, 182] }
+  - { from: [560, 108], to: [632, 146], tone: control }
+  - { from: [560, 174], to: [632, 166], tone: control }
+  - { from: [560, 240], to: [632, 186], tone: control }
+  - { from: [754, 218], to: [754, 258], tone: token }
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L155-L240'
+    symbols: [ACLGraphEntry, ACLGraphWrapper]

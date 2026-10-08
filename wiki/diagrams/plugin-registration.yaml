@@ -1,0 +1,30 @@
+layout: figure
+id: plugin-registration
+caption: 装包时写下的入口点清单，启动时被按组名读出来；平台组只交回一个类路径，决定当前平台，通用组当场执行登记函数，其中一个把模型架构名接到昇腾的实现类。两条分支之间没有约定先后。
+size: [880, 420]
+items:
+  - { at: [20, 168], size: [156, 76], text: 包里的清单, sub: entry points, tone: control }
+  - { at: [222, 168], size: [176, 76], text: 按组名去问谁登记了, sub: 读安装元数据, tone: control }
+  - { at: [446, 62], size: [186, 76], text: 平台组 1 个入口, sub: 交回一个类路径, tone: control }
+  - { at: [446, 274], size: [186, 76], text: 通用组 4 个入口, sub: 当场执行登记函数, tone: weight }
+  - { at: [678, 62], size: [182, 76], text: 当前平台, sub: 昇腾的平台对象, tone: control }
+  - { at: [678, 274], size: [182, 76], text: 几张注册表, sub: 架构名 → 昇腾实现类, tone: weight }
+links:
+  - { from: [176, 206], to: [222, 206], tone: control }
+  - { from: [398, 206], to: [446, 100], via: [[422, 206], [422, 100]], tone: control }
+  - { from: [398, 206], to: [446, 312], via: [[422, 206], [422, 312]], tone: weight }
+  - { from: [632, 100], to: [678, 100], tone: control }
+  - { from: [632, 312], to: [678, 312], tone: weight }
+texts:
+  - { at: [20, 32], text: 装包那一刻清单就写好了，启动时才被执行, size: 15, strong: true }
+  - { at: [446, 46], text: 登记平台, size: 13, strong: true }
+  - { at: [446, 258], text: 登记模型（和另外三类）, size: 13, strong: true }
+  - { at: [678, 158], text: 只拿到名字，不导入实现, note: true }
+  - { at: [678, 370], text: 调用即生效，同组互不排斥, note: true }
+  - { at: [20, 290], text: 装上就有, size: 13 }
+  - { at: [20, 312], text: 卸载就没有, size: 13 }
+  - { at: [20, 402], text: 每起一个进程，这张清单都要重新读一遍, note: true }
+pins:
+  - { source: 'vllm-ascend@db701c1f:setup.py#L543-L551', symbols: [entry_points] }
+  - { source: 'vllm@0fc695fc:vllm/plugins/__init__.py#L28-L82', symbols: [load_plugins_by_group, load_general_plugins] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/__init__.py#L4-L25', symbols: [register_model] }

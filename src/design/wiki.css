@@ -1,0 +1,2824 @@
+/**
+ * 知识库阅读页。严格照 DESIGN.md：暖白纸面、白卡片、深色内嵌左栏（rail）、
+ * 橙色是唯一行动色、圆角 field10/card16/panel24、等宽=可核对的事实。
+ * 所有颜色走 tokens.css 的语义变量，本文件不写裸 hex。
+ */
+
+.wiki-shell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100%;
+  background: var(--color-canvas);
+}
+
+/* ---------- 左侧目录：全站唯一的深色内嵌面板 ---------- */
+
+.wiki-toc {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 16px 14px 24px;
+  background: var(--color-rail);
+  color: var(--color-rail-text);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wiki-toc-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-label);
+  color: var(--color-rail-muted);
+  text-decoration: none;
+}
+
+.wiki-toc-home:hover {
+  color: var(--color-accent);
+}
+
+.wiki-toc-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-rail-line);
+}
+
+.wiki-toc-head strong {
+  font-size: var(--text-title);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink-inverse);
+}
+
+.wiki-toc-head small {
+  font-size: var(--text-caption);
+  color: var(--color-rail-muted);
+}
+
+.wiki-toc-search {
+  display: grid;
+  gap: 6px;
+}
+
+.wiki-toc-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  color: var(--color-rail-text);
+  background: var(--color-rail);
+  border: 1px solid var(--color-rail-line);
+  border-radius: var(--radius-field);
+  font: inherit;
+  font-size: var(--text-label);
+}
+
+.wiki-toc-search input::placeholder {
+  color: var(--color-rail-muted);
+}
+
+.wiki-toc-search button {
+  justify-self: end;
+  color: var(--color-rail-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.wiki-toc-search small {
+  color: var(--color-rail-muted);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+/* 目录四部分：部分标题醒目，部分内的小组标题弱化 */
+.wiki-toc-part {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-rail-line);
+}
+
+.wiki-toc-head + .wiki-toc-part {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.wiki-toc-part-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: var(--text-compact);
+  font-weight: 700;
+  color: var(--color-ink-inverse);
+}
+
+.wiki-toc-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 400;
+  color: var(--color-rail-muted);
+}
+
+summary.wiki-toc-part-head {
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.wiki-toc-part-head::-webkit-details-marker {
+  display: none;
+}
+
+.wiki-toc-part > summary .wiki-toc-count::after {
+  content: " ▸";
+}
+
+.wiki-toc-part[open] > summary .wiki-toc-count::after {
+  content: " ▾";
+}
+
+.wiki-toc-part:not([open]) > .wiki-toc-part-head {
+  margin-bottom: 0;
+}
+
+.wiki-toc-section {
+  margin: 2px 0 4px;
+  padding-left: 8px;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-rail-muted);
+}
+
+.wiki-toc-chapter {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-variant-numeric: tabular-nums;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-rail-active);
+  color: var(--color-rail-text);
+}
+
+.wiki-toc-group ul {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.wiki-toc-group a {
+  display: block;
+  padding: 5px 8px;
+  border-radius: var(--radius-field);
+  font-size: var(--text-compact);
+  color: var(--color-rail-text);
+  text-decoration: none;
+}
+
+.wiki-toc-group a:hover {
+  background: var(--color-rail-hover);
+  color: var(--color-ink-inverse);
+}
+
+.wiki-toc-group a.is-active {
+  background: var(--color-rail-active);
+  color: var(--color-ink-inverse);
+  box-shadow: inset 2px 0 0 var(--color-accent);
+}
+
+/* ---------- 正文区 ---------- */
+
+.wiki-main {
+  /* 左右留白按可用宽度收放：窗口不够宽时先让留白，把宽度留给正文栏里的图 */
+  padding: 32px clamp(16px, 2.5vw, 48px) 72px;
+  max-width: 1440px;
+  width: 100%;
+  /* 居中而不是贴左：贴左时正文右边会空出一大片，开了问答栏尤其明显 */
+  justify-self: center;
+}
+
+.wiki-landing,
+.wiki-empty {
+  max-width: 560px;
+  margin-top: 12vh;
+}
+
+.wiki-landing h1 {
+  margin: 6px 0 12px;
+  font-size: var(--text-hero);
+  line-height: var(--text-hero--line-height);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.wiki-landing p,
+.wiki-empty p {
+  font-size: var(--text-lead);
+  line-height: var(--text-lead--line-height);
+  color: var(--color-ink-muted);
+}
+
+.wiki-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-ink-muted);
+}
+
+.wiki-empty strong {
+  font-size: var(--text-title);
+  color: var(--color-ink);
+}
+
+/* 文章：正文一栏 + 右侧证据栏 */
+/* 单栏。侧栏原本堆 18-41 条来源清单，没人会点——而内联的 [C6] 已经能直接
+   跳到那一行源码，验证路径就在结论旁边，比页边一堵墙好。去掉侧栏后正文
+   有了宽度，事实表和图才放得下。 */
+.wiki-article {
+  display: block;
+  /* 正文栏的宽度由图定：手写 spec 的画布最宽 1000（141 张里 136 张是 900，最大 1000），
+     1000 + 图框内边距 2×16 + 边框 2×1 = 1034，最宽的图也能 1:1 完整放进来。
+     以前是 980，两边空着一大片，图却比正文宽出一截；缩图会把图上的字压到 8.7px，所以加宽正文。 */
+  --wiki-measure: 1034px;
+  max-width: var(--wiki-measure);
+  margin-inline: auto;
+  /* 手机宽度下参数名标题（enable_pcp_embedding_lmhead_weight_sharding）、「接着看」里的长标识符、
+     裸 URL 一个词就比屏幕宽，会把整页撑出横向滚动。break-word 只在一个词放不下一行时才断，
+     不改最小内容宽度，所以表格列宽不受影响。 */
+  overflow-wrap: break-word;
+}
+
+.wiki-article-head {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.wiki-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.wiki-type,
+.wiki-chip {
+  font-size: var(--text-micro);
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+}
+
+.wiki-type {
+  background: var(--color-accent-soft);
+  border-color: transparent;
+  color: var(--color-accent-hover);
+  font-weight: 600;
+}
+
+.wiki-article-head h1 {
+  margin: 0 0 10px;
+  font-size: var(--text-display);
+  line-height: var(--text-display--line-height);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.wiki-summary {
+  margin: 0;
+  font-size: var(--text-lead);
+  line-height: var(--text-lead--line-height);
+  color: var(--color-ink-muted);
+  max-width: 68ch;
+}
+
+.wiki-aliases {
+  margin: 8px 0 0;
+  font-size: var(--text-label);
+  color: var(--color-ink-faint);
+}
+
+/* ---------- markdown 正文 ---------- */
+
+/* 正文栏宽度只在这里定义一次：散文、标题、图、表、代码块都用它，左右边缘对齐成一栏。
+   以前只给文字元素限 72ch，图和表用满整幅阅读栏（980px），图比正文宽出一大截。 */
+.wiki-body {
+  /* 正文 15/26（2026-09-27 定稿）：14/22 的界面字号读长文太挤 */
+  font-size: var(--text-prose);
+  line-height: var(--text-prose--line-height);
+  color: var(--color-ink);
+  /* 汉字与拉丁字母、数字之间自动留 1/8 字的空（W3C 中文排版需求 clreq），作者没打空格的地方也齐 */
+  text-autospace: normal;
+}
+
+.wiki-body > p,
+.wiki-body > ul,
+.wiki-body > ol,
+.wiki-body > blockquote,
+.wiki-body > h2,
+.wiki-body > h3 {
+  max-width: var(--wiki-measure);
+}
+
+/* 图、表、代码块和上面的文字同宽。用 :where 把优先级压到 0，
+   后面 .wiki-table-scroll、.wiki-diagram 自己的规则才不会被这一条压住。 */
+.wiki-body > :where(figure, .wiki-table-scroll, pre) {
+  max-width: var(--wiki-measure);
+}
+
+.wiki-body h2 {
+  margin: 30px 0 10px;
+  font-size: var(--text-title);
+  line-height: var(--text-title--line-height);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wiki-body h2:first-child {
+  margin-top: 0;
+}
+
+.wiki-body h3 {
+  margin: 20px 0 8px;
+  font-size: var(--text-lead);
+  font-weight: 700;
+}
+
+/* 标题带 id（anchors.ts），点 `#锚点` 链接落到标题时上方留一点空 */
+.wiki-body :is(h2, h3) {
+  scroll-margin-top: 16px;
+}
+
+.wiki-body p {
+  margin: 0 0 14px;
+}
+
+.wiki-body ul,
+.wiki-body ol {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.wiki-body li {
+  margin-bottom: 5px;
+}
+
+/* Tailwind 的 preflight 把所有 ul/ol 的 list-style 清成了 none，正文列表因此没有圆点和编号。
+   只给 markdown 产出的列表加回来：正文的直接子列表，以及列表项、引用里嵌套的列表。
+   「接着看」「查看来源」这些组件自己的列表不在这几个位置上，不受影响。 */
+.wiki-body > :is(ul, ol),
+.wiki-body :where(li, blockquote) > :is(ul, ol) {
+  padding-left: 1.75em;
+}
+
+.wiki-body > ul,
+.wiki-body :where(li, blockquote) > ul {
+  list-style-type: disc;
+}
+
+.wiki-body > ol,
+.wiki-body :where(li, blockquote) > ol {
+  list-style-type: decimal;
+}
+
+.wiki-body :where(li) > ul {
+  list-style-type: circle;
+}
+
+.wiki-body a {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  text-underline-offset: 2px;
+}
+
+.wiki-body a:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+/* 行内代码只在 rehypeCodeBreaks 插的 <wbr> 处断行。.wiki-article 的 break-word 会在
+   放不下时从单词中间断，长 flag 名因此断成两截——这里关掉，放不下就让容器横滚。 */
+.wiki-body code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* 行内代码（2026-09-27 定稿，借鉴 Rust Book 浅色主题）：暖沙色小底 + 深棕字。底是行动色 7% 的叠加，
+   落在暖白纸上是沙色而不是灰，和纸面同一个色温；以前的米灰底和页面同色，看着像脏了一块。
+   line-height: 1：等宽字体的上下留白比正文字体大，继承正文行高时含代码的那一行会被撑高 1px，
+   行距忽大忽小；收成 1 后行框只由正文字体决定。 */
+.wiki-body :not(pre) > code {
+  padding: 0.14em 0.36em;
+  margin-inline: 0.06em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-accent-hover) 7%, transparent);
+  color: color-mix(in oklab, var(--color-ink) 78%, var(--color-accent-hover));
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+/* clone：胶囊折行时每一段各自带内边距和圆角。只给可能折行的代码：整段不断的（.wiki-nobr）用不着，
+   而 Chromium 的 text-wrap: pretty 遇到带 clone 的行内盒就对整段放弃，表格里的防孤字（见下）会失效。 */
+.wiki-body :not(pre) > code:not(.wiki-nobr) {
+  box-decoration-break: clone;
+}
+
+/* 不许断的一段（markdown.ts 的 rehypeCodeBreaks 包的）：不超过 40 个字符的标识符、不超过 30 个字符的
+   整段代码、`--quantization` 开头的 --、正文里的专名 GLM-5.3-Flash。太长的不会被包，仍能按下面的规则兜底断开。 */
+.wiki-body .wiki-nobr {
+  white-space: nowrap;
+}
+
+/* 超过 40 个字符的标识符（带行号的源码位置）：正文里做成一个原子块，一行放得下就整个挪到下一行，
+   只有比正文栏还宽时才在 <wbr> 处断（max-width: 100% 让它先被夹到栏宽）。表格里不这样做：
+   原子块的最小宽度仍按 <wbr> 分段算，列宽不受影响，但它一旦在窄列里折成两行，行距会被 line-height: 1
+   压成一条；表格里照旧按行内文字在 <wbr> 处折。手机上也照旧：那里这种长名字本来就放不下一行。 */
+@media (min-width: 641px) {
+  .wiki-body :is(p, li, blockquote, dd) code .wiki-code-long {
+    display: inline-block;
+    max-width: 100%;
+  }
+}
+
+/* 散文里没有横滚的容器兜底，一条 70 字的 sha256 会把整页撑宽。所以正文段落与列表里
+   仍允许最后手段的断词：有 <wbr> 的地方先断，实在放不下才从中间断。表格单元格不给，
+   那里宁可让列变宽、整表横滚，也不要把 flag 名断成两截。 */
+.wiki-body :is(p, li, blockquote, dd) code {
+  overflow-wrap: break-word;
+}
+
+.wiki-body pre {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  overflow-x: auto;
+}
+
+.wiki-body pre code {
+  font-size: var(--text-compact);
+  line-height: 20px;
+}
+
+/* 代码块按字符原样排：正文的 text-autospace 会在汉字和字母之间插 1/8 字的空，
+   text-spacing-trim 的默认值会把行首、相邻的全角标点挤成半个字，两者都会让作者用空格对齐的列错开 */
+.wiki-body pre {
+  text-autospace: no-autospace;
+  text-spacing-trim: space-all;
+}
+
+/* 纯文本块的字格（markdown.ts 的 rehypeTextGrid 包的）：非 ASCII 字符一格 1ch，汉字和全角符号两格 2ch，
+   字在格里居中，作者按终端规矩排的列就上下对齐。用 flex 居中而不是 text-align：
+   回退字体画出的字比格子宽时，两边各溢出一半，而不是全压到右边的字上 */
+.wiki-body pre .wiki-cell {
+  display: inline-flex;
+  justify-content: center;
+  width: 1ch;
+}
+
+.wiki-body pre .wiki-cell.is-wide {
+  width: 2ch;
+}
+
+/* 事实表常有三列（项 / 值 / 来源），其中「来源」是长路径加行号，撑得比正文列宽。
+   不给容器就会溢出到侧栏底下把来源整列裁掉——而来源正是事实表的重点。 */
+.wiki-table-scroll {
+  margin: 0 0 14px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* 表格（2026-09-27 定稿，借鉴 Rust Book 的数据类型表、Stripe 测试卡号表）：没有竖线和外框，
+   隔行一层正文色 3.5% 的底，长行靠底色而不是线来跟读；列头下一条 1.5px 深线。
+   表宽随内容：三列的数字表拉满正文栏时，标签和数隔着半屏空白。 */
+.wiki-body table {
+  width: auto;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--text-compact);
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 单元格里的行内代码只在 / _ - . 之后断行：断点是 rehypeCodeBreaks 插的 <wbr>（markdown.ts）。
+   以前这里是 overflow-wrap: anywhere，它把每个字符都算成断点，表格按最小内容宽度分列时
+   --tensor-parallel-size 会从单词中间断开。放不下就让 .wiki-table-scroll 横向滚。 */
+
+.wiki-body th,
+.wiki-body td {
+  padding: 9px 18px 9px 10px;
+  border: 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* 防孤字：格子里的句子折行时，不让最后一行只剩一个字（「专家按卡摊开，而不是每卡一整 / 套」）。
+   pretty 会从上一行挪一两个字下来。它对含 box-decoration-break: clone 的段落不生效，见上面行内代码的规则 */
+.wiki-body td {
+  text-wrap: pretty;
+}
+
+/* 表头不折行：中文每个字之间都能断，窄列会被挤到一字一行，「取值」排成竖的。
+   表头定住了每列的最小宽度，整表放不下时由外层容器横向滚。 */
+.wiki-body th {
+  border-bottom: 1.5px solid color-mix(in srgb, var(--color-ink) 70%, transparent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wiki-body tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--color-ink) 3.5%, transparent);
+}
+
+/* 合计行：只有最后一行首格加粗时才算（首列全加粗的是普通的项目列），上面一条线把它和明细分开。
+   条件放在 :where 里，优先级和普通单元格一样，靠先后顺序生效 */
+.wiki-body
+  :where(
+    tbody:not(:has(> tr:not(:last-child) > td:first-child > strong))
+      > tr:last-child:has(> td:first-child > strong)
+  )
+  td {
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+
+/* 格子里的行内代码不留左右外边距，和同列的纯文字左边缘对齐 */
+.wiki-body td code {
+  margin-inline: 0;
+}
+
+/* 数字列右对齐（tableAlign.ts 标 is-num）：个位对个位才能逐行比大小。
+   数不折行：手机上「× 34 层 = 1,176.7 MiB」断成两行就没法按位比了，放不下由外层容器横滚 */
+.wiki-body :is(th, td).is-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 中文里每个字之间都能断，窄列会被挤成一字一行（「0 部/署」竖着排）。给单元格一个
+   最低内容宽度，让列至少有五六个字宽；整表因此放不下时，由 .wiki-table-scroll 横滚。 */
+.wiki-body :is(th, td) {
+  min-width: 5.5em;
+}
+
+/* 首列多是行标签（markdown.ts 的 rehypeTableLabels）：表按内容分列宽时首列常被后面的长句挤窄，
+   「router 打分」断成「router 打 / 分」。排出来不超过 18 个汉字宽的标签（is-label）整格不折行；更长的首列格
+   至少 12 个字宽，而且只在空格和标点处折行（keep-all：中文词不从中间拆），
+   「TP（tensor parallel，张量并行）」排成「TP（tensor parallel，」「张量并行）」两行，
+   不会剩下「行）」一行。只管桌面，手机仍按上一条的最低宽度。 */
+@media (min-width: 641px) {
+  .wiki-body td.is-label {
+    white-space: nowrap;
+  }
+
+  .wiki-body td:first-child:not(.is-label) {
+    min-width: 12em;
+    word-break: keep-all;
+  }
+}
+
+/* 手机宽度下单元格内边距收一点，省下的宽度留给正文 */
+@media (max-width: 640px) {
+  .wiki-body th,
+  .wiki-body td {
+    padding: 6px 8px;
+  }
+}
+
+.wiki-body blockquote {
+  margin: 0 0 14px;
+  padding: 2px 0 2px 14px;
+  border-left: 2px solid var(--color-accent);
+  color: var(--color-ink-muted);
+}
+
+/* ---------- 右侧证据栏 ---------- */
+
+/* 矛盾从页边小卡片挪进正文——它是内容，不是元数据：
+   「官方文档说 1、代码实际是 min(...,8)」这种事读者必须看见 */
+.wiki-contradicts {
+  margin-top: 28px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  border-left: 3px solid var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 6%, transparent);
+}
+
+.wiki-contradicts h2 {
+  margin: 0 0 8px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.wiki-contradicts ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--text-compact);
+  color: var(--color-ink);
+}
+
+.wiki-updated {
+  margin: 0;
+  font-size: var(--text-micro);
+  color: var(--color-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 术语悬停卡 ---------- */
+
+.wiki-term-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.wiki-term {
+  cursor: pointer;
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-accent);
+  text-underline-offset: 3px;
+  font-size: var(--text-compact);
+}
+
+.wiki-term:hover {
+  color: var(--color-accent-hover);
+}
+
+.wiki-term-card {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  top: calc(100% + 7px);
+  width: 264px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 13px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-floating);
+  box-shadow: var(--shadow-floating);
+}
+
+.wiki-term-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--text-compact);
+}
+
+.wiki-term-card-summary {
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-ink-muted);
+}
+
+/* 证据等级角标：颜色族见 DESIGN.md */
+.wiki-evidence {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  color: var(--color-ink-inverse);
+  background: var(--color-control);
+}
+
+.wiki-evidence[data-level="S"] {
+  background: var(--color-ev-official);
+}
+.wiki-evidence[data-level="C"] {
+  background: var(--color-ev-source);
+}
+.wiki-evidence[data-level="D"] {
+  background: var(--color-ev-derived);
+}
+.wiki-evidence[data-level="A"] {
+  background: var(--color-ev-assumption);
+}
+.wiki-evidence[data-level="I"] {
+  background: var(--color-ev-inference);
+}
+.wiki-evidence[data-level="M"] {
+  background: var(--color-ev-measured);
+}
+.wiki-evidence[data-level="!"] {
+  background: var(--color-ev-conflict);
+}
+
+/* ---------- 窄屏：目录变顶部横条，证据栏落到正文下方 ---------- */
+
+@media (max-width: 1024px) {
+  .wiki-shell {
+    /* minmax(0, 1fr) 而不是 1fr：1fr 的最小值是 min-content，正文里只要有一个
+       比窗口宽的东西（900 宽的图、宽表格），整列就会被撑开，横向滚动条跑到
+       整页上去。给下界 0，超宽的东西就只在它自己那层滚。 */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wiki-toc {
+    position: static;
+    height: auto;
+    max-height: 40vh;
+  }
+
+  .wiki-article {
+    max-width: none;
+  }
+}
+
+/* ---------- 知识库助手：问答 + 审阅 + 刷新，一个侧栏 ---------- */
+
+/* 问答和审阅同宽：切页签时面板和正文都不该跳 */
+@media (min-width: 1180px) {
+  .wiki-shell.is-panel-chat,
+  .wiki-shell.is-panel-drop,
+  .wiki-shell.is-panel-review,
+  .wiki-shell.is-panel-status {
+    grid-template-columns: 248px minmax(0, 1fr) clamp(540px, 42vw, 780px);
+  }
+}
+
+.wiki-chat-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+  font-size: var(--text-compact);
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow);
+}
+
+.wiki-chat-fab:hover {
+  background: var(--color-accent-hover);
+}
+
+.wiki-chat-fab:active {
+  transform: scale(0.97);
+}
+
+.wiki-panel {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--color-surface-elevated);
+  border-left: 1px solid var(--color-line);
+}
+
+/* 窄屏放不下第三列：退回成盖在正文上的抽屉 */
+@media (max-width: 1179px) {
+  .wiki-panel {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 30;
+    width: min(640px, 100vw);
+    box-shadow: var(--shadow-floating);
+  }
+}
+
+.wiki-panel [hidden] {
+  display: none !important;
+}
+
+.wiki-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 10px 16px;
+}
+
+.wiki-panel-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--color-surface-sunken);
+}
+
+.wiki-panel-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--color-ink-muted);
+  font-size: var(--text-compact);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wiki-panel-tabs button:hover {
+  color: var(--color-ink);
+}
+
+.wiki-panel-tabs button[aria-selected="true"] {
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  box-shadow: 0 1px 2px rgb(23 33 31 / 12%);
+}
+
+.wiki-panel-badge {
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+.wiki-chat-fab .wiki-panel-badge {
+  background: var(--color-ink-inverse);
+  color: var(--color-accent-hover);
+}
+
+.wiki-panel-icon {
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+
+.wiki-panel-icon:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+}
+
+.wiki-panel-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px 10px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: var(--text-caption);
+  color: var(--color-ink-faint);
+}
+
+.wiki-panel-status code {
+  font-family: var(--font-mono);
+  color: var(--color-ink-muted);
+}
+
+.wiki-panel-status button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+
+.wiki-panel-status button:hover:not(:disabled) {
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
+}
+
+.wiki-panel-status .is-spinning {
+  animation: wiki-spin 0.9s linear infinite;
+}
+
+@keyframes wiki-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wiki-panel-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-field);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 7%, transparent);
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-danger);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wiki-panel-error svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ----- 问答 ----- */
+
+.wiki-chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.wiki-chat-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wiki-chat-empty {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--color-ink-muted);
+}
+
+.wiki-chat-empty > svg {
+  color: var(--color-accent);
+}
+
+.wiki-chat-empty strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.wiki-chat-hint {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: 19px;
+  color: var(--color-ink-muted);
+}
+
+.wiki-chat-empty ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.wiki-chat-empty li button {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  font-size: var(--text-compact);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wiki-chat-empty li button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent-hover);
+}
+
+.wiki-chat-msg {
+  font-size: var(--text-compact);
+  line-height: 21px;
+}
+
+.wiki-chat-msg.is-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--color-ink);
+  color: var(--color-ink-inverse);
+}
+
+.wiki-chat-msg.is-agent {
+  padding: 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px 14px 14px 14px;
+  background: var(--color-surface-elevated);
+}
+
+.wiki-chat-msg.is-agent :where(p, ul, ol, pre, table) {
+  margin: 0 0 8px;
+}
+
+.wiki-chat-msg.is-agent > :last-child {
+  margin-bottom: 0;
+}
+
+.wiki-chat-msg.is-agent :where(ul, ol) {
+  padding-left: 20px;
+  list-style: revert;
+}
+
+.wiki-chat-msg.is-agent a {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wiki-chat-msg.is-agent code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--color-surface-sunken);
+}
+
+.wiki-chat-msg.is-agent pre {
+  padding: 10px 12px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  overflow-x: auto;
+}
+
+.wiki-chat-msg.is-agent pre code {
+  padding: 0;
+  background: none;
+}
+
+.wiki-chat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px dashed var(--color-line);
+}
+
+.wiki-chat-reading {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  line-height: 15px;
+  color: var(--color-ink-faint);
+}
+
+.wiki-chat-thinking {
+  display: inline-flex;
+  gap: 4px;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.wiki-chat-thinking span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-line-strong);
+  animation: wiki-blink 1.2s ease-in-out infinite;
+}
+
+.wiki-chat-thinking span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.wiki-chat-thinking span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes wiki-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wiki-chat-thinking span,
+  .wiki-panel-status .is-spinning {
+    animation: none;
+  }
+}
+
+/* 未引用知识库时的提示：教学场景里必须让学习者分得清 */
+/* 状态页签：模型选择与运行状态 */
+.wiki-model-settings,
+.wiki-model-settings label {
+  display: grid;
+  gap: 8px;
+}
+
+.wiki-model-settings {
+  gap: 12px;
+}
+
+.wiki-model-settings label {
+  font-size: var(--text-label);
+  color: var(--color-ink-muted);
+}
+
+.wiki-model-settings select,
+.wiki-model-settings input,
+.wiki-model-save {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.wiki-model-save {
+  background: var(--color-ink);
+  color: var(--color-surface-elevated);
+  cursor: pointer;
+}
+
+.wiki-model-save:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.wiki-model-settings [role="status"] {
+  margin: 0;
+  color: #1e7b45;
+  font-size: var(--text-label);
+}
+
+.wiki-status {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.wiki-status[hidden] {
+  display: none;
+}
+
+.wiki-status h3 {
+  margin: 0 0 8px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.wiki-status dl {
+  margin: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-elevated);
+}
+
+.wiki-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 12px;
+  font-size: var(--text-label);
+  line-height: 18px;
+}
+
+.wiki-status-row + .wiki-status-row {
+  border-top: 1px solid var(--color-line);
+}
+
+.wiki-status-row dt {
+  flex: none;
+  color: var(--color-ink-muted);
+}
+
+.wiki-status-row dd {
+  margin: 0;
+  text-align: right;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.wiki-status-row dd.is-ok {
+  color: #1e7b45;
+}
+
+.wiki-status-row dd.is-warn {
+  color: #a35a00;
+}
+
+.wiki-status-verdict {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-field);
+  font-size: var(--text-label);
+  line-height: 19px;
+  color: var(--color-ink);
+}
+
+.wiki-status-verdict.is-ok {
+  border: 1px solid #b7dcc4;
+  background: #e6f4ea;
+}
+
+.wiki-status-verdict.is-warn {
+  border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+}
+
+.wiki-status-note,
+.wiki-status-terms {
+  margin: 0;
+  font-size: var(--text-micro);
+  line-height: 17px;
+  color: var(--color-ink-faint);
+}
+
+.wiki-status details {
+  margin-top: 8px;
+  font-size: var(--text-micro);
+  color: var(--color-ink-muted);
+}
+
+.wiki-status summary {
+  cursor: pointer;
+}
+
+.wiki-status-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 诚实的「未收录」不是警告：同样的盒子，中性色 */
+.wiki-chat-uncovered {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-ink-muted);
+}
+
+.wiki-chat-uncited {
+  margin: 8px 0 0;
+  padding: 7px 10px;
+  border-radius: var(--radius-field);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-ink-muted);
+}
+
+/* 输入框和发送键是一个整体，不是并排的两个控件 */
+.wiki-chat-input {
+  position: relative;
+  margin: 0 16px 16px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 14px;
+  background: var(--color-surface-elevated);
+}
+
+.wiki-chat-input:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.wiki-chat-input textarea {
+  display: block;
+  width: 100%;
+  resize: none;
+  padding: 11px 50px 11px 14px;
+  border: none;
+  border-radius: 14px;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-compact);
+  line-height: 20px;
+  color: var(--color-ink);
+}
+
+.wiki-chat-input textarea:focus-visible {
+  outline: none;
+}
+
+.wiki-chat-input button {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  display: inline-flex;
+  padding: 7px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-ink-inverse);
+  cursor: pointer;
+}
+
+.wiki-chat-input button:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.wiki-chat-input button:disabled {
+  background: var(--color-line);
+  cursor: not-allowed;
+}
+
+/* ----- 审阅 ----- */
+
+.wiki-review {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.wiki-review-list,
+.wiki-review-detail {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wiki-review-detail {
+  padding-bottom: 0;
+}
+
+.wiki-review-lead,
+.wiki-review-empty {
+  margin: 0;
+  font-size: var(--text-label);
+  line-height: 19px;
+  color: var(--color-ink-muted);
+}
+
+.wiki-review-empty {
+  padding: 18px;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-field);
+  text-align: center;
+}
+
+.wiki-review-list section {
+  display: grid;
+  gap: 8px;
+}
+
+.wiki-review-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wiki-review-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wiki-review-card:hover {
+  border-color: var(--color-line-strong);
+}
+
+.wiki-review-card.is-pending,
+.wiki-review-card.is-publishing {
+  border-color: var(--color-accent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.wiki-review-card.is-published,
+.wiki-review-card.is-rejected {
+  background: none;
+}
+
+.wiki-review-card strong {
+  font-size: var(--text-compact);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-review-card small {
+  grid-column: 2;
+  font-size: var(--text-caption);
+  color: var(--color-ink-faint);
+}
+
+.wiki-review-card code {
+  font-family: var(--font-mono);
+}
+
+.wiki-review-chip {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
+.wiki-review-chip.is-pending,
+.wiki-review-chip.is-publishing {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.wiki-review-chip.is-published {
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+  color: var(--color-success);
+}
+
+.wiki-review-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wiki-review-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px 4px 6px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  cursor: pointer;
+}
+
+.wiki-review-back:hover:not(:disabled) {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+}
+
+.wiki-review-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.wiki-review-state {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  color: var(--color-ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.wiki-review-state.is-pending {
+  color: var(--color-accent-hover);
+}
+
+.wiki-review-state.is-published {
+  color: var(--color-success);
+}
+
+.wiki-review-reason {
+  margin: 0;
+  font-size: var(--text-label);
+  color: var(--color-ink-muted);
+}
+
+.wiki-review-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wiki-review-list h3,
+.wiki-review-files h3 {
+  margin: 8px 0 0;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+}
+
+.wiki-review-files h3 small {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-ink-faint);
+}
+
+.wiki-diff-file {
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-surface-elevated);
+  overflow: hidden;
+}
+
+.wiki-diff-file > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-surface-sunken);
+  font-size: var(--text-label);
+  cursor: pointer;
+  list-style: none;
+}
+
+.wiki-diff-file > summary::-webkit-details-marker {
+  display: none;
+}
+
+.wiki-diff-caret {
+  flex: none;
+  color: var(--color-ink-faint);
+  transition: transform 0.12s;
+}
+
+.wiki-diff-file[open] > summary .wiki-diff-caret {
+  transform: rotate(90deg);
+}
+
+.wiki-diff-file > summary code {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wiki-diff-kind {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: var(--text-micro);
+  font-weight: 700;
+  line-height: 17px;
+}
+
+.wiki-diff-kind.is-added {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  color: var(--color-success);
+}
+
+.wiki-diff-kind.is-modified {
+  background: var(--color-weight-soft);
+  color: var(--color-warning);
+}
+
+.wiki-diff-kind.is-deleted {
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger);
+}
+
+.wiki-diff-stat {
+  flex: none;
+  display: inline-flex;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--color-ink-faint);
+}
+
+.wiki-diff-stat .is-add {
+  color: var(--color-success);
+}
+
+.wiki-diff-stat .is-del {
+  color: var(--color-danger);
+}
+
+.wiki-diff-mode {
+  display: flex;
+  margin: 0;
+  border: none;
+  min-width: 0;
+  padding: 8px 12px 0;
+}
+
+.wiki-diff-mode button {
+  padding: 2px 10px;
+  border: 1px solid var(--color-line);
+  background: none;
+  color: var(--color-ink-muted);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+
+.wiki-diff-mode button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.wiki-diff-mode button:last-child {
+  border-radius: 0 6px 6px 0;
+  margin-left: -1px;
+}
+
+.wiki-diff-mode button[aria-pressed="true"] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-ink-inverse);
+}
+
+/* 新增页的阅读视图：左边一条绿线表示「这一整页都是新的」 */
+.wiki-diff-read {
+  margin: 10px 12px 12px;
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--color-success);
+  font-size: var(--text-compact);
+  line-height: 22px;
+}
+
+.wiki-diff-read :where(h2, h3) {
+  margin: 18px 0 6px;
+  font-size: 15px;
+  letter-spacing: 0;
+  color: var(--color-ink);
+}
+
+.wiki-diff-read :where(p, ul, ol, pre, table) {
+  margin: 0 0 10px;
+}
+
+.wiki-diff-read :where(ul, ol) {
+  padding-left: 20px;
+  list-style: revert;
+}
+
+.wiki-diff-read table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-label);
+}
+
+.wiki-diff-read :where(th, td) {
+  padding: 5px 8px;
+  border: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.wiki-diff-read code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--color-surface-sunken);
+}
+
+.wiki-diff-read pre {
+  padding: 10px 12px;
+  border-radius: var(--radius-field);
+  background: var(--color-surface-sunken);
+  overflow-x: auto;
+}
+
+.wiki-diff-read pre code {
+  padding: 0;
+  background: none;
+}
+
+.wiki-diff-read details {
+  margin-bottom: 10px;
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
+}
+
+.wiki-diff-read details summary {
+  cursor: pointer;
+}
+
+.wiki-diff-scroll {
+  overflow-x: auto;
+}
+
+.wiki-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 19px;
+}
+
+.wiki-diff-table td {
+  padding: 0 8px;
+  vertical-align: top;
+}
+
+.wiki-diff-table .wiki-diff-no {
+  width: 1%;
+  min-width: 34px;
+  text-align: right;
+  color: var(--color-ink-faint);
+  user-select: none;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.wiki-diff-table .wiki-diff-sign {
+  width: 1%;
+  padding: 0 2px;
+  text-align: center;
+  font-weight: 700;
+  user-select: none;
+}
+
+.wiki-diff-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wiki-diff-table tr.is-add {
+  background: #e6f4ea;
+}
+
+.wiki-diff-table tr.is-add .wiki-diff-sign {
+  color: var(--color-success);
+}
+
+.wiki-diff-table tr.is-add mark {
+  background: #a9dcb6;
+  color: inherit;
+  border-radius: 2px;
+}
+
+.wiki-diff-table tr.is-del {
+  background: #fbe9e7;
+}
+
+.wiki-diff-table tr.is-del .wiki-diff-sign {
+  color: var(--color-danger);
+}
+
+.wiki-diff-table tr.is-del .wiki-diff-text {
+  color: #7a3a33;
+}
+
+.wiki-diff-table tr.is-del mark {
+  background: #f3b9b2;
+  color: inherit;
+  border-radius: 2px;
+}
+
+.wiki-diff-table tr.is-hunk td {
+  padding: 2px 8px;
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-faint);
+  text-align: center;
+  user-select: none;
+}
+
+/* 批准 / 驳回钉在底部：diff 再长，决定按钮也始终在手边 */
+.wiki-review-actions {
+  position: sticky;
+  bottom: 0;
+  margin: auto -16px 0;
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: end;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface-elevated);
+}
+
+.wiki-review-actions label {
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-caption);
+  color: var(--color-ink-faint);
+}
+
+.wiki-review-actions textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: var(--text-label);
+  line-height: 18px;
+  color: var(--color-ink);
+}
+
+.wiki-review-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: var(--radius-field);
+  font-size: var(--text-compact);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.wiki-review-actions .is-approve {
+  border: none;
+  background: var(--color-success);
+  color: var(--color-ink-inverse);
+}
+
+.wiki-review-actions .is-reject {
+  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, transparent);
+  background: none;
+  color: var(--color-danger);
+}
+
+.wiki-review-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .wiki-review-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wiki-review-actions label {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 证据角标的完整形态：有空间的地方写中文，不让学习者对着一个字母发懵 */
+.wiki-evidence-full {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 3px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  font-size: var(--text-micro);
+  color: var(--color-ink-muted);
+}
+
+.wiki-legend-block {
+  margin-top: 34px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-line);
+}
+
+.wiki-legend-block h2 {
+  margin: 0 0 6px;
+  font-size: var(--text-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wiki-legend-block > p {
+  margin: 0 0 16px;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  color: var(--color-ink-muted);
+}
+
+.wiki-evidence-legend {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 10px 20px;
+}
+
+.wiki-evidence-legend > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wiki-evidence-legend dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-compact);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.wiki-evidence-legend dd {
+  margin: 0 0 0 23px;
+  font-size: var(--text-label);
+  line-height: 17px;
+  color: var(--color-ink-faint);
+}
+
+/* ---------- 正文里的图 ---------- */
+/* 图和正文同宽（上面的 --wiki-measure）。画布定宽 900，放不下就整幅等比缩小，
+   左右边缘与正文对齐；缩过头的图要改图本身的排布，不靠让它比正文宽来解决。 */
+.wiki-diagram {
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  max-width: 100%;
+}
+
+/* 横向滚的只是画布，图说明留在原地：以前整个 figure 一起滚，拖到右边时图说明也滚出了视口 */
+.wiki-diagram-svg {
+  display: flex;
+  /* safe：图放得下就居中，放不下就靠左。少了 safe，溢出的部分会被均分到两侧，
+     左边那一半滚不到——图会缺一块左边，而且怎么拖都拖不出来。 */
+  justify-content: safe center;
+  overflow-x: auto;
+}
+
+/* 图一律 1:1，任何宽度都不缩小：缩到正文宽时图上的字只剩 8.7px，手机上更是 4.4px。
+   正文栏已经按最宽的画布定宽；比正文栏还宽的少数图，在画布里横滚（提示与渐隐见下面）。 */
+.wiki-diagram-svg svg {
+  max-width: none;
+  height: auto;
+  /* 居中靠 flex 做，flex 子项默认会被压扁——不写这一行，max-width: none 白写 */
+  flex-shrink: 0;
+}
+
+/* 能横滚时右边缘压一道渐隐，提示右边还有内容；拖到头就隐掉，免得像图被裁了 */
+.wiki-diagram-canvas {
+  position: relative;
+}
+
+/* 右边缘压一道渐隐，提示右边还有内容；拖到头就隐掉，免得像图被裁了 */
+.wiki-diagram[data-scrollable] .wiki-diagram-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--color-surface));
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.wiki-diagram[data-at-end] .wiki-diagram-canvas::after {
+  opacity: 0;
+}
+
+.wiki-diagram-svg:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 一行小字说清楚它能拖：只有真的放不下时才出现（data-scrollable 是量出来的）。
+   放在画布上方，读者先看到提示再看图；渐隐在浅底上不够显眼，主要靠这行字。 */
+.wiki-diagram-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 10px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
+  font-size: var(--text-micro);
+  color: var(--color-ink-muted);
+}
+
+/* 图还没渲染出来时占住高度，避免正文跳动 */
+.wiki-diagram-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  color: var(--color-ink-faint);
+  font-size: var(--text-label);
+}
+
+/* 渲染失败退回源码，但要让人一眼看出这是失败态而不是有意贴的代码 */
+.wiki-diagram-failed {
+  border-color: var(--color-danger);
+  background: var(--color-surface-sunken);
+}
+
+.wiki-body .wiki-diagram-failed pre {
+  margin: 0;
+}
+
+.wiki-diagram-failed figcaption {
+  margin-top: 8px;
+  color: var(--color-danger);
+  font-size: var(--text-label);
+}
+
+/* 内联证据角标：正文句末的 [C] 渲染成它，比字面量好读 */
+.wiki-body .wiki-evidence {
+  margin: 0 1px 0 3px;
+  vertical-align: 2px;
+  cursor: help;
+}
+
+/* ---------- 接着看：由 relations 生成 ---------- */
+/* 以前正文手写一遍、侧栏「相关词条」又列一遍无理由的 id，两份对不上。
+   现在只有一份真相：每条边的 note。 */
+.wiki-next {
+  margin-top: 36px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-line);
+}
+
+.wiki-body .wiki-next > h2 {
+  margin: 0 0 16px;
+  font-size: var(--text-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wiki-next-group {
+  margin-bottom: 18px;
+}
+
+.wiki-body .wiki-next-group h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 7px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.wiki-next-hint {
+  font-weight: 400;
+  font-size: var(--text-micro);
+  color: var(--color-ink-faint);
+}
+
+.wiki-body .wiki-next-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wiki-body .wiki-next-group li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0 5px 11px;
+  border-left: 2px solid var(--color-line);
+  font-size: var(--text-compact);
+}
+
+/* 理由跟在词条后面——没有理由的链接读者不会点 */
+.wiki-next-note {
+  color: var(--color-ink-muted);
+  /* flex 子项默认不窄于最长的词，长标识符会顶出屏幕；给 0 才能按上面的 break-word 断行 */
+  min-width: 0;
+}
+
+/* 带来源编号的内联角标是链接，去掉正文 a 的下划线与颜色 */
+.wiki-body a.wiki-mark-link {
+  border: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.wiki-sources {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-line);
+  font-size: var(--text-compact);
+  overflow-wrap: anywhere;
+}
+
+.wiki-sources summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* 正文角标写的是「来源 3」，列表就得数得出第 3 条：Tailwind 的 preflight 把编号清掉了，
+   这里加回 decimal。序号由浏览器按顺序画，和 sources 数组下标 +1 一致（角标 [C3] → sources[2]）。 */
+.wiki-sources ol {
+  margin: 8px 0 0;
+  padding-left: 2em;
+  list-style-type: decimal;
+}
+
+.wiki-sources :where(li) {
+  margin-bottom: 4px;
+}
+
+.wiki-sources :where(li)::marker {
+  color: var(--color-ink-faint);
+}
+
+.wiki-sources p {
+  color: var(--color-ink-muted);
+}
+
+.wiki-save {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.wiki-save label {
+  display: grid;
+  gap: 6px;
+}
+
+.wiki-save input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-surface-floating);
+  color: var(--color-ink);
+}
+
+.wiki-save button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wiki-origin.is-drop {
+  color: #8a4b0f;
+  background: #fff1d6;
+  border: 1px solid #d8aa61;
+}
+
+[data-testid="chat-related"] {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.wiki-chat [data-testid="chat-related"] ul {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+/* 落地页的「从这里开始」：44 页摊开时，读者第一眼要看见的是入口，不是目录 */
+.wiki-start {
+  margin: 2rem 0 2.5rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
+  background: var(--color-accent-soft, #fff0e9);
+  border: 1px solid var(--color-accent, #e85b32);
+}
+
+.wiki-start h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+}
+
+.wiki-start p {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+}
+
+.wiki-start-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: var(--color-accent, #e85b32);
+  color: var(--color-ink-inverse, #fff);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wiki-start-link:hover {
+  filter: brightness(0.94);
+}
+
+.wiki-start-hint {
+  /* 提示紧贴按钮时像按钮的第二行说明，隔开一点才读得出是另一段 */
+  margin: 18px 0 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-muted, #5b6763);
+}
+
+/* 贴报错时的 GitHub 在线候选（F003 AC4）：放在回答上面，先让读者看到查了什么；它只是社区线索。
+   只用专用类名，不用 small / li / ul 这类元素选择器：noDescendingSpecificity 会把全文件以同一元素结尾的规则放在一起比。
+   列表要盖过 .wiki-chat-msg.is-agent :where(ul, ol) 的 (0,2,0)，所以写成两个类名。 */
+.wiki-chat-trace {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-field);
+  background: var(--color-surface-sunken);
+  font-size: 13px;
+}
+
+.wiki-chat-trace-note,
+.wiki-chat-trace-meta {
+  display: block;
+  color: var(--color-ink-muted);
+}
+
+.wiki-chat-trace-item + .wiki-chat-trace-item {
+  margin-top: 6px;
+}
+
+.wiki-chat-trace .wiki-chat-trace-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+/* 分镜图播放器（DiagramPlayer.tsx）：图下一排按钮，逐格看或连续播放 */
+.wiki-anim-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+}
+.wiki-anim-btn {
+  min-width: 76px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 8px;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-label);
+  cursor: pointer;
+}
+.wiki-anim-primary {
+  border-color: var(--color-comm);
+  color: #fff;
+  background: var(--color-comm);
+  font-weight: 700;
+}
+.wiki-anim-btn:disabled,
+.wiki-anim-btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+.wiki-anim-btn:focus-visible {
+  outline: 2px solid var(--color-comm);
+  outline-offset: 2px;
+}
+.wiki-anim-btn:hover:not(:disabled, [aria-disabled="true"]) {
+  border-color: var(--color-comm);
+}
+.wiki-anim-count {
+  min-width: 48px;
+  color: var(--color-ink-muted);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+}
+.wiki-anim-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   本页目录（2026-09-27 定稿，PageToc.tsx）：长页（H2 ≥ 4）才渲染。宽屏正文右侧 sticky，
+   放不下时退成右下角按钮 + 浮层。条目照左侧目录栏的写法：条目圆角、当前项左侧 2px 橙条；
+   这里是浅底，所以当前项用 accent-soft 底、正文色字。
+   ============================================================ */
+
+.wiki-pagetoc-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: var(--text-label);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.wiki-pagetoc-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 400;
+  color: var(--color-ink-faint);
+}
+
+.wiki-pagetoc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--color-line);
+}
+
+.wiki-pagetoc-link {
+  display: block;
+  margin-left: -1px;
+  padding: 4px 10px;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-field) var(--radius-field) 0;
+  font-size: var(--text-label);
+  line-height: 18px;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+}
+
+.wiki-pagetoc-list .is-h3 .wiki-pagetoc-link {
+  padding-left: 22px;
+  color: var(--color-ink-faint);
+}
+
+.wiki-pagetoc-link:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+}
+
+.wiki-pagetoc-link.is-active {
+  border-left-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* ---------- 宽屏：右侧 sticky 导航 ---------- */
+
+/* 正文栏 1034（.wiki-article 的 --wiki-measure）+ 间距 32 + 导航 220 = 1286。
+   容器查询量的是正文区真实宽度，开着问答栏时也按剩下的宽度判断，不会去挤正文或缩图。 */
+.wiki-reading-frame {
+  container: wiki-reading / inline-size;
+}
+
+.wiki-pagetoc-side {
+  display: none;
+}
+
+@container wiki-reading (min-width: 1286px) {
+  .wiki-reading[data-page-toc] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    column-gap: 32px;
+    max-width: 1286px;
+    margin-inline: auto;
+  }
+
+  .wiki-pagetoc-side {
+    display: block;
+    position: sticky;
+    top: 32px;
+    align-self: start;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    /* 和正文的标题行对齐：避开页头 */
+    margin-top: 4px;
+  }
+
+  .wiki-reading-frame .wiki-pagetoc-float {
+    display: none;
+  }
+}
+
+/* ---------- 窄屏 / 手机：右下角按钮 + 浮层 ---------- */
+
+/* 叠在「问知识库」（右下 20px，约 37px 高）上方，不抢它的橙色主按钮位置 */
+.wiki-pagetoc-float {
+  position: fixed;
+  right: 20px;
+  bottom: 68px;
+  z-index: 29;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* 问答栏开着时右边被占：宽屏挪到栏的左边（正文区右侧的按钮道里，见下一节），窄屏栏盖住正文，按钮收起 */
+@media (min-width: 1180px) {
+  .wiki-shell:not(.is-panel-closed) .wiki-pagetoc-float {
+    right: calc(clamp(540px, 42vw, 780px) + var(--wiki-fab-edge));
+    bottom: var(--wiki-fab-edge);
+  }
+}
+
+@media (max-width: 1179px) {
+  .wiki-shell:not(.is-panel-closed) .wiki-pagetoc-float {
+    display: none;
+  }
+}
+
+.wiki-pagetoc-fab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface-elevated);
+  color: var(--color-ink);
+  font-size: var(--text-compact);
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+
+.wiki-pagetoc-fab:hover {
+  border-color: var(--color-line-strong);
+}
+
+.wiki-pagetoc-fab[aria-expanded="true"] {
+  border-color: var(--color-accent);
+}
+
+/* ---------- 桌面：右下角浮动按钮的专用道 ----------
+   「问知识库」「本页目录」以前叠在正文栏右边缘上，1440 宽下压住了算式的结果栏（P3 验收）。
+   桌面上正文区右边留一条按钮道：按钮 40 + 离窗口边 14 + 和正文栏的间距 8 = 62px，按钮只在道里。
+   1280 下正文栏因此是 940，900 的画布仍按 1:1 放得下；1440 下正文栏仍是满的 1034。
+   道里只放得下圆形图标按钮，名字（问知识库 / 本页目录）留给读屏和悬停提示；≥ 1880 时右边空白
+   放得下带字的按钮，「问知识库」恢复带字。「本页目录」在那么宽时已是右侧导航，不会出现。 */
+.wiki-shell {
+  --wiki-fab-size: 40px;
+  --wiki-fab-edge: 14px;
+}
+
+/* 缩成图标时：按钮是 40px 的圆，字（.wiki-fab-label）只给读屏，按钮的可读名字不变 */
+@media (min-width: 1025px) {
+  .wiki-main {
+    padding-right: max(clamp(16px, 2.5vw, 48px), calc(var(--wiki-fab-size) + var(--wiki-fab-edge) + 8px));
+  }
+
+  .wiki-pagetoc-float {
+    right: var(--wiki-fab-edge);
+    bottom: calc(var(--wiki-fab-edge) + var(--wiki-fab-size) + 8px);
+  }
+
+  .wiki-pagetoc-fab {
+    width: var(--wiki-fab-size);
+    height: var(--wiki-fab-size);
+    padding: 0;
+    justify-content: center;
+  }
+
+  .wiki-pagetoc-fab svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .wiki-pagetoc-fab .wiki-fab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1879px) {
+  .wiki-chat-fab {
+    right: var(--wiki-fab-edge);
+    bottom: var(--wiki-fab-edge);
+    width: var(--wiki-fab-size);
+    height: var(--wiki-fab-size);
+    padding: 0;
+    justify-content: center;
+  }
+
+  .wiki-chat-fab svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .wiki-chat-fab .wiki-fab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .wiki-chat-fab .wiki-panel-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+  }
+}
+
+.wiki-pagetoc-pop {
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  padding: 14px 12px 12px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-floating);
+  box-shadow: var(--shadow-floating);
+}
+
+/* ============================================================
+   算式块（2026-09-27 定稿，CalcBlock.tsx）：```calc 围栏和认得出的 ```text 算式块
+   （每行都是「标签 = …」）排成这个样子。
+   外框和图框（.wiki-diagram）同一套：底色、边框、圆角、内边距都一样，标题也像图说明一样放在框下。
+   框里一项一行、三栏：标签 ｜ 算式 ｜ = 结果。字都是正文字体、正文字号，数字等宽（tabular-nums），
+   不用等宽代码字体，算式不该看起来像代码。
+   ============================================================ */
+
+.wiki-calc {
+  /* 窄屏退化看框自己的宽度（开着问答栏时正文会变窄），不看窗口 */
+  container: wiki-calc / inline-size;
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 四栏：标签（按最长的标签定宽，最多占三分之一，再长才折行）｜ 算式（吃掉剩余宽度，放不下在栏里折行）
+   ｜ 等号（窄栏，上下对齐）｜ 结果（按最宽的结果定宽，右对齐）。
+   同一页的各块统一用整页最宽的那一块的标签栏宽（--wiki-calc-label，CalcBlock.tsx 的 alignCalcLabels
+   量好挂在正文上），各块算式栏的起点上下对齐；没量之前每块先按自己的标签定宽。 */
+.wiki-calc-grid {
+  display: grid;
+  grid-template-columns: var(--wiki-calc-label, fit-content(34%)) minmax(0, 1fr) auto auto;
+}
+
+.wiki-calc-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: 7px 0;
+}
+
+/* 行间一条很淡的线：结果栏在最右边，线帮眼睛从标签走到结果 */
+.wiki-calc-row + .wiki-calc-row {
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.wiki-calc-gap {
+  grid-column: 1 / -1;
+  height: 12px;
+}
+
+.wiki-calc .wiki-calc-text {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 7px 0;
+  color: var(--color-ink-muted);
+}
+
+.wiki-calc-label {
+  grid-column: 1;
+  padding-right: 28px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+
+/* 算式放不下时在栏里折行；pretty：不把最后一个「B」单独甩到下一行 */
+.wiki-calc-expr {
+  grid-column: 2;
+  padding-right: 20px;
+  text-wrap: pretty;
+}
+
+/* 结果是文字的那一行（形状、说明性的结果）：算式栏一直延到行尾 */
+.wiki-calc-row.is-text .wiki-calc-expr {
+  grid-column: 2 / -1;
+  padding-right: 0;
+}
+
+.wiki-calc-op,
+.wiki-calc-eq {
+  color: var(--color-ink-faint);
+}
+
+.wiki-calc-op {
+  padding: 0 0.08em;
+}
+
+.wiki-calc-gloss {
+  font-size: var(--text-body);
+  color: var(--color-ink-muted);
+}
+
+.wiki-calc-eq {
+  grid-column: 3;
+  padding-right: 10px;
+}
+
+.wiki-calc-result {
+  grid-column: 4;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.wiki-calc-result strong {
+  font-weight: 700;
+}
+
+/* 结果后面的比较或换算（≤ 655,360 B、≈ 7.969 MiB）落到结果下面一行，结果栏只放一个数，右边缘对齐 */
+.wiki-calc-rel {
+  display: block;
+  font-size: var(--text-compact);
+  line-height: var(--text-compact--line-height);
+  color: var(--color-ink-muted);
+}
+
+/* 说明：跟在它那一行下面，小号浅色字，缩进和算式栏对齐 */
+.wiki-calc-note {
+  grid-column: 2 / -1;
+  margin-top: 2px;
+  font-size: var(--text-compact);
+  line-height: 20px;
+  color: var(--color-ink-muted);
+}
+
+/* 和图说明一样：框里最下面，正文字、正文色 */
+.wiki-calc-caption {
+  margin-top: 12px;
+}
+
+/* 手机：标签单占一行，下面一行是算式和「= 结果」，说明再下一行 */
+@container wiki-calc (max-width: 520px) {
+  .wiki-calc-grid {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .wiki-calc-label {
+    grid-column: 1 / -1;
+    padding: 0 0 2px;
+  }
+
+  .wiki-calc-expr {
+    grid-column: 1;
+    padding-right: 12px;
+  }
+
+  .wiki-calc-row.is-text .wiki-calc-expr {
+    grid-column: 1 / -1;
+  }
+
+  .wiki-calc-eq {
+    grid-column: 2;
+    padding-right: 6px;
+  }
+
+  .wiki-calc-result {
+    grid-column: 3;
+  }
+
+  .wiki-calc-note {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Drop uses the existing assistant panel and whole-package review. */
+.wiki-drop {
+  overflow: auto;
+  padding: 18px;
+  min-width: 0;
+  font-size: 13px;
+}
+.wiki-drop[hidden] {
+  display: none;
+}
+.wiki-drop form,
+.wiki-drop-progress {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.wiki-drop label {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.wiki-drop input,
+.wiki-drop textarea,
+.wiki-drop select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  color: inherit;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 8px;
+  font: inherit;
+}
+.wiki-drop textarea {
+  resize: vertical;
+}
+.wiki-drop button {
+  padding: 7px 10px;
+  color: var(--color-ink);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+.wiki-drop button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wiki-drop li {
+  margin-bottom: 14px;
+  overflow-wrap: anywhere;
+}
+.wiki-drop pre,
+.wiki-drop-report {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  max-height: 480px;
+  overflow: auto;
+}
+.wiki-drop-assets > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 12px;
+}
+.wiki-drop-assets figure {
+  margin: 0;
+  min-width: 0;
+}
+.wiki-drop-assets img {
+  width: 100%;
+  height: auto;
+  background: #fff;
+}

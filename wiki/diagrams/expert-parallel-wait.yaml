@@ -1,0 +1,71 @@
+layout: figure
+id: expert-parallel-wait
+caption: 上面是前面那 4 个 token 的分工：卡 1 要算 4 份，其余卡算完只能等它，combine 要等最后一张卡交出结果。下面是同样 8 份工作平均分到每卡 2 份。示意里每份工作耗时相同、两次交换各占 1 格。
+size: [880, 516]
+timelines:
+  - at: [24, 48]
+    labelW: 96
+    scale: 110
+    start: 0
+    end: 6
+    ticks: 1
+    unit: 格时间
+    laneH: 34
+    gap: 10
+    lanes:
+      - label: 卡 0
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 2, text: 算 1 份, tone: weight }
+          - { from: 2, to: 5, text: 等, tone: control, style: hatch }
+          - { from: 5, to: 6, text: combine, tone: comm, style: faded }
+      - label: 卡 1
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 5, text: 算 4 份, tone: weight }
+          - { from: 5, to: 6, text: combine, tone: comm, style: faded }
+      - label: 卡 2
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 3, text: 算 2 份, tone: weight }
+          - { from: 3, to: 5, text: 等, tone: control, style: hatch }
+          - { from: 5, to: 6, text: combine, tone: comm, style: faded }
+      - label: 卡 3
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 2, text: 算 1 份, tone: weight }
+          - { from: 2, to: 5, text: 等, tone: control, style: hatch }
+          - { from: 5, to: 6, text: combine, tone: comm, style: faded }
+  - at: [24, 306]
+    labelW: 96
+    scale: 110
+    start: 0
+    end: 6
+    ticks: 1
+    unit: 格时间
+    laneH: 34
+    gap: 10
+    lanes:
+      - label: 卡 0
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 3, text: 算 2 份, tone: weight }
+          - { from: 3, to: 4, text: combine, tone: comm, style: faded }
+      - label: 卡 1
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 3, text: 算 2 份, tone: weight }
+          - { from: 3, to: 4, text: combine, tone: comm, style: faded }
+      - label: 卡 2
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 3, text: 算 2 份, tone: weight }
+          - { from: 3, to: 4, text: combine, tone: comm, style: faded }
+      - label: 卡 3
+        spans:
+          - { from: 0, to: 1, text: dispatch, tone: comm, style: faded }
+          - { from: 1, to: 3, text: 算 2 份, tone: weight }
+          - { from: 3, to: 4, text: combine, tone: comm, style: faded }
+texts:
+  - { at: [24, 24], text: 热门专家 E3 在卡 1 · 这一层用 6 格, strong: true }
+  - { at: [24, 284], text: 同样 8 份平均分 · 这一层用 4 格, strong: true }

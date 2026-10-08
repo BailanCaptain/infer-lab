@@ -1,0 +1,34 @@
+layout: figure
+id: dyntra-lb-bubble
+caption: 数为示意，一格是一段时间，画的是一个 MoE 层；一步 decode 里每个 MoE 层都把这一段重复一遍。两组先各自算本组请求的注意力（只读自己的 KV），在 dispatch 处会合；各卡算完自己持有的专家，再在 combine 处会合。前一处的等待来自两组历史长短不同，后一处来自专家冷热不同。
+size: [880, 236]
+timelines:
+  - at: [24, 56]
+    labelW: 96
+    scale: 70
+    start: 0
+    end: 10
+    ticks: 1
+    unit: 格时间
+    laneH: 34
+    gap: 10
+    lanes:
+      - label: DP0
+        spans:
+          - { from: 0, to: 5, text: 注意力 · 读 131 块, tone: kv }
+          - { from: 5, to: 6, text: dispatch, tone: comm, style: faded }
+          - { from: 6, to: 7, text: 专家, tone: weight }
+          - { from: 7, to: 9, text: 等, tone: control, style: hatch }
+          - { from: 9, to: 10, text: combine, tone: comm, style: faded }
+      - label: DP1
+        spans:
+          - { from: 0, to: 1, text: 读 4 块, tone: kv }
+          - { from: 1, to: 5, text: 等, tone: control, style: hatch }
+          - { from: 5, to: 6, text: dispatch, tone: comm, style: faded }
+          - { from: 6, to: 9, text: 专家 · 热门的在这边, tone: weight }
+          - { from: 9, to: 10, text: combine, tone: comm, style: faded }
+brackets:
+  - { from: 120, to: 470, y: 186, label: DyntraLB 管这段：各组的注意力 }
+  - { from: 540, to: 750, y: 186, label: EPLB 管这段：专家放哪 }
+texts:
+  - { at: [24, 30], text: 一个 MoE 层：先各算注意力，再一起过专家（每层重复）, strong: true }

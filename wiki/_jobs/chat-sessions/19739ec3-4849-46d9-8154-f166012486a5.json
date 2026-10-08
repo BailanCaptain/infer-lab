@@ -1,0 +1,11 @@
+{
+  "id": "19739ec3-4849-46d9-8154-f166012486a5",
+  "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+  "agentSessionId": "63bbc75a-e618-4450-89dc-a3acd3272a72",
+  "questions": [
+    "Block Table 里的块是什么时候分配、什么时候回收的？",
+    "Block Table 里的块是什么时候分配、什么时候回收的？",
+    "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+    "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？"
+  ]
+}

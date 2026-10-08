@@ -1,0 +1,71 @@
+layout: figure
+id: sequence-parallel
+caption: 两张卡、4 个 token，一个格子行是一个 token 的隐藏向量。上：只用 TP，行切之后的 All-Reduce 让两张卡都拿到同样的 4 行，残差相加和 RMSNorm 在两张卡上各做一遍。下：TP + SP 把这次 All-Reduce 拆成两半，Reduce-Scatter 之后卡 0 只留前 2 行、卡 1 只留后 2 行，各算各的；到下一对矩阵之前再 All-Gather 拼回 4 行。虚线格是这张卡此刻没有的行。
+size: [880, 420]
+grids:
+  # ---- 只用 TP：两张卡都有完整的 4 行
+  - at: [300, 70]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 0
+  - at: [364, 70]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 1
+  # ---- TP + SP：卡 0 留前 2 行，卡 1 留后 2 行
+  - at: [300, 290]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 0
+    cells:
+      - { at: [2, 0], style: ghost }
+      - { at: [2, 1], style: ghost }
+      - { at: [3, 0], style: ghost }
+      - { at: [3, 1], style: ghost }
+  - at: [364, 290]
+    rows: 4
+    cols: 2
+    cell: [26, 22]
+    tone: token
+    style: solid
+    label: 卡 1
+    cells:
+      - { at: [0, 0], style: ghost }
+      - { at: [0, 1], style: ghost }
+      - { at: [1, 0], style: ghost }
+      - { at: [1, 1], style: ghost }
+items:
+  - { at: [20, 88], size: [104, 52], text: 行切矩阵乘, sub: 各得部分和, tone: weight, style: plain }
+  - { at: [150, 88], size: [120, 52], text: All-Reduce, sub: 每卡拿整份, tone: comm }
+  - { at: [446, 82], size: [140, 64], text: 残差 + RMSNorm, sub: 每卡都算 4 行, tone: control }
+  - { at: [748, 82], size: [112, 64], text: 下一对矩阵, sub: 列切，要全部行, tone: weight, style: plain }
+  - { at: [20, 308], size: [104, 52], text: 行切矩阵乘, sub: 各得部分和, tone: weight, style: plain }
+  - { at: [150, 308], size: [120, 52], text: Reduce-Scatter, sub: 每卡拿 2 行, tone: comm }
+  - { at: [446, 302], size: [140, 64], text: 残差 + RMSNorm, sub: 每卡只算 2 行, tone: control }
+  - { at: [612, 308], size: [112, 52], text: All-Gather, sub: 拼回 4 行, tone: comm }
+  - { at: [748, 302], size: [112, 64], text: 下一对矩阵, sub: 列切，要全部行, tone: weight, style: plain }
+links:
+  - { from: [124, 114], to: [150, 114] }
+  - { from: [270, 114], to: [298, 114], tone: comm }
+  - { from: [418, 114], to: [446, 114] }
+  - { from: [586, 114], to: [748, 114] }
+  - { from: [124, 334], to: [150, 334] }
+  - { from: [270, 334], to: [298, 334], tone: comm }
+  - { from: [418, 334], to: [446, 334] }
+  - { from: [586, 334], to: [612, 334] }
+  - { from: [724, 334], to: [748, 334], tone: comm }
+texts:
+  - { at: [20, 32], text: 只用 TP, size: 15, strong: true }
+  - { at: [20, 252], text: TP + SP, size: 15, strong: true }
+  - { at: [667, 104], text: 不用再收集, size: 12.5, note: true, anchor: middle }
+  - { at: [358, 58], text: 两张卡都有 token 0–3，一模一样, size: 12.5, note: true, anchor: middle }
+  - { at: [358, 278], text: 卡 0 留 token 0、1，卡 1 留 2、3, size: 12.5, note: true, anchor: middle }

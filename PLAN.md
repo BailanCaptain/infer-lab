@@ -105,7 +105,7 @@
 **章节与知识库（LLM-Wiki）的关系**（用户 2026-09-20 定，写作约定，不为它加机制）：
 
 - 本站是教学平台，每章正文**要详细讲解**，动画配合讲解，不是「文字很少、只有动画」。
-- 知识库在另一个工作树 `C:/Users/-/Desktop/infra-view-new-llm-wiki`（分支 `feat/llm-wiki`，`wiki/concepts|params/*.md`）。其中教学式长页（如 `tensor-parallel`、`pipeline-parallel`、`chunked-prefill`、`vllm-v1-shape`）与章节主题重叠，且已逐句对过钉住 commit 的源码、带行号。
+- 知识库已合入本仓库 `main`（`wiki/concepts|params/*.md`；交接见 `HANDOFF-LLM-WIKI.md`）。其中教学式长页（如 `tensor-parallel`、`pipeline-parallel`、`chunked-prefill`、`vllm-v1-shape`）与章节主题重叠，且已逐句对过钉住 commit 的源码、带行号。
 - 写某一章时，**先查知识库里 frontmatter `chapters` 挂了该章号的页，以它们为底稿扩写**；章节开头记一行「基于哪几页知识库页」，这些页因上游变化被改时回头看本章。
 - 写章节时发现知识库缺了或错了，先补知识库再扩写——知识库始终是事实的底。
 - **待定**：知识库页的 `chapters` 用的是 §1.1 的 22 章编号，而当前首页（`src/app/intro/world.json`）展示的是十章目录（01 基础概念 … 10 社区与开源）；两套章节划分哪套为准尚未与用户对齐，定下来后知识库的章号要跟着改。
@@ -304,3 +304,20 @@ M1 = 地基 + 样板章 `03` + 工作台 v1。
 ## 六、单个 feature 的实施计划
 
 本文件是总体大纲。具体到一个 feature 时，按 Multi-Agent 的 `writing-plans` skill 写分步实施计划，存到 `docs/plans/{feature-name}-plan.md`：每步一个动作、写精确文件路径与完整代码、写精确命令与预期输出、先红后绿、频繁提交。
+
+---
+
+## 七、Feature 索引
+
+单个 feature 的聚合文件放 `docs/features/F{NNN}-name.md`（Status / Why / What / AC / 决策 / Timeline），实施计划放 `docs/plans/`，写法参照 Multi-Agent 的 `feat-lifecycle` 与 `writing-plans` skill。
+
+| ID | 名称 | 规范与当前验收状态 | 实施计划 |
+|---|---|---|---|
+| F001 | 课程知识库与问答 | [F001](docs/features/F001-llm-wiki.md) | [计划](docs/plans/llm-wiki-plan.md) |
+| F002 | 参数清单与版本谱系 | [F002](docs/features/F002-param-lineage.md) | [计划](docs/plans/param-lineage-plan.md) |
+| F003 | GitHub 语料与报错溯源 | [F003](docs/features/F003-github-corpus.md) | [计划](docs/plans/github-corpus-plan.md) |
+| F004 | 使用驱动的知识积累闭环 | [F004](docs/features/F004-knowledge-loop.md) | [计划](docs/plans/knowledge-loop-plan.md) |
+
+**验收状态只看上表四份 feature 里的验收表**；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)；页数、预算这类会变的数字按它 §2 的命令现查。本索引不复制状态和数字。
+
+F001 同时给 §2.6 内容管线提供 Term 注册表：`<Term id>` 的 id 与摘要来自 `src/content/wiki/registry.json`（由 `wiki/concepts/` 派生），不再另建 terms 表。

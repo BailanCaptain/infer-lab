@@ -1,0 +1,36 @@
+layout: figure
+id: kv-cache-sparse-offload-step
+caption: 一步 decode 在一个稀疏 MLA 层里的顺序（默认路径）。新算出的行直接写主机；选位置、查槽表、只搬缺失行、把位置号换成槽号之后，attention 读的是设备上的热缓冲。
+size: [880, 640]
+frames:
+  - {label: 一步 decode 在一个稀疏 MLA 层里, at: [20, 50], size: [840, 566]}
+items:
+  - {at: [210, 82], size: [470, 52], text: "① 这一步新算出的 K/V 写进主机池", sub: "设备上没有分页的主 cache 可写；TP 组由 rank 0 写", tone: kv}
+  - {at: [210, 160], size: [470, 52], text: "② indexer 给历史打分，选出这一步要读的位置", sub: "输出的是位置号，不是槽号", tone: weight}
+  - {at: [210, 238], size: [470, 52], text: "③ 查这一层的槽表：哪些位置已经在槽里", sub: "在的算命中；其余记成缺失", style: plain}
+  - {at: [210, 316], size: [470, 52], text: "④ 给缺失的位置挑槽", sub: "只从这一步没被选中的槽里挑，最久没用的先换", style: plain}
+  - {at: [210, 394], size: [470, 52], text: "⑤ 只把缺失的行从主机搬进热缓冲", sub: "先等 rank 0 写完，组内各卡再各自搬自己缺的", tone: comm}
+  - {at: [210, 472], size: [470, 52], text: "⑥ 把位置号换成槽号", sub: "attention 拿到的是热缓冲里的槽号", tone: token}
+  - {at: [210, 550], size: [470, 52], text: "⑦ 稀疏 attention 读热缓冲，算完这一层", sub: "槽表留给下一步；下一层从 ① 重来", tone: kv}
+links:
+  - {from: [445, 134], to: [445, 160]}
+  - {from: [445, 212], to: [445, 238]}
+  - {from: [445, 290], to: [445, 316]}
+  - {from: [445, 368], to: [445, 394]}
+  - {from: [445, 446], to: [445, 472]}
+  - {from: [445, 524], to: [445, 550]}
+texts:
+  - {at: [42, 104], text: 设备 → 主机, size: 12, note: true}
+  - {at: [42, 264], text: 都在主机侧算, size: 12, note: true}
+  - {at: [42, 286], text: 整数运算，按行分线程, size: 12, note: true}
+  - {at: [42, 416], text: 主机 → 设备, size: 12, note: true}
+  - {at: [700, 268], text: 命中的不搬, size: 12, note: true}
+  - {at: [700, 416], text: 搬运量 = 缺失行数, size: 12, note: true}
+  - {at: [700, 572], text: 全部历史仍在主机, size: 12, note: true}
+pins:
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/sfa_kv_offload.py#L346-L393
+    symbols: [exec_kv, offload_new_kv]
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/sparse_kv_offload/sparse_kv_offload_manager.py#L1215-L1337
+    symbols: [onload_topk_kv, sparse_copy]
+  - source: vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/layerwise_and_sparse_kv_cache_offloading.md#L170-L193
+    symbols: [Decode step]

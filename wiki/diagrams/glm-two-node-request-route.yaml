@@ -1,0 +1,34 @@
+layout: figure
+id: glm-two-node-request-route
+caption: 请求先由前端选定一个 DP 执行组。每层 attention 和稠密 MLP 的部分结果在本机 TP 组内合并；MoE 的路由专家计算由两台机器共同参与。图中 TP 与 EP 段随模型层反复发生。
+size: [880, 760]
+items:
+  - { at: [220, 16], size: [440, 52], text: node0 · API server 接收并分词, style: plain }
+  - { at: [220, 102], size: [440, 52], text: 前端选组：请求指定了 DP rank？, style: plain }
+  - { at: [30, 198], size: [370, 52], text: 是：交给指定组, style: plain }
+  - { at: [480, 198], size: [370, 52], text: 否：挑负载分数小的组, sub: 打分公式见多请求页, style: plain }
+  - { at: [30, 312], size: [370, 62], text: 被选中的 DP 组, sub: EngineCore 调度 → 本机 worker 执行, tone: control, style: plain }
+  - { at: [480, 312], size: [370, 62], text: 另一 DP 组, sub: 有请求则正常执行；空闲则 dummy batch, tone: control, style: plain }
+  - { at: [30, 428], size: [370, 62], text: 本机 TP8 · All-Reduce, sub: 合并每层 attention 与稠密 MLP 的部分结果, tone: comm }
+  - { at: [480, 428], size: [370, 62], text: 对面机内 TP8 · All-Reduce, sub: 两组各自在机内完成 TP 通信, tone: comm }
+  - { at: [220, 544], size: [440, 62], text: 两组在各个 MoE 层共同执行, sub: 跨两台机器交换 token 与专家结果, tone: comm }
+  - { at: [220, 666], size: [440, 58], text: 结果经请求所属引擎回到 API server, tone: token }
+links:
+  - { from: [440, 68], to: [440, 102] }
+  - { from: [330, 154], to: [215, 198], via: [[215, 174]] }
+  - { from: [550, 154], to: [665, 198], via: [[665, 174]] }
+  - { from: [215, 250], to: [215, 312] }
+  - { from: [665, 250], to: [310, 312], via: [[665, 280], [310, 280]] }
+  - { from: [400, 343], to: [480, 343], tone: comm, dashed: true, ends: none }
+  - { from: [215, 374], to: [215, 428] }
+  - { from: [665, 374], to: [665, 428] }
+  - { from: [215, 490], to: [330, 544], via: [[215, 516], [330, 516]] }
+  - { from: [665, 490], to: [550, 544], via: [[665, 516], [550, 516]] }
+  - { from: [440, 606], to: [440, 666] }
+texts:
+  - { at: [440, 402], text: 两组步调一致, size: 13, anchor: middle, tone: comm }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core_client.py#L1398-L1426
+    symbols: [get_core_engine_for_request]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1869-L1945
+    symbols: [execute_dummy_batch]

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 396" width="900" height="396" role="img" aria-label="每个 Worker 在启动收尾处走一遍这条路：先看开关和 CPU 架构，再建这颗 NPU 的 CPU 池、给池里的核分角色，最后才动线程、页和中断。第 ③ 步的池是「亲和核 ∩ cpuset」，这些核全在一个节点里时还会补上编号下一个节点里允许的核，所以池通常横跨两个节点；几颗卡拿到同一个池时按卡序平分。左边一列是四个分支：开关关着、不是 ARM、拿不到拓扑、核数不够，各自的去向不同。右边两个分支只影响其中一步。">
+  <title>每个 Worker 在启动收尾处走一遍这条路：先看开关和 CPU 架构，再建这颗 NPU 的 CPU 池、给池里的核分角色，最后才动线程、页和中断。第 ③ 步的池是「亲和核 ∩ cpuset」，这些核全在一个节点里时还会补上编号下一个节点里允许的核，所以池通常横跨两个节点；几颗卡拿到同一个池时按卡序平分。左边一列是四个分支：开关关着、不是 ARM、拿不到拓扑、核数不够，各自的去向不同。右边两个分支只影响其中一步。</title>
+  <defs><marker id="cpu-binding-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="cpu-binding-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="cpu-binding-flow-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="cpu-binding-flow-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="cpu-binding-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M345 112 L345 128" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M345 180 L345 196" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M345 248 L345 264" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M250 86 L224 86" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M250 154 L224 154" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M250 222 L224 222" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M250 290 L224 290" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#cpu-binding-flow-ah-danger)"/>
+  <path d="M440 290 L455 290 L455 40 L565 40 L565 60" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-weight)"/>
+  <path d="M565 112 L565 128" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M565 180 L565 196" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M565 248 L565 264" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#cpu-binding-flow-ah-control)"/>
+  <path d="M660 154 L680 154" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#cpu-binding-flow-ah-kv)"/>
+  <path d="M660 222 L680 222" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#cpu-binding-flow-ah-comm)"/>
+  <rect x="250" y="60" width="190" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="345" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 开关开着吗</text>
+  <text x="345" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">默认开</text>
+  <rect x="250" y="128" width="190" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="345" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 是 ARM CPU 吗</text>
+  <rect x="250" y="196" width="190" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="345" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ 建这颗 NPU 的 CPU 池</text>
+  <text x="345" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">常跨两个节点</text>
+  <rect x="250" y="264" width="190" height="52" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="345" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 按池里位置分角色</text>
+  <text x="345" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">中断、主线程、两条</text>
+  <rect x="24" y="60" width="200" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="124" y="91" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">关掉：整件事不做</text>
+  <rect x="24" y="128" width="200" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="124" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">不是 ARM：记一条日志跳过</text>
+  <rect x="24" y="196" width="200" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="124" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">拿不到拓扑：改走另一条路</text>
+  <text x="124" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">按全局逻辑设备编号切</text>
+  <rect x="24" y="264" width="200" height="52" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="124" y="295" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">核不够 5 个：抛错</text>
+  <rect x="470" y="60" width="190" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="565" y="82" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 绑线程</text>
+  <text x="565" y="101" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主线程连子线程一起</text>
+  <rect x="470" y="128" width="190" height="52" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="565" y="150" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 迁页</text>
+  <text x="565" y="169" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">迁到池里最小核的节点</text>
+  <rect x="470" y="196" width="190" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="565" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ 绑这颗 NPU 的中断</text>
+  <text x="565" y="237" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两个核各接一个</text>
+  <rect x="680" y="128" width="196" height="52" rx="8" fill="var(--color-kv-soft, #e8edff)" stroke="var(--color-kv, #4c65b6)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="778" y="159" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#3a4f93" text-anchor="middle">没装工具：只跳过迁页</text>
+  <rect x="680" y="196" width="196" height="52" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="778" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">中断表不可写：跳过</text>
+  <rect x="470" y="264" width="406" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="673" y="286" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">绑完才开始收请求</text>
+  <text x="673" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">中途任何异常：记一条警告，继续启动</text>
+  <text x="450" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">绑核的七步与六个分支</text>
+  <text x="24" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">位置在启动收尾：图捕获之后、开始收请求之前</text>
+  <text x="24" y="362" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">③ 几颗卡共用一个池时按卡序平分</text>
+</svg>

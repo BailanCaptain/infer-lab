@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "a5eac8707d27e99cf56837773d961d2a3d387ba19c3299c289bc69be4a8832c2",
+  "input": {
+    "sources": [
+      {
+        "ref": "raw:sha256-2859cac729a70f5ff237179b73aef4c89fc833a14d061ad442134ca946c1019b.md#L1-L199",
+        "hash": "2859cac729a70f5ff237179b73aef4c89fc833a14d061ad442134ca946c1019b"
+      }
+    ],
+    "targets": [
+      "profiling-chunk-config"
+    ],
+    "recipeHash": "7a37103d5581f80cf36ede0694ad2d2f1a1e1f1e75ccaa3361f3bafc3a20b5ba"
+  },
+  "origins": [
+    "gap"
+  ],
+  "state": "failed",
+  "screening": {
+    "source": "raw:sha256-2859cac729a70f5ff237179b73aef4c89fc833a14d061ad442134ca946c1019b.md#L1-L199",
+    "rawHash": "2859cac729a70f5ff237179b73aef4c89fc833a14d061ad442134ca946c1019b",
+    "sanitizerVersion": "wiki-text-v1",
+    "cleanHash": "2859cac729a70f5ff237179b73aef4c89fc833a14d061ad442134ca946c1019b",
+    "blocked": false,
+    "findings": []
+  },
+  "policy": {
+    "maxAttempts": 1,
+    "maxCostUsd": 2,
+    "reserveUsd": 1
+  },
+  "attempts": [
+    {
+      "token": "06f5997d-263f-42f7-8b8d-402ea5c6c783",
+      "ownerPid": 43984,
+      "startedAt": "2026-09-16T16:58:19.941Z",
+      "finishedAt": "2026-09-16T17:00:43.950Z",
+      "reservedUsd": 1,
+      "costUsd": 0.586041,
+      "state": "failed",
+      "reason": "Error: 草稿 lint 失败：[{\"file\":\"_drafts/profiling-chunk-config.md\",\"rule\":\"diagram-identifier\",\"message\":\"图里的 scheduler_profiling_chunk.py 不在 sources 覆盖范围内\"}]"
+    }
+  ],
+  "createdAt": "2026-09-16T16:58:19.933Z",
+  "updatedAt": "2026-09-16T17:00:43.950Z"
+}

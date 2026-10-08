@@ -1,0 +1,793 @@
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { isMap, isScalar, parseDocument } from "yaml";
+import type { HandbookSlices } from "./handbook";
+import {
+  type AgentResult,
+  applyIntegration,
+  diffSnapshot,
+  extractRequest,
+  integrateRequest,
+  localDate,
+  parseSeeds,
+  parseStreamJsonLine,
+  type RunAgent,
+  runExtractPhase,
+  runPool,
+  selectRelevantPages,
+  snapshotDir,
+  strayPaths,
+} from "./ingest";
+import { WORK_MODEL } from "./model-use";
+
+const seedsYaml = `
+repos:
+  vllm-ascend:
+    url: https://github.com/vllm-project/vllm-ascend
+    commit: 28bf3a2e
+    path: tools/repos/vllm-ascend
+features:
+  - id: paged-attention
+    title: PagedAttention
+    type: feature
+    chapters: ["11"]
+    repo: vllm-ascend
+    entry: [vllm_ascend/attention/attention_v1.py]
+    ask: 块级 KV 布局与 block table 如何进入 attention 算子
+`;
+const hb: HandbookSlices = {
+  pageFormat: "PF",
+  extract: "EX",
+  integrate: "IN",
+  query: "Q",
+  coverage: "CO",
+  lint: "L",
+  reading: "R",
+  citable: "CI",
+};
+const ctx = {
+  handbook: hb,
+  wikiRoot: "C:/w/wiki",
+  repoRoots: {
+    "vllm-ascend@main": "C:/w/tools/repos/vllm-ascend",
+    "vllm-ascend@releases/v0.23.0": "C:/w/tools/repos/vllm-ascend@releases-v0.23.0",
+  },
+  today: "2026-09-07",
+  timeoutMs: 1000,
+  batchIds: ["paged-attention", "block-table"],
+};
+
+const multiRefYaml = `
+repos:
+  vllm-ascend:
+    url: https://github.com/vllm-project/vllm-ascend
+    path: tools/repos/vllm-ascend
+    refs:
+      main: 28bf3a2e
+      "releases/v0.23.0": 9b4b1e2a
+features:
+  - id: layer-sharding
+    title: Layer Sharding
+    type: feature
+    chapters: ["13"]
+    repo: vllm-ascend
+    ref: "releases/v0.23.0"
+    entry: [vllm_ascend/ops/layer_shard_linear.py]
+    ask: 这个参数干嘛的
+  - id: paged-attention
+    title: PagedAttention
+    type: feature
+    chapters: ["11"]
+    repo: vllm-ascend
+    entry: [vllm_ascend/attention/attention_v1.py]
+    ask: 块级 KV 布局
+`;
+
+describe("parseSeeds", () => {
+  it("解析并校验；feature.repo 必须在 repos 里；priority 默认 2", () => {
+    const s = parseSeeds(seedsYaml);
+    expect(s.features[0]?.priority).toBe(2);
+    expect(() => parseSeeds(seedsYaml.replace("repo: vllm-ascend", "repo: nope"))).toThrow(/nope/);
+  });
+
+  it("repo 钉一组 ref；feature 的 refs 可列多个，未指定则默认 main", () => {
+    const s = parseSeeds(multiRefYaml);
+    expect(Object.keys(s.repos["vllm-ascend"]!.refs)).toEqual(["main", "releases/v0.23.0"]);
+    // 旧的单数 ref 归一化进 refs
+    expect(s.features[0]?.refs).toEqual(["releases/v0.23.0"]);
+    expect(s.features[1]?.refs).toEqual(["main"]);
+  });
+
+  it("feature 可以同时对照多个 ref——差异要写进页面才叫文档", () => {
+    const both = multiRefYaml.replace(
+      '    ref: "releases/v0.23.0"',
+      '    refs: ["releases/v0.23.0", "main"]',
+    );
+    const s = parseSeeds(both);
+    expect(s.features[0]?.refs).toEqual(["releases/v0.23.0", "main"]);
+  });
+
+  it("旧格式的单个 commit 归一化成 refs.main，现有 seeds 不用改", () => {
+    const s = parseSeeds(seedsYaml);
+    expect(s.repos["vllm-ascend"]!.refs).toEqual({ main: "28bf3a2e" });
+    expect(s.features[0]?.refs).toEqual(["main"]);
+  });
+
+  it("feature 指向未声明的 ref 时报错并指名", () => {
+    expect(() => parseSeeds(multiRefYaml.replace('ref: "releases/v0.23.0"', "ref: nope"))).toThrow(
+      /ref「nope」不在/,
+    );
+  });
+
+  it("repo 既没有 refs 也没有 commit 时报错", () => {
+    const bad = multiRefYaml
+      .replace("    refs:", "    other:")
+      .replace("      main: 28bf3a2e", "")
+      .replace('      "releases/v0.23.0": 9b4b1e2a', "");
+    expect(() => parseSeeds(bad)).toThrow(/refs/);
+  });
+});
+
+describe("extractRequest · 多 ref", () => {
+  it("add-dir 指向该 feature 声明的 ref 的工作树，sources 前缀用该 ref 的 commit", () => {
+    const s = parseSeeds(multiRefYaml);
+    const req = extractRequest(s.features[0]!, s, ctx);
+    expect(req.args[req.args.indexOf("--add-dir") + 1]).toBe("C:/w/tools/repos/vllm-ascend@releases-v0.23.0");
+    expect(req.stdin).toContain("vllm-ascend@9b4b1e2a");
+    expect(req.stdin).toContain("releases/v0.23.0");
+    expect(req.stdin).not.toContain("28bf3a2e");
+  });
+
+  it("未声明 ref 的 feature 走 main", () => {
+    const s = parseSeeds(multiRefYaml);
+    const req = extractRequest(s.features[1]!, s, ctx);
+    expect(req.args[req.args.indexOf("--add-dir") + 1]).toBe("C:/w/tools/repos/vllm-ascend");
+    expect(req.stdin).toContain("vllm-ascend@28bf3a2e");
+  });
+
+  it("多 ref 时每个 ref 各给一个 --add-dir，并要求写出版本差异", () => {
+    const both = multiRefYaml.replace(
+      '    ref: "releases/v0.23.0"',
+      '    refs: ["releases/v0.23.0", "main"]',
+    );
+    const s = parseSeeds(both);
+    const req = extractRequest(s.features[0]!, s, ctx);
+    const dirs = req.args.filter((_, i) => req.args[i - 1] === "--add-dir");
+    expect(dirs).toEqual(["C:/w/tools/repos/vllm-ascend@releases-v0.23.0", "C:/w/tools/repos/vllm-ascend"]);
+    // 两个 commit 前缀都要给，agent 才知道各自怎么写 sources
+    expect(req.stdin).toContain("9b4b1e2a");
+    expect(req.stdin).toContain("28bf3a2e");
+    expect(req.stdin).toContain("要对照 2 个版本");
+    expect(req.stdin).toContain("[!]");
+  });
+
+  it("缺该 ref 的本地工作树时报错并指名", () => {
+    const s = parseSeeds(multiRefYaml);
+    const bad = { ...ctx, repoRoots: { "vllm-ascend@main": "C:/w/x" } };
+    expect(() => extractRequest(s.features[0]!, s, bad)).toThrow(/releases\/v0\.23\.0/);
+  });
+});
+
+describe("extractRequest", () => {
+  it("argv：stream-json、系统提示=页面格式+提取、add-dir、白名单只含两个 Write 路径、黑名单含 Bash", () => {
+    const s = parseSeeds(seedsYaml);
+    const req = extractRequest(s.features[0]!, s, ctx);
+    expect(req.cwd).toBe("C:/w/wiki");
+    expect(req.args.slice(0, 4)).toEqual(["-p", "--output-format", "stream-json", "--verbose"]);
+    expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toBe("PF\n\nEX");
+    expect(req.args[req.args.indexOf("--add-dir") + 1]).toBe("C:/w/tools/repos/vllm-ascend");
+    const allowed = req.args.slice(
+      req.args.indexOf("--allowedTools") + 1,
+      req.args.indexOf("--disallowedTools"),
+    );
+    // Spike W1：Edit(路径) 规则同时管 Write；Write(路径) 不被识别；黑名单不能含 Edit
+    expect(allowed).toEqual([
+      "Read",
+      "Grep",
+      "Glob",
+      "WebFetch",
+      "WebSearch",
+      "Edit(_drafts/paged-attention.md)",
+      "Edit(raw/paged-attention.md)",
+    ]);
+    const disallowed = req.args.slice(req.args.indexOf("--disallowedTools") + 1);
+    expect(disallowed).toContain("Bash");
+    expect(disallowed).not.toContain("Edit");
+    expect(req.allowedWrites).toEqual(["_drafts/paged-attention.md", "raw/paged-attention.md"]);
+  });
+  it("stdin 含 id、commit、入口、ask、今天日期、本批 id、两个允许路径", () => {
+    const s = parseSeeds(seedsYaml);
+    const { stdin } = extractRequest(s.features[0]!, s, ctx);
+    for (const t of [
+      "paged-attention",
+      "28bf3a2e",
+      "vllm_ascend/attention/attention_v1.py",
+      "block table",
+      "2026-09-07",
+      "block-table",
+      "_drafts/paged-attention.md",
+      "raw/paged-attention.md",
+    ]) {
+      expect(stdin).toContain(t);
+    }
+    expect(stdin).not.toContain("PF");
+  });
+});
+
+describe("integrateRequest", () => {
+  it("白名单只含本批目标与已提供的现有页；stdin 列草稿 id", () => {
+    const req = integrateRequest(
+      [
+        { id: "a", chapters: ["11"], related: [] },
+        { id: "b", chapters: ["11"], related: [] },
+      ],
+      [],
+      ctx,
+    );
+    const allowed = req.args.slice(
+      req.args.indexOf("--allowedTools") + 1,
+      req.args.indexOf("--disallowedTools"),
+    );
+    // 目录与 PAGE_DIRS 一致，包含本地材料编译生成的 source 页。
+    expect(allowed).toEqual([
+      "Read",
+      "Grep",
+      "Glob",
+      "Edit(concepts/a.md)",
+      "Edit(params/a.md)",
+      "Edit(sources/a.md)",
+      "Edit(concepts/b.md)",
+      "Edit(params/b.md)",
+      "Edit(sources/b.md)",
+      "Edit(_drafts/_integration.json)",
+    ]);
+    expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toBe("PF\n\nIN");
+    expect(req.stdin).toContain("_drafts/a.md");
+    expect(req.allowedWrites).toEqual([
+      "concepts/a.md",
+      "params/a.md",
+      "sources/a.md",
+      "concepts/b.md",
+      "params/b.md",
+      "sources/b.md",
+      "_drafts/_integration.json",
+    ]);
+  });
+  it("provides alias ownership outside the full-page window and protects existing anchors", () => {
+    const request = integrateRequest(
+      [{ id: "new", chapters: ["11"], related: [] }],
+      [{ id: "owner", file: "concepts/owner.md", chapters: ["20"], related: [], aliases: ["AscendConfig"] }],
+      ctx,
+    );
+    expect(request.stdin).toContain("AscendConfig");
+    expect(request.stdin).toContain("保留现有标题");
+    expect(request.allowedWrites).not.toContain("concepts/owner.md");
+  });
+});
+
+describe("parseStreamJsonLine", () => {
+  it("取 tool_use 名称与目标、result 的 session/cost/is_error；其它返回 null", () => {
+    expect(
+      parseStreamJsonLine(
+        JSON.stringify({
+          type: "assistant",
+          message: { content: [{ type: "tool_use", name: "Read", input: { file_path: "a.py" } }] },
+        }),
+      ),
+    ).toEqual({ kind: "tool", name: "Read", target: "a.py" });
+    expect(
+      parseStreamJsonLine(
+        JSON.stringify({
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          session_id: "s1",
+          total_cost_usd: 0.5,
+        }),
+      ),
+    ).toEqual({ kind: "result", isError: false, sessionId: "s1", costUsd: 0.5 });
+    expect(parseStreamJsonLine("not json")).toBeNull();
+    expect(parseStreamJsonLine(JSON.stringify({ type: "user" }))).toBeNull();
+  });
+});
+
+describe("snapshot / stray", () => {
+  it("差集只含新增或改动的文件；允许 glob 与精确路径", () => {
+    const root = mkdtempSync(join(tmpdir(), "snap-"));
+    mkdirSync(join(root, "_drafts"));
+    writeFileSync(join(root, "index.md"), "old");
+    const before = snapshotDir(root);
+    writeFileSync(join(root, "_drafts/a.md"), "x");
+    writeFileSync(join(root, "index.md"), "changed!");
+    const changed = diffSnapshot(before, snapshotDir(root)).sort();
+    expect(changed).toEqual(["_drafts/a.md", "index.md"]);
+    expect(strayPaths(changed, ["_drafts/a.md", "raw/a.md"])).toEqual(["index.md"]);
+    expect(
+      strayPaths(
+        ["concepts/x.md", "_drafts/_integration.json"],
+        ["concepts/**", "_drafts/_integration.json"],
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("runPool", () => {
+  it("非法并发不能静默跳过任务", async () => {
+    let calls = 0;
+    await expect(runPool([1], Number.NaN, async () => ++calls)).rejects.toThrow(/concurrency/);
+    expect(calls).toBe(0);
+  });
+  it("并发不超过上限，结果按输入顺序", async () => {
+    let active = 0;
+    let peak = 0;
+    const r = await runPool([1, 2, 3, 4, 5], 2, async (n) => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise((res) => setTimeout(res, 5));
+      active--;
+      return n * 10;
+    });
+    expect(r).toEqual([10, 20, 30, 40, 50]);
+    expect(peak).toBe(2);
+  });
+});
+
+describe("runExtractPhase", () => {
+  const setup = () => {
+    const root = mkdtempSync(join(tmpdir(), "wiki-"));
+    for (const d of ["_drafts", "raw", "concepts"]) mkdirSync(join(root, d));
+    return root;
+  };
+  const feat = (id: string) => ({
+    id,
+    title: id,
+    type: "feature" as const,
+    chapters: ["11"],
+    priority: 2,
+    repo: "r",
+    refs: ["main"],
+    entry: ["a.py"],
+    docs: [],
+    ask: "?",
+  });
+  const seeds = {
+    repos: { r: { url: "https://x", refs: { main: "28bf3a2e" }, path: "tools/repos/r" } },
+    features: [feat("a"), feat("b"), feat("c")],
+  };
+  const mkCtx = (root: string) => ({
+    handbook: hb,
+    wikiRoot: root,
+    repoRoots: { "r@main": "/r" },
+    today: "2026-09-07",
+    timeoutMs: 100,
+    batchIds: ["a", "b", "c"],
+  });
+  const good = (id: string) =>
+    `---\nid: ${id}\ntitle: ${id}\ntype: feature\nsummary: s\nchapters: ["11"]\nsources: [r@28bf3a2e:a.py#L1-L2]\nevidence: "C"\nupdated: "2026-09-07"\n---\n## 是什么\nx\n`;
+
+  it("矛盾的成功信号不能入成功清单，错误 id 的已报费用不能丢失", async () => {
+    const root = setup();
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      concurrency: 2,
+      log: () => {},
+      runAgent: async (req) => {
+        writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+        return {
+          id: req.id === "b" ? "wrong" : req.id,
+          ok: true,
+          exitCode: req.id === "a" ? 2 : 0,
+          costUsd: 0.1,
+          stderrTail: "",
+        };
+      },
+    });
+    expect(out.succeeded).toEqual(["c"]);
+    expect(out.costUsd).toBeCloseTo(0.3);
+  });
+
+  it("runner 抛异常时只失败该项，其他成功草稿仍返回并记录失败", async () => {
+    const root = setup();
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      concurrency: 2,
+      log: () => {},
+      runAgent: async (req) => {
+        if (req.id === "b") throw new Error("spawn failed");
+        writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+        return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+      },
+    });
+    expect(out.succeeded).toEqual(["a", "c"]);
+    expect(out.failures.b?.reason).toContain("spawn failed");
+  });
+
+  it("成功的写草稿；越界写判失败并删除；草稿 frontmatter 不合法判失败；记 _failures.json", async () => {
+    const root = setup();
+    const calls: string[] = [];
+    const runAgent: RunAgent = async (req) => {
+      calls.push(req.id);
+      if (req.id === "a") writeFileSync(join(root, "_drafts/a.md"), good("a"));
+      if (req.id === "b") {
+        writeFileSync(join(root, "_drafts/b.md"), good("b"));
+        writeFileSync(join(root, "concepts/evil.md"), "越界");
+      }
+      if (req.id === "c") writeFileSync(join(root, "_drafts/c.md"), "---\nid: c\n---\n");
+      const r: AgentResult = {
+        id: req.id,
+        ok: true,
+        exitCode: 0,
+        sessionId: `s-${req.id}`,
+        costUsd: 0.1,
+        stderrTail: "",
+      };
+      return r;
+    };
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      runAgent,
+      concurrency: 2,
+      log: () => {},
+    });
+    expect(calls.sort()).toEqual(["a", "b", "c"]);
+    // 越界是批级判定：本批所有 agent 都被标失败（分不清谁写的）
+    expect(out.succeeded).toEqual([]);
+    expect(Object.keys(out.failures).sort()).toEqual(["a", "b", "c"]);
+    expect(out.failures.a?.reason).toContain("concepts/evil.md");
+    expect(existsSync(join(root, "concepts/evil.md"))).toBe(false);
+    expect(out.costUsd).toBeCloseTo(0.3);
+    const saved = JSON.parse(readFileSync(join(root, "_drafts/_failures.json"), "utf8"));
+    expect(saved.b.sessionId).toBe("s-b");
+  });
+  it("已存在的文件被改动：不删、不判失败，只报告（2026-09-11 事故）", async () => {
+    // 事故经过：11 个 agent 全部正常产出，但引擎跑的 25 分钟里 HANDBOOK.md 被
+    // 改了一次，守卫把它当越界写入**删掉**，并把 11 个 agent 全判失败。
+    // 删掉的是规则唯一真相源，而 agent 的白名单里根本没有它的写权限。
+    // 结论：守卫只能删「本批新建」的文件，绝不能删本来就在的。
+    const root = setup();
+    const handbook = join(root, "HANDBOOK.md");
+    writeFileSync(handbook, "原始规则");
+    const runAgent: RunAgent = async (req) => {
+      writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+      if (req.id === "b") writeFileSync(handbook, "被改动的规则");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" } as AgentResult;
+    };
+    const logs: string[] = [];
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      runAgent,
+      concurrency: 3,
+      log: (l) => logs.push(l),
+    });
+    expect(existsSync(handbook)).toBe(true);
+    expect(readFileSync(handbook, "utf8")).toBe("被改动的规则");
+    expect(out.succeeded.sort()).toEqual(["a", "b", "c"]);
+    expect(Object.keys(out.failures)).toEqual([]);
+    expect(logs.join(" ")).toContain("HANDBOOK.md");
+  });
+
+  it("本批新建的越界文件仍然删除并判整批失败", async () => {
+    const root = setup();
+    const runAgent: RunAgent = async (req) => {
+      writeFileSync(join(root, `_drafts/${req.id}.md`), good(req.id));
+      if (req.id === "b") writeFileSync(join(root, "concepts/evil.md"), "越界");
+      return { id: req.id, ok: true, exitCode: 0, stderrTail: "" } as AgentResult;
+    };
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      runAgent,
+      concurrency: 3,
+      log: () => {},
+    });
+    expect(existsSync(join(root, "concepts/evil.md"))).toBe(false);
+    expect(out.succeeded).toEqual([]);
+    expect(out.failures.a?.reason).toContain("concepts/evil.md");
+  });
+
+  it("无越界时：合法草稿成功，不合法草稿与 ok=false 的记失败，互不阻塞", async () => {
+    const root = setup();
+    const runAgent: RunAgent = async (req) => {
+      if (req.id === "a") writeFileSync(join(root, "_drafts/a.md"), good("a"));
+      if (req.id === "c") writeFileSync(join(root, "_drafts/c.md"), "---\nid: c\n---\n");
+      return {
+        id: req.id,
+        ok: req.id !== "b",
+        exitCode: req.id === "b" ? 1 : 0,
+        reason: req.id === "b" ? "timeout" : undefined,
+        stderrTail: "",
+      } as AgentResult;
+    };
+    const out = await runExtractPhase(seeds.features, seeds, mkCtx(root), {
+      runAgent,
+      concurrency: 3,
+      log: () => {},
+    });
+    expect(out.succeeded).toEqual(["a"]);
+    expect(out.failures.b?.reason).toBe("timeout");
+    expect(out.failures.c?.reason).toContain("schema");
+  });
+});
+
+describe("applyIntegration", () => {
+  it("合并目标不存在时不删草稿也不记录成功", () => {
+    const root = mkdtempSync(join(tmpdir(), "wiki-"));
+    mkdirSync(join(root, "_drafts"));
+    writeFileSync(join(root, "_drafts/a.md"), "draft");
+    const result = applyIntegration(
+      root,
+      { promoted: [], merged: [{ from: "a", into: "missing" }], rejected: [], contradictions: [] },
+      "2026-09-14",
+    );
+    expect(result.problems.length).toBeGreaterThan(0);
+    expect(existsSync(join(root, "_drafts/a.md"))).toBe(true);
+    expect(existsSync(join(root, "log.md"))).toBe(false);
+  });
+  it("promoted 且 concepts 存在 → 删草稿、写 log；merged 删草稿；rejected 保留；promoted 但 concepts 缺 → problem", () => {
+    const root = mkdtempSync(join(tmpdir(), "wiki-"));
+    for (const d of ["_drafts", "concepts"]) mkdirSync(join(root, d));
+    for (const id of ["a", "b", "c", "d"])
+      writeFileSync(join(root, `_drafts/${id}.md`), `---\nid: ${id}\ntitle: T${id}\n---\n`);
+    writeFileSync(join(root, "concepts/a.md"), "---\nid: a\ntitle: Ta\n---\n");
+    const r = applyIntegration(
+      root,
+      {
+        promoted: ["a", "d"],
+        merged: [{ from: "b", into: "a" }],
+        rejected: [{ id: "c", reason: "空" }],
+        contradictions: [],
+      },
+      "2026-09-07",
+    );
+    expect(existsSync(join(root, "_drafts/a.md"))).toBe(false);
+    expect(existsSync(join(root, "_drafts/b.md"))).toBe(false);
+    expect(existsSync(join(root, "_drafts/c.md"))).toBe(true);
+    expect(existsSync(join(root, "_drafts/d.md"))).toBe(true);
+    expect(r.problems[0]).toContain("d");
+    const log = readFileSync(join(root, "log.md"), "utf8");
+    expect(log).toContain("## [2026-09-07] ingest | Ta");
+    expect(log).toContain("merged b → a");
+  });
+});
+
+describe("localDate", () => {
+  it("取本地日期而不是 UTC 日期", () => {
+    // 东八区 2026-09-07 01:50 对应 UTC 2026-09-06 17:50
+    const d = new Date(2026, 8, 7, 1, 50, 0);
+    expect(localDate(d)).toBe("2026-09-07");
+    expect(localDate(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+});
+
+describe("selectRelevantPages（Task 26 · 解风险 R2）", () => {
+  const mk = (id: string, chapters: string[], related: string[] = []) => ({ id, chapters, related });
+
+  it("跨章节 relations 关联和同 id 的现有参数页都必须被读取", () => {
+    const drafts = [
+      { ...mk("a", ["11"]), relations: [{ to: "param", kind: "builds-on" as const, note: "需要" }] },
+    ];
+    const existing = [
+      { ...mk("a", ["21"]), file: "params/a.md" },
+      { ...mk("param", ["13"]), file: "params/param.md" },
+    ];
+    expect(selectRelevantPages(drafts, existing).map((p) => p.id)).toEqual(["a", "param"]);
+    const request = integrateRequest(drafts, existing, ctx);
+    expect(request.stdin).toContain("params/a.md");
+    expect(request.stdin).toContain("params/param.md");
+    expect(request.stdin).not.toContain("concepts/param.md");
+  });
+
+  it("草稿的 related 指向的现有页要选进来", () => {
+    const picked = selectRelevantPages(
+      [mk("a", ["11"], ["kv-cache"])],
+      [mk("kv-cache", ["05"]), mk("far", ["21"])],
+    );
+    expect(picked.map((p) => p.id)).toContain("kv-cache");
+    expect(picked.map((p) => p.id)).not.toContain("far");
+  });
+
+  it("现有页回指草稿的也要选进来（双向）", () => {
+    const picked = selectRelevantPages([mk("a", ["11"])], [mk("b", ["21"], ["a"])]);
+    expect(picked.map((p) => p.id)).toContain("b");
+  });
+
+  it("章节有交集的选进来", () => {
+    const picked = selectRelevantPages([mk("a", ["11"])], [mk("same-chapter", ["11"]), mk("other", ["13"])]);
+    expect(picked.map((p) => p.id)).toContain("same-chapter");
+    expect(picked.map((p) => p.id)).not.toContain("other");
+  });
+
+  it("完全无关的页不选——这是 R2 的核心", () => {
+    const existing = Array.from({ length: 200 }, (_, i) => mk(`p${i}`, ["21"]));
+    expect(selectRelevantPages([mk("a", ["11"])], existing)).toEqual([]);
+  });
+
+  it("有上限，不会因为同章页太多而爆掉", () => {
+    const existing = Array.from({ length: 200 }, (_, i) => mk(`p${i}`, ["11"]));
+    expect(selectRelevantPages([mk("a", ["11"])], existing, { max: 30 }).length).toBe(30);
+  });
+
+  it("直接 related 的优先于只是同章的", () => {
+    const existing = [...Array.from({ length: 50 }, (_, i) => mk(`chap${i}`, ["11"])), mk("linked", ["21"])];
+    const picked = selectRelevantPages([mk("a", ["11"], ["linked"])], existing, { max: 5 });
+    expect(picked.map((p) => p.id)).toContain("linked");
+  });
+
+  it("结果稳定：同样输入两次结果一致", () => {
+    const existing = Array.from({ length: 50 }, (_, i) => mk(`p${i}`, ["11"]));
+    const d = [mk("a", ["11"])];
+    expect(selectRelevantPages(d, existing, { max: 10 })).toEqual(
+      selectRelevantPages(d, existing, { max: 10 }),
+    );
+  });
+});
+
+describe("integrateRequest（Task 26 · stdin 不随总页数增长）", () => {
+  const drafts = [{ id: "a", chapters: ["11"], related: ["kv-cache"] }];
+  const mkExisting = (n: number) => [
+    { id: "kv-cache", file: "concepts/kv-cache.md", chapters: ["05"], related: [] },
+    ...Array.from({ length: n }, (_, i) => ({ id: `unrelated${i}`, chapters: ["21"], related: [] })),
+  ];
+
+  it("只把选中的相关页写进 stdin，不叫 agent 读全部", () => {
+    const { stdin } = integrateRequest(drafts, mkExisting(200), ctx);
+    expect(stdin).toContain("kv-cache");
+    expect(stdin).not.toContain("unrelated0");
+  });
+
+  it("总页数从 10 涨到 500，stdin 长度不变", () => {
+    const a = integrateRequest(drafts, mkExisting(10), ctx).stdin.length;
+    const b = integrateRequest(drafts, mkExisting(500), ctx).stdin.length;
+    expect(b).toBe(a);
+  });
+
+  it("没有相关页时明确说明，不让 agent 自己去扫全库", () => {
+    const { stdin } = integrateRequest(drafts, [], ctx);
+    expect(stdin).toMatch(/没有|无/);
+  });
+});
+
+describe("extractRequest · 文档与占位符（Task 27 / 28）", () => {
+  const withDocs = multiRefYaml.replace(
+    "    entry: [vllm_ascend/ops/layer_shard_linear.py]",
+    "    entry: [vllm_ascend/ops/layer_shard_linear.py]\n    docs: [docs/source/user_guide/configuration/additional_config.md]",
+  );
+
+  it("seeds 的 docs 字段被解析出来", () => {
+    expect(parseSeeds(withDocs).features[0]?.docs).toEqual([
+      "docs/source/user_guide/configuration/additional_config.md",
+    ]);
+  });
+
+  it("没写 docs 时默认空数组，旧 seeds 不受影响", () => {
+    expect(parseSeeds(multiRefYaml).features[0]?.docs).toEqual([]);
+  });
+
+  it("stdin 同时给出源码入口与文档入口", () => {
+    const sd = parseSeeds(withDocs);
+    const { stdin } = extractRequest(sd.features[0]!, sd, ctx);
+    expect(stdin).toContain("vllm_ascend/ops/layer_shard_linear.py");
+    expect(stdin).toContain("docs/source/user_guide/configuration/additional_config.md");
+  });
+
+  it("文档变量表写进 stdin，agent 不必上网就能展开占位符", () => {
+    const sd = parseSeeds(withDocs);
+    const withVars = {
+      ...ctx,
+      docVars: { "vllm-ascend@releases/v0.23.0": { pip_vllm_ascend_version: "0.23.0" } },
+    };
+    const { stdin } = extractRequest(sd.features[0]!, sd, withVars);
+    expect(stdin).toContain("pip_vllm_ascend_version");
+    expect(stdin).toContain("0.23.0");
+  });
+
+  it("没有变量表时不写这一段，不留空标题", () => {
+    const sd = parseSeeds(withDocs);
+    const { stdin } = extractRequest(sd.features[0]!, sd, ctx);
+    expect(stdin).not.toContain("文档变量表");
+  });
+
+  it("llms.txt 当地图写进 stdin", () => {
+    const sd = parseSeeds(withDocs);
+    const withMap = { ...ctx, llmsTxt: "## Getting Started\n- [Installation](https://x/installation.html)" };
+    const { stdin } = extractRequest(sd.features[0]!, sd, withMap);
+    expect(stdin).toContain("llms.txt");
+    expect(stdin).toContain("Installation");
+  });
+});
+
+describe("联网权限按角色分（2026-09-11 修正）", () => {
+  const disallowedOf = (args: string[]) => args.slice(args.indexOf("--disallowedTools") + 1);
+  const allowedOf = (args: string[]) =>
+    args.slice(args.indexOf("--allowedTools") + 1, args.indexOf("--disallowedTools"));
+
+  it("提取 agent 能联网——它要读官方文档站、昇腾文档、论文", () => {
+    const sd = parseSeeds(seedsYaml);
+    const args = extractRequest(sd.features[0]!, sd, ctx).args;
+    const d = disallowedOf(args);
+    expect(d).not.toContain("WebFetch");
+    expect(d).not.toContain("WebSearch");
+    expect(d).toContain("Bash");
+    // `--allowedTools` 在 -p 模式下是白名单：只从黑名单拿掉，工具仍会被拒。
+    // 实测 2026-09-11：Claude requested permissions to use WebFetch, but you
+    // haven't granted it yet. 两边都要改，漏一边等于没放开。
+    expect(allowedOf(args)).toContain("WebFetch");
+    expect(allowedOf(args)).toContain("WebSearch");
+  });
+
+  it("整合 agent 的白名单里也没有联网工具", () => {
+    const a = allowedOf(integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx).args);
+    expect(a).not.toContain("WebFetch");
+    expect(a).not.toContain("WebSearch");
+  });
+
+  it("整合 agent 不能联网——它不引入新来源", () => {
+    const d = disallowedOf(integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx).args);
+    expect(d).toContain("WebFetch");
+    expect(d).toContain("WebSearch");
+  });
+
+  it("两个角色都不给 Bash，也都不禁 Edit（Spike W1）", () => {
+    const sd = parseSeeds(seedsYaml);
+    for (const args of [
+      extractRequest(sd.features[0]!, sd, ctx).args,
+      integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx).args,
+    ]) {
+      const d = disallowedOf(args);
+      expect(d).toContain("Bash");
+      expect(d).not.toContain("Edit");
+    }
+  });
+});
+
+describe("提取与整合固定作答模型", () => {
+  it("和受限启动器用同一个 WORK_MODEL：写知识页的调用不随 CLI 默认模型变", () => {
+    const s = parseSeeds(multiRefYaml);
+    for (const req of [
+      extractRequest(s.features[0]!, s, ctx),
+      integrateRequest([{ id: "a", chapters: ["11"], related: [] }], [], ctx),
+    ])
+      expect(req.args[req.args.indexOf("--model") + 1]).toBe(WORK_MODEL);
+  });
+});
+
+// YAML 1.2 会把 12345678 读成数字、4e123456 读成无穷大、01234567 读成 1234567（丢了开头的 0）。
+// 现有钉点都带字母所以还没出事；下次重钉碰上这种形状，钉点解析就会失败或悄悄错位。
+describe("seeds 里的提交号必须加引号", () => {
+  it("没加引号被读成数字时，报错直接说要加引号", () => {
+    for (const sha of ["12345678", "4e123456", "01234567"])
+      expect(() =>
+        parseSeeds(
+          `repos:\n  r:\n    url: https://github.com/a/b\n    path: p\n    refs:\n      main: ${sha}\nfeatures: []\n`,
+        ),
+      ).toThrow(/加引号/);
+    expect(
+      parseSeeds(
+        `repos:\n  r:\n    url: https://github.com/a/b\n    path: p\n    refs:\n      main: "01234567"\nfeatures: []\n`,
+      ).repos.r!.refs.main,
+    ).toBe("01234567");
+  });
+
+  it("仓库里每份 seeds 的每个提交号都是带引号的字符串", () => {
+    const dir = new URL("../../wiki/seeds/", import.meta.url);
+    const files = readdirSync(dir).filter((name) => name.endsWith(".yaml"));
+    expect(files.length).toBeGreaterThan(0);
+    const bare: string[] = [];
+    for (const name of files) {
+      const doc = parseDocument(readFileSync(new URL(name, dir), "utf8"));
+      const repos = doc.get("repos");
+      if (!isMap(repos)) continue;
+      for (const repo of repos.items) {
+        if (!isMap(repo.value)) continue;
+        const refs = repo.value.get("refs");
+        const pins = [
+          ...(isMap(refs) ? refs.items.map((item) => [`refs.${item.key}`, item.value] as const) : []),
+          ["commit", repo.value.get("commit", true)] as const,
+        ];
+        for (const [where, node] of pins)
+          if (
+            node !== undefined &&
+            !(isScalar(node) && (node.type === "QUOTE_DOUBLE" || node.type === "QUOTE_SINGLE"))
+          )
+            bare.push(`${name} ${repo.key}.${where}`);
+      }
+    }
+    expect(bare).toEqual([]);
+  });
+});

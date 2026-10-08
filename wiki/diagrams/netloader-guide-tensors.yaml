@@ -1,0 +1,18 @@
+layout: figure
+id: netloader-guide-tensors
+caption: 教学示意：每个格子是一个数，同一张量在两端的形状一致。先传 int8 矩阵，再传 FP16 缩放参数；右侧淡色格子表示接收前已建好的空位。图中只展示两个参数，不代表真实模型的全部权重。
+size: [880, 330]
+frames:
+  - { label: 供方：同一模型分片的参数, at: [20, 35], size: [270, 280] }
+  - { label: 接收方：同形状参数空位, at: [590, 35], size: [270, 280] }
+grids:
+  - { at: [62, 94], rows: 2, cols: 3, cell: [58, 34], tone: weight, style: solid, label: int8 矩阵（2 行 × 3 列） }
+  - { at: [632, 94], rows: 2, cols: 3, cell: [58, 34], tone: weight, style: faded, label: int8 矩阵（2 行 × 3 列） }
+  - { at: [62, 232], rows: 1, cols: 2, cell: [58, 34], tone: token, style: solid, label: FP16 缩放（2 个数） }
+  - { at: [632, 232], rows: 1, cols: 2, cell: [58, 34], tone: token, style: faded, label: FP16 缩放（2 个数） }
+links:
+  - { from: [236, 128], to: [632, 128], tone: comm }
+  - { from: [178, 249], to: [632, 249], tone: comm }
+texts:
+  - { at: [440, 108], text: 先：发送矩阵 → 填入, anchor: middle, size: 15, tone: comm }
+  - { at: [440, 229], text: 后：发送缩放 → 填入, anchor: middle, size: 15, tone: comm }

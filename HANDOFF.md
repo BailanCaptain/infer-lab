@@ -1,6 +1,6 @@
-> LLM WIKI 新会话请先读 [最新交接](C:/Users/-/Desktop/infra-view-new-llm-wiki/HANDOFF-LLM-WIKI.md)，并在 `C:/Users/-/Desktop/infra-view-new-llm-wiki` 的 `feat/llm-wiki` 工作树继续。此 main 工作区不是 Wiki 当前实现；以下项目背景保留。
+> LLM WIKI 已合入本仓库 `main`，新会话先读 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)。以下保留首页 / 城市背景等其他工作的历史项目背景，其中的旧 Wiki 状态已过期。
 
-# 交接说明（2026-09-06 深夜重写）
+# 交接说明（主干：首页与教学表现层）
 
 ## 当前开篇：大模型推理之旅 · 城市背景
 
@@ -14,7 +14,23 @@
 
 ## 现状（一句话）
 
-**只剩地基，没有任何教学画面。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
+**首页与教学表现层的下述记录保留历史背景；LLM WIKI F001–F005 已完成并合入 `main`，当前知识库状态见 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)。** 2026-09-06 用户把我做的全部 3D 画面（`src/viz3d/`、`#/lab`、`#/model`、Spike A/B 页、3D 字体子集、three.js 依赖）整体删除（提交见 `git log`，可找回但不要找回）。原因：三版画面都被否："幻灯片"、"怎么能这么丑"、"平片图/一坨屎"。地基（`src/sim/`、`src/timeline/`、页面配色字体、播放条）完整保留，全部测试通过。
+
+## 知识库 F001–F005（已合入 main）
+
+**这一节不维护知识库的状态。** 验收状态看 `docs/features/F001-llm-wiki.md`–`F005-wiki-drop.md` 各自的验收表；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](HANDOFF-LLM-WIKI.md)；页数、预算、待审数这类会变的数字按它 §2 的命令现查；实际花费以 `pnpm wiki:budget status` 为准。设计依据与历史发现留在五份 feature 和 `docs/plans/`，09-10 至 09-18 的逐轮报告在 [docs/plans/archive/](docs/plans/archive/README.md)。
+
+**目标**：agent 写、人只审、进 git 的课程知识库，学习者在 `#/wiki` 问名词就有基于知识库的回答。规则唯一真相源是 [wiki/HANDBOOK.md](wiki/HANDBOOK.md)，按六个二级标题切片注入不同角色的 agent（映射表在 `scripts/wiki/handbook.ts:9`）。命令清单见 `package.json` 的 `wiki:*` 脚本。
+
+**踩过的坑，别再踩**
+
+- `--allowedTools` 在 `-p` 无人值守模式下是**白名单**不是免确认表。放开联网要两步：从黑名单拿掉、往白名单加上，只做前者等于没做。
+- 越界守卫只删**本批新建**的文件。它曾把 `wiki/HANDBOOK.md`（规则唯一真相源）当越界写入删掉，并让 11 个正常 agent 全判失败——那次改动来自引擎外部，agent 根本没有写它的权限。
+- **`TaskStop` 只杀外层 shell，`claude.exe` 子进程会活下来继续写文件**。要停 ingest 用 `taskkill /pid <pnpm 的 pid> /t /f`。
+- 定性规则（「只留三类」「删到合理密度」）实测不落地，**换成硬指标并由引擎算好数字写进任务**才有效——标记数与事实表行数都是这么治住的。
+- 整合 agent 没有 `--add-dir` 也不能联网，它只读草稿与现有页。所以它能发现**页与页之间的矛盾**，发现不了**页与源码之间的偏差**（实测漏掉一处过度概括）。要抓后者得扩 `wiki:audit` 或加一个能读源码的核对角色。
+- 正文不走 `rehype-raw`：裸 HTML 标签与 `<!-- 注释 -->` 都会原样显示在页面上。`stray-tag` 规则管这个。
+- 别用 python heredoc 写含 `\n` 的 TS——反斜杠会被吃掉，正则和字符串都会断。用 Edit 工具。
 
 ## 地基有什么（全部有测试，不要动）
 
@@ -44,6 +60,8 @@
 
 不依赖画面选型、可以先做的（是否先做由用户定）：内容管线与 `03` 章正文（PLAN 任务 10、12）、模型工作台页面（任务 13，数字引擎已就绪）。
 
+知识库 F001 走的是独立分支，不受 Spike S1 阻塞；术语注册表（PLAN 任务 10 需要的 `<Term id>` 数据源）已由它的 `src/content/wiki/registry.json` 提供，不必另建 terms 表。
+
 **暂时没有消费者但保留的代码**（表现层或工作台页面重建后会用到，都有测试，不要当死代码删）：
 - `src/sim/timeline/plane.ts` 的 `planeView`：张量到二维视图的轴选择规则。
 - `Step.camera`、`Step.beats`：步的镜头与子节拍字段。
@@ -56,8 +74,10 @@
 - **不是 AI 写的文件一律不动**（用户 2026-09-06 明确要求）。仓库里属于用户的东西：`GLM5_Next_3D_Source.zip`（GLM-5-Next 3D 可视化源码包，含 HTML/OBJ/JSON/shader）、`parallelism-teaching-dark-png.zip` 与 `reference/parallelism-teaching-dark/`（并行策略教学图包）。只报告，不处置。
 - 可再生、可随时清的：`dist/`、`test-results/`、`tsconfig.*.tsbuildinfo`（已 gitignore）。
 - 重下代价大、不要随手清：`tools/hf-cache/`（598 MB，gen:trace 的模型缓存）、`tools/tokenizer/`（11 MB，gen:presets 的词表）。两者都已 gitignore。
+- `tools/repos/`（wiki 的来源仓库浅克隆，已 gitignore）：删了可以用 `pnpm wiki:clone` 重建，但要重新下载；里面是只读的上游代码，任何情况下不要在其中改动或提交。
 - 空目录 `src/viz2d/`、`src/content/` 是分层占位，`scripts/check-deps.ts` 的层序引用它们，别删。
 
-## 验证基线（2026-09-06 深夜，删除 3D 之后）
+## 验证基线
 
-`pnpm check` 126/126（12 个测试文件）；`pnpm build` 通过；`pnpm test:e2e` 3/3（只剩 spike-c）。
+- main（2026-09-06 深夜，删除 3D 之后）：`pnpm check` 126/126（12 个测试文件）；`pnpm build` 通过；`pnpm test:e2e` 3/3（只剩 spike-c）。
+- `feat/llm-wiki`（2026-09-07）：`pnpm check` 168/168（20 个测试文件）；`pnpm build` 通过；`pnpm wiki:lint` 与 `pnpm wiki:audit` 通过；`pnpm wiki:build` 幂等。

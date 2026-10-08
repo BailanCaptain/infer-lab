@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" role="img" aria-label="校验与改写在同一个函数里按固定先后跑：两道早退之后先认量化，再跑四个校验（任一不通过就报错退出），然后修不兼容组合并建昇腾配置，接着定编译与图模式、选 Worker 类、定块大小，最后三条按 PD 角色的检查。四个校验里管着本部署的是并行那一条，因为这里 DP 是 2">
+  <title>校验与改写在同一个函数里按固定先后跑：两道早退之后先认量化，再跑四个校验（任一不通过就报错退出），然后修不兼容组合并建昇腾配置，接着定编译与图模式、选 Worker 类、定块大小，最后三条按 PD 角色的检查。四个校验里管着本部署的是并行那一条，因为这里 DP 是 2</title>
+  <defs><marker id="platform-check-order-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="platform-check-order-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="platform-check-order-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="platform-check-order-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M149 126 L149 152" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-control)"/>
+  <path d="M149 208 L149 234" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-control)"/>
+  <path d="M149 290 L149 316" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-danger)"/>
+  <path d="M149 372 L149 398" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-control)"/>
+  <path d="M149 454 L149 480" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#platform-check-order-ah-comm)"/>
+  <path d="M149 536 L149 562" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-weight)"/>
+  <path d="M274 262 L330 262" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-danger)"/>
+  <path d="M274 508 L330 508" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#platform-check-order-ah-weight)"/>
+  <rect x="330" y="216" width="280" height="34" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="348" y="238" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#8f3229">层切分只许 P 节点</text>
+  <rect x="330" y="256" width="280" height="34" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="348" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#8f3229">投机 + DCP：非 MLA 草稿查头数</text>
+  <rect x="330" y="296" width="280" height="34" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="348" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">DP 与 prefill 上下文并行</text>
+  <rect x="330" y="336" width="280" height="34" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.3"/>
+  <text x="348" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="#8f3229">MTP 且 PP&gt;1：只许 P 节点</text>
+  <rect x="330" y="462" width="280" height="34" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="348" y="484" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">NPUWorker：本部署走这条</text>
+  <rect x="330" y="502" width="280" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="348" y="524" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">310P 专用 Worker</text>
+  <rect x="330" y="542" width="280" height="34" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="348" y="564" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)">xlite Worker</text>
+  <rect x="24" y="70" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="94" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两道早退</text>
+  <text x="149" y="113" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不是 npu 就返回</text>
+  <rect x="24" y="152" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">认出量化方式</text>
+  <text x="149" y="195" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">决定后面识别哪套</text>
+  <rect x="24" y="234" width="250" height="56" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="258" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">四个校验</text>
+  <text x="149" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不支持就当场报错</text>
+  <rect x="24" y="316" width="250" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="340" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">修组合、建昇腾配置</text>
+  <text x="149" y="359" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">之后按角色再改</text>
+  <rect x="24" y="398" width="250" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">定编译与图模式</text>
+  <text x="149" y="441" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">也可能整段关掉</text>
+  <rect x="24" y="480" width="250" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="504" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 Worker 类</text>
+  <text x="149" y="523" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只在自动时才选</text>
+  <rect x="24" y="562" width="250" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="586" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">定块大小与角色检查</text>
+  <text x="149" y="605" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一段跑在最后</text>
+  <text x="24" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">校验与改写的先后</text>
+  <text x="650" y="218" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">报错文本就写在这四个函数里</text>
+  <text x="650" y="252" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">本部署的 DP 是 2，所以 </text>
+  <text x="650" y="276" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">prefill 侧上下文并行只能是 1</text>
+  <text x="650" y="466" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">常规 A2 路径两个分支都不成立，</text>
+  <text x="650" y="490" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">落在第一条</text>
+  <text x="330" y="590" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">补丁更早已写入 640；这里空着才填 128，混合模型跳过「改回 128」</text>
+</svg>

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600" role="img" aria-label="D 节点续块失败时，本调度器改动的核心是「被让出的那条怎么处置」：连接器能把它的 KV 存走，就存走、之后搬回接着 decode；存不走，就还掉它的全部块、结束它，由代理把「原问题 + 已生成的内容」重新发给一对 P/D，重算落在 P 上，不占 D 的步子">
+  <title>D 节点续块失败时，本调度器改动的核心是「被让出的那条怎么处置」：连接器能把它的 KV 存走，就存走、之后搬回接着 decode；存不走，就还掉它的全部块、结束它，由代理把「原问题 + 已生成的内容」重新发给一对 P/D，重算落在 P 上，不占 D 的步子</title>
+  <defs><marker id="recompute-scheduler-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="recompute-scheduler-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker></defs>
+  <rect x="12" y="50" width="476" height="536" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="28" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">D 节点（只做 decode）</text>
+  <rect x="508" y="50" width="380" height="236" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="524" y="38" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">代理（PD 部署最前面的转发服务）</text>
+  <rect x="508" y="316" width="380" height="270" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="524" y="304" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">P 节点（做 prefill）</text>
+  <path d="M250 148 L250 186" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <path d="M250 244 L250 282" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <path d="M250 340 L250 366 L139 366 L139 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <path d="M250 340 L250 366 L361 366 L361 392" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <path d="M464 438 L496 438 L496 128 L528 128" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-danger)"/>
+  <path d="M698 164 L698 200" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <path d="M698 258 L698 356" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <path d="M698 428 L698 470" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#recompute-scheduler-ah-ink)"/>
+  <rect x="36" y="90" width="428" height="58" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="115" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 当前请求续块失败</text>
+  <text x="250" y="134" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">池子里的空闲块不够放这一步要写的位置</text>
+  <rect x="36" y="186" width="428" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="211" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 从 running 里取一条让出块</text>
+  <text x="250" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">默认取最晚排进来的那条</text>
+  <rect x="36" y="282" width="428" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="250" y="316" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">③ 问连接器：它的 KV 能存走吗？</text>
+  <rect x="36" y="392" width="206" height="92" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="139" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">能：存到主机内存</text>
+  <text x="139" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">排回队首，稍后搬回来</text>
+  <rect x="258" y="392" width="206" height="92" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="361" y="434" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不能：还回全部块</text>
+  <text x="361" y="453" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束它，标 recomputed</text>
+  <rect x="36" y="512" width="428" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="250" y="534" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">通用做法：在 D 本机从头重算</text>
+  <text x="250" y="553" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">开了本调度器的 D 节点不走这条</text>
+  <rect x="528" y="92" width="340" height="72" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="698" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">④ 认出 recomputed 标记</text>
+  <text x="698" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已生成的接到原问题后，上限扣掉已生成的</text>
+  <rect x="528" y="200" width="340" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="698" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 重新挑一对 P、D 发出去</text>
+  <rect x="528" y="356" width="340" height="72" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="698" y="388" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 把「原问题 + 已生成」整段 prefill</text>
+  <text x="698" y="407" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已生成的越长，这一遍越贵</text>
+  <rect x="528" y="470" width="340" height="72" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="698" y="502" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑦ KV 交给选中的 D，接着 decode</text>
+  <text x="698" y="521" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">通过代理的客户端看到输出接着往下走</text>
+  <text x="148" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">能</text>
+  <text x="370" y="360" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">不能</text>
+</svg>

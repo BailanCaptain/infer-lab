@@ -1,0 +1,29 @@
+layout: figure
+id: moe-pick
+caption: GLM 的专家选择与组合权重：实线传递分数，虚线传递选中的编号；校正偏置参与选择，组合系数由所选专家的原始分数计算
+size: [900, 640]
+items:
+  - { at: [310, 25], size: [280, 40], text: 当前 token 的隐藏表示, tone: token }
+  - { at: [310, 105], size: [280, 50], text: 路由线性投影 + sigmoid, style: plain }
+  - { at: [70, 310], size: [310, 50], text: 选择用分数 s + b, style: plain }
+  - { at: [70, 420], size: [310, 50], text: 选取 8 个专家编号 S, style: plain }
+  - { at: [560, 310], size: [270, 50], text: 按 S 取出原始分数 s, style: plain }
+  - { at: [560, 420], size: [270, 50], text: 归一化，再乘 2.5, style: plain }
+matrices:
+  - { at: [320, 205], w: 260, h: 26, rows: 1, cols: 8, tone: token, label: '288 个原始分数 s', dims: '格子仅作示意' }
+rows:
+  - { at: [80, 550], count: 8, w: 34, h: 28, gap: 3, tone: control }
+  - { at: [560, 550], count: 8, w: 30, h: 28, gap: 3, tone: token }
+links:
+  - { from: [450, 65], to: [450, 105] }
+  - { from: [450, 155], to: [450, 205] }
+  - { from: [320, 218], to: [225, 310], via: [[225, 218]] }
+  - { from: [580, 218], to: [695, 310], via: [[695, 218]] }
+  - { from: [225, 360], to: [225, 420] }
+  - { from: [380, 445], to: [560, 335], via: [[485, 445], [485, 335]], dashed: true }
+  - { from: [695, 360], to: [695, 420] }
+  - { from: [225, 470], to: [225, 550], dashed: true }
+  - { from: [695, 470], to: [695, 550], tone: token }
+texts:
+  - { at: [80, 611], text: 专家编号：执行哪些网络 }
+  - { at: [560, 611], text: 组合系数：怎样聚合输出 }

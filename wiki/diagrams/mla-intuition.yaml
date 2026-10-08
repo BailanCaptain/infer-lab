@@ -1,0 +1,54 @@
+layout: figure
+id: mla-intuition
+caption: MLA 的直觉。写入时，新位置被压成一条所有头共用的潜向量 c，存进 KV cache；读取时只取本次选中的位置，由各头的上投影从 c 得到 K 和 V，再照常做多头 attention。10 个位置、选中 4 个只是示意。
+size: [880, 600]
+grids:
+  - at: [140, 160]
+    rows: 1
+    cols: 10
+    cell: [48, 40]
+    gap: 6
+    tone: kv
+    style: solid
+    rowLabels: [KV cache]
+    cells:
+      - { at: [0, 9], text: 新 }
+  - at: [140, 290]
+    rows: 1
+    cols: 10
+    cell: [48, 40]
+    gap: 6
+    tone: kv
+    style: solid
+    rowLabels: [本次读取]
+    cells:
+      - { at: [0, 0], style: ghost }
+      - { at: [0, 2], style: ghost }
+      - { at: [0, 3], style: ghost }
+      - { at: [0, 5], style: ghost }
+      - { at: [0, 7], style: ghost }
+      - { at: [0, 8], style: ghost }
+items:
+  - { at: [40, 36], size: [210, 60], text: 新位置的隐藏向量, sub: 每处理一个 token 产生一条, tone: token }
+  - { at: [300, 36], size: [300, 60], text: ① 压缩：下投影成一条潜向量 c, sub: 所有头共用这一条，比各头的 K、V 短得多, tone: weight }
+  - { at: [650, 36], size: [210, 60], text: 对照：普通多头 attention, sub: 每个位置存 h 个头的 K 和 V, style: faded }
+  - { at: [140, 390], size: [534, 64], text: ④ 展开：每个头用自己的上投影，从 c 得到 Kᵢ 和 Vᵢ, sub: 实现里可把这一步并进查询和输出投影（吸收），结果相同, tone: weight }
+  - { at: [140, 500], size: [534, 64], text: ⑤ 各头照常打分、softmax，按权重汇合 V, sub: 多头 attention 本身不变，变的是历史怎样存, tone: token }
+  - { at: [720, 500], size: [140, 64], text: 当前查询 q, sub: 来自当前位置, tone: token }
+texts:
+  - { at: [690, 185], text: ② 每个位置只存一条 c }
+  - { at: [690, 315], text: ③ 只取选中的位置 }
+  - { at: [690, 340], text: 不做稀疏选择时取全部, note: true }
+links:
+  - { from: [250, 66], to: [300, 66] }
+  - { from: [450, 96], to: [650, 160], via: [[450, 128], [650, 128]] }
+  - { from: [218, 200], to: [218, 290] }
+  - { from: [380, 200], to: [380, 290] }
+  - { from: [488, 200], to: [488, 290] }
+  - { from: [650, 200], to: [650, 290] }
+  - { from: [218, 330], to: [218, 390] }
+  - { from: [380, 330], to: [380, 390] }
+  - { from: [488, 330], to: [488, 390] }
+  - { from: [650, 330], to: [650, 390] }
+  - { from: [407, 454], to: [407, 500] }
+  - { from: [720, 532], to: [674, 532] }

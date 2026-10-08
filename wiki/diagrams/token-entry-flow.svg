@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 660" width="840" height="660" role="img" aria-label="A1 在主机端套模板、分词、登记输出并选组；成功请求进入 A2 调度，A3 才准备设备输入。省略完整调用链，失败分支不会进入模型计算。">
+  <title>A1 在主机端套模板、分词、登记输出并选组；成功请求进入 A2 调度，A3 才准备设备输入。省略完整调用链，失败分支不会进入模型计算。</title>
+  <defs><marker id="token-entry-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M520 66 L580 66" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M275 97 L275 137" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M275 199 L275 221 L205 221 L205 247" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M275 199 L275 221 L635 221 L635 247" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M205 309 L205 337 L420 337 L420 365" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M635 309 L635 337 L420 337 L420 365" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M420 427 L420 477" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <path d="M420 539 L420 579" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#token-entry-flow-ah-ink)"/>
+  <rect x="30" y="35" width="490" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="275" y="62" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A1 · API server 收到聊天消息</text>
+  <text x="275" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">主机 CPU 与内存：套模板 → 分词 → 校验</text>
+  <rect x="580" y="35" width="230" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="695" y="62" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">返回入口错误</text>
+  <text x="695" y="81" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">模板或输入校验失败</text>
+  <rect x="30" y="137" width="490" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="275" y="164" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">包装引擎请求 · 登记输出</text>
+  <text x="275" y="183" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">R1：4 个编号 p₀–p₃ 与采样设置；留好反分词状态和输出队列</text>
+  <rect x="30" y="247" width="350" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="205" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">显式指定执行组</text>
+  <text x="205" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">使用请求中的目标组</text>
+  <rect x="460" y="247" width="350" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="635" y="274" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">未指定执行组</text>
+  <text x="635" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">按等待与运行请求数选组；R1：两组都 0 分 → DP0</text>
+  <rect x="180" y="365" width="480" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="392" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">ZMQ 发送 → 选中组的 EngineCore</text>
+  <text x="420" y="411" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">传请求对象；A2 调度器决定本步计算</text>
+  <rect x="180" y="477" width="480" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="504" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">A3 · worker 准备本步输入</text>
+  <text x="420" y="523" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">准备设备上的编号与位置张量，保留主机记录</text>
+  <rect x="180" y="579" width="480" height="55" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="611.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A4 · 设备查嵌入表 → 逐层计算</text>
+</svg>

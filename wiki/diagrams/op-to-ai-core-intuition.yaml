@@ -1,0 +1,26 @@
+layout: figure
+id: op-to-ai-core-intuition
+caption: 一个融合算子可包含矩阵与向量执行段；箭头表示数据依赖，交接方式由具体实现决定。归一化对照只需要向量计算，不经过矩阵乘。
+size: [860, 450]
+frames:
+  - { at: [20, 35], size: [820, 220], label: 一张卡内：矩阵乘与激活融合算子的分工 }
+  - { at: [20, 285], size: [820, 140], label: 对照：纯向量的 RMSNorm }
+items:
+  - { at: [45, 95], size: [135, 65], text: 输入与权重, sub: 搬入当前数据块, tone: token }
+  - { at: [225, 95], size: [155, 65], text: Cube 矩阵单元, sub: 对应相乘并累加, tone: weight }
+  - { at: [455, 95], size: [180, 65], text: Vector 向量单元, sub: 激活与逐元素处理, tone: token }
+  - { at: [685, 95], size: [130, 65], text: 输出, sub: 交给下一步, tone: token }
+  - { at: [45, 340], size: [135, 55], text: 一行输入, tone: token }
+  - { at: [290, 330], size: [300, 75], text: Vector：归约再缩放, sub: 整行求尺度 → 每个数乘尺度与权重, tone: token }
+  - { at: [685, 340], size: [130, 55], text: 同宽输出, tone: token }
+links:
+  - { from: [180, 128], to: [225, 128], tone: token }
+  - { from: [380, 128], to: [455, 128], tone: token }
+  - { from: [635, 128], to: [685, 128], tone: token }
+  - { from: [180, 367], to: [290, 367], tone: token }
+  - { from: [590, 367], to: [685, 367], tone: token }
+texts:
+  - { at: [417, 85], text: 中间结果, anchor: middle, size: 12 }
+  - { at: [45, 203], text: 先取得矩阵乘结果，再做激活；融合把执行段组织到同一算子内, size: 14 }
+pins:
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220', symbols: [npu_grouped_matmul_swiglu_quant] }

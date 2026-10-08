@@ -1,0 +1,111 @@
+layout: figure
+id: layers-sinkhorn
+caption: Sinkhorn 迭代怎样把 4×4 系数改成每行、每列和都为 1（数为示意，第 ② 张保留三位小数）：最右一列是行和，最下一行是列和，红色是还不等于 1 的和。① 按行 softmax 后行和都是 1，但新流 1 一共收到 1.3 份；② 每列除以自己的列和，列和变成 1，行和被打乱；③ 行、列来回交替，20 轮后两个方向的和都是 1
+size: [900, 240]
+grids:
+  - at: [80, 60]
+    rows: 5
+    cols: 5
+    cell: [46, 28]
+    tone: token
+    style: faded
+    rowLabels: ['旧流 1', '旧流 2', '旧流 3', '旧流 4', '列和']
+    colLabels: ['新流 1', '新流 2', '新流 3', '新流 4', '行和']
+    label: ① 按行 softmax 后：行和都是 1
+    cells:
+      - { at: [0, 0], text: '0.6' }
+      - { at: [0, 1], text: '0.1' }
+      - { at: [0, 2], text: '0.1' }
+      - { at: [0, 3], text: '0.2' }
+      - { at: [0, 4], text: '1.0', style: solid }
+      - { at: [1, 0], text: '0.2' }
+      - { at: [1, 1], text: '0.5' }
+      - { at: [1, 2], text: '0.1' }
+      - { at: [1, 3], text: '0.2' }
+      - { at: [1, 4], text: '1.0', style: solid }
+      - { at: [2, 0], text: '0.2' }
+      - { at: [2, 1], text: '0.1' }
+      - { at: [2, 2], text: '0.5' }
+      - { at: [2, 3], text: '0.2' }
+      - { at: [2, 4], text: '1.0', style: solid }
+      - { at: [3, 0], text: '0.3' }
+      - { at: [3, 1], text: '0.1' }
+      - { at: [3, 2], text: '0.1' }
+      - { at: [3, 3], text: '0.5' }
+      - { at: [3, 4], text: '1.0', style: solid }
+      - { at: [4, 0], text: '1.3', tone: danger, style: solid }
+      - { at: [4, 1], text: '0.8', tone: danger, style: solid }
+      - { at: [4, 2], text: '0.8', tone: danger, style: solid }
+      - { at: [4, 3], text: '1.1', tone: danger, style: solid }
+      - { at: [4, 4], style: empty }
+  - at: [370, 60]
+    rows: 5
+    cols: 5
+    cell: [46, 28]
+    tone: token
+    style: faded
+    colLabels: ['新流 1', '新流 2', '新流 3', '新流 4', '行和']
+    label: ② 第 1 轮：每列除以列和
+    cells:
+      - { at: [0, 0], text: '0.462' }
+      - { at: [0, 1], text: '0.125' }
+      - { at: [0, 2], text: '0.125' }
+      - { at: [0, 3], text: '0.182' }
+      - { at: [0, 4], text: '0.89', tone: danger, style: solid }
+      - { at: [1, 0], text: '0.154' }
+      - { at: [1, 1], text: '0.625' }
+      - { at: [1, 2], text: '0.125' }
+      - { at: [1, 3], text: '0.182' }
+      - { at: [1, 4], text: '1.09', tone: danger, style: solid }
+      - { at: [2, 0], text: '0.154' }
+      - { at: [2, 1], text: '0.125' }
+      - { at: [2, 2], text: '0.625' }
+      - { at: [2, 3], text: '0.182' }
+      - { at: [2, 4], text: '1.09', tone: danger, style: solid }
+      - { at: [3, 0], text: '0.231' }
+      - { at: [3, 1], text: '0.125' }
+      - { at: [3, 2], text: '0.125' }
+      - { at: [3, 3], text: '0.455' }
+      - { at: [3, 4], text: '0.94', tone: danger, style: solid }
+      - { at: [4, 0], text: '1.00', style: solid }
+      - { at: [4, 1], text: '1.00', style: solid }
+      - { at: [4, 2], text: '1.00', style: solid }
+      - { at: [4, 3], text: '1.00', style: solid }
+      - { at: [4, 4], style: empty }
+  - at: [660, 60]
+    rows: 5
+    cols: 5
+    cell: [46, 28]
+    tone: token
+    style: faded
+    colLabels: ['新流 1', '新流 2', '新流 3', '新流 4', '行和']
+    label: ③ 行、列交替做满 20 轮
+    cells:
+      - { at: [0, 0], text: '0.50' }
+      - { at: [0, 1], text: '0.15' }
+      - { at: [0, 2], text: '0.15' }
+      - { at: [0, 3], text: '0.20' }
+      - { at: [0, 4], text: '1.00', style: solid }
+      - { at: [1, 0], text: '0.13' }
+      - { at: [1, 1], text: '0.59' }
+      - { at: [1, 2], text: '0.12' }
+      - { at: [1, 3], text: '0.16' }
+      - { at: [1, 4], text: '1.00', style: solid }
+      - { at: [2, 0], text: '0.13' }
+      - { at: [2, 1], text: '0.12' }
+      - { at: [2, 2], text: '0.59' }
+      - { at: [2, 3], text: '0.16' }
+      - { at: [2, 4], text: '1.00', style: solid }
+      - { at: [3, 0], text: '0.24' }
+      - { at: [3, 1], text: '0.14' }
+      - { at: [3, 2], text: '0.14' }
+      - { at: [3, 3], text: '0.48' }
+      - { at: [3, 4], text: '1.00', style: solid }
+      - { at: [4, 0], text: '1.00', style: solid }
+      - { at: [4, 1], text: '1.00', style: solid }
+      - { at: [4, 2], text: '1.00', style: solid }
+      - { at: [4, 3], text: '1.00', style: solid }
+      - { at: [4, 4], style: empty }
+links:
+  - { from: [314, 130], to: [366, 130], tone: token }
+  - { from: [604, 130], to: [656, 130], tone: token }

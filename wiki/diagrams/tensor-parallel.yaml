@@ -1,0 +1,50 @@
+layout: figure
+id: tensor-parallel
+caption: R1 的一个稠密 MLP：gate、up 各沿输出维切八份，本地门控后直接接 down。P₀…P₇ 各是一张完整形状的 [4,4096] 张量，浅色表示数值仍为部分和；All-Reduce 把八张张量对应位置相加。矩阵格线仅示意，非逐元素比例。
+size: [900, 1110]
+frames:
+  - { at: [24, 74], size: [852, 216], label: '权重怎么切 · Y = X·W，W 为 [输入维, 输出维]' }
+  - { at: [24, 330], size: [852, 225], label: rank r 的本地计算 · r 为 0–7 }
+  - { at: [30, 606], size: [840, 310], label: 8 张卡各自的输出 · 每张形状完整，数值待求和 }
+matrices:
+  - { at: [65, 125], w: 150, h: 96, rows: 1, cols: 8, tone: weight, label: 'gate [4096,12288]', dims: '每卡 [4096,1536]' }
+  - { at: [295, 125], w: 150, h: 96, rows: 1, cols: 8, tone: weight, label: 'up [4096,12288]', dims: '每卡 [4096,1536]' }
+  - { at: [682, 85], w: 96, h: 150, rows: 8, cols: 1, tone: weight, label: 'down [12288,4096]', dims: '每卡 [1536,4096]' }
+  - { at: [60, 664], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₀, dims: '[4,4096]' }
+  - { at: [260, 664], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₁, dims: '[4,4096]' }
+  - { at: [460, 664], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₂, dims: '[4,4096]' }
+  - { at: [660, 664], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₃, dims: '[4,4096]' }
+  - { at: [60, 808], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₄, dims: '[4,4096]' }
+  - { at: [260, 808], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₅, dims: '[4,4096]' }
+  - { at: [460, 808], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₆, dims: '[4,4096]' }
+  - { at: [660, 808], w: 150, h: 64, rows: 4, cols: 4, tone: token, style: faded, label: P₇, dims: '[4,4096]' }
+items:
+  - { at: [40, 380], size: [140, 66], text: 同一份 X, sub: '[4,4096]', tone: token }
+  - { at: [199, 374], size: [210, 78], text: column · gate 与 up, sub: 'Wᵣ [4096,3072] · 12 MiB', tone: weight }
+  - { at: [439, 380], size: [164, 66], text: 本地 SwiGLU, sub: '[4,1536]', tone: token }
+  - { at: [627, 374], size: [229, 78], text: row · down, sub: 'Wᵣ [1536,4096] · 6 MiB', tone: weight }
+  - { at: [200, 482], size: [207, 48], text: gate 与 up 各 1536 维, style: plain }
+  - { at: [627, 482], size: [229, 48], text: 'Pᵣ [4,4096] · 部分和', tone: token }
+  - { at: [300, 970], size: [300, 66], text: All-Reduce · SUM, sub: '每卡输入 32,768 B', tone: comm }
+  - { at: [650, 970], size: [222, 66], text: 每张卡得到同一个 Y, sub: '[4,4096] · 完整数值', tone: token }
+links:
+  - { from: [180, 413], to: [199, 413] }
+  - { from: [409, 413], to: [439, 413] }
+  - { from: [603, 413], to: [627, 413] }
+  - { from: [304, 452], to: [304, 482] }
+  - { from: [741, 452], to: [741, 482] }
+  - { from: [741, 530], to: [450, 606], via: [[741, 582], [450, 582]] }
+  - { from: [450, 916], to: [450, 970], tone: comm }
+  - { from: [600, 1003], to: [650, 1003], tone: comm }
+texts:
+  - { at: [24, 27], text: 一台 Atlas 800 A2 · 8 张卡 · R1 的 4 个 token, strong: true }
+  - { at: [171, 283], text: column · gate / up 都切输出维, size: 13 }
+  - { at: [480, 172], text: row · down 切输入维, size: 13 }
+  - { at: [450, 508], text: 中间无通信, tone: control }
+  - { at: [60, 1005], text: 八张对应位置相加, tone: comm }
+  - { at: [24, 1080], text: '权重为 int8，输出为 BF16；归约前后形状相同，改变的是数值是否加齐。', note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442
+    symbols: [AscendGlm5NextMLP, MergedColumnParallelLinear, RowParallelLinear]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558
+    symbols: [tensor_model_parallel_all_reduce]

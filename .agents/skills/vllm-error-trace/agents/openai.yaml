@@ -1,0 +1,4 @@
+interface:
+  display_name: "vLLM 报错溯源"
+  short_description: "在线检索双仓库的报错讨论，追踪修复 PR，并核对实际运行版本的修复证据"
+  default_prompt: "使用 $vllm-error-trace 排查这段报错，查找相关讨论和修复 PR，核对我的版本是否包含修复。"

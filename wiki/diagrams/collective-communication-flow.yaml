@@ -1,0 +1,50 @@
+layout: figure
+id: collective-communication-flow
+caption: A0 先建通信组，A4 沿模型执行到 MoE 再按容量分流。左右分支互斥，均有四个通信边界；本地专家计算不另计通信。
+size: [880, 850]
+items:
+  - { at: [200, 20], size: [480, 58], text: A0 · 启动建立 TP8 / DP2 / EP16, sub: 先确定谁和谁通信, tone: control }
+  - { at: [200, 112], size: [480, 58], text: A4 · 嵌入与 attention 输出, sub: TP8 All-Reduce 合齐部分和, tone: comm }
+  - { at: [200, 204], size: [480, 58], text: 进入 MoE · 两组最大宽度在容量内？, sub: 固定 A2 部署，其余选择条件已满足, tone: control }
+  - { at: [30, 318], size: [370, 58], text: MC2 · 切 token 行并定向派发, sub: EP16 dispatch → 专家持有卡, tone: comm }
+  - { at: [480, 318], size: [370, 58], text: AllGather · 收集两组输入, sub: DP2 All-Gather hidden 与分数，共两次, tone: comm }
+  - { at: [30, 412], size: [370, 58], text: 本地专家计算, sub: 只处理派发到本卡的有效行, tone: weight }
+  - { at: [480, 412], size: [370, 58], text: 本地专家计算, sub: 筛出路由到本卡专家的工作, tone: weight }
+  - { at: [30, 506], size: [370, 58], text: EP16 combine, sub: 专家结果返回并加权组合, tone: comm }
+  - { at: [480, 506], size: [370, 58], text: DP2 Reduce-Scatter, sub: 对应卡合齐贡献，再各留本组 token 行, tone: comm }
+  - { at: [30, 600], size: [370, 58], text: TP8 All-Gather, sub: 拼齐 token 行，再去掉补位, tone: comm }
+  - { at: [480, 600], size: [370, 58], text: 计算共享专家并加入部分和, sub: 路由与共享贡献留到最后一并归约, tone: weight }
+  - { at: [30, 694], size: [370, 58], text: 共享专家计算 → TP8 All-Reduce, sub: 共享结果归约后，与路由结果相加, tone: comm }
+  - { at: [480, 694], size: [370, 58], text: TP8 All-Reduce, sub: 合齐路由与共享专家的全部贡献, tone: comm }
+  - { at: [200, 793], size: [480, 40], text: 每卡得到本执行组的完整 hidden → 继续前向, tone: token }
+links:
+  - { from: [440, 78], to: [440, 112] }
+  - { from: [440, 170], to: [440, 204] }
+  - { from: [320, 262], to: [215, 318], via: [[320, 286], [215, 286]], tone: comm }
+  - { from: [560, 262], to: [665, 318], via: [[560, 286], [665, 286]], tone: comm }
+  - { from: [215, 376], to: [215, 412] }
+  - { from: [665, 376], to: [665, 412] }
+  - { from: [215, 470], to: [215, 506] }
+  - { from: [665, 470], to: [665, 506] }
+  - { from: [215, 564], to: [215, 600] }
+  - { from: [665, 564], to: [665, 600] }
+  - { from: [215, 658], to: [215, 694] }
+  - { from: [665, 658], to: [665, 694] }
+  - { from: [215, 752], to: [320, 793], via: [[215, 772], [320, 772]] }
+  - { from: [665, 752], to: [560, 793], via: [[665, 772], [560, 772]] }
+texts:
+  - { at: [158, 300], text: 是, size: 14, strong: true }
+  - { at: [703, 300], text: 否, size: 14, strong: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252
+    symbols: [_select_a2_moe_comm_method]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L227
+    symbols: [finalize]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L469
+    symbols: [all_gather]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L543-L560
+    symbols: [reduce_scatter]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L663-L719
+    symbols: [shared_forward_impl, tensor_model_parallel_all_reduce]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/register_custom_ops.py#L157-L167
+    symbols: [_maybe_all_reduce_tensor_model_parallel_impl]

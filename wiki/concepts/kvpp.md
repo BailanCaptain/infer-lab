@@ -1,0 +1,329 @@
+---
+id: kvpp
+title: KVPP：KV cache 按层分给各卡常驻，算到时整层广播
+type: feature
+summary: TP 组里 MLA 的 KV cache 每张卡各存一份一样的；KVPP 把各层分给不同的卡长期保存，每卡另留 2 个暂存区，算到某层时由常驻卡提前一层整层广播。讲清分法、容量账、广播与等待、能和谁一起开；它只在 vllm-ascend main 上、只接受非混合 MLA 模型，GLM 双机没有开也开不了，GLM 段只做变体推导。
+aliases: [KVPP, KV Pipeline Parallelism, KV pipeline parallelism, KV 流水并行, KV 层并行, KV 按层并行, KV layer parallelism, enable_kvpp, KVPPConfig, KVPPScheduler, KVPPRuntime, KVPPPhysicalCachePlan, BroadcastKVPPTransport, LayerSplit, 常驻卡, 暂存区]
+chapters: ["13"]
+order: 60
+sources:
+  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L52-L100
+  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L1490-L1502
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L60-L89
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L56
+  - vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L107-L178
+  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546
+  - vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L1096-L1103
+  - vllm-ascend@baa023ad:vllm_ascend/worker/kvpp_cache.py#L30-L57
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L9-L36
+  - vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L23-L64
+  - vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L87-L114
+  - vllm-ascend@baa023ad:vllm_ascend/worker/v2/model_states/default.py#L74-L85
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2486-L2487
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4177-L4177
+  - vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L4772-L4774
+  - vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2057-L2061
+  - vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L1716-L1719
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L935-L940
+  - vllm-ascend@baa023ad:vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L214-L246
+  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L839-L839
+  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L922-L928
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2439
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L1-L56
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L57-L137
+  - vllm-ascend@baa023ad:docs/source/user_guide/feature_guide/kvpp.md#L138-L197
+  - vllm-ascend@baa023ad:docs/source/developer_guide/Design_Documents/kvpp.md#L1-L64
+  - vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L333-L344
+  - vllm-ascend@baa023ad:docs/source/user_guide/support_matrix/feature_matrix.md#L37-L37
+  - vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2072-L2085
+  - vllm@0fc695fc:vllm/config/speculative.py#L550-L554
+verified: []
+evidence: "C"
+relations:
+  - {to: kv-cache, kind: builds-on, note: 先知道 KV cache 存什么、为什么按块存}
+  - {to: tensor-parallel, kind: builds-on, note: 理解 TP 切头之后 MLA 的历史为什么逐卡复制}
+  - {to: mla, kind: builds-on, note: 理解各头共用的潜向量为什么切不开}
+  - {to: collective-communication, kind: builds-on, note: 理解 Broadcast 由谁发、谁收}
+  - {to: kv-cache-spec, kind: builds-on, note: 理解调度器眼里的块规格为什么不变}
+  - {to: pipeline-parallel, kind: alternative-to, note: 同叫「流水」，PP 分的是层的权重和计算，KVPP 只分历史放在哪}
+  - {to: context-parallel, kind: alternative-to, note: DCP 按位置分历史，和 KVPP 互斥}
+  - {to: glm-5-3-flash-two-node, kind: builds-on, note: GLM 变体推导用到的每 token 字节与块数}
+contradicts: []
+updated: "2026-09-29"
+origin: direct
+---
+
+## KVPP 是什么？
+
+**KVPP（KV Pipeline Parallelism）是 vllm-ascend 开发主线上的一个实验特性：一组卡本来各存一整份、内容完全相同的 KV cache，改成按层分给这组卡，每层只由一张卡长期保存；算到某一层时，由这张卡把这一层的历史整层广播给组里其他卡，其他卡放进临时的暂存区，用完就让给后面的层。**
+
+先把三个前置概念说清：
+
+- **KV cache**：模型每处理一个 token，都会在每一层留下这个位置的 key 和 value；后面的 token 要反复读它们，所以存下来不重算。这些存下来的历史就是 KV cache，详见 [KV cache](kv-cache.md#kv-cache-是什么)。
+- **TP（张量并行）**：把每一层的权重矩阵切给几张卡，各算一部分再合起来，详见 [张量并行](tensor-parallel.md)。
+- **为什么 TP 组里会有一模一样的 KV cache**：[MLA](mla.md) 把一个位置的 K、V 压成一条所有头共用的短向量（潜向量）来存。TP 切的是头，这条共用的潜向量切不开，于是 TP 组里每张卡都要存一整份，内容完全相同，见 [TP 页的稀疏 MLA 一节](tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)。
+
+看一个小例子（示意）：一个 8 层的 MLA 模型用 TP 分到 4 张卡上。不开 KVPP 时，4 张卡各存全部 8 层的历史，同一份东西存了 4 遍。开 KVPP 后，第 0、1 层的历史只存在卡 0 上，第 2、3 层只存在卡 1 上，依此类推；每张卡另外留 2 个暂存区。
+
+```wiki-diagram
+file: kvpp
+```
+
+新 token 仍然从第 0 层一路算到第 7 层，4 张卡照旧各算自己那几个头，TP 的分工一点没变。变的只是「每层的历史从哪来」：算第 0、1 层前，卡 0 把这两层的历史发给另外 3 张卡；算第 2、3 层前，换成卡 1 发；越往下，发的卡跟着换。发的方式是 [Broadcast](collective-communication.md#broadcast)：一张卡把同一份数据发给组里所有卡。
+
+名字里的「流水」（Pipeline）说的就是这件事：历史沿着层的顺序，一层一层从各自的常驻卡流出来。它和 [PP（流水线并行）](pipeline-parallel.md#pp-是什么)不是一回事，PP 分的是层的权重和计算。代码里把长期保存某一层的那张卡叫这一层的 owner，本页叫它「常驻卡」。
+
+## 为什么需要 KVPP？
+
+**不开时，TP 组里多出来的那几份 KV cache 全是复制品，而 KV cache 的容量直接决定一次能接多少请求、能留多长的历史。**
+
+接着上面的例子算一下（示意数）：每张卡给 KV cache 留 48 MiB。KV cache 按块存放，一块装固定个数的位置（见 [KV cache 按块存放](kv-cache.md#缓存按块存放一个位置的-kv-写进哪一格)）；一个块号要在 8 层上各占一格，假设每层每块 1 MiB，一个块号就是 8 MiB，每张卡只能分出 48 ÷ 8 = 6 块。4 张卡一共拿出了 192 MiB，装的却只是同样的 6 块历史。块用完以后，调度器只能少接请求，或者把正在跑的请求挤出去、以后再重算。
+
+不是所有 attention 都会这样复制。[GQA](gqa.md) 有好几个 KV 头，TP 可以把不同的头分给不同的卡，每张卡存的是不同的东西，只有 KV 头不够分时才会复制（见 [GQA 页](gqa.md#张量并行时kv-头不够分就要复制)）。MLA 只有一条共用的潜向量，TP 开到几，就复制几份。KVPP 目前也只接受 MLA 这一类模型。不过 MLA 也不是非复制不可，这取决于实现和并行配置：下表里的 DCP 就是把 MLA 的历史按位置分到各卡的另一条路，所以 KVPP 和 DCP 不能同开。
+
+**代价是通信，而且是整层的通信。** 常驻卡每次发的是这一层已经分配出去的全部块，不管这一步真正在跑的请求用了其中几块。能装的块多了几倍，每层要搬的字节就跟着多几倍，这是同一件事的两面，具体数在「历史怎样到位」一节演算。
+
+除了通信，还有三笔账：每张卡要多留 2 个暂存区的显存；每层计算前可能要等广播到位；目前只能用 eager（算子一个一个下发执行），不能用图模式（把一步的算子序列录下来反复回放，见 [ACL Graph](acl-graph.md)）。所以它换来的是容量，不是速度：官方在另一个模型上测到能装的 token 多了五六倍，同时长输入的首 token 时间变长、prefill 吞吐下降，数字和测试条件见文末「开销和什么时候别开」。
+
+KVPP 和几种名字相近的做法，改的东西不同：
+
+| 做法 | 改的是什么 | 要用到时怎么办 |
+|---|---|---|
+| [PP（流水线并行）](pipeline-parallel.md) | 层的权重和计算分到不同的卡 | 段与段之间只交接隐藏向量，历史留在各段 |
+| [DCP（decode 上下文并行）](context-parallel.md) | 同一层的历史按位置分到不同的卡 | 各卡用本地那段算出局部结果，再合并 |
+| KVPP | 每层历史只由一张卡常驻，计算不动 | 算到这一层前，常驻卡整层广播 |
+| KV cache 卸载（[CPU offload](kv-cache-cpu-offload.md)、[外部 KV 池](kv-pool.md)） | 历史搬到主机内存或外部存储 | 用到时搬回显存 |
+
+一句话分辨：PP 换的是每张卡算哪几层，DCP 换的是每张卡存哪些位置，KVPP 两样都不换，只换「每层的历史长期放在哪张卡上」。v0.23 维护分支上还有一个做法相近的 [layer_sharding](../params/layer-sharding.md)：把部分线性层的权重按层号轮流分给几张卡，前向时同样提前一层广播取回；它分的是权重，不是 KV cache，而且只在 v0.23 上有。
+
+## 层怎么分，每张卡要留多少显存？
+
+**层按顺序连续均分，除不尽的余数给排在前面的卡；每张卡要留的是「自己常驻的层 + 2 个暂存区」，再加上不参与划分的 MTP 草稿层。**
+
+分法在启动时一次定死，规则有三条：
+
+1. **按层号排好，连续地分。** 8 层分给 4 张卡，每张 2 层：卡 0 拿第 0、1 层，卡 1 拿第 2、3 层，依此类推。除不尽时，余数由排在前面的卡各多拿一层：10 层分给 4 张卡是 10 ÷ 4 = 2 余 2，卡 0、1 各拿 3 层，卡 2、3 各拿 2 层。开了 PP 时，每一段只分自己那段里的层。
+2. **一层要一起存的几份缓存捆在一起，归同一张卡。** 除了主 KV cache，有的模型每层还有索引器缓存、量化用的缩放系数，它们跟着这一层走，在显存里连着放，代码里叫这一层的 bundle。广播也是整个 bundle 一起发。
+3. **MTP 草稿层不参与划分。** MTP 是模型自带的草稿层，先猜后面几个 token，再交给主模型验证（见 [投机解码](speculative-decoding.md)）。它的缓存每张卡都完整留一份。
+
+暂存区固定是 2 个，和组里有几张卡无关：一个装正在算的这一层，一个接提前发来的下一层，按层的顺序轮流用。每个暂存区按参与划分的层里最大的那一层 bundle 开，MTP 层不计入。
+
+启动时每张卡按这几项重新算自己能分多少块。组里各卡分到的层数不一样时，引擎取所有卡里最小的块数，所以**拿层最多的那张卡决定整组的容量**。接着上一节的示意数（每层每块 1 MiB，每卡 48 MiB）：
+
+```calc
+title: 开 KVPP 前后，每张卡能分多少块（示意）
+不开：一个块号要占 = 8 层 × 1 MiB = 8 MiB
+不开：每卡块数 = 48 MiB ÷ 8 MiB = 6 块
+开：一个块号要占 = (2 层常驻 + 2 个暂存区) × 1 MiB = 4 MiB
+开：每卡块数 = 48 MiB ÷ 4 MiB = 12 块
+容量 = 12 块 ÷ 6 块 = 2 倍
+> 4 张卡分摊，省下的却不是 4 倍：2 个暂存区占掉了一半
+```
+
+卡越多、层越多，这 2 个暂存区摊得越薄。同样 8 层，8 张卡时每卡常驻 1 层，容量是 8 ÷ (1 + 2) ≈ 2.7 倍；只有 2 张卡时每卡常驻 4 层，是 8 ÷ (4 + 2) ≈ 1.3 倍；组里只有 1 张卡时没有复制品，一个字节都省不下。写成通用式：共 L 层、组里 N 张卡、每层每块 B 字节时，拿层最多的卡一个块号要占 (⌈L/N⌉ + 2) × B，本例是 (2 + 2) × 1 MiB = 4 MiB。这个式子按每层一样大算；各层大小不一时，要按各层实际字节加总，暂存区按最大的一层开，MTP 层等不参与划分的缓存另算。这里算的只是 KV cache 这一块，不是整张卡的显存降幅。
+
+**调度器那一侧什么都没变。** 每张卡算出块数后，把它乘回「不开 KVPP 时一个块号要占的字节」报给引擎。所以引擎和调度器看到的仍是原来那套块规格、块号和块表（见 [KV cache 规格](kv-cache-spec.md)），只是块数从 6 变成了 12；[前缀缓存](prefix-caching.md)和[块分配](vllm-kv-block-allocation.md)都不知道 KVPP 存在。调度器眼里每张卡放着 12 × 8 MiB = 96 MiB 的历史，实际每张卡只用了 48 MiB，差的那部分靠广播从别的卡借。DCP 则不同，它真的把同一层的历史按位置分开存，每张卡上只有一部分位置。
+
+## 算到某一层时，历史怎样到位？
+
+**每层在投影算完、第一次读写缓存之前，等这一层的广播到位；一等到，就立刻发下一层的广播。广播走单独的一条传输流，永远提前一层。**
+
+一步前向里，每张卡按这个顺序走：
+
+1. **开头先看这一批有没有历史。** 只要这批里有一条请求已经算过 token（decode、分块 prefill 的后续块、命中前缀缓存都算），就在前向一开始发第 0 层的广播。整批都是全新的 prefill 时，这一步没有历史可读，整步不广播；启动时的试跑和测显存那几步也不广播。
+2. **每层先算投影。** 投影是把这一层的输入乘上权重，得到新 token 的 Q（压缩后的中间表示）和要写进缓存的新潜向量。这段计算不碰缓存，可以和广播同时进行。
+3. **第一次读写缓存之前，等这一层到位。** 常驻卡直接用自己那份；别的卡等广播收进暂存区。
+4. **一等到，就发下一层的广播**，然后算这一层的 attention 和后面的计算。下一层的广播就和这些计算同时在跑。
+
+```wiki-diagram
+file: kvpp-broadcast
+```
+
+图的下半截是卡 3 的时间线（示意）。第 0 层前面没有别的计算可以遮挡，只能干等；从第 1 层起，广播和上一层的 attention、其余计算同时进行，广播比这些计算快就不用等，比它们慢就还要等一截。能藏住多少，要看广播的字节数和每层的计算量，没有通用结论。
+
+**新 token 的历史怎么进常驻那份。** 这一层的新潜向量，每张卡都算出了同一份（MLA 的压缩投影在 TP 组里不切），也都写进自己手上这一层的缓存。常驻卡写进的是常驻那份，会一直保留；别的卡写进的是暂存区，隔一层再用这个暂存区时就被覆盖。下一步再算这一层时，常驻卡会把包含新位置的整层重新发出来，所以别的卡丢掉暂存区也不会丢历史。
+
+**整层发，不按请求挑。** 接着上一节的例子：开 KVPP 后每张卡有 12 块。假设这一步只有一条短请求在跑，只用到其中 3 块：
+
+```calc
+title: 每层广播多少（示意，接上一节的 12 块）
+一层的 bundle = 12 块 × 1 MiB = 12 MiB
+这一步真正用到的 = 3 块 × 1 MiB = 3 MiB
+每张卡每步要收 = (8 层 − 常驻 2 层) × 12 MiB = 72 MiB
+> 块数从 6 翻到 12，一层的 bundle 也从 6 MiB 变成 12 MiB，每层要发的字节跟着翻倍
+```
+
+## 能和 PP、PCP、PD 分离、KV 卸载一起开吗？
+
+**大多能组合，但都有条件：通信组只在一个 DP 副本、一个 PP 段之内；和 DCP、图模式互斥；接外部存储只放行两种连接器。**
+
+先认几个词：PCP（prefill 上下文并行）把一条长 prompt 的位置分给几组卡一起算 prefill，DCP 把 decode 时的历史按位置分到几张卡上，两者见 [上下文并行](context-parallel.md)；Model Runner V2 是 vllm-ascend 新版的 model runner（每步准备输入、执行前向的组件，见 [NPU model runner](npu-model-runner.md)）；PD 分离是把 prefill 和 decode 交给两套实例，中间由连接器交接历史。main 版本的情况如下：
+
+| 一起开的是 | 能不能 | 条件 |
+|---|---|---|
+| [PP](pipeline-parallel.md) | 能 | 每一段只把自己那段的层分给段内的卡，各段各建一组、各自广播，组不跨段 |
+| [DP（数据并行）](data-parallel.md) | 能 | 每个 DP 副本各是一组，组不跨副本 |
+| PCP | 能，要新版 model runner | 组扩成 TP × PCP 张卡；main 上 PCP 本身就只能配 Model Runner V2 |
+| DCP | 不能 | 启动报错 |
+| 图模式 | 不能 | 只能 eager |
+| MTP 投机解码 | 只能固定步数 | MTP 层不参与划分，每卡各留一份 |
+| [PD 分离](pd-disaggregation.md) | 能，只用 MooncakeConnectorV2 | 只在 prefill 实例上开，decode 实例必须关 |
+| [外部 KV 池](kv-pool.md) | 能，只用 AscendStoreConnector | memcache 后端；不支持按层存取；每张卡只存自己常驻的层和自己的 MTP 缓存 |
+| PCP 加 PD 分离，或 PCP 加外部 KV 池 | 不能 | 三者同开未支持 |
+| [CPU offload](kv-cache-cpu-offload.md) 等其他连接器 | 按代码会被拒 | 启动检查只放行上面两种连接器 |
+
+和「换出」有关的两条要单独说。接外部 KV 池时，每张卡按块存一份对象，里面只有它常驻的层和它自己那份 MTP 缓存，暂存区不存；读回时装进常驻那份，别的卡照旧在算到这一层时靠广播拿。查池时，要所有常驻卡（跨所有 PP 段）的分片都在，这个前缀才算命中。PD 分离时，prefill 实例各卡只登记自己常驻的层，decode 实例不开 KVPP，从各层的常驻卡分别取。其他连接器（例如 CPU offload 用的那种）会在启动检查里被拒，报错文案写的却是「PD 分离要用 MooncakeConnectorV2」，这是按代码推断的结果，没有实跑。
+
+## 在 vllm-ascend 里怎么走一遍？
+
+**启动时一次定好分工和容量，每步前向逐层等、逐层提前发。**
+
+```wiki-diagram
+file: kvpp-flow
+```
+
+上两排在启动时走一次。先读开关、定组大小（TP × PCP）；组大小是 1 就什么都不做。大于 1 才做启动检查，不满足任何一条就报错退出。接着每个 DP 副本、每个 PP 段各建一个通信组，把本段的层按上面的规则分给常驻卡，按「常驻层 + MTP 层 + 2 个最大层」算出块数，再换回逻辑字节报给引擎。引擎定下块数后，各卡按块数分配：常驻层各占一段连续显存，别人的层轮流指向 2 个暂存区；最后给每个 attention 层挂上等待点。
+
+下排是每步前向：本批没有任何带历史的请求就整步不广播；否则一开头发第 0 层，之后每层在投影之后等本层到位、随即发下一层，再做 attention 和其余计算。
+
+## 放到 GLM 双机：这套部署能开 KVPP 吗？
+
+**不能，也没有开。** 本站的 GLM 双机（2 台 × 8 张 A2，TP8 / DP2 / EP16，W8A8，见 [部署前提](glm-5-3-flash-two-node.md#部署前提)）钉住的执行侧版本里根本没有 KVPP 的代码。就算换到有 KVPP 的 main，也过不了启动检查：GLM 是混合模型，45 层里 34 层是 [KDA](linear-attention.md) 线性 attention，存的是固定大小的递推状态，只有 11 层是稀疏 MLA；KVPP 只接受每层都是 MLA 的模型。这套部署还给 decode 步录了图，而 KVPP 只能 eager。
+
+下面两小节是**变体推导**：把 KVPP 的规则套到 GLM 的 MLA 尺寸上，看会怎样。没有实现，也没有任何实测，数字只用来理解机制。
+
+### GLM 的哪一部分缓存，正是 KVPP 想省的？
+
+**GLM 的 11 层稀疏 MLA 加上 MTP 的第 45 层，每层的潜向量和索引器缓存在一台机器的 8 张卡上各存一份，内容完全相同。** 这正是 KVPP 针对的复制。部署页算过：每层每 token 是 1,024 B 潜向量加 64 B 索引器缓存，12 层合计每 token 13,056 B，每张卡都要存这么多（见 [占住一个块号，要用多少显存](glm-5-3-flash-two-node.md#占住一个块号要用多少显存)）。KDA 的状态不一样：它跟着头一起切，8 张卡存的是各自那几个头的状态，本来就没有复制品（见 [TP 页的 KDA 一节](tensor-parallel.md#kda状态跟着头一起切)）。
+
+两台机器是两个 DP 组，各接各的请求、各存各的历史，彼此也没有复制。所以即使能开，KVPP 的组也只是一台机器上的 8 张卡（TP8 × PCP1），不会跨机器，也不碰 EP16 的专家分工（16 张卡怎么分组见 [部署页](glm-5-3-flash-two-node.md#16-张卡怎样分组)）。
+
+套用前面的规则：11 个主干 MLA 层分给 8 张卡，11 ÷ 8 = 1 余 3，卡 0、1、2 各常驻 2 层（卡 0 是第 3、7 层），卡 3 到卡 7 各常驻 1 层；MTP 的第 45 层不参与划分，每张卡各留一份。
+
+```calc
+title: GLM 的 MLA 缓存若按 KVPP 分（变体推导，每 token）
+每层每 token = 1,024 B（潜向量） + 64 B（索引器） = 1,088 B
+现在每卡 = 12 层 × 1,088 B = 13,056 B
+最满的卡 = (2 层常驻 + 1 层 MTP + 2 个暂存区) × 1,088 B = 5,440 B
+其余 5 张卡 = (1 层常驻 + 1 层 MTP + 2 个暂存区) × 1,088 B = 4,352 B
+> 块数由最满的卡决定；5 份里有 3 份是暂存区和 MTP 层
+```
+
+这组数只说明 MLA 那部分每 token 的账，不能换算成 GLM 的块数或容量倍数。GLM 的 KV 池里还有 KDA 状态，它和 MLA 页共用同一个块池（见 [为什么一个逻辑块是 640 个 token](glm-5-3-flash-two-node.md#为什么一个逻辑块是-640-个-token)），而现在的 KVPP 分配要求所有缓存都是同一种 full attention，混合模型没有对应的算法。
+
+### 整层广播放到 GLM 的尺子上有多大？
+
+**拿主线算例里每层分配的量当尺子（算例值，不是本部署的实测分配）：一层 MLA 缓存在每张卡上约 2.50 GiB，KVPP 每算一层就要把这么多整层发一遍。** 部署页的算例是每卡 3,855 个块号（见 [剩下的显存变成多少 KV cache](glm-5-3-flash-two-node.md#剩下的显存变成多少-kv-cache)），每个块号在每个 MLA 层上占一页主缓存和一页索引器缓存：
+
+```calc
+title: 若 GLM 开 KVPP，一层要广播多少（变体推导，按主线算例块数）
+一层一块 = 655,360 B（主缓存） + 40,960 B（索引器） = 696,320 B
+一层全部块 = 3,855 × 696,320 B = 2,684,313,600 B ≈ 2.50 GiB
+每卡每步要收 = 9 或 10 层 × 2.50 GiB ≈ 22.5–25 GiB
+> MTP 层每卡自有，不广播；开 KVPP 后块数只会更多，每层要发的只会更大
+```
+
+这个量和这一步有几个 token 无关。以 [R1](one-request.md#示例请求-r1-与官方双机部署)（prompt 为 4 个 token 的示例请求）为例：它的第一步是全新的 prefill，整批没有历史，按规则整步不广播；从第一个 decode 步起它有了历史，哪怕整台机器上只有它一条请求、MLA 只用到 1 个块，每层也要把 3,855 块全发一遍。这些字节要传多久，取决于机内卡间链路的实际带宽和广播算法，本站没有测量。
+
+## 常见误解
+
+- **「KVPP 是流水线并行的一种，要多加卡。」** 名字里的「流水」说的是 KV cache 的存放和搬运；TP、EP、PP 的计算分工一点不变，卡数也不变。
+- **「常驻卡把这一层的计算也接过去了。」** 没有。每张卡照旧算自己那几个头，常驻卡只是长期保存这一层的历史。
+- **「广播只发这一步要用的块。」** 发的是这一层全部已分配的块，不按请求挑。能装的块多几倍，每层要搬的字节就多几倍。
+- **「4 张卡分摊，就能省成四分之一。」** 还要算 2 个暂存区和每卡各留一份的 MTP 层，而且拿层最多的卡决定容量；8 层分 4 张卡只省到一半。
+- **「开了就更快。」** 它换的是容量。官方测量里首 token 时间和 prefill 吞吐都变差了；只有原来被 KV 容量卡住、多装下的历史能换来更高的前缀命中或更少的重算时，整体才可能划算。
+- **「一张卡（TP=1）也能靠它装更长的上下文。」** TP=1 又不开 PCP 时组里只有自己，没有复制品，一个字节都省不下。
+- **「全新的 prefill 也要等广播。」** 整批都没有历史时整步不广播；但批里只要混进一条 decode 或命中前缀的请求，整步每层都要广播。
+- **「开了 KVPP，调度器看到的块会变少。」** 正相反：块规格不变、块数变多，缺的那部分靠广播补。
+- **「GLM 里有 MLA 层，所以能开。」** GLM 是 KDA 和稀疏 MLA 的混合模型，启动检查直接拒绝；本站 GLM 双机也没有开。
+- **「KVPP 和 DCP 都是分 KV，可以叠着开。」** 两者互斥，同开启动报错。
+
+## 对照源码
+
+### 怎么开
+
+只在 vllm-ascend main（`baa023ad`）上有，一个开关，组大小不用配：
+
+```bash
+vllm serve <非混合的 MLA/SFA 模型> \
+    --tensor-parallel-size 8 \
+    --enforce-eager \
+    --additional-config '{"enable_kvpp": true}'
+```
+
+- `enable_kvpp` 写在 `--additional-config` 里，默认 `false`，必须是布尔值；参数页见 [kvpp_config](../params/kvpp-config-0445bd352140.md)。启动命令里已有 `--additional-config` 时，把它并进同一个 JSON。
+- 打开后 `KVPPConfig.size = tensor_parallel_size × prefill_context_parallel_size`，没有单独的组大小参数，广播粒度也不可调。`size` 为 1（TP=1 且 PCP=1）时什么都不做，也不跑启动检查。
+- 只有 `size > 1` 才建名为 `kvpp` 的通信组，并断言 `kvpp_size == global_pcp_size * global_tp_size`；全体 rank 按 DP、PP、PCP、TP 排好后，每个 DP 副本、每个 PP 段的 PCP × TP 张卡各成一组。
+- 层分配：`map_kvpp_layers_to_owners` 先按层号排序、剔除 MTP 层（层号在 `num_hidden_layers` 到 `num_hidden_layers + num_nextn_predict_layers` 之间，由 `find_mtp_layers` 找出），再 `divmod(层数, size)`，前 `remainder` 张卡各多一层。bundle 由 `build_layer_cache_bundles` 按层号把主 KV、索引器缓存等捆在一起。
+- 预算：`KVPPPhysicalCachePlan.get_num_blocks` 里每块字节 = 常驻（含没有 owner 的 MTP 层）+ `KVPP_SCRATCH_BUFFER_COUNT`（= 2）× 最大 bundle（只在有 owner 的层里取，MTP 层不计入）；worker 的 `_apply_kvpp_memory_budget` 把块数乘回逻辑每块字节报给引擎，引擎再取各卡最小块数。
+- 分配：`allocate_kvpp_cache` 给常驻层各开一段按 2 MiB 对齐的连续显存，非本卡的层按目标层序号 `% 2` 轮流指向两个暂存区。V1 runner 在 `_allocate_kv_cache_tensors` 里改走它；V2 在 `attn_utils` 里走它。
+- 广播：`BroadcastKVPPTransport.prefetch` 在单独的 NPU 流上先等「缓存就绪」事件，再 `dist.broadcast(..., async_op=True)` 后紧跟 `work.wait()`，记一个完成事件并 `synchronize()`；异步来自 `KVPPScheduler` 里单线程的 `ThreadPoolExecutor`，不是来自 `async_op`。
+- 调度：`schedule_forward` 在有历史时立刻给第 0 层发预取；`wait_for_layer` 等上一次预取返回后，马上对下一层 `start_layer_prefetch`。等待点在 MLA 后端投影之后、首次读写缓存之前（`mla_v1.py`），SFA 后端在融合预处理之前（`sfa_v1.py`）。
+- 有无历史：V1 runner 看 `num_computed_tokens_cpu` 里有没有大于 0 的；V2 同样判断，开 PCP 时看全局批而不是本 PCP 段；`_dummy_run` 与 V2 的试跑、测显存路径一律按没有历史处理。
+- LayerSplit 是 Z.ai 对同类「按层存 KV」做法的叫法，官方 KVPP 指南把它列为底层概念。
+
+### 会报什么错
+
+都在启动期抛 `ValueError`。第一条在读开关时就查；其余只在 `size > 1` 时由 `platform.py` 调 `KVPPConfig.validate` 检查，按表中顺序，撞上第一条就停：
+
+| 情形 | 报错 |
+|---|---|
+| `enable_kvpp` 不是布尔值 | `additional_config.enable_kvpp must be a boolean, got ...` |
+| `decode_context_parallel_size != 1` | `KVPP and DCP cannot be enabled at the same time.` |
+| 有 `kv_transfer_config`，连接器既不是 `AscendStoreConnector` 也不是 `MooncakeConnectorV2`（CPU offload 等其他连接器按代码会落在这里） | `KVPP PD disaggregation requires MooncakeConnectorV2.` |
+| `MooncakeConnectorV2` 且 `kv_role == "kv_consumer"` | `KVPP must be disabled on the decode-only node.` |
+| 没有 `--enforce-eager`（GLM 主线配置录了 decode 图，会先撞这条） | `KVPP currently supports eager execution only; set --enforce-eager.` |
+| `not use_mla or is_hybrid`（GLM 补上 eager 之后撞这条） | `KVPP currently supports only non-hybrid MLA models.` |
+| 投机解码方法不是 `mtp`（vLLM 会先把 `deepseek_mtp` 等归一成 `mtp`） | `KVPP currently supports speculative decoding only with method='mtp'.` |
+| MTP 步数按批量变化（设了 `num_speculative_tokens_per_batch_size`） | `KVPP currently supports only a fixed number of MTP speculative tokens.` |
+
+还有两条不在 `validate` 里：`create_kvpp_cache_allocation_plan` 要求所有缓存规格都是 `FullAttentionSpec` 且 `block_size` 一致，否则抛 `KVPP requires one full-attention cache group with a common block size.`；main 上用 V1 runner 又设了 PCP > 1，会被通用检查拦下（`PCP (Prefill Context Parallelism) is not supported by vLLM Ascend. ...`），这条不是 KVPP 专有的。
+
+### 开销和什么时候别开
+
+- **容量账**：每卡每块字节从「全部层」变成「常驻层 + MTP 层 + 2 × 最大层」；拿层最多的卡决定整组块数。本页示意：8 层分 4 卡是 2 倍，分 8 卡约 2.7 倍，分 2 卡约 1.3 倍。
+- **通信账**：每步有历史时，每个参与划分的层广播一次整层 bundle，字节数 = 已分配块数 × 每层每块字节，不按活跃请求或活跃块过滤；容量涨几倍，广播量就涨几倍。GLM 变体推导见上文：每层约 2.50 GiB（按主线算例块数）。
+- **官方测量**（main 用户指南；GLM-5.2、950DT；单机 TP8 + EP，双机 TP8 + PP2 + EP、38/40 层分段；eager、Model Runner V1、未开 MTP）：
+  - 容量：单机 235,008 → 1,467,904 token，6.25 倍；双机 PP 555,392 → 2,972,416 token，5.35 倍。
+  - 首 token 时间（前缀命中 0%、并发 1）：32K 输入单机 −0.33%、双机 +0.19%；64K 输入单机 +1.52%、双机 +8.53%；128K 输入单机 +3.36%、双机 +11.01%。输入越长，越藏不住。
+  - 非池化 prefill 吞吐（128K 输入、并发 12）：单机 −2.30%（命中 0%）/ −5.40%（命中约 90%）；双机 −12.40% / −12.77%。
+  - 这些是另一个模型（非混合的 SFA）在另一种硬件上的数，不是本站 GLM-5.3-Flash 双机 A2 的数；本部署没有任何 KVPP 实测。
+- **什么时候别开**：TP=1 且 PCP=1（没有复制品）；非 MLA 或混合模型（启动即报错）；要用图模式；已经开了 DCP；显存并不紧、而对首 token 时间或 prefill 吞吐敏感。官方建议先在受 KV 容量限制的负载上，拿真实的输入长度、并发和前缀分布对比开关前后的容量、时延和吞吐。
+
+### 版本差异
+
+| 要核对什么 | v0.23.0（`2c59ff10`） | v0.26.0rc（`2ed6cbba`） | GLM 基线（`db701c1f`） | main（`baa023ad`） |
+|---|---|---|---|---|
+| KVPP 代码、`enable_kvpp` 开关 | 无 | 无 | 无 | 有；2026-09-11 随 #16094 引入，09-15 的 #16444 加上 PD 分离、PCP 和 KV 池 |
+| 文档 | 无 | 无 | 无 | 用户指南、设计文档、`additional_config.md`、支持矩阵都有，标 Experimental |
+| GLM 模型类声明为混合模型 | 无 GLM 代码 | 无 GLM 代码 | 是 | 是 |
+| 上游 vLLM | `vllm@0fc695fc` 里没有 KVPP，这是 vllm-ascend 独有的特性 | 同左 | 同左 | 同左 |
+
+main 的三份官方文档对「能和谁组合」说法不一致：用户指南的支持表写 PCP（需 V2）、PD 分离（MooncakeConnectorV2）、memcache 池化都支持；设计文档第 3 节把 PCP 和 PD 分离列为不支持；`additional_config.md` 写 PCP 可以（需 V2），但不支持 KV 传输连接器。以代码为准：组大小公式乘了 PCP，`validate` 只拦 DCP 和这两种之外的连接器，与用户指南一致；设计文档和 `additional_config.md` 的限制写法与代码不符。
+
+### 源码位置
+
+| 做什么 | 位置 |
+|---|---|
+| 开关、组大小、启动检查 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L52-L100`（`KVPPConfig.from_vllm_config` / `validate`） |
+| 只在 `size > 1` 时检查；V1 不许 PCP | `vllm-ascend@baa023ad:vllm_ascend/platform.py#L1490-L1502` |
+| 建 `kvpp` 通信组 | `vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L60-L89` |
+| 2 个暂存区、物理预算、bundle | `vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L56` |
+| MTP 层剔除、层分给常驻卡、分配计划 | `vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L107-L178` |
+| 块数乘回逻辑字节；按 TP rank 建计划 | `vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546`；`#L1096-L1103` |
+| 引擎取各卡最小块数 | `vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2072-L2085` |
+| 常驻层连续分配、非本卡层轮流指向暂存区 | `vllm-ascend@baa023ad:vllm_ascend/worker/kvpp_cache.py#L30-L57`；V1 入口 `vllm_ascend/worker/model_runner_v1.py#L4772-L4774` |
+| 广播本身 | `vllm-ascend@baa023ad:vllm_ascend/distributed/kvpp.py#L9-L36` |
+| 挂等待点、提前一层的调度 | `vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L23-L64`；`#L87-L114` |
+| 有无历史的判定 | V1 `vllm_ascend/worker/model_runner_v1.py#L2486-L2487`、试跑 `#L4177`；V2 `vllm_ascend/worker/v2/model_states/default.py#L74-L85` |
+| attention 里的等待点 | `vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2057-L2061`；`vllm_ascend/attention/sfa_v1.py#L1716-L1719` |
+| 外部 KV 池只存常驻层；Mooncake P 侧按常驻登记 | `vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py#L935-L940`；`vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake/base_worker.py#L214-L246` |
+| GLM 声明为混合模型 | `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2437-L2439`；`vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L839`、`#L922-L928` |
+| `deepseek_mtp` 归一成 `mtp` | `vllm@0fc695fc:vllm/config/speculative.py#L550-L554` |
+| 官方文档 | 用户指南 `docs/source/user_guide/feature_guide/kvpp.md`；设计文档 `docs/source/developer_guide/Design_Documents/kvpp.md`；`docs/source/user_guide/configuration/additional_config.md#L333-L344`；支持矩阵 `docs/source/user_guide/support_matrix/feature_matrix.md#L37` |
+
+待核：
+
+- GLM 这类 KDA 加稀疏 MLA 的混合模型，官方没有 KVPP 的实现，也没有计划说明；本页的 GLM 数字都是变体推导。
+- A2 上整层广播的耗时，以及它能被每层计算遮挡多少，缺同硬件实测。
+- CPU offload 等其他连接器被拒，是按启动检查代码推断的，缺实跑报错记录；KV 池「不支持按层存取」「consumer 未验证」出自用户指南，代码里是否有对应检查未逐条核。

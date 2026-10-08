@@ -1,0 +1,87 @@
+layout: figure
+id: one-request-token-steps
+caption: R1 的前三步：prefill 送 4 个提示词，之后每步送 1 个确定的 token 和 3 个候选。③④⑤与系统图同号，虚线经⑥结果更新与②调度进入下一步。接受几个是为走通算式设的例子，不是实测
+size: [900, 600]
+frames:
+  - { at: [156, 73], size: [720, 113], label: prefill }
+  - { at: [156, 243], size: [720, 113], label: decode 1 }
+  - { at: [156, 413], size: [720, 113], label: decode 2 }
+grids:
+  - at: [181, 101]
+    rows: 1
+    cols: 4
+    cell: [44, 34]
+    gap: 4
+    tone: token
+    style: solid
+    cells: [{ at: [0, 0], text: p₀ }, { at: [0, 1], text: p₁ }, { at: [0, 2], text: p₂ }, { at: [0, 3], text: p₃ }]
+  - at: [181, 271]
+    rows: 1
+    cols: 4
+    cell: [44, 34]
+    gap: 4
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: y₀, style: solid }, { at: [0, 1], text: d₁ }, { at: [0, 2], text: d₂ }, { at: [0, 3], text: d₃ }]
+  - at: [181, 441]
+    rows: 1
+    cols: 4
+    cell: [44, 34]
+    gap: 4
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: y₂, style: solid }, { at: [0, 1], text: d₁′ }, { at: [0, 2], text: d₂′ }, { at: [0, 3], text: d₃′ }]
+  - at: [604, 101]
+    rows: 1
+    cols: 4
+    cell: [34, 34]
+    gap: 4
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: y₀, style: solid }, { at: [0, 1], text: d₁ }, { at: [0, 2], text: d₂ }, { at: [0, 3], text: d₃ }]
+  - at: [604, 271]
+    rows: 1
+    cols: 5
+    cell: [34, 34]
+    gap: 4
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: y₁, style: solid }, { at: [0, 1], text: y₂, style: solid }, { at: [0, 2], text: d₁′ }, { at: [0, 3], text: d₂′ }, { at: [0, 4], text: d₃′ }]
+  - at: [604, 441]
+    rows: 1
+    cols: 7
+    cell: [34, 34]
+    gap: 4
+    tone: token
+    style: faded
+    cells: [{ at: [0, 0], text: y₃, style: solid }, { at: [0, 1], text: y₄, style: solid }, { at: [0, 2], text: y₅, style: solid }, { at: [0, 3], text: y₆, style: solid }, { at: [0, 4], text: d₁″ }, { at: [0, 5], text: d₂″ }, { at: [0, 6], text: d₃″ }]
+items:
+  - { at: [407, 90], size: [160, 56], text: GLM 主干, sub: 取最后 1 行分数, tone: token, depth: 2 }
+  - { at: [407, 260], size: [160, 56], text: GLM 主干, sub: 4 行分数 · 接受 1 个, tone: token, depth: 2 }
+  - { at: [407, 430], size: [160, 56], text: GLM 主干, sub: 4 行分数 · 全部接受, tone: token, depth: 2 }
+links:
+  - { from: [369, 118], to: [407, 118] }
+  - { from: [369, 288], to: [407, 288] }
+  - { from: [369, 458], to: [407, 458] }
+  - { from: [575, 118], to: [604, 118] }
+  - { from: [575, 288], to: [604, 288] }
+  - { from: [575, 458], to: [604, 458] }
+  - { from: [678, 135], to: [275, 271], via: [[678, 208], [275, 208]], dashed: true }
+  - { from: [716, 305], to: [275, 441], via: [[716, 378], [275, 378]], dashed: true }
+badges:
+  - { at: [678, 208], n: 6 }
+  - { at: [275, 208], n: 2 }
+  - { at: [716, 378], n: 6 }
+  - { at: [275, 378], n: 2 }
+  - { at: [200, 31], n: 3 }
+  - { at: [426, 31], n: 4 }
+  - { at: [623, 31], n: 5 }
+texts:
+  - { at: [225, 36], text: 送进主模型, strong: true }
+  - { at: [451, 36], text: 前向与验证, strong: true }
+  - { at: [648, 36], text: 产出与新候选, strong: true }
+  - { at: [24, 36], text: 已计算位置, strong: true, tone: kv }
+  - { at: [24, 135], text: 空 → 0–3, tone: kv }
+  - { at: [24, 305], text: 0–7，退回 0–5, tone: kv }
+  - { at: [24, 475], text: 0–5 → 0–9, tone: kv }
+  - { at: [604, 570], text: 实色：确定的 token　淡色：MTP 候选 }

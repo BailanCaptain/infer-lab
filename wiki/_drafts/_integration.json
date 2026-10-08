@@ -1,0 +1,15 @@
+{
+  "promoted": [
+    "enable-async-exponential",
+    "enable-matmul-allreduce",
+    "enable-sleep-mode-extra-cleanup",
+    "fuse-allreduce-rms",
+    "layer-sharding",
+    "multistream-overlap-gate",
+    "prefetch-ratio",
+    "weight-prefetch-config"
+  ],
+  "merged": [],
+  "rejected": [],
+  "contradictions": []
+}

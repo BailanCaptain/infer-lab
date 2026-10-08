@@ -1,0 +1,142 @@
+{
+  "id": "knowledge-loop-v1",
+  "missingTerms": ["profiling_chunk_config", "ProfilingChunkConfig"],
+  "evidence": [
+    {
+      "id": "chunk-guards",
+      "commit": "28bf3a2e8e8db396ee5dcfa6812626eee2d394ab",
+      "path": "vllm_ascend/ascend_config.py",
+      "start": 464,
+      "end": 488,
+      "sha256": "a7fe2e6296901db1b99a8e281d0a524f8ec5d740464729ea09b7e406ba840da1"
+    },
+    {
+      "id": "chunk-defaults",
+      "commit": "28bf3a2e8e8db396ee5dcfa6812626eee2d394ab",
+      "path": "vllm_ascend/ascend_config.py",
+      "start": 1021,
+      "end": 1057,
+      "sha256": "a7fe2e6296901db1b99a8e281d0a524f8ec5d740464729ea09b7e406ba840da1"
+    },
+    {
+      "id": "chunk-old",
+      "commit": "2c59ff1047573f40a471cf7535f01a8877344415",
+      "path": "vllm_ascend/ascend_config.py",
+      "start": 739,
+      "end": 759,
+      "sha256": "8da61f88d8e5153fde5311ddc8de11cd8a361deb5f2efed5140640a5eeeb7c38"
+    },
+    {
+      "id": "slot",
+      "commit": "28bf3a2e8e8db396ee5dcfa6812626eee2d394ab",
+      "path": "vllm_ascend/ops/triton/compute_slot_mapping.py",
+      "start": 43,
+      "end": 84,
+      "sha256": "4b91c1d9a2e2ef594621b14d5d49bee6408980fccbb6701d768c920490871157"
+    },
+    {
+      "id": "cache-write",
+      "commit": "28bf3a2e8e8db396ee5dcfa6812626eee2d394ab",
+      "path": "vllm_ascend/attention/attention_v1.py",
+      "start": 1646,
+      "end": 1656,
+      "sha256": "dcd61bb5a0495c230dc401d998281a2f2ee9cd1a4d19873decde913b52a472d7"
+    },
+    {
+      "id": "cache-read",
+      "commit": "28bf3a2e8e8db396ee5dcfa6812626eee2d394ab",
+      "path": "vllm_ascend/attention/attention_v1.py",
+      "start": 692,
+      "end": 705,
+      "sha256": "dcd61bb5a0495c230dc401d998281a2f2ee9cd1a4d19873decde913b52a472d7"
+    }
+  ],
+  "cases": [
+    {
+      "id": "chunk-constraints",
+      "kind": "missing",
+      "question": "在 vllm-ascend main@28bf3a2e 中，启用 profiling_chunk_config 时，min_chunk 超过 max_num_batched_tokens、PP=1、同时启用 balance scheduling 分别会怎样？",
+      "requiredFacts": [
+        "启用时 min_chunk 超过 max_num_batched_tokens 会警告并被截到后者。",
+        "启用且 pipeline_parallel_size <= 1 时抛 ValueError。",
+        "同时启用 profiling_chunk_config 与 enable_balance_scheduling 时抛 ValueError。"
+      ],
+      "forbiddenClaims": [
+        "未启用时也必然执行这些分支。",
+        "可以与 balance scheduling 同时启用。",
+        "有这些配置检查就已证明实际性能收益。"
+      ],
+      "evidenceIds": ["chunk-guards"],
+      "expectedPages": []
+    },
+    {
+      "id": "chunk-paraphrase",
+      "kind": "holdout",
+      "question": "按 28bf3a2e 的实现，我想用 profiling 动态切块：批 token 上限比最小块小会被拒绝吗？只用一个 pipeline stage，或另开负载均衡调度，又会发生什么？",
+      "requiredFacts": [
+        "最小块会被下调到批 token 上限并警告，而非仅因这一个条件拒绝。",
+        "启用时单 pipeline stage 不满足 PP>1 的要求，会报错。",
+        "启用时与 balance scheduling 互斥。"
+      ],
+      "forbiddenClaims": ["把三个条件都说成自动回退。", "把三个条件都说成直接报错。"],
+      "evidenceIds": ["chunk-guards"],
+      "expectedPages": []
+    },
+    {
+      "id": "cache-read-write",
+      "kind": "synthesis",
+      "question": "在 main@28bf3a2e 的昇腾注意力实现中，Block Table 怎样连接 PagedAttention？读历史 KV 和写本步 KV 各使用什么映射？",
+      "requiredFacts": [
+        "块表将逻辑块映射到物理块，slot_mapping 用物理块和块内偏移得到写入槽位。",
+        "注意力读 KV 的算子使用 block_table；reshape_and_cache 写入使用 slot_mapping。",
+        "应给出 block-table 页（含并入的分页布局一节）的依据。"
+      ],
+      "forbiddenClaims": [
+        "把 block_table 与 slot_mapping 当成同一个张量。",
+        "声称所有注意力后端都具有完全相同路径。"
+      ],
+      "evidenceIds": ["slot", "cache-read", "cache-write"],
+      "expectedPages": ["block-table"]
+    },
+    {
+      "id": "timing-version",
+      "kind": "version",
+      "question": "当 profiling_chunk_config 显式配置 enabled=false、need_timing=true 时，2c59ff10 与 28bf3a2e 的配置对象最终都保留 need_timing=true 吗？请只比较配置解析行为。",
+      "requiredFacts": [
+        "2c59ff10 的构造器直接保留显式 need_timing=true，所示校验不将它重置。",
+        "28bf3a2e 的校验在未启用且 need_timing=true 时警告并设置为 false。",
+        "配置解析结果不等同于证明运行时一定执行计时。"
+      ],
+      "forbiddenClaims": [
+        "把 main 的重置行为倒推给旧版本。",
+        "把旧版本对象中的 true 当成实际运行时计时的证据。"
+      ],
+      "evidenceIds": ["chunk-defaults", "chunk-old"],
+      "expectedPages": []
+    },
+    {
+      "id": "slot-arithmetic",
+      "kind": "regression",
+      "question": "在 28bf3a2e、TOTAL_CP_WORLD_SIZE=1 时，block_size=128，某请求的逻辑块 1 映射到物理块 7，位置 pos=130 的 token 写入哪个 slot？请给出推导与页面引用。",
+      "requiredFacts": [
+        "逻辑块索引 floor(130/128)=1，块内偏移为2。",
+        "slot=7*128+2=898；该数值是公式推导，不是性能实测。"
+      ],
+      "forbiddenClaims": ["忽略块表映射，直接把130当物理slot。", "将单 CP 公式无条件泛化到多 CP。"],
+      "evidenceIds": ["slot"],
+      "expectedPages": ["block-table"]
+    },
+    {
+      "id": "unsupported-speedup",
+      "kind": "no-evidence",
+      "question": "仅根据这个知识快照，能否保证 profiling_chunk_config 对所有模型、所有输入和昇腾设备至少提速两倍？给出可验证依据。",
+      "requiredFacts": [
+        "当前证据不足以保证至少两倍提速。",
+        "源码配置约束不能证明跨模型、输入、硬件的吞吐收益。"
+      ],
+      "forbiddenClaims": ["编造性能数值或实验结果。", "将未做过的性能测试描述成已验证。"],
+      "evidenceIds": [],
+      "expectedPages": []
+    }
+  ]
+}

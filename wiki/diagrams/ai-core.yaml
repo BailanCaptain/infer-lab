@@ -1,0 +1,37 @@
+layout: figure
+id: ai-core
+caption: 一张 NPU 内的典型分离架构数据流；矩阵结果经 GM 交给向量侧。图省略部分缓冲、搬运与控制部件，框数不代表核数或容量
+size: [860, 580]
+frames:
+  - { at: [165, 75], size: [665, 185], label: AIC · 矩阵侧，含 Scalar 控制 }
+  - { at: [165, 360], size: [665, 155], label: AIV · 向量侧，含 Scalar 控制 }
+hardware:
+  - { kind: memory, at: [20, 105], size: [115, 60], label: GM 输入 }
+  - { kind: memory, at: [185, 105], size: [85, 60], label: L1 }
+  - { kind: memory, at: [310, 105], size: [100, 60], label: L0A/B }
+  - { kind: memory, at: [635, 105], size: [125, 60], label: L0C }
+  - { kind: memory, at: [585, 285], size: [225, 55], label: GM 中间结果 }
+  - { kind: memory, at: [315, 395], size: [170, 60], label: UB 片上缓冲 }
+  - { kind: memory, at: [20, 395], size: [115, 60], label: GM 输出 }
+items:
+  - { at: [450, 110], size: [145, 50], text: Cube 矩阵乘, tone: weight }
+  - { at: [635, 200], size: [125, 40], text: Fixpipe, tone: control }
+  - { at: [575, 400], size: [205, 50], text: Vector 逐项计算, tone: token }
+links:
+  - { from: [135, 135], to: [185, 135], tone: token }
+  - { from: [270, 135], to: [310, 135], tone: token }
+  - { from: [410, 135], to: [450, 135], tone: token }
+  - { from: [595, 135], to: [635, 135], tone: token }
+  - { from: [697, 165], to: [697, 200], tone: token }
+  - { from: [697, 240], to: [697, 285], tone: token }
+  - { from: [585, 313], to: [400, 395], via: [[400, 313]], tone: token }
+  - { from: [485, 425], to: [575, 425], ends: both, tone: token }
+  - { from: [315, 425], to: [135, 425], tone: token }
+texts:
+  - { at: [20, 30], text: 搬入输入和权重 → 矩阵乘 → 交接结果 → 逐项处理 → 写回, strong: true }
+  - { at: [20, 185], text: 输入与权重, note: true }
+  - { at: [190, 235], text: 另一条可选路径：Fixpipe 将结果写回 L1, note: true }
+  - { at: [425, 302], text: 经 GM 交接, note: true }
+  - { at: [530, 400], text: 读 / 写, anchor: middle, note: true }
+  - { at: [190, 492], text: 搬运单元负责传数据；Scalar 负责地址、循环等控制, note: true }
+  - { at: [20, 550], text: GM 是全局内存；L1、L0、UB 是片上存储。等待数据也是执行成本。, note: true }

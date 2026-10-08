@@ -1,0 +1,93 @@
+layout: figure
+id: kv-cache-cpu-offload
+caption: KV cache CPU offload 在主机内存里多存一份：显存里 A 的页被让给 C 以后，主机那份还在；B 用到同一段开头时，先在显存分好空页，再把主机那份搬回来，不用重算
+size: [900, 360]
+frames:
+  - {at: [12, 44], size: [284, 300], label: "① A 算完开头：复制一份到主机"}
+  - {at: [308, 44], size: [284, 300], label: "② 显存紧张：A 的页让给 C"}
+  - {at: [604, 44], size: [284, 300], label: "③ B 用同一开头：从主机搬回"}
+grids:
+  - at: [62, 106]
+    rows: 1
+    cols: 4
+    cell: [50, 44]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 0], text: A, style: solid}
+      - {at: [0, 1], text: A, style: solid}
+  - at: [62, 266]
+    rows: 1
+    cols: 4
+    cell: [50, 44]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+    cells:
+      - {at: [0, 0], text: A, style: solid}
+      - {at: [0, 1], text: A, style: solid}
+  - at: [358, 106]
+    rows: 1
+    cols: 4
+    cell: [50, 44]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 0], text: C, style: plain}
+      - {at: [0, 1], text: C, style: plain}
+  - at: [358, 266]
+    rows: 1
+    cols: 4
+    cell: [50, 44]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+    cells:
+      - {at: [0, 0], text: A, style: solid}
+      - {at: [0, 1], text: A, style: solid}
+  - at: [654, 106]
+    rows: 1
+    cols: 4
+    cell: [50, 44]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [显存]
+    cells:
+      - {at: [0, 0], text: C, style: plain}
+      - {at: [0, 1], text: C, style: plain}
+      - {at: [0, 2], text: A, style: solid}
+      - {at: [0, 3], text: A, style: solid}
+  - at: [654, 266]
+    rows: 1
+    cols: 4
+    cell: [50, 44]
+    gap: 6
+    tone: kv
+    style: empty
+    rowLabels: [主机]
+    cells:
+      - {at: [0, 0], text: A, style: solid}
+      - {at: [0, 1], text: A, style: solid}
+links:
+  - {from: [87, 156], to: [87, 258], tone: comm}
+  - {from: [679, 262], to: [791, 156], tone: comm}
+  - {from: [735, 262], to: [847, 156], tone: comm}
+texts:
+  - {at: [100, 214], text: 复制一份, tone: comm}
+  - {at: [100, 236], text: 显存那份照常用, note: true}
+  - {at: [450, 214], text: 显存里的 A 没了, anchor: middle, tone: danger}
+  - {at: [450, 236], text: 主机那份还在, anchor: middle, note: true}
+  - {at: [880, 214], text: 搬回空页, anchor: end, tone: comm}
+  - {at: [880, 236], text: 不用重算, anchor: end, note: true}
+pins:
+  - source: vllm@0fc695fc:vllm/distributed/kv_transfer/kv_connector/v1/offloading/scheduler.py#L721-L806
+    symbols: [prepare_store]
+  - source: vllm-ascend@db701c1f:vllm_ascend/kv_offload/cpu_npu.py#L180-L261
+    symbols: [swap_blocks_batch]

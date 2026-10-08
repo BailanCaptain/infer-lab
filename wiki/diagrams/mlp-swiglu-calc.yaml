@@ -1,0 +1,136 @@
+layout: figure
+id: mlp-swiglu-calc
+caption: 一个 MLP 子层手算一遍（数为示意）：x = [3, 4] 先过 RMSNorm 得到 n；gate、up 两个投影把 2 个数升成 4 个；g 一个数一个数地过 SiLU 变成门，和同一列的内容 u 相乘得到 z；down 投影把 4 个数缩回 2 个，得到改变量 Δ，再加回旁路上原样送来的 x
+size: [900, 470]
+grids:
+  - at: [70, 60]
+    rows: 1
+    cols: 2
+    cell: [52, 34]
+    tone: token
+    style: solid
+    rowLabels: ['x']
+    cells:
+      - { at: [0, 0], text: '3' }
+      - { at: [0, 1], text: '4' }
+  - at: [70, 160]
+    rows: 1
+    cols: 2
+    cell: [52, 34]
+    tone: token
+    style: faded
+    rowLabels: ['n']
+    cells:
+      - { at: [0, 0], text: '0.85' }
+      - { at: [0, 1], text: '1.13' }
+  - at: [370, 70]
+    rows: 1
+    cols: 4
+    cell: [66, 34]
+    tone: control
+    style: faded
+    rowLabels: ['g']
+    colLabels: ['第 0 维', '第 1 维', '第 2 维', '第 3 维']
+    cells:
+      - { at: [0, 0], text: '1.98' }
+      - { at: [0, 1], text: '−4.24' }
+      - { at: [0, 2], text: '0.28' }
+      - { at: [0, 3], text: '1.13' }
+  - at: [370, 150]
+    rows: 1
+    cols: 4
+    cell: [66, 34]
+    tone: control
+    style: solid
+    rowLabels: ['SiLU(g)']
+    cells:
+      - { at: [0, 0], text: '1.74' }
+      - { at: [0, 1], text: '−0.06' }
+      - { at: [0, 2], text: '0.16' }
+      - { at: [0, 3], text: '0.85' }
+  - at: [370, 220]
+    rows: 1
+    cols: 4
+    cell: [66, 34]
+    tone: token
+    style: faded
+    rowLabels: ['u']
+    cells:
+      - { at: [0, 0], text: '1.13' }
+      - { at: [0, 1], text: '1.98' }
+      - { at: [0, 2], text: '−1.70' }
+      - { at: [0, 3], text: '−1.41' }
+  - at: [370, 290]
+    rows: 1
+    cols: 4
+    cell: [66, 34]
+    tone: token
+    style: solid
+    rowLabels: ['z']
+    cells:
+      - { at: [0, 0], text: '1.97' }
+      - { at: [0, 1], text: '−0.12' }
+      - { at: [0, 2], text: '−0.27' }
+      - { at: [0, 3], text: '−1.20' }
+  - at: [370, 330]
+    rows: 1
+    cols: 4
+    cell: [66, 28]
+    tone: control
+    style: plain
+    cells:
+      - { at: [0, 0], text: 放大 }
+      - { at: [0, 1], text: 几乎关掉 }
+      - { at: [0, 2], text: 压小 }
+      - { at: [0, 3], text: 略缩 }
+  - at: [740, 290]
+    rows: 1
+    cols: 2
+    cell: [52, 34]
+    tone: token
+    style: solid
+    rowLabels: ['Δ']
+    cells:
+      - { at: [0, 0], text: '0.92' }
+      - { at: [0, 1], text: '0.81' }
+  - at: [740, 420]
+    rows: 1
+    cols: 2
+    cell: [52, 34]
+    tone: token
+    style: solid
+    rowLabels: ['y']
+    cells:
+      - { at: [0, 0], text: '3.92' }
+      - { at: [0, 1], text: '4.81' }
+nodes:
+  - { at: [792, 380], r: 18, text: '+' }
+  - { at: [403, 202], r: 11, text: '×' }
+  - { at: [469, 202], r: 11, text: '×' }
+  - { at: [535, 202], r: 11, text: '×' }
+  - { at: [601, 202], r: 11, text: '×' }
+links:
+  - { from: [122, 98], to: [122, 156], tone: token }
+  - { from: [174, 177], to: [340, 87], via: [[220, 177], [220, 87]], tone: token }
+  - { from: [174, 177], to: [340, 237], via: [[220, 177], [220, 237]], tone: token }
+  - { from: [403, 106], to: [403, 146], tone: control }
+  - { from: [469, 106], to: [469, 146], tone: control }
+  - { from: [535, 106], to: [535, 146], tone: control }
+  - { from: [601, 106], to: [601, 146], tone: control }
+  - { from: [403, 258], to: [403, 286], tone: token }
+  - { from: [469, 258], to: [469, 286], tone: token }
+  - { from: [535, 258], to: [535, 286], tone: token }
+  - { from: [601, 258], to: [601, 286], tone: token }
+  - { from: [636, 307], to: [712, 307], tone: token }
+  - { from: [792, 328], to: [792, 360], tone: token }
+  - { from: [122, 56], to: [812, 380], via: [[122, 30], [872, 30], [872, 380]], tone: token }
+  - { from: [792, 400], to: [792, 416], tone: token }
+texts:
+  - { at: [497, 22], text: '旁路：x = [3, 4] 原样送到相加处', anchor: middle, size: 13 }
+  - { at: [132, 132], text: RMSNorm, size: 13 }
+  - { at: [230, 79], text: gate 投影, size: 13 }
+  - { at: [230, 229], text: up 投影, size: 13 }
+  - { at: [646, 131], text: 每个数各过一次 SiLU, size: 13 }
+  - { at: [646, 172], text: ← 门：这一维开多大, size: 13 }
+  - { at: [646, 242], text: ← 内容：要传的数, size: 13 }
+  - { at: [674, 297], text: down 投影, anchor: middle, size: 13 }

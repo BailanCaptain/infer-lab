@@ -1,0 +1,125 @@
+layout: figure
+id: balance-scheduling
+caption: 数为示意。从左往右读：本步末尾各组的队列 → 互报后的同一张表 → 下一步两组都停收、已有请求照算。
+size: [900, 530]
+frames:
+  - { at: [16, 78], size: [300, 175], label: DP0, inside: true }
+  - { at: [16, 290], size: [300, 175], label: DP1, inside: true }
+  - { at: [594, 78], size: [290, 175], label: DP0 · 下一步, inside: true }
+  - { at: [594, 290], size: [290, 175], label: DP1 · 下一步, inside: true }
+grids:
+  # ---- ① 本步末尾各组手上的请求
+  - at: [40, 112]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: solid
+    label: running 4 / 4 · 顶满
+    cells:
+      - { at: [0, 0], text: A }
+      - { at: [0, 1], text: B }
+      - { at: [0, 2], text: C }
+      - { at: [0, 3], text: D }
+  - at: [40, 186]
+    rows: 1
+    cols: 2
+    cell: [46, 30]
+    gap: 6
+    tone: control
+    style: faded
+    label: waiting · 2 条在等
+    cells:
+      - { at: [0, 0], text: E }
+      - { at: [0, 1], text: F }
+  - at: [40, 324]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: empty
+    label: running 2 / 4 · 两个空位
+    cells:
+      - { at: [0, 0], text: G, style: solid }
+      - { at: [0, 1], text: H, style: solid }
+  - at: [40, 398]
+    rows: 1
+    cols: 2
+    cell: [46, 30]
+    gap: 6
+    tone: control
+    style: faded
+    label: waiting · 2 条在等
+    cells:
+      - { at: [0, 0], text: I }
+      - { at: [0, 1], text: J }
+  # ---- ③ 下一步：闸门落下
+  - at: [618, 112]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: solid
+    label: 照常算 A–D
+    cells:
+      - { at: [0, 0], text: A }
+      - { at: [0, 1], text: B }
+      - { at: [0, 2], text: C }
+      - { at: [0, 3], text: D }
+  - at: [618, 186]
+    rows: 1
+    cols: 2
+    cell: [46, 30]
+    gap: 6
+    tone: danger
+    style: faded
+    label: 不接：闸门落下
+    cells:
+      - { at: [0, 0], text: E }
+      - { at: [0, 1], text: F }
+  - at: [618, 324]
+    rows: 1
+    cols: 4
+    cell: [46, 34]
+    gap: 6
+    tone: token
+    style: empty
+    label: 照常算 G、H · 两个空位空着
+    cells:
+      - { at: [0, 0], text: G, style: solid }
+      - { at: [0, 1], text: H, style: solid }
+      - { at: [0, 2], style: ghost }
+      - { at: [0, 3], style: ghost }
+  - at: [618, 398]
+    rows: 1
+    cols: 2
+    cell: [46, 30]
+    gap: 6
+    tone: danger
+    style: faded
+    label: 不接：闸门落下
+    cells:
+      - { at: [0, 0], text: I }
+      - { at: [0, 1], text: J }
+items:
+  - { at: [350, 150], size: [210, 56], text: All-Gather 互报条数, sub: DP0 交 4 · DP1 交 2, tone: comm }
+  - { at: [350, 246], size: [210, 56], text: '两组都拿到 [4, 2]', sub: 同一张计数表, style: plain }
+  - { at: [350, 342], size: [210, 64], text: 最大 4 = 上限 4, sub: 两组下一步都停收, tone: danger }
+fans:
+  - { from: [[316, 165], [316, 377]], to: [350, 178], tone: comm }
+  - { from: [560, 374], to: [[594, 165], [594, 377]], tone: danger }
+links:
+  - { from: [455, 206], to: [455, 246] }
+  - { from: [455, 302], to: [455, 342] }
+  - { from: [612, 256], to: [612, 288], ends: both, tone: comm }
+texts:
+  - { at: [450, 26], text: 两组互报条数，按同一张表决定下一步收不收, anchor: middle, strong: true }
+  - { at: [166, 58], text: ① 各组数自己的 running, anchor: middle, strong: true }
+  - { at: [455, 58], text: ② 汇总成一张表, anchor: middle, strong: true }
+  - { at: [739, 58], text: ③ 下一步：停收，已有的照算, anchor: middle, strong: true }
+  - { at: [626, 277], text: 同一步前向，MoE 层两组一起通信 }
+  - { at: [450, 494], text: 请求不在组之间搬：DP1 的空位不接 DP0 排队的 E、F, anchor: middle, note: true }
+  - { at: [450, 516], text: 最大值降到 3 后闸门抬起，各组再按本地规则接新请求, anchor: middle, note: true }

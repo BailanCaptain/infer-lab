@@ -1,0 +1,30 @@
+layout: figure
+id: expert-parallel-fit
+caption: 本部署开启 EP 后的 A2 通信选择。两组使用同一个最大 token 数；每卡 18 个专家和 EP16 已满足规模条件，实际分界是当前配置的容量 128。固定源码提交见页末。
+size: [900, 656]
+items:
+  - { at: [180, 20], size: [540, 60], text: 读取本步两个 DP 组的 token 数, sub: 已经过 capture size 与 DP 对齐, style: plain }
+  - { at: [180, 122], size: [540, 60], text: 取两组最大值, sub: 'R1：4；纯 decode：64；场景 M：6048', tone: token }
+  - { at: [180, 234], size: [540, 70], text: EP ≥16 且每卡专家 ≤24？, sub: '本部署：EP16、18 个/卡 → 是', style: plain }
+  - { at: [180, 368], size: [540, 70], text: 最大 token 数 ≤128？, sub: 当前配置的 MC2 容量门槛, style: plain }
+  - { at: [60, 526], size: [340, 68], text: MC2, sub: 按专家目的地派发与回收, tone: comm }
+  - { at: [500, 526], size: [340, 68], text: AllGather, sub: 先收集输入，再算本卡专家并归约, tone: comm }
+links:
+  - { from: [450, 80], to: [450, 122] }
+  - { from: [450, 182], to: [450, 234] }
+  - { from: [450, 304], to: [450, 368] }
+  - { from: [720, 269], to: [840, 560], via: [[864, 269], [864, 560]], tone: comm }
+  - { from: [330, 438], to: [230, 526], via: [[330, 480], [230, 480]], tone: comm }
+  - { from: [570, 438], to: [670, 526], via: [[570, 480], [670, 480]], tone: comm }
+texts:
+  - { at: [468, 340], text: 是 }
+  - { at: [285, 465], text: 是 }
+  - { at: [610, 465], text: 否 }
+  - { at: [736, 254], text: 否, tone: comm }
+  - { at: [230, 631], text: R1 与 64 行纯 decode, anchor: middle }
+  - { at: [670, 631], text: 场景 M；单机 EP8 也走此路, anchor: middle }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L96-L101
+    symbols: [max_num_tokens, select_moe_comm_method]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L202-L252
+    symbols: [set_mc2_tokens_capacity, _select_a2_moe_comm_method]

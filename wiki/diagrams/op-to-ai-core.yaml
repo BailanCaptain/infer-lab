@@ -1,0 +1,45 @@
+layout: figure
+id: op-to-ai-core
+caption: A3 提供张量与缓存寻址信息；A4 按模型实参选择算子。GLM mHC 走左路，右路是带 residual 的实现对照；扩展可用时进入下方 Host 与 kernel。
+size: [880, 900]
+frames:
+  - { at: [20, 35], size: [840, 130], label: A3 准备输入 → A4 逐层前向 }
+  - { at: [20, 195], size: [840, 300], label: A4：AscendRMSNorm 的 forward_oot 分支 }
+  - { at: [20, 530], size: [840, 340], label: 可选融合扩展：Host 规划 → Vector 执行 }
+items:
+  - { at: [45, 80], size: [300, 60], text: A3：token 与位置张量, sub: 注意力元数据含块表与槽位, tone: control }
+  - { at: [450, 80], size: [380, 60], text: A4：模型逐层计算, sub: 注意力用元数据；归一化读当前张量, tone: token }
+  - { at: [310, 240], size: [260, 55], text: 是否传入 residual？, tone: control }
+  - { at: [45, 350], size: [255, 65], text: torch_npu.npu_rms_norm, sub: GLM mHC：只传入 layer_input, tone: token }
+  - { at: [475, 335], size: [275, 55], text: enable_custom_op()？, tone: control }
+  - { at: [380, 430], size: [190, 45], text: npu_add_rms_norm_bias, tone: weight }
+  - { at: [615, 425], size: [220, 60], text: npu_add_rms_norm, sub: 有 bias 再加上, tone: token }
+  - { at: [45, 585], size: [225, 65], text: C++ 分配输出并下发, sub: y / rstd / 更新后残差, tone: control }
+  - { at: [330, 585], size: [230, 65], text: Host tiling, sub: 形状、精度、UB → 参数与 key, tone: control }
+  - { at: [620, 585], size: [215, 65], text: kernel 选择模板, sub: 每核处理分到的行或块, tone: weight }
+  - { at: [45, 730], size: [225, 65], text: CopyIn：搬入并相加, sub: 全局内存 → 片上缓冲, tone: token }
+  - { at: [330, 730], size: [230, 65], text: Compute：归约与缩放, sub: 平方和 → 倒数平方根 → 缩放, tone: token }
+  - { at: [620, 730], size: [215, 65], text: CopyOut：写出, sub: 保存归一化结果与统计量, tone: token }
+links:
+  - { from: [345, 110], to: [450, 110], tone: token }
+  - { from: [640, 140], to: [440, 240], via: [[640, 180], [440, 180]], tone: control }
+  - { from: [310, 267], to: [172, 350], via: [[172, 267]], tone: control }
+  - { from: [570, 267], to: [612, 335], via: [[612, 267]], tone: control }
+  - { from: [545, 390], to: [475, 430], via: [[545, 410], [475, 410]], tone: control }
+  - { from: [680, 390], to: [725, 425], via: [[680, 410], [725, 410]], tone: control }
+  - { from: [475, 475], to: [157, 585], via: [[475, 512], [157, 512]], tone: control }
+  - { from: [270, 618], to: [330, 618], tone: control }
+  - { from: [560, 618], to: [620, 618], tone: control }
+  - { from: [727, 650], to: [157, 730], via: [[727, 688], [157, 688]], tone: control }
+  - { from: [270, 763], to: [330, 763], tone: token }
+  - { from: [560, 763], to: [620, 763], tone: token }
+texts:
+  - { at: [190, 313], text: 否：实际路径, size: 13 }
+  - { at: [632, 309], text: 是：对照分支, size: 13 }
+  - { at: [495, 410], text: 可用, size: 12 }
+  - { at: [746, 408], text: 不可用, size: 12 }
+  - { at: [45, 836], text: 残差先写回 · 计算分块与 KV 分配分工不同, size: 14 }
+pins:
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235', symbols: [input_layernorm] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88', symbols: [forward_oot, npu_add_rms_norm_bias] }
+  - { source: 'vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155', symbols: [SubProcess, CopyIn] }

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" role="img" aria-label="GLM 门控前馈的逻辑分支：gate 截断后经 SiLU，与截断后的 up 分支逐元素相乘，再经 down 投影。H 为隐藏宽度、F 为中间宽度；两投影可以合并执行">
+  <title>GLM 门控前馈的逻辑分支：gate 截断后经 SiLU，与截断后的 up 分支逐元素相乘，再经 down 投影。H 为隐藏宽度、F 为中间宽度；两投影可以合并执行</title>
+  <defs><marker id="gated-ffn-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="gated-ffn-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M150 250 L210 250 L210 140 L280 140" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-token)"/>
+  <path d="M150 250 L210 250 L210 380 L280 380" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-token)"/>
+  <path d="M440 140 L500 140" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-ink)"/>
+  <path d="M440 380 L500 380" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-ink)"/>
+  <path d="M680 140 L730 140 L730 228" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-token)"/>
+  <path d="M680 380 L730 380 L730 272" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-token)"/>
+  <path d="M752 250 L854 250 L854 426 L730 426 L730 450" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-token)"/>
+  <path d="M730 510 L730 560" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#gated-ffn-ah-token)"/>
+  <rect x="40" y="235" width="110" height="30" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M62 235v30M84 235v30M106 235v30M128 235v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="95" y="285" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">输入 X</text>
+  <text x="95" y="305" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[T, H]</text>
+  <rect x="675" y="560" width="110" height="30" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M697 560v30M719 560v30M741 560v30M763 560v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="730" y="610" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">输出 Y</text>
+  <text x="730" y="630" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">[T, H]</text>
+  <rect x="280" y="110" width="160" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="360" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">gate 投影</text>
+  <text x="360" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重 [H, F]</text>
+  <rect x="280" y="350" width="160" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="360" y="376" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">up 投影</text>
+  <text x="360" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重 [H, F]</text>
+  <rect x="500" y="110" width="180" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="590" y="136" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">上界截断 + SiLU</text>
+  <text x="590" y="155" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">gate ≤ 10</text>
+  <rect x="500" y="350" width="180" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="590" y="376" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">双侧截断</text>
+  <text x="590" y="395" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">−10 ≤ up ≤ 10</text>
+  <rect x="650" y="450" width="160" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="476" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">down 投影</text>
+  <text x="730" y="495" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重 [F, H]</text>
+  <circle cx="730" cy="250" r="22" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="730" y="256" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">⊙</text>
+  <text x="280" y="63" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">同一输入的两条分支</text>
+  <text x="570" y="255" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">逐元素相乘</text>
+  <text x="570" y="283" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">中间表示 [T, F]</text>
+</svg>

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 630" width="900" height="630" role="img" aria-label="开关只挪动一件事——那批 q 是在 softmax 之后现填，还是在 model forward 开始之前就填好（vllm-ascend v0.23 维护分支）">
+  <title>开关只挪动一件事——那批 q 是在 softmax 之后现填，还是在 model forward 开始之前就填好（vllm-ascend v0.23 维护分支）</title>
+  <rect width="900" height="630" fill="var(--color-surface, #fbfaf6)"/>
+  <rect x="20" y="26" width="860" height="214" rx="12" fill="var(--color-surface-sunken, #ece9df)"/>
+  <rect x="36" y="40" width="253.7" height="26.5" rx="13.3" fill="var(--color-control, #5b6763)"/><text x="47" y="58.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">关（默认）：q 在 softmax 之后才填</text>
+  <text x="38" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">两条路径都在 global_stream 上填 q。差别只有一个：这一条填在主流已经算到采样的时候。</text>
+  <rect x="20" y="262" width="860" height="320" rx="12" fill="var(--color-weight-soft, #fff4cf)"/>
+  <rect x="36" y="276" width="226.7" height="26.5" rx="13.3" fill="var(--color-weight, #b87a00)"/><text x="47" y="294.1" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)">开：q 在 forward 之前就填好了</text>
+  <text x="38" y="319" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">同一批 q 改到 forward 之前填。副流那次 exponential_ 与整段前向并行，采样时它早就躺在那儿了。</text>
+  <rect x="36" y="128" width="186" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="52" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">各层 model forward</text>
+  <text x="52" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">主流自己算</text>
+  <text x="52" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">execute_model</text>
+  <rect x="248" y="128" width="186" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="264" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">softmax 出 probs</text>
+  <text x="264" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">fp32，宽 = 词表</text>
+  <text x="264" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">logits.softmax</text>
+  <rect x="460" y="128" width="186" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="472" y="154" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(478.4 160.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2"/></g>
+  <text x="512" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">现在才填 q</text>
+  <text x="512" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">主流停在这儿等</text>
+  <text x="512" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">exponential_</text>
+  <rect x="672" y="128" width="186" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-control, #5b6763)" stroke-width="1.5"/>
+  <text x="688" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">除 q 后取 argmax</text>
+  <text x="688" y="176" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">这才出 token id</text>
+  <text x="688" y="193" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-control, #5b6763)">random_sample</text>
+  <rect x="36" y="352" width="420" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <rect x="48" y="378" width="32" height="32" rx="9" fill="var(--color-weight-soft, #fff4cf)"/><g transform="translate(54.4 384.4) scale(0.8)" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z M3 13l9 5 9-5"/></g>
+  <text x="88" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">各层 model forward</text>
+  <text x="88" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">主流一路算下去，一眼都不看 q</text>
+  <text x="88" y="417" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-weight, #b87a00)">execute_model</text>
+  <rect x="478" y="352" width="140" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-weight, #b87a00)" stroke-width="1.5"/>
+  <text x="494" y="390.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">softmax</text>
+  <text x="494" y="408.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">宽 = 词表</text>
+  <rect x="636" y="352" width="222" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <text x="652" y="390.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">同步一下，取 argmax</text>
+  <text x="652" y="408.5" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">async_event.synchronize</text>
+  <rect x="36" y="470" width="420" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="48" y="496" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(54.4 502.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></g>
+  <text x="88" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">副流先把 q 填满</text>
+  <text x="88" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">b_s × 词表宽的 float32，b_s = 本步要采样的行数</text>
+  <text x="88" y="535" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">do_async_exponential</text>
+  <rect x="478" y="470" width="380" height="84" rx="11" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-accent, #e85b32)" stroke-width="1.5"/>
+  <rect x="490" y="496" width="32" height="32" rx="9" fill="var(--color-accent-soft, #fff0e9)"/><g transform="translate(496.4 502.4) scale(0.8)" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v8H3z M9 8v8M15 8v8"/></g>
+  <text x="530" y="500" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14.5" font-weight="700" fill="var(--color-ink, #17211f)">记一个事件，等着被取用</text>
+  <text x="530" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">q 与 event 一起交给 sampler</text>
+  <text x="530" y="535" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" font-weight="400" fill="var(--color-accent, #e85b32)">set_q_event</text>
+  <path d="M224 170 L246 170" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M246 170 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M436 170 L458 170" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M458 170 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M648 170 L670 170" fill="none" stroke="var(--color-control, #5b6763)" stroke-width="1.8"/>
+  <path d="M670 170 l-11 -5.5 l0 11 z" fill="var(--color-control, #5b6763)"/>
+  <path d="M458 394 L476 394" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M476 394 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M620 394 L634 394" fill="none" stroke="var(--color-weight, #b87a00)" stroke-width="1.8"/>
+  <path d="M634 394 l-11 -5.5 l0 11 z" fill="var(--color-weight, #b87a00)"/>
+  <path d="M458 512 L476 512" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M476 512 l-11 -5.5 l0 11 z" fill="var(--color-accent, #e85b32)"/>
+  <path d="M747 468 L747 440" fill="none" stroke="var(--color-accent, #e85b32)" stroke-width="1.8"/>
+  <path d="M747 440 l-5.5 11 l11 0 z" fill="var(--color-accent, #e85b32)"/>
+  <rect x="716.3" y="444" width="61.5" height="19" rx="6" fill="var(--color-surface, #fbfaf6)"/>
+  <text x="747" y="458" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)" text-anchor="middle">q 已备好</text>
+  <text x="36" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">默认流：这一步的主线</text>
+  <text x="36" y="462" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">global_stream：进程级的那条副流，不是本特性独占</text>
+  <text x="36" y="572" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #5b6763)">开了之后主流少停一次，代价是这块 float32 从 forward 开头一直占到采样结束。</text>
+  <text x="20" y="606" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="600" fill="var(--color-ink, #17211f)">main（baa023ad）上这条路径整段没了：do_async_exponential、set_q_event、事件对象和取用分支一并删除，采样只剩同步的 random_sample。</text>
+</svg>

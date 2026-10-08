@@ -1,0 +1,54 @@
+layout: figure
+id: glm-two-node-groups
+caption: 同一批卡同时属于三个 process group：机内 8 张卡一个 TP 组，跨机同号卡两两一个 DP 组，16 张卡一个 EP / MC2 组。线只表示成员对应关系，不表示物理布线，也不表示正在传输的数据。
+size: [900, 560]
+frames:
+  - { at: [16, 60], size: [868, 452], label: "EP / MC2 组：全局 rank 0–15（MoE 的 dispatch 与 combine）" }
+  - { at: [44, 116], size: [812, 124], label: "机器 0 · TP 组 rank 0–7 · DP 执行组 0" }
+  - { at: [36, 356], size: [820, 140], label: 机器 1 }
+hardware:
+  - { kind: chip, at: [72, 152], size: [68, 57], label: "0" }
+  - { kind: chip, at: [169, 152], size: [68, 57], label: "1" }
+  - { kind: chip, at: [266, 152], size: [68, 57], label: "2" }
+  - { kind: chip, at: [363, 152], size: [68, 57], label: "3" }
+  - { kind: chip, at: [460, 152], size: [68, 57], label: "4" }
+  - { kind: chip, at: [557, 152], size: [68, 57], label: "5" }
+  - { kind: chip, at: [654, 152], size: [68, 57], label: "6" }
+  - { kind: chip, at: [751, 152], size: [68, 57], label: "7" }
+  - { kind: chip, at: [72, 392], size: [68, 57], label: "8" }
+  - { kind: chip, at: [169, 392], size: [68, 57], label: "9" }
+  - { kind: chip, at: [266, 392], size: [68, 57], label: "10" }
+  - { kind: chip, at: [363, 392], size: [68, 57], label: "11" }
+  - { kind: chip, at: [460, 392], size: [68, 57], label: "12" }
+  - { kind: chip, at: [557, 392], size: [68, 57], label: "13" }
+  - { kind: chip, at: [654, 392], size: [68, 57], label: "14" }
+  - { kind: chip, at: [751, 392], size: [68, 57], label: "15" }
+links:
+  - { from: [106, 209], to: [106, 268], tone: comm, ends: none }
+  - { from: [106, 300], to: [106, 392], tone: comm, ends: none }
+  - { from: [203, 209], to: [203, 268], tone: comm, ends: none }
+  - { from: [203, 300], to: [203, 392], tone: comm, ends: none }
+  - { from: [300, 209], to: [300, 268], tone: comm, ends: none }
+  - { from: [300, 300], to: [300, 392], tone: comm, ends: none }
+  - { from: [397, 209], to: [397, 268], tone: comm, ends: none }
+  - { from: [397, 300], to: [397, 392], tone: comm, ends: none }
+  - { from: [494, 209], to: [494, 268], tone: comm, ends: none }
+  - { from: [494, 300], to: [494, 392], tone: comm, ends: none }
+  - { from: [591, 209], to: [591, 268], tone: comm, ends: none }
+  - { from: [591, 300], to: [591, 392], tone: comm, ends: none }
+  - { from: [688, 209], to: [688, 268], tone: comm, ends: none }
+  - { from: [688, 300], to: [688, 392], tone: comm, ends: none }
+  - { from: [785, 209], to: [785, 268], tone: comm, ends: none }
+  - { from: [785, 300], to: [785, 392], tone: comm, ends: none }
+texts:
+  - { at: [450, 28], text: 三个 process group 同时罩住这 16 张卡, anchor: middle, strong: true }
+  - { at: [106, 289], text: "{0,8}", anchor: middle, size: 12, tone: comm }
+  - { at: [203, 289], text: "{1,9}", anchor: middle, size: 12, tone: comm }
+  - { at: [300, 289], text: "{2,10}", anchor: middle, size: 12, tone: comm }
+  - { at: [397, 289], text: "{3,11}", anchor: middle, size: 12, tone: comm }
+  - { at: [494, 289], text: "{4,12}", anchor: middle, size: 12, tone: comm }
+  - { at: [591, 289], text: "{5,13}", anchor: middle, size: 12, tone: comm }
+  - { at: [688, 289], text: "{6,14}", anchor: middle, size: 12, tone: comm }
+  - { at: [785, 289], text: "{7,15}", anchor: middle, size: 12, tone: comm }
+  - { at: [450, 476], text: 机器 1 · TP 组 rank 8–15 · DP 执行组 1, anchor: middle, strong: true }
+  - { at: [450, 540], text: 竖线是 DP 组；方块里的数字是全局 rank, anchor: middle, note: true }

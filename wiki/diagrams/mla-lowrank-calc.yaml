@@ -1,0 +1,152 @@
+layout: figure
+id: mla-lowrank-calc
+caption: 低秩压缩走一遍（数为示意）：位置 0 的隐藏向量 h₀ 乘下投影，压成只有 2 个数的潜向量 c₀，进 KV cache 的只有它；每个头再用自己的上投影，从同一条 c₀ 还原出自己的 K 和 V。右边四条共 8 个数，是普通多头要为这个位置存的量
+size: [900, 400]
+grids:
+  - at: [60, 191]
+    rows: 1
+    cols: 4
+    cell: [40, 34]
+    tone: token
+    style: solid
+    label: 隐藏向量 h₀
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '0' }
+      - { at: [0, 3], text: '1' }
+  - at: [262, 140]
+    rows: 4
+    cols: 2
+    cell: [40, 34]
+    tone: weight
+    style: solid
+    label: 下投影
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+      - { at: [2, 0], text: '1' }
+      - { at: [2, 1], text: '0' }
+      - { at: [3, 0], text: '0' }
+      - { at: [3, 1], text: '1' }
+  - at: [382, 191]
+    rows: 1
+    cols: 2
+    cell: [40, 34]
+    tone: kv
+    style: solid
+    label: 潜向量 c₀
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+  # 右边四行：同一条 c₀ 乘四块不同的上投影
+  - at: [570, 58]
+    rows: 2
+    cols: 2
+    cell: [34, 26]
+    tone: weight
+    style: solid
+    label: 头 1 的 K 上投影
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '2' }
+      - { at: [1, 0], text: '0' }
+      - { at: [1, 1], text: '1' }
+  - at: [674, 71]
+    rows: 1
+    cols: 2
+    cell: [34, 26]
+    tone: kv
+    style: solid
+    label: k₀,₁
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '4' }
+  - at: [570, 142]
+    rows: 2
+    cols: 2
+    cell: [34, 26]
+    tone: weight
+    style: solid
+    label: 头 1 的 V 上投影
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '1' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '0' }
+  - at: [674, 155]
+    rows: 1
+    cols: 2
+    cell: [34, 26]
+    tone: kv
+    style: solid
+    label: v₀,₁
+    cells:
+      - { at: [0, 0], text: '3' }
+      - { at: [0, 1], text: '1' }
+  - at: [570, 226]
+    rows: 2
+    cols: 2
+    cell: [34, 26]
+    tone: weight
+    style: solid
+    label: 头 2 的 K 上投影
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '1' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '0' }
+  - at: [674, 239]
+    rows: 1
+    cols: 2
+    cell: [34, 26]
+    tone: kv
+    style: solid
+    label: k₀,₂
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+  - at: [570, 310]
+    rows: 2
+    cols: 2
+    cell: [34, 26]
+    tone: weight
+    style: solid
+    label: 头 2 的 V 上投影
+    cells:
+      - { at: [0, 0], text: '0' }
+      - { at: [0, 1], text: '1' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '1' }
+  - at: [674, 323]
+    rows: 1
+    cols: 2
+    cell: [34, 26]
+    tone: kv
+    style: solid
+    label: v₀,₂
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '3' }
+nodes:
+  - { at: [241, 208], r: 12, text: '×' }
+  - { at: [550, 84], r: 11, text: '×' }
+  - { at: [550, 168], r: 11, text: '×' }
+  - { at: [550, 252], r: 11, text: '×' }
+  - { at: [550, 336], r: 11, text: '×' }
+links:
+  - { from: [346, 208], to: [378, 208] }
+  - { from: [464, 208], via: [[500, 208], [500, 84]], to: [536, 84], tone: kv }
+  - { from: [464, 208], via: [[500, 208], [500, 168]], to: [536, 168], tone: kv }
+  - { from: [464, 208], via: [[500, 208], [500, 252]], to: [536, 252], tone: kv }
+  - { from: [464, 208], via: [[500, 208], [500, 336]], to: [536, 336], tone: kv }
+  - { from: [642, 84], to: [670, 84] }
+  - { from: [642, 168], to: [670, 168] }
+  - { from: [642, 252], to: [670, 252] }
+  - { from: [642, 336], to: [670, 336] }
+texts:
+  - { at: [30, 36], text: ① 压缩：h₀ 乘下投影，得到 c₀, strong: true }
+  - { at: [422, 272], text: 只有它进 KV cache, size: 12, note: true, anchor: middle }
+  - { at: [520, 36], text: ② 还原：c₀ 乘各头自己的上投影, strong: true }

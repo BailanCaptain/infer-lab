@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 960" width="880" height="960" role="img" aria-label="官方文本生成配置下 Scheduler.schedule 的一轮：先处理 running，再用余量接纳 waiting。prefill 只拿到部分预算时，余下的位置留在 running 中供下轮继续。">
+  <title>官方文本生成配置下 Scheduler.schedule 的一轮：先处理 running，再用余量接纳 waiting。prefill 只拿到部分预算时，余下的位置留在 running 中供下轮继续。</title>
+  <defs><marker id="concurrent-request-schedule-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M440 76 L440 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M320 174 L213 200 L213 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M560 174 L667 200 L667 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M213 306 L213 364" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M213 432 L213 488" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M24 517 L8 517 L8 146 L200 146" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M667 306 L667 364" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M667 432 L667 488" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M590 556 L549 580 L549 612" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M745 556 L755 580 L755 612" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M549 670 L549 702 L580 702 L580 736" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M755 670 L755 736" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M856 769 L870 769 L870 398 L856 398" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M478 769 L452 769 L452 897 L402 897" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M478 272 L422 272 L422 836 L213 836 L213 868" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <path d="M478 398 L440 398 L440 852 L310 852 L310 868" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-schedule-ah-ink)"/>
+  <rect x="200" y="20" width="480" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="53" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Scheduler.schedule：重置本轮 token 预算</text>
+  <rect x="200" y="118" width="480" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="151" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">running 还有可遍历请求，且预算有余量？</text>
+  <rect x="24" y="238" width="378" height="68" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="213" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">取下一条 running；数量为 0 则跳过</text>
+  <text x="213" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本步数量取进度差、预算、长度上限的最小值</text>
+  <rect x="24" y="364" width="378" height="68" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="213" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">申请本步所需块号</text>
+  <text x="213" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">续块失败进入抢占图</text>
+  <rect x="24" y="488" width="378" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="213" y="513" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">分配成功：记录请求并扣预算</text>
+  <text x="213" y="532" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">继续遍历 running</text>
+  <rect x="478" y="238" width="378" height="68" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="667" y="268" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">本轮发生过抢占？</text>
+  <text x="667" y="287" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">有抢占就结束本轮接纳</text>
+  <rect x="478" y="364" width="378" height="68" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="667" y="394" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">waiting 有请求、预算有余量且未满员？</text>
+  <text x="667" y="413" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本部署最多 32 条 running 请求</text>
+  <rect x="478" y="488" width="378" height="68" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="667" y="518" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">取队首：未算完的输入超过余量？</text>
+  <text x="667" y="537" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">chunked prefill 已开启</text>
+  <rect x="460" y="612" width="178" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="549" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">是：只排剩余预算</text>
+  <rect x="654" y="612" width="202" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="646" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">否：排完剩余输入</text>
+  <rect x="478" y="736" width="378" height="66" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="667" y="765" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">申请块号：分配成功？</text>
+  <text x="667" y="784" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">成功才转入 running，并扣除本轮预算</text>
+  <rect x="24" y="868" width="378" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="213" y="893" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">交出 SchedulerOutput</text>
+  <text x="213" y="912" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本轮清单送去执行，下一轮重新判断</text>
+  <text x="232" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="690" y="219" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="689" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="689" y="462" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="447" y="257" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="453" y="383" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="747" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">成功 → 再看 waiting</text>
+  <text x="463" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">失败</text>
+</svg>

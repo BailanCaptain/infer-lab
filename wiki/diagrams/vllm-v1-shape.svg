@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 530" width="900" height="530" role="img" aria-label="vLLM V1 的三类角色和它们之间的循环。请求从前端进来，EngineCore 里的 Scheduler 每一步排一份计划，Executor 把同一份计划交给每个 Worker；Worker 把计划变成张量、算完前向再采样，结果交回 EngineCore 更新进度，新 token 编号再回到前端变成文字。更新完进度就排下一步，直到请求结束。">
+  <title>vLLM V1 的三类角色和它们之间的循环。请求从前端进来，EngineCore 里的 Scheduler 每一步排一份计划，Executor 把同一份计划交给每个 Worker；Worker 把计划变成张量、算完前向再采样，结果交回 EngineCore 更新进度，新 token 编号再回到前端变成文字。更新完进度就排下一步，直到请求结束。</title>
+  <defs><marker id="vllm-v1-shape-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="vllm-v1-shape-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="vllm-v1-shape-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <rect x="20" y="100" width="250" height="420" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">前端 · 管文字</text>
+  <rect x="300" y="100" width="300" height="420" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="316" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore · 管进度</text>
+  <rect x="630" y="100" width="250" height="420" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="646" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker · 管张量（每卡一个）</text>
+  <path d="M145 48 L145 134" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-ink)"/>
+  <path d="M245 164 L320 164" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-ink)"/>
+  <path d="M490 194 L490 270" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-control)"/>
+  <path d="M580 298 L615 298 L615 164 L650 164" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-control)"/>
+  <path d="M755 194 L755 270" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-ink)"/>
+  <path d="M755 326 L755 404" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-ink)"/>
+  <path d="M650 434 L580 434" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-token)"/>
+  <path d="M320 434 L245 434" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-token)"/>
+  <path d="M45 434 L32 434 L32 29 L45 29" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#vllm-v1-shape-ah-token)"/>
+  <path d="M332 404 L332 194" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#vllm-v1-shape-ah-control)"/>
+  <rect x="45" y="10" width="200" height="38" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="145" y="34" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">用户 / 客户端</text>
+  <rect x="45" y="134" width="200" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="145" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">接请求、分词</text>
+  <text x="145" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">文字 → token 编号</text>
+  <rect x="45" y="404" width="200" height="60" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="145" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">反分词、流式返回</text>
+  <text x="145" y="449" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token 编号 → 文字</text>
+  <rect x="320" y="134" width="260" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Scheduler 排这一步</text>
+  <text x="450" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">谁算、各算几个、用哪些块号</text>
+  <rect x="380" y="270" width="200" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="480" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Executor</text>
+  <text x="480" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一份计划发给每个 Worker</text>
+  <rect x="320" y="404" width="260" height="60" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="450" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按结果更新进度</text>
+  <text x="450" y="449" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">追加新 token、判断是否结束</text>
+  <rect x="650" y="134" width="210" height="60" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">把计划变成张量</text>
+  <text x="755" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">token、位置、写进缓存哪一格</text>
+  <rect x="650" y="270" width="210" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">模型前向</text>
+  <text x="755" y="313" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">权重和 KV cache 都在卡上</text>
+  <rect x="650" y="404" width="210" height="60" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="755" y="430" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">采样</text>
+  <text x="755" y="449" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每个请求得到新 token</text>
+  <text x="282" y="154" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">请求</text>
+  <text x="498" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#4d5652">调度计划</text>
+  <text x="617" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#065f56" text-anchor="middle">执行结果</text>
+  <text x="282" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#065f56" text-anchor="middle">新 token</text>
+  <text x="338" y="302" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="#4d5652">下一步</text>
+  <text x="45" y="498" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">持有：分词器、每个请求的输出队列</text>
+  <text x="320" y="498" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">持有：请求进度、块号清单</text>
+  <text x="650" y="498" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">持有：权重、KV cache 张量</text>
+</svg>

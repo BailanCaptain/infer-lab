@@ -1,0 +1,22 @@
+layout: figure
+id: glm-two-node-card-budget
+caption: 一张卡的显存怎么分给权重、临时数据和 KV cache。权重按算例的 21 GiB 取整；HBM 总量 64 GiB、激活峰值与非 torch 占用 3.4 GiB 都是教学假设，实机要看启动日志。decode 图是切完 KV 之后才录的，它的显存从预算之外的 9.6 GiB 里出。
+size: [900, 330]
+bars:
+  - at: [60, 120]
+    h: 44
+    scale: 12
+    frame: { value: 64, label: 卡上 HBM 64 GiB（假设）, tone: kv }
+    segments:
+      - { value: 21, tone: weight, style: solid, text: 权重 ≈21 GiB（取整） }
+      - { value: 3.4, tone: control, style: solid }
+      - { value: 30, tone: kv, style: solid, text: KV cache 30.0 GiB }
+      - { value: 9.6, tone: control, style: hatch }
+brackets:
+  - { from: 312, to: 353, y: 172, label: 激活峰值 + 非 torch 3.4 }
+  - { from: 713, to: 828, y: 172, label: 预算外 9.6 }
+  - { from: 353, to: 713, y: 210, label: "3,855 个 block id · 每块 640 token · 7.969 MiB" }
+texts:
+  - { at: [450, 26], text: 一张卡的 64 GiB 怎么分, anchor: middle, strong: true }
+  - { at: [60, 286], text: 预算 = 64 × 0.85 = 54.4 GiB, note: true }
+  - { at: [60, 308], text: 斜纹段在预算之外，decode 图从这里出, note: true }

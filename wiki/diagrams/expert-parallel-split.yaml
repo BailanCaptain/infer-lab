@@ -1,0 +1,29 @@
+layout: figure
+id: expert-parallel-split
+caption: 每卡、每步主模型 42 个 MoE 层的逻辑通信载荷。条长统一按 MiB 线性缩放：纯 decode 的 MC2 上界 55.1 MiB，混入 6000-token prefill 的 AllGather 为 6.09 GiB；两档载荷比约 113 倍。两批次的宽度和路径同时变化，延迟由实测确定。
+size: [900, 396]
+bars:
+  - at: [24, 170]
+    h: 30
+    scale: 0.1
+    segments:
+      - { value: 55.13525390625, tone: comm }
+  - at: [24, 290]
+    h: 30
+    scale: 0.1
+    segments:
+      - { value: 6232.5703125, tone: comm }
+texts:
+  - { at: [24, 48], text: '每卡 / 每步 · 主模型 42 个 MoE 层', strong: true }
+  - { at: [24, 128], text: '纯 decode · MC2', strong: true }
+  - { at: [24, 152], text: '两组执行宽度：64 行' }
+  - { at: [48, 191], text: '≤55.1 MiB（源侧上界）', strong: true }
+  - { at: [24, 248], text: '混入 prefill · AllGather', strong: true }
+  - { at: [24, 272], text: '两组执行宽度：6048 行' }
+  - { at: [647, 275], text: '6.09 GiB ≈ 6232.6 MiB', anchor: end, strong: true }
+  - { at: [24, 370], text: '同一线性比例 · 两档载荷相差约 113 倍', strong: true, tone: comm }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L314
+    symbols: [PrepareAndFinalizeWithMC2, finalize]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L560
+    symbols: [_prepare_with_dp_group, _finalize_with_dp_group]

@@ -1,0 +1,54 @@
+layout: figure
+id: prepare-inputs-code-flow
+caption: 一步里 model runner 的先后顺序。第 2 站的调度计划经广播队列发给本组 8 个 worker；每个 worker 先把持久批次改成和计划一致，本步一个 token 都没有就直接返回。接着准备输入：先发起块表拷贝，再定每行属于谁和这一步的形态，填位置和 token id、边界和长度，在 NPU 上算槽位，最后按有没有草稿决定选哪几行。之后补齐行数（图尺寸、两个 DP 组对齐），按缓存组建好注意力元数据，进入第 4 站。
+size: [900, 566]
+frames:
+  - { at: [16, 132], size: [868, 322], label: 第 3 站 准备输入（每个 worker 的 model runner）, inside: true }
+items:
+  - { at: [24, 40], size: [260, 60], text: 调度计划, sub: 谁、各几个 token、新块号、草稿, tone: control, style: plain }
+  - { at: [324, 40], size: [260, 60], text: 广播给本组 8 个 worker, sub: 共享内存队列，8 份相同, tone: control, style: plain }
+  - { at: [456, 170], size: [408, 60], text: 同步持久批次, sub: 删请求 → 追加块号 → 加新请求 → 压紧 → 重排, tone: token, style: plain }
+  - { at: [176, 170], size: [240, 60], text: 本步 0 个 token, sub: 返回空结果，不往下走, tone: control, style: faded }
+  - { at: [32, 270], size: [188, 60], text: 块表拷到 NPU, sub: 先发起，与后面并行, tone: kv, style: plain }
+  - { at: [244, 270], size: [188, 60], text: 每行属于谁、形态, sub: 有无历史、有无草稿, tone: control, style: plain }
+  - { at: [456, 270], size: [188, 60], text: 位置、token id, sub: 已算数 + 组内序号, tone: token, style: plain }
+  - { at: [668, 270], size: [196, 60], text: 边界、长度, sub: 累加本步 token 数, tone: token, style: plain }
+  - { at: [32, 370], size: [260, 60], text: 槽位, sub: NPU 上逐 token 查表、乘加, tone: kv, style: plain }
+  - { at: [336, 370], size: [220, 60], text: 选行, sub: 每条请求取哪几行, tone: control, style: plain }
+  - { at: [604, 362], size: [260, 36], text: 没有草稿：最后 1 行, tone: control, style: plain }
+  - { at: [604, 406], size: [260, 36], text: 带 k 个草稿：最后 1 + k 行, tone: control, style: plain }
+  - { at: [24, 482], size: [250, 60], text: 补齐行数, sub: 图尺寸、两组对齐；边界补假请求, tone: control, style: faded }
+  - { at: [314, 482], size: [300, 60], text: 建注意力元数据, sub: 每个缓存组换上自己的块表和槽位, tone: kv, style: plain }
+  - { at: [654, 482], size: [222, 60], text: 第 4 站 逐层前向, sub: 各层后端读写自己的状态, tone: ink, style: plain }
+links:
+  - { from: [284, 70], to: [324, 70] }
+  - { from: [454, 100], to: [660, 170], via: [[454, 118], [660, 118]] }
+  - { from: [456, 200], to: [416, 200], dashed: true }
+  - { from: [660, 230], to: [126, 270], via: [[660, 250], [126, 250]] }
+  - { from: [220, 300], to: [244, 300] }
+  - { from: [432, 300], to: [456, 300] }
+  - { from: [644, 300], to: [668, 300] }
+  - { from: [766, 330], to: [162, 370], via: [[766, 350], [162, 350]] }
+  - { from: [292, 400], to: [336, 400] }
+  - { from: [446, 430], to: [149, 482], via: [[446, 466], [149, 466]] }
+  - { from: [274, 512], to: [314, 512] }
+  - { from: [614, 512], to: [654, 512] }
+fans:
+  - { from: [556, 400], to: [[604, 380], [604, 424]], tone: control }
+texts:
+  - { at: [24, 26], text: 第 2 站 调度（引擎进程）, strong: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1125-L1180
+    symbols: [remove_request, unscheduled_req_ids]
+  - source: vllm@0fc695fc:vllm/v1/worker/gpu_model_runner.py#L1436-L1447
+    symbols: [add_request, condense, _may_reorder_batch]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2014-L2064
+    symbols: [EMPTY_MODEL_RUNNER_OUTPUT, _prepare_inputs]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L814-L868
+    symbols: [commit_block_table, req_indices, _build_attn_state]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1228-L1254
+    symbols: [compute_slot_mapping]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L1263-L1314
+    symbols: [logits_indices, spec_decode_metadata]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3254-L3280
+    symbols: [kv_cache_gid, block_table_tensor]

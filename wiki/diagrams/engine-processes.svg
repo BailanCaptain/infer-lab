@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560" role="img" aria-label="API server、EngineCore、Worker 三类进程各占一个框（Worker 画了两个），各有各的内存，框之间只能发消息。请求消息每条请求只发一次；清单每一步发一次，所有 Worker 收到同一份；没配 KV connector、也没开 PP 时，本步结果只由本组 TP 编号为 0 的 Worker 回传。两个 Worker 之间的虚线是卡与卡交换张量。多个 DP 组之间的对齐和 DP coordinator 的消息没有画，见正文。左下是整个服务只用一张卡的情形：Worker 不另起进程，成了 EngineCore 进程里的一个对象">
+  <title>API server、EngineCore、Worker 三类进程各占一个框（Worker 画了两个），各有各的内存，框之间只能发消息。请求消息每条请求只发一次；清单每一步发一次，所有 Worker 收到同一份；没配 KV connector、也没开 PP 时，本步结果只由本组 TP 编号为 0 的 Worker 回传。两个 Worker 之间的虚线是卡与卡交换张量。多个 DP 组之间的对齐和 DP coordinator 的消息没有画，见正文。左下是整个服务只用一张卡的情形：Worker 不另起进程，成了 EngineCore 进程里的一个对象</title>
+  <defs><marker id="engine-processes-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="engine-processes-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="engine-processes-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="24" y="64" width="300" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">API server 进程</text>
+  <rect x="420" y="64" width="456" height="196" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="436" y="52" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 进程</text>
+  <rect x="420" y="360" width="216" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="436" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker 0 进程</text>
+  <rect x="660" y="360" width="216" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="676" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">Worker 1 进程</text>
+  <rect x="24" y="360" width="300" height="150" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">只有一张卡时：EngineCore 进程</text>
+  <path d="M304 128 L440 128" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-ah-control)"/>
+  <path d="M440 212 L304 212" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#engine-processes-ah-token)"/>
+  <path d="M600 240 L600 360" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-ah-control)"/>
+  <path d="M840 240 L840 360" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-ah-control)"/>
+  <path d="M560 360 L560 240" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#engine-processes-ah-token)"/>
+  <path d="M636 470 L660 470" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-start="url(#engine-processes-ah-comm)" marker-end="url(#engine-processes-ah-comm)"/>
+  <path d="M160 428 L188 428" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#engine-processes-ah-control)"/>
+  <rect x="44" y="100" width="260" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="174" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收请求、分词</text>
+  <text x="174" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">文字 → token id</text>
+  <rect x="44" y="184" width="260" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="174" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">反分词、流式返回</text>
+  <text x="174" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">token id → 文字</text>
+  <rect x="440" y="100" width="200" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="540" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">scheduler</text>
+  <text x="540" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一步算谁、各算几个</text>
+  <rect x="656" y="100" width="200" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="756" y="124" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">块号账本</text>
+  <text x="756" y="143" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每条请求占了哪些 KV 块</text>
+  <rect x="440" y="184" width="416" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="648" y="208" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">executor</text>
+  <text x="648" y="227" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">把清单交给 Worker，收回本步结果</text>
+  <rect x="436" y="396" width="184" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="528" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 0 的模型分片</text>
+  <rect x="436" y="452" width="184" height="44" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="528" y="479" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 0 的 KV cache</text>
+  <rect x="676" y="396" width="184" height="48" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="768" y="425" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 1 的模型分片</text>
+  <rect x="676" y="452" width="184" height="44" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="768" y="479" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 1 的 KV cache</text>
+  <rect x="44" y="396" width="116" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="102" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">scheduler</text>
+  <text x="102" y="443" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">+ executor</text>
+  <rect x="188" y="396" width="116" height="64" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="246" y="424" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">Worker</text>
+  <text x="246" y="443" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">进程内的对象</text>
+  <text x="372" y="118" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#4d5652" text-anchor="middle">请求消息</text>
+  <text x="372" y="234" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#065f56" text-anchor="middle">新 token</text>
+  <text x="720" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#4d5652" text-anchor="middle">同一份清单，每步一次</text>
+  <text x="552" y="300" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#065f56" text-anchor="end">本步结果</text>
+  <text x="648" y="530" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#7a3a6a" text-anchor="middle">卡间通信</text>
+  <text x="174" y="488" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#4d5652" text-anchor="middle">直接函数调用，不跨进程</text>
+</svg>

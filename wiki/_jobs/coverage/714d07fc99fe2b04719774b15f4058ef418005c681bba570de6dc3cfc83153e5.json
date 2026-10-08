@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 2,
+  "jobId": "714d07fc99fe2b04719774b15f4058ef418005c681bba570de6dc3cfc83153e5",
+  "gapKey": "62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
+  "revision": "7ef9438da5fe24fda95723c21bccbfca7497b0663b43b3820b7e05afc8eed761",
+  "observationHash": "3c6e7c1a45240adf608c514d3f13ee0b984490b6be2b726b6fe3f140dd47da95",
+  "decision": {
+    "satisfied": false,
+    "classification": "missing-knowledge",
+    "reason": "问题要求 main 2026-08-29 快照中 smooth_factor 的平滑公式、默认值和实际调用位置。索引未截断，只有 profiling-chunk-config 页与该参数相关。其余两页候选正文讨论的是 KV 逐层卸载和 MatMul AllReduce，与该参数无关。已提供的摘录只说明 smooth_factor 在两版中都必须位于 (0, 1] 内，否则抛出 ValueError。该页明确写明材料没有解释这个系数的语义，也没有说明预测出的 chunk 在调度中如何使用，并注明本页只依据配置源码摘录。因此，所给范围缺少平滑公式和调度侧的调用位置。可见摘录中也没有出现 smooth_factor 的默认值。该页正文被截断，省略部分可能写有默认值。不过页面已在可见正文中说明缺少语义和调度用法，判断公式与调用位置缺失不依赖省略内容。本结论只针对所提供的索引与摘录，不能证明全库或上游源码中没有这些信息。原候选的知识版本与当前版本不同，本判定不涉及当时是否漏检。",
+    "evidence": [
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "必须在 `(0, 1]` 内，否则 `ValueError`"
+      },
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "材料没有解释这个系数的语义"
+      },
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "预测出的 chunk 在调度中具体怎么用；"
+      },
+      {
+        "pageId": "profiling-chunk-config",
+        "quote": "本页只依据配置源码摘录，没有性能实验。"
+      }
+    ]
+  },
+  "scope": {
+    "kind": "provided-excerpts",
+    "index": {
+      "hash": "694eb27790c1aa6e2aaa0cc741f0745067fbc13b4b15b282867a255ec3d33cd5",
+      "chars": 4636,
+      "truncated": false
+    },
+    "pages": [
+      {
+        "hash": "2a9d36d31d3369e72569ca22d4faa41f85233f86e5276377d1021be8869fc959",
+        "chars": 3000,
+        "truncated": true,
+        "id": "profiling-chunk-config"
+      },
+      {
+        "hash": "5227daf1499a099e1033fd1f9d54b4ff29f95e611c95aad2eba9f4092d3e0fa8",
+        "chars": 3000,
+        "truncated": true,
+        "id": "kv-cache-layerwise-offload"
+      },
+      {
+        "hash": "4fa140fad02041cb85a3a9b25bb098d6f03536ed4428820cc69d77428069cd31",
+        "chars": 3000,
+        "truncated": true,
+        "id": "enable-matmul-allreduce"
+      }
+    ],
+    "externalSourcesReviewed": false
+  },
+  "validation": {
+    "evidence": "exact-quotes-only",
+    "reason": "unverified",
+    "classification": "model-judgment"
+  }
+}

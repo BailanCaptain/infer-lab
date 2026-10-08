@@ -1,0 +1,266 @@
+# 10 章「引擎架构与插件机制」+ 20 章「读源码」· vllm-ascend 代码导览批（15 页）。
+# 和 vllm-ascend.yaml 用同一组 ref 与同一份本地工作树，不另钉版本——读者在同一个
+# 分支上开发，两批页说的必须是同一份源码。
+# 这批页是 2026-09-19 直接读本地钉住的源码手写的，没有走付费 ingest。seeds 留在这里
+# 是为了让 wiki:audit / wiki:sync 能继续巡检和刷新它们，不是声称它们由 agent 编译产出。
+# 跑法：pnpm wiki:clone --seeds wiki/seeds/vllm-ascend-code.yaml && pnpm wiki:audit --seeds wiki/seeds/vllm-ascend-code.yaml
+repos:
+  # 上游 vLLM。讲「两边各管什么」必须能引它的源码，否则 vLLM 那一侧全是无来源断言。
+  # 只钉一个 commit：0fc695fc 就是 vLLM 的 v0.23.0 tag 所指的提交，与
+  # vllm-ascend releases/v0.23.0 配套（官方版本策略：releases/vX.Y.Z 对应 vLLM X.Y.Z）。
+  # ref 键写 main 是 clone 工具的要求（DEFAULT_REF），正文一律称「vLLM v0.23.0」，
+  # 不把这个键名当版本名。
+  vllm:
+    url: https://github.com/vllm-project/vllm
+    path: tools/repos/vllm
+    refs:
+      main: "0fc695fc"
+      "releases/v0.26.0": "568afb3a"   # = vLLM v0.26.0 tag，与 vllm-ascend releases/v0.26.0rc 配套（该分支 mkdocs.yml 的 vllm_version）
+  vllm-ascend:
+    url: https://github.com/vllm-project/vllm-ascend
+    path: tools/repos/vllm-ascend
+    refs:
+      main: "baa023ad"            # 2026-09-22 全库页面的 main 来源统一重钉到这里（原 28bf3a2e 是 2026-08-29 的事实基线）
+      "releases/v0.23.0": "2c59ff10"   # 分支 tip，2026-09-09；本批页的主叙述版本
+      "releases/v0.26.0rc": "2ed6cbba"   # 分支 tip，2026-09-17；还在 rc 阶段（tag 到 v0.26.0rc2），与 vLLM v0.26.0 配套。2026-09-21 用户定：v0.23 与 v0.26 长期并存
+
+features:
+  - id: vllm-ascend-overview
+    title: vLLM-Ascend 是什么
+    type: concept
+    chapters: ["10"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [setup.py, vllm_ascend/__init__.py, vllm_ascend/platform.py]
+    docs: [docs/source/index.md]
+    ask: vllm-ascend 与上游 vLLM 的代码边界在哪；它是一个 out-of-tree 插件而不是 fork 意味着什么；五个注册入口各自接进 vLLM 的哪一层。
+
+  - id: platform-plugin-registration
+    title: 插件注册机制
+    type: feature
+    chapters: ["10"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [setup.py, vllm_ascend/__init__.py]
+    ask: vllm.platform_plugins 与 vllm.general_plugins 两个 entry point 组的区别；register() 为什么返回字符串而不是类；四个 general plugin 为什么每个都要先 _ensure_global_patch()。
+
+  - id: npu-platform
+    title: NPUPlatform
+    type: feature
+    chapters: ["10"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/platform.py]
+    ask: NPUPlatform 继承自上游 Platform 后覆盖了哪几类方法；check_and_update_config 在启动的哪一步被调用、会改写和拦住哪些配置；后端选择类方法如何把请求转给昇腾实现。
+
+  - id: ascend-patch-system
+    title: Patch 机制
+    type: feature
+    chapters: ["10"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/patch/__init__.py, vllm_ascend/utils.py, vllm_ascend/patch/platform/__init__.py]
+    docs: [docs/source/developer_guide/Design_Documents/patch.md]
+    ask: patch/platform 与 patch/worker 的两个生效时机；adapt_patch 怎么按 is_global_patch 分流；patch 清单的自文档格式；怎么判断某个上游行为在昇腾上被改过。
+
+  - id: engine-processes
+    title: 三个进程与 patch 注入点
+    type: concept
+    chapters: ["10"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/__init__.py, vllm_ascend/patch/__init__.py, vllm_ascend/worker/worker.py]
+    ask: V1 引擎的 Main / EngineCore / Worker 三类进程分别由谁拉起；每类进程里 patch 是怎么进去的；为什么 EngineCore 进程要靠 general_plugins 补一次全局 patch。
+
+  - id: ascend-config-system
+    title: AscendConfig 配置系统
+    type: feature
+    chapters: ["10"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ascend_config.py, vllm_ascend/envs.py, vllm_ascend/platform.py]
+    docs: [docs/source/user_guide/configuration/additional_config.md]
+    ask: --additional-config 的 JSON 怎么变成 AscendConfig 的嵌套子配置；单例 _ASCEND_CONFIG 的初始化与读取时机；环境变量与 additional_config 的分工。
+
+  - id: vllm-ascend-repo-map
+    title: vllm_ascend 目录地图
+    type: concept
+    chapters: ["20"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/__init__.py]
+    ask: vllm_ascend 下 23 个子目录各自的职责与规模；按什么顺序读；哪些目录第一次读可以跳过；两个 ref 之间目录层面的差异。
+
+  - id: npu-worker-lifecycle
+    title: NPUWorker 启动时序
+    type: feature
+    chapters: ["20"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/worker/worker.py]
+    ask: NPUWorker 从 __init__ 到可以接请求之间的固定顺序；每一步改变了什么状态；哪一步决定 KV Cache 能拿到多少显存。
+
+  - id: npu-model-runner
+    title: NPUModelRunner 怎么读
+    type: feature
+    chapters: ["20"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/worker/model_runner_v1.py]
+    ask: 这个近 30 万字节的单文件按什么分区；execute_model 主循环的固定几步；想改某一类行为应该从哪个方法切入。
+
+  - id: request-call-chain
+    title: 一次请求的调用链
+    type: concept
+    chapters: ["20"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/worker/worker.py, vllm_ascend/worker/model_runner_v1.py]
+    ask: 一次请求从进程边界到 token 产出穿过哪些函数；哪几跳在上游 vLLM、哪几跳在昇腾侧；每跳交接的是什么数据。
+
+  - id: prepare-inputs-flow
+    title: prepare_inputs 数据流
+    type: feature
+    chapters: ["20"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/worker/npu_input_batch.py, vllm_ascend/worker/block_table.py]
+    docs: [docs/source/developer_guide/Design_Documents/ModelRunner_prepare_inputs.md]
+    ask: 调度器给出的请求集合怎么变成算子要的那几个张量；InputBatch 与 BlockTable 各自持有什么；slot mapping 在哪一步算出来。
+
+  - id: attention-backend-family
+    title: 注意力后端家族
+    type: feature
+    chapters: ["20"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/attention/attention_v1.py, vllm_ascend/attention/mla_v1.py, vllm_ascend/platform.py]
+    ask: attention 目录下几个 *_v1 后端各自服务哪类模型与算法；get_attn_backend_cls 按什么条件选；各后端声明的 KV Cache 形状差异。
+
+  - id: ops-and-kernels
+    title: 算子层与自定义算子
+    type: feature
+    chapters: ["20"]
+    priority: 2
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ops/__init__.py, csrc/CMakeLists.txt]
+    docs: [docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md]
+    ask: 一个算子从 Python 调用到 AI Core 之间经过哪几层；ops/ 里替换上游算子的方式；csrc/ 下自定义 aclnn 算子怎么注册进来。
+
+  - id: graph-mode-layer
+    title: 图模式层
+    type: feature
+    chapters: ["20"]
+    priority: 3
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/compilation, vllm_ascend/platform.py]
+    docs: [docs/source/developer_guide/Design_Documents/ACL_Graph.md]
+    ask: compilation/ 与 xlite/ 的分工；ACL Graph 的捕获与回放接在哪一步；什么条件下回退到 eager。
+
+  - id: reading-vllm-ascend
+    title: 怎么读这个仓库
+    type: concept
+    chapters: ["20"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/patch/__init__.py, vllm_ascend/platform.py]
+    ask: 从一条 traceback、一个特性名、一个上游类名三个方向分别怎么定位到昇腾侧代码；两个 ref 之间怎么做对照；哪些查法会得出错误结论。
+
+  # 2026-09-19 第二轮补的：讲 vllm-ascend 就绕不开 vLLM 本身，边界两侧只讲一侧等于没讲。
+  # 这几页的 repo 是 vllm，refs 用 main 这个键（它钉的是 v0.23.0 tag 那个 commit，见文件开头）。
+  - id: one-request
+    title: 贯穿全书的那条请求
+    type: concept
+    chapters: ["00"]
+    priority: 1
+    repo: vllm
+    refs: ["main"]
+    entry: [vllm/v1/engine/core.py, vllm/v1/core/sched/scheduler.py, vllm/v1/core/kv_cache_manager.py]
+    ask: 全库共用的那条样例请求的设定与派生数是什么；它在时间轴上有哪两个要记住的时刻；它代表不了哪些情形。
+
+  - id: vllm-v1-shape
+    title: "vLLM 的形状：三个进程，两道边界"
+    type: concept
+    chapters: ["10"]
+    priority: 1
+    repo: vllm
+    refs: ["main"]
+    entry: [vllm/v1/engine/async_llm.py, vllm/v1/engine/core.py, vllm/v1/executor/abstract.py]
+    ask: 一条请求要穿过哪几个进程；每道边界上传的是什么对象；Executor 在这个结构里是什么角色。
+
+  - id: vllm-engine-core
+    title: "EngineCore：那个 while 循环"
+    type: concept
+    chapters: ["10"]
+    priority: 1
+    repo: vllm
+    refs: ["main"]
+    entry: [vllm/v1/engine/core.py]
+    ask: 引擎主循环的循环体有哪几句；空闲时是阻塞还是轮询；step() 里为什么先拿 future 再取结果。
+
+  - id: vllm-scheduler
+    title: "调度器：没有 prefill 和 decode 之分"
+    type: concept
+    chapters: ["12"]
+    priority: 1
+    repo: vllm
+    refs: ["main"]
+    entry: [vllm/v1/core/sched/scheduler.py, vllm/config/scheduler.py, vllm/engine/arg_utils.py]
+    ask: 调度一步的规则是什么；token 预算默认值怎么算出来的；chunked prefill 是开关还是自然结果。
+
+  - id: vllm-kv-block-allocation
+    title: block 是怎么分出来的
+    type: concept
+    chapters: ["11"]
+    priority: 1
+    repo: vllm
+    refs: ["main"]
+    entry: [vllm/v1/core/kv_cache_manager.py, vllm/v1/core/block_pool.py]
+    ask: 一条请求在什么时刻触发分块；块什么时候才算可复用；释放时为什么按逆序还回队列。
+
+  - id: vllm-platform-interface
+    title: "Platform：上游留给硬件的那张问卷"
+    type: concept
+    chapters: ["10"]
+    priority: 1
+    repo: vllm
+    refs: ["main"]
+    entry: [vllm/platforms/interface.py, vllm/platforms/__init__.py, vllm/config/vllm.py]
+    ask: Platform 上有哪几类题；check_and_update_config 在哪一刻被调用；out-of-tree 插件与内置平台谁优先。
+
+  # 2026-09-19 第三轮：这两页原本各是别人页里的一节，拆出来单写。
+  - id: op-to-ai-core
+    title: 一个算子从 Python 走到 AI Core
+    type: concept
+    chapters: ["16"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/ops/layernorm.py, vllm_ascend/utils.py, csrc/moe/add_rms_norm_bias]
+    docs: [docs/source/developer_guide/Design_Documents/add_custom_aclnn_op.md]
+    ask: 一次 RMSNorm 从上游分派到 AI Core 要穿过哪四层；决定要不要下到 csrc/ 的那个判断是什么；tiling 与 op_kernel 各自跑在哪儿。
+
+  - id: attention-cost
+    title: 四种注意力的代价
+    type: concept
+    chapters: ["04"]
+    priority: 1
+    repo: vllm-ascend
+    refs: ["releases/v0.23.0", "main"]
+    entry: [vllm_ascend/core/kv_cache_interface.py, vllm_ascend/attention, vllm_ascend/worker/model_runner_v1.py]
+    ask: 四个注意力后端每个 token 每层各占多少字节；那个乘 2 属于哪些后端；稀疏与 C8 各自加减了什么。

@@ -1,0 +1,79 @@
+layout: figure
+id: chunked-prefill
+caption: 示意数：每步最多算 8 个位置。A、B 已在生成，每步各 1 个；C 刚到，提示词 14 个位置，每步只分到余下的 6 个，于是按 6、6、2 分三步算完。每一段都接着前一段的位置往后算，并读前面已经存下的历史；前两步 C 的采样结果丢掉，第 3 步算到最后一个位置才选出第一个输出 token y₀，第 4 步起 C 也和 A、B 一样每步 1 个。
+size: [880, 470]
+grids:
+  - at: [24, 44]
+    rows: 1
+    cols: 14
+    cell: [40, 36]
+    gap: 0
+    tone: control
+    style: faded
+    cells:
+      - { at: [0, 0], text: "0" }
+      - { at: [0, 1], text: "1" }
+      - { at: [0, 2], text: "2" }
+      - { at: [0, 3], text: "3" }
+      - { at: [0, 4], text: "4" }
+      - { at: [0, 5], text: "5" }
+      - { at: [0, 6], text: "6" }
+      - { at: [0, 7], text: "7" }
+      - { at: [0, 8], text: "8" }
+      - { at: [0, 9], text: "9" }
+      - { at: [0, 10], text: "10" }
+      - { at: [0, 11], text: "11" }
+      - { at: [0, 12], text: "12" }
+      - { at: [0, 13], text: "13" }
+brackets:
+  - { from: 24, to: 264, y: 88, label: 第 1 步算 }
+  - { from: 264, to: 504, y: 88, label: 第 2 步算 }
+  - { from: 504, to: 584, y: 88, label: 第 3 步算 }
+items:
+  - { at: [640, 38], size: [216, 48], text: 选出 y₀, sub: 位置 13 算完才有第一个输出, tone: token }
+links:
+  - { from: [584, 62], to: [640, 62], tone: token }
+bars:
+  - at: [24, 176]
+    h: 36
+    scale: 48
+    frame: { value: 8, label: 每步预算 8 个位置, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 6, tone: control, text: C 的位置 0–5 }
+  - at: [24, 252]
+    h: 36
+    scale: 48
+    frame: { value: 8, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 6, tone: control, text: C 的位置 6–11 }
+  - at: [24, 328]
+    h: 36
+    scale: 48
+    frame: { value: 8, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 2, tone: control, text: "C 12–13" }
+  - at: [24, 404]
+    h: 36
+    scale: 48
+    frame: { value: 8, tone: control }
+    segments:
+      - { value: 1, tone: token, text: A }
+      - { value: 1, tone: token, text: B }
+      - { value: 1, tone: token, text: C }
+texts:
+  - { at: [24, 30], text: C 的提示词：14 个位置, strong: true }
+  - { at: [432, 199], text: 第 1 步：C 算 0–5，读 0–5；采样丢掉 }
+  - { at: [432, 275], text: 第 2 步：C 算 6–11，读 0–11；采样丢掉 }
+  - { at: [432, 351], text: 第 3 步：C 算 12–13，读 0–13；选出 y₀ }
+  - { at: [432, 427], text: 第 4 步：C 送进 y₀，和 A、B 一样每步 1 个 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L678-L700
+    symbols: [num_computed_tokens, token_budget, enable_chunked_prefill]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L997-L1019
+    symbols: [num_computed_tokens, is_prefill_chunk]

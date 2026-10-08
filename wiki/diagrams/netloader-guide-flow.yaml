@@ -1,0 +1,40 @@
+layout: figure
+id: netloader-guide-flow
+caption: 固定 GLM 提交中的启动分支。选择 Netloader 后，每个 Worker 独立取来源、握手、接收；没有来源或传输返回失败就回默认加载。两路随后尝试启动供其他实例取权重的监听服务，再完成所需的权重后处理。主模型带草稿模型时还有加载草稿前的同步；后续才到 KV cache、预热和请求处理。
+size: [880, 735]
+items:
+  - { at: [250, 28], size: [380, 52], text: Worker 启动：选择模型加载器, sub: Netloader 位于接请求之前, tone: control }
+  - { at: [60, 135], size: [260, 58], text: 默认加载器, sub: 未选择 Netloader, tone: control, style: faded }
+  - { at: [520, 135], size: [290, 58], text: Netloader 检查当前 rank 来源, sub: 来源按进程编号匹配, tone: control }
+  - { at: [520, 245], size: [290, 58], text: 建空模型 → TCP 握手, sub: 比较 rank、模型路径、TP、PP, tone: control }
+  - { at: [520, 355], size: [290, 58], text: HCCL 接收权重 → 等齐, sub: 临时通信组收完后销毁, tone: comm }
+  - { at: [60, 355], size: [260, 58], text: 回退：默认加载器读存储, sub: 传输失败先清理再重建, tone: weight }
+  - { at: [250, 478], size: [380, 58], text: 尝试启动 Netloader 监听服务, sub: 量化原始 int8 缓存在这里建立, tone: control }
+  - { at: [250, 579], size: [380, 58], text: 按需做权重后处理 → 返回模型, sub: 有草稿模型时先做主模型同步, tone: weight }
+  - { at: [250, 680], size: [380, 44], text: 后续：KV cache → 预热 → 接请求, tone: token }
+links:
+  - { from: [340, 80], to: [190, 135], via: [[340, 108], [190, 108]], tone: control }
+  - { from: [540, 80], to: [665, 135], via: [[540, 108], [665, 108]], tone: control }
+  - { from: [665, 193], to: [665, 245], tone: control }
+  - { from: [520, 164], to: [190, 355], via: [[385, 164], [385, 330], [190, 330]], tone: control, dashed: true }
+  - { from: [665, 303], to: [665, 355], tone: comm }
+  - { from: [520, 274], to: [300, 355], via: [[450, 274], [450, 340], [300, 340]], tone: danger, dashed: true }
+  - { from: [520, 395], to: [320, 395], tone: danger, dashed: true }
+  - { from: [190, 413], to: [350, 478], via: [[190, 450], [350, 450]], tone: weight }
+  - { from: [665, 413], to: [540, 478], via: [[665, 450], [540, 450]], tone: weight }
+  - { from: [440, 536], to: [440, 579], tone: weight }
+  - { from: [440, 637], to: [440, 680], tone: control }
+  - { from: [60, 165], to: [250, 702], via: [[28, 165], [28, 702]], tone: control, dashed: true }
+texts:
+  - { at: [679, 225], text: 有来源, size: 13 }
+  - { at: [393, 212], text: 无来源, size: 13 }
+  - { at: [679, 335], text: 匹配, size: 13 }
+  - { at: [458, 318], text: 握手失败, size: 12, tone: danger }
+  - { at: [419, 417], text: 接收失败, anchor: middle, size: 12, tone: danger }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/netloader.py#L58-L437
+    symbols: [load_model, revert_to_default, process_weights_after_loading]
+  - source: vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/interaction/elastic.py#L61-L422
+    symbols: [register_handler, ElasticServer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/model_loader/netloader/executor/elastic_load.py#L50-L161
+    symbols: [P2PSend, stateless_init_process_group, destroy_stateless_process_group]

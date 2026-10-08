@@ -1,0 +1,54 @@
+layout: figure
+id: token-budget
+caption: 调度器每一步的选择：先给 running 里的请求续上各自差的位置，余量再给 waiting 的新请求；每排一条请求，都要同时拿到 token 预算和能存下它历史的 KV 块。
+size: [880, 484]
+items:
+  - { at: [24, 56], size: [250, 56], text: A：差 1 个位置, sub: 上一步刚生成 1 个 token, tone: token }
+  - { at: [24, 122], size: [250, 56], text: B：差 1 个位置, sub: 上一步刚生成 1 个 token, tone: token }
+  - { at: [24, 232], size: [250, 56], text: C：整段提示词都没算, sub: 差很多个位置, tone: token }
+  - { at: [24, 298], size: [250, 56], text: D：整段提示词都没算, sub: 预算已用完，这一步排不上, tone: token, style: faded }
+  - { at: [24, 402], size: [400, 60], text: running 的请求借不到块, sub: 抢占 running 队尾一条，它的块全还回, tone: danger }
+  - { at: [456, 402], size: [400, 60], text: waiting 的请求借不到块, sub: 不抢占别人，这一步停止接纳, tone: control }
+bars:
+  - at: [340, 76]
+    h: 40
+    scale: 25
+    frame: { value: 20, label: 本步 token 预算, tone: control }
+    segments:
+      - { value: 1, tone: token }
+      - { value: 1, tone: token }
+      - { value: 18, tone: token, text: C 的前一段 }
+  - at: [340, 150]
+    h: 32
+    scale: 25
+    segments:
+      - { value: 9, tone: control, style: hatch, text: C 余下的，留到下一步 }
+grids:
+  - at: [340, 262]
+    rows: 1
+    cols: 12
+    cell: [40, 40]
+    gap: 0
+    tone: kv
+    cells:
+      - { at: [0, 0], text: A, style: solid }
+      - { at: [0, 1], text: B, style: solid }
+      - { at: [0, 2], text: C, style: solid }
+      - { at: [0, 3], text: C, style: solid }
+      - { at: [0, 4], text: C, style: solid }
+      - { at: [0, 5], text: C, style: solid }
+fans:
+  - { from: [[274, 84], [274, 150], [274, 260]], to: [340, 96] }
+texts:
+  - { at: [24, 40], text: running：已经在跑的请求, strong: true }
+  - { at: [24, 216], text: waiting：刚到、还没排上的请求, strong: true }
+  - { at: [340, 40], text: ① 先续 running，再把余量给 waiting, strong: true }
+  - { at: [340, 136], text: A、B 各 1 个, size: 13 }
+  - { at: [340, 246], text: ② 本步要写的位置，都要先借到空闲 KV 块, strong: true }
+  - { at: [340, 326], text: 够才整套借出，不借一半, note: true }
+  - { at: [24, 388], text: 块不够时, strong: true }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L351
+    symbols: [num_computed_tokens, num_tokens_with_spec]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L445-L516
+    symbols: [allocate_slots, token_budget]

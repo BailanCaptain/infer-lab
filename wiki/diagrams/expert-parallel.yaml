@@ -1,0 +1,45 @@
+layout: figure
+id: expert-parallel
+caption: 第 4 站的两条 MoE 执行路径，分别从上往下读。MC2 先分源 token，combine 合齐专家贡献后再拼回 token；AllGather 先收齐输入，本地算专家，再跨两级组归约。共享分支始终使用本组完整输入。
+size: [900, 850]
+frames:
+  - { at: [18, 42], size: [416, 750], label: 'MC2 · R1 · 本组 4 行' }
+  - { at: [466, 42], size: [416, 750], label: 'AllGather · 场景 M · 本组 6048 行' }
+items:
+  - { at: [38, 80], size: [376, 62], text: router → prepare, sub: '打分 [4,288]；4 行补 8，切成每卡 1 行', style: plain }
+  - { at: [38, 184], size: [376, 62], text: top-8 → MC2 dispatch, sub: 'EP16 · 发送 INT8 hidden + FP32 scale', tone: comm }
+  - { at: [38, 288], size: [376, 62], text: 目的卡 · 本地 18 个完整专家, sub: '接收 Nᵣ 行，按专家分组计算', tone: weight }
+  - { at: [38, 392], size: [376, 62], text: MC2 combine → 源卡, sub: 'EP16 · 返回 BF16 结果并加权 → [1,4096]', tone: comm }
+  - { at: [38, 496], size: [376, 62], text: finalize · TP8 All-Gather, sub: '拼回 token：[8,4096] → 去补位 [4,4096]', tone: comm }
+  - { at: [38, 600], size: [376, 62], text: 共享专家 → TP8 All-Reduce, sub: '从原始 [4,4096] 计算，单独合齐共享输出', tone: comm }
+  - { at: [38, 704], size: [376, 62], text: 路由输出 + 共享输出, sub: '[4,4096] · 本组完整 MoE 输出', tone: token }
+  - { at: [486, 80], size: [376, 62], text: router → prepare, sub: '本地 hidden [6048,4096]；分数 [6048,288]', style: plain }
+  - { at: [486, 184], size: [376, 62], text: DP2 All-Gather × 2, sub: '收齐两组 hidden 与分数 → 12096 行', tone: comm }
+  - { at: [486, 288], size: [376, 62], text: top-8 → 本地 dispatch → 本地专家, sub: '卡内筛出命中本卡 18 个专家的 Nᵣ 行', tone: weight }
+  - { at: [486, 392], size: [376, 62], text: 本地 combine, sub: '[12096,4096] · 只含本卡专家贡献', style: plain }
+  - { at: [486, 496], size: [376, 62], text: finalize · DP2 Reduce-Scatter, sub: '[6048,4096] · 一对 EP rank 的贡献', tone: comm }
+  - { at: [486, 600], size: [376, 62], text: 加上共享专家的 TP 部分和, sub: '共享分支使用本组原始 [6048,4096]', tone: weight }
+  - { at: [486, 704], size: [376, 62], text: TP8 All-Reduce · 合齐两种贡献, sub: '[6048,4096] · 本组完整 MoE 输出', tone: comm }
+links:
+  - { from: [226, 142], to: [226, 184] }
+  - { from: [226, 246], to: [226, 288], tone: comm }
+  - { from: [226, 350], to: [226, 392] }
+  - { from: [226, 454], to: [226, 496], tone: comm }
+  - { from: [226, 558], to: [226, 600] }
+  - { from: [226, 662], to: [226, 704] }
+  - { from: [674, 142], to: [674, 184] }
+  - { from: [674, 246], to: [674, 288], tone: comm }
+  - { from: [674, 350], to: [674, 392] }
+  - { from: [674, 454], to: [674, 496] }
+  - { from: [674, 558], to: [674, 600], tone: comm }
+  - { from: [674, 662], to: [674, 704] }
+texts:
+  - { at: [226, 827], text: '每层 4 次集合通信', anchor: middle }
+  - { at: [674, 827], text: '每层 4 次集合通信', anchor: middle }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L193-L314
+    symbols: [PrepareAndFinalizeWithMC2, prepare, finalize]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L440-L560
+    symbols: [_prepare_with_dp_group, _finalize_with_dp_group]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L719
+    symbols: [_forward_shared_experts, shared_forward_impl]

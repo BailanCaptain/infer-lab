@@ -1,0 +1,26 @@
+layout: figure
+id: token-split
+caption: GLM 模型仓库自带的 chat template 处理一条消息：前后插入特殊标记，正文照常切块，每块查词表得到一个编号。特殊标记的编号取自模型仓库的 tokenizer 文件；正文的切法和 4 个编号是示意，与前面的例子相同。
+size: [900, 250]
+items:
+  - { at: [480, 40], size: [196, 44], text: 用户消息：推理引擎怎么工作, tone: token, style: plain }
+  - { at: [55, 150], size: [66, 54], text: "[gMASK]", sub: "154822", tone: control, style: solid }
+  - { at: [127, 150], size: [62, 54], text: "<sop>", sub: "154824", tone: control, style: solid }
+  - { at: [195, 150], size: [84, 54], text: "<|system|>", sub: "154826", tone: control, style: solid }
+  - { at: [285, 150], size: [92, 54], text: 推理强度说明, sub: 几个 token, tone: control, style: faded }
+  - { at: [383, 150], size: [68, 54], text: "<|user|>", sub: "154827", tone: control, style: solid }
+  - { at: [457, 150], size: [56, 54], text: 推理, sub: "9123", tone: token, style: solid }
+  - { at: [519, 150], size: [56, 54], text: 引擎, sub: "40517", tone: token, style: solid }
+  - { at: [581, 150], size: [56, 54], text: 怎么, sub: "2256", tone: token, style: solid }
+  - { at: [643, 150], size: [56, 54], text: 工作, sub: "1180", tone: token, style: solid }
+  - { at: [705, 150], size: [106, 54], text: "<|assistant|>", sub: "154828", tone: control, style: solid }
+  - { at: [817, 150], size: [66, 54], text: "<think>", sub: "154841", tone: control, style: solid }
+fans:
+  - { from: [578, 84], to: [[485, 150], [547, 150], [609, 150], [671, 150]], tone: token }
+brackets:
+  - { from: 55, to: 451, y: 212, label: 模板插在前面 }
+  - { from: 457, to: 699, y: 212, label: 正文切成的块（编号示意） }
+  - { from: 705, to: 883, y: 212, label: 模板插在后面 }
+texts:
+  - { at: [55, 67], text: ① 用户发来的正文, strong: true }
+  - { at: [55, 132], text: ② 套模板、切块，每块查表得一个编号 }

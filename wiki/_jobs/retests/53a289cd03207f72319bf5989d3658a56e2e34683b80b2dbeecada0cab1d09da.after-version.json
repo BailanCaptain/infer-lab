@@ -1,0 +1,18 @@
+{
+  "kind": "version",
+  "question": "现有 Wiki 能否证明 v0.23 维护分支与 main 对 smooth_factor 使用完全相同的预测和平滑调用路径？",
+  "answer": "先在 index.md 里搜索 `smooth_factor` 相关内容。现在查看 profiling-chunk-config.md 中关于 smooth_factor 的调用路径和版本差异的具体内容。再看参数页的 sources 列表，确认 v0.23 和 main 各自引用了哪些行。现在我有了足够的信息来回答。\n\n**不能证明。** Wiki 记录了 `smooth_factor` 的参数规格在三个版本上一致（取值范围 `(0, 1]`、默认 1.0），但这不等于证明了**调用路径**相同。\n\n具体缺口：\n\n1. **预测函数的源码引用只在 main 上**。smoothing 公式那一节（`smoothed = base_chunk_size + smooth_factor * (x - base_chunk_size)`）及对应的 `[C9]`，指向的是 `vllm-ascend@baa023ad:vllm_ascend/core/profiling_chunk_predictor.py#L288-L315`（main 的 commit）。调度器截断 `[C11]` 同样只引了 `baa023ad`（main）。v0.23 的 `profiling_chunk_predictor.py` 和 `scheduler_profiling_chunk.py` 均未在来源列表里出现。\n\n2. **v0.23 的来源仅覆盖配置定义层**。页面中 `@2c59ff10`（v0.23 commit）的引用只有 `ascend_config.py`（C7、C8），用于证明配置类的字段与校验逻辑，不覆盖 predict 函数体与平滑调用链。\n\n3. **已知有结构差异**。事实表明确记录了「实现形式」这一行：v0.23/v0.26 用普通类、main 改用 pydantic dataclass，检查挪进 `mode=\"after\"` 的 validator。虽然表中没说 predict/smooth 路径因此改变，但代码结构已不相同，而 Wiki 并未进一步核对两版 predictor 的调用链是否逐步一致。\n\n**结论**：Wiki 能证明参数规格一致，但预测与平滑调用路径的跨版本同一性没有 v0.23 侧的来源来支撑，属于 [I]（推断而非事实）。如需确认，需对照 v0.23 的 `profiling_chunk_predictor.py` 与 `scheduler_profiling_chunk.py` 重新引用源码行。\n\n参考页：[动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md)\n\n<!-- wiki-coverage: {\"satisfied\":false,\"reason\":\"Wiki 记录了 smooth_factor 参数规格在三版上一致，但预测与平滑调用路径（profiling_chunk_predictor.py 和 scheduler_profiling_chunk.py）仅引用了 main 的 commit（baa023ad），v0.23 侧无对应来源引用，调用路径跨版本完全相同的结论没有足够证据。\"} -->",
+  "outcome": {
+    "ok": true,
+    "sessionId": "2fa6b8e5-909a-45a0-84db-d419826af8c6",
+    "costUsd": 0.18530760000000002
+  },
+  "citations": {
+    "cited": true,
+    "selfDeclaredUncovered": false
+  },
+  "revision": "277c7dbeff558738de7a5c59142f6756d8bb602e10546c067c6c6a5b4f0ea21d",
+  "reviewId": "137c15321ae02fd3c6b3c7a2529b6e4bb2df310cd3d62592432d1613a8b79831",
+  "planHash": "3017373ce63230e68ff7c3b996a44d6200f6407b1aa662ca3943681519c63790",
+  "semanticStatus": "needs-human-review"
+}

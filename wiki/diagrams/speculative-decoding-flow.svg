@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 640" width="900" height="640" role="img" aria-label="开着 MTP（每轮猜 K 个）时，一个 decode 步在两个进程里怎么走。左边 EngineCore 进程：调度器给每条请求排 1 + K 个位置，预算不够先砍候选，KV 多留 K 格给草稿层（①）；结果回来后按被拒的个数把已算位置退回，存下新候选（⑤），新 token 发回前端（⑥），再排下一步。右边 Worker 进程：准备输入时把这一步的分数行分成 K 个验证行和 1 个 bonus 行（②）；整个批次都整齐时回放事先录好的 FULL 图，否则整步 eager；主模型前向后用 rejection sampling 逐位决定接受几个（③）；最后草稿层连跑 K 遍，猜出下一步的候选（④），GLM 上这一段固定 eager。站号对应一条请求走过的七站。">
+  <title>开着 MTP（每轮猜 K 个）时，一个 decode 步在两个进程里怎么走。左边 EngineCore 进程：调度器给每条请求排 1 + K 个位置，预算不够先砍候选，KV 多留 K 格给草稿层（①）；结果回来后按被拒的个数把已算位置退回，存下新候选（⑤），新 token 发回前端（⑥），再排下一步。右边 Worker 进程：准备输入时把这一步的分数行分成 K 个验证行和 1 个 bonus 行（②）；整个批次都整齐时回放事先录好的 FULL 图，否则整步 eager；主模型前向后用 rejection sampling 逐位决定接受几个（③）；最后草稿层连跑 K 遍，猜出下一步的候选（④），GLM 上这一段固定 eager。站号对应一条请求走过的七站。</title>
+  <defs><marker id="speculative-decoding-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M404 71 L480 71" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M680 102 L680 126" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M575 198 L575 246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M785 198 L785 246" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M575 308 L575 332" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M785 308 L785 332" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M680 404 L680 428" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M480 464 L404 464" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M214 500 L214 530" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <path d="M24 561 L10 561 L10 76 L24 76" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#speculative-decoding-flow-ah-ink)"/>
+  <rect x="24" y="40" width="380" height="72" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="214" y="72" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">① 第 2 站 · 每条请求排 1 + K 个位置</text>
+  <text x="214" y="91" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">预算不够先砍候选；KV 多留 K 格给草稿层</text>
+  <rect x="480" y="40" width="400" height="62" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="680" y="67" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">② 第 3 站 · 准备输入</text>
+  <text x="680" y="86" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每条请求 K 个验证行 + 1 个 bonus 行</text>
+  <rect x="480" y="126" width="400" height="72" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="680" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这一步整齐吗？</text>
+  <text x="680" y="177" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">每条都是 1 + K 个、总数不超过最大图尺寸、另一组也整齐</text>
+  <rect x="480" y="246" width="190" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="575" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">回放 FULL 图</text>
+  <text x="575" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">尺寸是 1 + K 的倍数</text>
+  <rect x="690" y="246" width="190" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="785" y="273" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整步 eager</text>
+  <text x="785" y="292" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">例如混进了 prefill</text>
+  <rect x="480" y="332" width="400" height="72" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="680" y="364" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">③ 第 4–5 站 · 主模型前向 + rejection sampling</text>
+  <text x="680" y="383" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">逐位接受，第一个不符换成主模型的答案</text>
+  <rect x="480" y="428" width="400" height="72" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="680" y="460" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">④ 第 5 站 · 草稿层连跑 K 遍</text>
+  <text x="680" y="479" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">猜下一步的候选；GLM 上固定 eager</text>
+  <rect x="24" y="428" width="380" height="72" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="214" y="460" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑤ 第 6 站 · 已算位置退回被拒的个数</text>
+  <text x="214" y="479" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">被拒位置的 KV 不擦，下一步原地覆盖；存下新候选</text>
+  <rect x="24" y="530" width="380" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="214" y="557" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">⑥ 第 7 站 · 新 token 发回前端</text>
+  <text x="214" y="576" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">这一步交回 1 到 K + 1 个</text>
+  <text x="24" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 进程（CPU）</text>
+  <text x="480" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">Worker 进程（每张 NPU 一个）</text>
+  <text x="424" y="62" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">提交</text>
+  <text x="588" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="800" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="30" y="160" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">异步调度开着时：Worker 算这一步，</text>
+  <text x="30" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">EngineCore 同时排下一步</text>
+  <text x="24" y="626" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">下一步回到 ①</text>
+</svg>

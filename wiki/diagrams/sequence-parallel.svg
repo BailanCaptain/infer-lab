@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-label="两张卡、4 个 token，一个格子行是一个 token 的隐藏向量。上：只用 TP，行切之后的 All-Reduce 让两张卡都拿到同样的 4 行，残差相加和 RMSNorm 在两张卡上各做一遍。下：TP + SP 把这次 All-Reduce 拆成两半，Reduce-Scatter 之后卡 0 只留前 2 行、卡 1 只留后 2 行，各算各的；到下一对矩阵之前再 All-Gather 拼回 4 行。虚线格是这张卡此刻没有的行。">
+  <title>两张卡、4 个 token，一个格子行是一个 token 的隐藏向量。上：只用 TP，行切之后的 All-Reduce 让两张卡都拿到同样的 4 行，残差相加和 RMSNorm 在两张卡上各做一遍。下：TP + SP 把这次 All-Reduce 拆成两半，Reduce-Scatter 之后卡 0 只留前 2 行、卡 1 只留后 2 行，各算各的；到下一对矩阵之前再 All-Gather 拼回 4 行。虚线格是这张卡此刻没有的行。</title>
+  <defs><marker id="sequence-parallel-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="sequence-parallel-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <path d="M124 114 L150 114" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sequence-parallel-ah-ink)"/>
+  <path d="M270 114 L298 114" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-ah-comm)"/>
+  <path d="M418 114 L446 114" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sequence-parallel-ah-ink)"/>
+  <path d="M586 114 L748 114" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sequence-parallel-ah-ink)"/>
+  <path d="M124 334 L150 334" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sequence-parallel-ah-ink)"/>
+  <path d="M270 334 L298 334" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-ah-comm)"/>
+  <path d="M418 334 L446 334" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sequence-parallel-ah-ink)"/>
+  <path d="M586 334 L612 334" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#sequence-parallel-ah-ink)"/>
+  <path d="M724 334 L748 334" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#sequence-parallel-ah-comm)"/>
+  <rect x="300" y="70" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="326" y="70" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="300" y="92" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="326" y="92" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="300" y="114" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="326" y="114" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="300" y="136" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="326" y="136" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <path d="M326 70v88M300 92h52M300 114h52M300 136h52" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="300" y="70" width="52" height="88" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="326" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0</text>
+  <rect x="364" y="70" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="390" y="70" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="364" y="92" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="390" y="92" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="364" y="114" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="390" y="114" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="364" y="136" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="390" y="136" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <path d="M390 70v88M364 92h52M364 114h52M364 136h52" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="364" y="70" width="52" height="88" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="390" y="180" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1</text>
+  <rect x="300" y="290" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="326" y="290" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="300" y="312" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="326" y="312" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="300" y="334" width="26" height="22" fill="none"/>
+  <rect x="303" y="337" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="326" y="334" width="26" height="22" fill="none"/>
+  <rect x="329" y="337" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="300" y="356" width="26" height="22" fill="none"/>
+  <rect x="303" y="359" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="326" y="356" width="26" height="22" fill="none"/>
+  <rect x="329" y="359" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <path d="M326 290v88M300 312h52M300 334h52M300 356h52" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="300" y="290" width="52" height="88" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="326" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 0</text>
+  <rect x="364" y="290" width="26" height="22" fill="none"/>
+  <rect x="367" y="293" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="390" y="290" width="26" height="22" fill="none"/>
+  <rect x="393" y="293" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="364" y="312" width="26" height="22" fill="none"/>
+  <rect x="367" y="315" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="390" y="312" width="26" height="22" fill="none"/>
+  <rect x="393" y="315" width="20" height="16" rx="3" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.3" stroke-dasharray="3 3"/>
+  <rect x="364" y="334" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="390" y="334" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="364" y="356" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <rect x="390" y="356" width="26" height="22" fill="var(--color-token, #087f73)"/>
+  <path d="M390 290v88M364 312h52M364 334h52M364 356h52" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="364" y="290" width="52" height="88" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="390" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">卡 1</text>
+  <rect x="20" y="88" width="104" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="72" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">行切矩阵乘</text>
+  <text x="72" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各得部分和</text>
+  <rect x="150" y="88" width="120" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Reduce</text>
+  <text x="210" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡拿整份</text>
+  <rect x="446" y="82" width="140" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="516" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">残差 + RMSNorm</text>
+  <text x="516" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡都算 4 行</text>
+  <rect x="748" y="82" width="112" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="804" y="110" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一对矩阵</text>
+  <text x="804" y="129" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">列切，要全部行</text>
+  <rect x="20" y="308" width="104" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="72" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">行切矩阵乘</text>
+  <text x="72" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">各得部分和</text>
+  <rect x="150" y="308" width="120" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Reduce-Scatter</text>
+  <text x="210" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡拿 2 行</text>
+  <rect x="446" y="302" width="140" height="64" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="516" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">残差 + RMSNorm</text>
+  <text x="516" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每卡只算 2 行</text>
+  <rect x="612" y="308" width="112" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="668" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">All-Gather</text>
+  <text x="668" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拼回 4 行</text>
+  <rect x="748" y="302" width="112" height="64" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="804" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">下一对矩阵</text>
+  <text x="804" y="349" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">列切，要全部行</text>
+  <text x="20" y="32" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">只用 TP</text>
+  <text x="20" y="252" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">TP + SP</text>
+  <text x="667" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">不用再收集</text>
+  <text x="358" y="58" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">两张卡都有 token 0–3，一模一样</text>
+  <text x="358" y="278" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">卡 0 留 token 0、1，卡 1 留 2、3</text>
+</svg>

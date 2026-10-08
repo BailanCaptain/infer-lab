@@ -1,0 +1,18 @@
+layout: figure
+id: ref-diff
+caption: 版本对照示意：先固定提交和符号，再比较输入、条件与状态；行号仅定位该快照，不代表行为
+size: [900, 350]
+frames:
+  - { at: [30, 55], size: [350, 250], label: 固定提交 A（示意） }
+  - { at: [520, 55], size: [350, 250], label: 固定提交 B（示意） }
+items:
+  - { at: [60, 110], size: [290, 55], text: 职责与符号, tone: control }
+  - { at: [550, 110], size: [290, 55], text: 对应职责与符号, tone: control }
+  - { at: [60, 215], size: [290, 55], text: 输入 / 条件 / 状态更新, tone: token }
+  - { at: [550, 215], size: [290, 55], text: 输入 / 条件 / 状态更新, tone: token }
+links:
+  - { from: [350, 137], to: [550, 137], ends: both, tone: control }
+  - { from: [350, 242], to: [550, 242], ends: both, tone: token }
+texts:
+  - { at: [450, 112], text: 定位, anchor: middle, note: true }
+  - { at: [450, 215], text: 比较行为, anchor: middle, note: true }

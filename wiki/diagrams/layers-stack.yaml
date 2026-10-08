@@ -1,0 +1,38 @@
+layout: figure
+id: layers-stack
+caption: 主线第 4 站里 hidden 的先后与分支：embedding 交来一条，第 0 层入口复制成四条，每层两段各做一次入口混合和出口写回，第 44 层结束时求平均回到一条，再经最终 RMSNorm 和输出投影交给采样
+size: [900, 860]
+frames:
+  - { at: [150, 340], size: [380, 230], label: 每一层（第 0–44 层） }
+items:
+  - { at: [200, 20], size: [280, 44], text: 本轮 T 个 token 编号, style: plain }
+  - { at: [200, 96], size: [280, 52], text: embedding 查表, sub: TP8 各查一段，All-Reduce 拼齐, style: plain }
+  - { at: [200, 180], size: [280, 44], text: 'hidden [T, 4096]', tone: token }
+  - { at: [200, 256], size: [280, 52], text: 第 0 层入口：复制成四条, sub: '[T, 4, 4096]，存成 [T, 16384]', tone: token }
+  - { at: [180, 376], size: [320, 64], text: attention 段, sub: KDA 或稀疏 MLA，进出各一次 mHC, style: plain }
+  - { at: [180, 480], size: [320, 64], text: MLP 段, sub: 稠密 MLP 或 MoE，进出各一次 mHC, style: plain }
+  - { at: [20, 440], size: [110, 56], text: 本层权重, sub: 每层各一份, tone: weight }
+  - { at: [200, 624], size: [280, 44], text: 是第 44 层吗？, style: plain }
+  - { at: [200, 704], size: [280, 52], text: 四条求平均, sub: '[T, 4, 4096] → [T, 4096]', tone: token }
+  - { at: [200, 788], size: [280, 52], text: 最终 RMSNorm → 输出投影, sub: 得到词表分数，交给第 5 站采样, style: plain }
+links:
+  - { from: [340, 64], to: [340, 96] }
+  - { from: [340, 148], to: [340, 180], tone: token }
+  - { from: [340, 224], to: [340, 256], tone: token }
+  - { from: [340, 308], to: [340, 376], tone: token }
+  - { from: [340, 440], to: [340, 480], tone: token }
+  - { from: [340, 544], to: [340, 624], tone: token }
+  - { from: [480, 646], to: [500, 408], via: [[560, 646], [560, 408]], tone: token }
+  - { from: [340, 668], to: [340, 704], tone: token }
+  - { from: [340, 756], to: [340, 788], tone: token }
+fans:
+  - { from: [130, 468], to: [[180, 408], [180, 512]], tone: weight }
+texts:
+  - { at: [596, 40], text: 主线第 4 站：逐层前向, strong: true }
+  - { at: [596, 380], text: 按层号选子层, strong: true }
+  - { at: [596, 408], text: 第 0–2 层：KDA + 稠密 MLP, size: 13 }
+  - { at: [596, 432], text: 3、7、…、43：稀疏 MLA + MoE, size: 13 }
+  - { at: [596, 456], text: 其余 31 层：KDA + MoE, size: 13 }
+  - { at: [568, 530], text: 否：进入下一层, size: 13 }
+  - { at: [350, 690], text: 是, size: 13 }
+  - { at: [596, 730], text: MTP 层不走这条路：单条残差, size: 13 }

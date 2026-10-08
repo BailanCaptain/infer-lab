@@ -1,0 +1,58 @@
+layout: figure
+id: api-server-entry-flow
+caption: 竖向是一条 chat 请求在 API server 里的先后顺序，右边是两种出错出口和一条叫醒协调器的旁路，底下是引擎进程收下请求的四步。流式请求在建好生成器时就先回 200，之后才真正把请求交给 AsyncLLM，所以从那以后的错误只能写进流里。派给哪一组的打分不在这张图里。
+size: [900, 900]
+frames:
+  - { at: [20, 40], size: [620, 690], label: API server 进程 }
+  - { at: [20, 770], size: [860, 110], label: EngineCore 进程 }
+items:
+  - { at: [40, 60], size: [360, 58], text: 收到 POST /v1/chat/completions, sub: 先按 JSON 字段格式校验, tone: control, style: plain }
+  - { at: [40, 144], size: [360, 58], text: 查模型名和引擎状态, sub: 模型名不对回 404；引擎已停止直接报错, tone: control, style: plain }
+  - { at: [40, 228], size: [360, 58], text: 套模板 → 分词 → 长度检查, sub: 先看模板来源可不可信；在线程池里做, tone: token }
+  - { at: [40, 312], size: [360, 58], text: 定输出上限和采样参数, sub: 流式要「增量」，非流式「只要最终结果」, tone: control, style: plain }
+  - { at: [40, 396], size: [360, 58], text: 建好生成器，还没进引擎, sub: 流式请求此时先回 200 和流的响应头, tone: control, style: plain }
+  - { at: [40, 480], size: [360, 58], text: AsyncLLM 再校验，建 EngineCoreRequest, sub: 编号越界、组号越界、空提示词在这里拒, tone: control }
+  - { at: [40, 564], size: [360, 58], text: OutputProcessor 登记输出槽, sub: 反分词器和输出槽按请求 ID 存好, tone: kv }
+  - { at: [40, 648], size: [360, 58], text: 选 DP 组并发出, sub: 看请求头或按忙闲打分，经 ZMQ 送出, tone: comm }
+  - { at: [430, 144], size: [190, 226], text: 返回 JSON 错误, sub: 400 / 404，没进引擎, tone: danger, style: faded }
+  - { at: [430, 480], size: [190, 58], text: 出错时, sub: 流式写进流里；非流式回 400, tone: danger, style: faded }
+  - { at: [670, 648], size: [200, 58], text: DP 协调器, sub: 各组都停着时先叫醒, tone: comm, style: faded }
+  - { at: [125, 800], size: [170, 58], text: 输入线程解码, sub: 收下 ZMQ 消息, tone: comm, style: plain }
+  - { at: [315, 800], size: [170, 58], text: 建 Request 对象, sub: 和这一圈的计算并行, tone: control, style: plain }
+  - { at: [505, 800], size: [170, 58], text: 进输入队列, sub: 等这一圈算完, tone: control, style: plain }
+  - { at: [695, 800], size: [170, 58], text: 调度器收下, sub: 进 waiting 队列, tone: control }
+links:
+  - { from: [220, 118], to: [220, 144] }
+  - { from: [220, 202], to: [220, 228] }
+  - { from: [220, 286], to: [220, 312] }
+  - { from: [220, 370], to: [220, 396] }
+  - { from: [220, 454], to: [220, 480] }
+  - { from: [220, 538], to: [220, 564] }
+  - { from: [220, 622], to: [220, 648] }
+  - { from: [400, 89], via: [[525, 89]], to: [525, 144], tone: danger }
+  - { from: [400, 173], to: [430, 173], tone: danger }
+  - { from: [400, 257], to: [430, 257], tone: danger }
+  - { from: [400, 341], to: [430, 341], tone: danger }
+  - { from: [400, 509], to: [430, 509], tone: danger }
+  - { from: [400, 677], to: [670, 677], tone: comm, dashed: true }
+  - { from: [210, 706], to: [210, 800], tone: comm }
+  - { from: [295, 829], to: [315, 829] }
+  - { from: [485, 829], to: [505, 829] }
+  - { from: [675, 829], to: [695, 829] }
+texts:
+  - { at: [220, 745], text: ZMQ · 引擎进程可在另一台机器, note: true }
+pins:
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/api_router.py#L40-L75
+    symbols: [create_chat_completion]
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L192-L392
+    symbols: [render_chat_request, get_max_tokens, to_sampling_params]
+  - source: vllm@0fc695fc:vllm/entrypoints/serve/render/serving.py#L183-L266
+    symbols: [render_chat, preprocess_chat]
+  - source: vllm@0fc695fc:vllm/v1/engine/async_llm.py#L280-L414
+    symbols: [add_request, process_inputs, _add_request]
+  - source: vllm@0fc695fc:vllm/v1/engine/core_client.py#L1344-L1360
+    symbols: [add_request_async, FIRST_REQ]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L1518-L1543
+    symbols: [preprocess_add_request, input_queue]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1801-L1823
+    symbols: [add_request]

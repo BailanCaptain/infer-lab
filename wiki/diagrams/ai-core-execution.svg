@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 700" width="860" height="700" role="img" aria-label="A4 专家计算的普通 W8A8 量化 MC2 分支；融合分支按源码条件选择，所有路径汇合到第二次矩阵乘">
+  <title>A4 专家计算的普通 W8A8 量化 MC2 分支；融合分支按源码条件选择，所有路径汇合到第二次矩阵乘</title>
+  <defs><marker id="ai-core-execution-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="ai-core-execution-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker></defs>
+  <path d="M430 75 L430 110" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-control)"/>
+  <path d="M230 135 L210 135 L210 205" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-control)"/>
+  <path d="M630 135 L650 135 L650 205" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-control)"/>
+  <path d="M210 255 L210 280 L310 280 L310 300" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-token)"/>
+  <path d="M650 255 L650 280 L550 280 L550 300" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-token)"/>
+  <path d="M270 350 L150 375 L150 420" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-control)"/>
+  <path d="M430 350 L430 420" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-control)"/>
+  <path d="M590 350 L710 375 L710 420" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-control)"/>
+  <path d="M150 485 L150 525 L300 525 L300 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-token)"/>
+  <path d="M430 485 L430 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-token)"/>
+  <path d="M710 485 L710 525 L560 525 L560 550" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-token)"/>
+  <path d="M430 600 L430 635" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#ai-core-execution-ah-token)"/>
+  <rect x="230" y="25" width="400" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="55" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">A4 逐层前向 · 专家输入已派发到本卡</text>
+  <rect x="230" y="110" width="400" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="140" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">输入是否带有量化尺度？</text>
+  <rect x="55" y="205" width="310" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">已量化：沿用输入与尺度</text>
+  <rect x="495" y="205" width="310" height="50" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="650" y="235" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">尚未量化：动态量化</text>
+  <rect x="190" y="300" width="480" height="50" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="330" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MC2 且无 scale_bias / offset：选择 gmm1 路径</text>
+  <rect x="25" y="420" width="250" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="150" y="457.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">自定义融合算子</text>
+  <rect x="305" y="420" width="250" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="457.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">DeviceOperator 融合算子</text>
+  <rect x="585" y="420" width="250" height="65" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="710" y="457.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">矩阵乘 → 激活与量化</text>
+  <rect x="210" y="550" width="440" height="50" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="580" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">gmm2：第二次矩阵乘，恢复隐藏向量宽度</text>
+  <rect x="230" y="635" width="400" height="45" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="430" y="662.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">专家结果交给后续收回与组合</text>
+  <text x="185" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">是</text>
+  <text x="675" y="187" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">否</text>
+  <text x="150" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">自定义融合条件满足</text>
+  <text x="430" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">否则，普通融合条件满足</text>
+  <text x="710" y="400" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">否则，分开调用</text>
+</svg>

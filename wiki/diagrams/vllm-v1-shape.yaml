@@ -1,0 +1,45 @@
+layout: figure
+id: vllm-v1-shape
+caption: vLLM V1 的三类角色和它们之间的循环。请求从前端进来，EngineCore 里的 Scheduler 每一步排一份计划，Executor 把同一份计划交给每个 Worker；Worker 把计划变成张量、算完前向再采样，结果交回 EngineCore 更新进度，新 token 编号再回到前端变成文字。更新完进度就排下一步，直到请求结束。
+size: [900, 530]
+frames:
+  - { at: [20, 100], size: [250, 420], label: 前端 · 管文字 }
+  - { at: [300, 100], size: [300, 420], label: EngineCore · 管进度 }
+  - { at: [630, 100], size: [250, 420], label: Worker · 管张量（每卡一个） }
+items:
+  - { at: [45, 10], size: [200, 38], text: 用户 / 客户端, style: plain }
+  - { at: [45, 134], size: [200, 60], text: 接请求、分词, sub: 文字 → token 编号, tone: token }
+  - { at: [45, 404], size: [200, 60], text: 反分词、流式返回, sub: token 编号 → 文字, tone: token }
+  - { at: [320, 134], size: [260, 60], text: Scheduler 排这一步, sub: 谁算、各算几个、用哪些块号, tone: control }
+  - { at: [380, 270], size: [200, 56], text: Executor, sub: 同一份计划发给每个 Worker, style: plain }
+  - { at: [320, 404], size: [260, 60], text: 按结果更新进度, sub: 追加新 token、判断是否结束, tone: control }
+  - { at: [650, 134], size: [210, 60], text: 把计划变成张量, sub: token、位置、写进缓存哪一格, style: plain }
+  - { at: [650, 270], size: [210, 56], text: 模型前向, sub: 权重和 KV cache 都在卡上, tone: weight }
+  - { at: [650, 404], size: [210, 60], text: 采样, sub: 每个请求得到新 token, tone: weight }
+links:
+  - { from: [145, 48], to: [145, 134] }
+  - { from: [245, 164], to: [320, 164] }
+  - { from: [490, 194], to: [490, 270], tone: control }
+  - { from: [580, 298], to: [650, 164], via: [[615, 298], [615, 164]], tone: control }
+  - { from: [755, 194], to: [755, 270] }
+  - { from: [755, 326], to: [755, 404] }
+  - { from: [650, 434], to: [580, 434], tone: token }
+  - { from: [320, 434], to: [245, 434], tone: token }
+  - { from: [45, 434], to: [45, 29], via: [[32, 434], [32, 29]], tone: token }
+  - { from: [332, 404], to: [332, 194], dashed: true, tone: control }
+texts:
+  - { at: [282, 154], text: 请求, anchor: middle, size: 12.5 }
+  - { at: [498, 236], text: 调度计划, size: 12.5, tone: control }
+  - { at: [617, 424], text: 执行结果, anchor: middle, size: 12.5, tone: token }
+  - { at: [282, 424], text: 新 token, anchor: middle, size: 12.5, tone: token }
+  - { at: [338, 302], text: 下一步, size: 12.5, tone: control }
+  - { at: [45, 498], text: 持有：分词器、每个请求的输出队列, size: 12.5 }
+  - { at: [320, 498], text: 持有：请求进度、块号清单, size: 12.5 }
+  - { at: [650, 498], text: 持有：权重、KV cache 张量, size: 12.5 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L95-L160
+    symbols: [EngineCore, Scheduler]
+  - source: vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L92
+    symbols: [Executor]
+  - source: vllm@0fc695fc:vllm/v1/worker/worker_base.py#L39-L159
+    symbols: [WorkerBase, execute_model, sample_tokens]

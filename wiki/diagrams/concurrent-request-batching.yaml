@@ -1,0 +1,20 @@
+layout: figure
+id: concurrent-request-batching
+caption: continuous batching 发生在每一步的边界：第 2 站重新调度，第 3 站重拼输入，结束请求归还的名额与 KV 块随即复用。
+size: [840, 280]
+items:
+  - { at: [20, 90], size: [230, 90], text: 这一步一起计算, sub: 算提示词的 + 生成输出的, tone: token }
+  - { at: [305, 90], size: [230, 90], text: 步末更新各请求, sub: 结束的退出 · 归还 KV 块, tone: kv }
+  - { at: [590, 90], size: [230, 90], text: 下一步重新组批, sub: 未结束的继续 + 新请求加入, tone: token }
+  - { at: [590, 14], size: [230, 44], text: 等待中的新请求, style: plain }
+links:
+  - { from: [250, 135], to: [305, 135] }
+  - { from: [535, 135], to: [590, 135] }
+  - { from: [705, 58], to: [705, 90] }
+texts:
+  - { at: [420, 232], text: 批次成员和输入长度每步可变；各请求的历史与输出仍各自独立, anchor: middle, size: 16 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L340-L967
+    symbols: [schedule]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1888-L1910
+    symbols: [_free_request]

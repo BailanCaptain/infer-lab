@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 790" width="900" height="790" role="img" aria-label="GLM-5.3-Flash 的文字路径：token 编号查 embedding 得到隐藏向量，复制成四条 residual 流走过 45 层；右侧展开 45 层 attention 的排法，虚线接回下一轮输入">
+  <title>GLM-5.3-Flash 的文字路径：token 编号查 embedding 得到隐藏向量，复制成四条 residual 流走过 45 层；右侧展开 45 层 attention 的排法，虚线接回下一轮输入</title>
+  <defs><marker id="glm-flash-overview-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="glm-flash-overview-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <rect x="110" y="300" width="310" height="108" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="126" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">45 层 · 顺序执行</text>
+  <path d="M192 80 L192 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M265 80 L265 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M365 80 L337 118" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M515 330 L540 330" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M580 330 L605 330" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M645 330 L670 330" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M713 330 L795 330" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M605 139 L365 139" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-weight)"/>
+  <path d="M265 160 L265 215" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M265 260 L265 300" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M260 361 L282 361" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M265 408 L265 447" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M265 489 L265 523" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M265 565 L265 601" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M365 622 L545 622" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M682 677 L682 711" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <path d="M545 732 L62 732 L62 139 L165 139" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#glm-flash-overview-ah-ink)"/>
+  <rect x="165" y="220" width="44" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="217" y="220" width="44" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="269" y="220" width="44" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="321" y="220" width="44" height="36" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.2"/>
+  <rect x="605" y="38" width="76" height="154" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M624 38v154M643 38v154M662 38v154M605 53.4h76M605 68.8h76M605 84.2h76M605 99.6h76M605 115h76M605 130.4h76M605 145.8h76M605 161.2h76M605 176.6h76" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="605" y="130.4" width="76" height="15.4" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="2.8"/>
+  <text x="643" y="212" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">embedding 权重</text>
+  <text x="643" y="232" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">154880 × 4096</text>
+  <rect x="545" y="603" width="275" height="30" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M570 603v30M595 603v30M620 603v30M645 603v30M670 603v30M695 603v30M720 603v30M745 603v30M770 603v30M795 603v30" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <text x="682.5" y="653" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">生成位置的词表分数</text>
+  <text x="682.5" y="673" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">154880 个 logits</text>
+  <rect x="165" y="38" width="54" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="192" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">x₁</text>
+  <rect x="238" y="38" width="54" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">x₂</text>
+  <rect x="338" y="38" width="54" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="365" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">xₚ</text>
+  <rect x="165" y="118" width="200" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="144" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">embedding 查表</text>
+  <rect x="145" y="338" width="115" height="46" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="202.5" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">attention</text>
+  <rect x="282" y="338" width="110" height="46" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="337" y="366" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP</text>
+  <rect x="165" y="447" width="200" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="473" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">四条流求平均</text>
+  <rect x="165" y="523" width="200" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="549" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">最终 RMSNorm</text>
+  <rect x="165" y="601" width="200" height="42" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="265" y="627" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输出投影</text>
+  <rect x="545" y="711" width="275" height="42" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="682.5" y="737" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">生成策略 → 下一个 token</text>
+  <circle cx="495" cy="330" r="20" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="495" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">K</text>
+  <circle cx="560" cy="330" r="20" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="560" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">K</text>
+  <circle cx="625" cy="330" r="20" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="625" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">K</text>
+  <circle cx="690" cy="330" r="20" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="690" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">S</text>
+  <circle cx="815" cy="330" r="20" fill="var(--color-surface, #fbfaf6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="815" y="336" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="20" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">K</text>
+  <path d="M473 360 v8 h240 v-8" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="593" y="390" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这组类型顺序重复 11 次</text>
+  <text x="410" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">每个 token 得到 4096 维表示</text>
+  <text x="410" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">复制成四条 residual 流，各宽 4096</text>
+  <text x="315" y="65" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">…</text>
+  <text x="478" y="294" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">K = KDA 层    S = 稀疏 MLA 层</text>
+  <text x="815" y="385" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">第 44 层</text>
+  <text x="478" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">前 3 层稠密 MLP，后 42 层 MoE</text>
+  <text x="410" y="550" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink, #17211f)">取生成位置的表示，投影到词表</text>
+  <text x="130" y="774" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">虚线 = 未停止时的下一轮输入</text>
+</svg>

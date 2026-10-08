@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" width="900" height="450" role="img" aria-label="三路输入汇成一份生效配置：通用参数进 VllmConfig 自己的字段，additional_config 的键交给 AscendConfig 拆成几组子配置，环境变量有一部分作为兼容输入喂进同一个对象、其余由消费者直接读；平台还会在放行前校验和改写。">
+  <title>三路输入汇成一份生效配置：通用参数进 VllmConfig 自己的字段，additional_config 的键交给 AscendConfig 拆成几组子配置，环境变量有一部分作为兼容输入喂进同一个对象、其余由消费者直接读；平台还会在放行前校验和改写。</title>
+  <defs><marker id="config-inputs-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="config-inputs-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="config-inputs-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker><marker id="config-inputs-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <rect x="18" y="52" width="232" height="330" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="34" y="40" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">启动时能写的三个地方</text>
+  <path d="M234 113 L267 113 L267 101 L300 101" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#config-inputs-ah-control)"/>
+  <path d="M234 221 L267 221 L267 205 L300 205" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#config-inputs-ah-token)"/>
+  <path d="M234 315 L267 315 L267 240 L300 240" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#config-inputs-ah-kv)"/>
+  <path d="M234 345 L272 345 L272 331 L300 331" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#config-inputs-ah-kv)"/>
+  <path d="M540 101 L575 101 L575 130 L610 130" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#config-inputs-ah-control)"/>
+  <path d="M540 221 L575 221 L575 156 L610 156" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#config-inputs-ah-token)"/>
+  <path d="M540 331 L575 331 L575 294 L610 294" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#config-inputs-ah-kv)"/>
+  <path d="M740 186 L740 258" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#config-inputs-ah-ink)"/>
+  <rect x="34" y="82" width="200" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134" y="109" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">命令行通用参数</text>
+  <text x="134" y="128" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">--max-num-seqs 等</text>
+  <rect x="34" y="190" width="200" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">附带的那段 JSON</text>
+  <text x="134" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">键名归昇腾定义</text>
+  <rect x="34" y="298" width="200" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="134" y="325" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">环境变量</text>
+  <text x="134" y="344" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">全大写的那些名字</text>
+  <rect x="300" y="70" width="240" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">VllmConfig 各字段</text>
+  <text x="420" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度、并行、模型</text>
+  <rect x="300" y="178" width="240" height="86" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="217" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AscendConfig</text>
+  <text x="420" y="236" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按键拆成几组子配置</text>
+  <rect x="300" y="300" width="240" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="327" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">消费者直接读环境</text>
+  <text x="420" y="346" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">每次访问都重读</text>
+  <rect x="610" y="100" width="260" height="86" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="740" y="139" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">平台校验与改写</text>
+  <text x="740" y="158" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不合法报错，按角色重置</text>
+  <rect x="610" y="258" width="260" height="72" rx="8" fill="var(--color-ink, #17211f)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="740" y="290" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">执行时真正读到的值</text>
+  <text x="740" y="309" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker、算子、调度器</text>
+  <text x="450" y="24" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">三个地方能写，最后只有一份值在执行时被读到</text>
+  <text x="34" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="400" fill="var(--color-ink, #17211f)">其中 9 个名字两条路都认：键写了按键走，没写才用环境值</text>
+  <text x="34" y="428" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">只有直接读环境这一路绕过校验和改写</text>
+</svg>

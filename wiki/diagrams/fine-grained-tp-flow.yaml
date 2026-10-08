@@ -1,0 +1,39 @@
+layout: figure
+id: fine-grained-tp-flow
+caption: 细粒度 TP 在代码里走过的几步。配置先过一轮前提检查，不满足就在启动时报错；过了检查，按 DP 方向为每个非零的分组大小建一个通信组；构造模型时，词表嵌入和 lm_head 换用自己的组，线性层按层名挑出对应的分组算子；前向时各模块按自己的方式收集输入、送回结果。
+size: [900, 600]
+items:
+  - { at: [250, 40], size: [400, 52], text: 读配置：每个模块一个分组大小, sub: 默认都是 0，表示不分组, style: plain }
+  - { at: [250, 124], size: [400, 56], text: 加载配置时检查前提, sub: MoE 模型、能整除 DP 数；输出投影另要 TP 为 1, tone: control }
+  - { at: [250, 212], size: [400, 56], text: 词表嵌入、输出投影还要 recompute 调度器, sub: 这个调度器只能开在 PD 分离的 D 节点, tone: control }
+  - { at: [700, 168], size: [180, 56], text: 启动时报错, sub: 不会悄悄关掉, tone: danger, style: faded }
+  - { at: [250, 300], size: [400, 56], text: 建通信组：沿 DP 方向每 k 张卡一组, sub: 只有 PP、TP 坐标相同的卡才组队, tone: comm }
+  - { at: [250, 388], size: [400, 56], text: 构造模块时换组、按新组切权重, sub: 词表嵌入和 lm_head 换组；线性层按层名挑算子, tone: weight }
+  - { at: [15, 490], size: [205, 56], text: 词表嵌入, sub: 收集编号 → 查表 → 归约送回, tone: token }
+  - { at: [235, 490], size: [205, 56], text: lm_head, sub: 收集 → 打分 → 交换送回, tone: token }
+  - { at: [455, 490], size: [205, 56], text: 稠密 MLP, sub: 收集 → 列切行切 → 归约送回, tone: token }
+  - { at: [675, 490], size: [205, 56], text: attention 输出投影, sub: 交换特征 → 行切 → 归约送回, tone: token }
+links:
+  - { from: [450, 92], to: [450, 124] }
+  - { from: [450, 180], to: [450, 212] }
+  - { from: [450, 268], to: [450, 300] }
+  - { from: [450, 356], to: [450, 388] }
+  - { from: [650, 152], to: [700, 190], via: [[675, 152], [675, 190]], tone: danger }
+  - { from: [650, 240], to: [700, 202], via: [[675, 240], [675, 202]], tone: danger }
+fans:
+  - { from: [450, 444], to: [[117, 490], [337, 490], [557, 490], [777, 490]] }
+texts:
+  - { at: [450, 22], text: 从配置到前向：细粒度 TP 在代码里走过的几步, anchor: middle, strong: true }
+  - { at: [790, 150], text: 不满足, anchor: middle, size: 13 }
+  - { at: [450, 580], text: 各模块前向时组内形状要一致，所以都会补齐, anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L577
+    symbols: [FinegrainedTPConfig]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L143-L161
+    symbols: [recompute_scheduler_enable]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/parallel_state.py#L110-L149
+    symbols: [_create_or_get_group]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/vocab_parallel_embedding.py#L52-L73
+    symbols: [get_embed_tp_group, get_lmhead_tp_group]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/linear_op.py#L673-L790
+    symbols: [get_parallel_op, MLPColumnParallelOp, OProjRowParallelOp]

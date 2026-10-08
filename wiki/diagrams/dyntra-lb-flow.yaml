@@ -1,0 +1,42 @@
+layout: figure
+id: dyntra-lb-flow
+caption: 左边是每组引擎每步转的一圈（主线里空闲组陪跑、隔若干步跨组同步的那一站，本部署每 32 步一次），右边是全局还有活时 DyntraLB 在这一步末尾多做的事；虚线表示计划要到下一步开头才执行。
+size: [900, 630]
+frames:
+  - { at: [20, 60], size: [400, 500], label: 每组的 EngineCore · 每步一圈, inside: true }
+  - { at: [470, 60], size: [410, 500], label: 全局还有活时多做的事, inside: true }
+items:
+  - { at: [50, 100], size: [340, 56], text: 调度并执行一步, sub: 开头先执行上一步留下的计划, tone: weight }
+  - { at: [50, 196], size: [340, 56], text: 本地没有请求可算？, sub: 是：全局还有活就陪跑一步, tone: control }
+  - { at: [50, 292], size: [340, 56], text: 全局还有没有活, sub: 隔若干步才真跨组同步一次, style: plain }
+  - { at: [50, 388], size: [340, 64], text: 没活了：这一波结束, sub: 计划作废，步数归零，等新请求, style: plain }
+  - { at: [500, 100], size: [350, 56], text: 这一步生效吗？, sub: dynamic 未激活时先互报长请求标志, style: plain }
+  - { at: [500, 196], size: [350, 56], text: 准备候选, sub: 从 P 拉 KV，没到齐的不当候选, tone: kv }
+  - { at: [500, 292], size: [350, 56], text: All-Gather 互报块数, sub: running、候选、条数、长请求标志, tone: comm }
+  - { at: [500, 388], size: [350, 56], text: 同一套算法出计划, sub: 补空位 → 换人 → 必要时停一条, tone: control }
+  - { at: [500, 484], size: [350, 56], text: 计划留给下一步, sub: 不生效时计划为空，照常调度, style: plain }
+links:
+  - { from: [220, 156], to: [220, 196] }
+  - { from: [220, 252], to: [220, 292] }
+  - { from: [220, 348], to: [220, 388] }
+  - { from: [390, 320], to: [500, 128], via: [[445, 320], [445, 128]] }
+  - { from: [675, 156], to: [675, 196] }
+  - { from: [675, 252], to: [675, 292] }
+  - { from: [675, 348], to: [675, 388] }
+  - { from: [675, 444], to: [675, 484] }
+  - { from: [850, 128], to: [850, 512], via: [[866, 128], [866, 512]] }
+  - { from: [675, 540], to: [50, 128], via: [[675, 584], [34, 584], [34, 128]], dashed: true, tone: control }
+texts:
+  - { at: [450, 30], text: 每步末尾多一次互报，下一步开头执行计划, anchor: middle, strong: true }
+  - { at: [232, 376], text: 没有 }
+  - { at: [452, 312], text: 有 }
+  - { at: [687, 186], text: 是 }
+  - { at: [856, 118], text: 否 }
+  - { at: [450, 612], text: 虚线：计划到下一步开头才执行, anchor: middle, note: true }
+pins:
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L401-L470
+    symbols: [run_balance_load, prepare_dyntra_lb_step, _has_global_unfinished_reqs, all_reduce]
+  - source: vllm-ascend@baa023ad:vllm_ascend/patch/platform/patch_dyntra_lb_core.py#L472-L517
+    symbols: [_do_lb_allgather, all_gather, _balance_load]
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/dyntra_lb_scheduler.py#L436-L443
+    symbols: [_apply_load_balance_modifications]

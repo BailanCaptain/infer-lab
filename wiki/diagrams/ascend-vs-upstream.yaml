@@ -1,0 +1,43 @@
+layout: figure
+id: ascend-vs-upstream
+caption: 上游 vLLM 决定每一步算什么；计划越过平台边界后，由 vllm-ascend 的 Worker、Runner 和 GLM 模型在 NPU 上执行。左侧的插件入口、平台、配置、patch 和模型注册在启动时就把这条路径定好
+size: [900, 510]
+items:
+  - { at: [32, 32], size: [180, 58], text: 请求接入, sub: HTTP、分词、选 DP 组, tone: control }
+  - { at: [268, 32], size: [180, 58], text: Scheduler, sub: 本步算哪些请求、分哪些块, tone: control }
+  - { at: [504, 32], size: [180, 58], text: Executor, sub: 把本步计划发给 Worker, tone: control }
+  - { at: [32, 176], size: [180, 58], text: 插件入口, sub: 装包时登记、启动时被发现, style: plain }
+  - { at: [268, 176], size: [180, 58], text: patch, sub: 没接口处替换上游函数, style: plain }
+  - { at: [504, 176], size: [180, 58], text: NPUWorker, sub: 每张卡一个, tone: weight }
+  - { at: [32, 282], size: [180, 58], text: NPUPlatform, sub: 答用哪个 Worker 和后端, style: plain }
+  - { at: [504, 282], size: [180, 58], text: NPUModelRunner, sub: 输入张量与 block table, tone: weight }
+  - { at: [32, 388], size: [180, 58], text: Ascend 配置, sub: 命令行、JSON、环境变量, style: plain }
+  - { at: [268, 388], size: [180, 58], text: 模型注册, sub: 架构名 → 昇腾的 GLM 实现, style: plain }
+  - { at: [504, 388], size: [180, 58], text: GLM 模型与算子, sub: 注意力、MoE、量化、通信, tone: weight }
+links:
+  - { from: [212, 61], to: [268, 61], tone: control }
+  - { from: [448, 61], to: [504, 61], tone: control }
+  - { from: [594, 90], to: [594, 176], tone: weight }
+  - { from: [594, 234], to: [594, 282], tone: weight }
+  - { from: [594, 340], to: [594, 388], tone: weight }
+  - { from: [684, 417], to: [684, 61], via: [[730, 417], [730, 61]], tone: weight }
+  - { from: [122, 234], to: [122, 282], dashed: true }
+  - { from: [122, 388], to: [122, 340], dashed: true }
+  - { from: [212, 311], to: [504, 205], via: [[476, 311], [476, 205]], dashed: true }
+  - { from: [358, 176], to: [358, 90], dashed: true }
+  - { from: [448, 417], to: [504, 417], dashed: true }
+dividers:
+  - { from: [16, 132], to: [884, 132], sides: [上游 vLLM：与硬件无关, 平台边界以下：vllm-ascend 提供的实现] }
+texts:
+  - { at: [744, 252], text: 本步输出, note: true }
+  - { at: [744, 272], text: 交回引擎, note: true }
+  - { at: [24, 486], text: 实线：每一步都走的调用；虚线：启动时登记、选择或替换实现, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/__init__.py#L38-L75
+    symbols: [NPUPlatform]
+  - source: vllm@0fc695fc:vllm/v1/executor/abstract.py#L37-L92
+    symbols: [Executor]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L89-L96
+    symbols: [NPUWorker]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L287-L310
+    symbols: [NPUModelRunner]

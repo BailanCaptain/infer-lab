@@ -1,0 +1,56 @@
+layout: figure
+id: kv-cache-memory-profiling-flow
+caption: 固定部署里一张卡的量测顺序：先拍快照、建通信组、加载权重，再看是否指定了显式 KV 预算；指定了就照样试跑一次、直接采用指定值，没指定就做两次 profile run，用预算减去三项。EngineCore 收齐各卡结果，先按每块字节各自算出块数，再取最小值给各卡分配 KV 池，最后才录 decode 图；只有没指定显式预算时，日志里才给出建议预算。对应双机部署启动的第五到第七步。
+size: [900, 510]
+items:
+  - { at: [24, 60], size: [250, 52], text: 启动快照, sub: 记下空闲量和总量, tone: control }
+  - { at: [24, 140], size: [250, 52], text: 建通信组, sub: HCCL 缓冲在这时占上, tone: comm }
+  - { at: [24, 220], size: [250, 52], text: 加载权重, sub: 记下权重占用, tone: weight }
+  - { at: [24, 300], size: [250, 52], text: 指定了显式 KV 预算？, sub: 看启动参数, tone: control, style: plain }
+  - { at: [24, 400], size: [250, 52], text: 照样试跑一次, sub: 直接用指定值，跳过扣减, tone: control, style: faded }
+  - { at: [330, 300], size: [260, 52], text: profile run, sub: 先 128 个 token，再 8192 个, tone: token }
+  - { at: [330, 400], size: [260, 52], text: 预算 − 三项 = 可用 KV, sub: 权重 + 激活峰值 + 非 torch 增量, tone: kv }
+  - { at: [640, 140], size: [236, 52], text: 各卡算块数, sub: 可用 KV ÷ 每块字节，向下取整, tone: kv }
+  - { at: [640, 220], size: [236, 52], text: 取最小块数，分配 KV 池, sub: 8 张卡都按最小值分配, tone: kv }
+  - { at: [640, 300], size: [236, 52], text: 录 decode 图, sub: 图内存从预算外出, tone: control }
+  - { at: [640, 400], size: [236, 52], text: 自动路径才打建议值, sub: 计入图内存，再留 150 MiB, tone: control }
+badges:
+  - { at: [24, 60], n: 1, tone: control }
+  - { at: [24, 140], n: 2, tone: comm }
+  - { at: [24, 220], n: 3, tone: weight }
+  - { at: [330, 300], n: 4, tone: token }
+  - { at: [330, 400], n: 5, tone: kv }
+  - { at: [640, 140], n: 6, tone: kv }
+  - { at: [640, 220], n: 7, tone: kv }
+  - { at: [640, 300], n: 8, tone: control }
+  - { at: [640, 400], n: 9, tone: control }
+links:
+  - { from: [149, 112], to: [149, 140], tone: control }
+  - { from: [149, 192], to: [149, 220], tone: control }
+  - { from: [149, 272], to: [149, 300], tone: control }
+  - { from: [274, 326], to: [330, 326], tone: control }
+  - { from: [149, 352], to: [149, 400], tone: control }
+  - { from: [460, 352], to: [460, 400], tone: kv }
+  - { from: [590, 426], to: [640, 166], via: [[615, 426], [615, 166]], tone: kv }
+  - { from: [149, 452], to: [615, 426], via: [[149, 484], [615, 484]], ends: none, tone: control }
+  - { from: [758, 192], to: [758, 220], tone: kv }
+  - { from: [758, 272], to: [758, 300], tone: kv }
+  - { from: [758, 352], to: [758, 400], tone: control }
+texts:
+  - { at: [450, 24], text: 每张卡先量、再切，最后才录图, anchor: middle, strong: true }
+  - { at: [44, 44], text: 每个 worker 各做一遍, note: true }
+  - { at: [350, 44], text: 对应启动第五到第七步, note: true }
+  - { at: [660, 124], text: EngineCore 汇总之后, note: true }
+  - { at: [290, 316], text: 否 }
+  - { at: [160, 382], text: 是 }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L464-L497
+    symbols: [init_snapshot, requested_memory]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L527-L597
+    symbols: [determine_available_memory, kv_cache_memory_bytes, profile_run]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L3683-L3696
+    symbols: [profile_run, mc2_tokens_capacity]
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2024-L2085
+    symbols: [min_num_blocks]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L717-L758
+    symbols: [capture_model, redundancy_buffer]

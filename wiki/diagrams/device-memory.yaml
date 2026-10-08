@@ -1,0 +1,19 @@
+layout: figure
+id: device-memory
+caption: 同一段权重 W 从主机复制到一张卡；两份数据各占本侧容量，复制不等于释放源数据
+size: [860, 290]
+frames:
+  - { at: [35, 65], size: [270, 160], label: 主机内存 · CPU 一侧 }
+  - { at: [475, 65], size: [270, 160], label: 设备内存 · 一张卡 }
+matrices:
+  - { at: [100, 115], w: 140, h: 65, cols: 5, rows: 3, label: 权重 W, tone: weight }
+  - { at: [540, 115], w: 140, h: 65, cols: 5, rows: 3, label: 权重 W, tone: weight }
+links:
+  - { from: [305, 150], to: [475, 150], tone: comm }
+  - { from: [745, 150], to: [817, 150], tone: weight }
+texts:
+  - { at: [390, 123], text: 复制, anchor: middle, tone: comm, size: 15 }
+  - { at: [825, 132], text: NPU, anchor: middle, size: 15 }
+  - { at: [825, 177], text: 计算, anchor: middle, size: 15 }
+  - { at: [170, 257], text: 主机账：源数据, anchor: middle, note: true }
+  - { at: [610, 257], text: 设备账：本地副本, anchor: middle, note: true }

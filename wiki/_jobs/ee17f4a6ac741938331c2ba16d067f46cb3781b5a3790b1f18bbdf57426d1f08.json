@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "ee17f4a6ac741938331c2ba16d067f46cb3781b5a3790b1f18bbdf57426d1f08",
+  "input": {
+    "sources": [
+      {
+        "ref": "raw:sha256-03a453a6d9a017f95b3b0aceb1bd8cf3c191a5b580f24692a8fb6a5c7120739e.md#L1-L263",
+        "hash": "03a453a6d9a017f95b3b0aceb1bd8cf3c191a5b580f24692a8fb6a5c7120739e"
+      }
+    ],
+    "targets": [
+      "pr-11953"
+    ],
+    "recipeHash": "6d36088321453b5bfa8de75eefe8f09252a714d373b0d7fa20108b365da882b7"
+  },
+  "origins": [
+    "pr"
+  ],
+  "state": "draft",
+  "screening": {
+    "source": "raw:sha256-03a453a6d9a017f95b3b0aceb1bd8cf3c191a5b580f24692a8fb6a5c7120739e.md#L1-L263",
+    "rawHash": "03a453a6d9a017f95b3b0aceb1bd8cf3c191a5b580f24692a8fb6a5c7120739e",
+    "sanitizerVersion": "wiki-text-v1",
+    "cleanHash": "8a11af3f4b1456b10fcc3533347c9d91f797bbf0a2dfd9c3114c08a7c01e0369",
+    "blocked": false,
+    "findings": [
+      {
+        "reason": "invisible-character"
+      }
+    ]
+  },
+  "policy": {
+    "maxAttempts": 1,
+    "maxCostUsd": 3,
+    "reserveUsd": 2
+  },
+  "attempts": [
+    {
+      "token": "77e20136-1135-402b-a1e5-d07dd1fe9b6d",
+      "ownerPid": 1620,
+      "startedAt": "2026-09-23T02:33:44.674Z",
+      "finishedAt": "2026-09-23T02:34:54.152Z",
+      "reservedUsd": 2,
+      "costUsd": 0.4765014999999999,
+      "state": "draft"
+    }
+  ],
+  "artifacts": {
+    "_drafts/pr-11953.md": "da08ce705c007dc1154e5bef131504fc6c2d296706ea799cf76dc6f58c54dd14",
+    "raw/sha256-03a453a6d9a017f95b3b0aceb1bd8cf3c191a5b580f24692a8fb6a5c7120739e.md": "03a453a6d9a017f95b3b0aceb1bd8cf3c191a5b580f24692a8fb6a5c7120739e"
+  },
+  "createdAt": "2026-09-23T02:33:44.663Z",
+  "updatedAt": "2026-09-23T02:34:54.153Z"
+}

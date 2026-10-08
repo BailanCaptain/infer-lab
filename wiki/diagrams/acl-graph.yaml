@@ -1,0 +1,70 @@
+layout: figure
+id: acl-graph
+caption: 同一步里 6 个设备任务的两种走法（格数是示意，不是实测）。上：逐个下发，Host 交一个设备算一个，设备算完要等下一个任务交过来（斜线格），整步 13.5 格。下：整串录成一张图，Host 只提交一次，设备 6 个任务连着算完，整步 10 格。设备真正在算的都是 9 格，省掉的全是 Host 交任务的时间。
+size: [900, 430]
+texts:
+  - { at: [20, 28], text: 一步里的 6 个设备任务（示意格数）, strong: true, size: 15 }
+  - { at: [20, 64], text: 逐个下发：交一个、算一个, strong: true }
+  - { at: [110, 206], text: 设备只算 9 格 · 其余在等下一个任务, note: true }
+  - { at: [20, 246], text: 整串回放：提交一次、连着算完, strong: true }
+  - { at: [110, 388], text: Host 从 12 格降到 1 格 · 整步少 3.5 格, note: true }
+timelines:
+  - at: [20, 80]
+    scale: 50
+    start: 0
+    end: 14
+    ticks: 2
+    labelW: 90
+    laneH: 34
+    gap: 10
+    unit: 格
+    lanes:
+      - label: Host
+        spans:
+          - { from: 0, to: 2, tone: control, text: 下发 1 }
+          - { from: 2, to: 4, tone: control, text: 下发 2 }
+          - { from: 4, to: 6, tone: control, text: 下发 3 }
+          - { from: 6, to: 8, tone: control, text: 下发 4 }
+          - { from: 8, to: 10, tone: control, text: 下发 5 }
+          - { from: 10, to: 12, tone: control, text: 下发 6 }
+      - label: 设备
+        spans:
+          - { from: 2, to: 3.5, tone: token, text: 算 1 }
+          - { from: 3.5, to: 4, style: hatch }
+          - { from: 4, to: 5.5, tone: token, text: 算 2 }
+          - { from: 5.5, to: 6, style: hatch }
+          - { from: 6, to: 7.5, tone: token, text: 算 3 }
+          - { from: 7.5, to: 8, style: hatch }
+          - { from: 8, to: 9.5, tone: token, text: 算 4 }
+          - { from: 9.5, to: 10, style: hatch }
+          - { from: 10, to: 11.5, tone: token, text: 算 5 }
+          - { from: 11.5, to: 12, style: hatch }
+          - { from: 12, to: 13.5, tone: token, text: 算 6 }
+    marks:
+      - { t: 13.5, label: 13.5 格 }
+  - at: [20, 262]
+    scale: 50
+    start: 0
+    end: 14
+    ticks: 2
+    labelW: 90
+    laneH: 34
+    gap: 10
+    unit: 格
+    lanes:
+      - label: Host
+        spans:
+          - { from: 0, to: 1, tone: control, text: 提交 }
+      - label: 设备
+        spans:
+          - { from: 1, to: 2.5, tone: token, text: 算 1 }
+          - { from: 2.5, to: 4, tone: token, text: 算 2 }
+          - { from: 4, to: 5.5, tone: token, text: 算 3 }
+          - { from: 5.5, to: 7, tone: token, text: 算 4 }
+          - { from: 7, to: 8.5, tone: token, text: 算 5 }
+          - { from: 8.5, to: 10, tone: token, text: 算 6 }
+    marks:
+      - { t: 10, label: 10 格 }
+pins:
+  - source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L259'
+    symbols: [ACLGraphWrapper]

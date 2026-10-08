@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="同样三层、同样的字节，两种搬法的时间线（示意：每层计算 1 个时间单位，每层传输 0.5 个单位，假设传输不和别的流量抢链路）。上面是默认的 V1：P 三层都算完、请求结束，D 才一次读回三层，到齐在 4.5。下面是 Layerwise：D 在 P 开算之前就分好了目的块，P 每算完一层就把这一层写过去，前两层的传输藏进了 P 算后面几层的时间里，到齐在 3.5。最后一层的传输两种做法都省不掉，D 也都要等三层到齐才开始 decode。">
+  <title>同样三层、同样的字节，两种搬法的时间线（示意：每层计算 1 个时间单位，每层传输 0.5 个单位，假设传输不和别的流量抢链路）。上面是默认的 V1：P 三层都算完、请求结束，D 才一次读回三层，到齐在 4.5。下面是 Layerwise：D 在 P 开算之前就分好了目的块，P 每算完一层就把这一层写过去，前两层的传输藏进了 P 算后面几层的时间里，到齐在 3.5。最后一层的传输两种做法都省不掉，D 也都要等三层到齐才开始 decode。</title>
+  <defs></defs>
+  <text x="168" y="90.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">V1 · P 计算</text>
+  <path d="M180 102H855" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="180" y="70" width="150" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="255" y="90.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0</text>
+  <rect x="330" y="70" width="150" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="405" y="90.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1</text>
+  <rect x="480" y="70" width="150" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="555" y="90.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2</text>
+  <text x="168" y="134.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">V1 · D 读取</text>
+  <rect x="630" y="114" width="225" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="742.5" y="134.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">三层一起读</text>
+  <path d="M180 158H855" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M180 158v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="180" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M330 158v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="330" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
+  <path d="M480 158v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="480" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <path d="M630 158v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="630" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <path d="M780 158v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="780" y="178" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <path d="M855 66V158" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
+  <text x="855" y="60" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">到齐</text>
+  <text x="168" y="260.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">Layerwise · P 计算</text>
+  <path d="M180 272H855" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1"/>
+  <rect x="180" y="240" width="150" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="255" y="260.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0</text>
+  <rect x="330" y="240" width="150" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="405" y="260.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1</text>
+  <rect x="480" y="240" width="150" height="32" rx="4" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="555" y="260.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2</text>
+  <text x="168" y="304.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="end">Layerwise · P 写到 D</text>
+  <rect x="330" y="284" width="75" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="367.5" y="304.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 0</text>
+  <rect x="480" y="284" width="75" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="517.5" y="304.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 1</text>
+  <rect x="630" y="284" width="75" height="32" rx="4" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="667.5" y="304.5" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层 2</text>
+  <path d="M180 328H855" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <path d="M180 328v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="180" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">0</text>
+  <path d="M330 328v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="330" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">1</text>
+  <path d="M480 328v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="480" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">2</text>
+  <path d="M630 328v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="630" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">3</text>
+  <path d="M780 328v5" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <text x="780" y="348" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle">4</text>
+  <path d="M705 236V328" stroke="var(--color-ink, #17211f)" stroke-width="1.2" stroke-dasharray="3 4"/>
+  <text x="705" y="230" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">到齐</text>
+  <text x="30" y="44" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">整批拉：P 全部算完，D 才开始读</text>
+  <text x="30" y="214" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">逐层推：P 算完一层就写一层</text>
+  <text x="450" y="384" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">省下的是前两层的传输；最后一层照样要等</text>
+</svg>

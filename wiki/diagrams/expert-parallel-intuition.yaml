@@ -1,0 +1,34 @@
+layout: figure
+id: expert-parallel-intuition
+caption: 用 4 张卡示意 EP：E0–E7 是路由专家，每卡放 2 个完整专家。卡 0 上的 token「我」由 router 选中卡 1 的 E3、卡 2 的 E4，派发过去各自计算，再把结果送回卡 0 按权重相加；灰色专家这次未选中，仍留在各卡上。
+size: [900, 370]
+frames:
+  - { at: [18, 48], size: [290, 292], label: 卡 0 · 源卡，也持有专家 }
+  - { at: [490, 48], size: [176, 130], label: 卡 1 · 一部分专家 }
+  - { at: [490, 210], size: [176, 130], label: 卡 2 · 一部分专家 }
+  - { at: [696, 48], size: [186, 292], label: 卡 3 · 一部分专家 }
+items:
+  - { at: [36, 72], size: [116, 38], text: E0 完整专家, style: plain }
+  - { at: [170, 72], size: [116, 38], text: E1 完整专家, style: plain }
+  - { at: [36, 140], size: [90, 56], text: token, sub: 「我」, tone: token }
+  - { at: [160, 140], size: [126, 56], text: router, sub: 选 k 个专家, tone: control }
+  - { at: [36, 270], size: [250, 50], text: 收回结果，按权重相加, tone: token }
+  - { at: [510, 72], size: [136, 44], text: token → E3, tone: weight }
+  - { at: [510, 132], size: [136, 30], text: E2 完整专家, style: plain }
+  - { at: [510, 234], size: [136, 44], text: token → E4, tone: weight }
+  - { at: [510, 294], size: [136, 30], text: E5 完整专家, style: plain }
+  - { at: [716, 72], size: [146, 38], text: E6 完整专家, style: plain }
+  - { at: [716, 132], size: [146, 38], text: E7 完整专家, style: plain }
+links:
+  - { from: [126, 168], to: [160, 168] }
+  - { from: [286, 153], to: [510, 88], via: [[358, 153], [358, 88]], tone: comm }
+  - { from: [286, 182], to: [510, 250], via: [[358, 182], [358, 250]], tone: comm }
+  - { from: [510, 108], to: [286, 280], via: [[452, 108], [452, 280]], tone: comm }
+  - { from: [510, 270], to: [286, 308], via: [[476, 270], [476, 308]], tone: comm }
+texts:
+  - { at: [450, 12], text: '4 张卡 · k = 2 · 只示意分工', anchor: middle, strong: true }
+  - { at: [387, 65], text: dispatch · 发出, anchor: middle, tone: comm }
+  - { at: [395, 352], text: combine · 返回, anchor: middle, tone: comm }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/token_dispatcher.py#L150-L339
+    symbols: [token_dispatch, token_combine]

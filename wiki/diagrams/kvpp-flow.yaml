@@ -1,0 +1,72 @@
+layout: figure
+id: kvpp-flow
+caption: vllm-ascend main 上 KVPP 的代码走向。上两排在启动时走一次：开关打开、组大小大于 1 才做启动检查，不满足任何一条就报错退出；随后建通信组、把层分给常驻卡、按「常驻 + MTP + 2 个最大层」算块数，再换回逻辑字节报给引擎，最后按块数分配并给每个attention 层挂上等待点。下排是每步前向：本批没有任何带历史的请求（全新 prefill、启动试跑、测显存）就整步不广播；否则开头先发第 0 层，每层在投影之后等本层到位，随即发下一层。
+size: [900, 470]
+dividers:
+  - { from: [24, 262], to: [876, 262], sides: [启动时走一次, 每步前向都走] }
+items:
+  - { at: [24, 40], size: [150, 60], text: 读开关, sub: 默认关, tone: control, style: plain }
+  - { at: [194, 40], size: [150, 60], text: 定组大小, sub: TP × PCP, tone: control, style: plain }
+  - { at: [364, 40], size: [150, 60], text: 启动检查, sub: 模型与组合, tone: control, style: plain }
+  - { at: [534, 40], size: [170, 60], text: 建 kvpp 通信组, sub: 按 DP 副本、PP 段分组, tone: comm, style: plain }
+  - { at: [724, 40], size: [152, 60], text: 层分给常驻卡, sub: 连续均分，MTP 除外, tone: kv, style: plain }
+  - { at: [194, 118], size: [150, 36], text: 组大小 1：不启用, tone: ink, style: faded }
+  - { at: [364, 118], size: [150, 36], text: 不满足：报错退出, tone: danger, style: faded }
+  - { at: [724, 180], size: [152, 60], text: 算块数, sub: 常驻 + MTP + 2 暂存, tone: kv, style: plain }
+  - { at: [534, 180], size: [170, 60], text: 报给引擎, sub: 块数 × 逻辑每块字节, tone: control, style: plain }
+  - { at: [364, 180], size: [150, 60], text: 分配缓存, sub: 别人的层指向暂存区, tone: kv, style: plain }
+  - { at: [194, 180], size: [150, 60], text: 挂等待点, sub: 每个 attention 层, tone: control, style: plain }
+  - { at: [24, 290], size: [170, 60], text: 本批有历史吗, sub: 已算 token 数 > 0, tone: control, style: plain }
+  - { at: [24, 392], size: [190, 50], text: 整步不广播, sub: 新 prefill、试跑、测显存, tone: ink, style: faded }
+  - { at: [244, 290], size: [140, 60], text: 发第 0 层, sub: 单独的传输流, tone: comm, style: plain }
+  - { at: [424, 290], size: [120, 60], text: 算投影, sub: Q 与新 KV, tone: token, style: plain }
+  - { at: [584, 290], size: [120, 60], text: 等本层到位, tone: comm, style: plain }
+  - { at: [744, 290], size: [132, 60], text: 立刻发下一层, tone: comm, style: plain }
+  - { at: [584, 386], size: [200, 56], text: attention 读写 + 其余计算, tone: token, style: plain }
+links:
+  - { from: [174, 70], to: [194, 70] }
+  - { from: [344, 70], to: [364, 70] }
+  - { from: [514, 70], to: [534, 70] }
+  - { from: [704, 70], to: [724, 70] }
+  - { from: [269, 100], to: [269, 118], dashed: true }
+  - { from: [439, 100], to: [439, 118], dashed: true, tone: danger }
+  - { from: [800, 100], to: [800, 180] }
+  - { from: [724, 210], to: [704, 210] }
+  - { from: [534, 210], to: [514, 210] }
+  - { from: [364, 210], to: [344, 210] }
+  - { from: [194, 320], to: [244, 320] }
+  - { from: [109, 350], to: [109, 392], dashed: true }
+  - { from: [384, 320], to: [424, 320] }
+  - { from: [544, 320], to: [584, 320] }
+  - { from: [704, 320], to: [744, 320] }
+  - { from: [810, 350], to: [784, 414], via: [[810, 414]] }
+  - { from: [584, 414], to: [484, 350], via: [[484, 414]], dashed: true }
+texts:
+  - { at: [206, 312], text: 有 }
+  - { at: [118, 378], text: 没有 }
+  - { at: [494, 404], text: 下一层 }
+pins:
+  - source: vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L66-L77
+    symbols: [from_vllm_config, enable_kvpp, prefill_context_parallel_size]
+  - source: vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L79-L100
+    symbols: [validate, decode_context_parallel_size, enforce_eager, is_hybrid]
+  - source: vllm-ascend@baa023ad:vllm_ascend/platform.py#L1500-L1502
+    symbols: [kvpp_config]
+  - source: vllm-ascend@baa023ad:vllm_ascend/distributed/parallel_state.py#L76-L89
+    symbols: [kvpp_group_ranks]
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L128-L159
+    symbols: [map_kvpp_layers_to_owners, find_mtp_layers]
+  - source: vllm-ascend@baa023ad:vllm_ascend/core/kv_cache_placement.py#L18-L44
+    symbols: [KVPP_SCRATCH_BUFFER_COUNT, get_num_blocks]
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/worker.py#L540-L546
+    symbols: [_apply_kvpp_memory_budget]
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/kvpp_cache.py#L30-L57
+    symbols: [allocate_kvpp_cache]
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L23-L64
+    symbols: [layerwise_kv_cache_hook]
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/model_runner_v1.py#L2486-L2487
+    symbols: [prepare_forward, num_computed_tokens_cpu]
+  - source: vllm-ascend@baa023ad:vllm_ascend/worker/v2/kvpp.py#L87-L110
+    symbols: [schedule_forward, start_layer_prefetch, wait_for_layer]
+  - source: vllm-ascend@baa023ad:vllm_ascend/attention/mla_v1.py#L2057-L2061
+    symbols: [wait_for_layer]

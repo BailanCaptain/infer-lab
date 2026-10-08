@@ -1,0 +1,43 @@
+layout: figure
+id: sparse-attention-path
+caption: 推理时一个稀疏 MLA 层怎样先挑位置、再读位置。indexer 按条件走 triton 或回退实现，两条路径使用同一套公式；只供单测调用的 PyTorch 参考实现不在推理路径上。
+size: [880, 720]
+frames:
+  - { at: [20, 50], size: [840, 650], label: 一个稀疏 MLA 层的前向 · 主线第 4 站，11 层各跑一次 }
+items:
+  - { at: [200, 76], size: [480, 56], text: 注意力层前向：先算出 Q 和本位置的潜向量, sub: 父类的统一流程, style: plain }
+  - { at: [200, 166], size: [480, 56], text: indexer：写状态，每 4 个位置压成一池, sub: 只给因果范围内的完整池打分, tone: weight }
+  - { at: [120, 256], size: [300, 60], text: triton 路径, sub: NPU 且条件满足：选池、展开、补尾一次做完, tone: weight }
+  - { at: [460, 256], size: [300, 60], text: PyTorch 回退, sub: 其余情况，同一套公式, style: faded }
+  - { at: [200, 356], size: [480, 56], text: 位置清单：每个查询一行，宽 2051, sub: 最多 512 池展开成 2048 个位置，加 0–3 个尾部；空位填 −1, tone: token }
+  - { at: [200, 446], size: [480, 56], text: 稀疏 attention 入口（子类重写）, sub: 取出整份打包的潜向量缓存, style: plain }
+  - { at: [700, 440], size: [150, 68], text: PyTorch 参考实现, sub: 只有单测调用, style: faded }
+  - { at: [200, 536], size: [480, 56], text: 昇腾稀疏 FlashAttention 内核, sub: A2 走基础设备适配器；按清单逐个位置读潜向量, tone: kv }
+  - { at: [200, 626], size: [480, 56], text: V 解压 + 输出投影, sub: 本卡 8 个头的部分和，随后 TP8 All-Reduce, style: plain }
+links:
+  - { from: [440, 132], to: [440, 166] }
+  - { from: [270, 222], to: [270, 256] }
+  - { from: [610, 222], to: [610, 256], dashed: true }
+  - { from: [270, 316], to: [270, 356] }
+  - { from: [610, 316], to: [610, 356], dashed: true }
+  - { from: [440, 412], to: [440, 446] }
+  - { from: [680, 474], to: [700, 474], dashed: true, ends: none }
+  - { from: [440, 502], to: [440, 536] }
+  - { from: [440, 592], to: [440, 626] }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1972-L2028
+    symbols: [indexer_select_post_process, _execute_sparse_flash_attention_process, _v_up_proj, o_proj]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1106-L1134
+    symbols: [indexer_select_post_process]
+  - source: vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1140-L1232
+    symbols: [forward_ascend, glm5_next_lightning_indexer]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/glm5_next_lightning_indexer.py#L419-L504
+    symbols: [glm5_next_lightning_indexer, _can_use_triton]
+  - source: vllm-ascend@db701c1f:vllm_ascend/ops/triton/glm5_next_lightning_indexer.py#L23-L237
+    symbols: [glm5_next_lightning_indexer_triton]
+  - source: vllm-ascend@db701c1f:vllm_ascend/attention/indexer_kpool_mla_v1.py#L1065-L1104
+    symbols: [_execute_sparse_flash_attention_process, execute_sparse_attention_indexer_kpool_mla]
+  - source: vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L719-L793
+    symbols: [execute_sparse_attention_indexer_kpool_mla, npu_sparse_flash_attention]
+  - source: vllm-ascend@db701c1f:vllm_ascend/device/device_op.py#L2317-L2326
+    symbols: [get_device_adaptor, BaseDeviceAdaptor]

@@ -1,0 +1,60 @@
+layout: figure
+id: streaming-output-flow
+caption: 一步的结果怎样变成 SSE 片段。引擎进程每步追加 token、判结束 token 和长度，有新 token 或已结束才把结果经 ZMQ 发到前端。前端进程里有两类任务：一个后台输出任务替所有请求做反分词、查停止字符串、算文本增量，放进各请求的收集器；每条请求还有一个 HTTP 任务，从收集器取出结果，拼成片段写进连接。停止字符串命中而引擎还没停、或客户端断开时，前端通知引擎终止这条请求；截掉停止字符串后剩下的文字照常算增量、推出去
+size: [880, 820]
+frames:
+  - { at: [24, 40], size: [832, 166], label: EngineCore · 每步一次 }
+  - { at: [24, 252], size: [832, 252], label: API server · 后台输出任务（所有请求共用） }
+  - { at: [24, 548], size: [832, 250], label: API server · 这条请求的 HTTP 任务 }
+items:
+  - { at: [44, 58], size: [400, 54], text: 逐个追加本步 token，判结束 token 与长度, sub: 命中就丢掉本步余下的 token, tone: control }
+  - { at: [44, 136], size: [400, 54], text: 有新 token 或已结束，才发结果, sub: prefill 没做完的那几步不发, tone: control }
+  - { at: [476, 136], size: [360, 54], text: 终止请求，归还显存块, tone: kv }
+  - { at: [44, 272], size: [400, 54], text: 取出这批结果，分片处理, sub: 片与片之间让出 CPU, tone: control }
+  - { at: [44, 350], size: [400, 54], text: 增量反分词，查停止字符串, tone: token }
+  - { at: [476, 350], size: [360, 54], text: 命中了，而引擎还没停, sub: 截掉停止字符串，通知引擎终止, tone: comm }
+  - { at: [44, 428], size: [400, 54], text: 算这次的文本增量, sub: 设了停止字符串就扣住结尾几个字, tone: token }
+  - { at: [476, 428], size: [360, 54], text: 放进这条请求的收集器, sub: 上次的还没被取走，就并在一起, tone: token, style: faded }
+  - { at: [476, 568], size: [360, 54], text: 取出收集器里的结果, tone: comm, style: faded }
+  - { at: [476, 646], size: [360, 54], text: 拼一个片段, sub: 新增文字，或思考段、工具调用, tone: comm }
+  - { at: [44, 646], size: [400, 54], text: 写进连接：一行 data，空一行, tone: comm }
+  - { at: [44, 724], size: [400, 54], text: '结束原因片段 →（用量片段）→ [DONE]', tone: comm }
+  - { at: [476, 724], size: [360, 54], text: 客户端断开, sub: 同样通知引擎终止这条请求, tone: comm, style: plain }
+links:
+  - { from: [244, 112], to: [244, 136] }
+  - { from: [400, 190], to: [400, 272], tone: comm }
+  - { from: [656, 350], to: [656, 190], tone: comm }
+  - { from: [244, 326], to: [244, 350] }
+  - { from: [444, 377], to: [476, 377] }
+  - { from: [244, 404], to: [244, 428] }
+  - { from: [444, 455], to: [476, 455] }
+  - { from: [656, 482], to: [656, 568] }
+  - { from: [656, 622], to: [656, 646] }
+  - { from: [476, 673], to: [444, 673] }
+  - { from: [244, 700], to: [244, 724] }
+  - { from: [244, 646], to: [476, 595], via: [[244, 595]], dashed: true }
+  - { from: [560, 404], to: [420, 428], via: [[560, 416], [420, 416]] }
+  - { from: [836, 751], to: [836, 163], via: [[868, 751], [868, 163]], tone: comm, dashed: true }
+texts:
+  - { at: [412, 224], text: ZMQ · 这一步所有请求的结果, tone: comm }
+  - { at: [668, 224], text: 终止, tone: comm }
+  - { at: [452, 370], text: 是, size: 13 }
+  - { at: [256, 718], text: 已结束, size: 13 }
+  - { at: [256, 588], text: 没结束：回去等下一段, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1695-L1711
+    symbols: [_update_request_with_output, check_stop]
+  - source: vllm@0fc695fc:vllm/v1/core/sched/scheduler.py#L1543-L1562
+    symbols: [EngineCoreOutput, new_token_ids]
+  - source: vllm@0fc695fc:vllm/v1/engine/async_llm.py#L637-L695
+    symbols: [output_handler, chunk_size, process_outputs, abort_requests_async]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L576-L690
+    symbols: [process_outputs, reqs_to_abort, make_request_output]
+  - source: vllm@0fc695fc:vllm/v1/engine/detokenizer.py#L68-L166
+    symbols: [update, check_stop_strings, get_next_output_text, stop_buffer_length]
+  - source: vllm@0fc695fc:vllm/v1/engine/output_processor.py#L45-L100
+    symbols: [RequestOutputCollector, aggregate]
+  - source: vllm@0fc695fc:vllm/v1/engine/async_llm.py#L574-L596
+    symbols: [get_nowait, abort]
+  - source: vllm@0fc695fc:vllm/entrypoints/openai/chat_completion/serving.py#L800-L936
+    symbols: [finish_reason, include_usage, DONE]

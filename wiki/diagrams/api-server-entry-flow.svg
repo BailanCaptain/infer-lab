@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900" role="img" aria-label="竖向是一条 chat 请求在 API server 里的先后顺序，右边是两种出错出口和一条叫醒协调器的旁路，底下是引擎进程收下请求的四步。流式请求在建好生成器时就先回 200，之后才真正把请求交给 AsyncLLM，所以从那以后的错误只能写进流里。派给哪一组的打分不在这张图里。">
+  <title>竖向是一条 chat 请求在 API server 里的先后顺序，右边是两种出错出口和一条叫醒协调器的旁路，底下是引擎进程收下请求的四步。流式请求在建好生成器时就先回 200，之后才真正把请求交给 AsyncLLM，所以从那以后的错误只能写进流里。派给哪一组的打分不在这张图里。</title>
+  <defs><marker id="api-server-entry-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="api-server-entry-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="api-server-entry-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker></defs>
+  <rect x="20" y="40" width="620" height="690" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">API server 进程</text>
+  <rect x="20" y="770" width="860" height="110" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="36" y="758" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">EngineCore 进程</text>
+  <path d="M220 118 L220 144" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M220 202 L220 228" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M220 286 L220 312" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M220 370 L220 396" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M220 454 L220 480" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M220 538 L220 564" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M220 622 L220 648" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M400 89 L525 89 L525 144" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-danger)"/>
+  <path d="M400 173 L430 173" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-danger)"/>
+  <path d="M400 257 L430 257" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-danger)"/>
+  <path d="M400 341 L430 341" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-danger)"/>
+  <path d="M400 509 L430 509" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-danger)"/>
+  <path d="M400 677 L670 677" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#api-server-entry-flow-ah-comm)"/>
+  <path d="M210 706 L210 800" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#api-server-entry-flow-ah-comm)"/>
+  <path d="M295 829 L315 829" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M485 829 L505 829" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <path d="M675 829 L695 829" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#api-server-entry-flow-ah-ink)"/>
+  <rect x="40" y="60" width="360" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="85" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">收到 POST /v1/chat/completions</text>
+  <text x="220" y="104" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">先按 JSON 字段格式校验</text>
+  <rect x="40" y="144" width="360" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="169" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">查模型名和引擎状态</text>
+  <text x="220" y="188" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">模型名不对回 404；引擎已停止直接报错</text>
+  <rect x="40" y="228" width="360" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">套模板 → 分词 → 长度检查</text>
+  <text x="220" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">先看模板来源可不可信；在线程池里做</text>
+  <rect x="40" y="312" width="360" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="337" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">定输出上限和采样参数</text>
+  <text x="220" y="356" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">流式要「增量」，非流式「只要最终结果」</text>
+  <rect x="40" y="396" width="360" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="421" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建好生成器，还没进引擎</text>
+  <text x="220" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">流式请求此时先回 200 和流的响应头</text>
+  <rect x="40" y="480" width="360" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">AsyncLLM 再校验，建 EngineCoreRequest</text>
+  <text x="220" y="524" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">编号越界、组号越界、空提示词在这里拒</text>
+  <rect x="40" y="564" width="360" height="58" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="589" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">OutputProcessor 登记输出槽</text>
+  <text x="220" y="608" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">反分词器和输出槽按请求 ID 存好</text>
+  <rect x="40" y="648" width="360" height="58" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="220" y="673" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">选 DP 组并发出</text>
+  <text x="220" y="692" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">看请求头或按忙闲打分，经 ZMQ 送出</text>
+  <rect x="430" y="144" width="190" height="226" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="525" y="253" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">返回 JSON 错误</text>
+  <text x="525" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">400 / 404，没进引擎</text>
+  <rect x="430" y="480" width="190" height="58" rx="8" fill="var(--color-accent-soft, #fff0e9)" stroke="var(--color-danger, #b54237)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="525" y="505" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">出错时</text>
+  <text x="525" y="524" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#8f3229" text-anchor="middle">流式写进流里；非流式回 400</text>
+  <rect x="670" y="648" width="200" height="58" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="770" y="673" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">DP 协调器</text>
+  <text x="770" y="692" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">各组都停着时先叫醒</text>
+  <rect x="125" y="800" width="170" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="210" y="825" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">输入线程解码</text>
+  <text x="210" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">收下 ZMQ 消息</text>
+  <rect x="315" y="800" width="170" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="400" y="825" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">建 Request 对象</text>
+  <text x="400" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">和这一圈的计算并行</text>
+  <rect x="505" y="800" width="170" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="590" y="825" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">进输入队列</text>
+  <text x="590" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">等这一圈算完</text>
+  <rect x="695" y="800" width="170" height="58" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="780" y="825" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">调度器收下</text>
+  <text x="780" y="844" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">进 waiting 队列</text>
+  <text x="220" y="745" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">ZMQ · 引擎进程可在另一台机器</text>
+</svg>

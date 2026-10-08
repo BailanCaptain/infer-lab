@@ -1,0 +1,211 @@
+---
+id: op-to-ai-core
+title: 从算子到 AI Core：分工、融合与分块
+type: concept
+summary: 在 A4 逐层前向中，算子怎样分成矩阵与向量执行段，Host 怎样划分工作，设备怎样搬入、计算、写回；以 GLM 实际 RMSNorm 路径和可选残差融合分支对照说明。
+aliases: [算子链路, AscendRMSNorm, AscendGemmaRMSNorm, npu_add_rms_norm_bias, AscendC, op_kernel, op_host, tiling, tiling key, UB, 算子四层]
+chapters: ["16"]
+order: 20
+sources:
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2129-L2169
+  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2212-L2235
+  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L768
+  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L110-L207
+  - vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L63-L88
+  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L409-L467
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L19-L108
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp#L23-L71
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L96-L155
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h#L167-L208
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h#L21-L50
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L208-L222
+  - vllm-ascend@db701c1f:csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp#L373-L411
+  - https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html
+  - https://arxiv.org/abs/1910.07467
+  - vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L126
+  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/moe_mlp.py#L133-L220
+  - vllm-ascend@2c59ff10:vllm_ascend/ops/layernorm.py#L63-L88
+  - vllm-ascend@2ed6cbba:vllm_ascend/ops/layernorm.py#L63-L86
+  - vllm-ascend@baa023ad:vllm_ascend/ops/layernorm.py#L64-L84
+  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L409-L467
+  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L401-L459
+  - vllm-ascend@baa023ad:vllm_ascend/utils.py#L521-L579
+verified: []
+evidence: "C"
+relations:
+  - {to: ops-and-kernels, kind: builds-on, note: 先区分算子接口与设备核函数}
+  - {to: mlp-residual-norm, kind: builds-on, note: RMSNorm 的数学定义与残差结构}
+  - {to: one-request, kind: builds-on, note: 回到 A4 逐层前向核对真实形状与通信}
+  - {to: prepare-inputs-flow, kind: builds-on, note: 往前追踪 A3 的块表、槽位和注意力元数据}
+contradicts: []
+updated: "2026-10-02"
+origin: direct
+---
+
+## 一次算子调用，卡里究竟谁在干活？
+
+**算子规定要算什么，kernel 是设备上执行它的程序；AI Core 是 NPU 计算芯片中承担计算的核心。** 把算子落到 AI Core，就是把运算拆成适合硬件的执行段，安排数据搬运，再让各段按依赖完成。
+
+例如，矩阵乘后接激活：先把输入与权重对应相乘、累加，再对结果里的每个数做非线性变换。**Cube** 是擅长矩阵乘加的计算单元；**Vector** 是处理逐元素运算、归约等工作的向量单元。归约就是把一组数汇成一个数，例如求和。一个融合算子可以把这两类执行段组织在一起。
+
+另一种运算 **RMSNorm** 会先求一行数的均方，用它的倒数平方根调整尺度，再乘逐通道权重，输出仍与输入同宽。它需要归约和逐元素处理，计算结构与矩阵乘不同：放在同一张卡上，不代表都交给 Cube。
+
+```wiki-diagram
+file: op-to-ai-core-intuition
+```
+
+图中的箭头表示前一段产出的数据要交给后一段。矩阵与向量单元怎样组织、数据经过哪些存储，见 [AI Core](ai-core.md)。本页挂靠主线 [A4：逐层前向](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)，接下来追踪执行段之间怎样交接。
+
+## 为什么要分块和融合，代价在哪？
+
+**数据要先到计算单元能读取的位置，计算才会开始。** 设备全局内存保存大张量；片上缓冲区只容纳当前正在处理的一部分。输入太宽或行数太多时，需要分块搬运和计算。分块要付出搬运、循环和同步的成本：后一段依赖的结果还没准备好，就必须等待。
+
+**融合主要改变相邻运算怎样组织。** 原来先做残差相加、再做归一化，两次调用之间可能要写出并重读一份结果；融合让同一实现接着使用已经取得的数据，可能减少重复访问与单独下发。这里残差指绕过子层、留待相加的输入，详细数学关系见 [MLP、残差和归一化](mlp-residual-norm.md)。
+
+不过，融合仍要保存后续计算需要的结果。仓库中的残差融合扩展实际分配 **3 份输出张量**：归一化结果、每行的缩放统计量、更新后的残差；第三份在搬入并相加后就写回全局内存。因此省多少访问，要逐个张量看它还会不会被使用。融合也会增加片上临时空间压力，可能改变分块。
+
+这与把工作分给多张卡是两个层次：本页的分块、搬运与等待发生在设备执行内部。跨卡通信在模型需要合并各卡结果时发生，次数由模型与并行方案决定，见 [A4 主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)。
+
+## 融合分支改变的是执行组织
+
+**融合前后要保留相同的数学目标，改变的是如何下发、搬运和存放中间结果。** 给归一化同时传入当前向量 x 与残差 residual 时，先相加得 s，再归一化。设每行宽 H，逐通道权重为 γ，ε 是防止除零的小数：
+
+```text
+s = x + residual
+r = 1 / sqrt(sum(s[j]²) / H + ε)
+y[j] = s[j] × r × γ[j] + bias[j]   # 没有 bias 时省去末项
+返回 y 与更新后的残差 s
+```
+
+**不传 residual 时，令 s = x，仍按上面的 r、y 两式归一化；接口只返回 y，不返回更新后的残差。** 后文 GLM 子层入口走的就是这一分支。
+
+用两元素向量走一次数据交接（数为示意）：x=[1,3]，residual=[1,−1]，γ=[1,1]，无 bias。为便于手算，这个非零输入取 ε=0，真实模型使用自己的 ε。先得到 s，再由整行算出同一个 r，最后逐元素缩放：
+
+```calc
+title: 融合残差归一化仍要交付两份结果（示意）
+更新后残差 = [1 + 1, 3 − 1] = [2, 2]
+整行均方 = (2² + 2²) ÷ 2 = 4
+缩放因子 = 1 ÷ √4 = 0.5
+归一化输出 = [2 × 0.5 × 1, 2 × 0.5 × 1] = [1, 1]
+```
+
+后续计算收到的 y 是 [1,1]，保留的残差 s 是 [2,2]。它们用途不同，不能拿其中一份替代另一份。上面的式子表达数学语义，真实低精度执行还要核对中间转换和舍入误差。
+
+固定实现中，自定义扩展可用就调用残差加归一化加偏置的融合接口；不可用则调用已有的残差归一化接口，有 bias 时再补加法。扩展启用还受批不变性模式（约束不同批次下数值一致性）、设备类型与加载结果影响，具体判断放在页末源码区。这个带 residual 的分支是实现对照，后文 GLM 的实际调用只传一个张量。
+
+## Host tiling：把张量任务划给设备
+
+**Host 是主机侧；tiling 是按输入与设备条件制定的分块规划。** 张量宽度不变时，批次包含的 token（文本分词后的单元）数仍决定输入行数；主机侧要决定把哪些行或列块交给哪些核，每次处理多少数据，再把参数传给设备。实际运算结果由设备生成。
+
+沿用残差融合扩展，Python 调用先到 C++ 适配层，分配归一化结果 y、缩放统计量 rstd 和更新后残差 s，然后接入 CANN 的算子执行流程。CANN 是昇腾的算子与运行时软件栈，负责衔接主机规划和设备执行。
+
+这个扩展读取可用向量核数与 **UB（Unified Buffer）** 容量；UB 是向量计算使用的片上缓冲区。再根据行数、行宽、FP16/FP32/BF16 数据精度以及有没有 bias，选择普通处理、沿宽度拆分、合并多行等模板，并生成每核处理范围与临时空间参数。分块阈值随精度与偏置条件改变，因此即使元素数量相同，也要重新按这些条件选择模板。
+
+设备入口读取 **tiling key**，也就是主机给出的模板选择编码，再按对应精度与分块方式执行。源码中的阈值是这个实现的空间安排，不能当成整颗 NPU 的固定内存容量；读 key 时应找到对应模板，而不是记住编码数字。
+
+还要分清另一种“块”：A3 准备输入时产生的 block table（记录请求历史放在哪些缓存块的表）与 slot mapping（新位置写入哪个槽位的映射），用于注意力读写 KV cache。KV cache 是留给后续步骤复用的历史数据。它们怎样生成，统一见[准备输入](prepare-inputs-flow.md)；本节的 tiling 只分配当前算子的计算工作，不重新分配这些缓存块。
+
+## 设备侧：搬入、归约、缩放、写回
+
+**设备拿到分块参数后，反复处理“搬入一块、算完、写出”这段工作。** 普通模板的 CopyIn 把 x 与 residual 从全局内存搬入片上，做残差相加，并写回更新后的残差；Compute 对这行做平方和归约、加 ε、求倒数平方根，再缩放各元素；CopyOut 写出归一化结果，并在相应循环结束处保存缩放统计量。
+
+沿用上节 [2,2] 的残差和：两元素都参与均方计算，缩放因子准备好后，才能分别得到输出的两个 1。归约结果尚未就绪时，后面的缩放必须等它；代码中的同步屏障和事件保证这种先后关系。低精度模板还会在局部缓冲中做精度转换，片上空间不只是输入张量的大小。
+
+这里是 Vector 上的归约与逐元素运算。矩阵乘后的激活融合则包含不同计算单元的协作；两种情况都要检查数据交接，不能把一个算子接口等同于一个硬件单元。Scalar 负责标量与控制，搬运单元负责存储之间的数据传输，完整路径见 [AI Core](ai-core.md)。
+
+## 怎样判断优化是否成立
+
+先确认输入输出语义和数值误差要求，再看实际分派、精度、布局和 tiling；最后测量设备时间、内存访问与端到端影响。具体要核对三件事：哪些访问与下发被省掉，片上临时空间增加多少，哪些输入形状能够使用该实现。实际启动数量与矩阵、向量单元的交接方式取决于所选实现。源码能确定路径与公式，速度差值则需要相同输入和环境下的设备对照测量。
+
+## GLM 实际从哪里调用 RMSNorm
+
+**GLM 用 mHC 组织多路残差：进入子层前，把多路残差混成一个子层输入，再走不带 residual 的 RMSNorm。** 多路残差的结构见[层与隐藏表示](layers-and-hidden.md)。这里沿用[官方双机部署前提](glm-5-3-flash-two-node.md#部署前提)：两台 A2、每台 8 卡，TP8/DP2/EP16，W8A8。W8A8 表示适用层的权重和激活按 8 位整数参与量化计算，归一化等运算仍有自己的精度。
+
+跟随[示例请求 R1](one-request.md#示例请求-r1-与官方双机部署)中的一个 token：R1 的 prompt 为 4 token，是便于教学的设定。A3 已为整批准备 token 编号、位置、块表、槽位和注意力元数据；进入 A4 后，注意力后端使用这些寻址信息，归一化则读取当前层的张量。元数据的构造过程留在[准备输入页](prepare-inputs-flow.md)，算子与后端接口的分层见 [ops-and-kernels](ops-and-kernels.md)。
+
+**每个解码层构造输入与注意力后两个 RMSNorm。** 两处都是先用 hc_pre 得到子层输入，再单参数调用归一化。AscendRMSNorm 是插件给 RMSNorm 提供的设备实现，forward_oot 是它在相应设备分派启用时运行的方法。无 residual 分支调用 torch_npu 的 RMSNorm 接口，有已加载的 bias 再加偏置。
+
+下面的图把实际路径与实现对照放在同一分叉处。上游 vLLM 的 CustomOp 负责按配置选择本地或设备实现，设备分派进入此图的 forward_oot 后，才检查 residual；右路还有扩展能否启用的分支。C++ 输出名 y、rstd 分别对应归一化结果与缩放统计量。
+
+```wiki-diagram
+file: op-to-ai-core
+```
+
+### 归一化之后，矩阵和向量执行段怎样接上
+
+**稠密层的量化线性层先量化当前输入，再做整数矩阵乘并恢复输出精度。** 激活动态量化会为输入行产生整数值和缩放系数；矩阵乘使用这些系数及权重系数，产出调用者需要的浮点结果。当前 W8A8 线性实现既有普通权重路径，也有按加载时设置拆成两次矩阵乘再拼接的路径，不能只数一次 Python 的线性层调用就断言只有一个 kernel。
+
+**MoE** 把一个前馈网络换成一组可选择的专家网络，每个 token 只交给选中的几个专家。走到这里，先把 token 派到选中专家的持有卡；每张卡再按专家把收到的行分组计算。**grouped matmul** 就是一次接口处理多组“输入行与对应专家权重”的矩阵乘。使用 MC2（把专家派发/收回交给融合通信算子的路径）且第一组权重没有额外缩放偏置与量化偏移时，专家计算有“矩阵乘与激活融合”及“先矩阵乘、再激活量化”的分支。
+
+本部署每卡有 18 个路由专家。这里 rows 表示派发后本卡待处理的行数，输入每行 4096 维；第一组矩阵乘得到两路合计 4096 维，**SwiGLU** 对其中一路做 SiLU（一种逐元素的平滑非线性激活），再用变换后的值作为门，与另一路对应相乘，成为 2048 维；第二组矩阵乘把它变回 4096 维。完整形状与专家分布统一见 [R1 的 MoE 站](one-request.md#42-层-moe每卡-18-个专家)。第一张图中的“矩阵执行段 → 向量执行段”对应这里的矩阵乘和门控激活。
+
+若派发已经产生量化值和动态缩放系数，专家计算直接使用，不重复量化；否则先量化。每个专家接多少行来自派发结果，不能把 R1 的 4 个 prompt token 当成每个专家都收到 4 行。之后的收回、合并与跨卡等待见[主线的 MoE 通信](one-request.md#moe-通信走-mc2-还是-allgather)。
+
+### 一行中间结果，写出再读回是多少
+
+**宽度和精度决定逻辑数据量，是否能省掉访问要看结果是否还被使用。** 取本部署隐藏宽度 4096，BF16 每个数 2 B。仅考虑一个 token 的一行中间结果，假设它原先要单独写出再读回：
+
+```calc
+title: 一行 BF16 中间结果的逻辑读写量
+一行大小 = 4096 × 2 B = 8192 B = 8 KiB
+写出再读回 = 8 KiB + 8 KiB = 16 KiB
+```
+
+16 KiB 的统计范围仅为这一份中间张量的逻辑读写；其他输入输出另计，总线访问还受缓存命中和访问合并影响。只有相应的写出与重读都被消除，这笔逻辑流量才会省下；残差融合扩展仍须写回更新后的残差。R1 整批的形状、字节和通信次数仍以 [A4 主线](one-request.md#第-4-站-逐层前向每张卡上的形状通信和字节)为唯一出处。
+
+## 常见误解
+
+- **运行在 NPU 就一定用 Cube？** RMSNorm 的主体是向量归约和缩放；矩阵乘与激活融合才涉及矩阵、向量两类执行段。判断分工要看运算和具体模板。
+- **模型有残差，就会调用残差融合归一化？** GLM mHC 在归一化之前已混合出子层输入，实际只传一个张量；有没有 residual 实参才是此处的分支条件。
+- **融合后所有中间结果都留在片上？** 需要交给后续层的残差仍会写回；局部空间不足时也需要分块搬运。
+- **tiling 是再给请求分配一次 KV 块？** 前者安排当前算子的工作，后者安排历史缓存位置；A3 的块表与槽位交给注意力使用。
+- **两个 RMSNorm 乘层数，就是前向的 kernel 总数？** 子层之外还有归一化和状态处理，一次算子调用也可能拆成多个 kernel；真实启动次数需要设备 profiling，即记录设备上实际执行事件的性能分析。
+
+## 对照源码
+
+### 怎么开
+
+本页没有一个“使用 AI Core”的总开关。vllm-ascend 注册 `RMSNorm → AscendRMSNorm`，上游 CustomOp 根据启用状态选择设备方法 `forward_oot` 或本地实现；本页流程图以进入设备方法为前提。固定 GLM 调用 `input_layernorm(layer_input)` 与 `post_attention_layernorm(layer_input)`，均不传 residual。
+
+固定执行提交 `db701c1f` 的 `enable_custom_op()` 是延迟初始化判断：`VLLM_BATCH_INVARIANT` 开启或设备为 A5 时返回 false，其余条件下尝试加载扩展。A2 不命中该设备禁用条件，最终仍取决于扩展能否加载；无 residual 的 RMSNorm 不需要进入这一残差融合选择。Python 的 CustomOp 设备分派与 C++ 扩展能否加载是两层不同判断。
+
+### 会报什么错
+
+固定提交扩展加载失败时会记录 `Failed to register custom ops, all custom ops will be disabled.`，随后这一带 residual 分支退回 `torch_npu.npu_add_rms_norm`，有 bias 再相加。这里的回退只说明 RMSNorm 此分支的行为，其他算子要逐个检查。扩展 Host 还检查输入输出形状，不合要求记录 `Input shape invalid.` 并返回失败；负 ε 也返回失败。
+
+### 开销和什么时候别开
+
+性能核对顺序是：先检查 y 与残差 s 的数值及误差，再确认精度、权重布局、实际分派和 tiling，最后记录 kernel 时间、内存访问与端到端时延。局部空间压力或受限形状可能抵消融合收益；小批次下，下发和同步也可能占明显比例。保留已有回退适合先排查兼容性，但 main 的分支已经变化，见下一节。
+
+C++ 适配层通过 `EXEC_NPU_CMD(aclnnAddRmsNormBias, ...)` 交给运行库。由此只能定位执行入口；没有设备轨迹时，不给出具体 kernel 数量、占用率或加速比例。
+
+### 版本差异
+
+下表逐项比较 AscendRMSNorm 的无 residual 路径、残差融合条件和回退；“尝试启用”都以实际环境加载成功为条件。
+
+| 项目 | v0.23 维护分支 `2c59ff10` | v0.26 `2ed6cbba` | main `baa023ad` |
+|---|---|---|---|
+| 无 residual | `npu_rms_norm`，已加载 bias 再相加 | 相同 | 相同 |
+| 有 residual | 扩展可用则融合，否则已有接口加可选 bias | 相同 | 先直接导入扩展，再调用融合接口；这里没有同样的 false 回退 |
+| 扩展默认判断 | 延迟尝试加载；批不变性或 A5 禁用 | 相同 | 批不变性或硬件配置不支持运行时扩展则禁用；该布尔值不构成上一行的回退 |
+| 无 residual 后的权重预取钩子 | 调用预取后处理方法，是否实际预取由方法决定 | 该处无此钩子 | 该处无此钩子 |
+| GLM 专用模型代码 | 此提交不含 GLM5 代码 | 此提交不含 GLM5 代码 | 位于 models/glm5next/ |
+
+固定双机执行使用的 `db701c1f` 是含 GLM 专用代码的独立 orphan commit，不能写成维护分支版本号。它在本表所述 RMSNorm 分派、扩展门控及预取钩子方面与 v0.23 列一致。控制侧另钉 `vllm@0fc695fc`；本页没有把 main 的直接扩展调用套进固定双机路径。
+
+### 源码位置
+
+来源序号对应页头 sources，角标在此集中标出代表入口；同组的补充源码共同覆盖该行结论。
+
+| 要核的结论 | 来源索引与位置 |
+|---|---|
+| 矩阵/向量分工、AIC/AIV 分离架构、典型内存路径 | 来源 14：[CANN 基本架构](https://www.hiascend.com/doc_center/source/zh/canncommercial/80RC2/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html)。[S14] |
+| RMSNorm 均方缩放语义 | 来源 15：[RMSNorm 原论文](https://arxiv.org/abs/1910.07467)；融合残差与 bias 是本页另核的实现组合。[S15] |
+| GLM 的两个单参数调用、注册与分派、残差/bias 分支 | 来源 1–5：glm5_next.py 2129–2169、2212–2235；utils.py 735–768；上游 custom_op.py 110–207；layernorm.py 63–88。[C5] |
+| Host 按精度、UB、核数与形状选择模板，key 分派 | 来源 7、8、12、13：op_host/add_rms_norm_bias_tiling.cpp 19–108、208–222、373–411；op_kernel/add_rms_norm_bias.cpp 23–71。[C7] |
+| 三份输出、搬入时残差写回、归约与缩放顺序 | 来源 9–11：add_rms_norm_bias.h 96–155、167–208；add_rms_norm_bias_torch_adpt.h 21–50。[C9] |
+| W8A8 线性层动态量化与矩阵乘分支 | 来源 16：quantization/methods/w8a8_dynamic.py 75–126。[C16] |
+| MC2 专家路径：已有量化结果复用、融合/拆分、第二组矩阵乘 | 来源 17：ops/fused_moe/moe_mlp.py 133–220。[C17] |
+| 三版本残差分支与预取钩子、扩展门控/失败处理 | 来源 18–23，分别对应三版 layernorm.py 与 utils.py；固定提交加载失败的完整逻辑在来源 6 的 utils.py 409–467。[C20] |
+
+**待核：** 底稿 02 §3.4 仍把“稠密 MLP 实际命中哪个 apply 分支、是否采用激活融合”列为待核。本轮核实了 W8A8 线性方法本身，未取得固定镜像的运行轨迹；MoE 在所列条件下的融合/拆分源码路径已核，但具体命中哪条、设备 kernel 数量、实际流量和加速幅度仍缺 NPU profiling。CANN 架构文档用于核对单元职责，不提供本部署的核数、缓冲容量或性能实测。

@@ -1,0 +1,85 @@
+layout: figure
+id: large-scale-ep
+caption: 同一批 4 个 token、同样的路由（每个 token 选 2 个专家）。上：EP4 放在一台机器里，每卡 2 个专家，7 份派发都在机内。下：同样 8 个专家摊到两台机器的 8 张卡上，每卡 1 个；其中 3 份派发要跨机器（红线）；热门专家 E3 独占卡 3，最忙的卡从 4 份降到 3 份，平均却从 2 份降到 1 份。小方块是每个专家这一步收到的工作，combine 沿同样的路送回。
+size: [900, 566]
+hardware:
+  - { kind: server, at: [16, 52], size: [868, 196], label: 机器 A }
+  - { kind: server, at: [16, 322], size: [430, 196], label: 机器 A }
+  - { kind: server, at: [454, 322], size: [430, 196], label: 机器 B }
+frames:
+  - { at: [28, 84], size: [200, 156], label: 卡 0 · 1 份 }
+  - { at: [236, 84], size: [200, 156], label: 卡 1 · 4 份 }
+  - { at: [466, 84], size: [200, 156], label: 卡 2 · 2 份 }
+  - { at: [674, 84], size: [200, 156], label: 卡 3 · 1 份 }
+  - { at: [28, 354], size: [96, 156], label: 卡 0 · 0 份 }
+  - { at: [132, 354], size: [96, 156], label: 卡 1 · 1 份 }
+  - { at: [236, 354], size: [96, 156], label: 卡 2 · 1 份 }
+  - { at: [340, 354], size: [96, 156], label: 卡 3 · 3 份 }
+  - { at: [466, 354], size: [96, 156], label: 卡 4 · 1 份 }
+  - { at: [570, 354], size: [96, 156], label: 卡 5 · 1 份 }
+  - { at: [674, 354], size: [96, 156], label: 卡 6 · 0 份 }
+  - { at: [778, 354], size: [96, 156], label: 卡 7 · 1 份 }
+rows:
+  - { at: [142, 96], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [250, 96], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [350, 96], count: 3, w: 14, h: 14, tone: weight }
+  - { at: [480, 96], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [580, 96], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [788, 96], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [146, 366], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [250, 366], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [354, 366], count: 3, w: 14, h: 14, tone: weight }
+  - { at: [480, 366], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [584, 366], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [792, 366], count: 1, w: 14, h: 14, tone: weight }
+  - { at: [24, 538], count: 1, w: 14, h: 14, tone: weight }
+items:
+  - { at: [36, 116], size: [84, 34], text: E0, style: plain }
+  - { at: [136, 116], size: [84, 34], text: E1, tone: weight }
+  - { at: [244, 116], size: [84, 34], text: E2, tone: weight }
+  - { at: [344, 116], size: [84, 34], text: E3, tone: weight }
+  - { at: [474, 116], size: [84, 34], text: E4, tone: weight }
+  - { at: [574, 116], size: [84, 34], text: E5, tone: weight }
+  - { at: [682, 116], size: [84, 34], text: E6, style: plain }
+  - { at: [782, 116], size: [84, 34], text: E7, tone: weight }
+  - { at: [68, 192], size: [120, 40], text: 我, sub: 选 E3、E4, tone: token }
+  - { at: [276, 192], size: [120, 40], text: 吃, sub: E2 在本卡、E1, tone: token }
+  - { at: [506, 192], size: [120, 40], text: 了, sub: 选 E3、E7, tone: token }
+  - { at: [714, 192], size: [120, 40], text: 苹果, sub: 选 E3、E5, tone: token }
+  - { at: [36, 386], size: [80, 34], text: E0, style: plain }
+  - { at: [140, 386], size: [80, 34], text: E1, tone: weight }
+  - { at: [244, 386], size: [80, 34], text: E2, tone: weight }
+  - { at: [348, 386], size: [80, 34], text: E3, tone: weight }
+  - { at: [474, 386], size: [80, 34], text: E4, tone: weight }
+  - { at: [578, 386], size: [80, 34], text: E5, tone: weight }
+  - { at: [682, 386], size: [80, 34], text: E6, style: plain }
+  - { at: [786, 386], size: [80, 34], text: E7, tone: weight }
+  - { at: [30, 462], size: [92, 40], text: 我, sub: E3、E4, tone: token }
+  - { at: [238, 462], size: [92, 40], text: 吃, sub: E2 本卡、E1, tone: token }
+  - { at: [468, 462], size: [92, 40], text: 了, sub: E3、E7, tone: token }
+  - { at: [676, 462], size: [92, 40], text: 苹果, sub: E3、E5, tone: token }
+links:
+  - { from: [336, 192], to: [178, 150], via: [[336, 156], [178, 156]], tone: comm }
+  - { from: [576, 192], to: [824, 150], via: [[576, 156], [824, 156]], tone: comm }
+  - { from: [118, 192], to: [372, 150], via: [[118, 163], [372, 163]], tone: comm }
+  - { from: [784, 192], to: [616, 150], via: [[784, 163], [616, 163]], tone: comm }
+  - { from: [138, 192], to: [516, 150], via: [[138, 170], [516, 170]], tone: comm }
+  - { from: [764, 192], to: [400, 150], via: [[764, 177], [400, 177]], tone: comm }
+  - { from: [556, 192], to: [386, 150], via: [[556, 184], [386, 184]], tone: comm }
+  - { from: [732, 462], to: [402, 420], via: [[732, 427], [402, 427]], tone: danger }
+  - { from: [524, 462], to: [388, 420], via: [[524, 434], [388, 434]], tone: danger }
+  - { from: [712, 462], to: [618, 420], via: [[712, 434], [618, 434]], tone: comm }
+  - { from: [66, 462], to: [374, 420], via: [[66, 441], [374, 441]], tone: comm }
+  - { from: [544, 462], to: [826, 420], via: [[544, 441], [826, 441]], tone: comm }
+  - { from: [284, 462], to: [180, 420], via: [[284, 448], [180, 448]], tone: comm }
+  - { from: [86, 462], to: [500, 420], via: [[86, 455], [500, 455]], tone: danger }
+  - { from: [300, 545], to: [340, 545], tone: comm }
+  - { from: [520, 545], to: [560, 545], tone: danger }
+texts:
+  - { at: [24, 20], text: EP4：一台机器，4 张卡，每卡 2 个专家, strong: true }
+  - { at: [876, 20], text: 最忙的卡 4 份 · 平均 2 份 · 跨机 0 份, anchor: end }
+  - { at: [24, 290], text: EP8：两台机器，8 张卡，每卡 1 个专家, strong: true }
+  - { at: [876, 290], text: 最忙的卡 3 份 · 平均 1 份 · 跨机 3 份, anchor: end, tone: danger }
+  - { at: [44, 550], text: 一份工作：一个 token 交给一个专家 }
+  - { at: [348, 550], text: dispatch · 同一台机器内 }
+  - { at: [568, 550], text: dispatch · 跨机器 }

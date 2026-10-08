@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 760" width="880" height="760" role="img" aria-label="请求先由前端选定一个 DP 执行组。每层 attention 和稠密 MLP 的部分结果在本机 TP 组内合并；MoE 的路由专家计算由两台机器共同参与。图中 TP 与 EP 段随模型层反复发生。">
+  <title>请求先由前端选定一个 DP 执行组。每层 attention 和稠密 MLP 的部分结果在本机 TP 组内合并；MoE 的路由专家计算由两台机器共同参与。图中 TP 与 EP 段随模型层反复发生。</title>
+  <defs><marker id="glm-two-node-request-route-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M440 68 L440 102" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M330 154 L215 174 L215 198" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M550 154 L665 174 L665 198" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M215 250 L215 312" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M665 250 L665 280 L310 280 L310 312" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M400 343 L480 343" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" stroke-dasharray="7 5"/>
+  <path d="M215 374 L215 428" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M665 374 L665 428" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M215 490 L215 516 L330 516 L330 544" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M665 490 L665 516 L550 516 L550 544" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <path d="M440 606 L440 666" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#glm-two-node-request-route-ah-ink)"/>
+  <rect x="220" y="16" width="440" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="47" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">node0 · API server 接收并分词</text>
+  <rect x="220" y="102" width="440" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="133" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">前端选组：请求指定了 DP rank？</text>
+  <rect x="30" y="198" width="370" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="229" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">是：交给指定组</text>
+  <rect x="480" y="198" width="370" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">否：挑负载分数小的组</text>
+  <text x="665" y="239" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">打分公式见多请求页</text>
+  <rect x="30" y="312" width="370" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">被选中的 DP 组</text>
+  <text x="215" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">EngineCore 调度 → 本机 worker 执行</text>
+  <rect x="480" y="312" width="370" height="62" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="339" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">另一 DP 组</text>
+  <text x="665" y="358" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">有请求则正常执行；空闲则 dummy batch</text>
+  <rect x="30" y="428" width="370" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="215" y="455" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">本机 TP8 · All-Reduce</text>
+  <text x="215" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">合并每层 attention 与稠密 MLP 的部分结果</text>
+  <rect x="480" y="428" width="370" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="665" y="455" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">对面机内 TP8 · All-Reduce</text>
+  <text x="665" y="474" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组各自在机内完成 TP 通信</text>
+  <rect x="220" y="544" width="440" height="62" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="571" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">两组在各个 MoE 层共同执行</text>
+  <text x="440" y="590" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">跨两台机器交换 token 与专家结果</text>
+  <rect x="220" y="666" width="440" height="58" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="700" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果经请求所属引擎回到 API server</text>
+  <text x="440" y="402" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">两组步调一致</text>
+</svg>

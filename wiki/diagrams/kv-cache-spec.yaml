@@ -1,0 +1,65 @@
+layout: figure
+id: kv-cache-spec
+caption: 每层先交一份规格。按位置增长的状态，一页等于「一个逻辑块的位置数 × 每个位置的字节」；每条请求只有一份的状态，一页就是整份状态。页再补到两档大小之一（斜线是补出来的空白），最后把页大小和管理方式都相同的层编成缓存组，同组共用一张块号清单。大页里的竖线是 kernel 块的边界。两档页各自按比例画，两档之间不按比例。
+size: [900, 430]
+dividers:
+  - { from: [24, 222], to: [876, 222], sides: [按位置增长, 每条请求一份] }
+items:
+  - { at: [24, 44], size: [236, 56], text: MLA latent, sub: 每个位置存一份压缩表示, tone: kv }
+  - { at: [24, 132], size: [236, 56], text: indexer K, sub: 几个位置压成一条再存, tone: kv }
+  - { at: [24, 256], size: [236, 56], text: indexer 尾状态, sub: 还没凑满一条的那几个位置, tone: kv }
+  - { at: [24, 336], size: [236, 56], text: KDA 状态, sub: 卷积历史 + 递推矩阵，和长度无关, tone: kv }
+  - { at: [690, 86], size: [186, 60], text: full 组, sub: MLA 与 indexer K 成对, tone: control, style: plain }
+  - { at: [690, 256], size: [186, 56], text: 尾状态组, sub: 一块只管几个位置, tone: control, style: plain }
+  - { at: [690, 336], size: [186, 56], text: KDA 组, sub: 按层交错拆成几组, tone: control, style: plain }
+bars:
+  - at: [300, 57]
+    h: 30
+    scale: 60
+    segments:
+      - { value: 1, tone: kv }
+      - { value: 1, tone: kv }
+      - { value: 1, tone: kv }
+      - { value: 1, tone: kv }
+      - { value: 1, tone: kv }
+  - at: [300, 145]
+    h: 30
+    scale: 8
+    segments:
+      - { value: 10, tone: kv }
+  - at: [300, 269]
+    h: 30
+    scale: 8
+    segments:
+      - { value: 1, tone: kv }
+      - { value: 9, tone: kv, style: hatch }
+  - at: [300, 349]
+    h: 30
+    scale: 60
+    segments:
+      - { value: 4.28, tone: kv, text: 整份状态 }
+      - { value: 0.72, tone: kv, style: hatch }
+links:
+  - { from: [260, 72], to: [300, 72] }
+  - { from: [260, 160], to: [300, 160] }
+  - { from: [260, 284], to: [300, 284] }
+  - { from: [260, 364], to: [300, 364] }
+  - { from: [600, 72], to: [690, 106], via: [[645, 72], [645, 106]], tone: kv }
+  - { from: [380, 160], to: [690, 126], via: [[645, 160], [645, 126]], tone: kv }
+  - { from: [380, 284], to: [690, 284], tone: kv }
+  - { from: [600, 364], to: [690, 364], tone: kv }
+texts:
+  - { at: [24, 26], text: ① 每层交一份规格, strong: true }
+  - { at: [300, 26], text: ② 换算成一页, strong: true }
+  - { at: [690, 26], text: ③ 编成缓存组, strong: true }
+  - { at: [300, 106], text: 大页 = 逻辑块位置数 × 每位置字节, size: 12.5 }
+  - { at: [300, 194], text: 小页 = 压缩后的条数 × 每条字节, size: 12.5 }
+  - { at: [300, 318], text: 整份补到小页大小, size: 12.5 }
+  - { at: [300, 408], text: 整份补到大页；逻辑块取到大页装得下它为止, size: 12.5 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L353-L384
+    symbols: [storage_block_size]
+  - source: vllm@0fc695fc:vllm/v1/kv_cache_interface.py#L607-L645
+    symbols: [page_size_padded]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L104-L228
+    symbols: [_align_glm5_cache_specs]

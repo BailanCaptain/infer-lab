@@ -1,0 +1,50 @@
+layout: figure
+id: quantization-intuition
+caption: 权重在离线阶段按输出通道压成 INT8，每个通道留下一个缩放系数；每次前向再把输入激活按行（一行是一个 token）压成 INT8，每行留下一个缩放系数。整数乘加只吃两份 INT8，结果先是整数；缩放系数不进乘加，最后一步才乘回来，输出恢复成 BF16。
+size: [880, 440]
+frames:
+  - { at: [104, 46], size: [430, 158], label: 离线做一次：权重压成 INT8 }
+  - { at: [104, 240], size: [430, 158], label: 每次前向：激活当场压成 INT8 }
+matrices:
+  - { at: [124, 62], w: 84, h: 72, rows: 6, cols: 6, tone: weight, style: faded }
+  - { at: [420, 62], w: 84, h: 72, rows: 6, cols: 6, tone: weight, style: solid }
+  - { at: [420, 144], w: 84, h: 10, rows: 1, cols: 6, tone: control, style: solid }
+  - { at: [124, 256], w: 84, h: 60, rows: 4, cols: 6, tone: token, style: faded }
+  - { at: [420, 256], w: 84, h: 60, rows: 4, cols: 6, tone: token, style: solid }
+  - { at: [510, 256], w: 10, h: 60, rows: 4, cols: 1, tone: control, style: solid }
+  - { at: [790, 190], w: 56, h: 56, rows: 4, cols: 4, tone: token, style: faded }
+items:
+  - { at: [240, 76], size: [156, 44], text: 每列除以自己的系数, sub: 舍入后截到 −128…127, tone: control, style: plain }
+  - { at: [240, 270], size: [156, 44], text: 每行除以自己的系数, sub: 系数按本次输入现算, tone: control, style: plain }
+  - { at: [560, 186], size: [104, 64], text: 整数乘加, sub: 结果先是整数, tone: ink, style: plain }
+  - { at: [676, 186], size: [96, 64], text: 乘回两个系数, tone: control, style: plain }
+badges:
+  - { at: [244, 80], n: 1 }
+  - { at: [244, 274], n: 2 }
+  - { at: [564, 190], n: 3 }
+  - { at: [680, 190], n: 4 }
+links:
+  - { from: [208, 98], to: [240, 98] }
+  - { from: [396, 98], to: [420, 98] }
+  - { from: [504, 118], to: [560, 205], via: [[532, 118], [532, 205]] }
+  - { from: [208, 286], to: [240, 286] }
+  - { from: [396, 286], to: [420, 286] }
+  - { from: [520, 286], to: [560, 231], via: [[540, 286], [540, 231]] }
+  - { from: [664, 218], to: [676, 218] }
+  - { from: [772, 218], to: [790, 218] }
+  - { from: [504, 149], to: [700, 186], via: [[548, 149], [548, 168], [700, 168]], tone: control, dashed: true }
+  - { from: [520, 316], to: [730, 250], via: [[548, 316], [548, 268], [730, 268]], tone: control, dashed: true }
+texts:
+  - { at: [166, 152], text: "BF16：每个数 2 字节", size: 13, anchor: middle }
+  - { at: [462, 172], text: "INT8：每个数 1 字节", size: 13, anchor: middle }
+  - { at: [462, 192], text: 细条是每个输出通道的系数, size: 13, note: true, anchor: middle }
+  - { at: [166, 340], text: "BF16：一行是一个 token", size: 13, anchor: middle }
+  - { at: [462, 340], text: "INT8：右边细条是每行的系数", size: 13, anchor: middle }
+  - { at: [462, 360], text: 同一份权重，每次配新的激活系数, size: 13, note: true, anchor: middle }
+  - { at: [724, 152], text: 缩放系数不进整数乘加, size: 13, note: true, anchor: middle }
+  - { at: [818, 264], text: 输出 BF16, size: 13, strong: true, anchor: middle }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L61-L73
+    symbols: [weight_scale, weight_offset]
+  - source: vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L75-L125
+    symbols: [npu_dynamic_quant, npu_quant_matmul]

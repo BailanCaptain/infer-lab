@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="数为示意。4 张卡各跑自己的请求（DP4，普通 TP 为 1，每张卡原本都存一整份非专家权重）。按模块分组以后：词表嵌入和稠密 MLP 每 2 张卡合存一份、各存一半；attention 不分组，每张卡仍是一整份；路由专家照常按 EP 分到 4 张卡；lm_head 4 张卡合存一份、各存四分之一。分了组的模块，组里的卡服务的是不同请求，所以进这一层先收集组内各卡的输入，算完再把结果送回各自的卡。">
+  <title>数为示意。4 张卡各跑自己的请求（DP4，普通 TP 为 1，每张卡原本都存一整份非专家权重）。按模块分组以后：词表嵌入和稠密 MLP 每 2 张卡合存一份、各存一半；attention 不分组，每张卡仍是一整份；路由专家照常按 EP 分到 4 张卡；lm_head 4 张卡合存一份、各存四分之一。分了组的模块，组里的卡服务的是不同请求，所以进这一层先收集组内各卡的输入，算完再把结果送回各自的卡。</title>
+  <defs></defs>
+  <rect x="175" y="110" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="247.5" y="136.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表前一半</text>
+  <rect x="320" y="110" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="392.5" y="136.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表后一半</text>
+  <path d="M320 110v44" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="175" y="110" width="290" height="44" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="475" y="110" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="547.5" y="136.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表前一半</text>
+  <rect x="620" y="110" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="692.5" y="136.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表后一半</text>
+  <path d="M620 110v44" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="475" y="110" width="290" height="44" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="175" y="250" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="247.5" y="276.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP 1/2</text>
+  <rect x="320" y="250" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="392.5" y="276.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP 2/2</text>
+  <path d="M320 250v44" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="175" y="250" width="290" height="44" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="475" y="250" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="547.5" y="276.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP 1/2</text>
+  <rect x="620" y="250" width="145" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="692.5" y="276.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">MLP 2/2</text>
+  <path d="M620 250v44" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="475" y="250" width="290" height="44" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="175" y="390" width="147.5" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="248.8" y="416.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表 1/4</text>
+  <rect x="322.5" y="390" width="147.5" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="396.3" y="416.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表 2/4</text>
+  <rect x="470" y="390" width="147.5" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="543.8" y="416.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表 3/4</text>
+  <rect x="617.5" y="390" width="147.5" height="44" fill="var(--color-weight, #c78300)"/>
+  <text x="691.3" y="416.7" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">词表 4/4</text>
+  <path d="M322.5 390v44M470 390v44M617.5 390v44" stroke="var(--color-ink, #17211f)" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+  <rect x="175" y="390" width="590" height="44" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.3"/>
+  <rect x="175" y="44" width="140" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="245" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 0 · 请求 A</text>
+  <rect x="325" y="44" width="140" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="395" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 1 · 请求 B</text>
+  <rect x="475" y="44" width="140" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="545" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 2 · 请求 C</text>
+  <rect x="625" y="44" width="140" height="40" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="695" y="69" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">卡 3 · 请求 D</text>
+  <rect x="175" y="180" width="140" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="245" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整份</text>
+  <rect x="325" y="180" width="140" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="395" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整份</text>
+  <rect x="475" y="180" width="140" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="545" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整份</text>
+  <rect x="625" y="180" width="140" height="44" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="695" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">整份</text>
+  <rect x="175" y="320" width="140" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="245" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 0–7</text>
+  <rect x="325" y="320" width="140" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="395" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 8–15</text>
+  <rect x="475" y="320" width="140" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="545" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 16–23</text>
+  <rect x="625" y="320" width="140" height="44" rx="8" fill="var(--color-weight-soft, #fff4cf)" stroke="var(--color-weight, #c78300)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="695" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#936300" text-anchor="middle">专家 24–31</text>
+  <rect x="782" y="112" width="108" height="40" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="836" y="137" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收集 → 送回</text>
+  <rect x="782" y="182" width="108" height="40" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="836" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">不通信</text>
+  <rect x="782" y="252" width="108" height="40" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="836" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收集 → 送回</text>
+  <rect x="782" y="318" width="108" height="48" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="836" y="338" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">dispatch</text>
+  <text x="836" y="357" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">combine</text>
+  <rect x="782" y="392" width="108" height="40" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="836" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收集 → 送回</text>
+  <text x="450" y="22" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">同一个模型、4 张卡：每个模块各选自己的分组（示意）</text>
+  <text x="836" y="70" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">进出这一层</text>
+  <text x="20" y="137" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">词表嵌入 · 2 卡一组</text>
+  <text x="20" y="207" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">attention · 不分组</text>
+  <text x="20" y="277" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">稠密 MLP · 2 卡一组</text>
+  <text x="20" y="347" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">路由专家 · EP</text>
+  <text x="20" y="417" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="700" fill="var(--color-ink, #17211f)">lm_head · 4 卡一组</text>
+  <text x="450" y="478" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">普通 TP 只有一种切法：每一行都按同一组卡、同样份数切</text>
+</svg>

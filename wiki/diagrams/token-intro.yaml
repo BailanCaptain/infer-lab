@@ -1,0 +1,51 @@
+layout: figure
+id: token-intro
+caption: 一句话变成 token（切法和编号都是示意）：分词器把句子切成 4 块，每块到词表里查出自己的编号；4 个 token 按先后排在位置 0–3。编号回答「是词表里的哪一项」，位置回答「排第几」，两者互不相干。
+size: [900, 312]
+items:
+  - { at: [250, 44], size: [300, 46], text: 推理引擎怎么工作, tone: token, style: plain }
+  - { at: [214, 140], size: [84, 56], text: 推理, sub: "9123", tone: token, style: solid }
+  - { at: [310, 140], size: [84, 56], text: 引擎, sub: "40517", tone: token, style: solid }
+  - { at: [406, 140], size: [84, 56], text: 怎么, sub: "2256", tone: token, style: solid }
+  - { at: [502, 140], size: [84, 56], text: 工作, sub: "1180", tone: token, style: solid }
+fans:
+  - { from: [400, 90], to: [[256, 140], [352, 140], [448, 140], [544, 140]], tone: token }
+grids:
+  - at: [724, 50]
+    rows: 9
+    cols: 2
+    cell: [68, 24]
+    tone: token
+    style: faded
+    colLabels: ['编号', '单元']
+    label: 词表（节选，示意）
+    cells:
+      - { at: [0, 0], text: '⋯' }
+      - { at: [0, 1], text: '⋯' }
+      - { at: [1, 0], text: '1180' }
+      - { at: [1, 1], text: '工作' }
+      - { at: [2, 0], text: '⋯' }
+      - { at: [2, 1], text: '⋯' }
+      - { at: [3, 0], text: '2256' }
+      - { at: [3, 1], text: '怎么' }
+      - { at: [4, 0], text: '⋯' }
+      - { at: [4, 1], text: '⋯' }
+      - { at: [5, 0], text: '9123' }
+      - { at: [5, 1], text: '推理' }
+      - { at: [6, 0], text: '⋯' }
+      - { at: [6, 1], text: '⋯' }
+      - { at: [7, 0], text: '40517' }
+      - { at: [7, 1], text: '引擎' }
+      - { at: [8, 0], text: '⋯' }
+      - { at: [8, 1], text: '⋯' }
+links:
+  - { from: [716, 171], to: [594, 171], tone: token, dashed: true }
+texts:
+  - { at: [40, 72], text: ① 一句话, strong: true }
+  - { at: [40, 173], text: ② 切块，查编号, strong: true }
+  - { at: [40, 240], text: ③ 按先后排位置, strong: true }
+  - { at: [655, 162], text: 查表, size: 13, anchor: middle }
+  - { at: [256, 240], text: 位置 0, anchor: middle }
+  - { at: [352, 240], text: 位置 1, anchor: middle }
+  - { at: [448, 240], text: 位置 2, anchor: middle }
+  - { at: [544, 240], text: 位置 3, anchor: middle }

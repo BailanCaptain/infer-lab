@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 760" width="840" height="760" role="img" aria-label="默认先来先服务策略下，running 请求续块失败才进入这条循环。先回收队尾请求的块，再重试当前请求；若回收的就是当前请求，本轮停止遍历 running。">
+  <title>默认先来先服务策略下，running 请求续块失败才进入这条循环。先回收队尾请求的块，再重试当前请求；若回收的就是当前请求，本轮停止遍历 running。</title>
+  <defs><marker id="concurrent-request-preempt-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker></defs>
+  <path d="M420 84 L420 136" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <path d="M310 192 L195 224 L195 264" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <path d="M530 192 L633 224 L633 264" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <path d="M633 330 L633 388" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <path d="M633 464 L633 526" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <path d="M633 582 L633 664" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <path d="M452 554 L394 554 L394 622 L10 622 L10 53 L210 53" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#concurrent-request-preempt-ah-ink)"/>
+  <rect x="210" y="22" width="420" height="62" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="49" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">为 running 当前请求申请块号</text>
+  <text x="420" y="68" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">预留本步计算和后续候选的位置</text>
+  <rect x="210" y="136" width="420" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="420" y="169" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">是否拿到所需的块？</text>
+  <rect x="26" y="264" width="338" height="66" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="195" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">成功：记录本步数量并扣预算</text>
+  <text x="195" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">→ 回到调度图，处理下一条 running</text>
+  <rect x="452" y="264" width="362" height="66" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="633" y="293" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">失败：从 running 队尾取一条</text>
+  <text x="633" y="312" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">让这条请求让出缓存位置</text>
+  <rect x="452" y="388" width="362" height="76" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="633" y="422" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收回 KV 块、清零已计算位置</text>
+  <text x="633" y="441" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">清空候选，放回 waiting 队首</text>
+  <rect x="452" y="526" width="362" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="633" y="559" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">被抢占的是当前请求？</text>
+  <rect x="452" y="664" width="362" height="58" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="633" y="689" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">是：结束 running 遍历</text>
+  <text x="633" y="708" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">本轮已有抢占，跳过 waiting 接纳</text>
+  <text x="211" y="247" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="651" y="247" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="422" y="540" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">否</text>
+  <text x="32" y="608" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">重试当前请求；可连续回收多条直到够用</text>
+  <text x="651" y="628" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+</svg>

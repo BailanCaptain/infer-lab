@@ -1,0 +1,678 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "threshold": 3
+  },
+  "entries": [
+    {
+      "key": "62b07dcdb2cb5c7ffd6667be0d629a9a5a099e65e2eee17a4616e984c95b36ba",
+      "occurrences": [
+        {
+          "eventId": "e69a50c7-a8cf-4bbd-b4ed-566fc65d342e",
+          "question": "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。",
+          "contextQuestions": [],
+          "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+          "candidates": [
+            {
+              "id": "profiling-chunk-config",
+              "score": 836,
+              "how": "fuzzy"
+            },
+            {
+              "id": "kv-cache-layerwise-offload",
+              "score": 13,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-matmul-allreduce",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "fuse-allreduce-rms",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-async-exponential",
+              "score": 10,
+              "how": "keyword"
+            },
+            {
+              "id": "kv-cache-cpu-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-memory-profiling",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-sparse-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-spec",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-pool",
+              "score": 6.5,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：profiling-chunk-config 页及其源码摘录只覆盖 main 2026-08-29 快照中 smooth_factor 的默认值 1.0 与 (0,1] 校验；页面明确把 smooth_factor 语义、二次模型形式列为材料缺口，没有平滑公式和运行时调用位置；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-16T16:44:06.775Z"
+        },
+        {
+          "eventId": "af1cd94b-83b9-4c03-9f08-b312a183957f",
+          "question": "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。",
+          "contextQuestions": [],
+          "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+          "candidates": [
+            {
+              "id": "profiling-chunk-config",
+              "score": 836,
+              "how": "fuzzy"
+            },
+            {
+              "id": "kv-cache-layerwise-offload",
+              "score": 13,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-matmul-allreduce",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "fuse-allreduce-rms",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-async-exponential",
+              "score": 10,
+              "how": "keyword"
+            },
+            {
+              "id": "kv-cache-cpu-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-memory-profiling",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-sparse-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-spec",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-pool",
+              "score": 6.5,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：profiling-chunk-config 页及其源码摘录只有 main 快照中 smooth_factor 默认 1.0 和 (0,1] 校验；页面明确说明缺少语义和二次模型形式，没有平滑公式或实际调用位置。；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-16T16:44:28.270Z"
+        },
+        {
+          "eventId": "36714e68-695d-4525-bde7-8d3d84ae27ca",
+          "question": "只依据当前本地 Wiki，不联网：在 main 的 2026-08-29 源码快照中，profiling_chunk_config 的 smooth_factor 如何参与 chunk 大小平滑？请给出公式、默认值和实际调用位置。",
+          "contextQuestions": [],
+          "revision": "696a24cb311bddd99c5bf0c44f113b6231a4e7826e3bbb43e82740730690f623",
+          "candidates": [
+            {
+              "id": "profiling-chunk-config",
+              "score": 836,
+              "how": "fuzzy"
+            },
+            {
+              "id": "kv-cache-layerwise-offload",
+              "score": 13,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-matmul-allreduce",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "fuse-allreduce-rms",
+              "score": 12,
+              "how": "keyword"
+            },
+            {
+              "id": "enable-async-exponential",
+              "score": 10,
+              "how": "keyword"
+            },
+            {
+              "id": "kv-cache-cpu-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-memory-profiling",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-sparse-offload",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-cache-spec",
+              "score": 6.5,
+              "how": "related"
+            },
+            {
+              "id": "kv-pool",
+              "score": 6.5,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：profiling-chunk-config 页及其引用摘录只覆盖 main 快照中 smooth_factor 的默认值 1.0 和 (0,1] 校验；平滑公式与实际调用位置未收录，页面自述为材料缺口；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-16T16:44:49.261Z"
+        }
+      ]
+    },
+    {
+      "key": "a5164fe10fa9184412f89f7dab6fda13de17c3bd5600e773b996e8586ff7e8a2",
+      "occurrences": [
+        {
+          "eventId": "82a99d44-0f2b-4fd9-bc97-5d13227689e1",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [
+            "Block Table 里的块是什么时候分配、什么时候回收的？",
+            "Block Table 里的块是什么时候分配、什么时候回收的？"
+          ],
+          "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：全库检索 HCCL_BUFFSIZE / hccl_buffer_size / MC2 通信组，仅 enable-matmul-allreduce 页出现一次 HCCL_BUFFSIZE=500 且自述抄自 CI 用例；缺少缓冲大小定义点、各通信组默认值与自算逻辑、MC2 组不可单独配置的依据；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:06:18.207Z"
+        },
+        {
+          "eventId": "9fc4dc5a-dee8-4413-a860-36014c828871",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [
+            "Block Table 里的块是什么时候分配、什么时候回收的？",
+            "Block Table 里的块是什么时候分配、什么时候回收的？",
+            "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？"
+          ],
+          "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：复检全库 HCCL_BUFFSIZE / hccl_buffer_size / 通信域 / 通信组 / mc2_group，仅命中 enable-matmul-allreduce（HCCL_BUFFSIZE=500，自述抄自 CI 用例）、enable-sleep-mode-extra-cleanup（销毁重建通信域）、layer-sharding（仅提及通信组）；缺少缓冲区定尺来源、各通信组默认值与自算逻辑、MC2 组不可单独配置的依据；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:07:18.414Z"
+        },
+        {
+          "eventId": "8e72f300-341f-4059-b7e9-6841e76eb1c0",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [],
+          "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：知识库无 HCCL 缓冲区页面，index.md 仅在 enable_matmul_allreduce 顺带提及 HCCL_BUFFSIZE=500；答案来自本轮联网读取的上游 utils.py / patch_distributed.py，属库外新结论；仍需独立分类核对。"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebSearch",
+              "target": "vllm-ascend hccl_buffer_size HCCL_BUFFSIZE mc2 communication group"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebFetch",
+              "target": "https://raw.githubusercontent.com/vllm-project/vllm-ascend/main/vllm_ascend/distributed/parallel_state.py"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebFetch",
+              "target": "https://raw.githubusercontent.com/vllm-project/vllm-ascend/2c59ff10/vllm_ascend/patch/worker/patch_distributed.py"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebFetch",
+              "target": "https://raw.githubusercontent.com/vllm-project/vllm-ascend/2c59ff10/vllm_ascend/utils.py"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebFetch",
+              "target": "https://raw.githubusercontent.com/vllm-project/vllm-ascend/releases/v0.23.0/vllm_ascend/utils.py"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:20:27.614Z"
+        },
+        {
+          "eventId": "cebadecc-682d-4a3a-b935-aafbbe22e9a9",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [],
+          "revision": "f6927a8fd9ea0016406d3b0fd52c684a9fb135812dfba11fc3032188e8eb4bad",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：全库无 HCCL_BUFFSIZE/hccl_buffer_size 的机制页；仅 enable-matmul-allreduce 有一处门禁经验值、expert-parallel 有易混的 MC2 token 容量公式。各通信组缓冲区如何取值、MC2 组为何不可单配均无本库证据，补充部分来自本轮联网的官方教程与 PR，未经源码核对。；仍需独立分类核对。"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebSearch",
+              "target": "vllm-ascend HCCL_BUFFSIZE hccl_buffer_size MC2 通信组"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:24:12.429Z"
+        },
+        {
+          "eventId": "c1841d36-5427-40c4-8720-6cb08a1f5643",
+          "question": "vllm-ascend 里 HCCL 通信缓冲区的大小（HCCL_BUFFSIZE / hccl_buffer_size）是怎么定的？哪些通信组用默认值、哪些自己算，MC2 通信组为什么不能单独配？",
+          "contextQuestions": [],
+          "revision": "08dc0e63651e46a5e7a127289ac06292477ddb205fe8d47c8d6d3d90231c57b0",
+          "candidates": [
+            {
+              "id": "vllm-ascend-overview",
+              "score": 854,
+              "how": "fuzzy"
+            },
+            {
+              "id": "vllm-ascend-repo-map",
+              "score": 847,
+              "how": "fuzzy"
+            },
+            {
+              "id": "expert-parallel",
+              "score": 44,
+              "how": "keyword"
+            },
+            {
+              "id": "combine-quant-mode-2a3f7cd47997",
+              "score": 40,
+              "how": "keyword"
+            },
+            {
+              "id": "tensor-parallel",
+              "score": 37,
+              "how": "keyword"
+            },
+            {
+              "id": "one-request",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "platform-plugin-registration",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "who-owns-what",
+              "score": 427,
+              "how": "related"
+            },
+            {
+              "id": "reading-vllm-ascend",
+              "score": 423.5,
+              "how": "related"
+            },
+            {
+              "id": "ai-qos",
+              "score": 22,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：库内仅 enable-matmul-allreduce 顺带提到 HCCL_BUFFSIZE=500 的门禁设置，无任何页面讲通信组缓冲区分配策略、自算公式或 MC2 不可单独配置的原因；官方文档只给出变量定义，关键结论来自未核对的上游 PR；仍需独立分类核对。"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebSearch",
+              "target": "vllm-ascend HCCL_BUFFSIZE hccl_buffer_size mc2 communication group"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebSearch",
+              "target": "docs.vllm.ai ascend environment variables HCCL_BUFFSIZE default buffer size communication group"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebFetch",
+              "target": "https://github.com/vllm-project/vllm-ascend/pull/15640"
+            },
+            {
+              "kind": "web-attempt",
+              "reason": "模型发起联网工具调用；未核实访问成功、来源性质或知识库是否缺失。",
+              "tool": "WebFetch",
+              "target": "https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/optimization_and_tuning.html"
+            }
+          ],
+          "recordedAt": "2026-09-23T03:27:55.373Z"
+        }
+      ]
+    },
+    {
+      "key": "e134756a614cc32da6dfcbc33de5155eb8ecbef774bb1dac4fa661415edec558",
+      "occurrences": [
+        {
+          "eventId": "1894ef1f-73cf-4e2f-aed8-4b8dc8f737fa",
+          "question": "知识库里有没有固定 GLM 双机 Sleep Mode 的真实释放显存和恢复延迟数据？如果没有请直说，不要把示意数当实测；两句话回答。",
+          "contextQuestions": [
+            "Sleep Mode 的 level 1 和 level 2 有什么区别？请用三句话回答，并引用知识库页面。",
+            "那 level 2 唤醒后能直接生成吗？两句话回答并引用知识库。"
+          ],
+          "revision": "7810b0de61e5c30946d211e9cdbc7bc66e776a72ee815dec15d52e615aa15f59",
+          "candidates": [
+            {
+              "id": "sleep-mode",
+              "score": 22.891,
+              "how": "fuzzy"
+            },
+            {
+              "id": "enable-sleep-mode-extra-cleanup",
+              "score": 16.604,
+              "how": "keyword"
+            },
+            {
+              "id": "vllm-ascend-for-rl",
+              "score": 14.766,
+              "how": "keyword"
+            },
+            {
+              "id": "rfork-troubleshooting",
+              "score": 9.647,
+              "how": "keyword"
+            },
+            {
+              "id": "recompute-cpu-offload",
+              "score": 9.358,
+              "how": "keyword"
+            },
+            {
+              "id": "glm-5-3-flash-two-node",
+              "score": 11.4455,
+              "how": "related"
+            },
+            {
+              "id": "npu-worker-lifecycle",
+              "score": 11.4455,
+              "how": "related"
+            },
+            {
+              "id": "request-call-chain",
+              "score": 11.4455,
+              "how": "related"
+            },
+            {
+              "id": "ascend-config-system",
+              "score": 8.302,
+              "how": "related"
+            },
+            {
+              "id": "ascend-patch-system",
+              "score": 7.383,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：本库明确确认固定 GLM 双机未启用 Sleep Mode，缺少该配置释放显存和恢复延迟的实测数据；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-10-05T06:57:09.917Z"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+layout: figure
+id: tensor-parallel-intuition
+caption: N 张卡合算一对矩阵：每卡用同一份 X 乘第一个矩阵的列片，得到数值完整的几列；逐元素激活后，直接乘第二个矩阵的对应行片，产生完整形状的部分和。最后只做一次 All-Reduce，每卡得到完整 Y。卡 1 与卡 N−1 之间省略其余卡。
+size: [880, 360]
+frames:
+  - { at: [130, 55], size: [389, 259], label: 列切 → 本地激活 → 行切：中间不用通信 }
+items:
+  - { at: [16, 155], size: [82, 60], text: 同一份 X, tone: token }
+  - { at: [269, 79], size: [112, 42], text: 逐元素激活, tone: token }
+  - { at: [269, 164], size: [112, 42], text: 逐元素激活, tone: token }
+  - { at: [269, 259], size: [112, 42], text: 逐元素激活, tone: token }
+  - { at: [659, 156], size: [117, 58], text: All-Reduce, sub: 一次对应求和, tone: comm }
+  - { at: [803, 155], size: [62, 60], text: 完整 Y, tone: token }
+matrices:
+  - { at: [160, 75], w: 18, h: 50, rows: 1, cols: 1, tone: weight }
+  - { at: [160, 160], w: 18, h: 50, rows: 1, cols: 1, tone: weight }
+  - { at: [160, 255], w: 18, h: 50, rows: 1, cols: 1, tone: weight }
+  - { at: [224, 79], w: 18, h: 42, rows: 1, cols: 1, tone: token }
+  - { at: [224, 164], w: 18, h: 42, rows: 1, cols: 1, tone: token }
+  - { at: [224, 259], w: 18, h: 42, rows: 1, cols: 1, tone: token }
+  - { at: [427, 91], w: 66, h: 18, rows: 1, cols: 1, tone: weight }
+  - { at: [427, 176], w: 66, h: 18, rows: 1, cols: 1, tone: weight }
+  - { at: [427, 271], w: 66, h: 18, rows: 1, cols: 1, tone: weight }
+  - { at: [550, 79], w: 78, h: 42, rows: 1, cols: 1, tone: token, style: faded }
+  - { at: [550, 164], w: 78, h: 42, rows: 1, cols: 1, tone: token, style: faded }
+  - { at: [550, 259], w: 78, h: 42, rows: 1, cols: 1, tone: token, style: faded }
+links:
+  - { from: [98, 185], to: [160, 100], via: [[114, 185], [114, 100]] }
+  - { from: [98, 185], to: [160, 185] }
+  - { from: [98, 185], to: [160, 280], via: [[114, 185], [114, 280]] }
+  - { from: [178, 100], to: [224, 100] }
+  - { from: [178, 185], to: [224, 185] }
+  - { from: [178, 280], to: [224, 280] }
+  - { from: [242, 100], to: [269, 100] }
+  - { from: [242, 185], to: [269, 185] }
+  - { from: [242, 280], to: [269, 280] }
+  - { from: [381, 100], to: [427, 100] }
+  - { from: [381, 185], to: [427, 185] }
+  - { from: [381, 280], to: [427, 280] }
+  - { from: [493, 100], to: [550, 100] }
+  - { from: [493, 185], to: [550, 185] }
+  - { from: [493, 280], to: [550, 280] }
+  - { from: [628, 100], to: [659, 172], via: [[642, 100], [642, 172]], tone: comm }
+  - { from: [628, 185], to: [659, 185], tone: comm }
+  - { from: [628, 280], to: [659, 198], via: [[642, 280], [642, 198]], tone: comm }
+  - { from: [776, 185], to: [803, 185], tone: comm }
+texts:
+  - { at: [142, 15], text: 第一个矩阵：列切, size: 13, strong: true }
+  - { at: [397, 15], text: 第二个矩阵：行切, size: 13, strong: true }
+  - { at: [554, 15], text: 形状完整, size: 13, strong: true }
+  - { at: [554, 33], text: 数值是部分和, size: 13 }
+  - { at: [801, 136], text: 每张卡, size: 13, strong: true }
+  - { at: [160, 69], text: 卡 0, size: 12 }
+  - { at: [160, 154], text: 卡 1, size: 12 }
+  - { at: [314, 242], text: ⋮ }
+  - { at: [160, 249], text: 卡 N−1, size: 12 }
+  - { at: [141, 337], text: 竖条：输出列片, size: 13 }
+  - { at: [276, 337], text: 数值完整、形状不全, size: 13, strong: true }
+  - { at: [427, 337], text: 横条：输入行片, size: 13 }
+  - { at: [668, 337], text: 求和后形状与数值都完整, size: 13 }
+pins:
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L407-L454
+    symbols: [ColumnParallelLinear]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1389-L1444
+    symbols: [RowParallelLinear]
+  - source: vllm@0fc695fc:vllm/model_executor/layers/linear.py#L1537-L1558
+    symbols: [tensor_model_parallel_all_reduce]

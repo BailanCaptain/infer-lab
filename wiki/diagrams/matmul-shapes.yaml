@@ -1,0 +1,72 @@
+layout: figure
+id: matmul-shapes
+caption: 三个 token 一起算（数为示意）：每一行输入都照同样的办法与权重的每一列配一次，三行共用同一片权重；深色一列是三行各自的第 1 个输出数
+size: [880, 340]
+grids:
+  - at: [120, 60]
+    rows: 3
+    cols: 3
+    cell: [46, 34]
+    tone: token
+    style: solid
+    rowLabels: ['token 1', 'token 2', 'token 3']
+    label: X：3 个 token 各一行
+    cells:
+      - { at: [0, 0], text: '2' }
+      - { at: [0, 1], text: '1' }
+      - { at: [0, 2], text: '3' }
+      - { at: [1, 0], text: '1' }
+      - { at: [1, 1], text: '0' }
+      - { at: [1, 2], text: '2' }
+      - { at: [2, 0], text: '0' }
+      - { at: [2, 1], text: '2' }
+      - { at: [2, 2], text: '1' }
+  - at: [318, 60]
+    rows: 3
+    cols: 4
+    cell: [46, 34]
+    tone: weight
+    style: faded
+    label: W：3 行 4 列
+    cells:
+      - { at: [0, 0], text: '1', style: solid }
+      - { at: [0, 1], text: '0' }
+      - { at: [0, 2], text: '2' }
+      - { at: [0, 3], text: '1' }
+      - { at: [1, 0], text: '0', style: solid }
+      - { at: [1, 1], text: '3' }
+      - { at: [1, 2], text: '1' }
+      - { at: [1, 3], text: '2' }
+      - { at: [2, 0], text: '2', style: solid }
+      - { at: [2, 1], text: '1' }
+      - { at: [2, 2], text: '0' }
+      - { at: [2, 3], text: '1' }
+  - at: [562, 60]
+    rows: 3
+    cols: 4
+    cell: [46, 34]
+    tone: token
+    style: faded
+    label: Y：每个 token 各得一行输出
+    cells:
+      - { at: [0, 0], text: '8', style: solid }
+      - { at: [0, 1], text: '6' }
+      - { at: [0, 2], text: '5' }
+      - { at: [0, 3], text: '7' }
+      - { at: [1, 0], text: '5', style: solid }
+      - { at: [1, 1], text: '2' }
+      - { at: [1, 2], text: '2' }
+      - { at: [1, 3], text: '3' }
+      - { at: [2, 0], text: '2', style: solid }
+      - { at: [2, 1], text: '7' }
+      - { at: [2, 2], text: '2' }
+      - { at: [2, 3], text: '5' }
+texts:
+  - { at: [286, 110], text: '×', size: 20, anchor: middle }
+  - { at: [530, 110], text: '=', size: 20, anchor: middle }
+  - { at: [40, 34], text: 每一行输入各照上一张图算一遍，合起来就是一次矩阵乘, strong: true }
+  - { at: [120, 232], text: 'Y 的第 1 列：各行都配 W 第 1 列', size: 13, strong: true }
+  - { at: [120, 260], text: '第 1 行：2×1 + 1×0 + 3×2 = 8', size: 13 }
+  - { at: [120, 286], text: '第 2 行：1×1 + 0×0 + 2×2 = 5', size: 13 }
+  - { at: [120, 312], text: '第 3 行：0×1 + 2×0 + 1×2 = 2', size: 13 }
+  - { at: [470, 286], text: 三行换的只是 X 那边的数，权重是同一片, size: 12, note: true }

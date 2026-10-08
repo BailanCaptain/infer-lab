@@ -1,0 +1,44 @@
+layout: figure
+id: ucm-flow
+caption: 一条请求经过 UCM 的先后。上半在调度器里：先数本机显存命中了几个位置，再问 UCM 还能多供几个；UCM 答不上来就下一步再问，要求异步加载就先挂起。下半在每张卡的 worker 里：前向开始前发起加载，每层 attention 前等这一层到齐，算完这一层交出去存，整趟前向结束前等保存完成。查找、淘汰、持久化都在右边的外部包里，vllm-ascend 只负责把这些调用转过去。
+size: [900, 620]
+frames:
+  - { label: 排队时 · 调度器, at: [20, 40], size: [600, 270] }
+  - { label: 执行时 · 每张卡的 worker, at: [20, 342], size: [600, 258] }
+  - { label: UCM 外部包, at: [650, 40], size: [230, 560] }
+items:
+  - { at: [40, 72], size: [260, 56], text: 数本地命中, sub: prefix caching 查本机显存, tone: kv }
+  - { at: [40, 160], size: [260, 56], text: 问 UCM 还能再供几个, sub: 只问还没开始算的请求, tone: control }
+  - { at: [340, 160], size: [260, 56], text: UCM 答「还没定」, sub: 这一步跳过，下一步再问, tone: control, style: faded }
+  - { at: [40, 240], size: [260, 56], text: 借块，回告块号, sub: 已算 = 本地 + UCM 供的, tone: kv }
+  - { at: [340, 240], size: [260, 56], text: UCM 要异步加载, sub: 请求先挂起，数据到齐再排, tone: control, style: faded }
+  - { at: [40, 362], size: [260, 56], text: 前向开始前：发起加载, tone: kv }
+  - { at: [40, 446], size: [260, 56], text: 每层 attention 前, sub: 等这一层到齐, tone: kv }
+  - { at: [340, 446], size: [260, 56], text: 这一层算完, sub: 交出去存，接着算下一层, tone: kv }
+  - { at: [40, 530], size: [260, 56], text: 前向结束前：等保存完, sub: 之后这些块才能被覆盖, tone: control }
+hardware:
+  - { kind: memory, at: [670, 200], size: [190, 60], label: 本机内存（快取） }
+  - { kind: memory, at: [670, 400], size: [190, 60], label: 共享存储 / SSD }
+links:
+  - { from: [170, 128], to: [170, 158] }
+  - { from: [300, 188], to: [338, 188], tone: control }
+  - { from: [170, 216], to: [170, 238] }
+  - { from: [300, 268], to: [338, 268], tone: control }
+  - { from: [252, 296], to: [252, 360] }
+  - { from: [170, 418], to: [170, 444] }
+  - { from: [300, 474], to: [338, 474] }
+  - { from: [170, 502], to: [170, 528] }
+  - { from: [300, 176], to: [668, 110], via: [[320, 176], [320, 110]], tone: control }
+  - { from: [668, 216], to: [302, 390], via: [[628, 216], [628, 390]], tone: kv }
+  - { from: [602, 460], to: [668, 244], via: [[644, 460], [644, 244]], tone: kv }
+  - { from: [765, 262], to: [765, 398], tone: kv, ends: both }
+texts:
+  - { at: [494, 102], text: 问与答, anchor: middle, tone: control }
+  - { at: [484, 382], text: 搬进显存, anchor: middle, tone: kv }
+  - { at: [765, 120], text: 查找、淘汰、持久化, anchor: middle }
+  - { at: [777, 332], text: 两段搬运, note: true }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L194-L218
+    symbols: [get_num_new_matched_tokens, update_state_after_alloc]
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ucm_connector.py#L100-L159
+    symbols: [start_load_kv, wait_for_layer_load, save_kv_layer, wait_for_save]

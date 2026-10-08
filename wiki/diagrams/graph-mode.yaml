@@ -1,0 +1,40 @@
+layout: figure
+id: graph-mode
+caption: 同一组示意运算可以逐项下发、分段回放或完整回放；分段边界依实现确定，横向长度不代表耗时
+size: [900, 520]
+texts:
+  - { at: [25, 45], text: 运算次序 →, size: 15, strong: true }
+  - { at: [25, 104], text: Eager, size: 15 }
+  - { at: [25, 214], text: 分段回放, size: 15 }
+  - { at: [25, 324], text: 完整回放, size: 15 }
+  - { at: [25, 430], text: 每轮：准备当前输入 → 选择模式与描述符 → 执行 / 回放, size: 15 }
+  - { at: [25, 470], text: 回放复用执行结构，位置、块表与输入内容仍随本轮更新, note: true }
+frames:
+  - { at: [180, 174], size: [210, 80], label: 图片段 A }
+  - { at: [530, 174], size: [325, 80], label: 图片段 B }
+  - { at: [180, 284], size: [675, 80], label: 目标范围的完整图 }
+items:
+  - {"at": [185, 85], "size": [95, 36], "text": "1", "tone": "control"}
+  - {"at": [300, 85], "size": [95, 36], "text": "2", "tone": "control"}
+  - {"at": [415, 85], "size": [95, 36], "text": "3", "tone": "control"}
+  - {"at": [530, 85], "size": [95, 36], "text": "4", "tone": "control"}
+  - {"at": [645, 85], "size": [95, 36], "text": "5", "tone": "control"}
+  - {"at": [760, 85], "size": [95, 36], "text": "6", "tone": "control"}
+  - {"at": [185, 209], "size": [95, 36], "text": "1", "tone": "token"}
+  - {"at": [300, 209], "size": [95, 36], "text": "2", "tone": "token"}
+  - {"at": [415, 209], "size": [95, 36], "text": "3", "tone": "control"}
+  - {"at": [530, 209], "size": [95, 36], "text": "4", "tone": "token"}
+  - {"at": [645, 209], "size": [95, 36], "text": "5", "tone": "token"}
+  - {"at": [760, 209], "size": [95, 36], "text": "6", "tone": "token"}
+  - {"at": [185, 319], "size": [95, 36], "text": "1", "tone": "token"}
+  - {"at": [300, 319], "size": [95, 36], "text": "2", "tone": "token"}
+  - {"at": [415, 319], "size": [95, 36], "text": "3", "tone": "token"}
+  - {"at": [530, 319], "size": [95, 36], "text": "4", "tone": "token"}
+  - {"at": [645, 319], "size": [95, 36], "text": "5", "tone": "token"}
+  - {"at": [760, 319], "size": [95, 36], "text": "6", "tone": "token"}
+links:
+  - { from: [390, 227], to: [415, 227], tone: control }
+  - { from: [510, 227], to: [530, 227], tone: control }
+pins:
+  - { source: 'vllm@0fc695fc:vllm/config/compilation.py#L37-L69', symbols: [CompilationMode, CUDAGraphMode] }
+  - { source: 'vllm-ascend@db701c1f:vllm_ascend/compilation/acl_graph.py#L138-L170', symbols: [ACLGraphWrapper] }

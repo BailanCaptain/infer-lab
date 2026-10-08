@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" role="img" aria-label="B 的一个 Worker 先算钥匙，再搭空模型，然后只带这一把钥匙去问 Planner。算钥匙这几步里任何一处报错（没配 Planner 地址、缺模型地址或策略名、并行组没建好），钥匙就没算出来，加载器接住报错后回退。问 Planner 回来有三种结果：借到了，就拿着租约去读权重；Planner 说这把钥匙下没有可用的 seed，是真的匹配不到；地址配了但网络出错、回了别的状态码或者回复缺项，是没问成。三种没借到都改从存储加载、启动不会停下，但日志不同：钥匙没算出来打的是「传输失败、回退」的警告，回退后这张卡不登记成 seed；没问成和匹配不到打的是同一句「没有可用的 seed」，回退后登记成 seed。">
+  <title>B 的一个 Worker 先算钥匙，再搭空模型，然后只带这一把钥匙去问 Planner。算钥匙这几步里任何一处报错（没配 Planner 地址、缺模型地址或策略名、并行组没建好），钥匙就没算出来，加载器接住报错后回退。问 Planner 回来有三种结果：借到了，就拿着租约去读权重；Planner 说这把钥匙下没有可用的 seed，是真的匹配不到；地址配了但网络出错、回了别的状态码或者回复缺项，是没问成。三种没借到都改从存储加载、启动不会停下，但日志不同：钥匙没算出来打的是「传输失败、回退」的警告，回退后这张卡不登记成 seed；没问成和匹配不到打的是同一句「没有可用的 seed」，回退后登记成 seed。</title>
+  <defs><marker id="rfork-identity-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="rfork-identity-flow-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="rfork-identity-flow-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker></defs>
+  <path d="M170 68 L195 68" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M345 68 L370 68" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M520 68 L545 68" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M695 68 L720 68" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M95 96 L95 180" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-identity-flow-ah-danger)"/>
+  <path d="M270 96 L270 122 L150 122 L150 180" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-identity-flow-ah-danger)"/>
+  <path d="M445 96 L445 122 L270 122" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5"/>
+  <path d="M800 96 L800 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M800 150 L575 150 L575 180" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M800 150 L340 150 L340 180" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-identity-flow-ah-danger)"/>
+  <path d="M115 236 L115 300" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-identity-flow-ah-danger)"/>
+  <path d="M340 236 L340 300" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" stroke-dasharray="7 5" marker-end="url(#rfork-identity-flow-ah-danger)"/>
+  <path d="M575 236 L575 300" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-control)"/>
+  <path d="M800 236 L800 300" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#rfork-identity-flow-ah-weight)"/>
+  <rect x="20" y="40" width="150" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="95" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">取编号和角色</text>
+  <text x="95" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">分片编号 · 主或草稿</text>
+  <rect x="195" y="40" width="150" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="270" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算部署指纹</text>
+  <text x="270" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">配置描述 → SHA256</text>
+  <rect x="370" y="40" width="150" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="445" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">算 seed key</text>
+  <text x="445" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">指纹 + 编号 + 角色</text>
+  <rect x="545" y="40" width="150" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="620" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">搭空模型</text>
+  <text x="620" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">先开好放权重的空位</text>
+  <rect x="720" y="40" width="160" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="800" y="64" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">向 Planner 借</text>
+  <text x="800" y="83" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只带这一把钥匙</text>
+  <rect x="20" y="180" width="190" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="115" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">钥匙没算出来</text>
+  <text x="115" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">缺配置 · 并行组没建好</text>
+  <rect x="240" y="180" width="200" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="340" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">没问成</text>
+  <text x="340" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">网络错 · 别的状态码 · 缺项</text>
+  <rect x="470" y="180" width="210" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="575" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">Planner 说没有</text>
+  <text x="575" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">无 seed 或名额都占满</text>
+  <rect x="720" y="180" width="160" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="800" y="204" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">借到：拿到租约</text>
+  <text x="800" y="223" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">回复里四项齐全</text>
+  <rect x="20" y="300" width="660" height="56" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-control, #66716d)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="350" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">改从存储加载，启动不停</text>
+  <text x="350" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#4d5652" text-anchor="middle">先清理已登记的内存和半成品模型，再走默认路径</text>
+  <rect x="720" y="300" width="160" height="56" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="800" y="324" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按地址读权重</text>
+  <text x="800" y="343" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">读前先核清单</text>
+  <text x="125" y="272" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="#8f3229">回退后不登记成 seed</text>
+  <text x="457" y="270" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="12" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">同一句「没有可用的 seed」</text>
+  <text x="350" y="382" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" text-anchor="middle" font-style="italic">三种「没借到」都回退，看日志分清是哪一种</text>
+</svg>

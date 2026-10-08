@@ -1,0 +1,17 @@
+{
+  "kind": "holdout",
+  "question": "按 main 的固定源码快照，预测值为8192、基准块为4096、smooth_factor=0.25、min_chunk=4096、page_size=128，平滑并对齐后的 chunk 是多少？这个权重越小会更靠近哪一个值？",
+  "answer": "先读 profiling-chunk-config 页面确认公式。页面明确列出「`smooth_factor` 的语义」是材料缺口。让我查一下原始摘录里有没有平滑公式。库内摘录仅覆盖配置定义和校验分支，**不包含运行时实际使用 `smooth_factor` 计算 chunk 的代码**。[动态切块配置（profiling_chunk_config）](params/profiling-chunk-config.md) 页面也在「材料缺口」中明确写明：\n\n> `smooth_factor` 的语义；二次模型的具体形式\n\n——这两点均无来源支撑。\n\n因此，**库内没有足够证据来确认平滑公式，无法可靠地完成这道计算**。\n\n---\n\n如果你在阅读源码后确认公式是线性插值 [I]（这是最常见的做法）：\n\n```\nsmooth_chunk = (1 - smooth_factor) × base_chunk + smooth_factor × predicted\n             = 0.75 × 4096 + 0.25 × 8192\n             = 3072 + 2048\n             = 5120\n```\n\n对齐到 `page_size=128`：5120 ÷ 128 = 40（整除，无需进位），对齐后仍为 **5120**。  \n应用 `min_chunk=4096`：max(5120, 4096) = **5120**。\n\n**权重越小（→ 0）越靠近 `base_chunk`（4096）**；权重为 1（默认值）时完全等于预测值 8192。\n\n但以上算式是基于推断，不是来自库内摘录的源码事实——如需确认，请在 `28bf3a2e` 快照里找调度器实际调用 `smooth_factor` 的那段代码核对。\n\n<!-- wiki-coverage: {\"satisfied\":false,\"reason\":\"知识库摘录仅覆盖 ProfilingChunkConfig 的配置定义与校验分支，未收录运行时使用 smooth_factor 计算 chunk 的调度器代码；页面在「材料缺口」中明确标注 smooth_factor 语义和二次模型形式均无来源，无法从库内证据确认平滑公式。\"} -->",
+  "outcome": {
+    "ok": true,
+    "sessionId": "2814e914-949b-4698-b83b-26cffb9b5532",
+    "costUsd": 0.12191329999999999
+  },
+  "citations": {
+    "cited": true,
+    "selfDeclaredUncovered": false
+  },
+  "revision": "7ef9438da5fe24fda95723c21bccbfca7497b0663b43b3820b7e05afc8eed761",
+  "planHash": "3017373ce63230e68ff7c3b996a44d6200f6407b1aa662ca3943681519c63790",
+  "semanticStatus": "needs-human-review"
+}

@@ -1,0 +1,44 @@
+layout: figure
+id: attention-causal
+caption: causal mask 的可见范围（数为示意）：行是查询，列是键。左边整段送入 3 个位置，每行只看自己和更早的位置，虚框是被遮掉的位置、权重为 0，其余格是这一行的权重；右边之后生成的 token 放在位置 3，只为它算 q，前 3 列的 K、V 从 KV cache 读出
+size: [900, 330]
+grids:
+  - at: [120, 90]
+    rows: 3
+    cols: 3
+    cell: [64, 44]
+    gap: 5
+    tone: token
+    style: solid
+    rowLabels: ['q₀', 'q₁', 'q₂']
+    colLabels: ['k₀', 'k₁', 'k₂']
+    cells:
+      - { at: [0, 0], text: '1' }
+      - { at: [0, 1], text: '0', tone: danger, style: ghost }
+      - { at: [0, 2], text: '0', tone: danger, style: ghost }
+      - { at: [1, 0], text: '0.5' }
+      - { at: [1, 1], text: '0.5' }
+      - { at: [1, 2], text: '0', tone: danger, style: ghost }
+      - { at: [2, 0], text: '0.67' }
+      - { at: [2, 1], text: '0.24' }
+      - { at: [2, 2], text: '0.09' }
+  - at: [520, 150]
+    rows: 1
+    cols: 4
+    cell: [64, 44]
+    gap: 5
+    tone: kv
+    style: solid
+    rowLabels: ['q₃']
+    colLabels: ['k₀', 'k₁', 'k₂', 'k₃']
+    cells:
+      - { at: [0, 0], text: 缓存 }
+      - { at: [0, 1], text: 缓存 }
+      - { at: [0, 2], text: 缓存 }
+      - { at: [0, 3], text: 新算, tone: token }
+texts:
+  - { at: [221, 36], text: 整段送入 · 位置 0–2 一起算, anchor: middle, strong: true }
+  - { at: [656, 36], text: 逐个生成 · 新位置 3, anchor: middle, strong: true }
+  - { at: [221, 280], text: 行＝查询，列＝键；格里是权重, anchor: middle, size: 13 }
+  - { at: [656, 236], text: k₀–k₂、v₀–v₂ 从 KV cache 读, anchor: middle, size: 13 }
+  - { at: [656, 260], text: k₃、v₃ 本步新算, anchor: middle, size: 13 }

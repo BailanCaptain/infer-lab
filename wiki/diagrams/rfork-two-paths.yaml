@@ -1,0 +1,47 @@
+layout: figure
+id: rfork-two-paths
+caption: 新实例 B 的权重有两条来路。① B 先建好空模型、开好放权重的空位，再向 Planner 借一个身份相同、正在服务的实例（这里是 A，叫 seed），拿到租约和 A 的位置；② B 按地址把 A 显存里的权重字节直接读进自己的空位，这一步不经过磁盘，Planner 也不经手权重；读完后 B 把租约还给 Planner，确认收回后自己也登记成 seed；③ 没借到，或中途任何一步出错，先清理已登记的内存和半成品模型，再走默认路径从存储读 checkpoint。A 当初就是走这条默认路径起来的。格子数是示意。
+size: [900, 420]
+frames:
+  - { label: 实例 A · 已在服务（seed）, at: [20, 80], size: [270, 240] }
+  - { label: 新实例 B · 正在启动, at: [610, 80], size: [270, 240] }
+items:
+  - { at: [360, 96], size: [180, 56], text: Planner, sub: 按身份配对 · 发租约, tone: control }
+  - { at: [360, 350], size: [180, 52], text: 存储里的 checkpoint, sub: 默认加载路径, style: plain }
+grids:
+  - at: [44, 170]
+    rows: 3
+    cols: 4
+    cell: [44, 34]
+    gap: 6
+    tone: weight
+    style: solid
+  - at: [634, 170]
+    rows: 3
+    cols: 4
+    cell: [44, 34]
+    gap: 6
+    tone: weight
+    style: empty
+    fill: 4
+links:
+  # A 登记成 seed；B 来借
+  - { from: [292, 124], to: [358, 124], tone: control, dashed: true }
+  - { from: [608, 124], to: [542, 124], tone: control, dashed: true }
+  # 主路：按地址直接读权重字节
+  - { from: [244, 227], to: [628, 227], tone: weight }
+  # 回退：从存储读
+  - { from: [542, 376], to: [745, 322], via: [[745, 376]], tone: danger, dashed: true }
+  - { from: [358, 376], to: [155, 322], via: [[155, 376]], dashed: true }
+texts:
+  - { at: [44, 160], text: NPU 上已就绪的权重, note: true }
+  - { at: [634, 160], text: 先建空模型、开好空位, note: true }
+  - { at: [325, 114], text: 登记, anchor: middle, size: 12 }
+  - { at: [575, 114], text: ① 借, anchor: middle, size: 12, tone: control }
+  - { at: [436, 214], text: ② 按地址直接读权重字节, anchor: middle, strong: true, tone: weight }
+  - { at: [745, 304], text: 传完、归还租约后也能当 seed, anchor: middle, note: true }
+  - { at: [600, 400], text: ③ 借不到或出错：清理后改从这里加载, tone: danger }
+  - { at: [300, 400], text: A 当初也是这样加载的, anchor: end, note: true }
+pins:
+  - source: rfork@3284850b:vllm_ascend/model_loader/rfork/rfork_loader.py#L610-L655
+    symbols: [acquire_seed, transfer_from_seed]

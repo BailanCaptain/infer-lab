@@ -1,0 +1,491 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 Huawei Technologies Co., Ltd. All Rights Reserved.
+
+import importlib.util
+import sys
+import weakref
+from contextlib import nullcontext
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+import torch
+from torch._dynamo.convert_frame import _bytecode_hooks, register_bytecode_hook
+
+from tests.ut.model_loader.rfork.test_lease_release import runtime as runtime
+
+
+@pytest.mark.parametrize("failure", ["seed_miss", "initialize", "layout", "transfer", "success"])
+@pytest.mark.parametrize("preexisting_hook", [False, True])
+def test_fallback_releases_compiled_model_before_second_model(loader_runtime, monkeypatch, failure, preexisting_hook):
+    """Use Dynamo's real global hook registry, which strongly owns bound methods."""
+    r = loader_runtime
+    handles = []
+    refs = {}
+
+    class CompiledModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.ones(4))
+            # TorchCompileWithNoGuardsWrapper registers this during __init__,
+            # before any forward/compilation and even inside a partial model.
+            self._bytecode_hook_handle = register_bytecode_hook(self.bytecode_hook)
+            handles.append(self._bytecode_hook_handle)
+
+        def bytecode_hook(self, old_code, new_code):
+            return None
+
+    try:
+        target = CompiledModel() if preexisting_hook else None
+        baseline = dict(_bytecode_hooks)
+
+        def initialize(**kwargs):
+            model = torch.nn.Module()
+            model.decoder = CompiledModel()
+            refs["decoder"] = weakref.ref(model.decoder)
+            refs["weight"] = weakref.ref(model.decoder.weight)
+            refs["hook_id"] = model.decoder._bytecode_hook_handle.id
+            # A callback unrelated to vLLM model ownership must survive rollback.
+            unrelated = register_bytecode_hook(lambda old_code, new_code: None)
+            handles.append(unrelated)
+            refs["unrelated_hook_id"] = unrelated.id
+            if failure == "initialize":
+                raise RuntimeError("outer model constructor failed after decoder initialization")
+            return model
+
+        def fallback(**kwargs):
+            assert refs["hook_id"] not in _bytecode_hooks
+            assert refs["decoder"]() is None, "Dynamo still owns the discarded compiled model"
+            assert refs["weight"]() is None, "discarded compiled weights survive into fallback"
+            assert refs["unrelated_hook_id"] in _bytecode_hooks
+            for hook_id, hook in baseline.items():
+                assert _bytecode_hooks[hook_id] is hook
+            if target is not None:
+                assert target.weight.numel() == 4
+            return r.fallback
+
+        monkeypatch.setattr(r.module, "initialize_model", initialize)
+        monkeypatch.setattr(r.loader, "_requires_processed_layout_transfer", lambda config: True)
+        monkeypatch.setattr(sys.modules["vllm.model_executor.model_loader"], "get_model", fallback)
+        # Mock call histories would themselves retain the model argument.
+        monkeypatch.setattr(r.session, "transfer_from_seed", lambda *args: failure != "transfer")
+        r.session.acquire_seed.side_effect = lambda: failure != "seed_miss"
+        if failure == "layout":
+
+            def fail_layout(*args):
+                raise RuntimeError("layout processing failed")
+
+            monkeypatch.setattr(r.module, "process_weights_after_loading", fail_layout)
+        result = r.loader.load_model(r.vc, r.config)
+        if failure == "success":
+            assert refs["decoder"]() is result.decoder
+            assert _bytecode_hooks[refs["hook_id"]].__self__ is result.decoder
+        else:
+            assert result is r.fallback
+    finally:
+        for handle in handles:
+            handle.remove()
+
+
+def test_fallback_cleans_hooks_when_dynamo_was_imported_during_initialization(loader_runtime, monkeypatch):
+    r = loader_runtime
+    name = "torch._dynamo.convert_frame"
+    # Snapshot must not force-import Dynamo in configurations that never use it.
+    with monkeypatch.context() as context:
+        context.delitem(sys.modules, name)
+        snapshot = r.module._snapshot_process_global_model_state(r.vc)
+        assert name not in sys.modules
+        assert not snapshot.dynamo_bytecode_hook_ids
+    # An outer constructor can fail after an inner compiled model registered.
+    decoder = torch.nn.Linear(4, 4)
+    handle = register_bytecode_hook(decoder.forward)
+    decoder._bytecode_hook_handle = handle
+    try:
+        r.module._reset_process_global_model_state(r.vc, None, snapshot)
+        assert handle.id not in _bytecode_hooks
+    finally:
+        handle.remove()
+
+
+@pytest.mark.parametrize("failure", ["seed_miss", "initialize", "layout", "transfer"])
+@pytest.mark.parametrize("preexisting_registry", [False, True])
+def test_fallback_releases_eplb_weights_before_second_model(loader_runtime, monkeypatch, failure, preexisting_registry):
+    r = loader_runtime
+    root = Path(__file__).resolve().parents[4]
+    adaptor_name = "vllm_ascend.eplb.adaptor.vllm_adaptor"
+    monkeypatch.delitem(sys.modules, adaptor_name, raising=False)
+
+    def load(name, path):
+        spec = importlib.util.spec_from_file_location(name, root / path)
+        module = importlib.util.module_from_spec(spec)
+        monkeypatch.setitem(sys.modules, name, module)
+        spec.loader.exec_module(module)
+        return module
+
+    load("vllm_ascend.quantization.quant_type", "vllm_ascend/quantization/quant_type.py")
+
+    def get_adaptor():
+        if adaptor_name not in sys.modules:
+            load(adaptor_name, "vllm_ascend/eplb/adaptor/vllm_adaptor.py")
+        return sys.modules[adaptor_name].VllmEplbAdaptor
+
+    existing_target = torch.nn.Linear(4, 4)
+    baseline = [existing_target] if preexisting_registry else []
+    original_registry = None
+    if preexisting_registry:
+        adaptor = get_adaptor()
+        adaptor.register_layer(existing_target)
+        original_registry = adaptor._registered_moe_layers
+    refs = {}
+
+    def initialize(**kwargs):
+        model = torch.nn.Module()
+        model.moe = torch.nn.Linear(4, 4)
+        model.moe.self_reference = model.moe
+        refs["layer"] = weakref.ref(model.moe)
+        refs["weight"] = weakref.ref(model.moe.weight)
+        # This is the real registry used unconditionally by AscendMoERunner.
+        get_adaptor().register_layer(model.moe)
+        if failure == "initialize":
+            raise RuntimeError("partial model construction")
+        return model
+
+    def fallback(**kwargs):
+        registry = get_adaptor()._registered_moe_layers
+        assert registry == baseline
+        if original_registry is not None:
+            assert registry is original_registry
+        assert refs["layer"]() is None, "discarded MoE layer survives into fallback"
+        assert refs["weight"]() is None, "discarded expert weight survives into fallback"
+        get_adaptor().register_layer(r.fallback)
+        return r.fallback
+
+    monkeypatch.setattr(r.module, "initialize_model", initialize)
+    monkeypatch.setattr(r.loader, "_requires_processed_layout_transfer", lambda config: True)
+    monkeypatch.setattr(sys.modules["vllm.model_executor.model_loader"], "get_model", fallback)
+    if failure == "seed_miss":
+        r.session.acquire_seed.side_effect = lambda: False
+    elif failure == "layout":
+
+        def fail_layout(*args):
+            raise RuntimeError("layout")
+
+        monkeypatch.setattr(r.module, "process_weights_after_loading", fail_layout)
+    elif failure == "transfer":
+        # Mock call histories themselves would retain the model argument.
+        monkeypatch.setattr(r.session, "transfer_from_seed", lambda *args: False)
+    assert r.loader.load_model(r.vc, r.config) is r.fallback
+    assert get_adaptor()._registered_moe_layers == baseline + [r.fallback]
+
+
+@pytest.fixture
+def loader_runtime(request, monkeypatch):
+    """Execute real load_model/rollback logic on CPU with external model construction injected."""
+    lease_runtime = request.getfixturevalue("runtime")
+
+    def stub(name, **attrs):
+        module = ModuleType(name)
+        module.__dict__.update(attrs)
+        monkeypatch.setitem(sys.modules, name, module)
+        parent, _, attr = name.rpartition(".")
+        if parent in sys.modules:
+            monkeypatch.setattr(sys.modules[parent], attr, module, raising=False)
+        return module
+
+    class BaseLoader:
+        def __init__(self, load_config):
+            self.load_config = load_config
+
+    stub("vllm", __path__=[])
+    stub("vllm.config", __path__=[], ModelConfig=SimpleNamespace, VllmConfig=SimpleNamespace)
+    stub("vllm.config.load", LoadConfig=SimpleNamespace)
+    stub("vllm.distributed", __path__=[], get_tensor_model_parallel_rank=lambda: 0)
+    stub("vllm.distributed.parallel_state", get_ep_group=Mock(), get_pp_group=Mock())
+    stub("vllm.model_executor", __path__=[])
+    model_loader = stub(
+        "vllm.model_executor.model_loader", __path__=[], register_model_loader=lambda name: lambda cls: cls
+    )
+    stub("vllm.model_executor.model_loader.base_loader", BaseModelLoader=BaseLoader)
+    stub("vllm.model_executor.model_loader.utils", initialize_model=Mock(), process_weights_after_loading=Mock())
+    stub("vllm.utils.torch_utils", set_default_torch_dtype=lambda dtype: nullcontext())
+    stub("vllm.model_executor.layers", __path__=[])
+    rope = stub("vllm.model_executor.layers.rotary_embedding", _ROPE_DICT={})
+    stub(
+        "vllm_ascend.ascend_config",
+        get_ascend_config=lambda: SimpleNamespace(
+            eplb_config=SimpleNamespace(dynamic_eplb=False, expert_map_record_path=None)
+        ),
+    )
+    if getattr(request, "param", None) == "legacy_hardware":
+        monkeypatch.setitem(sys.modules, "vllm_ascend.device.hardware_profile", None)
+        stub("vllm_ascend.utils", is_310p=lambda: True)
+    else:
+        stub("vllm_ascend.device.hardware_profile", get_current_hardware_profile=Mock())
+    compat_path = Path(__file__).resolve().parents[4] / "vllm_ascend/model_loader/rfork/compat.py"
+    compat_name = "vllm_ascend.model_loader.rfork.compat"
+    compat_spec = importlib.util.spec_from_file_location(compat_name, compat_path)
+    compat_module = importlib.util.module_from_spec(compat_spec)
+    monkeypatch.setitem(sys.modules, compat_name, compat_module)
+    compat_spec.loader.exec_module(compat_module)
+    identity_path = Path(__file__).resolve().parents[4] / "vllm_ascend/model_loader/rfork/identity.py"
+    identity_name = "vllm_ascend.model_loader.rfork.identity"
+    identity_spec = importlib.util.spec_from_file_location(identity_name, identity_path)
+    identity_module = importlib.util.module_from_spec(identity_spec)
+    monkeypatch.setitem(sys.modules, identity_name, identity_module)
+    identity_spec.loader.exec_module(identity_module)
+    path = Path(__file__).resolve().parents[4] / "vllm_ascend/model_loader/rfork/rfork_loader.py"
+    name = "vllm_ascend.model_loader.rfork.rfork_loader"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, module)
+    spec.loader.exec_module(module)
+    events = []
+    monkeypatch.setattr(
+        torch, "npu", SimpleNamespace(synchronize=lambda: events.append("sync"), empty_cache=Mock()), raising=False
+    )
+    monkeypatch.setattr(module, "_rfork_pre_transfer_weight_processing", lambda model: nullcontext())
+    moe_processing = module._rfork_skip_unquantized_moe_post_load_processing
+    monkeypatch.setattr(module, "_rfork_skip_unquantized_moe_post_load_processing", lambda model: nullcontext())
+    load_config = SimpleNamespace(device=None, model_loader_extra_config={}, load_format="rfork")
+    loader = module.RForkModelLoader(load_config)
+    config = SimpleNamespace(dtype=torch.float32, quantization=None, model="model")
+    existing = torch.nn.Module()
+    vc = SimpleNamespace(
+        device_config=SimpleNamespace(device="cpu"),
+        parallel_config=SimpleNamespace(enable_eplb=False),
+        compilation_config=SimpleNamespace(
+            static_forward_context={"existing": existing}, static_all_moe_layers=[existing]
+        ),
+    )
+    rope._ROPE_DICT["existing"] = existing
+    session = Mock(identity=lease_runtime.identity)
+    session.acquire_seed.side_effect = lambda: events.append("acquire") or True
+    session.transfer_from_seed.side_effect = lambda *args: events.append("transfer") or True
+    session.prepare_for_fallback.side_effect = lambda: events.append("cleanup") or True
+    session.start_seed_service.side_effect = lambda *args: events.append("publish") or True
+    monkeypatch.setattr(loader, "_ensure_rfork_session", lambda *args: session)
+    monkeypatch.setattr(loader, "_get_target_registered_blocks", lambda *args: [])
+    model = torch.nn.Module()
+    fallback = torch.nn.Module()
+
+    def initialize(**kwargs):
+        events.append("initialize")
+        vc.compilation_config.static_forward_context["new"] = model
+        vc.compilation_config.static_all_moe_layers.append(model)
+        rope._ROPE_DICT["new"] = model
+        return model
+
+    monkeypatch.setattr(module, "initialize_model", initialize)
+    monkeypatch.setattr(module, "process_weights_after_loading", lambda *args: events.append("layout"))
+    monkeypatch.setattr(
+        model_loader, "get_model", lambda **kwargs: events.append("fallback") or fallback, raising=False
+    )
+    return SimpleNamespace(
+        module=module,
+        loader=loader,
+        config=config,
+        vc=vc,
+        session=session,
+        events=events,
+        rope=rope._ROPE_DICT,
+        existing=existing,
+        model=model,
+        fallback=fallback,
+        identity_module=identity_module,
+        moe_processing=moe_processing,
+    )
+
+
+@pytest.mark.parametrize("loader_runtime", ["legacy_hardware"], indirect=True)
+def test_loader_and_identity_import_without_hardware_profiles(loader_runtime):
+    r = loader_runtime
+    assert r.loader._requires_processed_layout_transfer(r.config)
+    assert r.identity_module.get_current_hardware_profile().weight_layout_policy.name == "FORCE_NZ"
+    fingerprint = r.module.build_compatibility_fingerprint(
+        r.vc, r.config, model_url="model", model_deploy_strategy_name="strategy"
+    )
+    assert len(fingerprint) == 64
+
+
+@pytest.mark.parametrize("raise_during_processing", [False, True])
+def test_legacy_moe_import_skips_and_restores_only_unquantized_hooks(
+    loader_runtime, monkeypatch, raise_during_processing
+):
+    r = loader_runtime
+
+    class LegacyMethod:
+        def __init__(self):
+            self.process_weights_after_loading = Mock()
+
+    class LegacyRunner:
+        def __init__(self, method):
+            self._quant_method = method
+
+    legacy_module = ModuleType("vllm_ascend.ops.fused_moe.fused_moe")
+    legacy_module.AscendUnquantizedFusedMoEMethod = LegacyMethod
+    legacy_module.AscendMoERunner = LegacyRunner
+    monkeypatch.setitem(sys.modules, legacy_module.__name__, legacy_module)
+    monkeypatch.setitem(sys.modules, "vllm_ascend.ops.fused_moe.routed_experts", None)
+    unquantized = LegacyMethod()
+    original_hook = unquantized.process_weights_after_loading
+    quantized = SimpleNamespace(process_weights_after_loading=Mock())
+    model = SimpleNamespace(
+        modules=lambda: iter([LegacyRunner(unquantized), LegacyRunner(quantized), LegacyRunner(unquantized)])
+    )
+    expected_error = pytest.raises(RuntimeError, match="post-load failed") if raise_during_processing else nullcontext()
+    with expected_error, r.moe_processing(model):
+        unquantized.process_weights_after_loading()
+        quantized.process_weights_after_loading()
+        original_hook.assert_not_called()
+        quantized.process_weights_after_loading.assert_called_once()
+        if raise_during_processing:
+            raise RuntimeError("post-load failed")
+    assert unquantized.process_weights_after_loading is original_hook
+
+
+@pytest.mark.parametrize("processed", [False, True])
+def test_real_loader_acquires_only_after_preparation(loader_runtime, monkeypatch, processed):
+    r = loader_runtime
+    monkeypatch.setattr(r.loader, "_requires_processed_layout_transfer", lambda config: processed)
+    assert r.loader.load_model(r.vc, r.config) is r.model
+    expected = (
+        ["initialize", "layout", "sync", "acquire", "transfer", "publish"]
+        if processed
+        else ["initialize", "acquire", "transfer", "layout", "publish"]
+    )
+    assert r.events == expected
+
+
+@pytest.mark.parametrize("failure", ["seed_miss", "initialize", "layout", "transfer"])
+def test_real_loader_failure_rolls_back_only_attempt_state(loader_runtime, monkeypatch, failure):
+    r = loader_runtime
+    monkeypatch.setattr(r.loader, "_requires_processed_layout_transfer", lambda config: True)
+    if failure == "seed_miss":
+        r.session.acquire_seed.side_effect = lambda: r.events.append("acquire") or False
+    elif failure == "initialize":
+        original = r.module.initialize_model
+
+        def fail_initialize(**kwargs):
+            original(**kwargs)
+            raise RuntimeError("partial construction failed")
+
+        monkeypatch.setattr(r.module, "initialize_model", fail_initialize)
+    elif failure == "layout":
+        monkeypatch.setattr(r.module, "process_weights_after_loading", Mock(side_effect=RuntimeError("layout failed")))
+    else:
+        r.session.transfer_from_seed.side_effect = lambda *args: r.events.append("transfer") or False
+    assert r.loader.load_model(r.vc, r.config) is r.fallback
+    assert r.vc.compilation_config.static_forward_context == {"existing": r.existing}
+    assert r.vc.compilation_config.static_all_moe_layers == [r.existing]
+    assert r.rope == {"existing": r.existing}
+    assert r.events.index("cleanup") < r.events.index("fallback")
+    if failure in ("initialize", "layout"):
+        r.session.acquire_seed.assert_not_called()
+    if failure != "transfer":
+        r.session.transfer_from_seed.assert_not_called()
+
+
+def test_snapshot_restores_original_registry_references_after_replacement(loader_runtime):
+    r = loader_runtime
+    compilation = r.vc.compilation_config
+    original_context = compilation.static_forward_context
+    original_layers = compilation.static_all_moe_layers
+    snapshot = r.module._snapshot_process_global_model_state(r.vc)
+    original_context["partial"] = object()
+    original_layers.append(object())
+    compilation.static_forward_context = {"replacement": object()}
+    compilation.static_all_moe_layers = [object()]
+    r.module._reset_process_global_model_state(r.vc, snapshot=snapshot)
+    assert compilation.static_forward_context is original_context
+    assert compilation.static_all_moe_layers is original_layers
+    assert original_context == {"existing": r.existing}
+    assert original_layers == [r.existing]
+
+
+def test_snapshot_restores_deleted_replaced_and_shared_baseline_objects(loader_runtime):
+    r = loader_runtime
+    snapshot = r.module._snapshot_process_global_model_state(r.vc)
+    r.vc.compilation_config.static_forward_context.clear()
+    r.vc.compilation_config.static_forward_context["partial"] = object()
+    r.vc.compilation_config.static_all_moe_layers[:] = [SimpleNamespace()]
+    r.rope["existing"] = object()
+    # The discarded draft references an existing target module; rollback must preserve it.
+    discarded = torch.nn.Module()
+    discarded.add_module("shared", r.existing)
+    r.module._reset_process_global_model_state(r.vc, discarded, snapshot)
+    assert r.vc.compilation_config.static_forward_context == {"existing": r.existing}
+    assert r.vc.compilation_config.static_all_moe_layers == [r.existing]
+    assert r.rope == {"existing": r.existing}
+
+
+@pytest.mark.parametrize("service_stopped,memory_reset", [(True, False), (False, False)])
+def test_fallback_aborts_before_second_model_when_cleanup_fails(loader_runtime, service_stopped, memory_reset):
+    r = loader_runtime
+    r.session.transfer_from_seed.return_value = False
+    r.session.transfer_from_seed.side_effect = None
+    result = r.module.RForkFallbackCleanupResult(service_stopped, False, memory_reset)
+    r.session.prepare_for_fallback.side_effect = lambda: result
+    with pytest.raises(RuntimeError, match="old weights are pinned"):
+        r.loader.load_model(r.vc, r.config)
+    assert r.session.prepare_for_fallback.call_count == r.module.FALLBACK_CLEANUP_MAX_ATTEMPTS
+    assert "fallback" not in r.events
+    assert "publish" not in r.events
+    assert r.vc.compilation_config.static_forward_context == {"existing": r.existing}
+
+
+def test_fallback_retries_memory_cleanup_without_waiting_for_lease(loader_runtime):
+    r = loader_runtime
+    r.session.transfer_from_seed.side_effect = lambda *args: False
+    r.session.prepare_for_fallback.side_effect = [
+        r.module.RForkFallbackCleanupResult(True, False, False),
+        r.module.RForkFallbackCleanupResult(True, False, True),
+    ]
+    assert r.loader.load_model(r.vc, r.config) is r.fallback
+    assert r.session.prepare_for_fallback.call_count == 2
+    assert r.events.count("fallback") == 1
+    assert r.events.count("publish") == 1
+
+
+@pytest.mark.parametrize("processed", [False, True])
+@pytest.mark.parametrize("same_parameter", [False, True])
+def test_fully_shared_draft_uses_target_without_post_load_or_seed(
+    loader_runtime, monkeypatch, processed, same_parameter
+):
+    r = loader_runtime
+    target = torch.nn.Module()
+    target.weight = torch.nn.Parameter(torch.arange(8, dtype=torch.float32).reshape(2, 4))
+    r.model.weight = target.weight if same_parameter else torch.nn.Parameter(target.weight.detach())
+    original_weight = target.weight.detach().clone()
+    original_ptr = target.weight.data_ptr()
+
+    def destructive_post_load(model, *args):
+        model.weight.data.add_(1)
+        model.weight.data = model.weight.data.transpose(0, 1).contiguous()
+
+    post_load = Mock(side_effect=destructive_post_load)
+    monkeypatch.setattr(r.module, "process_weights_after_loading", post_load)
+    monkeypatch.setattr(r.loader, "_requires_processed_layout_transfer", lambda config: processed)
+    monkeypatch.setattr(r.loader, "_get_target_registered_blocks", lambda *args: [(100, 64)])
+    r.session.can_reuse_shared_weights.return_value = True
+    assert r.loader.load_model(r.vc, r.config) is r.model
+    r.session.acquire_seed.assert_not_called()
+    r.session.transfer_from_seed.assert_not_called()
+    r.session.start_seed_service.assert_not_called()
+    post_load.assert_not_called()
+    assert target.weight.data_ptr() == original_ptr
+    torch.testing.assert_close(target.weight, original_weight)
+    assert "fallback" not in r.events
+    assert "sync" not in r.events
+
+
+@pytest.mark.parametrize("processed", [False, True])
+def test_partially_shared_draft_still_processes_weights_and_transfers(loader_runtime, monkeypatch, processed):
+    r = loader_runtime
+    monkeypatch.setattr(r.loader, "_requires_processed_layout_transfer", lambda config: processed)
+    monkeypatch.setattr(r.loader, "_get_target_registered_blocks", lambda *args: [(100, 64)])
+    r.session.can_reuse_shared_weights.return_value = False
+    assert r.loader.load_model(r.vc, r.config) is r.model
+    assert r.events.count("layout") == 1
+    r.session.transfer_from_seed.assert_called_once()
+    r.session.start_seed_service.assert_called_once()

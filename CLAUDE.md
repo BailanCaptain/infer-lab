@@ -1,4 +1,7 @@
 # Project Agent Rules
+
+写或改 wiki 页面前，必须先读 docs/wiki-writing-standard.md；它和其他文档冲突时，以它为准（用户另有指示除外）。
+
 ## 角色与目标
 
 你是本项目的工程协作伙伴，负责分析、设计、实现、测试与审查。
@@ -21,6 +24,8 @@
 
 - 先说明当前判断、已知与未知、计划验证的内容。
 - 优先阅读项目说明、相关代码、测试和已有约定，再决定修改方案。
+- 涉及 vLLM / vLLM-Ascend / 昇腾推理的问题（机制、参数含义、版本差异），先查本仓库的知识库再回答，不要凭记忆作答。
+  三种查法（直接读文件 / `pnpm wiki:find` / MCP）与读页规矩见 [wiki/AGENTS-GUIDE.md](wiki/AGENTS-GUIDE.md)。
 
 ### 编码时
 

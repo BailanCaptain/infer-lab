@@ -1,0 +1,48 @@
+layout: figure
+id: kv-pool
+caption: 请求 A 有 24 个位置，每段 4 个位置（示意）。本地 prefix caching 已命中前 2 段（8 个位置），池里连续命中到前 5 段（20 个位置）；只有第 3–5 段要从池里搬回，最后一段池里没有，自己算。
+size: [900, 350]
+grids:
+  - at: [185, 70]
+    rows: 1
+    cols: 6
+    cell: [92, 45]
+    gap: 12
+    tone: kv
+    style: empty
+    cells:
+      - {at: [0, 0], text: 0–3, style: solid}
+      - {at: [0, 1], text: 4–7, style: solid}
+      - {at: [0, 2], text: 8–11, style: faded}
+      - {at: [0, 3], text: 12–15, style: faded}
+      - {at: [0, 4], text: 16–19, style: faded}
+      - {at: [0, 5], text: 20–23, tone: token, style: solid}
+  - at: [185, 205]
+    rows: 1
+    cols: 5
+    cell: [92, 45]
+    gap: 12
+    tone: kv
+    style: solid
+    cells:
+      - {at: [0, 0], text: 0–3, style: faded}
+      - {at: [0, 1], text: 4–7, style: faded}
+      - {at: [0, 2], text: 8–11}
+      - {at: [0, 3], text: 12–15}
+      - {at: [0, 4], text: 16–19}
+links:
+  - {from: [439, 198], to: [439, 120], tone: kv}
+  - {from: [543, 198], to: [543, 120], tone: kv}
+  - {from: [647, 198], to: [647, 120], tone: kv}
+texts:
+  - {at: [30, 99], text: 请求 A, strong: true}
+  - {at: [30, 234], text: 池里查到的段, strong: true}
+  - {at: [289, 56], text: 本地命中 8 个位置, anchor: middle}
+  - {at: [751, 56], text: 自己算 4 个位置, anchor: middle, tone: token}
+  - {at: [543, 56], text: 从池里搬, anchor: middle, tone: kv}
+  - {at: [543, 294], text: "要搬的 = 池命中 20 − 本地命中 8 = 12 个位置", anchor: middle, tone: kv}
+  - {at: [289, 272], text: 前 2 段本地已有，不搬, anchor: middle, note: true}
+  - {at: [30, 330], text: "每格一段 = 4 个位置（示意）", note: true}
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py#L491-L591
+    symbols: [get_num_new_matched_tokens]

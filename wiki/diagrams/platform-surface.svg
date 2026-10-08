@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="一份配置交给平台，出来时已经不是原样：先按组合校验，不支持的当场报错；通过的就地改写，Worker 类名与缓存精度在这一步定下，块大小在这一步补齐或改回 128（GLM 这类混合模型保留补丁更早写入的 640）；之后组件按拿到的类名去创建，而 GLM 的两类注意力层自带后端绑定，不经过平台这张表">
+  <title>一份配置交给平台，出来时已经不是原样：先按组合校验，不支持的当场报错；通过的就地改写，Worker 类名与缓存精度在这一步定下，块大小在这一步补齐或改回 128（GLM 这类混合模型保留补丁更早写入的 640）；之后组件按拿到的类名去创建，而 GLM 的两类注意力层自带后端绑定，不经过平台这张表</title>
+  <defs><marker id="platform-surface-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker><marker id="platform-surface-ah-token" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-token, #087f73)"/></marker><marker id="platform-surface-ah-danger" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-danger, #b54237)"/></marker><marker id="platform-surface-ah-weight" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-weight, #c78300)"/></marker><marker id="platform-surface-ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-kv, #4c65b6)"/></marker></defs>
+  <path d="M149 132 L149 152" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-surface-ah-control)"/>
+  <path d="M149 214 L149 234" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#platform-surface-ah-control)"/>
+  <path d="M149 296 L149 350" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#platform-surface-ah-token)"/>
+  <path d="M274 183 L340 183 L340 179 L400 179" fill="none" stroke="var(--color-danger, #b54237)" stroke-width="1.4" marker-end="url(#platform-surface-ah-danger)"/>
+  <path d="M274 258 L340 258 L340 251 L400 251" fill="none" stroke="var(--color-weight, #c78300)" stroke-width="1.4" marker-end="url(#platform-surface-ah-weight)"/>
+  <path d="M274 275 L364 275 L364 319 L400 319" fill="none" stroke="var(--color-kv, #4c65b6)" stroke-width="1.4" marker-end="url(#platform-surface-ah-kv)"/>
+  <path d="M274 381 L400 383" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#platform-surface-ah-token)"/>
+  <path d="M630 383 L660 383" fill="none" stroke="var(--color-token, #087f73)" stroke-width="1.4" marker-end="url(#platform-surface-ah-token)"/>
+  <rect x="24" y="70" width="250" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="97" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">汇总配置进来</text>
+  <text x="149" y="116" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">命令行与模型配置</text>
+  <rect x="24" y="152" width="250" height="62" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">一、按组合校验</text>
+  <text x="149" y="198" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">不支持就拒绝启动</text>
+  <rect x="24" y="234" width="250" height="62" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="261" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">二、就地改写</text>
+  <text x="149" y="280" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">改的是同一个对象</text>
+  <rect x="24" y="350" width="250" height="62" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="149" y="377" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">三、组件按名创建</text>
+  <text x="149" y="396" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">拿到类名去创建</text>
+  <rect x="400" y="152" width="230" height="54" rx="8" fill="var(--color-danger, #b54237)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="515" y="175" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">启动直接失败</text>
+  <text x="515" y="194" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">报错就在校验里</text>
+  <rect x="400" y="224" width="230" height="54" rx="8" fill="var(--color-weight, #c78300)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="515" y="247" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">Worker 类名</text>
+  <text x="515" y="266" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">写进并行配置</text>
+  <rect x="400" y="292" width="230" height="54" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="515" y="315" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">块大小与缓存精度</text>
+  <text x="515" y="334" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">写进缓存配置</text>
+  <rect x="400" y="356" width="230" height="54" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="515" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">层来问注意力后端</text>
+  <text x="515" y="398" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">按条件答一个类名</text>
+  <rect x="660" y="356" width="216" height="54" rx="8" fill="var(--color-token-soft, #ddf4ef)" stroke="var(--color-token, #087f73)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="768" y="379" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">GLM 两类层自带</text>
+  <text x="768" y="398" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#065f56" text-anchor="middle">不问平台这张表</text>
+  <text x="24" y="36" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="700" fill="var(--color-ink, #17211f)">平台在启动时做的三件事</text>
+  <text x="24" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">写进命令的值和最后生效的值可以不是一回事</text>
+  <text x="400" y="440" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13.5" font-weight="400" fill="var(--color-ink-muted, #66716d)" font-style="italic">改写在启动时发生，答名字在组件创建时才发生</text>
+</svg>

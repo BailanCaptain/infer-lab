@@ -1,0 +1,113 @@
+layout: figure
+id: sequence-parallel-steps
+caption: 两张卡、4 个 token、隐藏维 H=2，一行是一个 token 的两个数。第 1 步 Reduce-Scatter：token 0、1 的两份部分和在卡 0 相加，token 2、3 的两份在卡 1 相加，之后每张卡只留 2 行；第 2 步每张卡只对自己那两行做 RMSNorm，不通信；第 3 步 All-Gather 把各自算好的两行发给对方，两张卡都拼回完整的 4 行。紫色箭头是经过通信送来的块，灰色虚线是本卡自己的那块，不用发。
+size: [880, 1026]
+frames:
+  - { label: 发之前：两张卡各有一份行切得到的部分和，一行一个 token, at: [8, 30], size: [864, 170] }
+  - { label: 第 1 步 Reduce-Scatter：token 0、1 在卡 0 相加，token 2、3 在卡 1 相加, at: [8, 238], size: [864, 212] }
+  - { label: 第 2 步 本卡计算：各自对自己的两行做 RMSNorm，不通信, at: [8, 488], size: [864, 114] }
+  - { label: 第 3 步 All-Gather：把算好的两行发给对方，拼回 4 行, at: [8, 640], size: [864, 170] }
+  - { label: 发之后：两张卡都有 4 行归一化结果，和只用 TP 时一样, at: [8, 848], size: [864, 170] }
+grids:
+  # 发之前：卡 0 的部分和
+  - { at: [217, 52], rows: 4, cols: 2, cell: [40, 28], tone: token, style: faded, label: 卡 0,
+      rowLabels: [token 0, token 1, token 2, token 3],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '3' }, { at: [1, 0], text: '3' }, { at: [1, 1], text: '1' },
+              { at: [2, 0], text: '2' }, { at: [2, 1], text: '2' }, { at: [3, 0], text: '8' }, { at: [3, 1], text: '15' }] }
+  # 发之前：卡 1 的部分和
+  - { at: [649, 52], rows: 4, cols: 2, cell: [40, 28], tone: token, style: faded, label: 卡 1,
+      rowLabels: [token 0, token 1, token 2, token 3],
+      cells: [{ at: [0, 0], text: '0' }, { at: [0, 1], text: '4' }, { at: [1, 0], text: '4' }, { at: [1, 1], text: '0' },
+              { at: [2, 0], text: '3' }, { at: [2, 1], text: '3' }, { at: [3, 0], text: '9' }, { at: [3, 1], text: '16' }] }
+  # 第 1 步：卡 0 自己 token 0、1 的部分和
+  - { at: [77, 260], rows: 2, cols: 2, cell: [40, 28], tone: token, style: faded, label: 卡 0 自己的,
+      rowLabels: [token 0, token 1],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '3' }, { at: [1, 0], text: '3' }, { at: [1, 1], text: '1' }] }
+  # 第 1 步：卡 1 发来 token 0、1 的部分和
+  - { at: [77, 356], rows: 2, cols: 2, cell: [40, 28], tone: token, style: faded, label: 卡 1 发来的,
+      rowLabels: [token 0, token 1],
+      cells: [{ at: [0, 0], text: '0' }, { at: [0, 1], text: '4' }, { at: [1, 0], text: '4' }, { at: [1, 1], text: '0' }] }
+  # 第 1 步之后：卡 0 只留 token 0、1 的和
+  - { at: [349, 260], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '7' }, { at: [1, 0], text: '7' }, { at: [1, 1], text: '1' }] }
+  # 第 1 步：卡 1 自己 token 2、3 的部分和
+  - { at: [509, 260], rows: 2, cols: 2, cell: [40, 28], tone: token, style: faded, label: 卡 1 自己的,
+      rowLabels: [token 2, token 3],
+      cells: [{ at: [0, 0], text: '3' }, { at: [0, 1], text: '3' }, { at: [1, 0], text: '9' }, { at: [1, 1], text: '16' }] }
+  # 第 1 步：卡 0 发来 token 2、3 的部分和
+  - { at: [509, 356], rows: 2, cols: 2, cell: [40, 28], tone: token, style: faded, label: 卡 0 发来的,
+      rowLabels: [token 2, token 3],
+      cells: [{ at: [0, 0], text: '2' }, { at: [0, 1], text: '2' }, { at: [1, 0], text: '8' }, { at: [1, 1], text: '15' }] }
+  # 第 1 步之后：卡 1 只留 token 2、3 的和
+  - { at: [781, 260], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '5' }, { at: [0, 1], text: '5' }, { at: [1, 0], text: '17' }, { at: [1, 1], text: '31' }] }
+  # 第 2 步：卡 0 的两行
+  - { at: [77, 510], rows: 2, cols: 2, cell: [40, 28], tone: token, style: faded,
+      rowLabels: [token 0, token 1],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '7' }, { at: [1, 0], text: '7' }, { at: [1, 1], text: '1' }] }
+  # 第 2 步之后：卡 0 两行的 RMSNorm 结果
+  - { at: [349, 510], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' }] }
+  # 第 2 步：卡 1 的两行
+  - { at: [509, 510], rows: 2, cols: 2, cell: [40, 28], tone: token, style: faded,
+      rowLabels: [token 2, token 3],
+      cells: [{ at: [0, 0], text: '5' }, { at: [0, 1], text: '5' }, { at: [1, 0], text: '17' }, { at: [1, 1], text: '31' }] }
+  # 第 2 步之后：卡 1 两行的 RMSNorm 结果
+  - { at: [781, 510], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '1' }, { at: [1, 0], text: '0.68' }, { at: [1, 1], text: '1.24' }] }
+  # 第 3 步：卡 0 自己算好的 token 0、1
+  - { at: [77, 662], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 0 自己的,
+      rowLabels: [token 0, token 1],
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' }] }
+  # 第 3 步：卡 1 发来算好的 token 2、3
+  - { at: [225, 718], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 1 发来的,
+      rowLabels: [token 2, token 3],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '1' }, { at: [1, 0], text: '0.68' }, { at: [1, 1], text: '1.24' }] }
+  # 第 3 步之后：卡 0 拼回 4 行
+  - { at: [349, 662], rows: 4, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 0,
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' },
+              { at: [2, 0], text: '1' }, { at: [2, 1], text: '1' }, { at: [3, 0], text: '0.68' }, { at: [3, 1], text: '1.24' }] }
+  # 第 3 步：卡 0 发来算好的 token 0、1
+  - { at: [509, 662], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 0 发来的,
+      rowLabels: [token 0, token 1],
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' }] }
+  # 第 3 步：卡 1 自己算好的 token 2、3
+  - { at: [657, 718], rows: 2, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 1 自己的,
+      rowLabels: [token 2, token 3],
+      cells: [{ at: [0, 0], text: '1' }, { at: [0, 1], text: '1' }, { at: [1, 0], text: '0.68' }, { at: [1, 1], text: '1.24' }] }
+  # 第 3 步之后：卡 1 拼回 4 行
+  - { at: [781, 662], rows: 4, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 1,
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' },
+              { at: [2, 0], text: '1' }, { at: [2, 1], text: '1' }, { at: [3, 0], text: '0.68' }, { at: [3, 1], text: '1.24' }] }
+  # 发之后：卡 0
+  - { at: [217, 870], rows: 4, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 0,
+      rowLabels: [token 0, token 1, token 2, token 3],
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' },
+              { at: [2, 0], text: '1' }, { at: [2, 1], text: '1' }, { at: [3, 0], text: '0.68' }, { at: [3, 1], text: '1.24' }] }
+  # 发之后：卡 1
+  - { at: [649, 870], rows: 4, cols: 2, cell: [40, 28], tone: token, style: solid, label: 卡 1,
+      rowLabels: [token 0, token 1, token 2, token 3],
+      cells: [{ at: [0, 0], text: '0.2' }, { at: [0, 1], text: '1.4' }, { at: [1, 0], text: '1.4' }, { at: [1, 1], text: '0.2' },
+              { at: [2, 0], text: '1' }, { at: [2, 1], text: '1' }, { at: [3, 0], text: '0.68' }, { at: [3, 1], text: '1.24' }] }
+links:
+  # 第 1 步送到卡 0：自己的两行不用发，卡 1 的两行发过来，汇成一支箭头加进卡 0
+  - { from: [157, 288], to: [313, 288], tone: control, dashed: true, ends: none }
+  - { from: [157, 384], to: [313, 288], curve: [[235, 384], [235, 288]], tone: comm, ends: none }
+  - { from: [313, 288], to: [347, 288], tone: comm }
+  # 第 1 步送到卡 1：自己的两行不用发，卡 0 的两行发过来，汇成一支箭头加进卡 1
+  - { from: [589, 288], to: [745, 288], tone: control, dashed: true, ends: none }
+  - { from: [589, 384], to: [745, 288], curve: [[667, 384], [667, 288]], tone: comm, ends: none }
+  - { from: [745, 288], to: [779, 288], tone: comm }
+  # 第 2 步：各自在本卡算 RMSNorm
+  - { from: [157, 538], to: [347, 538], tone: control }
+  - { from: [589, 538], to: [779, 538], tone: control }
+  # 第 3 步送到卡 0：自己的两行原样放回，卡 1 的两行发过来放进 token 2、3
+  - { from: [157, 690], to: [347, 690], tone: control, dashed: true }
+  - { from: [305, 746], to: [347, 746], tone: comm }
+  # 第 3 步送到卡 1：卡 0 的两行发过来放进 token 0、1，自己的两行原样放回
+  - { from: [589, 690], to: [779, 690], tone: comm }
+  - { from: [737, 746], to: [779, 746], tone: control, dashed: true }
+texts:
+  - { at: [872, 18], text: 数为示意, size: 12.5, note: true, anchor: end }
+  - { at: [252, 530], text: RMSNorm, size: 13, anchor: middle }
+  - { at: [684, 530], text: RMSNorm, size: 13, anchor: middle }

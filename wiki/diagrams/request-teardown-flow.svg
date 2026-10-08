@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 812" width="880" height="812" role="img" aria-label="四条结束的路怎样汇到同一个释放动作。引擎先判停（结束 token、停止 token、长度、重复检测）或出错时，在结果更新的同一步释放，再把这步 token 和结束原因发回前端；前端删记录、放最后一份，这时引擎已停，走「否」，不再通知引擎。停止字符串和客户端断开由前端先发现：前端先删自己的记录、放最后一份，再发中止消息；引擎在前向算完、处理结果之前先处理中止，不认识或已结束的 ID 直接跳过。释放之后，已结束的 ID 随下一份调度清单发到每个 worker，worker 在准备下一步输入时删掉那一行。">
+  <title>四条结束的路怎样汇到同一个释放动作。引擎先判停（结束 token、停止 token、长度、重复检测）或出错时，在结果更新的同一步释放，再把这步 token 和结束原因发回前端；前端删记录、放最后一份，这时引擎已停，走「否」，不再通知引擎。停止字符串和客户端断开由前端先发现：前端先删自己的记录、放最后一份，再发中止消息；引擎在前向算完、处理结果之前先处理中止，不认识或已结束的 ID 直接跳过。释放之后，已结束的 ID 随下一份调度清单发到每个 worker，worker 在准备下一步输入时删掉那一行。</title>
+  <defs><marker id="request-teardown-flow-ah-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-ink, #17211f)"/></marker><marker id="request-teardown-flow-ah-comm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-comm, #9a4b86)"/></marker><marker id="request-teardown-flow-ah-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--color-control, #66716d)"/></marker></defs>
+  <rect x="24" y="40" width="832" height="260" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="28" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑦ API server · 前端</text>
+  <rect x="24" y="330" width="832" height="346" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="318" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">⑥ EngineCore · 引擎</text>
+  <rect x="24" y="712" width="832" height="80" rx="16" fill="none" stroke="var(--color-line-strong, #b8bcb5)" stroke-width="1.5"/>
+  <text x="40" y="700" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="15" font-weight="700" fill="var(--color-ink, #17211f)">③ worker · 下一步准备输入时</text>
+  <path d="M169 120 L169 148" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M439 120 L439 148" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M710 120 L710 148" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M440 200 L440 228" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M750 200 L750 238" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M560 280 L560 354" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-teardown-flow-ah-comm)"/>
+  <path d="M646 410 L646 438" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M646 490 L646 520" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M234 410 L234 520" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M234 576 L234 604" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M646 576 L646 604" fill="none" stroke="var(--color-ink, #17211f)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-ink)"/>
+  <path d="M836 630 L868 630 L868 92 L836 92" fill="none" stroke="var(--color-comm, #9a4b86)" stroke-width="2.2" marker-end="url(#request-teardown-flow-ah-comm)"/>
+  <path d="M234 656 L234 734" fill="none" stroke="var(--color-control, #66716d)" stroke-width="1.4" marker-end="url(#request-teardown-flow-ah-control)"/>
+  <rect x="44" y="64" width="250" height="56" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="169" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">命中停止字符串</text>
+  <text x="169" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">还原成文字后才看得出</text>
+  <rect x="314" y="64" width="250" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="439" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">客户端断开</text>
+  <text x="439" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">HTTP 任务被取消</text>
+  <rect x="584" y="64" width="252" height="56" rx="8" fill="var(--color-comm-soft, #f7e7f2)" stroke="var(--color-comm, #9a4b86)" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="710" y="88" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">收到带结束原因的结果</text>
+  <text x="710" y="107" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="middle">引擎先判停的那条路</text>
+  <rect x="44" y="148" width="792" height="52" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="179" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">删掉这条请求的记录，往输出槽放最后一份结果</text>
+  <rect x="44" y="228" width="600" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="344" y="250" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">引擎还没停，发中止消息</text>
+  <text x="344" y="269" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">只发前端还记着的 ID；两个 DP 组时按路由表发给那一组</text>
+  <rect x="44" y="354" width="380" height="56" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="234" y="378" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结果更新时判停或出错</text>
+  <text x="234" y="397" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">结束 token、停止 token、长度、重复；出错记 error</text>
+  <rect x="456" y="354" width="380" height="56" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="646" y="378" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">收到中止消息</text>
+  <text x="646" y="397" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">前向算完、处理结果之前先处理</text>
+  <rect x="456" y="438" width="380" height="52" rx="8" fill="var(--color-surface-sunken, #ece9df)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="646" y="460" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink, #17211f)" text-anchor="middle">这个 ID 还在、还没结束？</text>
+  <text x="646" y="479" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)" text-anchor="middle">不在或已结束就跳过，重复或晚到都不出错</text>
+  <rect x="44" y="520" width="792" height="56" rx="8" fill="var(--color-kv, #4c65b6)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="544" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">释放：移出队列，ID 记进已结束清单；倒着还块，删请求表项</text>
+  <text x="440" y="563" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">有 KV connector 要先把 KV 发走时，还块和删请求表项推后</text>
+  <rect x="44" y="604" width="380" height="52" rx="8" fill="var(--color-control, #66716d)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="234" y="635" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">下一份调度清单带上已结束的 ID</text>
+  <rect x="456" y="604" width="380" height="52" rx="8" fill="var(--color-comm, #9a4b86)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="646" y="626" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">把这步 token 和结束原因发回前端</text>
+  <text x="646" y="645" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">中止的请求不再发</text>
+  <rect x="44" y="734" width="792" height="44" rx="8" fill="var(--color-token, #087f73)" stroke="var(--color-ink, #17211f)" stroke-width="1.5"/>
+  <text x="440" y="761" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="14" font-weight="700" fill="var(--color-ink-inverse, #ffffff)" text-anchor="middle">删掉这条请求的缓存状态和批次表里那一行</text>
+  <text x="550" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="end">ZMQ · 中止消息</text>
+  <text x="660" y="262" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">否：引擎已释放，到此为止</text>
+  <text x="450" y="220" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+  <text x="860" y="322" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="#7a3a6a" text-anchor="end">ZMQ · 结果</text>
+  <text x="656" y="512" font-family="'Inter Variable','Noto Sans SC',system-ui,sans-serif" font-size="13" font-weight="400" fill="var(--color-ink, #17211f)">是</text>
+</svg>

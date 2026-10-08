@@ -1,0 +1,54 @@
+layout: figure
+id: kv-cache-spec-flow
+caption: GLM 双机每台机器启动时走一遍上两排：配置检查先把逻辑块定成 640，各卡报规格，引擎对齐成两档页、编成 5 个组，量完显存算出块数，把块大小字段回写成各组最小值；各卡再按规划申请显存，把 MLA 页看成 5 个 kernel 块；最后引擎建调度器，调度粒度取各组块大小的最小公倍数。虚线框是另一条分支：不是 GLM 的混合模型走通用对齐；打开前缀缓存时另算哈希粒度。下排是之后每条请求都要走的站点，它们只读这里定下的组和页。
+size: [900, 430]
+dividers:
+  - { from: [24, 324], to: [876, 324], sides: [启动时走一次, 每条请求都走] }
+items:
+  - { at: [24, 40], size: [150, 60], text: 配置检查, sub: 块大小默认 16, tone: control, style: plain }
+  - { at: [194, 40], size: [172, 60], text: GLM 补丁定逻辑块, sub: 大页装下 KDA → 640, tone: control, style: plain }
+  - { at: [386, 40], size: [150, 60], text: 每张卡报规格, sub: 四类状态各一份, tone: kv, style: plain }
+  - { at: [556, 40], size: [150, 60], text: 对齐两档页, sub: 大页 / 小页, tone: kv, style: plain }
+  - { at: [726, 40], size: [150, 60], text: 编成 5 个组, sub: full、尾状态、KDA, tone: kv, style: plain }
+  - { at: [194, 118], size: [172, 40], text: 其他混合模型：通用对齐, tone: ink, style: faded }
+  - { at: [726, 180], size: [150, 60], text: 量显存算块数, sub: 8 张卡取最小值, tone: control, style: plain }
+  - { at: [556, 180], size: [150, 60], text: 回写块大小字段, sub: 改成各组最小值 4, tone: control, style: plain }
+  - { at: [386, 180], size: [150, 60], text: 按规划申请显存, sub: 原始字节，不拆 K、V, tone: kv, style: plain }
+  - { at: [194, 180], size: [172, 60], text: MLA 页切 kernel 块, sub: 1 个逻辑块 = 5 块, tone: kv, style: plain }
+  - { at: [24, 180], size: [150, 60], text: 建调度器, sub: 粒度取各组的 lcm, tone: control, style: plain }
+  - { at: [24, 258], size: [190, 40], text: 开前缀缓存：另算哈希粒度, tone: ink, style: faded }
+  - { at: [24, 350], size: [250, 58], text: 第 2 站 调度, sub: 每组按自己的块大小发块号, tone: token, style: plain }
+  - { at: [314, 350], size: [250, 58], text: 第 3 站 准备输入, sub: 逻辑块号展开成 kernel 块号, tone: token, style: plain }
+  - { at: [604, 350], size: [272, 58], text: 第 4 站 逐层前向, sub: 算子按块号找到每层的页, tone: token, style: plain }
+links:
+  - { from: [174, 70], to: [194, 70] }
+  - { from: [366, 70], to: [386, 70] }
+  - { from: [536, 70], to: [556, 70] }
+  - { from: [706, 70], to: [726, 70] }
+  - { from: [99, 100], to: [194, 138], via: [[99, 138]], dashed: true }
+  - { from: [801, 100], to: [801, 180] }
+  - { from: [726, 210], to: [706, 210] }
+  - { from: [556, 210], to: [536, 210] }
+  - { from: [386, 210], to: [366, 210] }
+  - { from: [194, 210], to: [174, 210] }
+  - { from: [99, 240], to: [99, 258], dashed: true }
+  - { from: [250, 240], to: [250, 350], tone: kv, dashed: true }
+  - { from: [274, 379], to: [314, 379], tone: token }
+  - { from: [564, 379], to: [604, 379], tone: token }
+pins:
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_mamba_config.py#L125-L168
+    symbols: [min_attn_block_size]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L5124-L5267
+    symbols: [cache_role]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L459-L548
+    symbols: [get_kv_cache_groups]
+  - source: vllm@0fc695fc:vllm/v1/core/kv_cache_utils.py#L2072-L2085
+    symbols: [min_num_blocks]
+  - source: vllm-ascend@db701c1f:vllm_ascend/patch/platform/patch_kv_cache_utils.py#L332-L396
+    symbols: [scheduler_block_size]
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L279-L285
+    symbols: [generate_scheduler_kv_cache_config]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4097-L4132
+    symbols: [_allocate_int8_cache_tensor]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L4484-L4528
+    symbols: [blocks_per_scheduler_block]

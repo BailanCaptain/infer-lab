@@ -1,0 +1,36 @@
+layout: figure
+id: request-call-chain-step
+caption: 普通文本生成的一步发出两次 RPC，future 入队后再决定是否等结果。队列未满且还能推进时先开始下一圈，否则等待最老一批并更新请求；结构化输出需要前批 token 时，会延后第二次 RPC。
+size: [880, 680]
+frames:
+  - { at: [24, 64], size: [368, 558], label: 引擎进程 }
+  - { at: [468, 64], size: [388, 558], label: 8 个 worker 进程（同时收到同一份清单） }
+items:
+  - { at: [48, 108], size: [320, 50], text: 调度出这一步的清单, style: plain }
+  - { at: [48, 206], size: [320, 62], text: 准备允许出现的 token 表, sub: 结构化输出用；普通文本请求为空, style: plain }
+  - { at: [48, 320], size: [320, 64], text: future 入队：未满且还能推进？, sub: 结果将来才到，先保存这一批的占位对象, style: plain }
+  - { at: [48, 440], size: [320, 50], text: 等队列里最老一批的结果, style: plain }
+  - { at: [48, 548], size: [320, 50], text: 按新 token 更新请求, style: plain }
+  - { at: [492, 108], size: [340, 58], text: 准备输入、跑完 45 层, sub: 分数先留在 worker 进程里, tone: token }
+  - { at: [492, 212], size: [340, 58], text: 取出分数、采样、草拟 3 个, sub: 交回这一步的新 token, tone: token }
+links:
+  - { from: [368, 133], to: [492, 133], tone: control }
+  - { from: [368, 237], to: [492, 237], tone: control }
+  - { from: [492, 270], to: [368, 465], via: [[440, 296], [440, 465]], tone: token }
+  - { from: [208, 158], to: [208, 206], tone: control }
+  - { from: [208, 268], to: [208, 320], tone: control }
+  - { from: [208, 384], to: [208, 440], tone: control }
+  - { from: [208, 490], to: [208, 548], tone: control }
+  - { from: [48, 352], to: [48, 133], via: [[10, 352], [10, 133]], tone: control }
+texts:
+  - { at: [400, 120], text: 第一次, size: 13, tone: control }
+  - { at: [400, 224], text: 第二次, size: 13, tone: control }
+  - { at: [492, 342], text: 回传新 token，等待 CPU 可读结果, size: 14, tone: token }
+  - { at: [226, 414], text: 否：等结果, size: 14 }
+  - { at: [48, 94], text: 是：返回忙循环，优先调度下一圈, size: 13 }
+  - { at: [24, 656], text: 队列里最多两批，所以引擎最多领先 worker 一步, size: 14 }
+pins:
+  - source: vllm@0fc695fc:vllm/v1/engine/core.py#L484-L598
+    symbols: [step_with_batch_queue, sample_tokens, batch_queue]
+  - source: vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2373-L2582
+    symbols: [sample_tokens]

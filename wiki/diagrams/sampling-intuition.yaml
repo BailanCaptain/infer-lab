@@ -1,0 +1,69 @@
+layout: figure
+id: sampling-intuition
+caption: 接在「我 喜欢」后面，词表只有 6 个词（示意），按分数从高到低排。随机那一路：分数先除以 temperature（这里 T = 1，数不变），softmax 换成加起来等于 1 的概率；top-k = 3、top-p = 0.8 截掉尾部，剩下的两个词重新归一，最后按概率抽一个。greedy 那一路不算概率，直接取分数最高的词
+size: [880, 470]
+texts:
+  - { at: [40, 40], text: 分数（logits）, strong: true }
+  - { at: [300, 40], text: ÷ temperature，softmax 成概率, strong: true }
+  - { at: [300, 58], text: "这里 T = 1", size: 12, note: true }
+  - { at: [590, 40], text: top-k = 3、top-p = 0.8 截断，再归一, strong: true }
+  - { at: [220, 150], text: 随机, size: 13, anchor: middle }
+  - { at: [124, 330], text: greedy, size: 13 }
+grids:
+  - at: [80, 64]
+    rows: 6
+    cols: 1
+    cell: [64, 32]
+    tone: token
+    style: empty
+    rowLabels: [猫, 你, 看, 。, 我, 喜欢]
+    cells:
+      - { at: [0, 0], text: '3' }
+      - { at: [1, 0], text: '2' }
+      - { at: [2, 0], text: '1' }
+      - { at: [3, 0], text: '0' }
+      - { at: [4, 0], text: '−1' }
+      - { at: [5, 0], text: '−2' }
+  - at: [300, 64]
+    rows: 6
+    cols: 1
+    cell: [72, 32]
+    tone: token
+    style: empty
+    cells:
+      - { at: [0, 0], text: '0.634' }
+      - { at: [1, 0], text: '0.233' }
+      - { at: [2, 0], text: '0.086' }
+      - { at: [3, 0], text: '0.032' }
+      - { at: [4, 0], text: '0.012' }
+      - { at: [5, 0], text: '0.004' }
+  - at: [590, 64]
+    rows: 6
+    cols: 1
+    cell: [72, 32]
+    tone: token
+    style: empty
+    cells:
+      - { at: [0, 0], text: '0.731' }
+      - { at: [1, 0], text: '0.269' }
+      - { at: [2, 0], text: '0', style: ghost }
+      - { at: [3, 0], text: '0', style: ghost }
+      - { at: [4, 0], text: '0', style: ghost }
+      - { at: [5, 0], text: '0', style: ghost }
+bars:
+  - { at: [378, 70], h: 20, scale: 170, segments: [{ value: 0.634, tone: token }] }
+  - { at: [378, 102], h: 20, scale: 170, segments: [{ value: 0.233, tone: token }] }
+  - { at: [378, 134], h: 20, scale: 170, segments: [{ value: 0.086, tone: token }] }
+  - { at: [378, 166], h: 20, scale: 170, segments: [{ value: 0.032, tone: token }] }
+  - { at: [378, 198], h: 20, scale: 170, segments: [{ value: 0.012, tone: token }] }
+  - { at: [378, 230], h: 20, scale: 170, segments: [{ value: 0.004, tone: token }] }
+  - { at: [668, 70], h: 20, scale: 170, segments: [{ value: 0.731, tone: token }] }
+  - { at: [668, 102], h: 20, scale: 170, segments: [{ value: 0.269, tone: token }] }
+items:
+  - { at: [590, 300], size: [270, 60], text: 按概率抽一个, sub: 猫 73%，你 27%, tone: token }
+  - { at: [300, 380], size: [270, 60], text: greedy：直接取最高分, sub: 3 分的猫，次次都是它, tone: control }
+links:
+  - { from: [150, 160], to: [292, 160] }
+  - { from: [500, 160], to: [582, 160] }
+  - { from: [626, 262], to: [626, 298] }
+  - { from: [112, 262], to: [298, 410], via: [[112, 410]] }

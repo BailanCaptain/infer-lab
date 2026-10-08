@@ -4,7 +4,8 @@ title: layer_sharding
 type: param
 summary: >-
   点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc
-  起已整体删除，v0.26 上照旧配置会被静默忽略、main 上直接报错。GLM 双机是混部，在钉住版本上配了启动即报错。
+  起已整体删除，v0.26 上照旧配置会被静默忽略、main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。GLM
+  双机是混部，在钉住版本上配了启动即报错。
 aliases:
   - Layer Sharding Linear
   - 层间权重分片
@@ -48,10 +49,12 @@ sources:
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
   - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423'
-  - >-
-    vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27
+  - 'vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
-verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
+verified:
+  - main
+  - releases/v0.23.0
+  - releases/v0.26.0rc
 evidence: C
 relations:
   - to: enable-matmul-allreduce
@@ -60,8 +63,10 @@ relations:
       同在 _get_row_parallel_op 的分派链上，ShardedCPRowParallelOp 排在前面——切了 o_proj
       的那一层就静默不再走 matmul-allreduce 融合算子，没有告警
 contradicts: []
-updated: "2026-10-02"
+updated: '2026-10-08'
 rawSources:
+  - >-
+    raw/sha256-45d34afde2227ecda5a1dad641c5f8eb51184a11f3095b8016661f3d4d28a53b.md
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
   - >-
@@ -74,7 +79,7 @@ rawSources:
 
 该碰它的只有一种人：跑 DeepSeek-V3 这类深层模型、做了 PD 分离、而且 P 节点显存已经放不下的运维。别的场景要么根本起不来——`kv_role` 不是 `kv_producer` 就抛 `ValueError` [C2]——要么是净亏。
 
-**存在范围。** 这一页讲的整套机制只活在 v0.23 这一代代码里：维护分支 `2c59ff10` 和本站 GLM 双机钉住的含 GLM 代码提交 `db701c1f` 都有（启动校验在同一行）；下面事实表那一列按维护分支写。它在 v0.23 就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（`2ed6cbba`）与 main 开发主线（`baa023ad`）上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 则因 `extra="forbid"` 在配置解析阶段就拒收。
+**存在范围。** 这一页讲的整套机制只活在 v0.23 这一代代码里：维护分支 `2c59ff10` 和本站 GLM 双机钉住的含 GLM 代码提交 `db701c1f` 都有（启动校验在同一行）；下面事实表那一列按维护分支写。它在 v0.23 就已被官方列入待废弃清单 [S18]，v0.24.0rc 起参数、`ops/layer_shard_linear.py` 与 feature guide 一并删除，v0.26 分支（`2ed6cbba`）与 main 开发主线（`baa023ad`）上都不剩什么，发布说明里明写着「Removed layer sharding. #11953」[S29]，是哪个 PR 删的见下面「版本谱系」。**两边删得不一样**：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C32]，照旧配置它服务照常起来、权重一份都不会切，显存该放不下还是放不下；main 通常因 `extra="forbid"` 在配置解析阶段拒收；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 [C28]，这不代表已删除的 Layer Sharding 恢复生效。
 
 **本站 GLM 双机用不到它。** 这套部署是混部、没有 `kv_transfer_config`，在钉住的 `db701c1f` 上把这个键配上连启动都过不去，报错原文和「就算在 P 节点上开」会怎样，见「开了的代价」末段。
 
@@ -191,3 +196,58 @@ file: layer-sharding
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
+
+## 已废弃的说法
+
+### 2026-10-08 · 修订 8a8fd7c82df4e3b9
+
+旧说法（历史记录，已废弃）：
+
+```text
+main 则因 `extra="forbid"` 在配置解析阶段就拒收。
+```
+
+替代结论：
+
+```text
+main 通常因 `extra="forbid"` 在配置解析阶段拒收；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 [C28]，这不代表已删除的 Layer Sharding 恢复生效。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L105-L112`
+2. `vllm-ascend@2c59ff10:vllm_ascend/platform.py#L338-L346`
+3. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L39-L56`
+4. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L211-L253`
+5. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L122-L152`
+6. `vllm-ascend@2c59ff10:vllm_ascend/ops/layer_shard_linear.py#L285-L296`
+7. `vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L412-L417`
+8. `vllm-ascend@2c59ff10:vllm_ascend/ops/linear_op.py#L712-L724`
+9. `vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L191-L226`
+10. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1293-L1297`
+11. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1309-L1317`
+12. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L1538-L1549`
+13. `vllm-ascend@2c59ff10:vllm_ascend/model_loader/rfork/rfork_loader.py#L236-L247`
+14. `vllm-ascend@2c59ff10:vllm_ascend/attention/mla_v1.py#L766-L775`
+15. `vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L5-L18`
+16. `vllm-ascend@2c59ff10:docs/source/user_guide/feature_guide/layer_sharding.md#L30-L42`
+17. `vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L86`
+18. `vllm-ascend@2c59ff10:docs/source/user_guide/release_notes.md#L114-L128`
+19. `vllm-ascend@2c59ff10:docs/source/tutorials/models/GLM5.md#L359`
+20. `vllm-ascend@2c59ff10:docs/source/tutorials/models/DeepSeek-V3.2.md#L486`
+21. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L1522-L1537`
+22. `vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L146-L182`
+23. `vllm-ascend@baa023ad:docs/source/tutorials/models/GLM5.2.md#L1029`
+24. `vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L105`
+25. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L439-L455`
+26. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1613-L1661`
+27. `vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L77`
+28. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
+29. `vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64`
+30. `vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L1409-L1423`
+31. `vllm-ascend@2ed6cbba:docs/source/user_guide/feature_guide/index.md#L27-L27`
+32. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73`

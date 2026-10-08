@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
 import { approveReview, listReviews, readReview, rejectReview, reviewDiff } from "../scripts/wiki/review";
+import { parsePage } from "../scripts/wiki/pages";
+import { buildToc } from "../src/content/wiki/toc";
 
 const revision = z.string().regex(/^[a-f0-9]{64}$/);
 const approveInput = z.object({ revision }).strict();
@@ -36,7 +38,25 @@ export async function handleReview(
     const action = match[2];
     if (req.method !== (action ? "POST" : "GET")) throw new HttpError(405, action ? "需要 POST" : "需要 GET");
     if (!action) {
-      send(res, 200, { review: readReview(root, id), diff: reviewDiff(root, id) });
+      const review = readReview(root, id);
+      const placement = (path: string, text: string | null) => {
+        if (!text) return "无此页";
+        const page = parsePage(path.replace(/^wiki\//, ""), text).page;
+        if (!page) return "未编排";
+        return buildToc([page.fm])
+          .flatMap((p) => p.sections.map((s) => `${p.title} → ${s.title} → ${page.fm.title}`))
+          .join("；");
+      };
+      const placements = review.payload.drop
+        ? review.payload.writes
+            .filter((w) => /^wiki\/(concepts|sources|params)\/.*\.md$/.test(w.path))
+            .map((w) => ({
+              path: w.path,
+              before: placement(w.path, w.before),
+              after: placement(w.path, w.after),
+            }))
+        : [];
+      send(res, 200, { review, diff: reviewDiff(root, id), placements });
       return true;
     }
     checkWriter(req);

@@ -121,6 +121,10 @@ def scan(files):
             name.endswith("Config") or any("config" in ast.unparse(d).lower() for d in cls.decorator_list)
         )
         for field in fields:
+            annotation = ast.unparse(field.annotation)
+            # Class constants are excluded from dataclass/config constructor fields.
+            if re.match(r"(?:typing\.)?ClassVar(?:\[|$)", annotation):
+                continue
             label = field.target.id
             comments = []
             i = field.lineno - 2
@@ -128,7 +132,6 @@ def scan(files):
                 comments.insert(0, lines[i].lstrip()[1:].strip())
                 i -= 1
             constraints = [statement for statement, identifiers in conditions if label in identifiers]
-            annotation = ast.unparse(field.annotation)
             value = ast.unparse(field.value) if field.value else "<required>"
             for base in class_paths((path, name)):
                 json_path = base + "[" + json.dumps(label) + "]"

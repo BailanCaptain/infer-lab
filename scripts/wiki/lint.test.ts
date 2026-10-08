@@ -173,6 +173,9 @@ describe("lintPages", () => {
   it("orphan：无 chapters 且无入链；有入链即不算", () => {
     expect(lintPages([mk("lonely", { chapters: [] })], opts)[0]?.rule).toBe("orphan");
     expect(
+      lintPages([mk("placed", { chapters: [], toc: { part: "inference", section: "缓存" } })], opts),
+    ).toEqual([]);
+    expect(
       lintPages(
         [
           mk("lonely", { chapters: [], relations: [{ to: "a", kind: "builds-on", note: "n" }] }),
@@ -189,6 +192,15 @@ describe("lintPages", () => {
     expect(lintPages([mk("a", { rawSources: raw })], opts)).toEqual([]);
     expect(lintPages([mk("a", { origin: "direct", rawSources: raw })], opts).map((p) => p.rule)).toEqual([
       "origin-direct-raw",
+    ]);
+  });
+  it("课程入口按精确别名匹配，不把相似词算成覆盖", () => {
+    const problems = lintPages([mk("a", { aliases: ["RMSNorm"] })], {
+      ...opts,
+      requiredTerms: ["rmsnorm", "rms-norm"],
+    });
+    expect(problems.filter((p) => p.rule === "missing-term").map((p) => p.message)).toEqual([
+      "Step.terms 引用的 rms-norm 没有页面",
     ]);
   });
   it("missing-term 只在给了 requiredTerms 时检查", () => {

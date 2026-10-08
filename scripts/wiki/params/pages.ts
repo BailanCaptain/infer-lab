@@ -7,7 +7,7 @@ import { digest } from "../workflow";
 export const PARAM_SECTION = "## 参数定义（自动生成）";
 export const protectedParamSection = (text: string) => generatedSection(text, PARAM_SECTION);
 export const paramId = (row: ParamEntry) =>
-  `${row.name.replace(/_/g, "-")}-${digest(`${row.file}:${row.class}:${row.json_path}`).slice(0, 12)}`;
+  `${row.name.toLowerCase().replace(/_/g, "-")}-${digest(`${row.file}:${row.class}:${row.json_path}`).slice(0, 12)}`;
 const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
 
 export function buildParamPage(

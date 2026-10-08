@@ -13,6 +13,29 @@ const request = {
   allowedWrites: [],
 };
 
+it("production Drop accounts for usage without inheriting exhausted test quotas", async () => {
+  const f = wikiFixture();
+  try {
+    await initBudget(f.root, { limitUsd: 1, priorChargedUsd: 1, reserveUsd: 1, maxCalls: 1 });
+    for (let i = 0; i < 3; i++)
+      expect(
+        await withBudget(f.root, "drop", { ...request, accountingOnly: true }, async (req) => {
+          expect(req.args).not.toContain("--max-budget-usd");
+          return { ok: true, costUsd: 2 };
+        }),
+      ).toMatchObject({ ok: true });
+    const budget = readBudget(f.root);
+    expect(budget.calls).toHaveLength(3);
+    expect(budget.calls.every((c) => c.accountingOnly && c.costUsd === 2)).toBe(true);
+    expect(budget.paused).toBe(false);
+    await expect(withBudget(f.root, "test", request, async () => ({ ok: true, costUsd: 0 }))).rejects.toThrow(
+      "预算不足",
+    );
+  } finally {
+    f.cleanup();
+  }
+});
+
 it("records Codex account usage without inventing a USD price or appending Claude flags", async () => {
   const f = wikiFixture();
   try {

@@ -10,6 +10,7 @@ import { fragmentId } from "../../src/content/wiki/anchors";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../../src/content/wiki/evidenceMarks";
 import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../src/content/wiki/markdown";
+import { findPageByName } from "../../src/content/wiki/page-names";
 import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
@@ -479,8 +480,8 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
   problems.push(...anchorProblems(pages));
   for (const p of pages) {
     const teach = p.fm.type === "concept" || p.fm.type === "feature";
-    if (teach && !p.fm.chapters.length && !inbound.has(p.fm.id)) {
-      problems.push({ file: p.file, rule: "orphan", message: "没有章节归属，也没有任何页链接到它" });
+    if (teach && !p.fm.chapters.length && !p.fm.toc && !inbound.has(p.fm.id)) {
+      problems.push({ file: p.file, rule: "orphan", message: "没有目录或章节归属，也没有任何页链接到它" });
     }
   }
   // ---------- HANDBOOK 新规则（Task 29）----------
@@ -645,8 +646,9 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
     }
   }
 
+  const termPages = pages.map((p) => p.fm);
   for (const t of opts.requiredTerms ?? []) {
-    if (!ids.has(t)) {
+    if (!findPageByName(termPages, t)) {
       problems.push({
         file: "src/sim/model/forwardLayer.ts",
         rule: "missing-term",

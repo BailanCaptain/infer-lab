@@ -4,14 +4,16 @@ import { join } from "node:path";
 import { z } from "zod";
 import { readBudget } from "../scripts/wiki/budget";
 import { listGaps } from "../scripts/wiki/gap-ledger";
-import { answeredBy, MODEL_ID, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
 import { collectStepTerms } from "../scripts/wiki/lint";
+import { answeredBy, MODEL_ID, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
+import { loadPages } from "../scripts/wiki/pages";
 import { listTasks } from "../scripts/wiki/queue";
 import { listReviews } from "../scripts/wiki/review";
 import { readSyncConfig, syncConfigSchema } from "../scripts/wiki/sync-config";
-import { checkWriter, HttpError, readJson, send } from "./http";
-import { DEFAULT_CODEX_MODEL } from "./codex-chat";
 import { atomicText, WorkflowStore } from "../scripts/wiki/workflow";
+import { findPageByName } from "../src/content/wiki/page-names";
+import { DEFAULT_CODEX_MODEL } from "./codex-chat";
+import { checkWriter, HttpError, readJson, send } from "./http";
 
 const json = (path: string): unknown =>
   existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
@@ -42,11 +44,12 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
   try {
     const b = readBudget(root);
     calls = b.calls;
-    const unknown = b.calls.filter((call) => call.state === "unknown").at(-1);
+    const limitedCalls = b.calls.filter((call) => !call.accountingOnly);
+    const unknown = limitedCalls.filter((call) => call.state === "unknown").at(-1);
     budget = {
       limitUsd: b.policy.limitUsd,
       chargedUsd: b.chargedUsd,
-      calls: b.calls.length,
+      calls: limitedCalls.length,
       maxCalls: b.policy.maxCalls,
       paused: b.paused,
       ...(b.paused && unknown
@@ -99,8 +102,13 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     : 0;
   const paidWork = config ? config.maxTasks + config.reconcileBatches + config.driftSample : 0;
 
-  const ids = new Set(["concepts", "params", "sources"].flatMap((dir) => pageIds(root, dir)));
+  const names = loadPages(join(root, "wiki")).pages.map((p) => p.fm);
+  const gaps = listGaps(root);
   const terms = collectStepTerms();
+  const termEntries = terms.map((term) => {
+    const page = findPageByName(names, term);
+    return { term, ...(page ? { id: page.id, title: page.title } : {}) };
+  });
   const reviews = listReviews(root);
   return {
     budget,
@@ -122,11 +130,21 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     },
     todo: {
       pendingReviews: reviews.filter((r) => r.state === "pending" || r.state === "publishing").length,
-      missingTerms: terms.filter((t) => !ids.has(t)),
+      missingTerms: termEntries.filter((t) => !t.id).map((t) => t.term),
+      termEntries,
       totalTerms: terms.length,
-      gaps: listGaps(root).length,
+      gaps: gaps.filter((g) => g.state !== "closed").length,
+      closedGaps: gaps.filter((g) => g.state === "closed").length,
+      gapEntries: gaps.map((g) => ({
+        key: g.key,
+        question: g.question,
+        state: g.state,
+        count: g.count,
+        pendingCount: g.pendingCount,
+        threshold: g.threshold,
+      })),
       /** 其中合并了不同说法的缺口（判为同一题的问法记成别名，可用 wiki:work split-gap 拆开） */
-      mergedGaps: listGaps(root).filter((g) => g.aliases?.length).length,
+      mergedGaps: gaps.filter((g) => g.state !== "closed" && g.aliases?.length).length,
       queuedTasks: listTasks(root).filter((t) => t.state === "queued").length,
     },
   };

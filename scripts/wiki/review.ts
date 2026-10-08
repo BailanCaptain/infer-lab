@@ -13,6 +13,7 @@ import { join, relative, resolve } from "node:path";
 import { z } from "zod";
 import { parseRawRef } from "../../src/content/wiki/schema";
 import { runBuild } from "./build";
+import { validateDropAssets } from "./drop-assets";
 import { integrationSchema } from "./ingest";
 import { validateIntegration } from "./integration-check";
 import { lineageSection } from "./lineage";
@@ -34,6 +35,7 @@ const payloadSchema = z
     repoRoots: z.record(z.string()),
     /** 本包要在 log.md 末尾追加的条目；发布时追加到当时的 log.md（2026-09-23 前的包直接带整份 log.md） */
     log: z.string().optional(),
+    drop: z.object({ id: z.string().uuid(), generation: z.number().int(), report: z.string() }).optional(),
   })
   .strict();
 export const reviewSchema = z
@@ -59,6 +61,7 @@ const LOG = "wiki/log.md";
 
 function allowed(write: Write): boolean {
   const { path, before, after } = write;
+  if (/^wiki\/diagrams\/[a-z0-9]+(?:-[a-z0-9]+)*\.(yaml|svg)$/.test(path)) return after !== null;
   if (path === REGISTRY || path === "wiki/index.md" || path === "wiki/log.md") return after !== null;
   if (/^wiki\/(concepts|params|sources)\/[a-z0-9][a-z0-9-]*\.md$/.test(path)) return after !== null;
   if (/^wiki\/_drafts\/[a-z0-9][a-z0-9-]*\.md$/.test(path)) return before !== null && after === null;
@@ -156,6 +159,8 @@ export async function createReview(
   after: Map<string, string>,
   decision: Review["payload"]["decision"],
   repoRoots: Record<string, string> = {},
+  dependencies: string[] = [],
+  drop?: Review["payload"]["drop"],
 ): Promise<Review> {
   return new WorkflowStore(root).locked(() => {
     if (listReviews(root).some((r) => r.state === "publishing")) throw new Error("先恢复未完成的发布");
@@ -180,6 +185,7 @@ export async function createReview(
     const targets = [...decision.promoted, ...decision.merged.map((m) => m.into)];
     const depends = new Set(
       [
+        ...dependencies,
         ...ids.map((id) => `wiki/_drafts/${id}.md`),
         ...targets.flatMap((id) => PAGE_DIRS.map((dir) => `wiki/${dir}/${id}.md`)),
       ].filter((p) => base.has(p)),
@@ -208,6 +214,7 @@ export async function createReview(
       decision,
       repoRoots,
       ...(log ? { log } : {}),
+      ...(drop ? { drop } : {}),
     });
     if (payload.writes.some((w) => !allowed(w))) throw new Error("候选包含不允许的发布路径或操作");
     const id = digest(JSON.stringify(payload));
@@ -265,6 +272,13 @@ function validateCandidate(root: string, review: Review, validate: Validate): vo
     if (review.payload.log) appendLog(stage, review.payload.log);
     if (runBuild(stage).problems) throw new Error("批准校验失败：叠加本包后页面 schema 有错");
     const issues = validate(stage, review.payload.repoRoots);
+    issues.push(
+      ...validateDropAssets(
+        stage,
+        review.payload.writes.map((w) => w.path),
+        !!review.payload.drop,
+      ),
+    );
     if (issues.length) throw new Error(`批准校验失败：\n${issues.join("\n")}`);
   });
 }

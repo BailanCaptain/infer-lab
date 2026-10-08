@@ -16,6 +16,7 @@ import { restrictedArgs } from "./restricted-claude";
 import { localFile } from "./review-files";
 import { sanitizeRawInput } from "./sanitize";
 import { selectedAgent } from "./selected-agent";
+import type { selectedModel } from "./sync-config";
 import { atomicText, digest, WorkflowStore, type WorkInput } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
@@ -47,6 +48,8 @@ export async function runStructured<T>(
   root: string,
   input: {
     kind: string;
+    /** Trusted call sites reading whole pages can request a larger bounded input. */
+    maxInputChars?: number;
     origin: WorkInput["origin"];
     data: unknown;
     rules: string;
@@ -54,6 +57,7 @@ export async function runStructured<T>(
     policy: WorkflowPolicy;
     /** 默认 DECISION_TIMEOUT_MS；读写整页正文的调用传 PAGE_TEXT_TIMEOUT_MS */
     timeoutMs?: number;
+    selection?: ReturnType<typeof selectedModel>;
   },
   deps: { runAgent?: RunAgent; retry?: boolean } = {},
 ) {
@@ -63,7 +67,8 @@ export async function runStructured<T>(
     if (clean.blocked) throw new Error("结构化判定输入清洗阻塞");
     return clean.text;
   });
-  if (stdin.length > STRUCTURED_INPUT_LIMIT) throw new Error("结构化判定材料超量；需要缩小本次范围");
+  if (stdin.length > (input.maxInputChars ?? STRUCTURED_INPUT_LIMIT))
+    throw new Error("结构化判定材料超量；需要缩小本次范围");
   const store = new WorkflowStore(root);
   const hash = digest(stdin);
   const job = await store.enqueue(
@@ -82,7 +87,7 @@ export async function runStructured<T>(
     return input.schema.parse(JSON.parse(bytes.toString("utf8")));
   };
   if (job.state === "draft") return { jobId: job.id, value: read() };
-  const attempt = await store.claim(job.id, deps.retry);
+  const attempt = await store.claim(job.id, deps.retry, input.selection);
   const stage = mkdtempSync(join(tmpdir(), "wiki-decision-"));
   let costUsd: number | undefined = 0;
   let billing: "chatgpt" | undefined;

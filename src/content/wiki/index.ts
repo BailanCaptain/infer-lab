@@ -1,5 +1,6 @@
 /** Build and live readers share one content snapshot, including its revision. */
 import buildSnapshot from "virtual:wiki-reader-snapshot";
+import { findPageByName } from "./page-names";
 import { createReaderStore } from "./reader-store";
 import { buildIndex, type Hit, type Index, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
 import type { RegistryEntry, RepoRef } from "./schema";
@@ -25,14 +26,7 @@ export function listPages(): RegistryEntry[] {
 
 /** id / title / aliases 三者任一命中即可，忽略大小写与首尾空白。 */
 export function findByAlias(text: string): RegistryEntry | undefined {
-  const key = text.trim().toLowerCase();
-  if (!key) return undefined;
-  for (const p of reader.getState().pages) {
-    if (p.id.toLowerCase() === key) return p;
-    if (p.title.toLowerCase() === key) return p;
-    if (p.aliases.some((a) => a.toLowerCase() === key)) return p;
-  }
-  return undefined;
+  return findPageByName(reader.getState().pages, text);
 }
 
 export function pageHref(id: string): string {

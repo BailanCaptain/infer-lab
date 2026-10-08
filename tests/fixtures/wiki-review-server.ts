@@ -37,6 +37,23 @@ const server = createServer(async (req, res) => {
   if (await handleReview(req, res, root)) return;
   if (
     await handleChat(req, res, root, {
+      judgeAnswer: async (_root, input) => {
+        if (input.question === "检查评判失败") throw new Error("fixture judge unavailable");
+        const missing = input.answer.includes("知识库里还没有");
+        return {
+          status: "checked",
+          jobId: "d".repeat(64),
+          revision: input.snapshot.revision,
+          decision: {
+            satisfied: input.question !== "检查错误回答" && !missing,
+            classification:
+              input.question === "检查错误回答" ? "answer-error" : missing ? "missing-knowledge" : "covered",
+            reason: input.question === "检查错误回答" ? "回答与提供的正文不符" : "固定夹具的核对结果",
+            answerQuote: "",
+            evidence: [],
+          },
+        };
+      },
       runChat: async (request, on) => {
         const text = readFileSync(join(request.cwd, "index.md"), "utf8");
         chatCalls.push({ resumed: request.args.includes("--resume"), text });

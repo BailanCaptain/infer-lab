@@ -29,6 +29,7 @@ const callSchema = z.object({
   /** 实际作答模型；2026-09-23 晚加这项之前的账目没有 */
   models: modelUseSchema.optional(),
   billing: z.literal("chatgpt").optional(),
+  accountingOnly: z.boolean().optional(),
   usage: z.record(z.number().int().nonnegative()).optional(),
 });
 const stateSchema = z
@@ -59,7 +60,8 @@ const read = (root: string) => {
   return stateSchema.parse(JSON.parse(readFileSync(pathOf(root), "utf8")));
 };
 const charged = (s: z.infer<typeof stateSchema>) =>
-  s.policy.priorChargedUsd + s.calls.reduce((sum, c) => sum + (c.costUsd ?? c.reservedUsd), 0);
+  s.policy.priorChargedUsd +
+  s.calls.filter((c) => !c.accountingOnly).reduce((sum, c) => sum + (c.costUsd ?? c.reservedUsd), 0);
 export const readBudget = (root: string) => {
   const state = read(root);
   return {
@@ -73,9 +75,10 @@ export const readBudget = (root: string) => {
 export function planBudgetResume(root: string) {
   const state = read(root);
   if (!state.paused) throw new Error("共享预算没有暂停，无需恢复");
-  if (state.calls.some((call) => call.state === "running"))
+  const limitedCalls = state.calls.filter((call) => !call.accountingOnly);
+  if (limitedCalls.some((call) => call.state === "running"))
     throw new Error("仍有运行中的调用，先核对调用状态");
-  if (state.calls.length >= state.policy.maxCalls) throw new Error("调用次数已达上限，恢复不能扩大限制");
+  if (limitedCalls.length >= state.policy.maxCalls) throw new Error("调用次数已达上限，恢复不能扩大限制");
   if (charged(state) >= state.policy.limitUsd) throw new Error("预算已耗尽或超额，恢复不能扩大限制");
   const plan = {
     stateHash: digest(JSON.stringify(state)),
@@ -83,8 +86,8 @@ export function planBudgetResume(root: string) {
     priorChargedUsd: state.policy.priorChargedUsd,
     chargedUsd: charged(state),
     remainingUsd: Math.max(0, state.policy.limitUsd - charged(state)),
-    remainingCalls: state.policy.maxCalls - state.calls.length,
-    unknownCalls: state.calls
+    remainingCalls: state.policy.maxCalls - limitedCalls.length,
+    unknownCalls: limitedCalls
       .filter((call) => call.state === "unknown")
       .map((call) => ({ id: call.id, reservedUsd: call.reservedUsd })),
     note: "保留全部旧账目和未知费用预留；实际账单仍可能超过预留。仅在用户明确接受该口径后恢复，不启动模型。",
@@ -167,27 +170,33 @@ export async function withBudget<
       if (!alive) {
         call.state = "unknown";
         call.reason = "调用所属进程已退出或旧回执无所属进程，保留全部预留等待账单核对";
-        if (call.billing !== "chatgpt") state.paused = true;
+        if (call.billing !== "chatgpt" && !call.accountingOnly) state.paused = true;
       }
     }
     if (state.paused) atomicText(pathOf(root), JSON.stringify(state));
-    if (state.paused) throw new Error("共享预算已暂停：未知费用或实际超额需核对；未启动模型");
-    if (state.calls.length >= state.policy.maxCalls) throw new Error("共享模型调用次数已达上限");
+    if (!request.accountingOnly && state.paused)
+      throw new Error("共享预算已暂停：未知费用或实际超额需核对；未启动模型");
+    if (
+      !request.accountingOnly &&
+      state.calls.filter((c) => !c.accountingOnly).length >= state.policy.maxCalls
+    )
+      throw new Error("共享模型调用次数已达上限");
     const values = request.args.flatMap((arg, i) =>
       arg === "--max-budget-usd" ? [Number(request.args[i + 1])] : [],
     );
     if (values.length > 1 || values.some((n) => !Number.isFinite(n) || n <= 0))
       throw new Error("单次模型预算无效");
-    const reserve = subscription
-      ? 0
-      : Math.min(state.policy.reserveUsd, values[0] ?? state.policy.reserveUsd);
-    if (!subscription && charged(state) + reserve > state.policy.limitUsd + 1e-9)
+    const reserve =
+      subscription || request.accountingOnly
+        ? 0
+        : Math.min(state.policy.reserveUsd, values[0] ?? state.policy.reserveUsd);
+    if (!request.accountingOnly && !subscription && charged(state) + reserve > state.policy.limitUsd + 1e-9)
       throw new Error("共享剩余预算不足，未启动模型");
     const args = [...request.args];
     const index = args.indexOf("--max-budget-usd");
     if (subscription && index >= 0) throw new Error("Codex 账户额度不能使用美元调用限额");
-    if (!subscription && index < 0) args.push("--max-budget-usd", String(reserve));
-    else if (!subscription) args[index + 1] = String(reserve);
+    if (!request.accountingOnly && !subscription && index < 0) args.push("--max-budget-usd", String(reserve));
+    else if (!request.accountingOnly && !subscription) args[index + 1] = String(reserve);
     const req = { ...request, args };
     const call = {
       id: randomUUID(),
@@ -197,6 +206,7 @@ export async function withBudget<
       startedAt: new Date().toISOString(),
       ownerPid: process.pid,
       state: "running" as const,
+      ...(request.accountingOnly ? { accountingOnly: true } : {}),
       ...(subscription ? { billing: "chatgpt" as const } : {}),
     };
     state.calls.push(call);
@@ -213,13 +223,14 @@ export async function withBudget<
       const state = read(root);
       const call = state.calls.find((c) => c.id === claim.call.id)!;
       const known = typeof costUsd === "number" && Number.isFinite(costUsd) && costUsd >= 0;
-      const failure = subscription
-        ? undefined
-        : !known
-          ? "费用未知，共享预算暂停"
-          : costUsd > call.reservedUsd
-            ? "实际消耗超过单次预留，共享预算暂停"
-            : undefined;
+      const failure =
+        subscription || request.accountingOnly
+          ? undefined
+          : !known
+            ? "费用未知，共享预算暂停"
+            : costUsd > call.reservedUsd
+              ? "实际消耗超过单次预留，共享预算暂停"
+              : undefined;
       call.state = subscription || known ? "finished" : "unknown";
       call.finishedAt = new Date().toISOString();
       if (known && !subscription) call.costUsd = costUsd;

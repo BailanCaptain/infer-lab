@@ -3,13 +3,13 @@
  * HTML, role-token and encoded-instruction passes. This is a risk filter, not a
  * trust verdict. Removed spans are excluded; blocked inputs return no compiler text.
  */
-export const SANITIZER_VERSION = "wiki-text-v1";
+export const SANITIZER_VERSION = "wiki-text-v2";
 const MAX_BYTES = 1024 * 1024;
 const INVISIBLE = /[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u{e0000}-\u{e007f}]/gu;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally detect control characters
 const CONTROL = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/;
 const INSTRUCTION =
-  /ignore (?:all )?(?:previous|above) instructions|disregard (?:all )?(?:previous|above)|(?:reveal|override|ignore|print|leak|show|return).{0,60}system prompts?|(?:忽略|无视|覆盖).{0,12}(?:指令|提示词)|(?:输出|泄露|显示).{0,12}系统提示词/i;
+  /ignore (?:all )?(?:previous|above) instructions|disregard (?:all )?(?:previous|above)|(?:reveal|override|ignore|print|leak|show|return).{0,60}system prompts?|(?:忽略|无视|覆盖)(?:之前|先前|此前|上面|上文|上述|以上|前面|原有|原始|全部|所有|当前|系统|开发者|用户|这些|那些|这条|这段|一切|的|\s){0,6}(?:指令|提示词)|(?:输出|泄露|显示).{0,12}系统提示词/i;
 const ROLE =
   /<\|(?:im_start|im_end|system|assistant|endoftext)\|>|\[\/?INST\]|<<\/?SYS>>|(?:^|\n)\s*(?:role:\s*(?:system|developer|assistant)|(?:system|developer|assistant|human):)/i;
 const ACTIVE_HTML =

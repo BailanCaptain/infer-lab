@@ -22,6 +22,8 @@ tools/wiki-runtime/
 tools/corpus/
 wiki/_jobs/budget/
 wiki/_jobs/sync/
+# Reproducible local parameter scan/review output (fixed inputs remain in seeds).
+wiki/lineage/params-*.json
 
 # 本机覆盖的同步配置（解释器路径等），见 scripts/wiki/sync.ts 的 readSyncConfig
 wiki/sync.config.local.json

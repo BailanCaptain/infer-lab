@@ -2,12 +2,14 @@ import { MessageSquare, RefreshCw, X } from "lucide-react";
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { wikiRequest } from "./api";
 import { ChatPane, useChat } from "./ChatDrawer";
+import { DropPane } from "./DropPane";
 import { ReviewPane, type ReviewSummary } from "./ReviewPane";
 import { StatusPane } from "./StatusPane";
 
-type Tab = "chat" | "review" | "status";
+type Tab = "chat" | "drop" | "review" | "status";
 const TABS: { id: Tab; label: string }[] = [
   { id: "chat", label: "问答" },
+  { id: "drop", label: "Drop" },
   { id: "review", label: "审阅" },
   { id: "status", label: "状态" },
 ];
@@ -160,6 +162,7 @@ export function WikiPanel({
       </div>
 
       <ChatPane chat={chat} hidden={tab !== "chat"} onReview={openReview} />
+      <DropPane hidden={tab !== "drop"} onReview={openReview} />
       <ReviewPane
         hidden={tab !== "review"}
         reviews={reviews}

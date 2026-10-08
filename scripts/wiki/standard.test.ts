@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { diagramSpecSchema, type LoadedDiagram } from "./diagrams";
+import { parsePage } from "./pages";
+import { revisePage, verifyRevision } from "./revisions";
 import {
   auditStandard,
   bodyLineOffset,
@@ -110,6 +112,31 @@ describe("b. evidence marks in prose", () => {
 });
 
 describe("c. 对照源码 sections", () => {
+  it("accepts engine revision history while still rejecting teaching sections after sources", () => {
+    const source = "r@1234567:config.py#L1";
+    const before = `---\nid: good\ntitle: Good\ntype: concept\nsummary: Example\nsources: [${source}]\nevidence: I\nupdated: '2026-10-08'\n---\n${goodBody()}\n旧开关默认开启。\n`;
+    const after = before.replace("旧开关默认开启。", "新版已移除旧开关。");
+    const decision = {
+      id: "good",
+      kind: "supersede" as const,
+      reason: "固定版本纠错",
+      claims: [{ old: "旧开关默认开启。", replacement: "新版已移除旧开关。", sources: [source] }],
+    };
+    const revised = revisePage("concepts/good.md", before, after, decision, "2026-10-08");
+    const body = parsePage("concepts/good.md", revised).page!.body;
+    expect(() => verifyRevision("concepts/good.md", before, revised, decision, "2026-10-08")).not.toThrow();
+    expect(rules(body)).toEqual([]);
+    for (const invalid of [
+      `${body}\n## 延伸阅读\n正文。`,
+      `${body}\n### 新教学节\n正文。`,
+      body.replace("## 已废弃的说法", "## 延伸阅读"),
+      body.replace("2026-10-08 · 修订", "2026-02-30 · 修订"),
+      `${goodBody()}\n## 已废弃的说法\n正文。`,
+    ])
+      expect(rules(invalid)).toContain("source-sections");
+    expect(rules(body.replace("### 怎么开", "### 改掉必需标题"))).toContain("source-sections");
+  });
+
   it("rejects a page without 对照源码", () => {
     expect(rules(goodBody({ tail: "" }))).toEqual(["source-sections"]);
   });

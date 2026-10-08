@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { CHAT_TIMEOUT_MS } from "../../server/chat";
 import { readKnowledgeSnapshot } from "../../server/snapshot";
 import type { RunAgent } from "./batch";
@@ -13,6 +13,21 @@ import { acceptRetest, prepareRetest, runRetest } from "./retest";
 import { approveReview, rejectReview } from "./review";
 import { wikiFixture } from "./test-fixture";
 import { boundSource, workerDue, workOne } from "./worker";
+
+vi.mock("../../server/answer-quality", () => ({
+  judgeAnswer: vi.fn(async (_root, input) => ({
+    status: "checked",
+    jobId: "d".repeat(64),
+    revision: input.snapshot.revision,
+    decision: {
+      satisfied: null,
+      classification: "undetermined",
+      reason: "固定夹具，仍需语义复核",
+      answerQuote: "",
+      evidence: [],
+    },
+  })),
+}));
 
 const policy = { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 };
 async function setup(question: string) {
@@ -193,6 +208,11 @@ it.each([false, true])(
       await approveReview(f.root, reviewId);
       const retested = await workOne(f.root, f.task.id, policy, { retry: true }, { runAgent, runChat: chat });
       expect(retested.state).toBe("awaiting-retest");
+      const receipt = JSON.parse(
+        readFileSync(join(f.root, `wiki/_jobs/retests/${f.task.id}.after-original.json`), "utf8"),
+      );
+      expect(receipt.quality).toMatchObject({ status: "checked", revision: receipt.revision });
+      expect(receipt.semanticStatus).toBe("needs-human-review");
       await runRetest(f.root, f.task.id, reviewId, chat);
       expect(chatCalls).toBe(8);
       const reviewed = await acceptRetest(f.root, f.task.id, {

@@ -217,7 +217,7 @@ describe("extractRequest", () => {
 });
 
 describe("integrateRequest", () => {
-  it("白名单：三个正式页目录与决策文件；stdin 列草稿 id", () => {
+  it("白名单只含本批目标与已提供的现有页；stdin 列草稿 id", () => {
     const req = integrateRequest(
       [
         { id: "a", chapters: ["11"], related: [] },
@@ -235,19 +235,35 @@ describe("integrateRequest", () => {
       "Read",
       "Grep",
       "Glob",
-      "Edit(concepts/**)",
-      "Edit(params/**)",
-      "Edit(sources/**)",
+      "Edit(concepts/a.md)",
+      "Edit(params/a.md)",
+      "Edit(sources/a.md)",
+      "Edit(concepts/b.md)",
+      "Edit(params/b.md)",
+      "Edit(sources/b.md)",
       "Edit(_drafts/_integration.json)",
     ]);
     expect(req.args[req.args.indexOf("--append-system-prompt") + 1]).toBe("PF\n\nIN");
     expect(req.stdin).toContain("_drafts/a.md");
     expect(req.allowedWrites).toEqual([
-      "concepts/**",
-      "params/**",
-      "sources/**",
+      "concepts/a.md",
+      "params/a.md",
+      "sources/a.md",
+      "concepts/b.md",
+      "params/b.md",
+      "sources/b.md",
       "_drafts/_integration.json",
     ]);
+  });
+  it("provides alias ownership outside the full-page window and protects existing anchors", () => {
+    const request = integrateRequest(
+      [{ id: "new", chapters: ["11"], related: [] }],
+      [{ id: "owner", file: "concepts/owner.md", chapters: ["20"], related: [], aliases: ["AscendConfig"] }],
+      ctx,
+    );
+    expect(request.stdin).toContain("AscendConfig");
+    expect(request.stdin).toContain("保留现有标题");
+    expect(request.allowedWrites).not.toContain("concepts/owner.md");
   });
 });
 

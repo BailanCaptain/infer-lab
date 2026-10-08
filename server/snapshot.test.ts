@@ -104,7 +104,7 @@ it("the running server observes new publications without restart and refuses an 
   for (const input of [null, { message: 3 }, { message: "", sessionId: {} }]) {
     const invalid = await fetch(`${base}/api/wiki/chat`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-wiki-review": "1", origin: base },
       body: JSON.stringify(input),
     });
     expect(invalid.status).toBe(400);

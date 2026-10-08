@@ -107,7 +107,7 @@ export async function reconcileBatch(
       origin: "seed",
       data: reconcileInput(selected),
       rules:
-        '检查提供的页面正文，返回严格 JSON {"relations":[{"from":"id","relation":{"to":"id","kind":"builds-on|variant-of|conflicts-with|alternative-to","note":"关系说明"},"evidence":[{"page":"id","text":"逐字引文"}]}],"contradictions":[{"a":{"page":"id","text":"引文"},"b":{"page":"id","text":"引文"},"reason":"理由"}],"duplicates":[{"a":"id","b":"id","reason":"理由"}]}。只提出缺失的声明方向；不要写反向边。引文必须来自提供正文，不能把同词出现当作关系成立。矛盾和重复只提待审线索，不删除页、不改写事实。',
+        '检查提供的页面正文，返回严格 JSON {"relations":[{"from":"a","relation":{"to":"b","kind":"builds-on|variant-of|conflicts-with|alternative-to","note":"关系说明"},"evidence":[{"page":"a","text":"a 页连续逐字引文"},{"page":"b","text":"b 页连续逐字引文"}]}],"contradictions":[{"a":{"page":"id","text":"引文"},"b":{"page":"id","text":"引文"},"reason":"理由"}],"duplicates":[{"a":"id","b":"id","reason":"理由"}]}。每条关系必须分别引用 from 页与 to 页的原文，至少两个端点各一条；from 页中提及或链接 to 页的文字仍只算 from 页证据，不能冒充 to 页引文。只提出缺失的声明方向；不要写反向边。引文必须来自提供正文，不能把同词出现当作关系成立。矛盾和重复只提待审线索，不删除页、不改写事实。',
       schema,
       policy,
       timeoutMs: PAGE_TEXT_TIMEOUT_MS,

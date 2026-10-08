@@ -536,8 +536,9 @@ function sse(frames: [string, unknown][]): string {
 
 test.describe("问答抽屉", () => {
   test("Codex 显示账户额度与请求模型，不伪造实际模型回执", async ({ page }) => {
-    await page.route("**/api/wiki/chat", (route) =>
-      route.fulfill({
+    await page.route("**/api/wiki/chat", (route) => {
+      expect(route.request().headers()["x-wiki-review"]).toBe("1");
+      return route.fulfill({
         status: 200,
         headers: { "content-type": "text/event-stream" },
         body: sse([
@@ -546,8 +547,8 @@ test.describe("问答抽屉", () => {
           ["cite", { cited: true, selfDeclaredUncovered: false }],
           ["done", { answerId: "a".repeat(64) }],
         ]),
-      }),
-    );
+      });
+    });
     await page.route("**/api/wiki/status", (route) =>
       route.fulfill({ json: { models: { chatProvider: "codex" } } }),
     );

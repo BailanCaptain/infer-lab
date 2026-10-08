@@ -17,6 +17,18 @@ import {
   verifyFix,
 } from "./github-trace";
 
+it("prioritizes exception plus traceback function before generic exception fallback", () => {
+  expect(
+    errorQueries("UnicodeDecodeError in elastic_client_handler register_handler\n请在线查近期相关讨论", 3)[0],
+  ).toBe("UnicodeDecodeError elastic_client_handler");
+  expect(
+    errorQueries(
+      "UnicodeDecodeError in elastic_client_handler register_handler\n请在线查 vLLM Ascend 近期讨论",
+      3,
+    ),
+  ).toContain("UnicodeDecodeError");
+});
+
 const config = traceConfigSchema.parse(JSON.parse(readFileSync("wiki/github-trace.config.json", "utf8")));
 const repo = "vllm-project/vllm-ascend";
 const issue = (number: number, pr = false) => ({
@@ -74,6 +86,29 @@ it("deduplicates candidates and reports incomplete GitHub search results", async
   expect(result.candidates).toHaveLength(2);
   expect(result.complete).toBe(false);
   expect(result.candidates[0]!.kind).toBe("issue");
+});
+
+it("keeps precise class/attribute matches ahead of newer generic exception matches", async () => {
+  const text = "AttributeError: 'UnquantizedFusedMoEMethod' object has no attribute 'is_monolithic'";
+  expect(errorQueries(text, 3)[0]).toBe("UnquantizedFusedMoEMethod is_monolithic");
+  const session = new TraceSession(
+    config,
+    client((url) => {
+      const precise = url.searchParams.get("q")?.startsWith("UnquantizedFusedMoEMethod is_monolithic");
+      return {
+        total_count: 1,
+        incomplete_results: false,
+        items: [
+          {
+            ...issue(precise ? 15815 : 9),
+            updated_at: precise ? "2026-09-01T00:00:00Z" : "2026-10-01T00:00:00Z",
+          },
+        ],
+      };
+    }),
+  );
+  const result = await searchErrors(session, searchPlan(config, text, new Date(), [repo]));
+  expect(result.candidates[0]!.number).toBe(15815);
 });
 
 it("does not turn an HTTP failure into a successful no-match result", async () => {

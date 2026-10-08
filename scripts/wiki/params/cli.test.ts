@@ -2,8 +2,70 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { wikiFixture } from "../test-fixture";
-import { paramId } from "./pages";
+import { buildParamPage, paramId } from "./pages";
 import { scanSources } from "./scan";
+
+it("plans canonical mapped ids and skips reference identities through the real ingestion CLI", () => {
+  const f = wikiFixture();
+  try {
+    const source = "class ExampleConfig:\n    limit: int = 1\n";
+    const entry = scanSources({ "config.py": source })[0]!;
+    const data = { repo: "r", ref: "main", commit: "a".repeat(40), entries: [entry] };
+    f.write("params.json", JSON.stringify(data));
+    f.write(
+      "wiki/params/legacy-limit.md",
+      buildParamPage({ ...data, entry, date: "2026-10-08", pageId: "legacy-limit" }),
+    );
+    const bindings = [
+      {
+        repo: "r",
+        file: entry.file,
+        class: entry.class,
+        json_path: entry.json_path,
+        pageId: "legacy-limit",
+        role: "definition",
+      },
+    ];
+    f.write("wiki/params/identities.json", JSON.stringify({ schemaVersion: 1, bindings }));
+    for (const name of ["limit", "legacy-limit", paramId(entry)]) {
+      const result = f.cli("wiki-ingest", ["--params", name, "--input", "params.json", "--dry-run"]);
+      expect(result.status, result.stderr).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({ targets: ["legacy-limit"], modelStarted: false });
+    }
+    const other = scanSources({ "other.py": "class OtherConfig:\n    limit: int = 2\n" })[0]!;
+    f.write("params.json", JSON.stringify({ ...data, entries: [entry, other] }));
+    const disambiguated = f.cli("wiki-ingest", [
+      "--params",
+      "legacy-limit",
+      "--input",
+      "params.json",
+      "--dry-run",
+    ]);
+    expect(disambiguated.status, disambiguated.stderr).toBe(0);
+    expect(JSON.parse(disambiguated.stdout)).toMatchObject({ targets: ["legacy-limit"] });
+    const unmapped = f.cli("wiki-ingest", [
+      "--params",
+      paramId(other),
+      "--input",
+      "params.json",
+      "--dry-run",
+    ]);
+    expect(unmapped.status).not.toBe(0);
+    expect(unmapped.stderr).toContain("旧参数页需要明确身份映射");
+    f.write("params.json", JSON.stringify(data));
+    bindings[0]!.role = "reference";
+    f.write("wiki/params/identities.json", JSON.stringify({ schemaVersion: 1, bindings }));
+    const reference = f.cli("wiki-ingest", ["--params", "limit", "--input", "params.json", "--dry-run"]);
+    expect(reference.status, reference.stderr).toBe(0);
+    expect(JSON.parse(reference.stdout)).toMatchObject({
+      targets: [],
+      skippedReferences: ["limit"],
+      modelStarted: false,
+    });
+  } finally {
+    f.cleanup();
+  }
+});
 
 it("builds one verified skeleton via the real CLI and preserves prose on an idempotent refresh", () => {
   const f = wikiFixture();

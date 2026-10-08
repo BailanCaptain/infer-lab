@@ -1,53 +1,106 @@
 ---
 id: mlp-residual-norm
-title: "MLP、residual 与 RMSNorm：一个子层怎样更新 hidden"
+title: MLP、residual 与 RMSNorm：一个子层怎样更新 hidden
 type: concept
-summary: 每个子层都是「residual 旁路原样保留输入 + 支路先 RMSNorm 再做 MLP 或注意力 + 两路相加」。讲清残差为什么让深网络训得动、推理为什么删不掉，RMSNorm 与 LayerNorm 差在哪，pre-norm 放在哪，SwiGLU 的 gate、up、限幅和 down，再落到 GLM 前 3 层稠密 MLP 与四条流。
-aliases: [MLP, FFN, 前馈网络, 前馈, 残差, residual, 残差连接, 归一化, LayerNorm, RMSNorm, 均方根归一化, pre-norm, Pre-Norm, post-norm, SwiGLU, SiLU, 门控前馈, 门控 MLP, swiglu_limit, 限幅, 中间宽度, intermediate_size, gate_up_proj, down_proj, input_layernorm, post_attention_layernorm, AscendGlm5NextMLP]
-chapters: ["03"]
+summary: >-
+  以单条 residual、pre-norm 和 RMSNorm 为例，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。区分 LayerNorm 与
+  RMSNorm、pre-norm 与 post-norm；再讲 SwiGLU 的 gate、up、限幅和 down，以及 GLM 前 3 层稠密 MLP
+  与四条流。
+aliases:
+  - MLP
+  - FFN
+  - 前馈网络
+  - 前馈
+  - 残差
+  - residual
+  - 残差连接
+  - 归一化
+  - LayerNorm
+  - RMSNorm
+  - 均方根归一化
+  - pre-norm
+  - Pre-Norm
+  - post-norm
+  - SwiGLU
+  - SiLU
+  - 门控前馈
+  - 门控 MLP
+  - swiglu_limit
+  - 限幅
+  - 中间宽度
+  - intermediate_size
+  - gate_up_proj
+  - down_proj
+  - input_layernorm
+  - post_attention_layernorm
+  - AscendGlm5NextMLP
+  - down-projection
+  - qk-norm
+  - Q/K Norm
+  - QK归一化
+chapters:
+  - '03'
 order: 70
 sources:
-  - https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2105-L2131
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2285-L2318
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1460-L1525
-  - vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L46-L56
-  - vllm@0fc695fc:vllm/model_executor/layers/activation.py#L154-L184
-  - vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L756
-  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L127
-  - vllm@0fc695fc:vllm/model_executor/layers/layernorm.py#L36-L102
-  - vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L82
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138
-  - vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350
-  - vllm-ascend@2c59ff10:vllm_ascend/utils.py#L736-L752
-  - vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L707-L723
-  - https://arxiv.org/abs/1512.03385
-  - https://arxiv.org/abs/1706.03762
-  - https://arxiv.org/abs/2002.04745
-  - https://arxiv.org/abs/1910.07467
-  - https://arxiv.org/abs/2002.05202
-  - vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L337
-  - vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123
-  - vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L44-L60
-  - vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619
+  - >-
+    https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2105-L2131'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2285-L2318'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1460-L1525'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L46-L56'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/activation.py#L154-L184'
+  - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L756'
+  - 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L127'
+  - 'vllm@0fc695fc:vllm/model_executor/layers/layernorm.py#L36-L102'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L82'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138'
+  - 'vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/utils.py#L736-L752'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L707-L723'
+  - 'https://arxiv.org/abs/1512.03385'
+  - 'https://arxiv.org/abs/1706.03762'
+  - 'https://arxiv.org/abs/2002.04745'
+  - 'https://arxiv.org/abs/1910.07467'
+  - 'https://arxiv.org/abs/2002.05202'
+  - 'vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L337'
+  - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123'
+  - 'vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L44-L60'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619'
+  - >-
+    https://github.com/huggingface/transformers/blob/5f4ecf2d9f867a1255131d2461d75793c0cf1db2/src/transformers/models/qwen3/modeling_qwen3.py#L62-L222
+  - 'vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242'
+  - 'vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: layers-and-hidden, kind: builds-on, note: 本页讲单条 residual；GLM 把它扩成四条流（mHC），混合、Sinkhorn 与代价在该页}
-  - {to: one-request, kind: builds-on, note: 第 4 站逐层前向里稠密 MLP 的每卡形状、字节与通信次数在主线页}
-  - {to: matmul-and-weights, kind: builds-on, note: gate、up、down 三个投影怎样做矩阵乘、为什么没有偏置、W8A8 权重怎样转置存放}
-  - {to: tensor-parallel, kind: builds-on, note: TP8 下稠密 MLP 先列切 gate 与 up、再行切 down，末尾一次 All-Reduce}
-  - {to: expert-parallel, kind: builds-on, note: 路由专家怎样按 EP16 分到 16 张卡、token 怎样派发与收回}
+  - to: layers-and-hidden
+    kind: builds-on
+    note: 本页讲单条 residual；GLM 把它扩成四条流（mHC），混合、Sinkhorn 与代价在该页
+  - to: one-request
+    kind: builds-on
+    note: 第 4 站逐层前向里稠密 MLP 的每卡形状、字节与通信次数在主线页
+  - to: matmul-and-weights
+    kind: builds-on
+    note: gate、up、down 三个投影怎样做矩阵乘、为什么没有偏置、W8A8 权重怎样转置存放
+  - to: tensor-parallel
+    kind: builds-on
+    note: TP8 下稠密 MLP 先列切 gate 与 up、再行切 down，末尾一次 All-Reduce
+  - to: expert-parallel
+    kind: builds-on
+    note: 路由专家怎样按 EP16 分到 16 张卡、token 怎样派发与收回
 contradicts: []
-updated: "2026-09-28"
-origin: direct
+updated: '2026-10-08'
+origin: gap
+rawSources:
+  - >-
+    raw/sha256-453fdb48c994a96c6b4491804bc60fc5843f28e98d22cbbc3104e5f675b3ed30.md
 ---
 
 ## 一个子层怎样更新 hidden，又不丢掉原来的输入？
 
-**Transformer 的每个子层都由三件东西拼成：一条把输入原样送到出口的 residual（残差连接）旁路；一条先做 RMSNorm、再做 MLP 或注意力的支路；最后把支路算出的改变量加回输入。**
+**本页先用「单条 residual（残差连接）、先归一化再计算」的子层作例子：一条旁路把输入原样送到出口，另一条支路先做 RMSNorm、再做 MLP 或注意力，最后把支路算出的改变量加回输入。** 这是本页选用的结构；归一化还可以选 LayerNorm，也可以放在两路相加之后。下文分别解释这些选择，GLM 的四条残差流在部署一节展开。
 
 这里的 hidden 是模型给每个输入位置维护的一条中间向量，宽度记作 H（见[层与 hidden](layers-and-hidden.md)）。RMSNorm（均方根归一化）把这条向量除以它自身的均方根、再逐维乘一组学到的系数，让送进支路的数值大小保持稳定。MLP（前馈网络，也叫 FFN）是对每个位置单独做「升宽 → 非线性 → 降回原宽」的一个小网络。下图以 MLP 子层为例：
 
@@ -61,7 +114,7 @@ file: mlp-residual-layer
 2. **支路算改变量。** gate 和 up 两个投影把 H 维升到更宽的 F 维；gate 这一路过 SiLU（一种平滑的非线性函数），再和 up 逐元素相乘；down 投影把结果降回 H 维，得到改变量 Δ。
 3. **相加。** y = x + Δ。两路逐元素相加，形状必须一样，所以支路最后一定回到 H 维。
 
-MLP 对每个位置各算一遍，所有位置共用同一套权重，位置之间不交换信息；在位置之间搬运信息是注意力子层的事。MLP 的输入已经带着注意力汇总来的上下文，所以它加工的是「这个位置在上下文里的表示」。一层 Transformer 由两个这样的子层串成：先注意力子层，再 MLP 子层，两段都套着同一种「旁路 + 归一化支路 + 相加」的结构。
+MLP 对每个位置各算一遍，所有位置共用同一套权重，位置之间不交换信息；在位置之间搬运信息是注意力子层的事。MLP 的输入已经带着注意力汇总来的上下文，所以它加工的是「这个位置在上下文里的表示」。在这个示例里，一层由两个这样的子层串成：先注意力子层，再 MLP 子层，两段都套着同一种「旁路 + 归一化支路 + 相加」的结构。
 
 ## 为什么要这条旁路和归一化，代价在哪？
 
@@ -69,7 +122,7 @@ MLP 对每个位置各算一遍，所有位置共用同一套权重，位置之�
 
 ### 残差连接保留一条输入路径
 
-单条 residual 的子层写成 **Y = X + F(Norm(X))**：F 是注意力或 MLP，Norm 是 RMSNorm，X 同时沿旁路直接参与最后的相加。
+单条 residual 的 pre-norm 子层写成 **Y = X + F(Norm(X))**：F 是注意力或 MLP，Norm 是所选的归一化，本页示例取 RMSNorm，GPT-2 则取 LayerNorm；X 同时沿旁路直接参与最后的相加。
 
 **为什么深网络需要它。** ResNet 的作者发现，没有旁路时把网络加深，连训练误差都会变高，这不是过拟合，而是深层网络本身难以优化；改成让每层只学「在输入上改多少」（F(x) = 目标 − x），再把输入加回来，几十上百层也能训下去。恒等旁路不带参数，也几乎不增加计算。从梯度（训练时告诉每个权重该往哪个方向改、改多少的信号，从输出一层层往前传）看，Y 对 X 的导数是「单位矩阵 + F 的导数」，其中单位矩阵那一项让梯度不必穿过每一层的权重，就能沿旁路直接传回前面的层。
 
@@ -111,15 +164,33 @@ RMSNorm 的输出仍是 3 : 4，方向没变，只是长度被缩放到均方根
 
 **pre-norm 只归一化支路的输入，旁路从头到尾保持恒等；原始 Transformer 则把归一化放在相加之后，叫 post-norm。**
 
-原始 Transformer 的子层是 Norm(x + F(x))：先相加，再对和做归一化。后来的分析发现，post-norm 在训练初期靠近输出的几层梯度偏大，必须先用很小的学习率「预热」一段（学习率是每一步训练改动权重的幅度，预热指训练开头先用很小的幅度、再逐步调大）；换成 pre-norm，即 x + F(Norm(x))，梯度更平稳，可以去掉预热。现在的大模型基本都用 pre-norm。
+原始 Transformer 的子层是 Norm(x + F(x))：先相加，再对和做归一化。后来的分析发现，post-norm 在训练初期靠近输出的几层梯度偏大，必须先用很小的学习率「预热」一段（学习率是每一步训练改动权重的幅度，预热指训练开头先用很小的幅度、再逐步调大）；换成 pre-norm，即 x + F(Norm(x))，梯度更平稳，可以去掉预热。pre-norm 规定的是归一化的位置，不规定用 RMSNorm 还是 LayerNorm。下面比较单条残差的两种排法；最终归一化一行列的是常见模型设计。
 
 | | post-norm | pre-norm |
 |---|---|---|
 | 归一化的位置 | 两路相加之后 | 支路入口 |
 | 旁路上的 hidden | 每个子层都被归一化一次 | 从第一层到最后一层都不经过归一化 |
-| 最后一层之后 | 输出已经归一化 | 还要补一次最终归一化，再做输出投影 |
+| 最后一层之后（常见设计） | 子层输出已经过归一化 | 通常另设最终归一化，再做输出投影 |
 
-表的最后一行是 pre-norm 的直接后果：旁路上的数值一路累加却从不归一化，所以最后一层之后必须再做一次 RMSNorm，才能交给输出投影算每个词的分数。
+pre-norm 的旁路保留累加后的数值，因此模型常在整叠层之后另设最终归一化，调整送入输出投影的尺度；是否设置、采用哪种归一化仍由模型结构决定。固定源码中的 GPT-2 末尾用 LayerNorm，本页 GLM 末尾用 RMSNorm，不能仅凭 pre-norm 这个排法推出末尾必须是 RMSNorm。
+
+### Q/K Norm：先按头归一化，再加入位置
+
+**Q/K Norm 在注意力内部调整 Q、K 的尺度：每个 token 的每个头，分别按头内各维做归一化。** Q 是当前位置的查询向量，K 是被查询位置的键向量，两者做点积得到注意力分数；一个头是独立计算这组分数的一条通道，见 [Attention 与 Q/K/V](attention-qkv.md#多头同一个位置同时按几套方式去读)。下面讲课程采用的 **Qwen3 / Transformers v4.51.3 实现**：它在 Q、K 投影后做逐头 RMSNorm，再做 [RoPE](rope.md)（按位置旋转 Q、K）。V 是用来加权汇总的内容向量，这一步不对 V 做归一化。
+
+为什么在这里再调一次尺度：Q、K 已经过各自的投影，大小可以不同；点积同时受方向和两条向量的大小影响。逐头 RMSNorm 先按各自的均方根缩放，再乘学到的增益，让进入打分的尺度由这一层的计算和参数共同控制。它是 Qwen3 模型结构的一部分，推理时应沿用训练时的顺序，不能把普通模型临时加上这一步当作等价优化。
+
+| 比较项 | 子层入口的 pre-norm | 这里的 Q/K Norm |
+|---|---|---|
+| 处理哪条向量 | 每个 token 的整条 hidden | 每个 token 的每个 Q 头、每个 K 头 |
+| 求平方均值的范围 | hidden 宽度 H | 单个头的宽度 dₕ |
+| 在注意力里的位置 | Q/K/V 投影之前 | Q/K 投影之后、RoPE 之前 |
+
+计算沿用上面的 RMSNorm 公式，只把求平均的范围从 H 换成 dₕ。接着同一组示意数：某个头的 q = [3, 4]，取 γ = 1、ε = 0，输出仍是已经算出的 [0.849, 1.131]；另一个头即使是 [6, 8]，也要用它自己的均方根 7.071，输出同样约为 [0.849, 1.131]。两个头各算各的，不能把四个数拼起来求一个均方根。这里调到的是均方根为 1，向量的长度为 √2；一般的可学习 γ 和非零 ε 又会改变这个结果，所以不能把它叫作“单位长度归一化”。
+
+把批大小记作 B、token 数记作 T，Q/K 头数分别记作 n_q、n_kv，Q 的形状是 [B, T, n_q, dₕ]，K 是 [B, T, n_kv, dₕ]。这一步只沿最后一维求均值，形状不变，不混合不同 token 或不同头。**计算按头独立，增益参数却在同一层的各个头之间共享**：Q 一组 dₕ 个参数、K 另一组 dₕ 个参数，共 2dₕ 个；并非每个头各学一套。每个 token 多做 n_q + n_kv 次头内归一化，每次处理 dₕ 个数；实际耗时取决于实现，本页没有硬件实测。
+
+GLM 主线里也有注意力内部的 RMSNorm，但处理的是低秩向量，具体范围见后文“哪几层和一般走法不一样”。不能把上面的 Qwen3 逐头顺序直接套到 GLM 双机。
 
 ### MLP 为什么值得占一半子层
 
@@ -260,6 +331,7 @@ TP8 下，这对矩阵按「先列后行」切：每卡持有 gate 和 up 各 15
 - **「residual 只是训练技巧，推理时可以省掉。」** 不能省。每个子层学到的是在输入上的改变量，拿掉相加就换成了另一个函数，输出会完全不同。
 - **「RMSNorm 把每一维变成一样大，或者在 token 之间求平均。」** 都不对。它只在同一个位置的 H 维之内求平方均值，所有维除以同一个数，比例保留；γ 每维各学一个。
 - **「RMSNorm 就是 LayerNorm 换了个名字。」** 差一步：LayerNorm 先减均值再除以标准差，RMSNorm 不减均值、直接除以均方根。[3, 4] 的例子里前者给出 [−1, 1]，后者保留 3 : 4。
+- **「Q/K Norm 把所有头一起归一化，或每个头各学一套增益。」** 本页的 Qwen3 实现按每个 token、每个头单独求均方根；同一层内 Q 的各头共享一组增益，K 的各头共享另一组。它在 RoPE 之前，不能和投影前的 pre-norm 互换。
 - **「门控就是开关，gate 决定某一维开或关。」** SiLU 是连续函数，门控给出的是连续的缩放系数（手算例子里是 1.74、−0.06、0.16、0.85），不是离散的开或关。
 - **「限幅 10 是把 MLP 的输出夹到 ±10。」** 夹的是 SiLU 之前的两路输入：gate 只限上界，up 两边都限。中间值的绝对值上限约为 100，经过 down 投影后的输出也不受 10 的约束。
 - **「SwiGLU 是运行时给普通 MLP 打开的选项。」** 它多一个投影，结构不同，三组权重要按这个结构训练；已有的两投影 MLP 不能靠开关变成 SwiGLU。
@@ -325,6 +397,9 @@ main 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同�
 
 来源与结论的对应：
 
+- 归一化类型与位置是不同选择：固定 vLLM 的 GPT-2 子层在支路入口和整叠层末尾都用 LayerNorm；[C27] OPT 根据配置把 LayerNorm 放在支路入口或残差相加之后。[C28] 这两处是首屏示例适用范围的源码反例，GLM 的 RMSNorm 仍以本页 C3–C5 为依据。
+
+- Qwen3 的逐头归一化范围、共享增益及投影 → RMSNorm → RoPE 顺序：Transformers v4.51.3 固定提交 `5f4ecf2d`。`Qwen3RMSNorm` 沿最后一维求均值，`Qwen3Attention` 为 Q、K 各建立一份长度为 head_dim 的权重，forward 先归一化再旋转。[C26] 该来源只支持上文 Qwen3 小节，不替代“版本差异”一节的 vLLM-Ascend 三版本 GLM 对照。
 - 深网络不加旁路会训练退化、恒等旁路不加参数：ResNet 原论文。[S17]
 - 原始 Transformer 的 post-norm 写法、MLP 取 F = 4H 与 ReLU：Transformer 原论文。[S18]
 - post-norm 需要学习率预热、pre-norm 梯度更平稳：pre-norm 分析论文。[S19]
@@ -338,3 +413,144 @@ main 对子层前 RMSNorm 与 mHC 的改动（RMSNorm 挪进入口混合的同�
 - **限幅激活实际走哪个实现。** Ascend 把 `AscendSiluAndMulWithClamp` 以 `SiluAndMulClamp` 为键注册，[C9] 而 vLLM 登记时用给定的名字作键、[C22] 实例化自定义算子时却按类名 `SiluAndMulWithClamp` 查替换表，[C10] 两个名字不同，三个版本一样。静态读码推断：GLM 实例化的是上游类，在 NPU 上走默认的 PyTorch 写法（先截断、再 SiLU、再相乘），不调用 `npu_swiglu`。影响范围只有前 3 层稠密 MLP。42 层的 shared expert 不受影响：W8A8 下 `_forward_shared_experts` 直接取 gate_up 与 down 的权重和缩放系数，走 `npu_dynamic_quant` → `npu_quant_matmul` → `npu_dequant_swiglu_quant`（上限经 `clamp_limit` 传入）→ `npu_quant_matmul`，不调用模块的 forward，[C25] 见 [MoE](moe.md#共享专家按-tp8-切走融合算子)；routed experts 走 fused MoE 自己的限幅参数，也不受影响。连带后果：Ascend 版里为 down 投影预取权重的两个钩子也不会触发。两种写法数学相同，差别只在算子和性能；缺运行日志或 profiling 确认。
 - 稠密 MLP 的 W8A8 具体命中哪个计算分支、是否把反量化与 SwiGLU 融合，没有逐行跟到底，见[量化](quantization.md)。
 - NPU 的 RMSNorm 算子与公式的数值等价没有实测，也没有这三件东西的内核耗时数据；专用镜像内最终安装的包组合未核。
+
+## 已废弃的说法
+
+### 2026-10-08 · 修订 4b20640b5af690d5
+
+旧说法（历史记录，已废弃）：
+
+```text
+**Transformer 的每个子层都由三件东西拼成：一条把输入原样送到出口的 residual（残差连接）旁路；一条先做 RMSNorm、再做 MLP 或注意力的支路；最后把支路算出的改变量加回输入。**
+```
+
+替代结论：
+
+```text
+**本页先用「单条 residual（残差连接）、先归一化再计算」的子层作例子：一条旁路把输入原样送到出口，另一条支路先做 RMSNorm、再做 MLP 或注意力，最后把支路算出的改变量加回输入。** 这是本页选用的结构；归一化还可以选 LayerNorm，也可以放在两路相加之后。下文分别解释这些选择，GLM 的四条残差流在部署一节展开。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
+
+- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
+
+旧说法（历史记录，已废弃）：
+
+```text
+一层 Transformer 由两个这样的子层串成：先注意力子层，再 MLP 子层，两段都套着同一种「旁路 + 归一化支路 + 相加」的结构。
+```
+
+替代结论：
+
+```text
+在这个示例里，一层由两个这样的子层串成：先注意力子层，再 MLP 子层，两段都套着同一种「旁路 + 归一化支路 + 相加」的结构。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
+
+- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
+
+旧说法（历史记录，已废弃）：
+
+```text
+单条 residual 的子层写成 **Y = X + F(Norm(X))**：F 是注意力或 MLP，Norm 是 RMSNorm，X 同时沿旁路直接参与最后的相加。
+```
+
+替代结论：
+
+```text
+单条 residual 的 pre-norm 子层写成 **Y = X + F(Norm(X))**：F 是注意力或 MLP，Norm 是所选的归一化，本页示例取 RMSNorm，GPT-2 则取 LayerNorm；X 同时沿旁路直接参与最后的相加。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
+
+- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
+
+旧说法（历史记录，已废弃）：
+
+```text
+现在的大模型基本都用 pre-norm。
+```
+
+替代结论：
+
+```text
+pre-norm 规定的是归一化的位置，不规定用 RMSNorm 还是 LayerNorm。下面比较单条残差的两种排法；最终归一化一行列的是常见模型设计。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
+
+- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
+
+旧说法（历史记录，已废弃）：
+
+```text
+| 最后一层之后 | 输出已经归一化 | 还要补一次最终归一化，再做输出投影 |
+```
+
+替代结论：
+
+```text
+| 最后一层之后（常见设计） | 子层输出已经过归一化 | 通常另设最终归一化，再做输出投影 |
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
+
+- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
+
+旧说法（历史记录，已废弃）：
+
+```text
+表的最后一行是 pre-norm 的直接后果：旁路上的数值一路累加却从不归一化，所以最后一层之后必须再做一次 RMSNorm，才能交给输出投影算每个词的分数。
+```
+
+替代结论：
+
+```text
+pre-norm 的旁路保留累加后的数值，因此模型常在整叠层之后另设最终归一化，调整送入输出投影的尺度；是否设置、采用哪种归一化仍由模型结构决定。固定源码中的 GPT-2 末尾用 LayerNorm，本页 GLM 末尾用 RMSNorm，不能仅凭 pre-norm 这个排法推出末尾必须是 RMSNorm。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242`
+
+- `vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `https://huggingface.co/zai-org/GLM-5.3-Flash/blob/690b705278a3a58e538fcb37c2ca8b5f9511213c/config.json`
+2. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1403-L1442`
+3. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2105-L2131`
+4. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2189-L2241`
+5. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2285-L2318`
+6. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1460-L1525`
+7. `vllm-ascend@db701c1f:vllm_ascend/ops/activation.py#L46-L56`
+8. `vllm@0fc695fc:vllm/model_executor/layers/activation.py#L154-L184`
+9. `vllm-ascend@db701c1f:vllm_ascend/utils.py#L735-L756`
+10. `vllm@0fc695fc:vllm/model_executor/custom_op.py#L109-L127`
+11. `vllm@0fc695fc:vllm/model_executor/layers/layernorm.py#L36-L102`
+12. `vllm-ascend@db701c1f:vllm_ascend/ops/layernorm.py#L28-L82`
+13. `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138`
+14. `vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350`
+15. `vllm-ascend@2c59ff10:vllm_ascend/utils.py#L736-L752`
+16. `vllm-ascend@2ed6cbba:vllm_ascend/utils.py#L707-L723`
+17. `https://arxiv.org/abs/1512.03385`
+18. `https://arxiv.org/abs/1706.03762`
+19. `https://arxiv.org/abs/2002.04745`
+20. `https://arxiv.org/abs/1910.07467`
+21. `https://arxiv.org/abs/2002.05202`
+22. `vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L337`
+23. `vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123`
+24. `vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L44-L60`
+25. `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619`
+26. `https://github.com/huggingface/transformers/blob/5f4ecf2d9f867a1255131d2461d75793c0cf1db2/src/transformers/models/qwen3/modeling_qwen3.py#L62-L222`

@@ -4,7 +4,8 @@ title: multistream_overlap_gate
 type: param
 summary: >-
   v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare
-  里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 上会让进程起不来。
+  里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 通常拒收，能发现
+  vLLM-Omni 时会警告并过滤未知顶层键。
 aliases:
   - FlashComm3 多流重叠门控
   - 多流门控重叠
@@ -41,15 +42,22 @@ sources:
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L153'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L438-L494'
   - 'vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L268-L291'
-verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
+verified:
+  - main
+  - releases/v0.23.0
+  - releases/v0.26.0rc
 evidence: C
 relations:
   - to: ascend-config-system
     kind: builds-on
-    note: 它是 additional_config 里的一个键，main 上让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra="forbid" 的模式校验
+    note: >-
+      它是 additional_config 里的一个键，main 上通常让启动失败的不是 MoE 代码，而是 AscendConfig 那层
+      extra="forbid" 的模式校验
 contradicts: []
-updated: "2026-10-02"
+updated: '2026-10-08'
 rawSources:
+  - >-
+    raw/sha256-36624e5fb90c839df56eefbde64f189759712d22035d7e1b93292fb9afd596fb.md
   - >-
     raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md
   - >-
@@ -62,7 +70,7 @@ rawSources:
 
 它挑食得厉害：模型得有共享专家、MoE 得是 W8A8-dynamic 或 MXFP8 量化的、序列并行得开着（vllm-ascend 自己的 FlashComm1，或者图编译 pass 版的 SP，两者都算，见[序列并行在 vllm-ascend 里的接法](../concepts/sequence-parallel.md#vllm-ascend-里的-sp-是怎样接进去的)）——三条少一条，要么白开，要么第一次前向直接断言失败。反过来说，稠密模型（没有 MoE 层）、或者只有一张卡、没有专家并行的部署，这个开关根本无处可用。GLM 双机这条主线没开这个键；硬开会怎样，见「开了的代价」最后一段。
 
-**存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起这个开关连同整套 FlashComm3 实现被删干净，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩一处引用，是哪个 PR 删的见下面「版本谱系」。**升级前都得从启动命令里删掉，但两边留着的后果不同** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C23]，服务照常起来、重叠一次都不会发生；main 的 `extra="forbid"` 则把它当错别字拒绝，进程直接起不来（唯一的例外见「开了的代价」第 8 条）。
+**存在范围**：它到 v0.23 维护分支为止能用，v0.24.0rc 起这个开关连同整套 FlashComm3 实现被删干净，v0.26 分支（2026-09-17 的源码快照）与 main 开发主线上都不剩一处引用，是哪个 PR 删的见下面「版本谱系」。**升级前都得从启动命令里删掉，但两边留着的后果不同** [!]：v0.26 的 `AscendConfig` 还是普通类，逐个键 `.get()` 取值，不认识的键被静默忽略 [C23]，服务照常起来、重叠一次都不会发生；main 的 `extra="forbid"` 通常会拒收；若能发现 vLLM-Omni，未知顶层键会警告并过滤，功能仍已删除（详见「开了的代价」第 8 条）。
 
 ## 事实表
 
@@ -188,3 +196,52 @@ v0.23.0 里 `AscendMoERunner`（新）和 `AscendFusedMoE`（legacy）两套实�
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
+
+## 已废弃的说法
+
+### 2026-10-08 · 修订 246c6aa2616ddd09
+
+旧说法（历史记录，已废弃）：
+
+```text
+main 的 `extra="forbid"` 则把它当错别字拒绝，进程直接起不来（唯一的例外见「开了的代价」第 8 条）。
+```
+
+替代结论：
+
+```text
+main 的 `extra="forbid"` 通常会拒收；若能发现 vLLM-Omni，未知顶层键会警告并过滤，功能仍已删除（详见「开了的代价」第 8 条）。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1679`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L139-L140`
+2. `vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L78-L79`
+3. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L372-L383`
+4. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L600-L640`
+5. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L655-L658`
+6. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L834-L881`
+7. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe.py#L883-L894`
+8. `vllm-ascend@2c59ff10:vllm_ascend/flash_common3_context.py#L1-L41`
+9. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L52-L59`
+10. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/prepare_finalize.py#L363-L399`
+11. `vllm-ascend@2c59ff10:vllm_ascend/distributed/parallel_state.py#L104-L108`
+12. `vllm-ascend@2c59ff10:vllm_ascend/distributed/utils.py#L21-L47`
+13. `vllm-ascend@2c59ff10:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L269`
+14. `vllm-ascend@2c59ff10:vllm_ascend/lora/fused_moe.py#L82-L87`
+15. `vllm-ascend@2c59ff10:vllm_ascend/_310p/fused_moe/fused_moe.py#L182-L184`
+16. `vllm-ascend@2c59ff10:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L192-L207`
+17. `vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L235-L241`
+18. `vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L59-L61`
+19. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L437-L455`
+20. `vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L140`
+21. `vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L64`
+22. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1679`
+23. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73`
+24. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L153-L153`
+25. `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L438-L494`
+26. `vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/prepare_finalize.py#L268-L291`

@@ -211,6 +211,7 @@ async function main() {
       chapters: pg.fm.chapters,
       relations: pg.fm.relations,
       related: pg.fm.related,
+      aliases: pg.fm.aliases,
     });
     const MARK_RE = /\[[SCDAIM!]\d*\](?![\w-])/g;
     const draftRefs = draftIds.map((id) => {

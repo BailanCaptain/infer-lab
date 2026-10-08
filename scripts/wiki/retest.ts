@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { z } from "zod";
+import { judgeAnswer } from "../../server/answer-quality";
 import { buildChatRequest, CHAT_TIMEOUT_MS, runChat } from "../../server/chat";
 import { retrieveChatContext } from "../../server/chat-route";
 import { checkAnswerCitations } from "../../server/citations";
@@ -11,6 +12,7 @@ import {
   readKnowledgeSnapshotInLock,
   verifySnapshot,
 } from "../../server/snapshot";
+import type { AnswerQuality } from "../../src/content/wiki/answer-quality";
 import { withBudget } from "./budget";
 import { listGaps } from "./gap-ledger";
 import { MODEL_ID, WORK_MODEL } from "./model-use";
@@ -205,6 +207,21 @@ export async function runRetest(
       throw error;
     }
     verifySnapshot(root, location, snapshot);
+    let quality: AnswerQuality = { status: "unavailable", reason: "作答未成功，未启动评判" };
+    if (outcome.ok && answer.trim()) {
+      try {
+        quality = await judgeAnswer(root, {
+          question: c.question,
+          contextQuestions: [],
+          answer,
+          snapshot,
+          evidencePages: pages,
+          selection,
+        });
+      } catch (error) {
+        quality = { status: "unavailable", reason: String(error) };
+      }
+    }
     const result = {
       kind: c.kind,
       question: c.question,
@@ -215,6 +232,7 @@ export async function runRetest(
       reviewId,
       planHash: digest(JSON.stringify(plan)),
       semanticStatus: "needs-human-review",
+      quality,
     };
     atomicText(path, JSON.stringify(result, null, 2));
     results.push(result);

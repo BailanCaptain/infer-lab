@@ -1,13 +1,11 @@
+import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
+import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { initBudget, withBudget } from "../scripts/wiki/budget";
 import { WORK_MODEL } from "../scripts/wiki/model-use";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
-import { readStatus } from "./status";
-import { saveChatModel } from "./status";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { createServer } from "node:http";
-import { handleStatus } from "./status";
+import { handleStatus, readStatus, saveChatModel } from "./status";
 
 it("model selection endpoint requires the local writer guard and validates the body", async () => {
   const f = wikiFixture();
@@ -77,7 +75,11 @@ afterEach(() => {
 it("reports what used to need file spelunking: budget, nightly guard rails, and content gaps", async () => {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write("wiki/concepts/kv-cache.md", "x");
+  f.write(
+    "wiki/concepts/cache-guide.md",
+    "---\nid: cache-guide\ntitle: Cache guide\ntype: concept\nsummary: cache\naliases: [kv-cache]\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: I\nupdated: '2026-10-06'\n---\nCache explanation",
+  );
+  f.write("wiki/concepts/rope.md", "invalid frontmatter");
   f.write("wiki/sync.config.json", JSON.stringify({ maxNewParamPages: 10 }));
   f.write(
     "wiki/_jobs/sync/last-run.json",
@@ -97,7 +99,8 @@ it("reports what used to need file spelunking: budget, nightly guard rails, and 
     spendsMoney: false,
     lastRun: { status: "succeeded" },
   });
-  expect(s.pages).toEqual({ concepts: 1, params: 0, sources: 0 });
+  expect(s.pages).toEqual({ concepts: 2, params: 0, sources: 0 });
+  expect(s.todo.termEntries).toContainEqual({ term: "kv-cache", id: "cache-guide", title: "Cache guide" });
   expect(s.todo.missingTerms).not.toContain("kv-cache");
   expect(s.todo.missingTerms).toContain("rope");
   expect(s.todo.pendingReviews).toBe(0);

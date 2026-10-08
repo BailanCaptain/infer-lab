@@ -4,8 +4,8 @@ title: weight_prefetch_config
 type: param
 summary: >-
   v0.23.0 的 additional_config 开关，把 linear 层权重提前搬进 L2 cache，藏在 vector
-  计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main
-  上通常报错。GLM 双机默认没开；手动开启后 MoE 路径取不到权重，稀疏 MLA 可发预取，attn.o 仍须核量化与输入类型。
+  计算背后；v0.24.0rc 起整套机制已删除，v0.26 上传这个键被静默忽略，main 上通常报错。GLM 双机默认没开；手动开启后 MoE
+  路径取不到权重，稀疏 MLA 可发预取，attn.o 仍须核量化与输入类型。
 aliases:
   - 权重预取配置
   - weight prefetch
@@ -48,8 +48,7 @@ sources:
     vllm-ascend@2c59ff1047573f40a471cf7535f01a8877344415:vllm_ascend/ascend_config.py#L52
   - 'vllm-ascend@baa023ad:docs/source/user_guide/release_notes.md#L56-L62'
   - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
-  - >-
-    vllm-ascend@baa023ad:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22
+  - 'vllm-ascend@baa023ad:vllm_ascend/model_executor/offloader/prefetch.py#L1-L22'
   - 'vllm-ascend@baa023ad:docs/source/tutorials/models/Qwen3-Dense.md#L541-L541'
   - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L73'
   - 'vllm-ascend@2ed6cbba:docs/source/tutorials/models/Qwen3-Dense.md#L554-L554'
@@ -73,28 +72,37 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1577-L1597'
   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L1916-L1963'
   - 'vllm-ascend@db701c1f:vllm_ascend/models/glm5_next.py#L2272-L2286'
-  - 'vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1118-L1135'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/spec_decode/llm_base_proposer.py#L1118-L1135
   - 'vllm-ascend@db701c1f:vllm_ascend/worker/model_runner_v1.py#L2263-L2278'
   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L1305-L1312'
   - 'vllm@0fc695fc:vllm/model_executor/models/utils.py#L632-L663'
   - 'vllm@0fc695fc:vllm/distributed/utils.py#L109-L154'
   - 'vllm-ascend@db701c1f:vllm_ascend/attention/sfa_v1.py#L1650-L1666'
   - 'vllm-ascend@db701c1f:vllm_ascend/ascend_forward_context.py#L240-L252'
-  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_static.py#L74-L122'
-  - 'vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L287'
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_static.py#L74-L122
+  - >-
+    vllm-ascend@db701c1f:vllm_ascend/quantization/methods/w8a8_dynamic.py#L262-L287
   - 'vllm-ascend@db701c1f:vllm_ascend/attention/mla_v1.py#L73-L73'
-  - 'https://huggingface.co/Qwen/Qwen3-0.6B/blob/167b8104f88905a951069f5f95f9776908da5f68/config.json'
-verified: ["main", "releases/v0.23.0", "releases/v0.26.0rc"]
+  - >-
+    https://huggingface.co/Qwen/Qwen3-0.6B/blob/167b8104f88905a951069f5f95f9776908da5f68/config.json
+verified:
+  - main
+  - releases/v0.23.0
+  - releases/v0.26.0rc
 evidence: C
 relations:
   - to: ascend-config-system
     kind: builds-on
-    note: 它只是 additional_config 里的一个子配置对象；main 上被 extra="forbid" 当未知键拒收的机制在那一页
+    note: 它只是 additional_config 里的一个子配置对象；main 上通常被 extra="forbid" 当未知键拒收的机制在那一页
 contradicts: []
-updated: "2026-10-02"
+updated: '2026-10-08'
 rawSources:
   - >-
     raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md
+  - >-
+    raw/sha256-669825d31e19eba54d1ab853de8f72aca723f16b488158a6679255363551ffee.md
   - >-
     raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md
 ---

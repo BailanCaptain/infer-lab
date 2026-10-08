@@ -1,9 +1,14 @@
-import { citedPageLinks } from "../src/content/wiki/retrieve";
+import { citedPageLinks, matchesCitedPage } from "../src/content/wiki/retrieve";
 import type { KnowledgeSnapshot } from "./snapshot";
 
 /** Navigation comes from the same snapshot as the answer, not invented link labels from the model. */
 export function relatedReading(answer: string, snapshot: Pick<KnowledgeSnapshot, "registry">) {
-  const cited = new Set(citedPageLinks(answer).map((path) => path.split("/").at(-1)!.replace(/\.md$/, "")));
+  const hrefs = citedPageLinks(answer);
+  const cited = new Set(
+    snapshot.registry.pages
+      .filter((page) => hrefs.some((href) => matchesCitedPage(href, page.file)))
+      .map((page) => page.id),
+  );
   const links = new Map<string, { id: string; title: string; href: string; note: string }>();
   for (const page of snapshot.registry.pages.filter((p) => cited.has(p.id))) {
     for (const edge of [

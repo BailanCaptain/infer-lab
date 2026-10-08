@@ -88,6 +88,24 @@ export function parseRepoRef(ref: string): RepoRef | null {
 }
 
 const idField = z.string().regex(ID_RE, "id 必须是 kebab-case");
+export const tocPlacementSchema = z
+  .object({
+    part: z.enum([
+      "guide",
+      "models",
+      "inference",
+      "architecture",
+      "hardware",
+      "distributed",
+      "performance",
+      "serving",
+      "rfork",
+      "params",
+      "references",
+    ]),
+    section: z.string().trim().min(1).max(80),
+  })
+  .strict();
 
 /**
  * 页与页之间的边有类型、有方向。
@@ -127,6 +145,7 @@ export const relationSchema = z.object({
 export type Relation = z.infer<typeof relationSchema>;
 
 export const pageFrontmatterSchema = z.object({
+  toc: tocPlacementSchema.optional(),
   id: idField,
   title: z.string().min(1),
   type: z.enum(PAGE_TYPES),

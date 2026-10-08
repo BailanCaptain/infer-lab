@@ -85,11 +85,14 @@ it("reopens a closed gap only after three new observations while retaining its o
   for (let i = 0; i < 3; i++) await recordGapObservation(f.root, observation());
   const old = listTasks(f.root)[0]!;
   await runTask(f.root, old.id, async () => ({ state: "closed", result: { closureObservationCount: 3 } }));
+  expect(listGaps(f.root)[0]).toMatchObject({ state: "closed", count: 3, pendingCount: 0 });
   for (let i = 0; i < 2; i++) await recordGapObservation(f.root, observation());
+  expect(listGaps(f.root)[0]).toMatchObject({ state: "collecting", count: 5, pendingCount: 2 });
   expect(listTasks(f.root)).toHaveLength(1);
   const event = observation();
   await recordGapObservation(f.root, event);
   await recordGapObservation(f.root, event);
+  expect(listGaps(f.root)[0]).toMatchObject({ state: "awaiting-assessment", count: 6, pendingCount: 3 });
   expect(listTasks(f.root)).toHaveLength(2);
   expect(listTasks(f.root).find((t) => t.state === "queued")?.input).toMatchObject({ kind: "gap", cycle: 1 });
 });

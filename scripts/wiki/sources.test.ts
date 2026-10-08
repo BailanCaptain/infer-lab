@@ -4,6 +4,19 @@ import { describe, expect, it } from "vitest";
 import { CITABLE_DOMAINS, classifySource, handbookDomains, supportsOfficialEvidence } from "./sources";
 
 describe("classifySource", () => {
+  it("Transformers 原仓源码是生态一手，不放行讨论、fork 或伪装域名", () => {
+    const path =
+      "huggingface/transformers/blob/5f4ecf2d9f867a1255131d2461d75793c0cf1db2/src/transformers/models/qwen3/modeling_qwen3.py";
+    expect(classifySource(`https://github.com/${path}`)).toBe("ecosystem");
+    for (const url of [
+      `https://github.com.evil.com/${path}`,
+      `https://github.com/${path.replace("huggingface/", "someone/")}`,
+      `https://github.com/${path.replace("transformers/", "transformers-fork/")}`,
+      "https://github.com/huggingface/transformers/issues/123",
+      "https://github.com/huggingface/transformers/pull/123",
+    ])
+      expect(classifySource(url)).toBe("unlisted");
+  });
   it("repo@commit:path 形式是仓库来源", () => {
     expect(classifySource("vllm-ascend@28bf3a2e:vllm_ascend/a.py#L1-L2")).toBe("repo");
   });

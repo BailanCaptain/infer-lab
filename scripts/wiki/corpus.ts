@@ -59,15 +59,19 @@ export function parseDocLinks(text: string) {
   for (const m of text.matchAll(
     /https:\/\/docs\.vllm\.ai\/projects\/ascend\/en\/([^/\s]+)\/([^\s<>"')#?]+)(?:#[^\s<>"')]+)?/g,
   )) {
-    const url = new URL(m[0].replace(/[.,;]+$/, ""));
-    const version = decodeURIComponent(m[1]!);
-    const path = decodeURIComponent(m[2]!).replace(/[.,;]+$/, "");
-    if (
-      /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(version) &&
-      !path.split("/").includes("..") &&
-      !path.includes("\\")
-    )
-      found.set(url.href, { url: url.href, version, path });
+    try {
+      const url = new URL(m[0].replace(/[.,;]+$/, ""));
+      const version = decodeURIComponent(m[1]!);
+      const path = decodeURIComponent(m[2]!).replace(/[.,;]+$/, "");
+      if (
+        /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(version) &&
+        !path.split("/").includes("..") &&
+        !path.includes("\\")
+      )
+        found.set(url.href, { url: url.href, version, path });
+    } catch {
+      // Malformed community URLs are not evidence and must not abort the other candidates.
+    }
   }
   return [...found.values()];
 }

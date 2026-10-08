@@ -78,6 +78,74 @@ it("普通提问不去 GitHub：没有异常类名或 traceback 就不发任何�
   expect(looksLikeError("KV Cache 是什么")).toBe(false);
 });
 
+it("retains the screened search body when thread inspection is rate limited", async () => {
+  const f = localClone();
+  const body = `${"environment ".repeat(80)}\nSecond finding: decode before try can terminate the accept loop.`;
+  const { client } = fakeGithub((url) =>
+    url.pathname === "/search/issues"
+      ? Response.json({ total_count: 1, incomplete_results: false, items: [item(17932, false, body)] })
+      : Response.json({ message: "rate limit" }, { status: 403 }),
+  );
+  const trace = await traceChat(f.root, "UnicodeDecodeError", { session: new TraceSession(config, client) });
+  expect(trace.status).toBe("done");
+  if (trace.status !== "done") return;
+  expect(trace.candidates[0]!.excerpt).toContain("Second finding: decode before try");
+  expect(trace.complete).toBe(false);
+  expect(trace.problems.join()).toContain("403");
+});
+
+it("在线候选与评论中的文档按文档自身版本映射，并明确区别当前钉点", async () => {
+  const f = localClone();
+  f.write("repo/docs/source/usage/guide.md", "old documented behavior\n");
+  const docCommit = f.commit("versioned docs");
+  f.git(["tag", "v0.25.0"]);
+  const link = "https://docs.vllm.ai/projects/ascend/en/v0.25.0/usage/guide/";
+  const { client } = fakeGithub((url) => {
+    if (url.pathname === "/search/issues")
+      return Response.json({
+        total_count: 1,
+        incomplete_results: false,
+        items: [item(1, false, "RuntimeError: failed")],
+      });
+    if (url.pathname.endsWith("/issues/1")) return Response.json(item(1, false, "RuntimeError: failed"));
+    if (url.pathname.endsWith("/comments"))
+      return Response.json([
+        {
+          body: `使用 ${link}`,
+          html_url: "https://github.com/vllm-project/vllm-ascend/issues/1#issuecomment-1",
+        },
+      ]);
+    return Response.json([]);
+  });
+  const trace = await traceChat(f.root, "RuntimeError: failed", {
+    session: new TraceSession(config, client),
+  });
+  expect(trace.status).toBe("done");
+  if (trace.status !== "done") return;
+  expect(trace.candidates[0]).toMatchObject({
+    docs: [
+      {
+        url: link,
+        version: "v0.25.0",
+        mappings: [
+          {
+            pinnedRef: "main",
+            commit: docCommit,
+            localPath: "docs/source/usage/guide.md",
+            matchesPinned: false,
+          },
+          {
+            pinnedRef: "releases/v0.23.0",
+            commit: docCommit,
+            localPath: "docs/source/usage/guide.md",
+            matchesPinned: false,
+          },
+        ],
+      },
+    ],
+  });
+});
+
 it("贴报错时在线搜候选，追第一个 issue 关联的 PR，并用本地克隆核对修复进了哪些钉住的版本和 tag", async () => {
   const f = localClone();
   const { client, sent } = fakeGithub((url) => {
@@ -118,6 +186,7 @@ it("贴报错时在线搜候选，追第一个 issue 关联的 PR，并用本地
     tags: ["v0.26.0rc2"],
   };
   // 第一个 issue：顺着正文与 cross-reference 找到的 PR，逐个做本地版本核对
+  expect(trace.candidates[0]!.excerpt).toContain("见 #15981");
   expect(trace.candidates[0]!.linkedPrs?.[0]).toMatchObject({ number: 15981, versions: expected });
   // 候选本身就是 PR 的，直接核对
   expect(trace.candidates[1]!.versions).toMatchObject(expected);
@@ -198,4 +267,33 @@ it("在线搜索失败要如实说失败，不能当成零命中", async () => {
   expect(trace.status).toBe("failed");
   if (trace.status !== "failed") return;
   expect(trace.reason).toMatch(/rate-limit|限额/);
+});
+
+it("关联 PR 按仓库和编号去重，两个仓库同号不能合并", async () => {
+  const f = localClone();
+  const cfg = { ...config, repos: [REPO, "vllm-project/vllm"] };
+  f.write("wiki/github-trace.config.json", JSON.stringify(cfg));
+  const { client } = fakeGithub((url) => {
+    if (url.pathname === "/search/issues")
+      return Response.json({
+        total_count: 1,
+        incomplete_results: false,
+        items: [item(1, false, "RuntimeError")],
+      });
+    if (url.pathname.endsWith("/issues/1")) return Response.json(item(1, false, "RuntimeError"));
+    if (url.pathname.endsWith("/timeline"))
+      return Response.json(
+        cfg.repos.map((repo) => ({
+          event: "cross-referenced",
+          source: { issue: { html_url: `https://github.com/${repo}/pull/7` } },
+        })),
+      );
+    return Response.json([]);
+  });
+  const result = await traceChat(f.root, "RuntimeError: failed", { session: new TraceSession(cfg, client) });
+  expect(result.status).toBe("done");
+  if (result.status !== "done") return;
+  expect(result.candidates[0]!.linkedPrs?.map((pr) => pr.url)).toEqual(
+    cfg.repos.map((repo) => `https://github.com/${repo}/pull/7`),
+  );
 });

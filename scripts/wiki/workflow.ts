@@ -74,7 +74,18 @@ export function atomicText(path: string, text: string): void {
     } finally {
       closeSync(fd);
     }
-    renameSync(temp, path);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        renameSync(temp, path);
+        break;
+      } catch (error) {
+        // Windows readers/scanners can briefly deny replacement. Never unlink the
+        // destination: a permanent failure must leave the previous receipt intact.
+        const code = (error as NodeJS.ErrnoException).code;
+        if (attempt >= 4 || !["EPERM", "EACCES", "EBUSY"].includes(code ?? "")) throw error;
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20 * (attempt + 1));
+      }
+    }
   } finally {
     rmSync(temp, { force: true });
   }
@@ -205,7 +216,7 @@ export class WorkflowStore {
       });
     });
   }
-  async claim(id: string, retry = false) {
+  async claim(id: string, retry = false, pinnedSelection?: ReturnType<typeof selectedModel>) {
     return this.locked(() => {
       const job = this.get(id);
       if (job.state === "failed" && !retry) throw new Error("失败任务需要显式重试");
@@ -220,7 +231,7 @@ export class WorkflowStore {
       )
         throw new Error("另一个任务正在处理相同目标");
       if (job.attempts.length >= job.policy.maxAttempts) throw new Error("已达到尝试次数上限");
-      const selection = selectedModel(this.root);
+      const selection = pinnedSelection ?? selectedModel(this.root);
       const subscription = selection.provider === "codex";
       const charged = job.attempts.reduce(
         (sum, attempt) =>

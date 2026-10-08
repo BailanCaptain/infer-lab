@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { z } from "zod";
+import type { AgentRequest } from "./batch";
 import { initBudget, readBudget } from "./budget";
 import { restrictedArgs } from "./restricted-claude";
 import { selectedAgent } from "./selected-agent";
@@ -23,6 +24,39 @@ const fixtures: ReturnType<typeof wikiFixture>[] = [];
 afterEach(() => {
   for (const f of fixtures.splice(0)) f.cleanup();
   vi.clearAllMocks();
+});
+
+it("multi-ref evidence reports an explicitly optional missing path without inventing file contents", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6-astra" }));
+  f.write("wiki/current.py", "class Current: pass");
+  await initBudget(f.root, { limitUsd: 1, priorChargedUsd: 0, reserveUsd: 0.5, maxCalls: 10 });
+  const req: AgentRequest = {
+    id: "versions",
+    cwd: join(f.root, "wiki"),
+    args: ["--model", "legacy", "--append-system-prompt", "rules"],
+    stdin: "compare pinned versions",
+    timeoutMs: 1000,
+    allowedWrites: ["_drafts/versions.md"],
+    evidenceFiles: [
+      { label: "repo@aaaaaaa:current.py", path: "absent.py", allowMissing: true },
+      { label: "repo@bbbbbbb:current.py", path: "current.py", allowMissing: true, numbered: true },
+    ],
+  };
+  mocks.codex.mockImplementation(async (request, on) => {
+    expect(request.stdin).toContain('"status":"missing"');
+    expect(request.stdin).toContain("repo@aaaaaaa:current.py");
+    expect(request.stdin).toContain("class Current: pass");
+    expect(request.stdin).toContain("L1: class Current: pass");
+    on.text(JSON.stringify({ files: [{ path: "_drafts/versions.md", text: "draft" }] }));
+    return { ok: true };
+  });
+  expect((await selectedAgent(f.root, "seed-extract")(req)).ok).toBe(true);
+  mocks.codex.mockClear();
+  req.evidenceFiles![0]!.allowMissing = false;
+  await expect(selectedAgent(f.root, "seed-extract")(req)).rejects.toThrow();
+  expect(mocks.codex).not.toHaveBeenCalled();
 });
 
 it("all restricted work uses the saved selection and subscription accounting, without Claude fallback", async () => {

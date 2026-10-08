@@ -61,7 +61,7 @@ export function mapDocRef(
     return { ...doc, matchesPinned: false, reason: "文档版本在本地没有对应 ref；未套用当前版本" };
   }
   const paths = gitText(repo, ["ls-tree", "-r", "--name-only", commit, "--", "docs/source/"]).split(/\r?\n/);
-  const stem = doc.path.replace(/\.html$/, "");
+  const stem = doc.path.replace(/\/$/, "").replace(/\.html$/, "");
   const choices = [
     `docs/source/${stem}.md`,
     `docs/source/${stem}.rst`,

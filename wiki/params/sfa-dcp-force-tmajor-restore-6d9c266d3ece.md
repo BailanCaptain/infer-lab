@@ -15,7 +15,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-10-02'
+updated: '2026-10-07'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -66,6 +66,7 @@ sources:
   - 'vllm-ascend@db701c1f:vllm_ascend/utils.py#L114-L122'
   - >-
     vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L573
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
 rawSources:
   - >-
     raw/sha256-439f3d59c68ccbab5b7c12b7f491d8ac3c3e1a37dc972643dfd812e5f797f6a2.md
@@ -88,7 +89,7 @@ rawSources:
 
 **默认 `false` 走的是优化后的那条路。** 引入它的 PR 标题写得很直白——「Optimize the DCP decode query-gather layout path」；代码注释也说，交给 `npu_sparse_flash_attention` 的那几段 query 一直都是 strided view（`torch.split` 从不拷贝），旧写法的 `permute + contiguous` 只是顺带把 t-major 存储物化了一遍，而这个键**把那次物化保留成可选项，供对照实验用** [C4]。
 
-**存在范围。** 只在 main 开发主线上有，2026-09-16 由 PR [#15970](https://github.com/vllm-project/vllm-ascend/pull/15970) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）上这个键、`enable_sfa_dcp_force_tmajor_restore` 这个函数、以及配套的 `ops/triton/query_gather_prep.py` 都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；main 是 `extra="forbid"` 的 pydantic 模型，拼错就起不来 [C15]。本站 GLM 双机钉住的那个含 GLM 代码的提交 `db701c1f` 也一样没有这个键，它的 `AscendConfig` 和那两个分支同一套写法——逐键 `.get()`，所以写进 `additional_config` 既不报错也不生效。
+**存在范围。** 只在 main 开发主线上有，2026-09-16 由 PR [#15970](https://github.com/vllm-project/vllm-ascend/pull/15970) 引入（见下面「版本谱系」）；v0.23 维护分支与 v0.26 分支（2026-09-17 的源码快照）上这个键、`enable_sfa_dcp_force_tmajor_restore` 这个函数、以及配套的 `ops/triton/query_gather_prep.py` 都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；main 是 `extra="forbid"` 的 pydantic 模型，拼错通常会被严格校验拒绝；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤，不能概括为一律无法启动 [C15][C24]。本站 GLM 双机钉住的那个含 GLM 代码的提交 `db701c1f` 也一样没有这个键，它的 `AscendConfig` 和那两个分支同一套写法——逐键 `.get()`，所以写进 `additional_config` 既不报错也不生效。
 
 **放到 GLM 双机：这个键是个死键，而且不是因为没开 DCP。** 本站的 2×A2×8、TP8/DP2/EP16、W8A8 部署（见[部署前提](../concepts/glm-5-3-flash-two-node.md#部署前提)）启动命令没传 `--decode-context-parallel-size`，DCP = 1，PCP 也是 1，CP 两条路都没开（一句话在 [CP 页这一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)）。更靠前的一道门在 main 的源码里：`model_uses_sfa_sparse` 第一件事是调 `model_uses_kpool_indexer` 把 kpool indexer 这类模型排除掉，判据是 hf config 上有没有 `index_kpool` 这个字段——GLM 的配置里有，它就是稀疏 MLA 里 kpool 的粒度——那个函数的注释也点名「GLM-5.3-Flash 这一类」[C21]。**这道门只在 main 上有。** 钉住的 `db701c1f` 里同名函数没有这一句，连 `model_uses_kpool_indexer` 这个函数都还不存在，只查 `index_topk` 与 `compress_ratios` [C22]；不过那个提交上本键本身也不存在，所以两处读起来不冲突。回到 main：即便把 DCP 开到大于 1，`enable_sfa_dcp_replicated_indexer` 对 GLM 仍为假，`resolve_sfa_impl` 选不到带 DCP 的实现类，本键所在的那一行永远走不到。GLM 的稀疏 MLA 层走的是另一套 kpool 实现，后端怎么选出来见[注意力后端家族](../concepts/attention-backend-family.md#一个稀疏-mla-层其实注册了三个条目)。
 
@@ -183,3 +184,49 @@ return torch.split(gathered, context.split_sizes, dim=-1)
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
+
+## 已废弃的说法
+
+### 2026-10-07 · 修订 b92159503fa2de18
+
+旧说法（历史记录，已废弃）：
+
+```text
+拼错就起不来 [C15]。
+```
+
+替代结论：
+
+```text
+拼错通常会被严格校验拒绝；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤，不能概括为一律无法启动 [C15][C24]。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L466`
+2. `vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L466`
+3. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L1500-L1506`
+4. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1428-L1438`
+5. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1145-L1157`
+6. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1264-L1305`
+7. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1366-L1412`
+8. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1307-L1320`
+9. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1159-L1172`
+10. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L375-L399`
+11. `vllm-ascend@baa023ad:vllm_ascend/attention/sfa_v1.py#L1468-L1470`
+12. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1575-L1590`
+13. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L201-L208`
+14. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L316-L334`
+15. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455`
+16. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67`
+17. `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38`
+18. `vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L477`
+19. `vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L492`
+20. `vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L575`
+21. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L177-L198`
+22. `vllm-ascend@db701c1f:vllm_ascend/utils.py#L114-L122`
+23. `vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L573`

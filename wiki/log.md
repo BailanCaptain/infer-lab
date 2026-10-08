@@ -549,3 +549,26 @@ vllm-ascend@main 4ebb3090fc3c13c26557dcaae353882e70246649 → 7df96048756856e4d3
 本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
 ## [2026-10-05] ingest | "Sleep Mode：暂停推理时怎样把显存让给训练"
 晋升 concepts/sleep-mode.md
+
+## [2026-10-05] ingest | 参数增量
+
+vllm-ascend@main 7df96048756856e4d30f29618129e9942ba6985c → 4e19cc765510abfa1dd485b2aa72ff83d0945cf8；新增 0 / 删除 0 / 变更 1。
+
+- enable_pcp_o_proj_weight_sharding: 默认表达式 "False" → "True"
+
+## [2026-10-05] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+
+## [2026-10-06] ingest | 参数增量
+
+vllm-ascend@main 4e19cc765510abfa1dd485b2aa72ff83d0945cf8 → a7f26e5c4e4d9dd7f20fa114f351860bd6552731；新增 7 / 删除 0 / 变更 0。
+
+## [2026-10-06] review | 周期维护
+
+本轮维护执行结束，具体发现见 warnings 和各任务回执；不表示所有语义检查通过。
+## [2026-10-07] ingest | AscendConfig 三版本来源摘要
+晋升 sources/ascend-config-version-source.md
+
+## [2026-10-07] ingest | GLM 稠密 MLP 固定版本源码摘录
+晋升 sources/glm-mlp-version-source.md

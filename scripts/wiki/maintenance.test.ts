@@ -155,12 +155,13 @@ it("proposes a quote-bound relation, publishes its inverse through build, and av
   }
 });
 
-it("定期重核按全部钉点配置找来源仓库：页面引用的仓库登记在另一份 seeds 里也能读到", async () => {
+it("定期重核读取其他 seeds 的完整来源，允许超过小型判定的 40K 上限", async () => {
   // 2026-09-23 实遇：夜间任务只传了 vllm-ascend.yaml，页面还引用 vllm 与 rfork，第 3 页就报「未配置来源仓库」
   const f = wikiFixture();
   try {
     f.write("wiki/HANDBOOK.md", readFileSync(new URL("../../wiki/HANDBOOK.md", import.meta.url), "utf8"));
-    f.write("repo/code.py", "value = 1\n");
+    const source = "value = 1\n".repeat(4500);
+    f.write("repo/code.py", source);
     const pin = f.commit("pin");
     f.write(
       "wiki/seeds/first.yaml",
@@ -170,7 +171,7 @@ it("定期重核按全部钉点配置找来源仓库：页面引用的仓库登�
       "wiki/seeds/second.yaml",
       `repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: "${pin}"}\nfeatures: []\n`,
     );
-    f.write("wiki/sources/a.md", page("a", "值为 1。", `r@${pin.slice(0, 8)}:code.py#L1`));
+    f.write("wiki/sources/a.md", page("a", "值为 1。", `r@${pin.slice(0, 8)}:code.py#L1-L4500`));
     const seen: string[] = [];
     const results = await detectDrift(
       f.root,
@@ -190,6 +191,7 @@ it("定期重核按全部钉点配置找来源仓库：页面引用的仓库登�
       },
     );
     expect(seen[0]).toContain("value = 1");
+    expect(JSON.parse(seen[0]!).sources[0].text).toBe(source.trimEnd());
     expect(results).toHaveLength(1);
   } finally {
     f.cleanup();

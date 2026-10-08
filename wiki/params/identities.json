@@ -5,6 +5,14 @@
       "repo": "vllm-ascend",
       "file": "vllm_ascend/ascend_config.py",
       "class": "",
+      "json_path": "additional_config[\"c8_enable_reshape_optim\"]",
+      "pageId": "c8-enable-reshape-optim-8bd7e5f82c6c",
+      "role": "reference"
+    },
+    {
+      "repo": "vllm-ascend",
+      "file": "vllm_ascend/ascend_config.py",
+      "class": "",
       "json_path": "additional_config[\"weight_prefetch_config\"]",
       "pageId": "weight-prefetch-config",
       "role": "definition"

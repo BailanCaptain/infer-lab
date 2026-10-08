@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { wikiRequest } from "./api";
+import { DropReviewPreview } from "./DropReviewPreview";
 import {
   addedText,
   type DiffFile,
@@ -20,8 +21,17 @@ export interface ReviewSummary {
   reason?: string;
 }
 interface Detail {
-  review: { id: string; state: ReviewState; reason?: string };
+  review: {
+    id: string;
+    state: ReviewState;
+    reason?: string;
+    payload?: {
+      drop?: { report: string };
+      writes: { path: string; before: string | null; after: string | null }[];
+    };
+  };
   diff: string;
+  placements?: { path: string; before: string; after: string }[];
 }
 
 const labels: Record<ReviewState, string> = {
@@ -197,7 +207,7 @@ export function ReviewPane({
         revision: id,
         ...(action === "reject" ? { reason } : {}),
       });
-      setDetail({ ...detail, review: result });
+      setDetail({ ...detail, review: { ...detail.review, ...result } });
       onChanged(result);
       if (action === "approve") await onPublished();
     } catch (e) {
@@ -279,6 +289,43 @@ export function ReviewPane({
           {detail && (
             <>
               <h2 className="wiki-review-title">{packageTitle(files.map((f) => f.path))}</h2>
+              {detail.review.payload?.drop && (
+                <details>
+                  <summary>本批资料、整合依据与未核范围</summary>
+                  <pre className="wiki-drop-report">{detail.review.payload.drop.report}</pre>
+                </details>
+              )}
+              {detail.review.payload?.drop && (
+                <DropReviewPreview
+                  writes={detail.review.payload.writes}
+                  placements={detail.placements ?? []}
+                />
+              )}
+              {detail.review.payload?.writes
+                .filter((w) => w.path.endsWith(".svg"))
+                .map((w) => (
+                  <section key={w.path} className="wiki-drop-assets">
+                    <h3>{pageName(w.path)}</h3>
+                    <div>
+                      {[
+                        { label: "修改前", svg: w.before },
+                        { label: "修改后", svg: w.after },
+                      ].map((v) => (
+                        <figure key={v.label}>
+                          <figcaption>{v.label}</figcaption>
+                          {v.svg ? (
+                            <img
+                              alt={`${pageName(w.path)} ${v.label}`}
+                              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(v.svg)}`}
+                            />
+                          ) : (
+                            <p>无此图</p>
+                          )}
+                        </figure>
+                      ))}
+                    </div>
+                  </section>
+                ))}
               <p className={`wiki-review-state is-${detail.review.state}`} data-testid="review-state">
                 {labels[detail.review.state]} · {detail.review.id}
               </p>
@@ -302,11 +349,11 @@ export function ReviewPane({
                 )}
               </div>
               {detail.review.state === "publishing" && (
-                <p className="wiki-panel-error">发布中断，需维护者执行恢复；恢复前暂停新问答。</p>
+                <p className="wiki-panel-error">发布中断，可恢复本次完整发布；恢复前暂停新问答。</p>
               )}
             </>
           )}
-          {detail?.review.state === "pending" && (
+          {detail && ["pending", "publishing"].includes(detail.review.state) && (
             <footer className="wiki-review-actions">
               <label>
                 驳回原因
@@ -322,7 +369,7 @@ export function ReviewPane({
               <button
                 type="button"
                 className="is-reject"
-                disabled={busy || !reason.trim()}
+                disabled={busy || !reason.trim() || detail.review.state === "publishing"}
                 onClick={() => void decide("reject")}
               >
                 驳回此版本
@@ -333,7 +380,12 @@ export function ReviewPane({
                 disabled={busy}
                 onClick={() => void decide("approve")}
               >
-                <Check size={14} /> {busy ? "处理中…" : "批准此版本并发布"}
+                <Check size={14} />{" "}
+                {busy
+                  ? "处理中…"
+                  : detail.review.state === "publishing"
+                    ? "恢复本次完整发布"
+                    : "批准此版本并发布"}
               </button>
             </footer>
           )}

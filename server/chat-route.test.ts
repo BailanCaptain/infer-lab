@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import type { ChatTrace, traceChat } from "../scripts/wiki/chat-trace";
-import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
+import type { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
+import type { judgeAnswer } from "./answer-quality";
 import type { runChat } from "./chat";
 import { handleChat } from "./chat-route";
+import { CODEX_EVIDENCE_LIMIT } from "./codex-chat";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 const servers: Server[] = [];
@@ -20,14 +22,24 @@ const original =
   "---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n";
 async function setup(
   run: typeof runChat,
-  extra: { traceChat?: typeof traceChat; judgeGap?: typeof judgeGapIdentity } = {},
+  extra: {
+    traceChat?: typeof traceChat;
+    judgeGap?: typeof judgeGapIdentity;
+    judgeAnswer?: typeof judgeAnswer;
+  } = {},
 ) {
   const f = wikiFixture();
   fixtures.push(f);
   f.write("wiki/HANDBOOK.md", handbookFixture());
   f.write("wiki/sources/a.md", original);
   const server = createServer((req, res) => {
-    void handleChat(req, res, f.root, { runChat: run, ...extra });
+    void handleChat(req, res, f.root, {
+      runChat: run,
+      judgeAnswer: async () => {
+        throw new Error("fixture judge unavailable");
+      },
+      ...extra,
+    });
   });
   servers.push(server);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -36,11 +48,30 @@ async function setup(
   const request = (body: unknown) =>
     fetch(`http://127.0.0.1:${address.port}/api/wiki/chat`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-wiki-review": "1" },
       body: JSON.stringify(body),
     });
-  return { ...f, request };
+  return { ...f, request, url: `http://127.0.0.1:${address.port}/api/wiki/chat` };
 }
+
+const unauthorizedRequests: { headers: Record<string, string>; status: number }[] = [
+  { headers: { "content-type": "text/plain", origin: "https://untrusted.example", "sec-fetch-site": "cross-site" }, status: 403 },
+  { headers: { "content-type": "application/json" }, status: 403 },
+  { headers: { "content-type": "text/plain", "x-wiki-review": "1" }, status: 415 },
+  { headers: { "content-type": "application/json", "x-wiki-review": "1", origin: "https://untrusted.example" }, status: 403 },
+];
+it.each(unauthorizedRequests)("rejects unauthorized chat writes before model or state activity: $headers", async ({ headers, status }) => {
+  let calls = 0;
+  const f = await setup(async () => {
+    calls++;
+    return { ok: false, reason: "This request must not run a model" };
+  });
+  const response = await fetch(f.url, { method: "POST", headers, body: JSON.stringify({ message: "A 是什么？" }) });
+  await response.text();
+  expect(response.status).toBe(status);
+  expect(calls).toBe(0);
+  expect(existsSync(join(f.root, "wiki/_jobs"))).toBe(false);
+});
 const frame = (body: string, event: string) => {
   const value = body
     .split("\n\n")
@@ -55,13 +86,82 @@ const traceFrames = (body: string) =>
     .filter((part) => part.startsWith("event: trace\n"))
     .map((part) => JSON.parse(part.split("\ndata: ")[1]!));
 
+it("independently detects a confidently wrong cited answer and queues it without offering save", async () => {
+  let checked = 0;
+  const f = await setup(
+    async (_req, on) => {
+      on.text(
+        '默认值为 2，见 [A](sources/a.md)。<!-- wiki-coverage: {"satisfied":true,"reason":"已覆盖"} -->',
+      );
+      return { ok: true };
+    },
+    {
+      judgeAnswer: async (_root, input) => {
+        checked++;
+        expect(input.answer).toContain("默认值为 2");
+        expect(input.snapshot.pageTexts[0]!.text).toContain("默认值为 1");
+        return {
+          status: "checked",
+          jobId: "d".repeat(64),
+          revision: input.snapshot.revision,
+          decision: {
+            satisfied: false,
+            classification: "answer-error",
+            reason: "回答把 1 写成 2",
+            answerQuote: "默认值为 2",
+            evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+          },
+        };
+      },
+    },
+  );
+  const body = await (await f.request({ message: "A 默认值？" })).text();
+  expect(checked).toBe(1);
+  expect(frame(body, "quality")).toMatchObject({ status: "checking" });
+  expect(body).toContain('"classification":"answer-error"');
+  expect(frame(body, "done").answerId).toBeUndefined();
+  expect(listGaps(f.root)[0]!.occurrences[0]!.signals).toContainEqual(
+    expect.objectContaining({ kind: "independent-review", decision: "d".repeat(64) }),
+  );
+});
+
+it("does not trust an answer's uncovered marker over a completed independent judgment", async () => {
+  const f = await setup(
+    async (_req, on) => {
+      on.text(
+        '默认值为 1，见 [A](sources/a.md#一句话)。<!-- wiki-coverage: {"satisfied":false,"reason":"不确定"} -->',
+      );
+      return { ok: true };
+    },
+    {
+      judgeAnswer: async (_root, input) => ({
+        status: "checked",
+        jobId: "d".repeat(64),
+        revision: input.snapshot.revision,
+        decision: {
+          satisfied: true,
+          classification: "covered",
+          reason: "正文支持",
+          answerQuote: "默认值为 1",
+          evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+        },
+      }),
+    },
+  );
+  const body = await (await f.request({ message: "A 默认值？" })).text();
+  expect(frame(body, "gap")).toBeUndefined();
+  expect(frame(body, "cite").cited).toBe(true);
+  expect(frame(body, "done").answerId).toEqual(expect.any(String));
+  expect(listGaps(f.root)).toEqual([]);
+});
+
 it("does not validate or save a Codex citation to a page omitted from its evidence window", async () => {
   const f = await setup(async (_req, on) => {
     on.text("默认值为 1，见 [A](sources/a.md)。");
     return { ok: true };
   });
   f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
-  f.write("wiki/sources/a.md", original + "\n" + "x".repeat(80_001));
+  f.write("wiki/sources/a.md", original + "\n" + "x".repeat(CODEX_EVIDENCE_LIMIT + 1));
   const response = await (await f.request({ message: "A 的默认值？" })).text();
   expect(frame(response, "cite").cited).toBe(false);
   expect(frame(response, "done").answerId).toBeUndefined();

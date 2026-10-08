@@ -156,8 +156,12 @@ function traceBlock(trace?: ChatTrace): string[] {
     );
     if (c.excerpt) out.push(`  摘录：${c.excerpt.replace(/\s+/g, " ")}`);
     if (c.versions) out.push(`  ${versionLine(c.versions)}`);
-    for (const l of c.linkedPrs ?? [])
+    for (const doc of c.docs ?? [])
+      out.push(`  讨论引用的文档（按文档自身版本核对，不能套用当前部署）：${JSON.stringify(doc)}`);
+    for (const l of c.linkedPrs ?? []) {
       out.push(`  关联 PR #${l.number}（${l.basis}）${l.url}；${versionLine(l.versions)}`);
+      if (l.excerpt) out.push(`  已读取的关联 PR 材料：${l.excerpt}`);
+    }
   }
   if (trace.omitted) out.push(`另有 ${trace.omitted} 个候选未列出。`);
   if (trace.problems.length) out.push(`本轮证据不完整：${trace.problems.join("；")}`);

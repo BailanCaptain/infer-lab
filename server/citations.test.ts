@@ -30,6 +30,17 @@ it("keeps equal source numbers attached to separate pages without claiming seman
 it.each(["sources/a.md", "../sources/a.md", "#/wiki/a"])("accepts the existing page route %s", (href) => {
   expect(checkAnswerCitations(`默认开启 [S1](${href})。`, pages).cited).toBe(true);
 });
+it.each(["sources/a.md#一句话", "../sources/a.md#%E4%B8%80", "#/wiki/a#一句话"])(
+  "accepts section citations without weakening snapshot ownership: %s",
+  (href) => {
+    expect(checkAnswerCitations(`默认开启 [S1](${href})。`, pages).cited).toBe(true);
+    expect(checkAnswerCitations(`默认开启 [A](${href.replace("/a", "/unknown")})。`, pages).cited).toBe(
+      false,
+    );
+    expect(checkAnswerCitations(`默认开启 [S2](${href})。`, pages).cited).toBe(false);
+    expect(checkAnswerCitations(`默认开启。\`[A](${href})\``, pages).cited).toBe(false);
+  },
+);
 it.each(["0", "2", "999999999999999999999999"])("rejects out-of-range source %s", (index) => {
   expect(checkAnswerCitations(`默认开启 [S${index}](sources/a.md)。`, pages)).toMatchObject({
     cited: false,

@@ -1,52 +1,73 @@
 ---
 id: ascend-config-system
-title: "Ascend 配置：三个地方能写，哪个值真的生效"
+title: Ascend 配置：三个地方能写，哪个值真的生效
 type: feature
-summary: 昇腾开关有三个入口——命令行通用参数、启动命令附带的那段 JSON、环境变量。本页讲它们怎样汇进每个进程各自的 AscendConfig，谁覆盖谁，构造与平台两道检查会怎样改写，以及官方 GLM 双机为什么一个 JSON 键都没传。
-aliases: [AscendConfig, additional_config, additional-config, init_ascend_config, get_ascend_config, envs.py, AscendConfig 配置系统]
-chapters: ["10"]
+summary: >-
+  昇腾开关有三个入口——命令行通用参数、启动命令附带的那段 JSON、环境变量。本页讲它们怎样汇进每个进程各自的
+  AscendConfig，谁覆盖谁，构造与平台两道检查会怎样改写，以及官方 GLM 双机为什么一个 JSON 键都没传。
+aliases:
+  - AscendConfig
+  - additional_config
+  - additional-config
+  - init_ascend_config
+  - get_ascend_config
+  - envs.py
+  - AscendConfig 配置系统
+chapters:
+  - '10'
 order: 100
 sources:
-  - https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L1488-L1490
-  - vllm@0fc695fc:vllm/config/vllm.py#L355-L363
-  - vllm@0fc695fc:vllm/config/vllm.py#L476-L486
-  - vllm@0fc695fc:vllm/engine/arg_utils.py#L2223-L2230
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L27-L94
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L160
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L256
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L333-L346
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L560
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L685-L745
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L878-L925
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L30-L113
-  - vllm-ascend@db701c1f:vllm_ascend/envs.py#L112-L124
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L184-L200
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480
-  - vllm-ascend@db701c1f:vllm_ascend/platform.py#L676-L695
-  - vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L107-L126
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L318-L332
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L744-L782
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L120
-  - vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1040
-  - vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L430-L456
-  - vllm-ascend@baa023ad:vllm_ascend/envs.py#L38-L90
-  - vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1605
-  - vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426
-  - vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495
-  - vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876
-  - vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340
+  - >-
+    https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L1488-L1490'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L355-L363'
+  - 'vllm@0fc695fc:vllm/config/vllm.py#L476-L486'
+  - 'vllm@0fc695fc:vllm/engine/arg_utils.py#L2223-L2230'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L27-L94'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L160'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L256'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L333-L346'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L560'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L685-L745'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L878-L925'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L30-L113'
+  - 'vllm-ascend@db701c1f:vllm_ascend/envs.py#L112-L124'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L184-L200'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480'
+  - 'vllm-ascend@db701c1f:vllm_ascend/platform.py#L676-L695'
+  - 'vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L107-L126'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L318-L332'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L744-L782'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L120'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1040'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L430-L456'
+  - 'vllm-ascend@baa023ad:vllm_ascend/envs.py#L38-L90'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1605'
+  - 'vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426'
+  - 'vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495'
+  - 'vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876'
+  - 'vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L609-L628'
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
 verified: []
-evidence: "C"
+evidence: C
 relations:
-  - {to: engine-processes, kind: builds-on, note: 配置缓存是进程里的一个变量，进程边界决定它属于谁}
-  - {to: ascend-patch-system, kind: builds-on, note: patch 换的是名字指向谁，发生得比配置更早}
-  - {to: glm-5-3-flash-two-node, kind: builds-on, note: 官方双机命令写了哪些通用参数、每项取值管哪一步}
-  - {to: npu-worker-lifecycle, kind: builds-on, note: Worker 初始化时建立本进程的配置状态}
+  - to: engine-processes
+    kind: builds-on
+    note: 配置缓存是进程里的一个变量，进程边界决定它属于谁
+  - to: ascend-patch-system
+    kind: builds-on
+    note: patch 换的是名字指向谁，发生得比配置更早
+  - to: glm-5-3-flash-two-node
+    kind: builds-on
+    note: 官方双机命令写了哪些通用参数、每项取值管哪一步
+  - to: npu-worker-lifecycle
+    kind: builds-on
+    note: Worker 初始化时建立本进程的配置状态
 contradicts: []
-updated: "2026-09-28"
+updated: '2026-10-07'
 origin: direct
 ---
 
@@ -169,7 +190,7 @@ file: config-flow
 - **「环境变量和 JSON 是两条互不相通的路」**——钉住版本上有九个名字两边都认。把「全大写去环境变量表找、小写下划线去配置找」当成判断规则，就会漏掉这九个，也会误以为显式写 false 没有意义。
 - **「取不到配置是因为 JSON 写错了」**——那条报错说的是时机。JSON 写错在这两个发布分支上不报错。
 - **「同一个进程里配置只解析一次」**——通常是，但 JSON 里带刷新标记时会重建，绑定的总配置对象换了也会重建。
-- **「拼错键名总会报错」和「拼错键名从不报错」都不对**——钉住的两个发布分支上，顶层和多数子配置安静走默认，EPLB 那一组会报错；main 换成 pydantic 之后一律报错。结论要连版本和所在层级一起说。
+- **「拼错键名总会报错」和「拼错键名从不报错」都不对**——钉住的两个发布分支上，顶层和多数子配置安静走默认，EPLB 那一组会报错；main 通常由 pydantic 严格校验报错；若能发现 vLLM-Omni，未知顶层键会先警告并过滤，不能概括为一律报错。结论要连版本和所在层级一起说。
 
 ## 对照源码
 
@@ -225,13 +246,15 @@ file: config-flow
 | 项 | v0.23 | v0.26 | main | 意味着什么 |
 | --- | --- | --- | --- | --- |
 | 解析方式 | 逐键 `.get()` + 手写校验 | 一样是逐键 `.get()` | 迁到 pydantic dataclass（`extra="forbid"`） | 照 main 的严格校验去两个发布分支上找会扑空 |
-| 未识别的键 | 顶层与多数子配置静默忽略，`eplb_config` 那一组报错 | 同左 | 一律直接报错，拼错立即失败 | 同一个拼错，一边多半安静走默认、一边起不来 |
+| 未识别的键 | 顶层与多数子配置静默忽略，`eplb_config` 那一组报错 | 同左 | 通常由严格配置校验报错；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 | main 的拼写错误通常会阻止启动，但 Omni 共用配置的兼容分支是例外，不能概括成一律报错 |
 | 调度相关键的层级 | 只有顶层 | 推荐嵌在 `scheduler_config` 下；顶层仍认但打 deprecated 警告，两处都写以嵌套为准 | 仍有 `scheduler_config` 这一层 | 按 v0.23 把这些键写在顶层，在 v0.26 上会看到弃用警告 |
 | 子配置构成 | 八组，含权重预取与 profiling 分块 | 权重预取已删，profiling 分块挪进 `scheduler_config`，新增批作业调度与短请求优先 | 随 pydantic 化重排，用时另核 | 按 v0.23 配权重预取，在 v0.26 上不报错也不生效 |
-| 环境变量回退 | 九对兼容映射 | 顶层 6 个字段加 `scheduler_config` 里的均衡调度 | 已无这条回退（`_get_config_value` 不再存在） | main 上环境变量不再能替代 JSON 键 |
+| 环境变量兼容读取 | 九对兼容映射，JSON 键优先 | 顶层 6 个字段加 `scheduler_config` 里的均衡调度 | 通用 `_get_config_value` 已移除；FlashComm1 仍兼容旧 JSON 键与环境变量，并发出弃用警告 | main 的 FlashComm1 将 JSON 值与环境开启值做逻辑或，JSON `false` 不会覆盖环境开启值；其他开关需分别核对 |
 | `env_variables` 条目 | 21 条，9 条带昇腾前缀 | 20 条，8 条带前缀 | 14 条，3 条带前缀 | 环境变量这条路在收窄，开关正逐步归到 JSON 里 |
 | 建配置前的平台校验 | 四个，含层切分配置校验 | 两个，层切分那个键已删 | 三个：一个类方法（索引器与 pipeline parallel）加两个模块级函数（投机 + DCP、并行），见 [NPU 平台的版本差异](npu-platform.md#版本差异) | 「配了会被拦」还是「压根不存在」，取决于版本 |
 | 进程内缓存 | 模块变量 + 刷新标记 + 绑定同一个总配置 | 同左 | 仍是模块变量，另用一个变量记住绑定的总配置 | 三个版本都是每进程一份，不是跨进程单例 |
+
+main 的 FlashComm1 环境值去除空白并转为小写后，只有 `1` 或 `true` 被视为开启；推导结果还与 DSA-CP 配置合并，后续仍检查 SP MoE 条件，不能仅凭该兼容入口认定执行路径已启用。[C32] Omni 例外只说明未知顶层键被过滤，不代表所有子配置也忽略未知键。[C33]
 
 ### 源码位置
 
@@ -256,17 +279,121 @@ file: config-flow
 | Worker 里建本进程那一份 | `vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L107-L126` |
 | v0.26 的顶层构造与嵌套层 | `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L120`；`vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1040` |
 | v0.26 的环境变量表 | `vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107` |
-| main 的 pydantic 化与拼错即失败 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310`；`vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L430-L456` |
+| main 的 pydantic 化与严格键校验 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310`；`vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L430-L456` |
 | main 的环境变量表与缓存 | `vllm-ascend@baa023ad:vllm_ascend/envs.py#L38-L90`；`vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1605` |
 | EPLB 子配置自己拒绝未识别的键 | `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876` |
 | 三版平台校验数量对照 | `vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480`；`vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426`；`vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495` |
+| main 的 FlashComm1 环境兼容与推导 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L609-L628` |
+| main 的 Omni 未知顶层键过滤例外 | `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671` |
 
 **正文证据归档。** 容器由上游声明为不透明字典、整段进编译缓存 key、上游自己也往里写键：[C2][C3][C4][C5]。逐键拆分、层级不等价、构造期那几条检查与顶层字段：[C6][C7][C8]；EPLB 子配置对未识别键报错：[C30]。键优先于环境值的判断与迁移提示：[C9]。环境变量表与每次访问重读：[C14]。平台补选项、四校验在建配置之前、建完按角色改写：[C15][C16][C17]。建、取、清三件事与复用的四个条件：[C12]；Worker 侧的调用点：[C18]。GLM 双机命令没有那段 JSON：[S1]；四条默认分支：[C10][C19][C20]，基线结论汇总在[来源基线](../sources/glm-5-3-flash-baseline.md)。v0.26 的嵌套层与 main 的 pydantic 化：[C22][C24]；三版建配置前的校验数量：[C28][C29]。
 
-子配置八组、兼容映射九对、环境变量表 21 条里 9 条带昇腾前缀，都是照上述源码数出来的计数 [D]。这里两个「9」不是同一批名字：兼容映射的九对里有一对的环境名不带昇腾前缀，而带前缀的那 9 条里也有一条没参与映射 [D]。三版条目数 21 / 20 / 14 同理 [D]。「本部署的昇腾开关全部是默认值」由教程命令与解析代码合起来得出 [D]；「main 上环境变量不再能替代 JSON 键」的依据是那个回退函数在 main 上已不存在 [D]，属于按缺失推断，不是某一行代码 [I]。
+子配置八组、兼容映射九对、环境变量表 21 条里 9 条带昇腾前缀，都是照上述源码数出来的计数 [D]。这里两个「9」不是同一批名字：兼容映射的九对里有一对的环境名不带昇腾前缀，而带前缀的那 9 条里也有一条没参与映射 [D]。三版条目数 21 / 20 / 14 同理 [D]。「本部署的昇腾开关全部是默认值」由教程命令与解析代码合起来得出 [D]；main 已移除通用回退函数，但 FlashComm1 仍有显式环境兼容读取；函数缺失不足以推出兼容入口全部失效。[C32]
 
 **待核。**
 
 - 没有镜像内的实际启动日志，因此「哪些字段来自 JSON、哪些来自环境回退」在真实部署里的日志样貌未核；本页的日志描述来自钉住源码的字符串。
 - 官方教程为文档提交，不等于镜像里运行的代码；教程未传 JSON 这一点已核，但镜像是否额外注入环境变量待安装产物核对。
 - main 分支 pydantic 化之后子配置的完整构成与默认值未逐项核，版本差异表该行只写了迁移事实。
+
+## 已废弃的说法
+
+### 2026-10-07 · 修订 6e74ce4b77f0e616
+
+旧说法（历史记录，已废弃）：
+
+```text
+| 未识别的键 | 顶层与多数子配置静默忽略，`eplb_config` 那一组报错 | 同左 | 一律直接报错，拼错立即失败 | 同一个拼错，一边多半安静走默认、一边起不来 |
+```
+
+替代结论：
+
+```text
+| 未识别的键 | 顶层与多数子配置静默忽略，`eplb_config` 那一组报错 | 同左 | 通常由严格配置校验报错；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤 | main 的拼写错误通常会阻止启动，但 Omni 共用配置的兼容分支是例外，不能概括成一律报错 |
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
+
+旧说法（历史记录，已废弃）：
+
+```text
+| 环境变量回退 | 九对兼容映射 | 顶层 6 个字段加 `scheduler_config` 里的均衡调度 | 已无这条回退（`_get_config_value` 不再存在） | main 上环境变量不再能替代 JSON 键 |
+```
+
+替代结论：
+
+```text
+| 环境变量兼容读取 | 九对兼容映射，JSON 键优先 | 顶层 6 个字段加 `scheduler_config` 里的均衡调度 | 通用 `_get_config_value` 已移除；FlashComm1 仍兼容旧 JSON 键与环境变量，并发出弃用警告 | main 的 FlashComm1 将 JSON 值与环境开启值做逻辑或，JSON `false` 不会覆盖环境开启值；其他开关需分别核对 |
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L609-L628`
+
+旧说法（历史记录，已废弃）：
+
+```text
+「main 上环境变量不再能替代 JSON 键」的依据是那个回退函数在 main 上已不存在 [D]，属于按缺失推断，不是某一行代码 [I]。
+```
+
+替代结论：
+
+```text
+main 已移除通用回退函数，但 FlashComm1 仍有显式环境兼容读取；函数缺失不足以推出兼容入口全部失效。[C32]
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L609-L628`
+
+旧说法（历史记录，已废弃）：
+
+```text
+main 换成 pydantic 之后一律报错。
+```
+
+替代结论：
+
+```text
+main 通常由 pydantic 严格校验报错；若能发现 vLLM-Omni，未知顶层键会先警告并过滤，不能概括为一律报错。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `https://github.com/vllm-project/vllm-ascend/blob/0576b6471c7a35707920a665352391d33c77451c/docs/source/tutorials/models/GLM5.3-Flash.md`
+2. `vllm@0fc695fc:vllm/engine/arg_utils.py#L1488-L1490`
+3. `vllm@0fc695fc:vllm/config/vllm.py#L355-L363`
+4. `vllm@0fc695fc:vllm/config/vllm.py#L476-L486`
+5. `vllm@0fc695fc:vllm/engine/arg_utils.py#L2223-L2230`
+6. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L27-L94`
+7. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L142-L160`
+8. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L162-L256`
+9. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L333-L346`
+10. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L505-L560`
+11. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L685-L745`
+12. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L878-L925`
+13. `vllm-ascend@db701c1f:vllm_ascend/envs.py#L30-L113`
+14. `vllm-ascend@db701c1f:vllm_ascend/envs.py#L112-L124`
+15. `vllm-ascend@db701c1f:vllm_ascend/platform.py#L184-L200`
+16. `vllm-ascend@db701c1f:vllm_ascend/platform.py#L450-L480`
+17. `vllm-ascend@db701c1f:vllm_ascend/platform.py#L676-L695`
+18. `vllm-ascend@db701c1f:vllm_ascend/worker/worker.py#L107-L126`
+19. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L318-L332`
+20. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L744-L782`
+21. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L56-L120`
+22. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L968-L1040`
+23. `vllm-ascend@2ed6cbba:vllm_ascend/envs.py#L30-L107`
+24. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L295-L310`
+25. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L430-L456`
+26. `vllm-ascend@baa023ad:vllm_ascend/envs.py#L38-L90`
+27. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1605`
+28. `vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426`
+29. `vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495`
+30. `vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876`
+31. `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340`

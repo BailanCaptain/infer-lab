@@ -64,11 +64,20 @@ export function errorQueries(input: string, limit: number): string[] {
     .filter((q) => q.length >= 4);
   const exception = safe.text.match(/\b[A-Za-z_][\w]*(?:Error|Exception)\b/g)?.at(-1);
   const fn = [...safe.text.matchAll(/\bin\s+([A-Za-z_][\w]*)/g)].at(-1)?.[1];
-  if (exception && fn) queries.push(`${exception} ${fn}`);
+  if (exception && fn) queries.unshift(`${exception} ${fn}`);
+  // Class/attribute pairs survive traceback wording changes and avoid generic Error matches.
+  const identifiers = [
+    ...new Set([...safe.text.matchAll(/['"]([A-Za-z_][A-Za-z0-9_.]{2,80})['"]/g)].map((m) => m[1]!)),
+  ];
+  if (identifiers.length >= 2) queries.unshift(identifiers.slice(0, 2).join(" "));
   if (exception) queries.push(exception);
   const unique = [...new Set(queries)];
   if (!unique.length) throw new Error("没有可搜索的错误特征；请用 --query 提供错误原文中的关键术语");
-  return unique.slice(0, limit);
+  const selected = unique.slice(0, limit);
+  // GitHub may tokenize qualified function names differently. Always retain the exception-only
+  // fallback instead of spending the last query on prose from the user's follow-up sentence.
+  if (exception && limit > 1 && !selected.includes(exception)) selected[selected.length - 1] = exception;
+  return selected;
 }
 
 export function allowedRepo(config: TraceConfig, repo: string): string {
@@ -244,8 +253,13 @@ export async function searchErrors(session: TraceSession, plan: ReturnType<typeo
       searches.push({ query, error: String(error) });
     }
   }
+  const priority = new Map(plan.queries.map((q, index) => [q.query, index % plan.terms.length]));
+  const rank = (queries: string[]) => Math.min(...queries.map((q) => priority.get(q) ?? Infinity));
   const all = [...candidates.values()].sort(
-    (a, b) => b.matchedQueries.length - a.matchedQueries.length || b.updatedAt.localeCompare(a.updatedAt),
+    (a, b) =>
+      rank(a.matchedQueries) - rank(b.matchedQueries) ||
+      b.matchedQueries.length - a.matchedQueries.length ||
+      b.updatedAt.localeCompare(a.updatedAt),
   );
   return {
     scope: plan,

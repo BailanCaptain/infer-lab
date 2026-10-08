@@ -540,7 +540,9 @@
         "vllm-ascend@2ed6cbba:vllm_ascend/platform.py#L408-L426",
         "vllm-ascend@baa023ad:vllm_ascend/platform.py#L457-L495",
         "vllm-ascend@db701c1f:vllm_ascend/ascend_config.py#L828-L876",
-        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340"
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L324-L340",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L609-L628",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671"
       ],
       "verified": [],
       "evidence": "C",
@@ -568,9 +570,14 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-28",
+      "updated": "2026-10-07",
       "file": "concepts/ascend-config-system.md",
       "backlinks": [
+        {
+          "from": "ascend-config-version-source",
+          "kind": "enables",
+          "note": "本摘要记录三项配置与缓存的固定版本证据，配置输入和消费者的教学由该页维护"
+        },
         {
           "from": "c8-enable-reshape-optim-8bd7e5f82c6c",
           "kind": "enables",
@@ -584,7 +591,7 @@
         {
           "from": "enable-async-exponential",
           "kind": "enables",
-          "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 上把它挡在启动期的正是这一环"
+          "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 通常把它挡在启动期的正是这一环"
         },
         {
           "from": "enable-force-eplb-b7ec3661121f",
@@ -609,7 +616,7 @@
         {
           "from": "multistream-overlap-gate",
           "kind": "enables",
-          "note": "它是 additional_config 里的一个键，main 上让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra=\"forbid\" 的模式校验"
+          "note": "它是 additional_config 里的一个键，main 上通常让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra=\"forbid\" 的模式校验"
         },
         {
           "from": "npu-platform",
@@ -644,9 +651,85 @@
         {
           "from": "weight-prefetch-config",
           "kind": "enables",
-          "note": "它只是 additional_config 里的一个子配置对象；main 上被 extra=\"forbid\" 当未知键拒收的机制在那一页"
+          "note": "它只是 additional_config 里的一个子配置对象；main 上通常被 extra=\"forbid\" 当未知键拒收的机制在那一页"
         }
       ]
+    },
+    {
+      "id": "ascend-config-version-source",
+      "title": "AscendConfig 三版本来源摘要",
+      "type": "source",
+      "origin": "seed",
+      "summary": "三个固定快照展示共享专家开关、动态分块设置和配置缓存的取值变化；main 仍读取旧 FlashComm1 输入，不能仅凭旧辅助函数消失判断环境输入已失效。",
+      "aliases": [
+        "AscendConfig 三版本来源摘要",
+        "clear_ascend_config",
+        "enable_shared_expert_dp"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 20,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L55-L94",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L114-L122",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L353-L365",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L738-L760",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L897-L944",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L83-L135",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L369-L381",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L721-L743",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L995-L1026",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L1092-L1139",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L573-L628",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1261-L1297",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1420-L1464",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1536-L1563",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1584-L1604",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1673-L1716",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L520-L522",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1626-L1628",
+        "vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L393-L396",
+        "vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L409-L412",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L896-L899",
+        "vllm-ascend@2c59ff10:docs/source/user_guide/configuration/additional_config.md#L157-L165",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L154-L162",
+        "vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L156-L164",
+        "vllm-ascend@2ed6cbba:docs/source/user_guide/configuration/additional_config.md#L75-L75"
+      ],
+      "verified": [
+        "releases/v0.23.0",
+        "releases/v0.26.0rc",
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-3efa25973cae50780b72a10187d3892b2e32ef48bfcdd427fb2788045147b9af.md",
+        "raw/sha256-6306d7807bae22080e3af8f33a322b183124deacf770ae5ba43c9053cc53264f.md"
+      ],
+      "relations": [
+        {
+          "to": "ascend-config-system",
+          "kind": "builds-on",
+          "note": "本摘要记录三项配置与缓存的固定版本证据，配置输入和消费者的教学由该页维护"
+        },
+        {
+          "to": "sequence-parallel",
+          "kind": "builds-on",
+          "note": "FlashComm1 与共享专家配置涉及位置分片，执行机制需要另读序列并行专题"
+        },
+        {
+          "to": "profiling-chunk-config",
+          "kind": "builds-on",
+          "note": "本摘要区分构造默认与校验门槛，参数的生成定义仍由原参数页维护"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-10-07",
+      "file": "sources/ascend-config-version-source.md",
+      "backlinks": []
     },
     {
       "id": "ascend-patch-system",
@@ -1160,7 +1243,18 @@
         "头维度",
         "head dim",
         "head_size",
-        "attention scale"
+        "attention scale",
+        "attention-scores",
+        "attention-weights",
+        "causal-mask",
+        "context-vector",
+        "dot-product",
+        "head-dim",
+        "query",
+        "key",
+        "value",
+        "output-projection",
+        "multi-head"
       ],
       "chapters": [
         "04"
@@ -3323,7 +3417,7 @@
       "title": "enable_async_exponential",
       "type": "param",
       "origin": "seed",
-      "summary": "把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，v0.25.1rc 起已整体删除，残留的这个键在 v0.26 上被静默忽略、在 main 上会让启动直接失败。",
+      "summary": "把采样用的指数分布随机数提前挪到副 stream 上生成，与本步 model forward 重叠；v0.23.0 默认关闭并已标记待废弃，v0.25.1rc 起已整体删除，残留的这个键在 v0.26 上被静默忽略、在 main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。",
       "aliases": [
         "异步指数分布重叠",
         "Asynchronous exponential overlap"
@@ -3361,13 +3455,14 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-2442e12b25adb63de1772ce4e3bcff88ee8ef4434f84f27a425dd9e167cd50d2.md",
+        "raw/sha256-85323d2e93b398686b5459a1de5dc797e7a82b50cc8cb5ef47056ec4e08e6cf1.md",
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
       ],
       "relations": [
         {
           "to": "ascend-config-system",
           "kind": "builds-on",
-          "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 上把它挡在启动期的正是这一环"
+          "note": "它只是 additional_config 里的一个键，开没开、能不能写，全由那条 AscendConfig 校验链说了算——main 通常把它挡在启动期的正是这一环"
         },
         {
           "to": "npu-model-runner",
@@ -3382,7 +3477,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-02",
+      "updated": "2026-10-08",
       "file": "params/enable-async-exponential.md",
       "backlinks": []
     },
@@ -3643,7 +3738,9 @@
         "vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L479",
         "vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L494",
         "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L577",
-        "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L575"
+        "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L575",
+        "vllm-ascend@4e19cc765510abfa1dd485b2aa72ff83d0945cf8:vllm_ascend/ascend_config.py#L575",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671"
       ],
       "verified": [
         "main"
@@ -3656,7 +3753,8 @@
         "raw/sha256-b6dee85cabd61a407e769b3afe87cad9ebab694e8557acb71a692aba730e6c8a.md",
         "raw/sha256-bb12681ba71dd7e1d6ac81a0dcc8f6eb79f44f0a62b8decbb7126f9e511359e3.md",
         "raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md",
-        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md"
+        "raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md",
+        "raw/sha256-ff36d627c1428c724f802b763def17644ceb02da03d51bf9b02c1ad282055f6e.md"
       ],
       "relations": [
         {
@@ -3677,7 +3775,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-02",
+      "updated": "2026-10-07",
       "file": "params/enable-pcp-o-proj-weight-sharding-8528cf5af9c6.md",
       "backlinks": []
     },
@@ -5013,6 +5111,55 @@
           "note": "A0 启动顺序、卡数与显存预算以双机部署页为准"
         }
       ]
+    },
+    {
+      "id": "glm-mlp-version-source",
+      "title": "GLM 稠密 MLP 固定版本源码摘录",
+      "type": "source",
+      "origin": "seed",
+      "summary": "固定 main 快照记录了 GLM 稠密前馈模块的激活限制和序列并行设置；两个发布分支的指定路径缺失，完整功能范围仍待核对。",
+      "aliases": [
+        "Glm5NextMLP",
+        "GLM MLP",
+        "SiluAndMul",
+        "SiluAndMulWithClamp",
+        "disable_tp",
+        "reduce_results"
+      ],
+      "chapters": [
+        "10"
+      ],
+      "order": 10,
+      "prerequisites": [],
+      "sources": [
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L90-L138",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L324-L350",
+        "vllm-ascend@baa023ad:vllm_ascend/models/glm5next/model.py#L448-L478"
+      ],
+      "verified": [
+        "main"
+      ],
+      "evidence": "C",
+      "rawSources": [
+        "raw/sha256-5a90f64fa82c9472ef5de2ac2b63ff137b4b161bcbc09c14514c090c5a9c09bc.md"
+      ],
+      "relations": [
+        {
+          "to": "mlp-residual-norm",
+          "kind": "builds-on",
+          "note": "激活检查和投影参数的摘录以该页的前馈计算解释为基础"
+        },
+        {
+          "to": "sequence-parallel",
+          "kind": "builds-on",
+          "note": "区分位置分片与权重分片，才能理解稠密模块的局部通信边界"
+        }
+      ],
+      "related": [],
+      "contradicts": [],
+      "updated": "2026-10-07",
+      "file": "sources/glm-mlp-version-source.md",
+      "backlinks": []
     },
     {
       "id": "gqa",
@@ -6640,7 +6787,7 @@
       "title": "layer_sharding",
       "type": "param",
       "origin": "seed",
-      "summary": "点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc 起已整体删除，v0.26 上照旧配置会被静默忽略、main 上直接报错。GLM 双机是混部，在钉住版本上配了启动即报错。",
+      "summary": "点名一组同构 Linear，让第 i 层的权重只存在通信组内第 i % K 张卡上，前向时异步广播取回；只能在 PD 分离的 P 节点开，v0.24.0rc 起已整体删除，v0.26 上照旧配置会被静默忽略、main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。GLM 双机是混部，在钉住版本上配了启动即报错。",
       "aliases": [
         "Layer Sharding Linear",
         "层间权重分片",
@@ -6692,6 +6839,7 @@
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-45d34afde2227ecda5a1dad641c5f8eb51184a11f3095b8016661f3d4d28a53b.md",
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md",
         "raw/sha256-d5ae5978ab15999f012c8b4e21f00edf25723b330a507f4453b4a61869032de9.md"
       ],
@@ -6704,7 +6852,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-02",
+      "updated": "2026-10-08",
       "file": "params/layer-sharding.md",
       "backlinks": [
         {
@@ -6742,7 +6890,8 @@
         "Manifold-Constrained Hyper-Connections",
         "Hyper-Connections",
         "Sinkhorn",
-        "双随机矩阵"
+        "双随机矩阵",
+        "hidden-size"
       ],
       "chapters": [
         "03"
@@ -7362,7 +7511,8 @@
         "带宽受限",
         "算力受限",
         "memory-bound",
-        "compute-bound"
+        "compute-bound",
+        "linear-projection"
       ],
       "chapters": [
         "02"
@@ -7622,8 +7772,8 @@
       "id": "mlp-residual-norm",
       "title": "MLP、residual 与 RMSNorm：一个子层怎样更新 hidden",
       "type": "concept",
-      "origin": "direct",
-      "summary": "每个子层都是「residual 旁路原样保留输入 + 支路先 RMSNorm 再做 MLP 或注意力 + 两路相加」。讲清残差为什么让深网络训得动、推理为什么删不掉，RMSNorm 与 LayerNorm 差在哪，pre-norm 放在哪，SwiGLU 的 gate、up、限幅和 down，再落到 GLM 前 3 层稠密 MLP 与四条流。",
+      "origin": "gap",
+      "summary": "以单条 residual、pre-norm 和 RMSNorm 为例，讲清「旁路保留输入 + 支路计算改变量 + 两路相加」。区分 LayerNorm 与 RMSNorm、pre-norm 与 post-norm；再讲 SwiGLU 的 gate、up、限幅和 down，以及 GLM 前 3 层稠密 MLP 与四条流。",
       "aliases": [
         "MLP",
         "FFN",
@@ -7651,7 +7801,11 @@
         "down_proj",
         "input_layernorm",
         "post_attention_layernorm",
-        "AscendGlm5NextMLP"
+        "AscendGlm5NextMLP",
+        "down-projection",
+        "qk-norm",
+        "Q/K Norm",
+        "QK归一化"
       ],
       "chapters": [
         "03"
@@ -7683,10 +7837,16 @@
         "vllm@0fc695fc:vllm/model_executor/custom_op.py#L332-L337",
         "vllm-ascend@db701c1f:vllm_ascend/models/glm5_next_mtp.py#L104-L123",
         "vllm@0fc695fc:vllm/model_executor/models/deepseek_mtp.py#L44-L60",
-        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619"
+        "vllm-ascend@db701c1f:vllm_ascend/ops/fused_moe/fused_moe_0_23_0.py#L559-L619",
+        "https://github.com/huggingface/transformers/blob/5f4ecf2d9f867a1255131d2461d75793c0cf1db2/src/transformers/models/qwen3/modeling_qwen3.py#L62-L222",
+        "vllm@0fc695fc:vllm/model_executor/models/gpt2.py#L148-L242",
+        "vllm@0fc695fc:vllm/model_executor/models/opt.py#L135-L197"
       ],
       "verified": [],
       "evidence": "C",
+      "rawSources": [
+        "raw/sha256-453fdb48c994a96c6b4491804bc60fc5843f28e98d22cbbc3104e5f675b3ed30.md"
+      ],
       "relations": [
         {
           "to": "layers-and-hidden",
@@ -7716,9 +7876,14 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-09-28",
+      "updated": "2026-10-08",
       "file": "concepts/mlp-residual-norm.md",
       "backlinks": [
+        {
+          "from": "glm-mlp-version-source",
+          "kind": "enables",
+          "note": "激活检查和投影参数的摘录以该页的前馈计算解释为基础"
+        },
         {
           "from": "moe",
           "kind": "enables",
@@ -7977,7 +8142,7 @@
       "title": "multistream_overlap_gate",
       "type": "param",
       "origin": "seed",
-      "summary": "v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 上会让进程起不来。",
+      "summary": "v0.23.0 的 FlashComm3 门控重叠开关，把共享专家前向与 select_experts 路由挪到副流，与 MoE prepare 里的动态量化 + all-gather 并行；v0.24.0rc 起整套实现已删除，键留在启动命令里 v0.26 上被静默忽略、main 通常拒收，能发现 vLLM-Omni 时会警告并过滤未知顶层键。",
       "aliases": [
         "FlashComm3 多流重叠门控",
         "多流门控重叠"
@@ -8022,6 +8187,7 @@
       ],
       "evidence": "C",
       "rawSources": [
+        "raw/sha256-36624e5fb90c839df56eefbde64f189759712d22035d7e1b93292fb9afd596fb.md",
         "raw/sha256-88d6f3fe29d6159c03e5648c07ca4bf766dc05c0f6547e10b189260cb1c34c59.md",
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
       ],
@@ -8029,12 +8195,12 @@
         {
           "to": "ascend-config-system",
           "kind": "builds-on",
-          "note": "它是 additional_config 里的一个键，main 上让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra=\"forbid\" 的模式校验"
+          "note": "它是 additional_config 里的一个键，main 上通常让启动失败的不是 MoE 代码，而是 AscendConfig 那层 extra=\"forbid\" 的模式校验"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-02",
+      "updated": "2026-10-08",
       "file": "params/multistream-overlap-gate.md",
       "backlinks": []
     },
@@ -9996,6 +10162,11 @@
       "file": "params/profiling-chunk-config.md",
       "backlinks": [
         {
+          "from": "ascend-config-version-source",
+          "kind": "enables",
+          "note": "本摘要区分构造默认与校验门槛，参数的生成定义仍由原参数页维护"
+        },
+        {
           "from": "dynamic-chunked-pp",
           "kind": "enables",
           "note": "查阅字段及各版本定义"
@@ -11816,7 +11987,8 @@
         "YaRN",
         "NoPE",
         "qk_rope_head_dim",
-        "位置插值"
+        "位置插值",
+        "position"
       ],
       "chapters": [
         "04"
@@ -12119,9 +12291,19 @@
       "file": "concepts/sequence-parallel.md",
       "backlinks": [
         {
+          "from": "ascend-config-version-source",
+          "kind": "enables",
+          "note": "FlashComm1 与共享专家配置涉及位置分片，执行机制需要另读序列并行专题"
+        },
+        {
           "from": "context-parallel",
           "kind": "enables",
           "note": "区分局部激活分片与跨位置注意力"
+        },
+        {
+          "from": "glm-mlp-version-source",
+          "kind": "enables",
+          "note": "区分位置分片与权重分片，才能理解稠密模块的局部通信边界"
         }
       ]
     },
@@ -12164,7 +12346,8 @@
         "vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L575",
         "vllm-ascend@baa023ad:vllm_ascend/utils.py#L177-L198",
         "vllm-ascend@db701c1f:vllm_ascend/utils.py#L114-L122",
-        "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L573"
+        "vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L573",
+        "vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671"
       ],
       "verified": [
         "main"
@@ -12198,7 +12381,7 @@
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-02",
+      "updated": "2026-10-07",
       "file": "params/sfa-dcp-force-tmajor-restore-6d9c266d3ece.md",
       "backlinks": []
     },
@@ -14551,18 +14734,19 @@
       "evidence": "C",
       "rawSources": [
         "raw/sha256-03a47659756fa092cca4e20a1677217bd9da69cd038f5e54121938ea1c077bd9.md",
+        "raw/sha256-669825d31e19eba54d1ab853de8f72aca723f16b488158a6679255363551ffee.md",
         "raw/sha256-9daa2e46e9b22baee085d38bb2acc8c292168ab314f18ddfc5ae277f4533e295.md"
       ],
       "relations": [
         {
           "to": "ascend-config-system",
           "kind": "builds-on",
-          "note": "它只是 additional_config 里的一个子配置对象；main 上被 extra=\"forbid\" 当未知键拒收的机制在那一页"
+          "note": "它只是 additional_config 里的一个子配置对象；main 上通常被 extra=\"forbid\" 当未知键拒收的机制在那一页"
         }
       ],
       "related": [],
       "contradicts": [],
-      "updated": "2026-10-02",
+      "updated": "2026-10-08",
       "file": "params/weight-prefetch-config.md",
       "backlinks": [
         {

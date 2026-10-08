@@ -106,6 +106,11 @@ export function spawnClaude(
       stderrTail: "",
     });
     const promptDir = mkdtempSync(join(tmpdir(), "claude-prompt-"));
+    if (req.signal?.aborted) {
+      rmSync(promptDir, { recursive: true, force: true });
+      resolve(notStarted("已取消"));
+      return;
+    }
     const cleanup = () => rmSync(promptDir, { recursive: true, force: true });
     const { args } = promptFileArgs(req.args, promptDir);
     const length = commandLineLength(cmd.command, args);
@@ -140,6 +145,10 @@ export function spawnClaude(
       inputError = `stdin-error: ${err.message}`;
     });
     let timedOut = false;
+    const abort = () => {
+      if (child.pid) killTree(child.pid);
+    };
+    req.signal?.addEventListener("abort", abort, { once: true });
     const timer = setTimeout(() => {
       timedOut = true;
       if (child.pid) killTree(child.pid);
@@ -174,6 +183,7 @@ export function spawnClaude(
       }
     });
     child.on("close", (code) => {
+      req.signal?.removeEventListener("abort", abort);
       clearTimeout(timer);
       cleanup();
       const base: AgentResult = { id: req.id, ok: false, exitCode: code, stderrTail: stderr };
@@ -181,7 +191,8 @@ export function spawnClaude(
       if (costUsd !== undefined) base.costUsd = costUsd;
       const used = models.result();
       if (used) base.models = used;
-      if (timedOut) resolve({ ...base, reason: `timeout ${req.timeoutMs}ms` });
+      if (req.signal?.aborted) resolve({ ...base, reason: "已取消" });
+      else if (timedOut) resolve({ ...base, reason: `timeout ${req.timeoutMs}ms` });
       else if (code !== 0) resolve({ ...base, reason: `exit ${code}` });
       else if (inputError) resolve({ ...base, reason: inputError });
       else if (isError) resolve({ ...base, reason: "result.is_error" });

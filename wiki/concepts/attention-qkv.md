@@ -3,7 +3,7 @@ id: attention-qkv
 title: "Attention 与 Q/K/V：当前位置怎样从历史里取信息"
 type: concept
 summary: "attention 让每个位置按相关程度，从自己和前面的位置取信息，模型靠它把上下文用起来。本页先讲它是什么、为什么需要，再用一个 3 个位置的小例子一步步演示 Q/K/V 打分、softmax 和加权汇合，讲清为什么除以 √d、causal mask 和多头，最后看 GLM 的稀疏 MLA 与 KDA 各改了哪一步。"
-aliases: [注意力, attention, 自注意力, self-attention, "Q、K、V", QKV, Query/Key/Value, 查询, 键, 值, 注意力分数, attention score, softmax, 归一化指数, 缩放点积注意力, scaled dot-product attention, attention head, 因果掩码, causal mask, 头维度, head dim, head_size, attention scale]
+aliases: [注意力, attention, 自注意力, self-attention, "Q、K、V", QKV, Query/Key/Value, 查询, 键, 值, 注意力分数, attention score, softmax, 归一化指数, 缩放点积注意力, scaled dot-product attention, attention head, 因果掩码, causal mask, 头维度, head dim, head_size, attention scale, attention-scores, attention-weights, causal-mask, context-vector, dot-product, head-dim, query, key, value, output-projection, multi-head]
 chapters: ["04"]
 order: 60
 sources:

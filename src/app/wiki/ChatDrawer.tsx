@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router";
 import remarkGfm from "remark-gfm";
+import { type AnswerQuality, QUALITY_LABELS } from "../../content/wiki/answer-quality";
 import { rewriteRelativeLink, routePathOf } from "../../content/wiki/index";
 import { AnswerSave } from "./AnswerSave";
 
@@ -32,6 +33,12 @@ type TraceView =
         title: string;
         state: string;
         versions?: TraceVersions;
+        docs?: {
+          url: string;
+          version: string;
+          reason?: string;
+          mappings: { pinnedRef?: string; matchesPinned: boolean; localPath?: string; reason?: string }[];
+        }[];
         linkedPrs?: { number: number; url: string; basis: string; versions: TraceVersions }[];
       }[];
     };
@@ -88,6 +95,26 @@ function TraceResult({ trace }: { trace: TraceView }) {
               {c.title}
               <span> · {c.state === "closed" ? "已关闭" : c.state === "open" ? "未关闭" : c.state}</span>
               {c.versions && <small className="wiki-chat-trace-meta">{versionText(c.versions)}</small>}
+              {c.docs?.map((doc) => (
+                <small key={doc.url} className="wiki-chat-trace-meta">
+                  文档{" "}
+                  <a href={doc.url} target="_blank" rel="noreferrer">
+                    {doc.version}
+                  </a>
+                  ：
+                  {doc.reason ??
+                    (doc.mappings.some((m) => m.localPath)
+                      ? `已定位源码；${
+                          doc.mappings.some((m) => m.matchesPinned)
+                            ? `匹配 ${doc.mappings
+                                .filter((m) => m.matchesPinned)
+                                .map((m) => refName(m.pinnedRef ?? ""))
+                                .join("、")}`
+                            : "与当前 Wiki 钉点不同"
+                        }`
+                      : (doc.mappings[0]?.reason ?? "本地尚未核实"))}
+                </small>
+              ))}
               {c.linkedPrs?.map((l) => (
                 <small key={l.url} className="wiki-chat-trace-meta">
                   关联{" "}
@@ -148,6 +175,7 @@ interface Msg {
   /** 实际作答模型；CLI 拒答换模型时 switched 为真 */
   model?: ModelView;
   gapNotice?: string;
+  quality?: AnswerQuality;
   related?: { id: string; title: string; href: string; note: string }[];
   trace?: TraceView;
 }
@@ -171,9 +199,10 @@ async function streamChat(
       online?: boolean;
     }) => void;
     notice: (v: { kind: string; message: string }) => void;
+    quality: (v: AnswerQuality) => void;
     model: (v: ModelView) => void;
     gap: (v: {
-      state: "collecting" | "awaiting-assessment" | "record-failed";
+      state: "collecting" | "awaiting-assessment" | "closed" | "record-failed";
       count?: number;
       threshold?: number;
     }) => void;
@@ -182,7 +211,7 @@ async function streamChat(
 ): Promise<void> {
   const res = await fetch("/api/wiki/chat", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-wiki-review": "1" },
     body: JSON.stringify(body),
     signal,
   });
@@ -216,6 +245,7 @@ async function streamChat(
       else if (ev === "knowledge") on.knowledge(data as never);
       else if (ev === "notice" && typeof data.message === "string") on.notice(data as never);
       else if (ev === "gap") on.gap(data as never);
+      else if (ev === "quality") on.quality(data as AnswerQuality);
       else if (ev === "model" && Array.isArray(data.switches)) on.model(data as never);
       else if (ev === "trace" && typeof data.status === "string") on.trace(data as TraceView);
       else if (ev === "related" && Array.isArray(data.pages))
@@ -280,11 +310,14 @@ export function useChat() {
                 gapNotice:
                   v.state === "record-failed"
                     ? "缺口信号未能保存；本次回答仍保留，请稍后重试。"
-                    : v.state === "awaiting-assessment"
-                      ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
-                      : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
+                    : v.state === "closed"
+                      ? "这条缺口已验收关闭，本次重复通知不新增记录。"
+                      : v.state === "awaiting-assessment"
+                        ? `缺口信号已记录（${v.count} 次），已排进补写队列。夜间任务要在自动补写打开后才处理，还要先写好复测计划才会生成待审草稿。`
+                        : `缺口信号已记录（${v.count}/${v.threshold}）；尚未确认知识缺失，也未启动补写。`,
               })),
             notice: (v) => patch((l) => ({ ...l, toolNotice: v.message })),
+            quality: (v) => patch((l) => ({ ...l, quality: v })),
             model: (v) => patch((l) => ({ ...l, model: v })),
             knowledge: (v) => {
               sessionId.current = v.sessionId;
@@ -438,6 +471,24 @@ export function ChatPane({
             {m.gapNotice && (
               <p role="status" className="wiki-chat-reading" data-testid="chat-gap">
                 {m.gapNotice}
+              </p>
+            )}
+            {m.quality && (
+              <p
+                role="status"
+                className={
+                  m.quality.status === "unavailable" ||
+                  (m.quality.status === "checked" && m.quality.decision.satisfied !== true)
+                    ? "wiki-chat-uncited"
+                    : "wiki-chat-reading"
+                }
+                data-testid="chat-quality"
+              >
+                {m.quality.status === "checking"
+                  ? "正在独立核对回答与知识库材料…"
+                  : m.quality.status === "unavailable"
+                    ? "独立核对未完成，本回答尚未经质量判定。"
+                    : `独立核对：${QUALITY_LABELS[m.quality.decision.classification]}。${m.quality.decision.reason}（模型判断，仅限所查材料）`}
               </p>
             )}
             {m.answerId && <AnswerSave answerId={m.answerId} onReview={onReview} />}

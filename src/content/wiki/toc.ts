@@ -3,7 +3,10 @@
  * 已编排页面优先；RFork/参数/记录按各自规则归位；新教学页显式等待编排。
  * 不用页型、生成来源或课程章号猜测知识主题，每页只出现一次。
  */
+import type { z } from "zod";
+import type { tocPlacementSchema } from "./schema";
 export interface TocPage {
+  toc?: z.infer<typeof tocPlacementSchema> | undefined;
   id: string;
   title: string;
   type: string;
@@ -200,13 +203,22 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
   const remaining = (matches: (p: P) => boolean) =>
     take(
       pages
-        .filter(matches)
+        .filter((p) => !p.toc && matches(p))
         .sort(byOrder)
         .map((p) => p.id),
     );
 
   return PARTS.map((part): TocPart<P> => {
-    const sections = (CURATED[part.id] ?? []).map((s) => ({ title: s.title, pages: take(s.pages) }));
+    const sections = (CURATED[part.id] ?? []).map((s) => ({
+      title: s.title,
+      pages: take(s.pages.filter((id) => !byId.get(id)?.toc)),
+    }));
+    for (const page of pages.filter((p) => p.toc?.part === part.id).sort(byOrder)) {
+      const title = page.toc!.section;
+      const section = sections.find((s) => s.title === title);
+      if (section) section.pages.push(...take([page.id]));
+      else sections.push({ title, pages: take([page.id]) });
+    }
     if (part.id === "rfork") {
       sections.push({
         title: "工作版机制与维护",
@@ -222,7 +234,7 @@ export function buildToc<P extends TocPage>(pages: P[]): TocPart<P>[] {
         { title: "问答记录", pages: remaining((p) => p.origin === "chat") },
         { title: "PR 记录", pages: remaining((p) => p.type === "pr" || p.origin === "pr") },
         { title: "来源与版本依据", pages: remaining((p) => p.type === "source") },
-        { title: "新增教学页（待编排）", pages: remaining(() => true) },
+        { title: "新增教学页（待编排）", pages: remaining((p) => !p.toc) },
       );
     }
     return { ...part, sections: sections.filter((s) => s.pages.length > 0) };

@@ -38,7 +38,7 @@ export function codeBreakPoints(text: string): number[] {
   return out;
 }
 
-type HastNode = {
+export type HastNode = {
   type: string;
   tagName?: string;
   value?: string;

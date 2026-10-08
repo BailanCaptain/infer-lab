@@ -10,6 +10,7 @@ import { z } from "zod";
 import { EVIDENCE_MARK_RE } from "../../src/content/wiki/evidenceMarks";
 import { diagramRefs, type LoadedDiagram } from "./diagrams";
 import type { PageProblem } from "./pages";
+import { isRevisionEntryHeading, REVISION_HISTORY_HEADING } from "./revisions";
 
 export const STANDARD_RULES = [
   "code-density",
@@ -150,7 +151,16 @@ export function measureStandard(
   let sourceSections: string | null = null;
   if (cut < 0) sourceSections = `缺少「## ${cfg.sourceSection}」`;
   else {
-    const after = blocks.slice(cut + 1).filter((b) => b.kind === "heading");
+    let after = blocks.slice(cut + 1).filter((b) => b.kind === "heading");
+    const historyAt = after.findIndex((b) => b.level === 2 && `## ${b.text}` === REVISION_HISTORY_HEADING);
+    // The engine's final audit section is not teaching content. Other trailing headings
+    // still fail, and publication separately verifies the history against its decision.
+    if (
+      historyAt >= 0 &&
+      historyAt < after.length - 1 &&
+      after.slice(historyAt + 1).every((b) => b.level === 3 && isRevisionEntryHeading(b.text))
+    )
+      after = after.slice(0, historyAt);
     const h2 = after.filter((b) => b.level === 2).map((b) => b.text);
     const h3 = after.filter((b) => b.level === 3).map((b) => b.text);
     const want = cfg.sourceSubsections;

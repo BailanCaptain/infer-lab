@@ -60,6 +60,39 @@
   color: var(--color-rail-muted);
 }
 
+.wiki-toc-search {
+  display: grid;
+  gap: 6px;
+}
+
+.wiki-toc-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  color: var(--color-rail-text);
+  background: var(--color-rail);
+  border: 1px solid var(--color-rail-line);
+  border-radius: var(--radius-field);
+  font: inherit;
+  font-size: var(--text-label);
+}
+
+.wiki-toc-search input::placeholder {
+  color: var(--color-rail-muted);
+}
+
+.wiki-toc-search button {
+  justify-self: end;
+  color: var(--color-rail-text);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.wiki-toc-search small {
+  color: var(--color-rail-muted);
+}
+
 .eyebrow {
   font-family: var(--font-mono);
   font-size: var(--text-micro);
@@ -725,6 +758,7 @@ summary.wiki-toc-part-head::-webkit-details-marker {
 /* 问答和审阅同宽：切页签时面板和正文都不该跳 */
 @media (min-width: 1180px) {
   .wiki-shell.is-panel-chat,
+  .wiki-shell.is-panel-drop,
   .wiki-shell.is-panel-review,
   .wiki-shell.is-panel-status {
     grid-template-columns: 248px minmax(0, 1fr) clamp(540px, 42vw, 780px);
@@ -2710,4 +2744,81 @@ summary.wiki-toc-part-head::-webkit-details-marker {
   .wiki-calc-note {
     grid-column: 1 / -1;
   }
+}
+
+/* Drop uses the existing assistant panel and whole-package review. */
+.wiki-drop {
+  overflow: auto;
+  padding: 18px;
+  min-width: 0;
+  font-size: 13px;
+}
+.wiki-drop[hidden] {
+  display: none;
+}
+.wiki-drop form,
+.wiki-drop-progress {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.wiki-drop label {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.wiki-drop input,
+.wiki-drop textarea,
+.wiki-drop select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  color: inherit;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 8px;
+  font: inherit;
+}
+.wiki-drop textarea {
+  resize: vertical;
+}
+.wiki-drop button {
+  padding: 7px 10px;
+  color: var(--color-ink);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+.wiki-drop button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.wiki-drop li {
+  margin-bottom: 14px;
+  overflow-wrap: anywhere;
+}
+.wiki-drop pre,
+.wiki-drop-report {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  max-height: 480px;
+  overflow: auto;
+}
+.wiki-drop-assets > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 12px;
+}
+.wiki-drop-assets figure {
+  margin: 0;
+  min-width: 0;
+}
+.wiki-drop-assets img {
+  width: 100%;
+  height: auto;
+  background: #fff;
 }

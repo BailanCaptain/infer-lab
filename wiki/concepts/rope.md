@@ -3,7 +3,7 @@ id: rope
 title: "RoPE：把位置变成旋转，让注意力分数只看相隔多远"
 type: concept
 summary: RoPE 在 q、k 点积之前按各自的位置编号旋转它们的二维分量对，点积里只剩两者的位置差；频率基数和 YaRN 等缩放决定能覆盖多长。固定部署的 GLM-5.3-Flash 把 RoPE 维数设为 0：稀疏 MLA 与索引器都不旋转，KDA 层本来就不用 RoPE。
-aliases: [旋转位置编码, 旋转位置嵌入, Rotary Position Embedding, rotary embedding, 位置编码, partial rotary, 部分旋转, rope_theta, 旋转基数, 频率基数, YaRN, NoPE, qk_rope_head_dim, 位置插值]
+aliases: [旋转位置编码, 旋转位置嵌入, Rotary Position Embedding, rotary embedding, 位置编码, partial rotary, 部分旋转, rope_theta, 旋转基数, 频率基数, YaRN, NoPE, qk_rope_head_dim, 位置插值, position]
 chapters: ["04"]
 order: 10
 sources:

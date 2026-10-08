@@ -29,7 +29,8 @@ import { revisePage } from "./revisions";
 function snapshotRefs(file: string, text: string | undefined): string[] {
   if (text === undefined) return [];
   const parsed = parsePage(file, text);
-  if (!parsed.page || parsed.problems.length) throw new Error(`整合来源映射无法读取：${file}`);
+  if (!parsed.page || parsed.problems.length)
+    throw new Error(`整合来源映射无法读取：${file}：${JSON.stringify(parsed.problems)}`);
   return parsed.page.fm.rawSources ?? [];
 }
 

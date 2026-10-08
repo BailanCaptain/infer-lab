@@ -29,7 +29,7 @@ export function restrictedArgs(rules: string, budget?: number, model = WORK_MODE
 
 /** Fail closed on profile changes, missing/duplicate results, or tool activity. */
 export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
-  const budget = Number(req.args[req.args.indexOf("--max-budget-usd") + 1]);
+  const budget = req.accountingOnly ? undefined : Number(req.args[req.args.indexOf("--max-budget-usd") + 1]);
   const rules = req.args[req.args.indexOf("--system-prompt") + 1] ?? "";
   const reject = (reason: string) => ({
     id: req.id,
@@ -42,8 +42,7 @@ export const runRestrictedClaude: RunAgent = async (req: AgentRequest) => {
   if (
     !rules ||
     !MODEL_ID.test(req.model ?? WORK_MODEL) ||
-    !Number.isFinite(budget) ||
-    budget <= 0 ||
+    (!req.accountingOnly && (!Number.isFinite(budget) || budget! <= 0)) ||
     req.allowedWrites.length ||
     JSON.stringify(req.args) !== JSON.stringify(restrictedArgs(rules, budget, req.model ?? WORK_MODEL))
   )

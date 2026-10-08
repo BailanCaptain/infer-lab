@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { parseDocLinks } from "./corpus";
+import { mapDocRef } from "./corpus-trace";
 import { GitError, gitText } from "./git";
 import { GithubClient } from "./github";
 import {
@@ -57,8 +59,9 @@ export interface ChatTraceCandidate {
   matchedQueries: number;
   /** 清洗后的正文开头，只给问答模型当线索；清洗阻断时为空 */
   excerpt: string;
+  docs?: ReturnType<typeof localDocVersions>;
   versions?: VersionCheck;
-  linkedPrs?: { number: number; url: string; basis: string; versions: VersionCheck }[];
+  linkedPrs?: { number: number; url: string; basis: string; versions: VersionCheck; excerpt?: string }[];
 }
 
 export interface TraceScope {
@@ -82,6 +85,49 @@ export type ChatTrace =
     };
 
 const MAX_TAGS = 8;
+
+function threadExcerpt(thread: Awaited<ReturnType<typeof inspectThread>>) {
+  const pull = thread.pull as
+    | {
+        merged?: boolean;
+        merge_commit_sha?: string;
+        files?: { file: string; patch: { text: string; blocked: boolean } }[];
+      }
+    | undefined;
+  const parts = [
+    `已读取 ${thread.url}；${thread.qualification}`,
+    thread.body.blocked ? "正文清洗阻塞" : thread.body.text,
+    ...thread.comments.filter((c) => !c.blocked).map((c) => `评论 ${c.url}: ${c.text}`),
+  ];
+  if (pull)
+    parts.push(
+      `PR merged=${pull.merged}; merge_commit_sha=${pull.merge_commit_sha ?? "未知"}`,
+      ...(pull.files ?? []).filter((f) => !f.patch.blocked).map((f) => `${f.file}\n${f.patch.text}`),
+    );
+  const text = parts.join("\n\n");
+  return text.length > 12000 ? `${text.slice(0, 12000)}\n[摘录已截断，未展示的内容不可据此推断]` : text;
+}
+
+/** Map the document's own version, never silently substitute the Wiki's current pin. */
+export function localDocVersions(root: string, text: string) {
+  return parseDocLinks(text)
+    .slice(0, 5)
+    .map((doc) => {
+      try {
+        const seeds = parseSeeds(readFileSync(localFile(root, "wiki/seeds/vllm-ascend-code.yaml"), "utf8"));
+        const repo = seeds.repos["vllm-ascend"];
+        if (!repo) throw new Error("没有 Ascend 文档对应的本地仓库配置");
+        return {
+          ...doc,
+          mappings: Object.entries(repo.refs).map(([ref, commit]) =>
+            mapDocRef(resolve(root, repo.path), doc, ref, commit),
+          ),
+        };
+      } catch (error) {
+        return { ...doc, mappings: [], reason: String(error) };
+      }
+    });
+}
 
 function isAncestor(dir: string, commit: string, of: string) {
   try {
@@ -208,20 +254,47 @@ export async function traceChat(
       state: c.state,
       updatedAt: c.updatedAt,
       matchedQueries: c.matchedQueries.length,
-      excerpt: c.body.blocked ? "" : c.body.text.slice(0, 400),
+      excerpt: c.body.blocked
+        ? ""
+        : c.body.text.slice(0, 12000) +
+          (c.body.truncated || c.body.text.length > 12000 ? "\n[搜索正文摘录已截断]" : ""),
+      docs: localDocVersions(root, c.body.blocked ? "" : c.body.text),
     };
-    if (candidate.kind === "pr") candidate.versions = localFixVersions(root, c.repo, c.number);
-    else if (!followed) {
+    if (candidate.kind === "pr") {
+      candidate.versions = localFixVersions(root, c.repo, c.number);
+      if (c === top[0]) {
+        try {
+          const thread = await inspectThread(session, c.url);
+          candidate.excerpt = threadExcerpt(thread);
+          problems.push(...thread.problems.map((p) => `读取 ${c.url}：${p}`));
+        } catch (error) {
+          problems.push(`读取 ${c.url} 失败：${String(error)}`);
+        }
+      }
+    } else if (!followed) {
       followed = true;
       try {
         const thread = await inspectThread(session, c.url);
+        candidate.excerpt = threadExcerpt(thread);
+        candidate.docs = localDocVersions(
+          root,
+          [
+            c.body.blocked ? "" : c.body.text,
+            thread.body.blocked ? "" : thread.body.text,
+            ...thread.comments.filter((comment) => !comment.blocked).map((comment) => comment.text),
+          ].join("\n"),
+        );
         problems.push(...thread.problems.map((p) => `读取 ${c.url}：${p}`));
         // 同一个编号会以 /issues/N（正文里的 #N）和 /pull/N（cross-reference）两种链接各出现一次：按编号合并依据
-        const refs = new Map<number, { repo: string; url: string; kind: string; basis: string[] }>();
+        const refs = new Map<
+          string,
+          { repo: string; number: number; url: string; kind: string; basis: string[] }
+        >();
         for (const ref of thread.related) {
           const target = parseTraceUrl(config, ref.url);
-          const known = refs.get(target.number);
-          if (!known) refs.set(target.number, { ...target, url: ref.url, basis: [...ref.basis] });
+          const key = `${target.repo}#${target.number}`;
+          const known = refs.get(key);
+          if (!known) refs.set(key, { ...target, url: ref.url, basis: [...ref.basis] });
           else {
             known.basis.push(...ref.basis);
             if (target.kind === "pr") Object.assign(known, { url: ref.url, kind: "pr" });
@@ -234,12 +307,21 @@ export async function traceChat(
           basis.includes(REF_BASIS.crossReference) ? 0 : basis.includes(REF_BASIS.comment) ? 1 : 2;
         const ordered = [...refs].sort(([, a], [, b]) => priority(a.basis) - priority(b.basis));
         const linked: NonNullable<ChatTraceCandidate["linkedPrs"]> = [];
-        for (const [number, ref] of ordered) {
+        for (const [, ref] of ordered) {
+          const { number } = ref;
           if (linked.length >= config.relatedPrLimit) break;
           const versions = localFixVersions(root, ref.repo, number);
           // `#N` 提及可能指 issue 也可能指 PR；本地找不到合并提交、链接又不是 /pull/ 的不算关联 PR
           if (ref.kind !== "pr" && versions.status !== "found") continue;
-          linked.push({ number, url: ref.url, basis: [...new Set(ref.basis)].join("；"), versions });
+          let excerpt: string | undefined;
+          try {
+            const detail = await inspectThread(session, ref.url);
+            excerpt = threadExcerpt(detail);
+            problems.push(...detail.problems.map((p) => `读取 ${ref.url}：${p}`));
+          } catch (error) {
+            problems.push(`读取 ${ref.url} 失败：${String(error)}`);
+          }
+          linked.push({ number, url: ref.url, basis: [...new Set(ref.basis)].join("；"), versions, excerpt });
         }
         if (linked.length) candidate.linkedPrs = linked;
       } catch (error) {
@@ -265,6 +347,9 @@ export function publicTrace(trace: ChatTrace) {
   if (trace.status !== "done") return trace;
   return {
     ...trace,
-    candidates: trace.candidates.map(({ excerpt: _excerpt, ...rest }) => rest),
+    candidates: trace.candidates.map(({ excerpt: _excerpt, linkedPrs, ...rest }) => ({
+      ...rest,
+      ...(linkedPrs ? { linkedPrs: linkedPrs.map(({ excerpt: _linkedExcerpt, ...link }) => link) } : {}),
+    })),
   };
 }

@@ -8,6 +8,9 @@ import { gapPolicySchema } from "./workflow-policy";
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const question = z.string().trim().min(1).max(100_000);
 const signalSchema = z.discriminatedUnion("kind", [
+  z
+    .object({ kind: z.literal("independent-review"), reason: z.string().min(1).max(2000), decision: hash })
+    .strict(),
   z.object({ kind: z.literal("agent-uncovered"), reason: z.string().min(1).max(2000) }).strict(),
   z
     .object({
@@ -115,17 +118,36 @@ function readLedger(root: string): Ledger | undefined {
   return ledger;
 }
 
-function view(entry: Entry, threshold: number) {
+function view(entry: Entry, threshold: number, tasks: ReturnType<typeof listTasks>) {
+  const closedCount = tasks.reduce((seen, task) => {
+    const count = task.result?.closureObservationCount;
+    return task.input.kind === "gap" &&
+      task.input.key === entry.key &&
+      task.state === "closed" &&
+      typeof count === "number" &&
+      Number.isInteger(count) &&
+      count >= 0 &&
+      count <= entry.occurrences.length
+      ? Math.max(seen, count)
+      : seen;
+  }, 0);
+  const pendingCount = entry.occurrences.length - closedCount;
   const first = entry.occurrences[0]!;
   const last = entry.occurrences.at(-1)!;
   return {
     ...entry,
     question: first.question,
     count: entry.occurrences.length,
+    pendingCount,
     threshold,
     firstSeen: first.recordedAt,
     lastSeen: last.recordedAt,
-    state: entry.occurrences.length >= threshold ? ("awaiting-assessment" as const) : ("collecting" as const),
+    state:
+      pendingCount === 0
+        ? ("closed" as const)
+        : pendingCount >= threshold
+          ? ("awaiting-assessment" as const)
+          : ("collecting" as const),
     assessment: "unassessed" as const,
   };
 }
@@ -148,7 +170,8 @@ function queueOccurrence(root: string, entry: Entry, threshold: number) {
 /** Atomic reads; inspection must not create a lock, ledger, task or model call. */
 export function listGaps(root: string) {
   const ledger = readLedger(root);
-  return ledger?.entries.map((entry) => view(entry, ledger.policy.threshold)) ?? [];
+  const tasks = listTasks(root);
+  return ledger?.entries.map((entry) => view(entry, ledger.policy.threshold, tasks)) ?? [];
 }
 
 const writeLedger = (root: string, ledger: Ledger) =>
@@ -180,7 +203,7 @@ export function recordGapObservation(
       if (JSON.stringify(gapObservationSchema.strip().parse(prior)) !== JSON.stringify(input))
         throw new Error("同一缺口事件不能替换问题或证据");
       queueOccurrence(root, entry, ledger.policy.threshold);
-      return view(entry, ledger.policy.threshold);
+      return view(entry, ledger.policy.threshold, listTasks(root));
     }
     const key = gapKey(input.question, input.contextQuestions);
     let entry = ledger.entries.find((entry) => owns(entry, key));
@@ -196,7 +219,7 @@ export function recordGapObservation(
     entry.occurrences.push({ ...input, recordedAt: new Date().toISOString() });
     writeLedger(root, ledger);
     queueOccurrence(root, entry, ledger.policy.threshold);
-    return view(entry, ledger.policy.threshold);
+    return view(entry, ledger.policy.threshold, listTasks(root));
   });
 }
 
@@ -223,6 +246,6 @@ export function splitGapAlias(root: string, aliasKey: string) {
     ledger.entries.push(split);
     writeLedger(root, ledger);
     queueOccurrence(root, split, ledger.policy.threshold);
-    return view(split, ledger.policy.threshold);
+    return view(split, ledger.policy.threshold, listTasks(root));
   });
 }

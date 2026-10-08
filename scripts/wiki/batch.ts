@@ -2,11 +2,14 @@ import type { ModelUse } from "./model-use";
 
 /** Shared execution contract. Entry adapters own prompts and artifact validation. */
 export interface AgentRequest {
+  /** Explicit product execution records usage without inheriting test quotas. */
+  accountingOnly?: boolean;
+  signal?: AbortSignal;
   /** Omitted means the existing Claude runner and USD accounting. */
   provider?: "claude" | "codex";
   model?: string;
   /** Explicit evidence files for tool-free file generation; relative paths follow staged cwd. */
-  evidenceFiles?: { label: string; path: string }[];
+  evidenceFiles?: { label: string; path: string; allowMissing?: boolean; numbered?: boolean }[];
   id: string;
   cwd: string;
   args: string[];

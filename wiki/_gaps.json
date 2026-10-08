@@ -600,6 +600,79 @@
           "recordedAt": "2026-09-23T03:27:55.373Z"
         }
       ]
+    },
+    {
+      "key": "e134756a614cc32da6dfcbc33de5155eb8ecbef774bb1dac4fa661415edec558",
+      "occurrences": [
+        {
+          "eventId": "1894ef1f-73cf-4e2f-aed8-4b8dc8f737fa",
+          "question": "知识库里有没有固定 GLM 双机 Sleep Mode 的真实释放显存和恢复延迟数据？如果没有请直说，不要把示意数当实测；两句话回答。",
+          "contextQuestions": [
+            "Sleep Mode 的 level 1 和 level 2 有什么区别？请用三句话回答，并引用知识库页面。",
+            "那 level 2 唤醒后能直接生成吗？两句话回答并引用知识库。"
+          ],
+          "revision": "7810b0de61e5c30946d211e9cdbc7bc66e776a72ee815dec15d52e615aa15f59",
+          "candidates": [
+            {
+              "id": "sleep-mode",
+              "score": 22.891,
+              "how": "fuzzy"
+            },
+            {
+              "id": "enable-sleep-mode-extra-cleanup",
+              "score": 16.604,
+              "how": "keyword"
+            },
+            {
+              "id": "vllm-ascend-for-rl",
+              "score": 14.766,
+              "how": "keyword"
+            },
+            {
+              "id": "rfork-troubleshooting",
+              "score": 9.647,
+              "how": "keyword"
+            },
+            {
+              "id": "recompute-cpu-offload",
+              "score": 9.358,
+              "how": "keyword"
+            },
+            {
+              "id": "glm-5-3-flash-two-node",
+              "score": 11.4455,
+              "how": "related"
+            },
+            {
+              "id": "npu-worker-lifecycle",
+              "score": 11.4455,
+              "how": "related"
+            },
+            {
+              "id": "request-call-chain",
+              "score": 11.4455,
+              "how": "related"
+            },
+            {
+              "id": "ascend-config-system",
+              "score": 8.302,
+              "how": "related"
+            },
+            {
+              "id": "ascend-patch-system",
+              "score": 7.383,
+              "how": "related"
+            }
+          ],
+          "signals": [
+            {
+              "kind": "agent-uncovered",
+              "reason": "模型覆盖状态 false：本库明确确认固定 GLM 双机未启用 Sleep Mode，缺少该配置释放显存和恢复延迟的实测数据；仍需独立分类核对。"
+            }
+          ],
+          "recordedAt": "2026-10-05T06:57:09.917Z"
+        }
+      ]
     }
   ]
 }

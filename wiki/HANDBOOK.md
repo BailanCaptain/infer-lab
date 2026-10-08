@@ -336,6 +336,7 @@ RFork 专章维护用户指定的独立代码，版本真相源为 `seeds/rfork.
 | `blog.vllm.ai` | vLLM 官方博客 | 官方 |
 | `discuss.vllm.ai` | 用户论坛，讨论内容不自动成为官方结论 | 社区 |
 | `github.com/vllm-project/` | 上游仓库、issue、PR、release | 官方 |
+| `github.com/huggingface/transformers/blob/` | Transformers 原仓源码；引用固定提交，不包含 issue、PR、其他仓库或 fork，不据此证明 vLLM-Ascend 支持 | 生态 |
 | `gitee.com/ascend/` | 昇腾一手仓库（ATB 算子库等） | 官方 |
 | `gitcode.com/Ascend/` | 昇腾一手仓库（msmodelslim 等） | 官方 |
 | `gitcode.com/cann/` | CANN 一手仓库（ops-transformer 等） | 官方 |

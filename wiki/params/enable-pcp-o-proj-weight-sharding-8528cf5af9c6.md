@@ -16,7 +16,7 @@ chapters:
 verified:
   - main
 evidence: C
-updated: '2026-10-02'
+updated: '2026-10-07'
 relations:
   - to: context-parallel
     kind: builds-on
@@ -62,6 +62,9 @@ sources:
     vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L577
   - >-
     vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L575
+  - >-
+    vllm-ascend@4e19cc765510abfa1dd485b2aa72ff83d0945cf8:vllm_ascend/ascend_config.py#L575
+  - 'vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671'
 rawSources:
   - >-
     raw/sha256-439f3d59c68ccbab5b7c12b7f491d8ac3c3e1a37dc972643dfd812e5f797f6a2.md
@@ -77,6 +80,8 @@ rawSources:
     raw/sha256-bddcda0a13c3adcf3c60db59b54087b75b8e79a44f558dce1a8eef950c237ae8.md
   - >-
     raw/sha256-f0620a0aa51e253e6317b8c200fef748f9a19d4f602343246dd853e3c06121e5.md
+  - >-
+    raw/sha256-ff36d627c1428c724f802b763def17644ceb02da03d51bf9b02c1ad282055f6e.md
 ---
 ## 一句话
 
@@ -84,7 +89,7 @@ rawSources:
 
 **它是 `layer_sharding` 留下的那个缺口上唯一的用户旋钮。** 从 v0.24.0rc 删掉 [layer_sharding](layer-sharding.md) 到 v0.26 为止，关于「`o_proj` 权重怎么放」用户一个键都没有；main 上补回来的就是这一个，而且比原来管得少——切哪个权重（只有 `o_proj`）、按哪个域切（只有 PCP 组）都写死，用户只决定开不开。
 
-**存在范围。** 2026-09-07 由 PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 引入，main 之外也进了后来拉出的 v0.28.0rc、v0.29.0rc 两条发布分支（见下面「版本谱系」）。**本库钉住的三个对照版本里，只有 main（`baa023ad`，2026-09-21）含它**；v0.23 维护分支（`2c59ff10`）与 v0.26 分支（`2ed6cbba`，2026-09-17 的源码快照）上这个键和 `vllm_ascend/weight_switch/` 整个目录都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；钉住 main 的顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，拼错就起不来 [C15]。
+**存在范围。** 2026-09-07 由 PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) 引入，main 之外也进了后来拉出的 v0.28.0rc、v0.29.0rc 两条发布分支（见下面「版本谱系」）。**本库钉住的三个对照版本里，只有 main（`baa023ad`，2026-09-21）含它**；v0.23 维护分支（`2c59ff10`）与 v0.26 分支（`2ed6cbba`，2026-09-17 的源码快照）上这个键和 `vllm_ascend/weight_switch/` 整个目录都不存在。那两个分支的 `AscendConfig` 逐键 `.get()`，配了静默忽略 [C16] [C17]；钉住 main 的顶层 `AscendConfig` 是 `extra="forbid"` 的 pydantic 模型，拼错通常会被严格校验拒绝；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤，不能概括为一律无法启动 [C15][C23]。
 
 **GLM 双机主线上它不生效。** 那套部署 `prefill_context_parallel_size` 是 1（PCP=1、DCP=1，见 [CP 页的 GLM 一节](../concepts/context-parallel.md#放到-glm-双机这套部署开了-cp-吗)），`resolve_sfa_impl` 选的是不带 CP 的 `AscendSFAImpl`，读这个键的那行代码不在选中的类里 [C7]；配上去也没有 warning。想开也开不了：GLM 的 34 层 KDA 在 PCP > 1 时 prefill 直接抛 `NotImplementedError`。顺带一提，11 层稀疏 MLA 里的 `o_proj` 本来就按 TP8 行切，切法与每卡形状见 [TP 页的稀疏 MLA 一节](../concepts/tensor-parallel.md#稀疏-mla头投影切开压缩历史逐卡复制)，本页不重算。
 
@@ -150,7 +155,7 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 | releases/v0.27.1rc | 无 |
 | releases/v0.28.0rc | 有（3 个文件） |
 | releases/v0.29.0rc | 有（3 个文件） |
-| main | 有（3 个文件） |
+| main | 有（5 个文件） |
 
 - **引入**：2026-09-07 · 78cd10dec8f1307634506b736d8c27000500a62d · PR [#14814](https://github.com/vllm-project/vllm-ascend/pull/14814) —— [Feature] Enable pcp + o_proj weight split/gather (#14814)
   包含该提交的 tag：未找到；分支：main、origin/dependabot/github_actions/actions/setup-python-7.0.0、origin/main、origin/releases/v0.28.0rc、origin/releases/v0.29.0rc、origin/revert-15908-new-refactor
@@ -170,12 +175,57 @@ gather buffer 挂在类变量 `o_proj_full_pools` 上，按 `(linear 方法类�
 | --- | --- |
 | 标识 | `additional_config["enable_pcp_o_proj_weight_sharding"]` |
 | 类型 | `bool` |
-| 默认表达式 | `False` |
-| 定义 | `vllm_ascend/ascend_config.py:575` [C21] |
-| 版本 | main · 4ebb3090fc3c13c26557dcaae353882e70246649 |
+| 默认表达式 | `True` |
+| 定义 | `vllm_ascend/ascend_config.py:575` [C22] |
+| 版本 | main · 4e19cc765510abfa1dd485b2aa72ff83d0945cf8 |
 
 字段注释：
 
 源码未提供字段注释。
 
 约束线索（须结合 validator 的控制流核对，不作为独立运行时保证）：
+
+## 已废弃的说法
+
+### 2026-10-07 · 修订 3dd73cdc37231d3b
+
+旧说法（历史记录，已废弃）：
+
+```text
+拼错就起不来 [C15]。
+```
+
+替代结论：
+
+```text
+拼错通常会被严格校验拒绝；若能发现 `vllm_omni`，未知顶层键会先警告并从 AscendConfig 输入过滤，不能概括为一律无法启动 [C15][C23]。
+```
+
+废弃依据（来源是否支持结论仍须人审）：
+
+- `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L1660-L1671`
+
+旧文的来源编号（仅解释上方历史原文）：
+
+1. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L468`
+2. `vllm-ascend@baa023ada41a5b889cac6249845a688aab130892:vllm_ascend/ascend_config.py#L468`
+3. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L1509-L1519`
+4. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L58-L91`
+5. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L93-L110`
+6. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L112-L158`
+7. `vllm-ascend@baa023ad:vllm_ascend/attention/context_parallel/sfa_cp.py#L1575-L1590`
+8. `vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L259-L296`
+9. `vllm-ascend@baa023ad:vllm_ascend/weight_switch/linear.py#L441-L456`
+10. `vllm-ascend@baa023ad:vllm_ascend/weight_switch/o_proj.py#L28-L51`
+11. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L211-L215`
+12. `vllm-ascend@baa023ad:docs/source/user_guide/configuration/additional_config.md#L77`
+13. `vllm-ascend@baa023ad:vllm_ascend/utils.py#L1522-L1537`
+14. `vllm-ascend@baa023ad:tests/ut/test_ascend_config.py#L1281-L1295`
+15. `vllm-ascend@baa023ad:vllm_ascend/ascend_config.py#L455`
+16. `vllm-ascend@2ed6cbba:vllm_ascend/ascend_config.py#L61-L67`
+17. `vllm-ascend@2c59ff10:vllm_ascend/ascend_config.py#L32-L38`
+18. `vllm-ascend@39fef3f8fe71e71a8b7a684ae0f62b85ff18661f:vllm_ascend/ascend_config.py#L479`
+19. `vllm-ascend@bea70ab8fa233a06a7483337f42a1e3f2c8a117c:vllm_ascend/ascend_config.py#L494`
+20. `vllm-ascend@4d1412d102c16669af3ec73174fc5f8b359b56d9:vllm_ascend/ascend_config.py#L577`
+21. `vllm-ascend@4ebb3090fc3c13c26557dcaae353882e70246649:vllm_ascend/ascend_config.py#L575`
+22. `vllm-ascend@4e19cc765510abfa1dd485b2aa72ff83d0945cf8:vllm_ascend/ascend_config.py#L575`

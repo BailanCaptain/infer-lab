@@ -35,6 +35,7 @@ export const CITABLE_DOMAINS: CitableDomain[] = [
   { domain: "blog.vllm.ai", kind: "official" },
   { domain: "discuss.vllm.ai", kind: "community" },
   { domain: "github.com", prefix: "/vllm-project/", kind: "official" },
+  { domain: "github.com", prefix: "/huggingface/transformers/blob/", kind: "ecosystem" },
   { domain: "gitee.com", prefix: "/ascend/", kind: "official" },
   { domain: "gitcode.com", prefix: "/Ascend/", kind: "official" },
   { domain: "gitcode.com", prefix: "/cann/", kind: "official" },

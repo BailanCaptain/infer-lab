@@ -100,8 +100,9 @@ function diagramId(node: unknown): string | null {
 export function WikiPage() {
   const { id } = useParams();
   const { pages, revision, mode, diagrams, skipped } = useSyncExternalStore(subscribeReader, getReaderState);
-  const [panel, setPanel] = useState<"closed" | "chat" | "review" | "status">("closed");
+  const [panel, setPanel] = useState<"closed" | "chat" | "drop" | "review" | "status">("closed");
   const [snapshotError, setSnapshotError] = useState("");
+  const [directoryQuery, setDirectoryQuery] = useState("");
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const updated = await refreshReaderSnapshot(() => wikiRequest("pages"), signal);
     if (updated) setSnapshotError("");
@@ -121,6 +122,12 @@ export function WikiPage() {
     return () => import.meta.hot?.off("wiki:changed", onChanged);
   }, [refresh]);
   const toc = useMemo(() => buildToc(pages), [pages]);
+  const query = directoryQuery.trim().toLocaleLowerCase();
+  const matchingIds = new Set(
+    pages
+      .filter((p) => [p.id, p.title, ...p.aliases].some((name) => name.toLocaleLowerCase().includes(query)))
+      .map((p) => p.id),
+  );
   const page = id ? getPage(id) : undefined;
 
   return (
@@ -138,9 +145,32 @@ export function WikiPage() {
           </small>
           {snapshotError && <small role="status">{snapshotError}</small>}
         </div>
+        <div className="wiki-toc-search">
+          <input
+            type="search"
+            aria-label="搜索知识库目录"
+            placeholder="搜索标题、别名或参数名"
+            value={directoryQuery}
+            onChange={(event) => setDirectoryQuery(event.target.value)}
+          />
+          {directoryQuery && (
+            <button type="button" onClick={() => setDirectoryQuery("")}>
+              清除搜索
+            </button>
+          )}
+          {query && (
+            <small role="status">
+              {matchingIds.size ? `${matchingIds.size} 个匹配页面` : "没有匹配的页面，可换个名称搜索。"}
+            </small>
+          )}
+        </div>
         {toc.map((part, i) => {
-          const count = part.sections.reduce((n, s) => n + s.pages.length, 0);
-          const body = part.sections.map((section) => (
+          const sections = part.sections
+            .map((section) => ({ ...section, pages: section.pages.filter((p) => matchingIds.has(p.id)) }))
+            .filter((section) => section.pages.length);
+          const count = sections.reduce((n, s) => n + s.pages.length, 0);
+          if (!count) return null;
+          const body = sections.map((section) => (
             <section key={section.title} className="wiki-toc-group">
               {section.title && <h3 className="wiki-toc-section">{section.title}</h3>}
               <ul>
@@ -167,7 +197,7 @@ export function WikiPage() {
               key={part.id}
               className="wiki-toc-part"
               data-testid={`toc-${part.id}`}
-              open={part.sections.some((s) => s.pages.some((p) => p.id === id)) || undefined}
+              open={!!query || part.sections.some((s) => s.pages.some((p) => p.id === id)) || undefined}
             >
               <summary className="wiki-toc-part-head" title={part.blurb}>
                 {head}

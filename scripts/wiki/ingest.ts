@@ -280,6 +280,7 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
     `- 本批其它 feature id（related 可引用）：${ctx.batchIds.filter((x) => x !== f.id).join(", ") || "无"}`,
     ...docVarsBlock(ctx.docVars?.[worktreeKey(f.repo, primary.ref)]),
     ...llmsTxtBlock(ctx.llmsTxt),
+    "工具提供的 L数字: 前缀表示原文件行号，不属于源码；raw 摘录去掉该前缀，sources 使用对应 repo@commit:path#L起-L止，不以整个文件 URL 替代可定位的本地源码引用。",
     "",
     `只允许写这两个文件（相对当前目录）：${draft}、${raw}。写完回复 DONE ${f.id} sources=<数量>。`,
   ].join("\n");
@@ -294,6 +295,9 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
       [...f.entry, ...f.docs].map((path) => ({
         label: `${f.repo}@${t.commit}:${path}`,
         path: join(t.root, path),
+        // A pinned ref may predate this file or use a different path.
+        allowMissing: true,
+        numbered: true,
       })),
     ),
   };
@@ -303,6 +307,7 @@ export function extractRequest(f: SeedFeature, seeds: Seeds, ctx: IngestContext)
 export interface PageRef extends RelationNode {
   /** Actual path from loadPages; required for every selected existing page. */
   file?: string;
+  aliases?: string[];
   chapters: string[];
   /** 草稿当前的内联标记数。整合 agent 要删到 MARK_BUDGET 以内，引擎先替它数好。 */
   marks?: number;
@@ -360,14 +365,23 @@ export function selectRelevantPages(
 export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: IngestContext): AgentRequest {
   const draftIds = drafts.map((d) => d.id);
   const relevant = selectRelevantPages(drafts, existing);
+  const allowedWrites = [
+    ...new Set([
+      ...draftIds.flatMap((id) => PAGE_DIRS.map((dir) => `${dir}/${id}.md`)),
+      ...relevant.map((page) => {
+        if (!page.file) throw new Error(`现有页 ${page.id} 缺少实际 file 路径`);
+        return page.file;
+      }),
+      "_drafts/_integration.json",
+    ]),
+  ];
   const args = [
     ...baseArgs(`${ctx.handbook.pageFormat.trim()}\n\n${ctx.handbook.integrate.trim()}`),
     "--allowedTools",
     "Read",
     "Grep",
     "Glob",
-    ...PAGE_DIRS.map((dir) => `Edit(${dir}/**)`),
-    "Edit(_drafts/_integration.json)",
+    ...allowedWrites.map((path) => `Edit(${path})`),
     "--disallowedTools",
     ...INTEGRATE_DISALLOWED,
   ];
@@ -377,6 +391,17 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
   const factsOver = drafts.filter((d) => (d.facts ?? 0) > FACTS_BUDGET);
   const stdin = [
     `任务：整合 ${draftIds.length} 份草稿到对应的正式页面目录。今天是 ${ctx.today}。`,
+    "这是增量整合：保留现有标题（已有跨页锚点依赖）、完整正文、图、公式、算例与来源编号。旧页默认 supplement，只增加有证据的新内容或关系；不可借此 editorial 全文压缩重写。确有事实推翻才按 supersede 逐条提供依据。新来源摘要不要复制教学页内容。",
+    ...(() => {
+      const owners = existing
+        .filter((page) => page.aliases?.length)
+        .map((page) => ({ id: page.id, aliases: page.aliases }));
+      return owners.length
+        ? [
+            `全库别名归属（仅名称索引，不是要求读取全文）：${JSON.stringify(owners)}。新页不能复用属于其他页的别名；可用空 aliases，改用 relations 关联原页。`,
+          ]
+        : [];
+    })(),
     "",
     "草稿文件：",
     ...drafts.map(
@@ -410,6 +435,15 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
       return `- ${p.file}`;
     }),
     "",
+    `决策文件的完整形状示例（字段结构由实际 schema 校验；下面示例 id 不是任务 id，实际输出须恰好处置本批草稿）：${JSON.stringify(
+      integrationSchema.parse({
+        promoted: ["promoted-example"],
+        merged: [{ from: "draft-example", into: "existing-example" }],
+        rejected: [{ id: "rejected-example", reason: "缺少证据" }],
+        contradictions: [{ a: "page-a", b: "page-b", note: "同条件下的两条结论冲突" }],
+        revisions: [{ id: "existing-example", kind: "supplement", reason: "保留旧正文并补充固定版本证据" }],
+      }),
+    )}。没有某类决策时对应数组为空，contradictions 不能放字符串。`,
     "按「整合」规则处理，写 _drafts/_integration.json，回复 DONE integrate promoted=<n> merged=<n> rejected=<n>。",
   ].join("\n");
   return {
@@ -421,7 +455,7 @@ export function integrateRequest(drafts: PageRef[], existing: PageRef[], ctx: In
     args,
     stdin,
     timeoutMs: ctx.timeoutMs,
-    allowedWrites: [...PAGE_DIRS.map((dir) => `${dir}/**`), "_drafts/_integration.json"],
+    allowedWrites,
   };
 }
 

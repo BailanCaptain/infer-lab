@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { CHAT_MODELS } from "../../content/wiki/chat-models";
 import { wikiRequest } from "./api";
 
@@ -35,6 +36,16 @@ interface WikiStatus {
     pendingReviews: number;
     missingTerms: string[];
     totalTerms: number;
+    termEntries?: { term: string; id?: string; title?: string }[];
+    closedGaps?: number;
+    gapEntries?: {
+      key: string;
+      question: string;
+      state: string;
+      count: number;
+      pendingCount: number;
+      threshold: number;
+    }[];
     gaps: number;
     mergedGaps: number;
     queuedTasks: number;
@@ -256,7 +267,7 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
             >
               {n?.spendsMoney
                 ? "会：夜间任务已被授权调用模型。"
-                : "不会。只有你在这里提问、或点「存进 Wiki」时才调用模型；夜间任务不调模型，大批量导入只能手动执行命令。"}
+                : "不会自动调用。提问、保存回答、启动网页 Drop 或手动运行知识生产命令时才调用模型；夜间任务不调模型。"}
             </p>
           </section>
 
@@ -265,9 +276,13 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
             {status.models.chatProvider === "codex" && (
               <p className="wiki-status-note">
                 GPT 调用使用本机 Codex 的 ChatGPT 账户额度，已调用 {status.models.codexCalls ?? 0}{" "}
-                次；下方美元账目仅统计 Claude，不代表 GPT 免费。共享暂停与次数上限仍生效。
+                次；下方美元账目仅统计 Claude，不代表 GPT 免费。
               </p>
             )}
+            <p className="wiki-status-note">
+              共享预算用于问答、保存回答等调用。Drop
+              需你主动启动，单独记账，不受这里的暂停、调用次数或金额上限约束。
+            </p>
             {b ? (
               <dl>
                 <Row label="状态" tone={b.paused ? "warn" : "ok"}>
@@ -346,19 +361,55 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
                   "没有"
                 )}
               </Row>
-              <Row label="课程术语还没页的">
+              <Row label="课程术语缺少入口">
                 {t?.missingTerms.length} / {t?.totalTerms}
               </Row>
-              <Row label="问答记下的知识缺口">
+              <Row label="待处理的问答缺口">
                 {t?.gaps}
                 {t?.mergedGaps ? `（其中 ${t.mergedGaps} 条合并了不同说法）` : ""}
               </Row>
+              <Row label="已关闭的历史缺口">{t?.closedGaps ?? 0}</Row>
               <Row label="排队中的任务">{t?.queuedTasks}</Row>
             </dl>
             {!!t?.missingTerms.length && (
               <details>
-                <summary>缺哪些术语</summary>
+                <summary>缺哪些术语入口</summary>
                 <p className="wiki-status-terms">{t.missingTerms.join("、")}</p>
+              </details>
+            )}
+            {!!t?.termEntries?.length && (
+              <details>
+                <summary>课程术语对应页面</summary>
+                <ul>
+                  {t.termEntries.map((entry) => (
+                    <li key={entry.term}>
+                      {entry.term}：
+                      {entry.id ? (
+                        <Link to={`/wiki/${entry.id}`}>{entry.title}</Link>
+                      ) : (
+                        "缺少入口，待核对正文"
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {!!t?.gapEntries?.length && (
+              <details>
+                <summary>查看缺口与关闭记录</summary>
+                <ul>
+                  {t.gapEntries.map((gap) => (
+                    <li key={gap.key}>
+                      {gap.question} —{" "}
+                      {gap.state === "closed"
+                        ? "已关闭（保留历史）"
+                        : gap.state === "collecting"
+                          ? `收集中 ${gap.pendingCount}/${gap.threshold}`
+                          : `待评估 ${gap.pendingCount} 次`}
+                      ；累计 {gap.count} 次
+                    </li>
+                  ))}
+                </ul>
               </details>
             )}
           </section>

@@ -1,6 +1,6 @@
 layout: figure
 id: mlp-residual-layer
-caption: 通用单路 pre-norm 子层（以 MLP 为例）。hidden x 分两路：上方 residual 旁路原样保留 x；下方支路先做 RMSNorm，再经 gate、up 两个投影升宽，SiLU 门控后逐元素相乘，down 投影降回原宽，得到改变量 Δ；最后 y = x + Δ。H 为 hidden 宽度，F 为中间宽度。注意力子层套在同一结构里，只是把支路里的 MLP 换成注意力。
+caption: 单路 residual、RMSNorm 与 SwiGLU 的 pre-norm 示例（MLP 子层）。hidden x 分两路：上方 residual 旁路原样保留 x；下方支路先做 RMSNorm，再经 gate、up 两个投影升宽，SiLU 门控后逐元素相乘，down 投影降回原宽，得到改变量 Δ；最后 y = x + Δ。H 为 hidden 宽度，F 为中间宽度。在本例结构中，注意力子层把支路里的 MLP 换成注意力，保留 RMSNorm 与残差相加。
 size: [880, 380]
 frames:
   - { at: [290, 108], size: [392, 196], label: MLP（前馈网络）：升宽 → 门控 → 降回 }

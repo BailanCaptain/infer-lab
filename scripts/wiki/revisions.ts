@@ -35,7 +35,13 @@ export const revisionDateSchema = z
     const parsed = new Date(`${date}T00:00:00Z`);
     return Number.isFinite(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === date;
   });
-const HEADING = "## 已废弃的说法";
+export const REVISION_HISTORY_HEADING = "## 已废弃的说法";
+
+/** Layout recognition only; verifyRevision separately authenticates the complete history. */
+export function isRevisionEntryHeading(text: string): boolean {
+  const match = /^(\d{4}-\d{2}-\d{2}) · 修订 [a-f0-9]{16}$/.exec(text);
+  return !!match && revisionDateSchema.safeParse(match[1]).success;
+}
 
 /** The engine's append-only history is last; examples inside code are not section headers. */
 function splitHistory(body: string): { active: string; history: string } {
@@ -46,7 +52,7 @@ function splitHistory(body: string): { active: string; history: string } {
     if (fence) {
       if (marker?.[0] === fence[0] && marker.length >= fence.length) fence = "";
     } else if (marker) fence = marker;
-    else if (line.trimEnd() === HEADING)
+    else if (line.trimEnd() === REVISION_HISTORY_HEADING)
       return { active: body.slice(0, offset).trimEnd(), history: body.slice(offset).trimEnd() };
     offset += line.length;
   }
@@ -120,7 +126,7 @@ export function revisePage(
       ].join("\n\n"),
     );
     const oldSources = oldPage.fm.sources.map((s, i) => `${i + 1}. \`${s}\``).join("\n");
-    history = `${history || HEADING}\n\n### ${date} · 修订 ${key}\n\n${entries.join("\n\n")}\n\n旧文的来源编号（仅解释上方历史原文）：\n\n${oldSources}`;
+    history = `${history || REVISION_HISTORY_HEADING}\n\n### ${date} · 修订 ${key}\n\n${entries.join("\n\n")}\n\n旧文的来源编号（仅解释上方历史原文）：\n\n${oldSources}`;
   }
   const raw = matter(after);
   // New inline source numbers stay fixed; append old evidence for historical audit.

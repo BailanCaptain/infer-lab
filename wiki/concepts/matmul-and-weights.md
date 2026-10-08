@@ -3,7 +3,7 @@ id: matmul-and-weights
 title: "矩阵乘与权重：从输入向量到输出表示"
 type: concept
 summary: 权重是模型训练学到、推理时只读的一张数表，每一列是一个配方；矩阵乘就是照配方把一个位置的几个数重组成新的一排。模型里几乎所有计算都是这一步。先用示意数演一个输出数怎么算、一批 token 怎么一起算，再分清参数量、计算量、容量与访存，最后落到 GLM 双机的前馈投影与 MoE 边界。
-aliases: [矩阵乘与权重, 矩阵乘, 矩阵乘法, matmul, GEMM, 权重, weight, 模型参数, 参数量, 总参数, 激活参数, FLOPs, 权重复用, 带宽受限, 算力受限, memory-bound, compute-bound]
+aliases: [矩阵乘与权重, 矩阵乘, 矩阵乘法, matmul, GEMM, 权重, weight, 模型参数, 参数量, 总参数, 激活参数, FLOPs, 权重复用, 带宽受限, 算力受限, memory-bound, compute-bound, linear-projection]
 chapters: ["02"]
 order: 40
 sources:

@@ -1,8 +1,11 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { recordGapObservation } from "../scripts/wiki/gap-ledger";
+import { listTasks, runTask } from "../scripts/wiki/queue";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 
 let fixture: ReturnType<typeof wikiFixture>;
@@ -84,6 +87,24 @@ test("coverage metadata stays hidden while the cited answer remains readable", a
   await expect(log).not.toContainText("wiki-coverage");
   await expect(log).not.toContainText("当前页证据充分");
   await page.screenshot({ path: info.outputPath("coverage-metadata-hidden.png") });
+});
+
+test("independent quality failures are visible and wrong answers cannot be saved", async ({ page }, info) => {
+  liveChat = true;
+  await page.goto("/#/wiki/a");
+  await page.getByTestId("chat-open").click();
+  await page.getByTestId("chat-input").fill("检查错误回答");
+  await page.getByTestId("chat-send").click();
+  await expect(page.getByTestId("chat-quality")).toContainText("回答与材料不符");
+  await expect(page.getByTestId("chat-gap")).toContainText("缺口信号已记录");
+  await expect(page.getByRole("button", { name: "存进 Wiki", exact: true })).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("independent-quality-error.png") });
+  await expect(page.getByTestId("chat-send")).toBeDisabled();
+  await page.getByTestId("chat-input").fill("检查评判失败");
+  await expect(page.getByTestId("chat-send")).toBeEnabled();
+  await page.getByTestId("chat-send").click();
+  await expect(page.getByTestId("chat-quality").last()).toContainText("独立核对未完成");
+  await expect(page.getByTestId("chat-log")).not.toContainText("出错了");
 });
 
 test("origin is visible and a cited answer offers actual related pages", async ({ page }, info) => {
@@ -261,4 +282,41 @@ test("stale publication reports the conflict and never displays a false success"
     "pending",
   );
   expect((await state()).pages).toBe(1);
+});
+
+test("status resolves course aliases and separates closed gaps from new signals", async ({ page }) => {
+  fixture.write(
+    "wiki/sources/a.md",
+    original.replace("summary: 原有解释", "aliases: [rmsnorm]\nsummary: 原有解释"),
+  );
+  const observe = (question: string) =>
+    recordGapObservation(fixture.root, {
+      eventId: randomUUID(),
+      question,
+      contextQuestions: [],
+      revision: "a".repeat(64),
+      candidates: [],
+      signals: [{ kind: "agent-uncovered", reason: "测试记录" }],
+    });
+  for (let i = 0; i < 3; i++) await observe("已核对的 RMSNorm 问题");
+  await runTask(fixture.root, listTasks(fixture.root)[0]!.id, async () => ({
+    state: "closed",
+    result: { closureObservationCount: 3 },
+  }));
+  await observe("尚未实测的 Sleep Mode 数据");
+  await page.goto("/#/wiki/a");
+  await page.getByTestId("chat-open").click();
+  await page.getByRole("tab", { name: "状态", exact: true }).click();
+  const row = (label: string) =>
+    page.locator(".wiki-status-row").filter({ has: page.getByText(label, { exact: true }) });
+  await expect(row("待处理的问答缺口").locator("dd")).toHaveText("1");
+  await expect(row("已关闭的历史缺口").locator("dd")).toHaveText("1");
+  await page.getByText("查看缺口与关闭记录", { exact: true }).click();
+  await expect(page.getByText(/已核对的 RMSNorm 问题 — 已关闭/)).toBeVisible();
+  await expect(page.getByText(/尚未实测的 Sleep Mode 数据 — 收集中 1\/3/)).toBeVisible();
+  await page.getByText("课程术语对应页面", { exact: true }).click();
+  const entry = page.locator("li").filter({ hasText: /^rmsnorm：/ });
+  await expect(entry.getByRole("link", { name: "原有解释" })).toHaveAttribute("href", "#/wiki/a");
+  await entry.getByRole("link", { name: "原有解释" }).click();
+  await expect(page.locator(".wiki-article h1")).toHaveText("原有解释");
 });

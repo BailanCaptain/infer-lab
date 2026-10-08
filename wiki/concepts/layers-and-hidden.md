@@ -3,7 +3,7 @@ id: layers-and-hidden
 title: "层与隐藏表示：GLM 的 45 层如何连接"
 type: concept
 summary: hidden 是模型为每个输入位置维护、逐层改写的向量。GLM-5.3-Flash 的 45 层之间用 mHC 传四条残差流：每个子层把四条加权合成一条去算，再把输出写回，旧流经 Sinkhorn 约束的 4×4 矩阵混合；每层两次，一次前向 90 次、1,800 轮 Sinkhorn，末层求平均回到一条。
-aliases: [层, layer, Transformer 层, Decoder 层, 隐藏向量, 隐藏态, hidden state, hidden, 隐藏维度, 残差流, 四条残差流, 多路残差, mHC, Manifold-Constrained Hyper-Connections, Hyper-Connections, Sinkhorn, 双随机矩阵]
+aliases: [层, layer, Transformer 层, Decoder 层, 隐藏向量, 隐藏态, hidden state, hidden, 隐藏维度, 残差流, 四条残差流, 多路残差, mHC, Manifold-Constrained Hyper-Connections, Hyper-Connections, Sinkhorn, 双随机矩阵, hidden-size]
 chapters: ["03"]
 order: 50
 sources:

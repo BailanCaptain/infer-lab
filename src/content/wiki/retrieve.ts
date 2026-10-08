@@ -234,6 +234,19 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   const hit = index.exact.get(q);
   if (hit) scored.set(hit.id, { page: hit, score: 1000, how: "exact" });
 
+  // A named topic inside a question is still a title hit. Long alias lists must not
+  // dilute short, exact names (MLP, TP) beneath pages mentioning generic context.
+  if (!hit) {
+    const named = new Map<string, PageIndex>();
+    for (const [name, page] of index.exact) {
+      if (!/^[a-z0-9][a-z0-9_./ -]+$/.test(name)) continue;
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`(?<![a-z0-9_])${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
+    }
+    for (const page of named.values())
+      add(page, FIELD_WEIGHT[0] * idf(index.pages.length, named.size), "keyword");
+  }
+
   // 宽松匹配：把查询里的每个连续拉丁片段压成无分隔符形式，与页面标识符互为前缀即算
   // 命中。「layer share 是什么意思」→「layershare」是「layersharding」的前缀 → 命中。
   // 得分不再是固定 800–900：按「这个片段被几页认领」算 idf，记作一次标题字段命中——
@@ -326,7 +339,8 @@ export interface CitationVerdict {
 }
 
 /** 指向 wiki 页的链接：相对 md 链接或 hash 路由。 */
-const PAGE_LINK = /\]\((?:#\/wiki\/[a-z0-9-]+|(?:\.\.\/)?(?:concepts|sources|params)\/[a-z0-9-]+\.md)\)/i;
+const PAGE_LINK =
+  /\]\((?:#\/wiki\/[a-z0-9-]+|(?:\.\.\/)?(?:concepts|sources|params)\/[a-z0-9-]+\.md)(?:#[^\s)]*)?\)/i;
 export function citedPageLinks(answer: string): string[] {
   return [...citationProse(answer).matchAll(new RegExp(PAGE_LINK.source, "gi"))].map((m) =>
     m[0].slice(2, -1),
@@ -338,8 +352,11 @@ export function citationProse(text: string): string {
 }
 
 export function matchesCitedPage(href: string, file: string): boolean {
-  return href === file || href === `../${file}` || href === `#/wiki/${file.split("/").at(-1)!.slice(0, -3)}`;
+  const fragment = href.indexOf("#", 1); // Preserve the leading hash of a Wiki route.
+  const page = fragment < 0 ? href : href.slice(0, fragment);
+  return page === file || page === `../${file}` || page === `#/wiki/${file.split("/").at(-1)!.slice(0, -3)}`;
 }
+
 /** agent 明确声明知识库没有这一条 */
 const UNCOVERED = /（未收录）|\(未收录\)|知识库里?还没有|知识库[中内]没有|尚未收录/;
 /** 断言式表述：陈述事实而非提问或澄清 */

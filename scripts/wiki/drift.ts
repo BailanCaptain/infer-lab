@@ -56,6 +56,9 @@ export async function detectDrift(
       root,
       {
         kind: "drift-extract-v1",
+        // A page may cite many complete source ranges. Keep them intact; the small-JSON
+        // decision limit is not the evidence window for a whole-page re-extraction.
+        maxInputChars: 200_000,
         origin: page.fm.origin,
         data: { topic: page.fm.title, sources, observationDate: new Date().toISOString().slice(0, 10) },
         rules: `${loadHandbook(join(root, "wiki")).extract}\n基于所给来源重提取正文，只返回 JSON {"body":"markdown 正文"}；没有提供旧正文，不依据模型记忆补事实。`,

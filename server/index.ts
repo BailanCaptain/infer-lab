@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { join, resolve } from "node:path";
 import { handleAnswers } from "./answers";
 import { handleChat } from "./chat-route";
+import { handleDrop } from "./drop";
 import { send } from "./http";
 import { handlePages } from "./pages";
 import { handleRawSource } from "./raw";
@@ -13,6 +14,7 @@ import { handleStatus } from "./status";
 const root = resolve(process.cwd());
 const port = Number(process.env.WIKI_SERVER_PORT ?? 8790);
 const server = createServer(async (req, res) => {
+  if (await handleDrop(req, res, root)) return;
   if (handleRawSource(req, res, join(root, "wiki"))) return;
   if (await handleReview(req, res, root)) return;
   if (await handleAnswers(req, res, root)) return;

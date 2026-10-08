@@ -17468,5 +17468,580 @@
     "changed": [],
     "skipped": [],
     "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "4ebb3090fc3c13c26557dcaae353882e70246649",
+    "after": "7df96048756856e4d30f29618129e9942ba6985c",
+    "added": [],
+    "removed": [],
+    "changed": [],
+    "skipped": [
+      {
+        "name": "causal",
+        "file": "vllm_ascend/models/kimi_k3_dspark.py",
+        "reason": "unreviewed-or-no-existing-page"
+      }
+    ],
+    "state": "no-existing-page-updated"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "7df96048756856e4d30f29618129e9942ba6985c",
+    "after": "4e19cc765510abfa1dd485b2aa72ff83d0945cf8",
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "before": {
+          "name": "enable_pcp_o_proj_weight_sharding",
+          "type": "bool",
+          "default": "False",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"enable_pcp_o_proj_weight_sharding\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 575,
+          "comment": "",
+          "constraints": [],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 434
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 575
+            },
+            {
+              "file": "vllm_ascend/attention/context_parallel/sfa_cp.py",
+              "line": 48
+            },
+            {
+              "file": "vllm_ascend/attention/context_parallel/sfa_cp.py",
+              "line": 77
+            },
+            {
+              "file": "vllm_ascend/attention/context_parallel/sfa_cp.py",
+              "line": 79
+            }
+          ],
+          "occurrenceCount": 9
+        },
+        "after": {
+          "name": "enable_pcp_o_proj_weight_sharding",
+          "type": "bool",
+          "default": "True",
+          "class": "AscendConfig",
+          "json_path": "additional_config[\"enable_pcp_o_proj_weight_sharding\"]",
+          "file": "vllm_ascend/ascend_config.py",
+          "line": 575,
+          "comment": "",
+          "constraints": [],
+          "confidence": "certain",
+          "form": "field",
+          "occurrences": [
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 434
+            },
+            {
+              "file": "vllm_ascend/ascend_config.py",
+              "line": 575
+            },
+            {
+              "file": "vllm_ascend/attention/context_parallel/dsa_cp.py",
+              "line": 51
+            },
+            {
+              "file": "vllm_ascend/attention/context_parallel/dsa_cp.py",
+              "line": 2537
+            },
+            {
+              "file": "vllm_ascend/attention/context_parallel/dsa_cp.py",
+              "line": 2540
+            }
+          ],
+          "occurrenceCount": 18
+        }
+      }
+    ],
+    "skipped": [],
+    "state": "static-facts-refreshed-prose-needs-review"
+  },
+  {
+    "repo": "vllm-ascend",
+    "ref": "main",
+    "before": "4e19cc765510abfa1dd485b2aa72ff83d0945cf8",
+    "after": "a7f26e5c4e4d9dd7f20fa114f351860bd6552731",
+    "added": [
+      {
+        "name": "cache_dtype",
+        "type": "unknown",
+        "default": "<unknown>",
+        "class": "",
+        "json_path": "CacheConfig.__dataclass_fields__[\"cache_dtype\"]",
+        "file": "vllm_ascend/platform.py",
+        "line": 337,
+        "comment": "",
+        "constraints": [],
+        "confidence": "suspect",
+        "form": "string-lookup",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/_310p/kv_block_zeroer.py",
+            "line": 42
+          },
+          {
+            "file": "vllm_ascend/_310p/model_runner_310p.py",
+            "line": 682
+          },
+          {
+            "file": "vllm_ascend/_310p/worker/v2/kv_block_zeroer.py",
+            "line": 33
+          },
+          {
+            "file": "vllm_ascend/_310p/worker/v2/kv_block_zeroer.py",
+            "line": 44
+          },
+          {
+            "file": "vllm_ascend/_310p/worker/v2/model_runner.py",
+            "line": 842
+          }
+        ],
+        "occurrenceCount": 65
+      },
+      {
+        "name": "enable_fa_quant",
+        "type": "bool",
+        "default": "<required>",
+        "class": "AscendModelSlimConfig",
+        "json_path": "AscendModelSlimConfig[\"enable_fa_quant\"]",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "line": 368,
+        "comment": "Assigned in _add_kvcache_quant_metadata; declared here so the types\nresolve regardless of method order (get_cache_scale_mapper reads and\nconditionally rewrites enable_fa_quant before the assignment site).",
+        "constraints": [
+          "if self.enable_mxfp_c8_quant and self.enable_fa_quant:\n    logger.warning_once('[quantization] fa_quant_type=%s is declared alongside an MXFP8 KV cache; ignoring FAKQuant.', self.quant_description.get('fa_quant_type', ''))\n    self.enable_fa_quant = False",
+          "if self.enable_fa_quant:\n    layer_id_str = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', prefix))\n    if layer_id_str.isdigit() and int(layer_id_str) in self.kvcache_quant_layers:\n        return True",
+          "if self.enable_fa_quant and self.is_fa_quant_layer(layer_name):\n    ori_dtype = model_config.dtype\n    quant_dtype = torch.float8_e4m3fn if get_current_hardware_profile().supports(HardwareCapability.FP8_ATTENTION) else torch.int8\n    if model_config.use_mla:\n        return (quant_dtype, ori_dtype)\n    else:\n        return (quant_dtype, quant_dtype)",
+          "if self.enable_fa_quant and self.is_fa_quant_layer(layer_name):\n    k_quant_head_dim = kv_head_dim_list[0]\n    v_quant_head_dim = kv_head_dim_list[1] * 2\n    kv_head_dim_list = [k_quant_head_dim, v_quant_head_dim]",
+          "if self.enable_fa_quant or self.enable_indexer_quant or self.enable_c8_quant:\n    for key in self.quant_description:\n        _id = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', key))\n        if 'fa_k.scale' in key:\n            self.kvcache_quant_layers.append(int(_id))\n        if 'indexer.quant_type' in key:\n            self.indexer_quant_layers.append(int(_id))\n        if 'k_proj.kv_cache_scale' in key:\n            self.c8_quant_layers.append(int(_id))"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/attention/mla_v1.py",
+            "line": 62
+          },
+          {
+            "file": "vllm_ascend/attention/mla_v1.py",
+            "line": 879
+          },
+          {
+            "file": "vllm_ascend/core/kv_cache_placement.py",
+            "line": 17
+          },
+          {
+            "file": "vllm_ascend/core/kv_cache_placement.py",
+            "line": 90
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py",
+            "line": 1253
+          }
+        ],
+        "occurrenceCount": 25
+      },
+      {
+        "name": "kvcache_quant_layers",
+        "type": "list[int]",
+        "default": "<required>",
+        "class": "AscendModelSlimConfig",
+        "json_path": "AscendModelSlimConfig[\"kvcache_quant_layers\"]",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "line": 369,
+        "comment": "",
+        "constraints": [
+          "if self.enable_fa_quant:\n    layer_id_str = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', prefix))\n    if layer_id_str.isdigit() and int(layer_id_str) in self.kvcache_quant_layers:\n        return True",
+          "if self.enable_fa_quant or self.enable_indexer_quant or self.enable_c8_quant:\n    for key in self.quant_description:\n        _id = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', key))\n        if 'fa_k.scale' in key:\n            self.kvcache_quant_layers.append(int(_id))\n        if 'indexer.quant_type' in key:\n            self.indexer_quant_layers.append(int(_id))\n        if 'k_proj.kv_cache_scale' in key:\n            self.c8_quant_layers.append(int(_id))"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py",
+            "line": 1891
+          },
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py",
+            "line": 1956
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 369
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 771
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1049
+          }
+        ],
+        "occurrenceCount": 6
+      },
+      {
+        "name": "enable_indexer_quant",
+        "type": "bool",
+        "default": "<required>",
+        "class": "AscendModelSlimConfig",
+        "json_path": "AscendModelSlimConfig[\"enable_indexer_quant\"]",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "line": 370,
+        "comment": "",
+        "constraints": [
+          "if self.enable_indexer_quant:\n    layer_id_str = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', prefix))\n    if layer_id_str.isdigit() and int(layer_id_str) in self.indexer_quant_layers:\n        return True",
+          "if self.enable_fa_quant or self.enable_indexer_quant or self.enable_c8_quant:\n    for key in self.quant_description:\n        _id = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', key))\n        if 'fa_k.scale' in key:\n            self.kvcache_quant_layers.append(int(_id))\n        if 'indexer.quant_type' in key:\n            self.indexer_quant_layers.append(int(_id))\n        if 'k_proj.kv_cache_scale' in key:\n            self.c8_quant_layers.append(int(_id))"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 370
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 510
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 787
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1051
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1056
+          }
+        ],
+        "occurrenceCount": 5
+      },
+      {
+        "name": "indexer_quant_layers",
+        "type": "list[int]",
+        "default": "<required>",
+        "class": "AscendModelSlimConfig",
+        "json_path": "AscendModelSlimConfig[\"indexer_quant_layers\"]",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "line": 371,
+        "comment": "",
+        "constraints": [
+          "if self.enable_indexer_quant:\n    layer_id_str = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', prefix))\n    if layer_id_str.isdigit() and int(layer_id_str) in self.indexer_quant_layers:\n        return True",
+          "if self.enable_fa_quant or self.enable_indexer_quant or self.enable_c8_quant:\n    for key in self.quant_description:\n        _id = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', key))\n        if 'fa_k.scale' in key:\n            self.kvcache_quant_layers.append(int(_id))\n        if 'indexer.quant_type' in key:\n            self.indexer_quant_layers.append(int(_id))\n        if 'k_proj.kv_cache_scale' in key:\n            self.c8_quant_layers.append(int(_id))"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 371
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 789
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1052
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1062
+          }
+        ],
+        "occurrenceCount": 4
+      },
+      {
+        "name": "enable_c8_quant",
+        "type": "bool",
+        "default": "<required>",
+        "class": "AscendModelSlimConfig",
+        "json_path": "AscendModelSlimConfig[\"enable_c8_quant\"]",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "line": 372,
+        "comment": "",
+        "constraints": [
+          "if self.enable_c8_quant:\n    layer_id_str = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', prefix))\n    if layer_id_str.isdigit() and int(layer_id_str) in self.c8_quant_layers:\n        return True",
+          "if self.enable_fa_quant or self.enable_indexer_quant or self.enable_c8_quant:\n    for key in self.quant_description:\n        _id = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', key))\n        if 'fa_k.scale' in key:\n            self.kvcache_quant_layers.append(int(_id))\n        if 'indexer.quant_type' in key:\n            self.indexer_quant_layers.append(int(_id))\n        if 'k_proj.kv_cache_scale' in key:\n            self.c8_quant_layers.append(int(_id))"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 982
+          },
+          {
+            "file": "vllm_ascend/ascend_config.py",
+            "line": 983
+          },
+          {
+            "file": "vllm_ascend/attention/attention_v1.py",
+            "line": 563
+          },
+          {
+            "file": "vllm_ascend/attention/attention_v1.py",
+            "line": 564
+          },
+          {
+            "file": "vllm_ascend/attention/attention_v1.py",
+            "line": 568
+          }
+        ],
+        "occurrenceCount": 26
+      },
+      {
+        "name": "c8_quant_layers",
+        "type": "list[int]",
+        "default": "<required>",
+        "class": "AscendModelSlimConfig",
+        "json_path": "AscendModelSlimConfig[\"c8_quant_layers\"]",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "line": 373,
+        "comment": "",
+        "constraints": [
+          "if self.enable_c8_quant:\n    layer_id_str = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', prefix))\n    if layer_id_str.isdigit() and int(layer_id_str) in self.c8_quant_layers:\n        return True",
+          "if self.enable_fa_quant or self.enable_indexer_quant or self.enable_c8_quant:\n    for key in self.quant_description:\n        _id = ''.join(re.findall('\\\\.(\\\\d+)\\\\.', key))\n        if 'fa_k.scale' in key:\n            self.kvcache_quant_layers.append(int(_id))\n        if 'indexer.quant_type' in key:\n            self.indexer_quant_layers.append(int(_id))\n        if 'k_proj.kv_cache_scale' in key:\n            self.c8_quant_layers.append(int(_id))"
+        ],
+        "confidence": "suspect",
+        "form": "field",
+        "occurrences": [
+          {
+            "file": "vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_layerwise_connector.py",
+            "line": 1890
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 373
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 796
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1055
+          },
+          {
+            "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+            "line": 1064
+          }
+        ],
+        "occurrenceCount": 5
+      }
+    ],
+    "removed": [],
+    "changed": [],
+    "skipped": [
+      {
+        "name": "cache_dtype",
+        "file": "vllm_ascend/platform.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_fa_quant",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "kvcache_quant_layers",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_indexer_quant",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "indexer_quant_layers",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "enable_c8_quant",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "c8_quant_layers",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_blocks",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "lookup_rpc_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "mooncake_rpc_port",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_scheduler.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "h2d_stagger_us",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_blocks",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_max_transfer_bytes",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "prefill_pp_layer_partition",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "prefill_pp_size",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "layerwise_prefetch_layers",
+        "file": "vllm_ascend/distributed/kv_transfer/kv_pool/ascend_store/pool_worker.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "factor",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "beta_fast",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "beta_slow",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "original_max_position_embeddings",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "original_max_position_embeddings",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "beta",
+        "file": "vllm_ascend/models/deepseek_v4/model.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "cache_dtype",
+        "file": "vllm_ascend/patch/platform/patch_kv_cache_dtype.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "cache_dtype",
+        "file": "vllm_ascend/patch/platform/patch_kv_cache_dtype.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "cache_dtype",
+        "file": "vllm_ascend/patch/worker/patch_kv_cache_dtype.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "cache_dtype",
+        "file": "vllm_ascend/patch/worker/patch_kv_cache_dtype.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "indexer_kv_dtype",
+        "file": "vllm_ascend/patch/worker/patch_kv_cache_dtype.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "indexer_kv_dtype",
+        "file": "vllm_ascend/patch/worker/patch_kv_cache_dtype.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "sparse_attention_freq",
+        "file": "vllm_ascend/platform.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "quant_method",
+        "file": "vllm_ascend/quantization/configs/modelslim_config.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "group_size",
+        "file": "vllm_ascend/quantization/methods/w4a8/w4a8.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "quantization_config",
+        "file": "vllm_ascend/quantization/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "model_type",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "text_config",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "ascend_local_comm_res_path",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "architectures",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "group_name",
+        "file": "vllm_ascend/utils.py",
+        "reason": "unreviewed-or-no-existing-page"
+      },
+      {
+        "name": "use_aux_hidden_state",
+        "file": "vllm_ascend/worker/model_runner_v1.py",
+        "reason": "unreviewed-or-no-existing-page"
+      }
+    ],
+    "state": "no-existing-page-updated"
   }
 ]

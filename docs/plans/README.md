@@ -2,12 +2,15 @@
 
 单个 feature 的分步实施计划放在这里，文件名 `{feature-name}-plan.md`。
 
-**这里不维护状态。** 验收状态只看 `docs/features/F001–F004` 的验收表；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算、待审数这类会变的数字按它 §2 的命令现查。
+**这里不维护状态。** 验收状态只看 `docs/features/` 各 feature 的验收表；「现在在哪、接下来做什么」看 [HANDOFF-LLM-WIKI.md](../../HANDOFF-LLM-WIKI.md)；页数、预算、待审数这类会变的数字按它 §2 的命令现查。
 
 ## 索引
 
 | 文件 | 是什么 |
 |---|---|
+| [wiki-overall-review-2026-10-08.md](wiki-overall-review-2026-10-08.md) | F001–F005 整体独立审查：1 P1 + 4 P2 的实际复现、覆盖矩阵、修复复审与正式待审状态 |
+| [wiki-final-acceptance.md](wiki-final-acceptance.md) | 10-08 最终证据：多版本导入、确认参数全量骨架、独立来源审查、GitHub 十题门槛、连续维护及四页纠错发布确认；历史记录单列 |
+| [wiki-qknorm-multiversion-acceptance.md](wiki-qknorm-multiversion-acceptance.md) | Q/K Norm 来源与独立审查、章节引用与检索修正、六例固定版本真实问答证据 |
 | [wiki-teaching-redesign-plan.md](wiki-teaching-redesign-plan.md) | 教学体系改版：目录、存量页面迁移、模型与硬件配图、实施顺序及验收入口 |
 | [wiki-ingestion-boundary-2026-09-26.md](wiki-ingestion-boundary-2026-09-26.md) | 教学规则在现有入库流程中的能力与人工审阅边界 |
 | [wiki-teaching-discussion-2026-09-25.md](wiki-teaching-discussion-2026-09-25.md) | 教学改版的讨论、用户取舍与前期调研依据 |
@@ -15,6 +18,10 @@
 | [param-lineage-plan.md](param-lineage-plan.md) | F002 实施计划 |
 | [github-corpus-plan.md](github-corpus-plan.md) | F003 实施计划 |
 | [knowledge-loop-plan.md](knowledge-loop-plan.md) | F004 实施计划 |
+| [wiki-drop-plan.md](wiki-drop-plan.md) | F005 Drop 资料收录与知识整合；产品决策统一在 feature |
+| [wiki-drop-acceptance.md](wiki-drop-acceptance.md) | F005 工程验证、真实模型前后测与适用限制 |
+| [wiki-answer-quality-acceptance.md](wiki-answer-quality-acceptance.md) | F004 AC3 独立回答评判、缺口与复测接入及验证边界 |
+| [wiki-terms-gap-audit.md](wiki-terms-gap-audit.md) | 课程入口匹配、历史关单对账和仍缺证据的事项 |
 | [wiki-audit-2026-09-19.md](wiki-audit-2026-09-19.md) | 2026-09-19 的一次性只读审视，写完即定稿，不逐轮更新 |
 | [llm-wiki-open-questions.md](llm-wiki-open-questions.md) | 用户 09-10 起提的问题与处置台账 |
 | [wiki-eval-preparation.md](wiki-eval-preparation.md)、[wiki-nonbulk-completion.md](wiki-nonbulk-completion.md) | 两份历史准备/收尾记录 |

@@ -8,9 +8,11 @@ import { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { recordGapObservation } from "../scripts/wiki/gap-ledger";
 import { answeredBy, modelSwitched } from "../scripts/wiki/model-use";
 import { selectedModel as readSelectedModel } from "../scripts/wiki/sync-config";
+import type { AnswerQuality } from "../src/content/wiki/answer-quality";
 import type { CorpusDocument } from "../src/content/wiki/corpus-retrieve";
 import { neighborhood } from "../src/content/wiki/relations";
 import { type CitationVerdict, retrieve } from "../src/content/wiki/retrieve";
+import { judgeAnswer } from "./answer-quality";
 import { captureAnswer } from "./answers";
 import {
   buildChatRequest,
@@ -22,10 +24,10 @@ import {
   sseFrame,
 } from "./chat";
 import { beginChat, type ChatLease, finishChat, MAX_SESSION_TURNS } from "./chat-session";
-import { codexEvidencePages } from "./codex-chat";
 import { answerCitationGuide, checkAnswerCitations } from "./citations";
+import { codexEvidencePages } from "./codex-chat";
 import { coverageSignals } from "./coverage";
-import { HttpError, readJson, send } from "./http";
+import { checkWriter, HttpError, readJson, send } from "./http";
 import { relatedReading } from "./related-reading";
 import {
   type KnowledgeSnapshot,
@@ -71,7 +73,12 @@ export async function handleChat(
   req: IncomingMessage,
   res: ServerResponse,
   root: string,
-  deps: { runChat?: typeof runChat; traceChat?: typeof traceChat; judgeGap?: typeof judgeGapIdentity } = {},
+  deps: {
+    runChat?: typeof runChat;
+    traceChat?: typeof traceChat;
+    judgeGap?: typeof judgeGapIdentity;
+    judgeAnswer?: typeof judgeAnswer;
+  } = {},
 ): Promise<boolean> {
   if (new URL(req.url ?? "/", "http://localhost").pathname !== "/api/wiki/chat") return false;
   let lease: ChatLease | undefined;
@@ -86,6 +93,7 @@ export async function handleChat(
   };
   try {
     if (req.method !== "POST") throw new HttpError(405, "需要 POST");
+    checkWriter(req);
     const input = inputSchema.parse(await readJson(req, 400_000));
     message = input.message;
     const snapshot = await readKnowledgeSnapshot(root);
@@ -202,11 +210,42 @@ export async function handleChat(
         kind: "offline-claim",
         message: "服务端本轮已提供联网工具，模型没有用就说无法联网；这条回答没有经过联网核对。",
       });
-    if (outcome.ok && answer.trim() && !res.destroyed)
-      answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
     if (!outcome.ok) emit("error", { message: outcome.reason ?? "agent 失败" });
     if (outcome.ok && !res.destroyed) {
-      const signals = coverageSignals(answer, webTools);
+      let quality: AnswerQuality;
+      emit("quality", { status: "checking" });
+      try {
+        quality = await (deps.judgeAnswer ?? judgeAnswer)(root, {
+          question: message,
+          observationId: lease.token,
+          contextQuestions: lease.contextQuestions,
+          answer,
+          snapshot,
+          evidencePages,
+          selection: selectedModel,
+        });
+      } catch (error) {
+        quality = { status: "unavailable", reason: String(error) };
+      }
+      emit("quality", quality);
+      if (!res.destroyed && !(quality.status === "checked" && quality.decision.satisfied === false))
+        answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
+      const signals = coverageSignals(answer, webTools).filter(
+        (signal) =>
+          !(
+            quality.status === "checked" &&
+            quality.decision.satisfied === true &&
+            signal.kind === "agent-uncovered"
+          ),
+      );
+      if (quality.status === "checked" && quality.decision.satisfied !== true) {
+        signals.unshift({
+          kind: "independent-review",
+          decision: quality.jobId,
+          reason: `${quality.decision.classification}：${quality.decision.reason}`.slice(0, 2000),
+        });
+        signals.splice(21);
+      }
       if (signals.length) {
         try {
           // 说法不同的同一问要归进已有缺口；判定失败（预算暂停、模型出错）就照旧新建一条，不丢这次记录
@@ -224,7 +263,7 @@ export async function handleChat(
             undefined,
             sameAs,
           );
-          emit("gap", { key: gap.key, count: gap.count, threshold: gap.threshold, state: gap.state });
+          emit("gap", { key: gap.key, count: gap.pendingCount, threshold: gap.threshold, state: gap.state });
         } catch (error) {
           emit("gap", { state: "record-failed", reason: String(error) });
         }

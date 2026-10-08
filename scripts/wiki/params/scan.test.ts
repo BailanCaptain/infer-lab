@@ -2,6 +2,14 @@ import { expect, it } from "vitest";
 import { scanSources } from "./scan";
 import { withoutLocations } from "./sync";
 
+it("does not classify ClassVar constants as configurable dataclass fields", () => {
+  const rows = scanSources({
+    "config.py":
+      'class DynamicSpecConfig:\n    SUPPORTED_METHODS: ClassVar[tuple[str, ...]] = ("dspark",)\n    OPTIONS: typing.ClassVar[int] = 2\n    method: str = "dspark"\n',
+  });
+  expect(rows.map((row) => row.name)).toEqual(["method"]);
+});
+
 it("keeps equally named nested config classes in different modules separate", () => {
   const rows = scanSources({
     "a.py": "class ChildConfig:\n    limit: int = 1\nclass RootConfig:\n    child_a: ChildConfig = None\n",

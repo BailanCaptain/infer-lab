@@ -10,16 +10,20 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
+import matter from "gray-matter";
 import { z } from "zod";
+import { dropReviewSchema } from "../../src/content/wiki/drop";
 import { parseRawRef } from "../../src/content/wiki/schema";
 import { runBuild } from "./build";
 import { validateDropAssets } from "./drop-assets";
+import { assertDropProtocol, validateDropReceipt } from "./drop-receipt";
 import { integrationSchema } from "./ingest";
 import { validateIntegration } from "./integration-check";
 import { lineageSection } from "./lineage";
 import { PAGE_DIRS, parsePage } from "./pages";
 import { protectedParamSection } from "./params/pages";
-import { localFile, optionalText, REGISTRY, replaceText, wikiContents } from "./review-files";
+import { retireReviewTasksInLock } from "./queue";
+import { localFile, optionalText, REGISTRY, readByStamp, replaceText, wikiContents } from "./review-files";
 import { verifyRevision } from "./revisions";
 import { atomicText, digest, jobSchema, WorkflowStore } from "./workflow";
 
@@ -35,7 +39,8 @@ const payloadSchema = z
     repoRoots: z.record(z.string()),
     /** 本包要在 log.md 末尾追加的条目；发布时追加到当时的 log.md（2026-09-23 前的包直接带整份 log.md） */
     log: z.string().optional(),
-    drop: z.object({ id: z.string().uuid(), generation: z.number().int(), report: z.string() }).optional(),
+    batch: z.array(hash).min(1).max(200).optional(),
+    drop: dropReviewSchema.optional(),
   })
   .strict();
 export const reviewSchema = z
@@ -44,9 +49,18 @@ export const reviewSchema = z
     state: z.enum(["pending", "publishing", "published", "rejected"]),
     payload: payloadSchema,
     reason: z.string().optional(),
+    publishedBy: hash.optional(),
   })
   .strict();
 export type Review = z.infer<typeof reviewSchema>;
+/** No publication action remains; unresolved contradiction findings still need review. */
+export function isEmptyReview(review: Review): boolean {
+  return (
+    review.payload.writes.length === 0 &&
+    !review.payload.log &&
+    !review.payload.decision.contradictions?.length
+  );
+}
 type Write = z.infer<typeof writeSchema>;
 type Validate = (root: string, repoRoots: Record<string, string>) => string[];
 const encode = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
@@ -85,6 +99,7 @@ export function readReview(root: string, id: string): Review {
   const record = reviewSchema.parse(JSON.parse(readFileSync(localFile(root, reviewPath(id)), "utf8")));
   if (record.id !== id || digest(JSON.stringify(record.payload)) !== id)
     throw new Error("待审 revision 内容已改变");
+  assertDropProtocol(root, record.payload.drop);
   const paths = new Set<string>();
   for (const write of record.payload.writes) {
     localFile(root, write.path);
@@ -110,10 +125,132 @@ export function listReviews(root: string): Review[] {
     : [];
 }
 
+function summarizeReview({ id, state, reason, payload }: Review) {
+  return {
+    id,
+    state,
+    reason,
+    decision: payload.decision,
+    files: payload.writes.map((w) => w.path),
+    batchable: !payload.batch && !payload.drop,
+  };
+}
+/** Read-only listings avoid reparsing every historical proposal; publishers still read and validate originals. */
+export function listReviewSummaries(root: string) {
+  const dir = localFile(root, "wiki/_jobs/reviews");
+  const names = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((p) => /^[a-f0-9]{64}\.json$/.test(p))
+        .sort()
+    : [];
+  return structuredClone(
+    readByStamp("review-summaries", dir, names, (name) =>
+      summarizeReview(readReview(root, name.slice(0, -5))),
+    ),
+  );
+}
+
 function save(root: string, review: Review): void {
   const file = localFile(root, reviewPath(review.id));
   mkdirSync(join(root, "wiki/_jobs/reviews"), { recursive: true });
   atomicText(file, encode(review));
+}
+
+/** Only additive relations can be combined with another proposal for the same page. */
+function mergePageWrites(before: string, left: string, right: string, path: string): string {
+  const old = matter(before),
+    a = matter(left),
+    b = matter(right);
+  const withoutRelations = ({ relations: _relations, ...rest }: Record<string, unknown>) =>
+    JSON.stringify(rest);
+  const additive = (page: typeof old) =>
+    (old.data.relations ?? []).every((r: unknown) =>
+      (page.data.relations ?? []).some((n: unknown) => JSON.stringify(r) === JSON.stringify(n)),
+    );
+  const relationOnly = (page: typeof old) =>
+    page.content === old.content &&
+    withoutRelations(page.data) === withoutRelations(old.data) &&
+    additive(page);
+  if ((!relationOnly(a) && !relationOnly(b)) || !additive(a) || !additive(b))
+    throw new Error(`同页变更冲突，需分别整合：${path}`);
+  const main = relationOnly(a) ? b : a;
+  const relations = new Map<string, unknown>();
+  for (const r of [
+    ...(main.data.relations ?? []),
+    ...(a.data.relations ?? []),
+    ...(b.data.relations ?? []),
+  ]) {
+    const key = `${r.kind}:${r.to}`;
+    if (!relations.has(key)) relations.set(key, r);
+  }
+  return matter.stringify(main.content, { ...main.data, relations: [...relations.values()] });
+}
+
+/** Exact child revisions stay immutable; a durable parent publishes their combined changes once. */
+export async function prepareReviewBatch(root: string, revisions: string[]): Promise<Review> {
+  const ids = z.array(hash).min(1).max(200).parse(revisions).sort();
+  if (new Set(ids).size !== ids.length) throw new Error("批量审阅包含重复版本");
+  return new WorkflowStore(root).locked(() => {
+    const existing = listReviews(root).find((r) => JSON.stringify(r.payload.batch) === JSON.stringify(ids));
+    if (existing) return existing;
+    const children = ids.map((id) => readReview(root, id));
+    const writes = new Map<string, Write>();
+    const base: Record<string, string> = {},
+      repoRoots: Record<string, string> = {};
+    const dates = new Set<string>();
+    for (const child of children) {
+      if (child.state !== "pending" || child.payload.batch || child.payload.drop)
+        throw new Error("只可批量批准普通待审版本；资料投喂包和已有批次需单独处理");
+      checkBase(root, child);
+      for (const [path, value] of Object.entries(child.payload.base)) {
+        if (base[path] && base[path] !== value) throw new Error(`批次基线不一致：${path}`);
+        base[path] = value;
+      }
+      for (const [repo, value] of Object.entries(child.payload.repoRoots)) {
+        if (repoRoots[repo] && repoRoots[repo] !== value) throw new Error(`源码位置不一致：${repo}`);
+        repoRoots[repo] = value;
+      }
+      if (child.payload.decision.revisions?.length && child.payload.decision.revisionDate)
+        dates.add(child.payload.decision.revisionDate);
+      for (const write of child.payload.writes) {
+        if (DERIVED.has(write.path)) continue;
+        const previous = writes.get(write.path);
+        if (!previous || previous.after === write.after) {
+          writes.set(write.path, { ...write });
+          continue;
+        }
+        if (
+          previous.before !== write.before ||
+          !write.before ||
+          !previous.after ||
+          !write.after ||
+          !/^wiki\/(concepts|params|sources)\//.test(write.path)
+        )
+          throw new Error(`批量文件冲突：${write.path}`);
+        previous.after = mergePageWrites(write.before, previous.after, write.after, write.path);
+      }
+    }
+    if (dates.size > 1) throw new Error("正文修订日期不同，需分批批准以保留历史");
+    const decisions = children.map((r) => r.payload.decision);
+    const payload = payloadSchema.parse({
+      base,
+      repoRoots,
+      writes: [...writes.values()].sort((a, b) => a.path.localeCompare(b.path)),
+      batch: ids,
+      log: children.map((r) => r.payload.log ?? "").join(""),
+      decision: {
+        promoted: [...new Set(decisions.flatMap((d) => d.promoted))],
+        merged: decisions.flatMap((d) => d.merged),
+        rejected: decisions.flatMap((d) => d.rejected),
+        contradictions: decisions.flatMap((d) => d.contradictions),
+        revisions: decisions.flatMap((d) => d.revisions ?? []),
+        revisionDate: [...dates][0],
+      },
+    });
+    const review: Review = { id: digest(JSON.stringify(payload)), state: "pending", payload };
+    save(root, review);
+    return review;
+  });
 }
 
 /** 只核对本包依赖的文件；库里别处的改动（别的页、别的草稿、手册）不让本包过期 */
@@ -162,68 +299,82 @@ export async function createReview(
   dependencies: string[] = [],
   drop?: Review["payload"]["drop"],
 ): Promise<Review> {
-  return new WorkflowStore(root).locked(() => {
-    if (listReviews(root).some((r) => r.state === "publishing")) throw new Error("先恢复未完成的发布");
-    const logBefore = before.get(LOG) ?? "";
-    const logAfter = after.get(LOG) ?? logBefore;
-    if (!logAfter.startsWith(logBefore)) throw new Error("整合只能在 log.md 末尾追加");
-    const log = logAfter.slice(logBefore.length);
-    const base = new Map([...before].filter(([path]) => !DERIVED.has(path)));
-    const candidate = new Map([...after].filter(([path]) => !DERIVED.has(path)));
-    for (const [path, text] of base) {
-      if (!/^wiki\/(concepts|params|sources)\//.test(path)) continue;
-      const section = lineageSection(text);
-      if (section !== undefined && lineageSection(candidate.get(path) ?? "") !== section)
-        throw new Error(`版本谱系为脚本产物，整合不能改写或删除：${path}`);
-      const definition = protectedParamSection(text);
-      if (definition !== undefined && protectedParamSection(candidate.get(path) ?? "") !== definition)
-        throw new Error(`参数定义为脚本产物，整合不能改写或删除：${path}`);
-    }
-    const accepted = new Set([...decision.promoted, ...decision.merged.map((m) => m.from)]);
-    const ids = [...accepted, ...decision.rejected.map((r) => r.id)];
-    // 本批草稿无论晋升、合并还是被整合判掉，都是本包的依据；晋升与合并落到的正式页即使没改写，也是本包审的对象
-    const targets = [...decision.promoted, ...decision.merged.map((m) => m.into)];
-    const depends = new Set(
-      [
-        ...dependencies,
-        ...ids.map((id) => `wiki/_drafts/${id}.md`),
-        ...targets.flatMap((id) => PAGE_DIRS.map((dir) => `wiki/${dir}/${id}.md`)),
-      ].filter((p) => base.has(p)),
+  return new WorkflowStore(root).locked(() =>
+    createReviewInLock(root, before, after, decision, repoRoots, dependencies, drop),
+  );
+}
+
+/** Caller holds the shared workflow lock so deduplication and proposal creation are one transaction. */
+export function createReviewInLock(
+  root: string,
+  before: Map<string, string>,
+  after: Map<string, string>,
+  decision: Review["payload"]["decision"],
+  repoRoots: Record<string, string> = {},
+  dependencies: string[] = [],
+  drop?: Review["payload"]["drop"],
+): Review {
+  if (listReviews(root).some((r) => r.state === "publishing")) throw new Error("先恢复未完成的发布");
+  const logBefore = before.get(LOG) ?? "";
+  const logAfter = after.get(LOG) ?? logBefore;
+  if (!logAfter.startsWith(logBefore)) throw new Error("整合只能在 log.md 末尾追加");
+  const log = logAfter.slice(logBefore.length);
+  const base = new Map([...before].filter(([path]) => !DERIVED.has(path)));
+  const candidate = new Map([...after].filter(([path]) => !DERIVED.has(path)));
+  for (const [path, text] of base) {
+    if (!/^wiki\/(concepts|params|sources)\//.test(path)) continue;
+    const section = lineageSection(text);
+    if (section !== undefined && lineageSection(candidate.get(path) ?? "") !== section)
+      throw new Error(`版本谱系为脚本产物，整合不能改写或删除：${path}`);
+    const definition = protectedParamSection(text);
+    if (definition !== undefined && protectedParamSection(candidate.get(path) ?? "") !== definition)
+      throw new Error(`参数定义为脚本产物，整合不能改写或删除：${path}`);
+  }
+  const accepted = new Set([...decision.promoted, ...decision.merged.map((m) => m.from)]);
+  const ids = [...accepted, ...decision.rejected.map((r) => r.id)];
+  // 本批草稿无论晋升、合并还是被整合判掉，都是本包的依据；晋升与合并落到的正式页即使没改写，也是本包审的对象
+  const targets = [...decision.promoted, ...decision.merged.map((m) => m.into)];
+  const depends = new Set(
+    [
+      ...dependencies,
+      ...ids.map((id) => `wiki/_drafts/${id}.md`),
+      ...targets.flatMap((id) => PAGE_DIRS.map((dir) => `wiki/${dir}/${id}.md`)),
+    ].filter((p) => base.has(p)),
+  );
+  const store = new WorkflowStore(root);
+  for (const id of new Set(store.verifyDrafts(ids))) {
+    const path = `wiki/_jobs/${id}.json`;
+    const text = optionalText(root, path)!;
+    const job = jobSchema.parse(JSON.parse(text));
+    base.set(path, text);
+    depends.add(path);
+    candidate.set(
+      path,
+      job.input.targets.every((t) => accepted.has(t)) ? encode({ ...job, state: "integrated" }) : text,
     );
-    const store = new WorkflowStore(root);
-    for (const id of new Set(store.verifyDrafts(ids))) {
-      const path = `wiki/_jobs/${id}.json`;
-      const text = optionalText(root, path)!;
-      const job = jobSchema.parse(JSON.parse(text));
-      base.set(path, text);
-      depends.add(path);
-      candidate.set(
-        path,
-        job.input.targets.every((t) => accepted.has(t)) ? encode({ ...job, state: "integrated" }) : text,
-      );
-    }
-    const writes = [...new Set([...base.keys(), ...candidate.keys()])]
-      .sort()
-      .filter((p) => base.get(p) !== candidate.get(p))
-      .map((path) => ({ path, before: base.get(path) ?? null, after: candidate.get(path) ?? null }));
-    for (const write of writes) if (write.before !== null) depends.add(write.path);
-    for (const path of citedRaw(writes, base)) depends.add(path);
-    const payload = payloadSchema.parse({
-      base: Object.fromEntries([...depends].sort().map((path) => [path, digest(base.get(path)!)])),
-      writes,
-      decision,
-      repoRoots,
-      ...(log ? { log } : {}),
-      ...(drop ? { drop } : {}),
-    });
-    if (payload.writes.some((w) => !allowed(w))) throw new Error("候选包含不允许的发布路径或操作");
-    const id = digest(JSON.stringify(payload));
-    const record: Review = { id, state: "pending", payload };
-    checkBase(root, record);
-    if (existsSync(localFile(root, reviewPath(id)))) return readReview(root, id);
-    save(root, record);
-    return record;
+  }
+  const writes = [...new Set([...base.keys(), ...candidate.keys()])]
+    .sort()
+    .filter((p) => base.get(p) !== candidate.get(p))
+    .map((path) => ({ path, before: base.get(path) ?? null, after: candidate.get(path) ?? null }));
+  for (const write of writes) if (write.before !== null) depends.add(write.path);
+  for (const path of citedRaw(writes, base)) depends.add(path);
+  const payload = payloadSchema.parse({
+    base: Object.fromEntries([...depends].sort().map((path) => [path, digest(base.get(path)!)])),
+    writes,
+    decision,
+    repoRoots,
+    ...(log ? { log } : {}),
+    ...(drop ? { drop } : {}),
   });
+  if (payload.writes.some((w) => !allowed(w))) throw new Error("候选包含不允许的发布路径或操作");
+  validateDropReceipt(root, payload.drop, payload.writes);
+  const id = digest(JSON.stringify(payload));
+  const record: Review = { id, state: "pending", payload };
+  checkBase(root, record);
+  if (existsSync(localFile(root, reviewPath(id)))) return readReview(root, id);
+  save(root, record);
+  return record;
 }
 
 function withTemp<T>(fn: (root: string) => T): T {
@@ -295,15 +446,23 @@ export async function approveReview(
     if (review.state === "rejected") throw new Error("该 revision 已驳回，不能批准或自动复活");
     if (listReviews(root).some((r) => r.id !== id && r.state === "publishing"))
       throw new Error("先恢复其他未完成的发布");
+    for (const childId of review.payload.batch ?? []) {
+      const child = readReview(root, childId);
+      if (child.state !== "pending" && !(child.state === "published" && child.publishedBy === id))
+        throw new Error(`批次子版本状态已变化：${childId}`);
+    }
     checkBase(root, review);
+    validateDropReceipt(root, review.payload.drop, review.payload.writes);
     for (const write of review.payload.writes) {
-      if (write.before)
+      // 发布会消费草稿；自动生成区保护针对保留下来的正式页。
+      const officialPage = /^wiki\/(concepts|params|sources)\//.test(write.path);
+      if (officialPage && write.before)
         for (const extract of [lineageSection, protectedParamSection]) {
           const section = extract(write.before);
           if (section !== undefined && extract(write.after ?? "") !== section)
             throw new Error(`自动生成区被修改：${write.path}`);
         }
-      if (!/^wiki\/(concepts|params|sources)\//.test(write.path) || !write.before || !write.after) continue;
+      if (!officialPage || !write.before || !write.after) continue;
       const id = write.path.split("/").at(-1)!.slice(0, -3);
       verifyRevision(
         write.path.slice(5),
@@ -340,6 +499,10 @@ export async function approveReview(
       if (!DERIVED.has(write.path) && optionalText(root, write.path) !== write.after)
         throw new Error(`发布后核对失败：${write.path}`);
     checkBase(root, review);
+    for (const childId of review.payload.batch ?? []) {
+      const child = readReview(root, childId);
+      save(root, { ...child, state: "published", publishedBy: id });
+    }
     review.state = "published";
     save(root, review);
     return review;
@@ -352,6 +515,20 @@ export async function rejectReview(root: string, id: string, reason: string): Pr
     const review = readReview(root, id);
     if (review.state === "rejected") return review;
     if (review.state !== "pending") throw new Error("只能驳回尚未批准的 revision");
+    review.state = "rejected";
+    review.reason = reason.trim();
+    save(root, review);
+    return review;
+  });
+}
+
+/** User-authorized deduplication: retain the immutable proposal and stop automatic recompilation. */
+export async function retireReview(root: string, id: string, reason: string): Promise<Review> {
+  if (!reason.trim()) throw new Error("退役需填写原因");
+  return new WorkflowStore(root).locked(() => {
+    const review = readReview(root, id);
+    if (review.state !== "pending" && review.state !== "rejected") throw new Error("只能退役未发布的审阅");
+    retireReviewTasksInLock(root, id, reason);
     review.state = "rejected";
     review.reason = reason.trim();
     save(root, review);

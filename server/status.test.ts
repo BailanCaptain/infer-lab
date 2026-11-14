@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { initBudget, withBudget } from "../scripts/wiki/budget";
 import { WORK_MODEL } from "../scripts/wiki/model-use";
+import { enqueueTask } from "../scripts/wiki/queue";
+import { createReview, rejectReview } from "../scripts/wiki/review";
+import { wikiContents } from "../scripts/wiki/review-files";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
 import { handleStatus, readStatus, saveChatModel } from "./status";
 
@@ -70,6 +73,56 @@ it("saves the selected provider/model without changing other local settings or c
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 afterEach(() => {
   for (const f of fixtures.splice(0)) f.cleanup();
+});
+
+it.each(["live", "dead", "inactive"] as const)(
+  "reports the nightly process as %s without rewriting the saved receipt",
+  (state) => {
+    const f = wikiFixture();
+    fixtures.push(f);
+    f.write("wiki/sync.config.json", JSON.stringify({ mode: "production" }));
+    const receipt = JSON.stringify({ status: "running", phase: "worker" });
+    f.write("wiki/_jobs/sync/last-run.json", receipt);
+    f.write("wiki/_jobs/sync/daily-lease.json", JSON.stringify({ pid: 123456, active: state !== "inactive" }));
+    const probe = vi.spyOn(process, "kill").mockImplementation(() => {
+      if (state === "dead") throw Object.assign(new Error("not running"), { code: "ESRCH" });
+      return true;
+    });
+    try {
+      expect(readStatus(f.root).nightly?.lastRun?.status).toBe(state === "live" ? "running" : "interrupted");
+      expect(readFileSync(join(f.root, "wiki/_jobs/sync/last-run.json"), "utf8")).toBe(receipt);
+      if (state !== "inactive") expect(probe).toHaveBeenCalledWith(123456, 0);
+    } finally {
+      probe.mockRestore();
+    }
+  },
+);
+
+it("reports production without the historical test caps while preserving recorded usage", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  await initBudget(f.root, { limitUsd: 1, priorChargedUsd: 0.5, reserveUsd: 1, maxCalls: 1 });
+  f.write("wiki/sync.config.json", JSON.stringify({ mode: "production" }));
+  await withBudget(
+    f.root,
+    "chat",
+    { id: "chat", cwd: f.root, args: [], stdin: "q", timeoutMs: 1000, allowedWrites: [] },
+    async () => ({ ok: true, costUsd: 2 }),
+  );
+  const status = readStatus(f.root);
+  expect(status.mode).toBe("production");
+  expect(status.budget).toMatchObject({
+    limitUsd: null,
+    maxCalls: null,
+    chargedUsd: 2.5,
+    calls: 1,
+    paused: false,
+  });
+  expect(status.nightly).toMatchObject({
+    spendsMoney: true,
+    maxNewParamPages: null,
+    paidWork: { tasks: null, reconcile: null, drift: null },
+  });
 });
 
 it("reports what used to need file spelunking: budget, nightly guard rails, and content gaps", async () => {
@@ -161,4 +214,47 @@ it("作答模型：配置固定的问答模型，和账本里记到的换模型�
     recorded: 0,
     switched: 0,
   });
+});
+
+it("状态读缓存：结构不变；热调用后再改审阅、队列和页面，下一次照样看得到", async () => {
+  const f = wikiFixture();
+  fixtures.push(f);
+  const page = (id: string, title: string, body: string) =>
+    `---\nid: ${id}\ntitle: ${title}\ntype: concept\nsummary: ${id}\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: I\nupdated: '2026-10-06'\n---\n${body}`;
+  f.write("wiki/concepts/cache-guide.md", page("cache-guide", "Cache guide", "Cache explanation"));
+  const first = readStatus(f.root);
+  expect(Object.keys(first).sort()).toEqual(["budget", "mode", "models", "nightly", "pages", "todo"]);
+  expect(Object.keys(first.todo).sort()).toEqual([
+    "closedGaps",
+    "gapEntries",
+    "gaps",
+    "mergedGaps",
+    "missingTerms",
+    "pendingReviews",
+    "queuedTasks",
+    "termEntries",
+    "totalTerms",
+  ]);
+  expect(readStatus(f.root)).toEqual(first);
+
+  const before = wikiContents(f.root);
+  const after = new Map(before);
+  after.set("wiki/concepts/cache-guide.md", page("cache-guide", "Cache guide", "Cache explanation, revised"));
+  const review = await createReview(f.root, before, after, {
+    promoted: [],
+    merged: [],
+    rejected: [],
+    contradictions: [],
+  });
+  await enqueueTask(f.root, { kind: "gap", key: "a".repeat(64) });
+  f.write("wiki/concepts/rope.md", page("rope", "RoPE", "Rotary position embedding"));
+  const changed = readStatus(f.root);
+  expect(changed.todo.pendingReviews).toBe(first.todo.pendingReviews + 1);
+  expect(changed.todo.queuedTasks).toBe(first.todo.queuedTasks + 1);
+  expect(changed.pages.concepts).toBe(first.pages.concepts + 1);
+  expect(first.todo.missingTerms).toContain("rope");
+  expect(changed.todo.termEntries).toContainEqual({ term: "rope", id: "rope", title: "RoPE" });
+
+  await rejectReview(f.root, review.id, "test");
+  expect(readStatus(f.root).todo.pendingReviews).toBe(first.todo.pendingReviews);
 });

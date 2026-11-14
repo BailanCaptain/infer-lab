@@ -8,7 +8,7 @@ import { send } from "./http";
 import { handlePages } from "./pages";
 import { handleRawSource } from "./raw";
 import { handleReview } from "./review";
-import { readKnowledgeSnapshot } from "./snapshot";
+import { readKnowledgeSnapshot, readReaderSnapshot } from "./snapshot";
 import { handleStatus } from "./status";
 
 const root = resolve(process.cwd());
@@ -37,4 +37,7 @@ server.listen(port, "127.0.0.1", () => {
   console.log(
     "wiki server → http://127.0.0.1:" + (typeof address === "object" && address ? address.port : port),
   );
+  setImmediate(() => {
+    void readReaderSnapshot(root).catch((error) => console.warn("知识库预热未完成，下次读取会重试：", String(error)));
+  });
 });

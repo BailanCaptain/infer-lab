@@ -3,8 +3,8 @@
  *
  * 把每个参数页的 `## 版本谱系` 一节换成 `wiki:lineage` 从 git 算出来的结果。
  *
- * 这一节不让 agent 写：它会编 PR 号，而「哪些版本有、哪个 PR 引入、哪个 PR 移除、
- * 影响面多大」这些事实 git 里全都有，算得准，而且上游一更新重算即可。
+ * 参数页须有可恢复身份的固定定义；字段按文件、类与字段名检查存在性。
+ * 缺少自动定义的人工页保留原文并报告跳过；损坏的固定定义仍阻止发布。
  * 页面里原有的这一节（不管是 agent 写的还是上一次生成的）整节替换。
  */
 import { execFileSync } from "node:child_process";
@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
 import { LINEAGE_SECTION, lineageTerm, replaceSection } from "./wiki/lineage";
 import { publishLineage } from "./wiki/lineage-publish";
+import { protectedParamSection } from "./wiki/params/pages";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -42,6 +43,10 @@ for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
   const text = readFileSync(file, "utf8");
   // 只处理参数页；概念页没有这一节也不该有
   if (!/^type:\s*param\s*$/m.test(text.split("---")[1] ?? "")) continue;
+  if (!protectedParamSection(text)) {
+    console.warn(`! 跳过 wiki/${dir}/${name}：没有固定自动定义，保留人工版本说明`);
+    continue;
+  }
   const term = lineageTerm(titleOf(text) ?? "");
   if (!term) {
     console.warn(`! 跳过 wiki/${dir}/${name}：标题里找不到参数名，版本谱系没有重算`);
@@ -57,6 +62,8 @@ for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
       term,
       "--seeds",
       seedsArg,
+      "--page",
+      file,
     ],
     { encoding: "utf8", cwd: root, maxBuffer: 32 << 20 },
   ).trim();
@@ -66,4 +73,4 @@ for (const name of readdirSync(pagesDir).filter((n) => n.endsWith(".md"))) {
 }
 const done = await publishLineage(root, updates);
 for (const update of updates) console.log(`ok ${update.path}`);
-console.log(done ? `\n${done} 个参数页的版本谱系已重算。` : "没有找到参数页（type: param）。");
+console.log(done ? `\n${done} 个参数页的版本谱系已重算。` : "没有需要写入的谱系变更。");

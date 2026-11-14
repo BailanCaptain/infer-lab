@@ -101,7 +101,11 @@ export async function runWorkRequest(
           ...request,
           ...attempt.selection,
           cwd: stage,
-          args: [...request.args, "--max-budget-usd", String(attempt.reservedUsd || policy.reserveUsd)],
+          accountingOnly: attempt.accountingOnly,
+          args: [
+            ...request.args,
+            ...(attempt.budgetUsd === undefined ? [] : ["--max-budget-usd", String(attempt.budgetUsd)]),
+          ],
         },
       ],
       {

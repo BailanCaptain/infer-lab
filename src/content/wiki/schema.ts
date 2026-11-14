@@ -221,12 +221,48 @@ export type Registry = z.infer<typeof registrySchema>;
 export const skippedPageSchema = z.object({ id: z.string(), file: z.string(), reason: z.string() });
 export type SkippedPage = z.infer<typeof skippedPageSchema>;
 
+/** The directory can be loaded without downloading every article and diagram. */
+export const readerManifestSchema = z.object({
+  revision: z.string().regex(/^[a-f0-9]{64}$/),
+  registry: registrySchema,
+  skipped: z.array(skippedPageSchema).default([]),
+});
+export type ReaderManifest = z.infer<typeof readerManifestSchema>;
+
+export type CompiledNode = {
+  type: string;
+  tagName?: string | undefined;
+  value?: string | undefined;
+  properties?: Record<string, unknown> | undefined;
+  children?: CompiledNode[] | undefined;
+};
+const compiledNodeSchema: z.ZodType<CompiledNode> = z.object({
+  type: z.string(),
+  tagName: z.string().optional(),
+  value: z.string().optional(),
+  properties: z.record(z.unknown()).optional(),
+  children: z.array(z.lazy(() => compiledNodeSchema)).optional(),
+});
+const compiledSchema = compiledNodeSchema.refine(
+  (node) => node.type === "root" && Array.isArray(node.children),
+  "正文编译结果需要根节点",
+);
+
+export const readerPageSchema = z.object({
+  revision: z.string().regex(/^[a-f0-9]{64}$/),
+  file: z.string(),
+  text: z.string(),
+  compiled: compiledSchema.optional(),
+  diagrams: z.array(z.object({ id: z.string().regex(ID_RE), svg: z.string().min(1) })),
+});
+export type ReaderPage = z.infer<typeof readerPageSchema>;
+
 /** The build and local API deliver the same complete reader payload. */
 export const readerSnapshotSchema = z
   .object({
     revision: z.string().regex(/^[a-f0-9]{64}$/),
     registry: registrySchema,
-    pageTexts: z.array(z.object({ file: z.string(), text: z.string() })),
+    pageTexts: z.array(z.object({ file: z.string(), text: z.string(), compiled: compiledSchema.optional() })),
     /** 正文 ```wiki-diagram 围栏引用的图，渲染层直接内联这段 SVG */
     diagrams: z.array(z.object({ id: z.string().regex(ID_RE), svg: z.string().min(1) })).default([]),
     /** 不合法、没进快照的页；其余页照常显示 */

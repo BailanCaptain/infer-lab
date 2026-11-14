@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parsePage } from "./pages";
 import { revisePage, revisionSchema, verifyRevision } from "./revisions";
 
 const source = "r@1234567:config.py#L1";
@@ -14,6 +15,18 @@ const decision = revisionSchema.parse({
 });
 
 describe("explicit page revision history", () => {
+  it("publishes only the current explanation and rejects legacy tails even on unchanged proposals", () => {
+    expect(revisePage("sources/a.md", before, after, decision, "2026-11-03")).toBe(after);
+    const legacy = `${after}\n## 已废弃的说法\n\n### 2026-09-15 · 修订 aaaaaaaaaaaaaaaa\n旧结论。\n`;
+    expect(() => verifyRevision("sources/a.md", legacy, legacy, undefined, "")).toThrow(/历史/);
+  });
+  it("does not add historical sources to the parser cache of the supplied new page", () => {
+    const oldSource = "r@7654321:old.py#L1";
+    const older = before.replace(source, oldSource);
+    const result = revisePage("sources/a.md", older, after, decision, "2026-09-15");
+    expect(parsePage("sources/a.md", result).page!.fm.sources).toEqual([source]);
+    expect(parsePage("sources/a.md", after).page!.fm.sources).toEqual([source]);
+  });
   it("revalidates sealed history before approval, including proposals made before this policy", () => {
     expect(() => verifyRevision("sources/a.md", before, after, undefined, "")).toThrow(/修订分类/);
     const result = revisePage("sources/a.md", before, after, decision, "2026-09-15");
@@ -22,7 +35,7 @@ describe("explicit page revision history", () => {
       verifyRevision(
         "sources/a.md",
         before,
-        result.replace("历史记录，已废弃", "仍有效"),
+        `${result}\n## 已废弃的说法\n伪造旧文。`,
         decision,
         "2026-09-15",
       ),
@@ -31,10 +44,10 @@ describe("explicit page revision history", () => {
   it("requires a disposition for a changed existing body", () => {
     expect(() => revisePage("sources/a.md", before, after, undefined, "2026-09-15")).toThrow(/修订分类/);
   });
-  it("keeps the exact old claim, date, replacement and evidence in an engine-owned section", () => {
+  it("keeps the replacement and current evidence without repeating the recorded old claim", () => {
     const result = revisePage("sources/a.md", before, after, decision, "2026-09-15");
-    expect(result).toContain("## 已废弃的说法");
-    expect(result).toContain("X 默认开启。");
+    expect(result).not.toContain("## 已废弃的说法");
+    expect(result).not.toContain("X 默认开启。");
     expect(result).toContain("X 已被移除。");
     expect(result).toContain("2026-09-15");
     expect(result).toContain(source);
@@ -53,8 +66,8 @@ describe("explicit page revision history", () => {
       revisePage("sources/a.md", before, after, revisionSchema.parse(value), "2026-09-15"),
     ).toThrow();
   });
-  it("carries earlier history through later revisions and refuses forged history", () => {
-    const first = revisePage("sources/a.md", before, after, decision, "2026-09-15");
+  it("accepts a legacy baseline but requires a clean candidate and refuses forged history", () => {
+    const first = `${after}\n## 已废弃的说法\nX 默认开启。\n`;
     const editorial = revisionSchema.parse({
       id: "a",
       kind: "editorial",
@@ -67,8 +80,8 @@ describe("explicit page revision history", () => {
       editorial,
       "2026-09-16",
     );
-    expect(second).toContain("X 默认开启。");
-    expect(second.match(/## 已废弃的说法/g)).toHaveLength(1);
+    expect(second).not.toContain("X 默认开启。");
+    expect(second).not.toContain("## 已废弃的说法");
     expect(() =>
       revisePage("sources/a.md", first, first.replace("X 默认开启。", "伪造旧文"), editorial, "2026-09-16"),
     ).toThrow(/历史/);

@@ -6,6 +6,40 @@ import { atomicText } from "./workflow";
 
 export const REGISTRY = "src/content/wiki/registry.json";
 
+/** ctime also detects same-size rewrites whose mtime was restored by an editor. */
+export function fileStamp(path: string): string {
+  const stat = lstatSync(path, { bigint: true });
+  if (!stat.isFile()) throw new Error(`需要普通文件：${path}`);
+  return `${stat.ino}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
+}
+
+const stampCaches = new Map<string, Map<string, { stamp: string; value: unknown }>>();
+
+/**
+ * One value per file in `dir`, re-read only when the file's stamp changed; removed files drop out.
+ * The stamp is taken before reading, so a write racing the read is picked up on the next call.
+ * Cached values are shared between calls: callers must hand out copies, never the values themselves.
+ */
+export function readByStamp<T>(
+  cache: string,
+  dir: string,
+  names: readonly string[],
+  read: (name: string) => T,
+): T[] {
+  const key = `${cache}:${resolve(dir)}`;
+  const previous = stampCaches.get(key);
+  const next = new Map<string, { stamp: string; value: unknown }>();
+  const values = names.map((name) => {
+    const stamp = fileStamp(join(dir, name));
+    const cached = previous?.get(name);
+    const entry = cached?.stamp === stamp ? cached : { stamp, value: read(name) };
+    next.set(name, entry);
+    return entry.value as T;
+  });
+  stampCaches.set(key, next);
+  return values;
+}
+
 /** Relative to wiki/: operational records are not knowledge or agent compilation input. */
 export function isWikiStatePath(path: string): boolean {
   return (

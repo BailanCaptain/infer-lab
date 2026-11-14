@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { AgentRequest, RunAgent } from "./batch";
 import { type ModelUse, modelUseSchema } from "./model-use";
 import { localFile } from "./review-files";
+import { isProduction } from "./sync-config";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 
 const policySchema = z
@@ -154,6 +155,14 @@ export async function withBudget<
   request: AgentRequest,
   run: (request: AgentRequest) => Promise<T>,
 ): Promise<T> {
+  if (request.accountingOnly || isProduction(root))
+    request = {
+      ...request,
+      accountingOnly: true,
+      args: request.args.filter(
+        (arg, index, args) => arg !== "--max-budget-usd" && args[index - 1] !== "--max-budget-usd",
+      ),
+    };
   const store = new WorkflowStore(root);
   const subscription = request.provider === "codex";
   const claim = await store.locked(() => {

@@ -8,12 +8,60 @@ import { contentDrift, patrolFindings, recordDrift } from "./maintenance";
 import { loadPages } from "./pages";
 import { listTasks, runTask } from "./queue";
 import { reconcileBatch, reconcileBatches, reconcileInput } from "./reconcile";
-import { approveReview, reviewDiff } from "./review";
+import { approveReview, listReviews, reviewDiff } from "./review";
 import { STRUCTURED_INPUT_LIMIT } from "./structured";
 import { wikiFixture } from "./test-fixture";
 
 const page = (id: string, body: string, source = "https://github.com/vllm-project/vllm-ascend/issues/1") =>
   `---\nid: ${id}\ntitle: ${id}\ntype: source\nsummary: 说明\nsources: [${source}]\nevidence: I\nupdated: '2026-01-01'\n---\n## 一句话\n\n${body}\n`;
+it("keeps long pages with their related evidence instead of silently dropping them", async () => {
+  const f = wikiFixture();
+  try {
+    f.write("wiki/sources/a.md", page("a", "完整正文。".repeat(7600)));
+    f.write("wiki/sources/b.md", page("b", "相关页的依据。"));
+    const batches = reconcileBatches(f.root);
+    expect(new Set(batches.flat().map((p) => p.fm.id))).toEqual(new Set(["a", "b"]));
+    const longBatch = batches.find((b) => b.some((p) => p.fm.id === "a"))!;
+    expect(longBatch.map((p) => p.fm.id)).toContain("b");
+    await reconcileBatch(
+      f.root,
+      longBatch.map((p) => p.fm.id),
+      { accountingOnly: true },
+      {
+        runAgent: async (req) => {
+          const data = JSON.parse(req.stdin);
+          return {
+            id: req.id,
+            ok: true,
+            exitCode: 0,
+            stderrTail: "",
+            output: data.sourceHash
+              ? JSON.stringify({
+                  evidence: [{ quote: data.text.slice(0, 100), note: "本段依据" }],
+                  caveats: [],
+                })
+              : '{"relations":[],"contradictions":[],"duplicates":[]}',
+          };
+        },
+      },
+    );
+  } finally {
+    f.cleanup();
+  }
+});
+it("includes a page larger than any single-call budget for segmented reading", () => {
+  const f = wikiFixture();
+  try {
+    f.write("wiki/sources/oversized.md", page("oversized", "a".repeat(210_000)));
+    expect(
+      reconcileBatches(f.root)
+        .flat()
+        .map((p) => p.fm.id),
+    ).toContain("oversized");
+  } finally {
+    f.cleanup();
+  }
+});
 it("queues exactly one task at threshold and never retries paid work implicitly", async () => {
   const f = wikiFixture();
   try {
@@ -113,7 +161,8 @@ it("records content drift and idempotent rewrite work without calling it a fact 
 it("proposes a quote-bound relation, publishes its inverse through build, and avoids duplicate edges", async () => {
   const f = wikiFixture();
   try {
-    f.write("wiki/sources/a.md", page("a", "A uses B for storage."));
+    const original = page("a", "A uses B for storage.").replace("updated:", "relations: []\nupdated:");
+    f.write("wiki/sources/a.md", original);
     f.write("wiki/sources/b.md", page("b", "B provides storage."));
     const ids = reconcileBatches(f.root)
       .flat()
@@ -144,12 +193,107 @@ it("proposes a quote-bound relation, publishes its inverse through build, and av
     const result = await reconcileBatch(f.root, ["a", "b"], policy, { runAgent });
     expect(result.reviewId).toBeTruthy();
     expect(reviewDiff(f.root, result.reviewId!)).toContain("builds-on");
+    expect(readFileSync(join(f.root, "wiki/sources/a.md"), "utf8")).toBe(original);
+    // gray-matter caches nested arrays: even another read in this process must see only published edges.
+    expect(loadPages(join(f.root, "wiki")).pages.find((p) => p.fm.id === "a")!.fm.relations).toEqual([]);
+    // Pending edges are already represented; another maintenance batch must not propose them again.
+    expect((await reconcileBatch(f.root, ["a", "b"], policy, { runAgent })).reviewId).toBeUndefined();
     await approveReview(f.root, result.reviewId!);
     const registry = JSON.parse(readFileSync(join(f.root, "src/content/wiki/registry.json"), "utf8"));
     expect(registry.pages.find((p: { id: string }) => p.id === "b").backlinks).toEqual([
       { from: "a", kind: "enables", note: "A 使用 B 的存储能力" },
     ]);
     expect((await reconcileBatch(f.root, ["a", "b"], policy, { runAgent })).reviewId).toBeUndefined();
+  } finally {
+    f.cleanup();
+  }
+});
+
+it("does not propose a reverse duplicate of an already declared relation", async () => {
+  const f = wikiFixture();
+  try {
+    f.write("wiki/sources/a.md", page("a", "A uses B for storage."));
+    f.write(
+      "wiki/sources/b.md",
+      page("b", "B provides storage.").replace(
+        "updated:",
+        "relations: [{to: a, kind: builds-on, note: already declared}]\nupdated:",
+      ),
+    );
+    const result = await reconcileBatch(
+      f.root,
+      ["a", "b"],
+      { accountingOnly: true },
+      {
+        runAgent: async (req) => ({
+          id: req.id,
+          ok: true,
+          exitCode: 0,
+          stderrTail: "",
+          output: JSON.stringify({
+            relations: [
+              {
+                from: "a",
+                relation: { to: "b", kind: "builds-on", note: "reverse duplicate" },
+                evidence: [
+                  { page: "a", text: "A uses B for storage." },
+                  { page: "b", text: "B provides storage." },
+                ],
+              },
+            ],
+            contradictions: [],
+            duplicates: [],
+          }),
+        }),
+      },
+    );
+    expect(result.reviewId).toBeUndefined();
+    expect(loadPages(join(f.root, "wiki")).pages.find((p) => p.fm.id === "a")!.fm.relations).toEqual([]);
+  } finally {
+    f.cleanup();
+  }
+});
+
+it("deduplicates an edge proposed by concurrent overlapping batches without changing formal pages", async () => {
+  const f = wikiFixture();
+  try {
+    f.write("wiki/sources/a.md", page("a", "A uses B."));
+    f.write("wiki/sources/b.md", page("b", "B stores data."));
+    f.write("wiki/sources/c.md", page("c", "Other context."));
+    const runAgent: import("./batch").RunAgent = async (req) => ({
+      id: req.id,
+      ok: true,
+      exitCode: 0,
+      stderrTail: "",
+      costUsd: 0,
+      output: JSON.stringify({
+        relations: [
+          {
+            from: "a",
+            relation: {
+              to: "b",
+              kind: "builds-on",
+              note: `same edge in ${JSON.parse(req.stdin).pages.length} page batch`,
+            },
+            evidence: [
+              { page: "a", text: "A uses B." },
+              { page: "b", text: "B stores data." },
+            ],
+          },
+        ],
+        contradictions: [],
+        duplicates: [],
+      }),
+    });
+    const results = await Promise.all(
+      [
+        ["a", "b"],
+        ["a", "b", "c"],
+      ].map((ids) => reconcileBatch(f.root, ids, { accountingOnly: true }, { runAgent })),
+    );
+    expect(results.filter((r) => r.reviewId)).toHaveLength(1);
+    expect(listReviews(f.root).filter((r) => r.state === "pending")).toHaveLength(1);
+    expect(loadPages(join(f.root, "wiki")).pages.every((p) => p.fm.relations.length === 0)).toBe(true);
   } finally {
     f.cleanup();
   }

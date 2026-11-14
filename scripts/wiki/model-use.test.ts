@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { answeredBy, modelSwitched, trackModels } from "./model-use";
+import { answeredBy, MODEL_ID, modelSwitched, trackModels } from "./model-use";
+
+describe("model identifiers passed as one CLI argument", () => {
+  it.each(["sonnet", "claude-opus-5-5[1m]", "deepseek,deepseek-chat", "openrouter,qwen/qwen3-coder:free"])(
+    "accepts aliases and CCR routes: %s",
+    (model) => expect(MODEL_ID.test(model)).toBe(true),
+  );
+  it.each([
+    "",
+    "--tools",
+    "a b",
+    "a\nb",
+    "a\n",
+    "a\r\n",
+    "a;rm",
+    "a&b",
+    "$(whoami)",
+    "a`b",
+    'a"b',
+    "p,",
+    ",m",
+    "p,m,extra",
+  ])("rejects malformed identifiers and shell syntax: %s", (model) =>
+    expect(MODEL_ID.test(model)).toBe(false),
+  );
+});
 
 const line = (value: unknown) => JSON.stringify(value);
 const init = (model: string) => line({ type: "system", subtype: "init", model, session_id: "s" });

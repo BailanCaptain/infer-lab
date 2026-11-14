@@ -1,8 +1,10 @@
 import { AlertTriangle, ArrowLeft, Check, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { DropReceipt } from "../../content/wiki/drop";
 import { wikiRequest } from "./api";
+import { DropReceiptView } from "./DropReceiptView";
 import { DropReviewPreview } from "./DropReviewPreview";
 import {
   addedText,
@@ -19,6 +21,7 @@ export interface ReviewSummary {
   state: ReviewState;
   files: string[];
   reason?: string;
+  batchable?: boolean;
 }
 interface Detail {
   review: {
@@ -26,7 +29,7 @@ interface Detail {
     state: ReviewState;
     reason?: string;
     payload?: {
-      drop?: { report: string };
+      drop?: { report: string; receipt?: DropReceipt };
       writes: { path: string; before: string | null; after: string | null }[];
     };
   };
@@ -146,6 +149,7 @@ function HunkRows({ header, lines }: { header: string | undefined; lines: DiffLi
 }
 
 export function ReviewPane({
+  id,
   hidden,
   reviews,
   listError,
@@ -154,6 +158,7 @@ export function ReviewPane({
   onChanged,
   onPublished,
 }: {
+  id: string;
   hidden: boolean;
   reviews: ReviewSummary[];
   listError: string;
@@ -166,6 +171,9 @@ export function ReviewPane({
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [batchResult, setBatchResult] = useState("");
+  const selectAll = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -196,6 +204,36 @@ export function ReviewPane({
     del: 0,
   });
   const ordered = useMemo(() => [...reviews].sort((a, b) => rank[a.state] - rank[b.state]), [reviews]);
+  const eligible = ordered.filter((r) => r.state === "pending" && r.batchable !== false);
+  const selectedRevisions = chosen.filter((id) => eligible.some((r) => r.id === id));
+  const allSelected = eligible.length > 0 && selectedRevisions.length === eligible.length;
+
+  useEffect(() => {
+    if (!selected && selectAll.current)
+      selectAll.current.indeterminate = selectedRevisions.length > 0 && !allSelected;
+  }, [selected, selectedRevisions.length, allSelected]);
+
+  async function approveBatch() {
+    if (busy || !selectedRevisions.length) return;
+    const revisions = [...selectedRevisions];
+    setBusy(true);
+    setError("");
+    setBatchResult("");
+    try {
+      const result = await wikiRequest<{ reviews: { id: string; state: ReviewState }[] }>(
+        "reviews/batch/approve",
+        { revisions },
+      );
+      for (const review of result.reviews) onChanged(review);
+      setChosen([]);
+      setBatchResult(`已批准并发布所选的 ${result.reviews.length} 份变更。`);
+      await onPublished();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function decide(action: "approve" | "reject") {
     if (!detail || busy) return;
@@ -218,18 +256,64 @@ export function ReviewPane({
   }
 
   return (
-    <div className="wiki-review" role="tabpanel" aria-label="审阅" hidden={hidden}>
+    <div id={id} className="wiki-review" role="tabpanel" aria-label="审阅" hidden={hidden}>
       {!selected ? (
         <div className="wiki-review-list">
           <p className="wiki-review-lead">
             知识库的每次改动都先停在这里。读完、批准，它才进正式库；之后的问答用的就是新版本。
           </p>
+          {eligible.length > 0 && (
+            <section className="wiki-review-bulk" aria-label="批量审阅">
+              <div className="wiki-review-bulk-selection">
+                <label className="wiki-review-select-all">
+                  <input
+                    ref={selectAll}
+                    type="checkbox"
+                    checked={allSelected}
+                    disabled={busy}
+                    onChange={() => setChosen(allSelected ? [] : eligible.map((r) => r.id))}
+                  />
+                  全选待审
+                </label>
+                <span className="wiki-review-selection-count" aria-live="polite">
+                  已选 <strong>{selectedRevisions.length}</strong> / {eligible.length} 份
+                </span>
+              </div>
+              <button
+                type="button"
+                className="wiki-review-bulk-publish"
+                disabled={busy || !selectedRevisions.length}
+                onClick={() => void approveBatch()}
+              >
+                <Check size={16} />
+                {busy
+                  ? "正在核对并发布…"
+                  : selectedRevisions.length
+                    ? `批准并发布所选 ${selectedRevisions.length} 份`
+                    : "选择变更后批量发布"}
+              </button>
+            </section>
+          )}
+          {batchResult && <p role="status">{batchResult}</p>}
+          {error && (
+            <p role="alert" className="wiki-panel-error">
+              {error}
+            </p>
+          )}
           {listError && (
             <p role="alert" className="wiki-panel-error">
               <AlertTriangle size={13} /> {listError}
             </p>
           )}
-          {!listError && !reviews.length && <p className="wiki-review-empty">现在没有待审的变更。</p>}
+          {!listError && !ordered.some((r) => rank[r.state] < 2) && (
+            <div className="wiki-review-complete">
+              <Check size={20} aria-hidden="true" />
+              <div>
+                <strong>待审已清空</strong>
+                <p>所有变更已处理，可在下方查看历史。</p>
+              </div>
+            </div>
+          )}
           {[
             { title: "待你处理", items: ordered.filter((r) => rank[r.state] < 2) },
             { title: "历史", items: ordered.filter((r) => rank[r.state] === 2) },
@@ -242,10 +326,29 @@ export function ReviewPane({
                   </h3>
                   <ul>
                     {group.items.map((r) => (
-                      <li key={r.id}>
+                      <li
+                        key={r.id}
+                        className={`wiki-review-row${chosen.includes(r.id) ? " is-selected" : ""}`}
+                      >
+                        {r.state === "pending" && r.batchable !== false && (
+                          <label className="wiki-review-select">
+                            <input
+                              type="checkbox"
+                              aria-label={`选择 ${packageTitle(r.files)} ${r.id.slice(0, 10)}`}
+                              disabled={busy}
+                              checked={chosen.includes(r.id)}
+                              onChange={(e) =>
+                                setChosen((ids) =>
+                                  e.target.checked ? [...ids, r.id] : ids.filter((id) => id !== r.id),
+                                )
+                              }
+                            />
+                          </label>
+                        )}
                         <button
                           type="button"
                           className={`wiki-review-card is-${r.state}`}
+                          disabled={busy}
                           onClick={() => onSelect(r.id)}
                         >
                           <span className={`wiki-review-chip is-${r.state}`}>{labels[r.state]}</span>
@@ -300,6 +403,9 @@ export function ReviewPane({
                   writes={detail.review.payload.writes}
                   placements={detail.placements ?? []}
                 />
+              )}
+              {detail.review.payload?.drop?.receipt && (
+                <DropReceiptView receipt={detail.review.payload.drop.receipt} />
               )}
               {detail.review.payload?.writes
                 .filter((w) => w.path.endsWith(".svg"))

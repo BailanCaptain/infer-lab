@@ -13,6 +13,15 @@ it("只有共享配置时照原样解析", () => {
   expect(readSyncConfig(join(d, "sync.config.json")).python).toBeUndefined();
 });
 
+it("carries the machine-specific Codex executable into the shared model selection", () => {
+  const d = dir();
+  writeFileSync(
+    join(d, "sync.config.local.json"),
+    JSON.stringify({ chatProvider: "codex", codexCli: process.execPath }),
+  );
+  expect(readSyncConfig(join(d, "sync.config.json")).codexCli).toBe(process.execPath);
+});
+
 it("旁边的 sync.config.local.json 盖在共享配置上——本机的解释器路径放那里，不进仓库", () => {
   const d = dir();
   writeFileSync(join(d, "sync.config.json"), JSON.stringify({ maxNewParamPages: 10 }));
@@ -36,6 +45,14 @@ it("问答模型 chatModel 可以写在本机覆盖里；不像模型名的值�
   expect(readSyncConfig(join(d, "sync.config.json")).chatModel).toBeUndefined();
   writeFileSync(join(d, "sync.config.local.json"), JSON.stringify({ chatModel: "claude-fable-5-1" }));
   expect(readSyncConfig(join(d, "sync.config.json")).chatModel).toBe("claude-fable-5-1");
+  writeFileSync(
+    join(d, "sync.config.local.json"),
+    JSON.stringify({ chatProvider: "claude", chatModel: "openrouter,qwen/qwen3-coder:free" }),
+  );
+  expect(readSyncConfig(join(d, "sync.config.json"))).toMatchObject({
+    chatProvider: "claude",
+    chatModel: "openrouter,qwen/qwen3-coder:free",
+  });
   writeFileSync(join(d, "sync.config.local.json"), JSON.stringify({ chatModel: "--tools x" }));
   expect(() => readSyncConfig(join(d, "sync.config.json"))).toThrow();
 });

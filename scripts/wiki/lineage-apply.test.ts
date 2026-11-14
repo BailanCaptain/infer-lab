@@ -1,8 +1,45 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { replaceSection } from "./lineage";
+import { buildParamPage, PARAM_SECTION } from "./params/pages";
+import { scanSources } from "./params/scan";
+import { wikiFixture } from "./test-fixture";
 
 const GEN = ["## 版本谱系", "", "| 版本 | 是否存在 |"].join("\n");
 const lines = (...xs: string[]) => `${xs.join("\n")}\n`;
+
+it("skips a manual parameter page without blocking updates to pinned definitions", () => {
+  const f = wikiFixture();
+  try {
+    const file = "vllm_ascend/config.py";
+    const source = "class ExampleConfig:\n    limit: int = 1\n";
+    f.write(`repo/${file}`, source);
+    const commit = f.commit("definition");
+    f.git(["update-ref", "refs/remotes/origin/main", commit]);
+    f.write(
+      "seeds.yaml",
+      `repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: ${commit}}\nfeatures: []\n`,
+    );
+    const input = {
+      repo: "r",
+      ref: "main",
+      commit,
+      entry: scanSources({ [file]: source })[0]!,
+      date: "2026-11-03",
+    };
+    const manual = buildParamPage({ ...input, pageId: "a-manual" }).replace(PARAM_SECTION, "## 人工定义");
+    f.write("wiki/params/a-manual.md", manual);
+    f.write("wiki/params/z-generated.md", buildParamPage({ ...input, pageId: "z-generated" }));
+    const result = f.cli("wiki-lineage-apply", ["--seeds", "seeds.yaml"]);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stderr).toContain("跳过 wiki/params/a-manual.md");
+    expect(readFileSync(join(f.root, "wiki/params/a-manual.md"), "utf8")).toBe(manual);
+    expect(readFileSync(join(f.root, "wiki/params/z-generated.md"), "utf8")).toContain("ExampleConfig.limit");
+  } finally {
+    f.cleanup();
+  }
+});
 
 describe("replaceSection", () => {
   it("ignores example headings inside fences and preserves unrelated whitespace", () => {

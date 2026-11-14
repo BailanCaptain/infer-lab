@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { findByAlias, getPage, listPages, pageHref, rewriteRelativeLink, sourceUrl } from "./index";
+import {
+  ensurePage,
+  findByAlias,
+  getPage,
+  listPages,
+  pageHref,
+  rewriteRelativeLink,
+  sourceUrl,
+} from "./index";
 import { parseRepoRef } from "./schema";
 
 describe("读取器", () => {
-  it("registry 与 wiki/ 下的 md 文件集合一致", () => {
+  it("registry 与 wiki/ 下的 md 文件集合一致", async () => {
     const pages = listPages();
     expect(pages.length).toBeGreaterThan(0);
     // 构建快照覆盖全部正式页，不依赖另一份手动维护的 glob 清单。
+    // Load independent page chunks together, as separate readers can; don't serialize Vite's module transforms.
+    await Promise.all(pages.map((p) => ensurePage(p.id)));
     for (const p of pages) {
       const full = getPage(p.id);
       expect(full, `registry 有 ${p.id} 但找不到对应 md`).toBeTruthy();
@@ -14,7 +24,8 @@ describe("读取器", () => {
     }
   });
 
-  it("getPage 返回 frontmatter 与正文，正文不含 frontmatter 分隔符", () => {
+  it("getPage 返回 frontmatter 与正文，正文不含 frontmatter 分隔符", async () => {
+    await ensurePage("block-table");
     const page = getPage("block-table");
     expect(page).toBeTruthy();
     expect(page?.fm.title).toMatch(/^Block Table/);

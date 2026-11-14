@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HANDBOOK_H2, HANDBOOK_H3, HandbookSliceMissingError, loadHandbook, sliceHandbook } from "./handbook";
 import { lintPages } from "./lint";
@@ -99,6 +100,39 @@ describe("sliceHandbook", () => {
     const s = loadHandbook(`${process.cwd()}/wiki`);
     for (const key of [...Object.keys(HANDBOOK_H2), ...Object.keys(HANDBOOK_H3)] as (keyof typeof s)[]) {
       expect(s[key].length, key).toBeGreaterThan(50);
+    }
+  });
+  it("写页规则注入唯一正式标准，临时整合副本也可读取；只读角色不携带写作全文", () => {
+    const f = wikiFixture();
+    try {
+      f.write("wiki/HANDBOOK.md", handbookFixture());
+      const slices = loadHandbook(`${f.root}/wiki`);
+      const standard = readFileSync(new URL("../../docs/wiki-writing-standard.md", import.meta.url), "utf8");
+      expect(slices.pageFormat).toContain(standard);
+      expect(slices.reading).not.toContain(standard);
+      expect(slices.query).not.toContain(standard);
+    } finally {
+      f.cleanup();
+    }
+  });
+  it("手册摘要不再要求与正式标准冲突的正文就近证据角标", () => {
+    const rules = loadHandbook(`${process.cwd()}/wiki`).pageFormat;
+    expect(rules).not.toContain("数值、版本差异、反直觉结论的证据就近标注");
+  });
+  it("按本次材料选择术语，保留对应原文定义和完整正式标准，不把无关词表塞入每次写作", () => {
+    const f = wikiFixture();
+    try {
+      f.write("wiki/HANDBOOK.md", handbookFixture());
+      f.write(
+        "wiki/TERMS.md",
+        "## 术语\n| 统一叫法 | 别的叫法 | 简明定义 | 对应页面 | 备注 |\n| --- | --- | --- | --- | --- |\n| token | 词元 | 离散编号 | token | 完整定义 |\n| RFork | fork weights | 权重传输 | rfork | 无关定义 |\n",
+      );
+      const rules = loadHandbook(`${f.root}/wiki`, "词元的处理").pageFormat;
+      expect(rules).toContain("| token | 词元 | 离散编号 | token | 完整定义 |");
+      expect(rules).not.toContain("无关定义");
+      expect(rules).toContain("对照源码之上零证据角标");
+    } finally {
+      f.cleanup();
     }
   });
   it("问答编译规则给出的证据标记能够通过实际 lint", () => {

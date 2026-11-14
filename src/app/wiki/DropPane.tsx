@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type DropBatch, type DropItem, dropStates } from "../../content/wiki/drop";
 import { wikiRequest } from "./api";
+import { DropReceiptView } from "./DropReceiptView";
 
-export function DropPane({ hidden, onReview }: { hidden: boolean; onReview: (id: string) => void }) {
+export function DropPane({
+  id,
+  hidden,
+  onReview,
+}: {
+  id: string;
+  hidden: boolean;
+  onReview: (id: string) => void;
+}) {
   const [batches, setBatches] = useState<DropBatch[]>([]);
   const [selected, setSelected] = useState<string>();
   const [items, setItems] = useState<DropItem[]>([]);
@@ -99,7 +108,7 @@ export function DropPane({ hidden, onReview }: { hidden: boolean; onReview: (id:
     await load();
   }
   return (
-    <section role="tabpanel" aria-label="Drop 资料" hidden={hidden} className="wiki-drop">
+    <section id={id} role="tabpanel" aria-label="Drop 资料" hidden={hidden} className="wiki-drop">
       <p>把资料交给知识库。校对清单后开始处理，整合结果由你整组审阅、批准。</p>
       {error && (
         <p role="alert" className="wiki-panel-error">
@@ -265,7 +274,20 @@ export function DropPane({ hidden, onReview }: { hidden: boolean; onReview: (id:
               : ` · 已知费用 $${current.calls.reduce((n, c) => n + (c.costUsd ?? 0), 0).toFixed(4)}`}
             {current.calls.some((c) => !c.usage && c.costUsd === undefined) && " · 部分调用用量尚未回传"}
           </p>
-          {current.error && <p role="alert">{current.error}</p>}
+          {current.error &&
+            (current.error.includes("自动修订已达上限") ? (
+              <>
+                <p role="alert">
+                  自动修订已达上限，已停止后续模型调用。资料和进度已保留，可补充修改意见后重试。
+                </p>
+                <details>
+                  <summary>查看失败详情</summary>
+                  <p>{current.error}</p>
+                </details>
+              </>
+            ) : (
+              <p role="alert">{current.error}</p>
+            ))}
           <ul>
             {current.sources.map((s) => (
               <li key={s.item}>
@@ -396,6 +418,7 @@ export function DropPane({ hidden, onReview }: { hidden: boolean; onReview: (id:
               <pre>{current.report}</pre>
             </details>
           )}
+          {current.receipt && <DropReceiptView receipt={current.receipt} />}
         </div>
       )}
     </section>

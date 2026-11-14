@@ -2,6 +2,33 @@ import { expect, it } from "vitest";
 import { gitLineage, renderVerifiedLineage } from "./lineage-git";
 import { wikiFixture } from "./test-fixture";
 
+it("does not turn a common field name into a repository-wide parameter history", () => {
+  const f = wikiFixture();
+  try {
+    f.write("repo/vllm_ascend/config.py", "class OtherConfig:\n    size: int = 4\n");
+    const before = f.commit("unrelated size (#1)");
+    f.write(
+      "repo/vllm_ascend/config.py",
+      "class OtherConfig:\n    size: int = 4\nclass KVPPConfig:\n    size: int = 1\n",
+    );
+    const after = f.commit("KVPP definition (#2)");
+    const data = gitLineage(
+      `${f.root}/repo`,
+      "size",
+      [before, after],
+      ["vllm_ascend/config.py"],
+      "KVPPConfig",
+    );
+    expect(data.presence.map((p) => p.files)).toEqual([0, 1]);
+    const markdown = renderVerifiedLineage(data);
+    expect(markdown).toContain("KVPPConfig.size");
+    expect(markdown).not.toContain("/pull/1");
+    expect(markdown).not.toContain("包含该提交的 tag");
+  } finally {
+    f.cleanup();
+  }
+});
+
 it("verifies presence transitions and containing tags instead of choosing any pickaxe change", () => {
   const f = wikiFixture();
   try {

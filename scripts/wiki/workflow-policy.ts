@@ -1,13 +1,16 @@
 import { z } from "zod";
 
-/** No implicit budget: callers must configure limits before starting paid work. */
-export const workflowPolicySchema = z
+const limitedPolicySchema = z
   .object({
     maxAttempts: z.number().int().positive().safe(),
     maxCostUsd: z.number().finite().positive(),
     reserveUsd: z.number().finite().positive(),
   })
   .refine((p) => p.reserveUsd <= p.maxCostUsd, "单次预留不能超过总预算");
+export const workflowPolicySchema = z.union([
+  limitedPolicySchema,
+  z.object({ accountingOnly: z.literal(true) }).strict(),
+]);
 export type WorkflowPolicy = z.infer<typeof workflowPolicySchema>;
 
 /** Observations trigger assessment, never paid compilation by themselves. */

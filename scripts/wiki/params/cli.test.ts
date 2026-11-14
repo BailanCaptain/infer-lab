@@ -81,9 +81,10 @@ it("builds one verified skeleton via the real CLI and preserves prose on an idem
       `repos:\n  r:\n    url: https://example.test/r\n    path: repo\n    refs: {main: ${commit}}\nfeatures: []\n`,
     );
     const args = ["--input", "params.json", "--seeds", "seeds.yaml", "--only", "limit"];
+    if (process.platform === "win32") args.push("--out", "WIKI/PARAMS");
     const first = f.cli("wiki-build-param-pages", args);
     expect(first.status, first.stderr).toBe(0);
-    const file = `wiki/params/${paramId(entries[0]!)}.md`;
+    const file = `wiki/_drafts/${paramId(entries[0]!)}.md`;
     const body = readFileSync(join(f.root, file), "utf8").replace(
       "骨架，待补：为什么存在。",
       "保留人工解释。[D]",
@@ -93,7 +94,23 @@ it("builds one verified skeleton via the real CLI and preserves prose on an idem
     expect(second.status, second.stderr).toBe(0);
     expect(readFileSync(join(f.root, file), "utf8")).toBe(body);
     expect(body).toContain("## 版本谱系");
-    expect(body).toContain("v1");
+    expect(body).toContain("ExampleConfig.limit");
+    expect(body).toContain("| main | 有 |");
+    f.write("repo/vllm_ascend/config.py", source.replace("= 1", "= 2"));
+    const patrolCommit = f.commit("later patrol snapshot");
+    f.write(
+      "params.json",
+      JSON.stringify({
+        repo: "r",
+        ref: "main",
+        commit: patrolCommit,
+        entries: scanSources({ "vllm_ascend/config.py": source.replace("= 1", "= 2") }),
+      }),
+    );
+    const mismatch = f.cli("wiki-build-param-pages", args);
+    expect(mismatch.status).not.toBe(0);
+    expect(mismatch.stderr).toContain("扫描提交不匹配教学 seeds 钉点");
+    expect(readFileSync(join(f.root, file), "utf8")).toBe(body);
     const lint = f.cli("wiki-lint", []);
     expect(lint.status, lint.stderr + lint.stdout).toBe(0);
   } finally {

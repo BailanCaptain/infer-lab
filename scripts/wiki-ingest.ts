@@ -29,8 +29,8 @@ import { factsTable } from "./wiki/lint";
 import { loadPages, parsePage } from "./wiki/pages";
 import { runPersistentExtract, syncFailureProjection } from "./wiki/persistent-extract";
 import { selectedAgent } from "./wiki/selected-agent";
+import { configuredWorkflowPolicy, isProduction } from "./wiki/sync-config";
 import { WorkflowStore } from "./wiki/workflow";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 function arg(name: string, def?: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -70,6 +70,7 @@ if (phase === "integrate" && !arg("--only")) throw new Error("独立整合必须
 const store = new WorkflowStore(root);
 if (
   !dryRun &&
+  !isProduction(root) &&
   phase !== "integrate" &&
   seeds.features.length &&
   ["--max-attempts", "--job-budget-usd", "--attempt-budget-usd"].some((name) => !arg(name))
@@ -80,7 +81,7 @@ if (
 }
 const policy =
   !dryRun && phase !== "integrate" && seeds.features.length
-    ? workflowPolicySchema.parse({
+    ? configuredWorkflowPolicy(root, {
         maxAttempts: Number(arg("--max-attempts")),
         maxCostUsd: Number(arg("--job-budget-usd")),
         reserveUsd: Number(arg("--attempt-budget-usd")),

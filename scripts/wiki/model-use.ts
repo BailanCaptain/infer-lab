@@ -8,8 +8,9 @@
  */
 import { z } from "zod";
 
-/** 可以交给 --model 的模型名：别名或完整 id，可带 [1m] 这类上下文后缀；挡住空格与以 - 开头的参数 */
-export const MODEL_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]*(\[[a-z0-9]+\])?$/;
+/** --model 的单个参数：别名、完整 id 或 CCR provider,model；拒绝空白、参数开头和 shell 语法。 */
+export const MODEL_ID =
+  /^(?:[a-zA-Z0-9][a-zA-Z0-9._-]*,)?[a-zA-Z0-9][a-zA-Z0-9._:/-]*(\[[a-z0-9]+\])?$(?![\s\S])/;
 
 /** Legacy Claude default and stable recipe marker. Runtime calls use selectedModel(root). */
 export const WORK_MODEL = "claude-opus-5-5[1m]";

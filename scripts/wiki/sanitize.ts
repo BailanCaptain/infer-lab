@@ -3,7 +3,7 @@
  * HTML, role-token and encoded-instruction passes. This is a risk filter, not a
  * trust verdict. Removed spans are excluded; blocked inputs return no compiler text.
  */
-export const SANITIZER_VERSION = "wiki-text-v2";
+export const SANITIZER_VERSION = "wiki-text-v3";
 const MAX_BYTES = 1024 * 1024;
 const INVISIBLE = /[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u{e0000}-\u{e007f}]/gu;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally detect control characters
@@ -37,7 +37,9 @@ function detectionText(text: string): string {
 
 function containsInstruction(text: string): boolean {
   const view = detectionText(text);
-  return INSTRUCTION.test(view.replace(/\s+/g, " ")) || ROLE.test(view) || ACTIVE_HTML.test(view);
+  // A single backtick-quoted token is documentation; do not exempt payloads, fences or instructions.
+  const roles = view.replace(/(?<!`)`<\|[a-z_]+\|>`(?!`)/gi, "");
+  return INSTRUCTION.test(view.replace(/\s+/g, " ")) || ROLE.test(roles) || ACTIVE_HTML.test(view);
 }
 
 function encodedInstruction(text: string, depth = 0): boolean {

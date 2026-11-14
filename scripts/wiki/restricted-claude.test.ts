@@ -39,6 +39,16 @@ describe("restricted CLI contract", () => {
     transport([success]);
     expect(await runRestrictedClaude(req())).toMatchObject({ ok: true, output: "markdown", costUsd: 0.2 });
   });
+  it("preserves a CCR route as one argument without weakening the Drop execution profile", async () => {
+    const model = "openrouter,qwen/qwen3-coder:free";
+    transport([success]);
+    const request = { ...req(), model, args: restrictedArgs("rules", 1, model) };
+    expect(await runRestrictedClaude(request)).toMatchObject({ ok: true, output: "markdown" });
+    const invoked = mocks.spawn.mock.calls[0]![0];
+    expect(invoked.args[invoked.args.indexOf("--model") + 1]).toBe(model);
+    expect(invoked.args[invoked.args.indexOf("--tools") + 1]).toBe("");
+    expect(invoked.args[invoked.args.indexOf("--setting-sources") + 1]).toBe("");
+  });
   it.each([
     [],
     [success, success],

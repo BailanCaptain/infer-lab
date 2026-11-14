@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
-import { materializeSnapshot, readKnowledgeSnapshot } from "./snapshot";
+import { materializeSnapshot, readKnowledgeSnapshot, readReaderSnapshot } from "./snapshot";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 vi.mock("node:fs", async (original) => {
@@ -67,6 +67,9 @@ it("uses one content revision for metadata, body, rules and archived evidence", 
   const page = `---\nid: a\ntitle: A\ntype: source\nsummary: 默认值为 1\nsources: [raw:${raw.slice(4)}#L1]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n默认值为 1。\n`;
   f.write("wiki/sources/a.md", page);
   const first = await readKnowledgeSnapshot(f.root);
+  expect(await readKnowledgeSnapshot(f.root)).toBe(first);
+  const reader = await readReaderSnapshot(f.root);
+  expect(await readReaderSnapshot(f.root)).toBe(reader);
   expect(first.revision).toMatch(/^[a-f0-9]{64}$/);
   const location = await materializeSnapshot(f.root, first);
   expect(location).not.toBe(join(f.root, "wiki"));
@@ -75,6 +78,7 @@ it("uses one content revision for metadata, body, rules and archived evidence", 
   expect(readFileSync(join(location, raw), "utf8")).toBe("默认值为 1。\n");
   const second = await readKnowledgeSnapshot(f.root);
   expect(second.revision).not.toBe(first.revision);
+  expect((await readReaderSnapshot(f.root)).revision).toBe(second.revision);
   expect((await readKnowledgeSnapshot(f.root)).revision).toBe(second.revision);
   expect(await materializeSnapshot(f.root, first)).toBe(location);
   writeFileSync(join(location, "sources/a.md"), "tampered");

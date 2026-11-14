@@ -340,7 +340,8 @@ export async function assessGap(
           id: work.targets[0]!,
           ...attempt.selection,
           cwd: stage,
-          args: restrictedArgs(rules, attempt.reservedUsd || policy.reserveUsd),
+          accountingOnly: attempt.accountingOnly,
+          args: restrictedArgs(rules, attempt.budgetUsd),
           stdin,
           timeoutMs,
           allowedWrites: [],
@@ -357,7 +358,8 @@ export async function assessGap(
       `${JSON.stringify(result, null, 2)}\n`,
     );
     if (!result.ok) throw new Error(result.reason ?? "覆盖判定调用失败");
-    if (costUsd === undefined && billing !== "chatgpt") throw new Error("覆盖判定费用尚未核实，保留预留额并停止采纳");
+    if (!attempt.accountingOnly && costUsd === undefined && billing !== "chatgpt")
+      throw new Error("覆盖判定费用尚未核实，保留预留额并停止采纳");
     if (readdirSync(stage).length) throw new Error("无工具覆盖判定产生了文件");
     if (Buffer.byteLength(result.output ?? "") > 128_000) throw new Error("覆盖判定输出过长");
     const decision = coverageDecisionSchema.parse(JSON.parse(result.output ?? ""));

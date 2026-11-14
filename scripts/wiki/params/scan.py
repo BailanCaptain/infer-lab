@@ -48,6 +48,42 @@ def scan(files):
                         if len(candidates) == 1:
                             parents.setdefault(candidates[0], []).append(((path, name), field.target.id))
 
+    # Old constructors pass an explicitly selected user dictionary to a child config.
+    for (path, name), cls in classes.items():
+        if name != ROOT_CONFIG:
+            continue
+        for method in cls.body:
+            if not isinstance(method, ast.FunctionDef) or method.name != "__init__":
+                continue
+            selected = {}
+            for node in method.body:
+                if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                    continue
+                target, value = node.targets[0], node.value
+                if isinstance(target, ast.Name):
+                    selected.pop(target.id, None)
+                    if (
+                        isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+                        and isinstance(value.func.value, ast.Name) and value.func.value.id == "additional_config"
+                        and value.func.attr == "get" and value.args
+                        and isinstance(value.args[0], ast.Constant) and isinstance(value.args[0].value, str)
+                    ):
+                        selected[target.id] = value.args[0].value
+                if not (
+                    isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id == "self"
+                    and isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
+                    and value.args and isinstance(value.args[0], ast.Name)
+                ):
+                    continue
+                key = selected.get(value.args[0].id)
+                candidates = [(p, n) for p, n in classes if n == value.func.id]
+                if (path, value.func.id) in classes:
+                    candidates = [(path, value.func.id)]
+                if key and len(candidates) == 1:
+                    link = ((path, name), key)
+                    if link not in parents.get(candidates[0], []):
+                        parents.setdefault(candidates[0], []).append(link)
+
     # A sub-config can also be attached without its class appearing in the annotation: the field is
     # typed `Any` (forward reference) and the factory builds it and passes it by keyword, e.g.
     #   sparse_kv = SparseKVOffloadConfig.from_additional_config(...)

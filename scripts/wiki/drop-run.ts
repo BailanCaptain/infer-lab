@@ -5,6 +5,7 @@ import { join, relative, resolve } from "node:path";
 import type { z } from "zod";
 import type { DropBatch } from "../../src/content/wiki/drop";
 import type { RunAgent } from "./batch";
+import { assertInputFits } from "./context-window";
 import { readBatch, saveBatch } from "./drop-batch";
 import { integrateDrop } from "./drop-integration";
 import { restrictedArgs } from "./restricted-claude";
@@ -12,16 +13,27 @@ import { listReviews, rejectReview } from "./review";
 import { localFile, replaceText, wikiContents } from "./review-files";
 import { selectedAgent } from "./selected-agent";
 import { PAGE_TEXT_TIMEOUT_MS, parseStructuredJson } from "./structured";
-import { selectedModel } from "./sync-config";
+import { readSyncConfig, selectedModel } from "./sync-config";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 
 const active = new Map<string, AbortController>();
+/**
+ * Automatic repair rounds allowed per stage in one run. Drop calls are accounting-only (not capped
+ * by the budget), and validation errors carry varying details, so "same error twice" alone never
+ * stops a model that keeps failing differently. Three rounds cover the observed real cases (one
+ * schema fix, then a follow-up cross-page fix) while bounding spend to 4 calls per failing stage;
+ * beyond that the batch fails visibly and a human decides whether to retry.
+ */
+export const MAX_DROP_REPAIR_ROUNDS = 3;
 export type DropRunnerDeps = {
   runAgent?: RunAgent;
   validate?: (root: string) => string[];
   testLimits?: { calls?: number };
 };
-export type DropAsk = <T>(stage: string, data: unknown, rules: string, schema: z.ZodType<T>) => Promise<T>;
+export type DropAsk = {
+  <T>(stage: string, data: unknown, rules: string, schema: z.ZodType<T>): Promise<T>;
+  onInput?: (stage: string, data: unknown, rules: string) => void;
+};
 const alive = (pid: number) => {
   try {
     process.kill(pid, 0);
@@ -86,6 +98,16 @@ export async function startDrop(
       b.question = undefined;
     }
     b.selection = options.newAttempt ? selectedModel(root) : (b.selection ?? selectedModel(root));
+    if (options.newAttempt || !b.budget) {
+      const config = readSyncConfig(join(root, "wiki/sync.config.json"));
+      b.budget = {
+        contextWindowTokens: config.contextWindowTokens,
+        outputReserveTokens: config.outputReserveTokens,
+        algorithm: 1,
+      };
+    }
+    b.protocol = 3;
+    b.receipt = undefined;
     b.state = "running";
     b.stage = "提取资料";
     b.error = undefined;
@@ -137,6 +159,11 @@ async function executeDrop(
       return saveBatch(root, b);
     });
   try {
+    const attempt = { protocol: 3, selection: initial.selection, budget: initial.budget };
+    const attemptFile = join(dir, "attempt.json");
+    if (existsSync(attemptFile) && readFileSync(attemptFile, "utf8") !== JSON.stringify(attempt))
+      throw new Error("本次模型或窗口快照不一致，需要显式新尝试");
+    atomicText(attemptFile, JSON.stringify(attempt));
     const baseFile = join(dir, "base.json");
     const base = await store.locked(() => {
       if (existsSync(baseFile)) return new Map<string, string>(JSON.parse(readFileSync(baseFile, "utf8")));
@@ -155,16 +182,20 @@ async function executeDrop(
       check();
       lastStage = stage;
       const repair = repairs.get(stage);
-      if (repair) data = { ...(data as object), ...repair };
+      if (repair) data = { ...(data as object), repair: repair.repair };
       const stdin = JSON.stringify(data);
       // A single provider context is finite; no silent truncation or false completeness.
       if (Buffer.byteLength(stdin) > 900_000)
         throw new Error("单次上下文超过 900 KB，需拆分相关知识读取；未忽略任何资料");
-      const hash = digest(JSON.stringify({ data, rules, selection: initial.selection }));
+      assertInputFits(root, rules, stdin, initial.budget);
+      const hash = digest(
+        JSON.stringify({ data, rules, selection: initial.selection, budget: initial.budget, protocol: 3 }),
+      );
       const file = join(dir, `${hash}.json`);
       if (existsSync(file)) {
         const parsed = schema.parse(parseStructuredJson(readFileSync(file, "utf8")));
         priorOutputs.set(stage, parsed);
+        ask.onInput?.(stage, data, rules);
         return parsed;
       }
       const b = check();
@@ -176,6 +207,10 @@ async function executeDrop(
         b.calls.push({ key: callKey, startedAt: new Date().toISOString() });
       });
       atomicText(join(dir, `${hash}.input.json`), JSON.stringify({ rules, data }));
+      atomicText(
+        join(dir, `input-${digest(JSON.stringify({ rules, data }))}.json`),
+        JSON.stringify({ rules, data }),
+      );
       const result = await (deps.runAgent ?? selectedAgent(root, "drop"))({
         ...initial.selection,
         id: `drop-${id}`,
@@ -206,9 +241,11 @@ async function executeDrop(
       }
       priorOutputs.set(stage, parsed);
       atomicText(file, JSON.stringify(parsed));
+      ask.onInput?.(stage, data, rules);
       return parsed;
     };
     const seenFailures = new Set<string>();
+    const repairRounds = new Map<string, number>();
     let result: Awaited<ReturnType<typeof integrateDrop>>;
     for (;;) {
       try {
@@ -225,13 +262,20 @@ async function executeDrop(
         )
           throw error;
         seenFailures.add(`${lastStage}:${message}`);
+        const rounds = (repairRounds.get(lastStage) ?? 0) + 1;
+        if (rounds > MAX_DROP_REPAIR_ROUNDS)
+          throw new Error(
+            `自动修订已达上限：阶段「${lastStage}」已自动修订 ${MAX_DROP_REPAIR_ROUNDS} 轮仍未通过，停止调用模型；最后一次报错：${message}`,
+          );
+        repairRounds.set(lastStage, rounds);
         repairs.set(lastStage, { repair: message, previousOutput: priorOutputs.get(lastStage) });
         if (
           (message.includes("共享图") && message.includes("使用方未读全")) ||
           message.startsWith("Error: 完整性复核未通过")
         ) {
-          const stage = "查找相关知识与补证";
-          repairs.set(stage, { repair: message, previousOutput: priorOutputs.get(stage) });
+          for (const [stage, previousOutput] of priorOutputs)
+            if (stage.startsWith("查找相关知识与补证"))
+              repairs.set(stage, { repair: message, previousOutput });
         }
         if (message.startsWith("Error: 完整性复核未通过") || message.startsWith("Error: 整合校验失败"))
           for (const [stage, previousOutput] of priorOutputs)
@@ -253,6 +297,7 @@ async function executeDrop(
       b.question = result.question;
       b.state = result.question ? "needs-input" : result.reviewId ? "review" : "archived";
       b.reviewId = result.reviewId;
+      b.receipt = result.reviewId ? undefined : result.receipt;
       if (result.reviewId && !b.reviews.includes(result.reviewId)) b.reviews.push(result.reviewId);
       b.stage = result.question ? "等待关键条件补充" : result.reviewId ? "整组变更待审" : "无需发布";
     });

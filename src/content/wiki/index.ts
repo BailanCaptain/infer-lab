@@ -1,11 +1,12 @@
 /** Build and live readers share one content snapshot, including its revision. */
-import buildSnapshot from "virtual:wiki-reader-snapshot";
+import buildSnapshot, { loadPage } from "virtual:wiki-reader-snapshot";
 import { findPageByName } from "./page-names";
 import { createReaderStore } from "./reader-store";
 import { buildIndex, type Hit, type Index, type RetrieveOptions, retrieve as retrieveIn } from "./retrieve";
 import type { RegistryEntry, RepoRef } from "./schema";
 
-const reader = createReaderStore(buildSnapshot);
+const reader = createReaderStore(buildSnapshot, loadPage);
+export const ensurePage = reader.ensurePage;
 export const getReaderState = reader.getState;
 export const subscribeReader = reader.subscribe;
 export const installReaderSnapshot = reader.install;
@@ -88,7 +89,8 @@ function ensureIndex(): Index {
  * 聊天层唯一允许的检索入口。**不要在调用方自己 grep**——换实现（比如给
  * issue 语料接语义检索）时才不必重写聊天层。见 F001 AC10 与风险 R1。
  */
-export function retrieve(query: string, opts?: RetrieveOptions): Hit[] {
+export async function retrieve(query: string, opts?: RetrieveOptions): Promise<Hit[]> {
+  await Promise.all(reader.getState().pages.map((p) => reader.ensurePage(p.id)));
   return retrieveIn(query, ensureIndex(), opts);
 }
 

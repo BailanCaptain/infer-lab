@@ -5,7 +5,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { compileRaw } from "./compile-raw";
 import { runStagedIntegration } from "./integration-run";
 import { saveRawSnapshot } from "./raw";
-import { approveReview, listReviews, readReview, rejectReview, reviewDiff } from "./review";
+import {
+  approveReview,
+  listReviewSummaries,
+  listReviews,
+  readReview,
+  rejectReview,
+  reviewDiff,
+} from "./review";
 import { replaceText, wikiContents } from "./review-files";
 import { wikiFixture } from "./test-fixture";
 import { WorkflowStore } from "./workflow";
@@ -84,6 +91,19 @@ async function proposal(crossPage = false, withGapLedger = false) {
 }
 
 describe("durable human review", () => {
+  it("cached listings reflect review transitions and still reject changed proposal bytes", async () => {
+    const f = await proposal();
+    const first = listReviewSummaries(f.root);
+    expect(first[0]?.state).toBe("pending");
+    first[0]!.state = "published";
+    expect(listReviewSummaries(f.root)[0]?.state).toBe("pending");
+    await rejectReview(f.root, f.id, "fixture rejection");
+    expect(listReviewSummaries(f.root)[0]).toMatchObject({ state: "rejected", reason: "fixture rejection" });
+    const record = readReview(f.root, f.id);
+    record.payload.writes[0]!.after += "tampered";
+    f.write(`wiki/_jobs/reviews/${f.id}.json`, JSON.stringify(record));
+    expect(() => listReviewSummaries(f.root)).toThrow("内容已改变");
+  });
   it("does not give the question ledger to the integration agent", async () => {
     const f = await proposal(false, true);
     expect(readReview(f.root, f.id).payload.base).not.toHaveProperty("wiki/_gaps.json");

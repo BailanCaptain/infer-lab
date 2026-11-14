@@ -16,7 +16,7 @@ import { z } from "zod";
 import { ID_RE, PAGE_ORIGINS } from "../../src/content/wiki/schema";
 import { parsePage } from "./pages";
 import { type Screening, screeningSchema } from "./screening";
-import { selectedModel } from "./sync-config";
+import { isProduction, selectedModel } from "./sync-config";
 import { type WorkflowPolicy, workflowPolicySchema } from "./workflow-policy";
 
 export const originSchema = z.enum(PAGE_ORIGINS);
@@ -32,7 +32,9 @@ const attemptSchema = z.object({
   ownerPid: z.number().int().positive(),
   startedAt: z.string(),
   finishedAt: z.string().optional(),
+  revalidatedAt: z.string().optional(),
   reservedUsd: z.number().finite().nonnegative(),
+  accountingOnly: z.boolean().optional(),
   billing: z.literal("chatgpt").optional(),
   selection: z.object({ provider: z.enum(["claude", "codex"]), model: z.string() }).optional(),
   usage: z.record(z.number().int().nonnegative()).optional(),
@@ -138,16 +140,32 @@ export class WorkflowStore {
     return checked;
   }
   /** Explicit crash recovery only. Serialize recovery callers; never remove a live owner's lock. */
-  recoverLock(): void {
+  recoverLock(onlyAbandoned = false): void {
     mkdirSync(this.runtimeDir, { recursive: true });
     const guard = join(this.runtimeDir, "workflow-recovery.lock");
-    const fd = openSync(guard, "wx");
+    let fd: number;
+    try {
+      fd = openSync(guard, "wx");
+    } catch (error) {
+      if (onlyAbandoned && (error as NodeJS.ErrnoException).code === "EEXIST") return;
+      throw error;
+    }
     try {
       const path = join(this.runtimeDir, "workflow.lock");
       if (!existsSync(path)) return;
-      const text = readFileSync(path, "utf8");
-      const owner = z.object({ pid: z.number().int().positive(), at: z.string() }).parse(JSON.parse(text));
-      if (this.isAlive(owner.pid)) throw new Error(`持锁进程 ${owner.pid} 仍存活，拒绝清理`);
+      let text: string;
+      let owner: { pid: number; at: string };
+      try {
+        text = readFileSync(path, "utf8");
+        owner = z.object({ pid: z.number().int().positive(), at: z.string() }).parse(JSON.parse(text));
+      } catch (error) {
+        if (onlyAbandoned) return; // A writer may have created the inode but not filled it yet.
+        throw error;
+      }
+      if (this.isAlive(owner.pid)) {
+        if (onlyAbandoned) return;
+        throw new Error(`持锁进程 ${owner.pid} 仍存活，拒绝清理`);
+      }
       if (readFileSync(path, "utf8") !== text) throw new Error("锁记录已变化，拒绝清理");
       rmSync(path);
     } finally {
@@ -159,14 +177,44 @@ export class WorkflowStore {
     mkdirSync(this.runtimeDir, { recursive: true });
     mkdirSync(this.jobsDir, { recursive: true });
     const path = join(this.runtimeDir, "workflow.lock");
+    const deadline = Date.now() + 30_000;
     let fd: number | undefined;
+    let permissionRetries = 0;
     for (let tries = 0; fd === undefined; tries++) {
       try {
         fd = openSync(path, "wx");
       } catch (error) {
+        // Windows can briefly deny open while another process removes the lock.
+        // Retry exclusive creation only; a persistent denial still fails, and
+        // no existing owner's file is removed or opened for overwriting.
+        if (
+          process.platform === "win32" &&
+          (error as NodeJS.ErrnoException).code === "EPERM" &&
+          permissionRetries++ < 5
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          continue;
+        }
         if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-        if (tries >= 50)
-          throw new Error(`工作状态锁被占用：${path}；若持锁进程已退出，先核对锁记录再清理，不自动抢锁`);
+        if (tries >= 50) {
+          let live = false;
+          try {
+            const owner = JSON.parse(readFileSync(path, "utf8"));
+            live = Number.isInteger(owner.pid) && this.isAlive(owner.pid);
+          } catch (error) {
+            // The owner may release between exclusive open and reading its record.
+            if ((error as NodeJS.ErrnoException).code === "ENOENT" && Date.now() < deadline) continue;
+            // Exclusive creation precedes writing the owner record. An empty or
+            // partial record can belong to a live new owner; wait, never remove it.
+            // A permanently malformed record still fails at the original deadline.
+            if (error instanceof SyntaxError && Date.now() < deadline) {
+              await new Promise((resolve) => setTimeout(resolve, 20));
+              continue;
+            }
+          }
+          if (!live || Date.now() >= deadline)
+            throw new Error(`工作状态锁被占用：${path}；若持锁进程已退出，先核对锁记录再清理，不自动抢锁`);
+        }
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
     }
@@ -180,7 +228,8 @@ export class WorkflowStore {
   }
   async enqueue(value: WorkInput, limits: WorkflowPolicy, screening?: Screening): Promise<Job> {
     const parsed = inputSchema.parse(value);
-    const policy = workflowPolicySchema.parse(limits);
+    const production = isProduction(this.root);
+    const policy = workflowPolicySchema.parse(production ? { accountingOnly: true } : limits);
     const checkedScreening = screening === undefined ? undefined : screeningSchema.parse(screening);
     if (
       checkedScreening &&
@@ -196,7 +245,7 @@ export class WorkflowStore {
         // 已完成的任务不会再产生费用，换个预算来复用它的回执也无妨（2026-09-23：诊断由 wiki:work assess
         // 用另一套预算跑完后，夜间任务复用同一份诊断被这里拦住）；未完成的仍不许改预算
         const finished = job.state === "draft" || job.state === "integrated";
-        if (!finished && JSON.stringify(job.policy) !== JSON.stringify(policy))
+        if (!production && !finished && JSON.stringify(job.policy) !== JSON.stringify(policy))
           throw new Error("已有任务预算不能通过重新提交修改或清零");
         job.origins = [...new Set([...job.origins, parsed.origin])].sort();
         return this.save(job);
@@ -216,6 +265,27 @@ export class WorkflowStore {
       });
     });
   }
+  /** A stricter validator may reject a previously cached decision; retain its attempt and billing. */
+  async rejectCachedDecision(id: string, expectedHash: string, reason: string) {
+    return this.locked(() => {
+      const job = this.get(id);
+      const file = `_jobs/decisions/${id}.json`;
+      const attempt = job.attempts.at(-1);
+      if (
+        job.state !== "draft" ||
+        !attempt ||
+        attempt.state !== "draft" ||
+        job.artifacts?.[file] !== expectedHash ||
+        digest(readFileSync(join(this.root, "wiki", file))) !== expectedHash
+      )
+        throw new Error("缓存判定或任务状态已变化，拒绝重新领取");
+      attempt.state = "failed";
+      attempt.reason = reason;
+      attempt.revalidatedAt = new Date().toISOString();
+      job.state = "failed";
+      return this.save(job);
+    });
+  }
   async claim(id: string, retry = false, pinnedSelection?: ReturnType<typeof selectedModel>) {
     return this.locked(() => {
       const job = this.get(id);
@@ -230,7 +300,10 @@ export class WorkflowStore {
         )
       )
         throw new Error("另一个任务正在处理相同目标");
-      if (job.attempts.length >= job.policy.maxAttempts) throw new Error("已达到尝试次数上限");
+      const accountingOnly = "accountingOnly" in job.policy || isProduction(this.root);
+      const limits = "maxAttempts" in job.policy ? job.policy : undefined;
+      if (!accountingOnly && limits && job.attempts.length >= limits.maxAttempts)
+        throw new Error("已达到尝试次数上限");
       const selection = pinnedSelection ?? selectedModel(this.root);
       const subscription = selection.provider === "codex";
       const charged = job.attempts.reduce(
@@ -238,13 +311,19 @@ export class WorkflowStore {
           sum + (attempt.billing === "chatgpt" ? 0 : (attempt.costUsd ?? attempt.reservedUsd)),
         0,
       );
-      if (!subscription && charged + job.policy.reserveUsd > job.policy.maxCostUsd + 1e-9)
+      if (
+        !accountingOnly &&
+        !subscription &&
+        limits &&
+        charged + limits.reserveUsd > limits.maxCostUsd + 1e-9
+      )
         throw new Error("剩余预算不足；未知费用仍保留预留额度");
       const attempt = {
         token: randomUUID(),
         ownerPid: this.pid,
         startedAt: new Date().toISOString(),
-        reservedUsd: subscription ? 0 : job.policy.reserveUsd,
+        reservedUsd: accountingOnly || subscription ? 0 : limits!.reserveUsd,
+        ...(accountingOnly ? { accountingOnly: true } : {}),
         selection,
         ...(subscription ? { billing: "chatgpt" as const } : {}),
         state: "running" as const,
@@ -252,7 +331,7 @@ export class WorkflowStore {
       job.attempts.push(attempt);
       job.state = "running";
       this.save(job);
-      return attempt;
+      return { ...attempt, budgetUsd: accountingOnly ? undefined : limits?.reserveUsd };
     });
   }
   async finish(
@@ -283,7 +362,7 @@ export class WorkflowStore {
       if (cost !== undefined && Number.isFinite(cost) && cost >= 0) attempt.costUsd = cost;
       let reason = result.ok ? undefined : (result.reason ?? "执行失败");
       if (cost !== undefined && (!Number.isFinite(cost) || cost < 0)) reason = "费用非法，实际消耗待核对";
-      if (cost !== undefined && cost > attempt.reservedUsd)
+      if (!attempt.accountingOnly && cost !== undefined && cost > attempt.reservedUsd)
         reason = ["单次实际消耗超过预留额度，停止发布", reason].filter(Boolean).join("；");
       if (!reason) {
         try {

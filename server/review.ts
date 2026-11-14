@@ -1,7 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
-import { approveReview, listReviews, readReview, rejectReview, reviewDiff } from "../scripts/wiki/review";
 import { parsePage } from "../scripts/wiki/pages";
+import {
+  approveReview,
+  listReviewSummaries,
+  prepareReviewBatch,
+  readReview,
+  rejectReview,
+  reviewDiff,
+} from "../scripts/wiki/review";
 import { buildToc } from "../src/content/wiki/toc";
 
 const revision = z.string().regex(/^[a-f0-9]{64}$/);
@@ -22,13 +29,23 @@ export async function handleReview(
     if (path === "/api/wiki/reviews") {
       if (req.method !== "GET") throw new HttpError(405, "需要 GET");
       send(res, 200, {
-        reviews: listReviews(root).map(({ id, state, reason, payload }) => ({
-          id,
-          state,
-          reason,
-          decision: payload.decision,
-          files: payload.writes.map((w) => w.path),
-        })),
+        reviews: listReviewSummaries(root),
+      });
+      return true;
+    }
+    // The caller names the exact revisions it selected; never include newly arriving drafts.
+    if (path === "/api/wiki/reviews/batch/approve") {
+      if (req.method !== "POST") throw new HttpError(405, "需要 POST");
+      checkWriter(req);
+      const { revisions } = z
+        .object({ revisions: z.array(revision).min(1).max(200) })
+        .strict()
+        .parse(await readJson(req));
+      const batch = await prepareReviewBatch(root, revisions);
+      const result = await approveReview(root, batch.id);
+      send(res, 200, {
+        batch: { id: result.id, state: result.state },
+        reviews: revisions.map((id) => ({ id, state: "published" })),
       });
       return true;
     }

@@ -91,20 +91,28 @@ export async function handleChat(
   const emit = (event: string, data: unknown) => {
     if (!res.destroyed) res.write(sseFrame(event, data));
   };
+  // 读者点「停止」= 浏览器断开连接：立刻中止模型，不再质检、不判缺口，会话随即释放
+  const cancel = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) cancel.abort();
+  });
   try {
     if (req.method !== "POST") throw new HttpError(405, "需要 POST");
     checkWriter(req);
     const input = inputSchema.parse(await readJson(req, 400_000));
     message = input.message;
     const snapshot = await readKnowledgeSnapshot(root);
-    const location = await materializeSnapshot(root, snapshot);
+    cancel.signal.throwIfAborted();
     const selectedModel = readSelectedModel(root);
+    // Codex receives immutable page text and runs in its own empty cwd; only Claude reads files.
+    const location = selectedModel.provider === "claude" ? await materializeSnapshot(root, snapshot) : undefined;
     lease = await beginChat(
       root,
       snapshot.revision,
       input.sessionId,
       `${selectedModel.provider}:${selectedModel.model ?? "default"}`,
     );
+    cancel.signal.throwIfAborted();
     const retrievalQuery =
       selectedModel.provider === "codex"
         ? [message, ...lease.contextQuestions.slice(-2)].join("\n")
@@ -132,12 +140,13 @@ export async function handleChat(
     if (looksLikeError(message)) {
       emit("trace", { status: "searching" });
       try {
-        github = await (deps.traceChat ?? traceChat)(root, message);
+        github = await (deps.traceChat ?? traceChat)(root, message, { signal: cancel.signal });
       } catch (error) {
         github = { status: "failed", reason: error instanceof Error ? error.message : String(error) };
       }
       emit("trace", publicTrace(github));
     }
+    cancel.signal.throwIfAborted();
     const evidencePages =
       selectedModel.provider === "codex"
         ? codexEvidencePages(
@@ -163,6 +172,9 @@ export async function handleChat(
         message,
         ...(lease.agentSessionId ? { sessionId: lease.agentSessionId } : {}),
         previousQuestions: lease.previousQuestions,
+        ...(!lease.agentSessionId
+          ? { previousTurns: lease.contextTurns, historyOmitted: lease.historyOmitted }
+          : {}),
         hits,
         graph,
         citationGuide: context.citationGuide,
@@ -170,7 +182,7 @@ export async function handleChat(
       },
       snapshot.handbook,
       {
-        wikiRoot: location,
+        wikiRoot: location ?? join(root, "wiki"),
         revision: snapshot.revision,
         timeoutMs: CHAT_TIMEOUT_MS,
         ...selectedModel,
@@ -179,7 +191,7 @@ export async function handleChat(
     );
     const execute: typeof runChat =
       deps.runChat ?? ((req, on) => withBudget(root, "chat", req, (bounded) => runChat(bounded, on)));
-    outcome = await execute(request, {
+    outcome = await execute({ ...request, signal: cancel.signal }, {
       text: (text) => {
         answer += text;
         emit("text", { text });
@@ -200,7 +212,8 @@ export async function handleChat(
         switched: modelSwitched(outcome.models),
         switches: outcome.models.switches,
       });
-    verifySnapshot(root, location, snapshot);
+    if (cancel.signal.aborted) outcome = { ...outcome, ok: false, reason: "已取消" };
+    if (location) verifySnapshot(root, location, snapshot);
     if (outcome.ok && !answer.trim()) outcome = { ok: false, reason: "问答没有返回正文" };
     if (outcome.ok) citations = checkAnswerCitations(answer, evidencePages);
     if (outcome.ok && citations.cited) emit("related", { pages: relatedReading(answer, snapshot) });
@@ -208,7 +221,7 @@ export async function handleChat(
     if (outcome.ok && chatOnline({}) && webTools.length === 0 && claimsOffline(answer))
       emit("notice", {
         kind: "offline-claim",
-        message: "服务端本轮已提供联网工具，模型没有用就说无法联网；这条回答没有经过联网核对。",
+        message: "服务端本轮已启用联网工具，但未记录到联网调用。回答中“工具不可用”的说法尚未核实，外部结论尚未完成联网核对。",
       });
     if (!outcome.ok) emit("error", { message: outcome.reason ?? "agent 失败" });
     if (outcome.ok && !res.destroyed) {
@@ -219,14 +232,17 @@ export async function handleChat(
           question: message,
           observationId: lease.token,
           contextQuestions: lease.contextQuestions,
+          contextTurns: lease.contextTurns,
           answer,
           snapshot,
           evidencePages,
           selection: selectedModel,
+          signal: cancel.signal,
         });
       } catch (error) {
         quality = { status: "unavailable", reason: String(error) };
       }
+      cancel.signal.throwIfAborted();
       emit("quality", quality);
       if (!res.destroyed && !(quality.status === "checked" && quality.decision.satisfied === false))
         answerId = await captureAnswer(root, message, answer, evidencePages, outcome.models);
@@ -246,11 +262,15 @@ export async function handleChat(
         });
         signals.splice(21);
       }
-      if (signals.length) {
+      if (signals.length && !cancel.signal.aborted) {
         try {
           // 说法不同的同一问要归进已有缺口；判定失败（预算暂停、模型出错）就照旧新建一条，不丢这次记录
           const question = { question: message, contextQuestions: lease.contextQuestions };
-          const sameAs = await (deps.judgeGap ?? judgeGapIdentity)(root, question).catch(() => undefined);
+          const sameAs = await (deps.judgeGap ?? judgeGapIdentity)(root, {
+            ...question,
+            signal: cancel.signal,
+          }).catch(() => undefined);
+          cancel.signal.throwIfAborted();
           const gap = await recordGapObservation(
             root,
             {
@@ -279,7 +299,7 @@ export async function handleChat(
   } finally {
     if (lease) {
       try {
-        await finishChat(root, lease, message, { ...outcome, ok: outcome.ok && !res.destroyed });
+        await finishChat(root, lease, message, { ...outcome, answer, ok: outcome.ok && !res.destroyed });
       } catch (error) {
         answerId = undefined;
         emit("error", { message: String(error) });

@@ -7,12 +7,13 @@ import { readKnowledgeSnapshot } from "../../server/snapshot";
 import type { RunAgent } from "./batch";
 import { initBudget } from "./budget";
 import { recordGapObservation } from "./gap-ledger";
-import { listTasks, readTask } from "./queue";
+import { enqueueTask, listTasks, readTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { acceptRetest, prepareRetest, runRetest } from "./retest";
 import { approveReview, rejectReview } from "./review";
 import { wikiFixture } from "./test-fixture";
 import { boundSource, workerDue, workOne } from "./worker";
+import { digest } from "./workflow";
 
 vi.mock("../../server/answer-quality", () => ({
   judgeAnswer: vi.fn(async (_root, input) => ({
@@ -30,6 +31,44 @@ vi.mock("../../server/answer-quality", () => ({
 }));
 
 const policy = { maxAttempts: 1, maxCostUsd: 1, reserveUsd: 1 };
+it("scopes generated-section preservation to integration rather than raw compilation", async () => {
+  const f = wikiFixture();
+  try {
+    f.write("wiki/HANDBOOK.md", readFileSync(new URL("../../wiki/HANDBOOK.md", import.meta.url), "utf8"));
+    const original =
+      "---\nid: a\ntitle: A\ntype: source\nsummary: A\nsources: [https://docs.vllm.ai/en/latest/]\nevidence: S\nupdated: '2026-09-15'\n---\n## 内容\n旧事实。[S1]\n## 参数定义（自动生成）\n旧定义。[S1]\n";
+    f.write("wiki/sources/a.md", original);
+    const raw = saveRawSnapshot(join(f.root, "wiki"), "新材料\n");
+    const task = await enqueueTask(f.root, {
+      kind: "rewrite",
+      pageId: "a",
+      revision: digest(original),
+      source: `raw:${raw.slice(4)}#L1`,
+      reason: "content-drift",
+    });
+    let why = "";
+    await expect(
+      workOne(
+        f.root,
+        task.id,
+        { accountingOnly: true },
+        {},
+        {
+          runAgent: async (req) => {
+            why = JSON.parse(req.stdin).context.why;
+            return { id: req.id, ok: false, exitCode: 1, stderrTail: "", reason: "capture only" };
+          },
+        },
+      ),
+    ).rejects.toThrow("capture only");
+    expect(why).toContain("自动生成区由最终整合阶段逐字保留");
+    expect(why).toContain("中间草稿不复制旧自动生成区或旧出处编号");
+    expect(why).toContain(original);
+    expect(readFileSync(join(f.root, "wiki/sources/a.md"), "utf8")).toBe(original);
+  } finally {
+    f.cleanup();
+  }
+});
 async function setup(question: string) {
   const f = wikiFixture();
   f.write("wiki/HANDBOOK.md", readFileSync(new URL("../../wiki/HANDBOOK.md", import.meta.url), "utf8"));

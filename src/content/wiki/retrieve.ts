@@ -164,7 +164,7 @@ export function buildIndex(pages: PageIndex[]): Index {
  * 非字母数字切（下划线也切开，`hccl_buffer_size` 与「hccl buffer size」得到同一组词）；
  * 中文按二元切分（"块表是干嘛的" → 块表 / 表是 / …）。索引与查询用同一把刀。
  */
-function terms(text: string): string[] {
+export function terms(text: string): string[] {
   const raw = text
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .toLowerCase()
@@ -235,11 +235,12 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   if (hit) scored.set(hit.id, { page: hit, score: 1000, how: "exact" });
 
   // A named topic inside a question is still a title hit. Long alias lists must not
-  // dilute short, exact names (MLP, TP) beneath pages mentioning generic context.
+  // dilute exact names beneath generic context. Chinese phrases need at least
+  // four characters here; shorter words remain ordinary BM25 terms.
   if (!hit) {
     const named = new Map<string, PageIndex>();
     for (const [name, page] of index.exact) {
-      if (!/^[a-z0-9][a-z0-9_./ -]+$/.test(name)) continue;
+      if (!/^[a-z0-9][a-z0-9_./ -]+$/.test(name) && !/^[一-鿿]{4,}$/.test(name)) continue;
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       if (new RegExp(`(?<![a-z0-9_])${escaped}(?![a-z0-9_])`).test(q)) named.set(page.id, page);
     }
@@ -316,7 +317,7 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
   const primary = [...corpus, ...direct.map(toHit)].slice(0, limit);
   if (!opts.expand || direct.length === 0) return primary;
 
-  // 一跳扩展：按牵出它的那页的分数排序，且排在全部直接命中之后
+  // 一跳内按邻居自身与问题的匹配排序，避免第一条命中的字母序邻居占满额度。
   const seen = new Set(direct.map((d) => d.page.id));
   const expanded: Hit[] = [];
   for (const d of direct) {
@@ -325,9 +326,13 @@ export function retrieve(query: string, index: Index, opts: RetrieveOptions = {}
       const page = index.byId.get(rid);
       if (!page) continue;
       seen.add(rid);
-      expanded.push({ ...toHit({ page, score: d.score / 2, how: "related" }), via: d.page.id });
+      expanded.push({
+        ...toHit({ page, score: scored.get(rid)?.score ?? 0, how: "related" }),
+        via: d.page.id,
+      });
     }
   }
+  expanded.sort((a, b) => b.score - a.score);
   return [...primary, ...expanded.slice(0, Math.max(0, opts.expansionLimit ?? limit))];
 }
 

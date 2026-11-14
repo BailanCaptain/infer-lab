@@ -8,6 +8,7 @@ import type { judgeGapIdentity } from "../scripts/wiki/gap-identity";
 import { listGaps } from "../scripts/wiki/gap-ledger";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import type { judgeAnswer } from "./answer-quality";
+import { judgeAnswer as reviewAnswer } from "./answer-quality";
 import type { runChat } from "./chat";
 import { handleChat } from "./chat-route";
 import { CODEX_EVIDENCE_LIMIT } from "./codex-chat";
@@ -165,6 +166,65 @@ it("does not validate or save a Codex citation to a page omitted from its eviden
   const response = await (await f.request({ message: "A 的默认值？" })).text();
   expect(frame(response, "cite").cited).toBe(false);
   expect(frame(response, "done").answerId).toBeUndefined();
+});
+
+it("keeps the prior assistant's checks available to a Codex follow-up and its independent review", async () => {
+  const firstQuestion = "A 的现场性能怎么排查？";
+  const firstAnswer = "第一步对齐请求。第二步核对 check-anchor-1101 对应的提交与完成记录。见 [A](sources/a.md)。";
+  const prompts: string[] = [];
+  const reviews: unknown[] = [];
+  const f = await setup(
+    async (req, on) => {
+      prompts.push(req.stdin ?? "");
+      on.text(prompts.length === 1 ? firstAnswer : "这些记录已齐，继续依据 [A](sources/a.md) 判读。");
+      return { ok: true };
+    },
+    {
+      judgeAnswer: async (_root, input) => {
+        reviews.push(input);
+        return {
+          status: "checked",
+          jobId: "d".repeat(64),
+          revision: input.snapshot.revision,
+          decision: {
+            satisfied: true,
+            classification: "covered",
+            reason: "fixture judgment; this test checks context transport, not answer quality",
+            answerQuote: "",
+            evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+          },
+        };
+      },
+    },
+  );
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
+  const first = await (await f.request({ message: firstQuestion })).text();
+  const sessionId = frame(first, "done").sessionId;
+  const second = await (await f.request({ message: "你刚才第二步的记录齐了，接下来怎么判断？", sessionId })).text();
+  expect(frame(second, "error")).toBeUndefined();
+  expect(frame(second, "done").sessionId).toBe(sessionId);
+  expect(prompts).toHaveLength(2);
+  expect.soft(prompts[1]).toContain(JSON.stringify(firstAnswer));
+  expect.soft(reviews[1]).toMatchObject({ contextTurns: [{ question: firstQuestion, answer: firstAnswer }] });
+});
+
+it.each([false, true])("Codex uses pinned injected evidence without an unused filesystem snapshot (live edit: %s)", async (edited) => {
+  const f = await setup(async (req, on) => {
+    expect(req.provider).toBe("codex");
+    expect(req.stdin).toContain("默认值为 1");
+    expect(existsSync(join(f.root, "tools/wiki-runtime/knowledge"))).toBe(false);
+    // Live edits after request construction must not replace this answer's evidence.
+    if (edited) f.write("wiki/sources/a.md", original.replaceAll("默认值为 1", "默认值为 2"));
+    on.text("默认值为 1，见 [A](sources/a.md)。");
+    return { ok: true };
+  });
+  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex" }));
+  const body = await (await f.request({ message: "A 默认值？" })).text();
+  expect(frame(body, "error")).toBeUndefined();
+  expect(frame(body, "cite").cited).toBe(true);
+  // A changed live page still prevents saving the old revision, as on the Claude path.
+  if (edited) expect(frame(body, "done").answerId).toBeUndefined();
+  else expect(frame(body, "done").answerId).toEqual(expect.any(String));
 });
 
 it("贴报错时把 GitHub 在线候选推给界面、交给问答模型；普通提问不去查（F003 AC4 聊天层接入）", async () => {
@@ -403,16 +463,20 @@ it("a modified execution snapshot fails the turn and does not offer save", async
   expect(frame(response, "done").answerId).toBeUndefined();
 });
 
-it("tells the reader the turn was online, and flags an answer that claims it had no web tools without using any", async () => {
+it.each([
+  "本轮没有联网工具，只能读快照；知识库里还没有这一条。",
+  "本轮联网核查工具也不可用，因此退出原因尚未核实。",
+])("flags an unverified offline claim without asserting why no web call was recorded: %s", async (answer) => {
   // 2026-09-23 实测：服务端每轮都给了 WebFetch / WebSearch，模型却有几轮说「本轮没有联网工具」。用户得知道。
   const f = await setup(async (_req, on) => {
-    on.text("本轮没有联网工具，只能读快照；知识库里还没有这一条。");
+    on.text(answer);
     return { ok: true, sessionId: randomUUID() };
   });
   const response = await (await f.request({ message: "HCCL 缓冲区怎么定？" })).text();
   expect(frame(response, "knowledge")).toMatchObject({ online: true });
   expect(frame(response, "notice")).toMatchObject({ kind: "offline-claim" });
-  expect(frame(response, "notice").message).toContain("已提供联网工具");
+  expect(frame(response, "notice").message).toContain("未记录到联网调用");
+  expect(frame(response, "notice").message).toContain("说法尚未核实");
   const used = await setup(async (_req, on) => {
     on.tool?.("WebFetch", "https://docs.vllm.ai/");
     on.text("本轮没有联网工具？不，我查到了：默认值为 1，见 [A](sources/a.md)。");
@@ -525,4 +589,132 @@ it("说法不同的缺口按判定归进已有那条；判定失败照旧新建�
   const third = await (await f.request({ message: "KV_CACHE_DTYPE 默认是什么？" })).text();
   expect(frame(third, "gap")).toMatchObject({ count: 1 });
   expect(listGaps(f.root)).toHaveLength(2);
+});
+
+it("客户端断开（点停止）时中止模型调用、跳过质检与缺口判定，并立即释放会话", async () => {
+  let calls = 0;
+  let judged = 0;
+  let gapJudged = 0;
+  let signal: AbortSignal | undefined;
+  let started!: () => void;
+  const running = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  let modelDone: Promise<void> = Promise.resolve();
+  const f = await setup(
+    async (req, on) => {
+      calls++;
+      if (calls > 1) {
+        on.text("第二问的回答。");
+        return { ok: true, sessionId: randomUUID() };
+      }
+      signal = req.signal;
+      on.text("知识库里还没有这一条，答到一半");
+      let finish!: () => void;
+      modelDone = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      started();
+      // 模拟仍在生成的模型：只有中止信号能让它提前结束
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 1500);
+        req.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+      finish();
+      return { ok: true, sessionId: randomUUID() };
+    },
+    {
+      judgeAnswer: async (_root, input) => {
+        if (input.question === "A？") judged++;
+        throw new Error("fixture judge unavailable");
+      },
+      judgeGap: async (_root, input) => {
+        if (input.question === "A？") gapJudged++;
+        return undefined;
+      },
+    },
+  );
+  const controller = new AbortController();
+  const response = await fetch(f.url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-wiki-review": "1" },
+    body: JSON.stringify({ message: "A？" }),
+    signal: controller.signal,
+  });
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let seen = "";
+  while (!frame(seen, "knowledge")) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    seen += decoder.decode(value, { stream: true });
+  }
+  const sessionId: string = frame(seen, "knowledge").sessionId;
+  await running;
+  controller.abort();
+  const session = join(f.root, "wiki/_jobs/chat-sessions", `${sessionId}.json`);
+  const deadline = Date.now() + 500;
+  while (Date.now() < deadline && JSON.parse(readFileSync(session, "utf8")).active)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  try {
+    expect(signal?.aborted).toBe(true);
+    expect(JSON.parse(readFileSync(session, "utf8")).active).toBeUndefined();
+    const again = await f.request({ message: "再问一次", sessionId });
+    expect(again.status).toBe(200);
+    await again.text();
+  } finally {
+    await modelDone;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  expect(judged).toBe(0);
+  expect(gapJudged).toBe(0);
+  expect(listGaps(f.root).flatMap((gap) => gap.occurrences.map((o) => o.question))).not.toContain("A？");
+});
+
+it("停止独立核对会中止其模型并释放会话，不保存迟到的评判或缺口", async () => {
+  let started!: () => void;
+  const checking = new Promise<void>((resolve) => { started = resolve; });
+  let signal: AbortSignal | undefined;
+  let gapCalls = 0;
+  const f = await setup(async (_req, on) => {
+    on.text("默认值为 2，见 [A](sources/a.md)。");
+    return { ok: true, sessionId: randomUUID() };
+  }, {
+    judgeAnswer: (root, input) => reviewAnswer(root, input, {
+      runAgent: async (req) => {
+        signal = req.signal;
+        started();
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, 1500);
+          req.signal?.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+        });
+        return { id: req.id, ok: true, exitCode: 0, costUsd: 0, stderrTail: "", output: JSON.stringify({
+          satisfied: false, classification: "answer-error", reason: "数字不符", answerQuote: "默认值为 2",
+          evidence: [{ pageId: "a", quote: "默认值为 1。" }],
+        }) };
+      },
+    }),
+    judgeGap: async () => { gapCalls++; return undefined; },
+  });
+  const controller = new AbortController();
+  const response = await fetch(f.url, { method: "POST", headers: { "content-type": "application/json", "x-wiki-review": "1" }, body: JSON.stringify({ message: "A 的默认值？" }), signal: controller.signal });
+  const reader = response.body!.getReader();
+  let seen = "";
+  while (!frame(seen, "knowledge")) seen += new TextDecoder().decode((await reader.read()).value);
+  const sessionId: string = frame(seen, "knowledge").sessionId;
+  await checking;
+  controller.abort();
+  const session = join(f.root, "wiki/_jobs/chat-sessions", `${sessionId}.json`);
+  try {
+    await expect.poll(() => JSON.parse(readFileSync(session, "utf8")).active, { timeout: 750 }).toBeUndefined();
+    expect(signal?.aborted).toBe(true);
+    expect(gapCalls).toBe(0);
+    expect(listGaps(f.root)).toEqual([]);
+  } finally {
+    // Keep the fixture alive until the red run's uncancelled model completes.
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+  }
 });

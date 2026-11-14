@@ -1,10 +1,10 @@
 import { parseArgs } from "node:util";
 import { readCorpus } from "./wiki/corpus";
 import { enqueueTask } from "./wiki/queue";
+import { configuredWorkflowPolicy } from "./wiki/sync-config";
 import { syncGithub } from "./wiki/sync-github";
 import { workOne } from "./wiki/worker";
 import { digest } from "./wiki/workflow";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 export async function prIngestCli(args: string[]) {
   const { values } = parseArgs({
@@ -34,7 +34,7 @@ export async function prIngestCli(args: string[]) {
     );
     return;
   }
-  const policy = workflowPolicySchema.parse({
+  const policy = configuredWorkflowPolicy(process.cwd(), {
     maxCostUsd: Number(values["job-budget-usd"]),
     reserveUsd: Number(values["attempt-budget-usd"]),
     maxAttempts: Number(values["max-attempts"]),

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runStagedIntegration } from "../scripts/wiki/integration-run";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
-import { type Review, readReview } from "../scripts/wiki/review";
+import { type Review, createReview, readReview } from "../scripts/wiki/review";
 import { wikiContents } from "../scripts/wiki/review-files";
 import { wikiFixture } from "../scripts/wiki/test-fixture";
 import { handleReview } from "./review";
@@ -83,7 +83,22 @@ async function setup() {
 }
 
 describe("review HTTP API", () => {
-  it("shows the final diff and publishes the same revision with old and new conclusions", async () => {
+  it("batch approval publishes only explicitly selected revisions and keeps same-origin protection", async () => {
+    const f = await setup();
+    const before = wikiContents(f.root);
+    const after = new Map(before);
+    after.set("wiki/sources/b.md",before.get("wiki/sources/a.md")!.replace("id: a","id: b").replace("title: A","title: B"));
+    const later = await createReview(f.root,before,after,{promoted:["b"],merged:[],rejected:[],contradictions:[]});
+    const request = (body: unknown, origin=f.base) => fetch(`${f.base}/api/wiki/reviews/batch/approve`, {
+      method:"POST", headers:{"content-type":"application/json","x-wiki-review":"1",origin},body:JSON.stringify(body),
+    });
+    expect((await request({revisions:[f.id]},"https://evil.example")).status).toBe(403);
+    expect((await request({revisions:[f.id],all:true})).status).toBe(400);
+    expect((await request({revisions:[f.id]})).status).toBe(200);
+    expect(readReview(f.root,f.id).state).toBe("published");
+    expect(readReview(f.root,later.id).state).toBe("pending");
+  });
+  it("keeps superseded claims in the review and publishes only the current explanation", async () => {
     const f = await setup();
     const before = wikiContents(f.root);
     const list = await fetch(`${f.base}/api/wiki/reviews`);
@@ -91,12 +106,21 @@ describe("review HTTP API", () => {
     expect(await list.json()).toMatchObject({ reviews: [{ id: f.id }] });
     const detail = await fetch(f.url);
     const shown = (await detail.json()) as { diff: string; review: Review };
-    expect(shown.diff).toContain("已废弃的说法");
-    expect(shown.review.payload.decision.revisions?.[0]?.kind).toBe("supersede");
+    expect(shown.diff).toContain("X 默认开启。");
+    expect(shown.diff).toContain("X 已被移除。");
+    expect(shown.diff).not.toContain("已废弃的说法");
+    const revision = shown.review.payload.decision.revisions?.[0];
+    expect(revision?.kind).toBe("supersede");
+    if (revision?.kind !== "supersede") throw new Error("Expected a supersede revision");
+    expect(revision.claims[0]).toMatchObject({
+      old: "X 默认开启。",
+      replacement: "X 已被移除。",
+    });
     expect(wikiContents(f.root)).toEqual(before);
     expect((await f.post("approve", { revision: f.id })).status).toBe(200);
     const page = readFileSync(join(f.root, "wiki/sources/a.md"), "utf8");
-    expect(page).toContain("X 默认开启。");
+    expect(page).not.toContain("X 默认开启。");
+    expect(page).not.toContain("已废弃的说法");
     expect(page).toContain("X 已被移除。");
     expect(page).toContain("2026-09-15");
     expect(readReview(f.root, f.id).state).toBe("published");

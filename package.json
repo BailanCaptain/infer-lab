@@ -99,9 +99,12 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "remark-mdx-frontmatter": "^5.2.0",
+    "remark-parse": "11.0.0",
+    "remark-rehype": "11.1.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "~5.9.0",
+    "unified": "11.0.5",
     "vite": "^8.2.2",
     "vitest": "^5.0.0",
     "yaml": "^2.9.0"

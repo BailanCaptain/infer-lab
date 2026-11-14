@@ -88,6 +88,37 @@ export function withRawSources(
   });
 }
 
+/** Drafts live in _drafts/, not beside their eventual sibling pages. */
+export function bindDraftPageLinks(text: string, pages: { id: string; file: string }[]): string {
+  const destinations = new Map(pages.map((p) => [`${p.id}.md`, `../${p.file}`]));
+  const parsed = matter(text);
+  let fence = "";
+  const inline = /(`+).*?\1|\](\(\s*<?)(?:\.\/)?([a-z0-9-]+\.md)(?=[#)>\s])/g;
+  const definition = /^(\s*\[[^\]]+\]:\s*<?)(?:\.\/)?([a-z0-9-]+\.md)(?=[#>\s]|$)/;
+  const body = parsed.content
+    .split(/(?<=\n)/)
+    .map((line) => {
+      const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+      if (fence) {
+        if (marker?.[0] === fence[0] && marker.length >= fence.length) fence = "";
+        return line;
+      }
+      if (marker) {
+        fence = marker;
+        return line;
+      }
+      return line
+        .replace(inline, (match, code: string | undefined, opening: string, file: string) =>
+          code || !destinations.has(file) ? match : `]${opening}${destinations.get(file)}`,
+        )
+        .replace(definition, (match, opening: string, file: string) =>
+          destinations.has(file) ? `${opening}${destinations.get(file)}` : match,
+        );
+    })
+    .join("");
+  return matter.stringify(body, parsed.data);
+}
+
 /** Rewrite actual links to the staging excerpt; preserve fenced and inline code examples. */
 export function bindRawSnapshot(text: string, content: string, id: string): { path: string; text: string } {
   if (!ID_RE.test(id)) throw new Error("非法页面 id");

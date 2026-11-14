@@ -62,9 +62,13 @@ it("multi-ref evidence reports an explicitly optional missing path without inven
 it("all restricted work uses the saved selection and subscription accounting, without Claude fallback", async () => {
   const f = wikiFixture();
   fixtures.push(f);
-  f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6-astra" }));
+  f.write(
+    "wiki/sync.config.local.json",
+    JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6-astra", codexCli: process.execPath }),
+  );
   await initBudget(f.root, { limitUsd: 1, priorChargedUsd: 0, reserveUsd: 0.5, maxCalls: 10 });
   mocks.codex.mockImplementation(async (req, on) => {
+    expect(req.codexCli).toBe(process.execPath);
     expect(req.args).toContain("gpt-6-astra");
     expect(req.args).toContain('web_search="disabled"');
     expect(req.args).not.toContain("--max-budget-usd");

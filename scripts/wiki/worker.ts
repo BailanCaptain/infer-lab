@@ -15,7 +15,7 @@ import { prMaterial } from "./pr-material";
 import { type QueueTask, readTask, runTask } from "./queue";
 import { saveRawSnapshot } from "./raw";
 import { hasRetestPlan, runRetest } from "./retest";
-import { readReview } from "./review";
+import { isEmptyReview, readReview } from "./review";
 import { localFile } from "./review-files";
 import { selectedAgent } from "./selected-agent";
 import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
@@ -28,6 +28,13 @@ import type { WorkflowPolicy } from "./workflow-policy";
  */
 export function workerDue(root: string, task: QueueTask): boolean {
   if (task.state === "queued") return true;
+  if (task.state === "running" && task.lease) {
+    try {
+      process.kill(task.lease.pid, 0);
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === "ESRCH";
+    }
+  }
   if (task.state !== "needs-review" || typeof task.result?.reviewId !== "string") return false;
   const review = readReview(root, task.result.reviewId);
   return (
@@ -79,6 +86,8 @@ export async function workOne(
       if (typeof task.result?.reviewId === "string") {
         const review = readReview(root, task.result.reviewId);
         if (review.state === "rejected") {
+          if (task.input.kind === "rewrite" && isEmptyReview(review))
+            return { state: "closed", result: { ...task.result, closureBasis: "no-publishable-change" } };
           // 已按这次驳回重编过、结果仍是这份被驳回的审阅：停下等人，不再自动收费
           if (task.result.recompiledAfter === review.id)
             return { state: "needs-review", result: task.result };
@@ -103,7 +112,6 @@ export async function workOne(
       let id: string;
       let source: string;
       let why: string;
-      const rules = loadHandbook(join(root, "wiki")).pageFormat;
       if (task.input.kind === "gap") {
         const assessed = await assessGap(root, task.input.key, policy, {
           runAgent: deps.runAgent,
@@ -240,12 +248,23 @@ export async function workOne(
         const snapshot = await readKnowledgeSnapshot(root);
         const page = snapshot.registry.pages.find((p) => p.id === input.pageId);
         if (!page || digest(readFileSync(localFile(root, `wiki/${page.file}`), "utf8")) !== input.revision)
-          throw new Error("待重写页面已变化，需重新检测");
+          return {
+            state: "closed",
+            result: {
+              closureBasis: "superseded-revision",
+              reason: "待重写版本已变化；本次不修改新版本，后续检测按当前正文另建任务",
+            },
+          };
         id = input.pageId;
         source = input.source;
-        why = `重新核对现有页面，保护自动生成区；内容差异分数不能当作旧结论错误的证据。原文：\n${snapshot.pageTexts.find((p) => p.file === page.file)!.text}`;
+        why = `重新核对现有页面；自动生成区由最终整合阶段逐字保留，中间草稿不复制旧自动生成区或旧出处编号，只据本次材料提取。旧正文仅供对照，内容差异分数不能当作旧结论错误的证据。原文：\n${snapshot.pageTexts.find((p) => p.file === page.file)!.text}`;
       }
       const before = await readKnowledgeSnapshot(root);
+      const rules = loadHandbook(
+        join(root, "wiki"),
+        `${id}\n${why}`,
+        task.input.kind === "rewrite",
+      ).pageFormat;
       const result = await compileRaw(
         store,
         {
@@ -270,6 +289,22 @@ export async function workOne(
         runAgent: deps.runAgent,
         retry: options.retry,
       });
+      if (
+        task.input.kind === "rewrite" &&
+        review.state === "rejected" &&
+        isEmptyReview(readReview(root, review.reviewId))
+      )
+        return {
+          state: "closed",
+          result: {
+            draftId: id,
+            compileJob: result.jobId,
+            reviewId: review.reviewId,
+            closureBasis: "no-publishable-change",
+            beforeRevision: before.revision,
+            compilationStarted: true,
+          },
+        };
       return {
         state: "needs-review",
         result: {

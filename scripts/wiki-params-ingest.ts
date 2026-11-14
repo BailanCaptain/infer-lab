@@ -11,7 +11,7 @@ import { ingestParam } from "./wiki/params/ingest";
 import { paramId } from "./wiki/params/pages";
 import { scanRepo } from "./wiki/params/scan";
 import { parameterKey, withoutLocations } from "./wiki/params/sync";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
+import { configuredWorkflowPolicy } from "./wiki/sync-config";
 
 export async function paramIngestCli(args: string[]) {
   const { values } = parseArgs({
@@ -61,7 +61,7 @@ export async function paramIngestCli(args: string[]) {
     return;
   }
   if (skippedReferences.length) console.log(JSON.stringify({ skippedReferences }));
-  const policy = workflowPolicySchema.parse({
+  const policy = configuredWorkflowPolicy(process.cwd(), {
     maxCostUsd: Number(values["job-budget-usd"]),
     reserveUsd: Number(values["attempt-budget-usd"]),
     maxAttempts: Number(values["max-attempts"]),

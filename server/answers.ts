@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { z } from "zod";
 import type { RunAgent } from "../scripts/wiki/batch";
-import { selectedModel } from "../scripts/wiki/sync-config";
+import { isProduction, selectedModel } from "../scripts/wiki/sync-config";
 import { selectedAgent } from "../scripts/wiki/selected-agent";
 import { compileRaw, planRawCompile } from "../scripts/wiki/compile-raw";
 import { loadHandbook } from "../scripts/wiki/handbook";
@@ -80,7 +80,8 @@ export async function saveAnswer(
   deps: { runAgent?: RunAgent } = {},
 ) {
   const checked = saveAnswerInput.parse(input);
-  if (selectedModel(root).provider === "claude" && checked.budgetUsd === undefined)
+  const production = isProduction(root);
+  if (!production && selectedModel(root).provider === "claude" && checked.budgetUsd === undefined)
     throw new Error("Claude 编译需要本次美元预算");
   const receipt = receiptSchema.parse(JSON.parse(readFileSync(localFile(root, recordPath(id)), "utf8")));
   if (digest(JSON.stringify(receipt)) !== id) throw new Error("回答记录已改变，不能保存");
@@ -92,7 +93,7 @@ export async function saveAnswer(
     const path = localFile(root, mappingPath(id));
     if (existsSync(path)) {
       const old = mappingSchema.parse(JSON.parse(readFileSync(path, "utf8")));
-      if (checked.budgetUsd !== undefined && old.budgetUsd !== checked.budgetUsd) throw new Error("已有保存任务的预算不能更改或重置");
+      if (!production && checked.budgetUsd !== undefined && old.budgetUsd !== checked.budgetUsd) throw new Error("已有保存任务的预算不能更改或重置");
       return old;
     }
     const bundle = json({

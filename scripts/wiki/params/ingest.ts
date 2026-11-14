@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
 import { z } from "zod";
+import { EVIDENCE_MARK_RE } from "../../../src/content/wiki/evidenceMarks";
 import type { ParamEntry } from "../../../src/content/wiki/schema";
 import type { RunAgent } from "../batch";
 import { generatedSection, lineageSection, replaceSection } from "../lineage";
@@ -26,7 +27,10 @@ export async function ingestParam(
   const id = parameterPageId(root, input.repo, input.entry, existing);
   if (!id) return { id, skipped: true as const, reason: "引用身份不单独补写" };
   const path = localFile(root, `wiki/params/${id}.md`);
-  const previous = existsSync(path) ? readFileSync(path, "utf8") : undefined;
+  const draftPath = localFile(root, `wiki/_drafts/${id}.md`);
+  const priorPublished = existsSync(path) ? readFileSync(path, "utf8") : undefined;
+  const priorDraft = existsSync(draftPath) ? readFileSync(draftPath, "utf8") : undefined;
+  const previous = priorPublished ?? priorDraft;
   const skeleton = buildParamPage(
     { ...input, pageId: id, date: new Date().toISOString().slice(0, 10) },
     previous,
@@ -87,8 +91,17 @@ export async function ingestParam(
   )
     throw new Error("正文补写改变了生成区");
   const raw = saveRawSnapshot(join(root, "wiki"), input.source);
+  const metadata = matter(skeleton).data;
+  const summary = generatedSection(body, "## 一句话")
+    ?.slice("## 一句话".length)
+    .trim()
+    .split(/\r?\n/)[0]
+    ?.replace(EVIDENCE_MARK_RE, "")
+    .replace(/`/g, "")
+    .slice(0, 200);
   const text = matter.stringify(body, {
-    ...matter(skeleton).data,
+    ...metadata,
+    ...(String(metadata.summary).endsWith("的静态定义，正文待补。") && summary ? { summary } : {}),
     rawSources: [...new Set([...(matter(skeleton).data.rawSources ?? []), raw])],
   });
   const store = new WorkflowStore(root);
@@ -107,9 +120,6 @@ export async function ingestParam(
   }
   const attempt = await store.claim(job.id, deps.retry);
   const draft = `_drafts/${id}.md`;
-  const priorDraft = existsSync(localFile(root, `wiki/${draft}`))
-    ? readFileSync(localFile(root, `wiki/${draft}`), "utf8")
-    : undefined;
   const finished = await store.finish(
     job.id,
     attempt.token,
@@ -119,7 +129,7 @@ export async function ingestParam(
       const currentDraft = existsSync(localFile(root, `wiki/${draft}`))
         ? readFileSync(localFile(root, `wiki/${draft}`), "utf8")
         : undefined;
-      if (current !== previous || currentDraft !== priorDraft)
+      if (current !== priorPublished || currentDraft !== priorDraft)
         throw new Error("参数页或草稿已变化，拒绝覆盖");
       mkdirSync(localFile(root, "wiki/_drafts"), { recursive: true });
       atomicText(localFile(root, `wiki/${draft}`), text);

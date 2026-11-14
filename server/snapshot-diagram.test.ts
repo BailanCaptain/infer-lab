@@ -6,7 +6,7 @@ import { runBuild } from "../scripts/wiki/build";
 import { diagramSpecSchema, renderDiagram } from "../scripts/wiki/diagrams";
 import { saveRawSnapshot } from "../scripts/wiki/raw";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
-import { readKnowledgeSnapshot } from "./snapshot";
+import { readKnowledgeSnapshot, readReaderSnapshot } from "./snapshot";
 
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 afterEach(() => {
@@ -73,5 +73,13 @@ it("正文引用了不存在的图就不给出快照，而不是静静少一张�
 it("spec 不合法就不给出快照", async () => {
   const f = fixtureWithDiagram();
   writeFileSync(join(f.root, "wiki/diagrams/demo.yaml"), "id: demo\ncaption: 演示\nsize: [1, 1]\n");
+  await expect(readKnowledgeSnapshot(f.root)).rejects.toThrow("图 spec 不合法");
+});
+
+it("读者缓存不能让问答绕过未引用坏图的严格检查", async () => {
+  const f = fixtureWithDiagram();
+  await readReaderSnapshot(f.root);
+  f.write("wiki/diagrams/bad.yaml", "id: bad\ncaption: 未写完\n");
+  expect((await readReaderSnapshot(f.root)).registry.pages).toHaveLength(1);
   await expect(readKnowledgeSnapshot(f.root)).rejects.toThrow("图 spec 不合法");
 });

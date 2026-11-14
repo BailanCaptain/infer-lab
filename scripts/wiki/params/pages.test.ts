@@ -29,3 +29,15 @@ it("refreshes generated facts while preserving authored explanation and distingu
   expect(paramId({ ...row!, json_path: 'additional_config["nested"]["limit"]' })).not.toBe(paramId(row!));
   expect(() => buildParamPage({ ...input, entry: { ...row!, confidence: "suspect" } })).toThrow(/复核/);
 });
+
+it("shows an unconfirmed field identity without inventing a writable configuration path", () => {
+  const [row] = scanSources({ "vllm_ascend/config.py": "class KVPPConfig:\n    size: int = 1\n" });
+  const input = { repo: "r", ref: "main", commit: "a".repeat(40), entry: row!, date: "2026-11-10" };
+  const previous = buildParamPage(input);
+  const next = buildParamPage(
+    { ...input, pageId: paramId(row!), entry: { ...row!, confidence: "suspect" } },
+    previous,
+  );
+  expect(protectedParamSection(next)).toContain("字段身份（不代表用户输入入口） | `KVPPConfig.size`");
+  expect(protectedParamSection(next)).not.toContain('additional_config["size"]');
+});

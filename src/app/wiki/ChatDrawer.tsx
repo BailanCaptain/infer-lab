@@ -1,47 +1,18 @@
-import { ArrowUp, BookOpen } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { Link } from "react-router";
-import remarkGfm from "remark-gfm";
+import { ArrowUp, BookOpen, Square } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type AnswerQuality, QUALITY_LABELS } from "../../content/wiki/answer-quality";
-import { rewriteRelativeLink, routePathOf } from "../../content/wiki/index";
 import { AnswerSave } from "./AnswerSave";
-
-/** 服务端贴报错时的在线 GitHub 搜索（F003 AC4）；形状见 scripts/wiki/chat-trace.ts 的 publicTrace */
-type TraceVersions =
-  | {
-      status: "found";
-      commit: string;
-      pins: { ref: string; contains: boolean; sameNumberCommit?: string }[];
-      tags: string[];
-      moreTags: number;
-    }
-  | { status: "no-local-clone" | "no-local-commit" | "error"; reason: string };
-type TraceView =
-  | { status: "searching" }
-  | { status: "skipped"; reason: string }
-  | { status: "failed"; reason: string }
-  | {
-      status: "done";
-      scope: { repos: string[]; since: string };
-      complete: boolean;
-      candidates: {
-        repo: string;
-        number: number;
-        kind: "issue" | "pr";
-        url: string;
-        title: string;
-        state: string;
-        versions?: TraceVersions;
-        docs?: {
-          url: string;
-          version: string;
-          reason?: string;
-          mappings: { pinnedRef?: string; matchesPinned: boolean; localPath?: string; reason?: string }[];
-        }[];
-        linkedPrs?: { number: number; url: string; basis: string; versions: TraceVersions }[];
-      }[];
-    };
+import { ChatMarkdown } from "./ChatMarkdown";
+import {
+  chatHttpError,
+  interruptMessage,
+  type Msg,
+  readChatHistory,
+  type TraceVersions,
+  type TraceView,
+  writeChatHistory,
+} from "./chat-history";
+import { textBatch } from "./text-batch";
 
 const repoName = (repo: string) => repo.split("/").pop() ?? repo;
 const refName = (ref: string) => ref.replace(/^releases\//, "");
@@ -78,8 +49,8 @@ function TraceResult({ trace }: { trace: TraceView }) {
     );
   const where = `${trace.scope.repos.map(repoName).join("、")}，${trace.scope.since} 以来`;
   return (
-    <nav className="wiki-chat-trace" data-testid="chat-trace" aria-label="GitHub 上的相关讨论">
-      <strong>GitHub 上的相关讨论</strong>
+    <details className="wiki-chat-trace" data-testid="chat-trace">
+      <summary>GitHub 上的相关讨论 · {trace.candidates.length} 条候选</summary>
       <small className="wiki-chat-trace-note">
         在线搜索候选（{where}），不是已确认的修复{trace.complete ? "" : "；本轮搜索不完整"}
       </small>
@@ -128,18 +99,11 @@ function TraceResult({ trace }: { trace: TraceView }) {
           ))}
         </ul>
       )}
-    </nav>
+    </details>
   );
 }
 
-/** 服务端 model 事件；形状见 server/chat-route.ts，换手记录见 scripts/wiki/model-use.ts */
-interface ModelView {
-  provider?: "claude" | "codex";
-  requested?: string;
-  answeredBy?: string;
-  switched: boolean;
-  switches: { event: string; from: string; to: string; reason?: string }[];
-}
+type ModelView = NonNullable<Msg["model"]>;
 const SWITCH_LABEL: Record<string, string> = {
   model_refusal_fallback: "拒答",
   model_fallback: "不可用",
@@ -152,32 +116,6 @@ function modelNotice(m: ModelView): string {
   );
   const lead = hops.length ? hops.join("；") : `请求的是 ${m.requested ?? "默认模型"}`;
   return `本轮换了模型：${lead}，改由 ${m.answeredBy ?? "另一个模型"} 作答。`;
-}
-
-interface Msg {
-  /** 稳定 key：消息会边流边改，用数组下标当 key 会让 React 复用错行 */
-  key: string;
-  role: "user" | "agent";
-  text: string;
-  /** 回答没有引用任何页时给出的提示 */
-  uncited?: boolean;
-  /** 模型自己声明知识库没有：标「未收录」，不报警 */
-  uncovered?: boolean;
-  citationReason?: string;
-  reading?: string[];
-  answerId?: string;
-  revision?: string;
-  /** 服务端这一轮给了联网工具 */
-  online?: boolean;
-  versionNotice?: string;
-  /** 服务端发现回答说自己联不了网、却一次都没用给它的联网工具 */
-  toolNotice?: string;
-  /** 实际作答模型；CLI 拒答换模型时 switched 为真 */
-  model?: ModelView;
-  gapNotice?: string;
-  quality?: AnswerQuality;
-  related?: { id: string; title: string; href: string; note: string }[];
-  trace?: TraceView;
 }
 
 /** 一次 SSE 请求。把帧回调出去，UI 只管渲染。 */
@@ -216,7 +154,7 @@ async function streamChat(
     signal,
   });
   if (!res.ok || !res.body) {
-    on.error(`服务返回 ${res.status}`);
+    on.error(chatHttpError(res.status, await res.text().catch(() => "")));
     return;
   }
   const reader = res.body.getReader();
@@ -257,38 +195,70 @@ async function streamChat(
 }
 
 /** 引导新读者的三个问题：一个名词、一组对比、一个具体时刻 */
-const STARTERS = ["KV Cache 是什么", "prefill 和 decode 有什么区别", "那条请求的第 92 步发生了什么"];
+const STARTERS = ["KV Cache 是什么", "prefill 和 decode 有什么区别", "序列并行省下了哪些显存"];
 
 /** 聊天状态放在面板外层：切页签、收起面板都不丢对话 */
 export function useChat() {
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [input, setInput] = useState("");
+  const [initial] = useState(() => {
+    try {
+      return { ...readChatHistory(localStorage), error: "" };
+    } catch {
+      return {
+        msgs: [] as Msg[],
+        input: "",
+        sessionId: undefined,
+        error: "无法读取本机记录；本次对话仍可使用。",
+      };
+    }
+  });
+  const [msgs, setMsgs] = useState<Msg[]>(initial.msgs);
+  const [input, setInput] = useState(initial.input);
+  const [storageError, setStorageError] = useState(initial.error);
   const [busy, setBusy] = useState(false);
-  const sessionId = useRef<string | undefined>(undefined);
+  const sessionId = useRef<string | undefined>(initial.sessionId);
   const abort = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const save = () => {
+      try {
+        writeChatHistory(localStorage, { version: 1, msgs, input, sessionId: sessionId.current });
+        setStorageError("");
+      } catch {
+        setStorageError("本机保存失败，刷新可能丢失记录；请先复制需要的回答。");
+      }
+    };
+    const timer = window.setTimeout(save, 200);
+    window.addEventListener("pagehide", save);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pagehide", save);
+    };
+  }, [msgs, input]);
 
   const send = useCallback(
     async (preset?: string) => {
       const message = (preset ?? input).trim();
-      if (!message || busy) return;
+      if (!message || busy || abort.current) return;
       setInput("");
       setBusy(true);
       const turn = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       setMsgs((m) => [
         ...m,
         { key: `${turn}-u`, role: "user", text: message },
-        { key: `${turn}-a`, role: "agent", text: "", reading: [] },
+        { key: `${turn}-a`, role: "agent", text: "", reading: [], status: "pending" },
       ]);
 
       const patch = (fn: (last: Msg) => Msg) =>
         setMsgs((m) => m.map((item) => (item.key === `${turn}-a` ? fn(item) : item)));
+      const text = textBatch((chunk) => patch((l) => ({ ...l, text: l.text + chunk })));
 
       abort.current = new AbortController();
+      let finished = false;
       try {
         await streamChat(
           { message, ...(sessionId.current ? { sessionId: sessionId.current } : {}) },
           {
-            text: (t) => patch((l) => ({ ...l, text: l.text + t })),
+            text: text.push,
             related: (pages) => patch((l) => ({ ...l, related: pages })),
             trace: (v) => patch((l) => ({ ...l, trace: v })),
             tool: (target) =>
@@ -339,8 +309,14 @@ export function useChat() {
                   : {}),
               }));
             },
-            error: (m) => patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` })),
+            error: (m) => {
+              text.flush();
+              finished = true;
+              patch((l) => ({ ...l, text: `${l.text}\n\n**出错了**：${m}` }));
+            },
             done: (sid, answerId) => {
+              text.flush();
+              finished = true;
               if (sid) sessionId.current = sid;
               if (answerId) patch((l) => ({ ...l, answerId }));
             },
@@ -348,10 +324,14 @@ export function useChat() {
           abort.current.signal,
         );
       } catch (err) {
+        text.flush();
         if ((err as Error).name !== "AbortError") {
           patch((l) => ({ ...l, text: `${l.text}\n\n**连接失败**：${String(err)}` }));
         }
       } finally {
+        text.flush();
+        if (!finished) sessionId.current = undefined;
+        patch((l) => (finished ? { ...l, status: "complete" } : interruptMessage(l)));
         setBusy(false);
         abort.current = null;
       }
@@ -360,27 +340,53 @@ export function useChat() {
   );
 
   const stop = useCallback(() => abort.current?.abort(), []);
-  return { msgs, input, setInput, busy, send, stop };
+  return { msgs, input, setInput, busy, send, stop, storageError };
 }
 
 export function ChatPane({
+  id,
   chat,
   hidden,
   onReview,
 }: {
+  id: string;
   chat: ReturnType<typeof useChat>;
   hidden: boolean;
   onReview: (id: string) => void;
 }) {
-  const { msgs, input, setInput, busy, send } = chat;
+  const { msgs, input, setInput, busy, send, stop, storageError } = chat;
+  const log = useRef<HTMLDivElement>(null);
+  const follow = useRef(true);
+  useEffect(() => {
+    if (hidden || !msgs.length || !follow.current || !log.current) return;
+    log.current.scrollTop = log.current.scrollHeight;
+  }, [msgs, hidden]);
   return (
-    <div className="wiki-chat" role="tabpanel" aria-label="问答" hidden={hidden}>
-      <div className="wiki-chat-log" data-testid="chat-log">
+    <div id={id} className="wiki-chat" role="tabpanel" aria-label="问答" hidden={hidden}>
+      <div className="wiki-chat-heading">
+        <span>
+          <BookOpen size={16} /> 知识库问答
+        </span>
+        <small role="status">{storageError || "对话保存在此浏览器"}</small>
+      </div>
+      <div
+        className="wiki-chat-log"
+        data-testid="chat-log"
+        ref={log}
+        onScroll={() => {
+          const el = log.current;
+          if (el) follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        }}
+      >
         {msgs.length === 0 && (
           <div className="wiki-chat-empty">
-            <BookOpen size={20} />
-            <strong>问这个知识库</strong>
-            <p className="wiki-chat-hint">回答只基于库里的页面，每条结论都带引用；库里没有的会明说。</p>
+            <span className="wiki-chat-eyebrow">从一个问题开始</span>
+            <strong>
+              把概念问清楚，
+              <br />
+              把报错查明白。
+            </strong>
+            <p className="wiki-chat-hint">查知识库、对照来源，也可以贴出异常，追踪 GitHub 上的相关讨论。</p>
             <ul>
               {STARTERS.map((q) => (
                 <li key={q}>
@@ -394,8 +400,10 @@ export function ChatPane({
         )}
         {msgs.map((m) => (
           <div key={m.key} className={`wiki-chat-msg is-${m.role}`}>
+            {m.role === "agent" && <div className="wiki-chat-author">知识库助手</div>}
             {(m.revision || !!m.reading?.length || m.model) && (
-              <div className="wiki-chat-meta">
+              <details className="wiki-chat-meta">
+                <summary>来源与检索过程</summary>
                 {m.revision && (
                   <p className="wiki-chat-reading" data-testid="chat-version">
                     知识版本 {m.revision.slice(0, 12)}
@@ -403,7 +411,9 @@ export function ChatPane({
                   </p>
                 )}
                 {m.reading && m.reading.length > 0 && (
-                  <p className="wiki-chat-reading">正在读：{m.reading.join("、")}</p>
+                  <p className="wiki-chat-reading">
+                    {m.status === "pending" ? "正在读" : "已读取"}：{m.reading.join("、")}
+                  </p>
                 )}
                 {(m.model?.answeredBy || m.model?.requested) && (
                   <p className="wiki-chat-reading" data-testid="chat-model">
@@ -413,7 +423,7 @@ export function ChatPane({
                     {m.model.provider === "codex" && " · Codex 账户额度"}
                   </p>
                 )}
-              </div>
+              </details>
             )}
             {m.versionNotice && (
               <p role="status" className="wiki-chat-uncited" data-testid="chat-version-notice">
@@ -433,29 +443,21 @@ export function ChatPane({
             {m.trace && <TraceResult trace={m.trace} />}
             {m.role === "agent" ? (
               m.text ? (
-                <ReactMarkdown
-                  skipHtml
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    // 站内链接走 <Link>，理由同 WikiPage：原生 hash 链接会被当成后退
-                    a: ({ href, children }) => {
-                      const to = rewriteRelativeLink(href ?? "");
-                      const route = routePathOf(to);
-                      return route ? <Link to={route}>{children}</Link> : <a href={to}>{children}</a>;
-                    },
-                  }}
-                >
-                  {m.text}
-                </ReactMarkdown>
-              ) : (
+                <ChatMarkdown text={m.text} />
+              ) : m.status !== "interrupted" ? (
                 <p className="wiki-chat-thinking" aria-hidden="true">
                   <span />
                   <span />
                   <span />
                 </p>
-              )
+              ) : null
             ) : (
               m.text
+            )}
+            {m.status === "interrupted" && (
+              <p className="wiki-chat-uncited" role="status">
+                回答已中断，已收到的内容保留在这里。可以重新提问。
+              </p>
             )}
             {m.uncited && (
               <p className="wiki-chat-uncited" data-testid="chat-uncited">
@@ -520,20 +522,30 @@ export function ChatPane({
       >
         <textarea
           value={input}
+          aria-label="输入问题"
           data-testid="chat-input"
-          placeholder={busy ? "回答中…" : "问一个名词或一段报错"}
+          placeholder={busy ? "回答中…" : "问一个概念，或粘贴异常 / traceback"}
           rows={2}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               void send();
             }
           }}
         />
-        <button type="submit" data-testid="chat-send" aria-label="发送" disabled={busy || !input.trim()}>
-          <ArrowUp size={15} />
-        </button>
+        <div className="wiki-chat-compose-foot">
+          <small>Enter 发送 · Shift + Enter 换行</small>
+          {busy ? (
+            <button type="button" aria-label="停止回答" onClick={stop}>
+              <Square size={16} />
+            </button>
+          ) : (
+            <button type="submit" data-testid="chat-send" aria-label="发送" disabled={!input.trim()}>
+              <ArrowUp size={18} />
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

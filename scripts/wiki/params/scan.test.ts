@@ -2,6 +2,22 @@ import { expect, it } from "vitest";
 import { scanSources } from "./scan";
 import { withoutLocations } from "./sync";
 
+it("follows a nested user dictionary passed to an old-style config constructor", () => {
+  const rows = scanSources({
+    "ascend_config.py": `class WeightPrefetchConfig:
+    prefetch_ratio: dict = {}
+class AscendConfig:
+    def __init__(self, vllm_config):
+        additional_config = vllm_config.additional_config or {}
+        weight_prefetch_config = additional_config.get("weight_prefetch_config", {})
+        self.weight_prefetch_config = WeightPrefetchConfig(weight_prefetch_config)
+`,
+  });
+  expect(rows.find((p) => p.name === "prefetch_ratio")?.json_path).toBe(
+    'additional_config["weight_prefetch_config"]["prefetch_ratio"]',
+  );
+});
+
 it("does not classify ClassVar constants as configurable dataclass fields", () => {
   const rows = scanSources({
     "config.py":

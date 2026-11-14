@@ -13,9 +13,10 @@ const RULES =
 
 export async function judgeGapIdentity(
   root: string,
-  input: { question: string; contextQuestions: string[] },
+  input: { question: string; contextQuestions: string[]; signal?: AbortSignal },
   deps: { runAgent?: RunAgent } = {},
 ): Promise<{ entryKey: string; decision: string } | undefined> {
+  input.signal?.throwIfAborted();
   const key = gapKey(input.question, input.contextQuestions);
   const gaps = listGaps(root);
   if (!gaps.length || gaps.some((g) => g.key === key || g.aliases?.some((a) => a.key === key)))
@@ -40,6 +41,7 @@ export async function judgeGapIdentity(
         .strict()
         .refine((v) => v.same === null || ids.includes(v.same), "判定指向了候选以外的缺口"),
       policy: { maxAttempts: 1, maxCostUsd: 0.3, reserveUsd: 0.3 },
+      signal: input.signal,
     },
     deps,
   );

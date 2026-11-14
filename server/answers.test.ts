@@ -23,16 +23,21 @@ async function setup(answer = "综合解释，见 [A](sources/a.md)。") {
   const id = await captureAnswer(f.root, "如何理解 A？", answer, [{ file: "sources/a.md", text: page }]);
   return { ...f, id };
 }
-it.each(["claude", "codex", "metadata"])("compiles the server receipt once with the selected billing: %s", async (mode) => {
+it.each(["claude", "codex", "metadata", "production"])("compiles the server receipt once with the selected billing: %s", async (mode) => {
   const metadata = mode === "metadata";
   const f = await setup(metadata ? '综合解释，见 [A](sources/a.md)。\n\n<!-- wiki-coverage: {"satisfied":true,"reason":"证据充分"} -->' : undefined);
   expect(f.id).toBeTruthy();
+  if (mode === "production") f.write("wiki/sync.config.json", JSON.stringify({ mode: "production" }));
   if (mode === "codex") f.write("wiki/sync.config.local.json", JSON.stringify({ chatProvider: "codex", chatModel: "gpt-6-astra" }));
   let calls = 0;
   const runAgent: import("../scripts/wiki/batch").RunAgent = async (req) => {
     calls++;
     expect(req.stdin).toContain("解释 A");
     expect(req.stdin).not.toContain("wiki-coverage");
+    if (mode === "production") {
+      expect(req.accountingOnly).toBe(true);
+      expect(req.args).not.toContain("--max-budget-usd");
+    }
     const input = JSON.parse(req.stdin);
     const source = input.material.source;
     return {
@@ -44,11 +49,13 @@ it.each(["claude", "codex", "metadata"])("compiles the server receipt once with 
       output: `---\nid: ${req.id}\ntitle: A 的解释\ntype: source\nsummary: 组合解释\nsources: [${source}]\nevidence: I\nupdated: '2026-09-15'\n---\n## 一句话\n综合解释见 [A](../sources/a.md)。\n`,
     };
   };
-  const input = mode === "codex" ? {} : { budgetUsd: 1 };
+  const input = mode === "codex" || mode === "production" ? {} : { budgetUsd: 1 };
   const result = await saveAnswer(f.root, f.id!, input, { runAgent });
   expect(readReview(f.root, result.reviewId).state).toBe("pending");
   expect(readFileSync(join(f.root, "wiki/sources/a.md"), "utf8")).toBe(page);
   expect((await saveAnswer(f.root, f.id!, input, { runAgent })).reviewId).toBe(result.reviewId);
+  if (mode === "production")
+    expect((await saveAnswer(f.root, f.id!, { budgetUsd: 5 }, { runAgent })).reviewId).toBe(result.reviewId);
   if (mode === "codex") {
     const attempt = new WorkflowStore(f.root).get(result.jobId!).attempts[0]!;
     expect(attempt.billing).toBe("chatgpt");

@@ -14,11 +14,13 @@ import { CHAPTER_IDS, CHAPTER_TITLES } from "../../src/content/wiki/chapters";
 import { buildIndex, citedPageLinks } from "../../src/content/wiki/retrieve";
 import { ID_RE, parseRawRef } from "../../src/content/wiki/schema";
 import { type AgentRequest, type AgentResult, positiveInteger, type RunAgent, runBatch } from "./batch";
+import { assertInputFits, inputByteLimit, jsonBytes } from "./context-window";
 import { lintPages, splitProblems, wikiFileExists } from "./lint";
+import { readLongMaterial } from "./long-material";
 import { relevantPageIds } from "./navigation";
 import { loadPages, parsePage } from "./pages";
 import { prepareRawInput } from "./prepare-input";
-import { readRawSnapshot, withRawSources } from "./raw";
+import { bindDraftPageLinks, readRawSnapshot, withRawSources } from "./raw";
 import { RESTRICTED_PROFILE, restrictedArgs } from "./restricted-claude";
 import { sanitizeRawInput } from "./sanitize";
 import { unfence } from "./structured";
@@ -50,6 +52,7 @@ export function planRawCompile(root: string, input: RawCompileInput) {
     : null;
   const inventory = loadPages(join(root, "wiki"));
   if (inventory.problems.length) throw new Error("现有页面无法解析，不能提供编译导航");
+  const existing = inventory.pages.find((page) => page.fm.id === input.id);
   const others = inventory.pages.filter((page) => page.fm.id !== input.id);
   // 问答记录只链回答用到的页；其余编译只列与材料相关的页：列全库时 104 页就占 10,660 字符（2026-09-23）
   const listed = input.answerPages
@@ -67,7 +70,13 @@ export function planRawCompile(root: string, input: RawCompileInput) {
         .ids.filter((id) => id !== input.id)
         .map((id) => others.find((page) => page.fm.id === id)!);
   const navigation = {
-    note: "仅用于章节归属、relations 和页面链接，不是正文事实来源。事实仍只能来自 material；不能凭标题推导邻居的实现。没有适合的关系时保留缺口，不编造关联。引用本地 raw 材料时，图节点使用材料里的真实类名或函数名；文件路径写在正文，避免把源码文件当作运行组件。pages 只列与本次材料相关的页，omitted 是没列出的页数；没列出不代表库里没有。",
+    note: "仅用于章节归属、relations 和页面链接，不是正文事实来源。事实仍只能来自 material；不能凭标题推导邻居的实现。existingPage 存在时，本次是已有页面的正文核对，aliases 必须原样保留 existingPage.aliases，不新增别名；材料中提及的其他概念不是本页别名。没有适合的关系时保留缺口，不编造关联。existingRelations 是当前页已有的入边和出边，保持声明方向，不要把自动派生的反向边再写入 relations。引用本地 raw 材料时，图节点使用材料里的真实类名或函数名；文件路径写在正文，避免把源码文件当作运行组件。pages 只列与本次材料相关的页，omitted 是没列出的页数；没列出不代表库里没有。",
+    existingPage: existing ? { id: existing.fm.id, aliases: existing.fm.aliases } : undefined,
+    existingRelations: inventory.pages.flatMap((page) =>
+      page.fm.relations
+        .filter((edge) => page.fm.id === input.id || edge.to === input.id)
+        .map(({ to, kind }) => ({ from: page.fm.id, to, kind })),
+    ),
     chapterIds: CHAPTER_IDS,
     chapterTitles: CHAPTER_TITLES,
     pages: listed.map((page) => {
@@ -102,20 +111,29 @@ export function planRawCompile(root: string, input: RawCompileInput) {
             links: listed.map((page) => ({ title: page.fm.title, href: `../${page.file}` })),
             note: "The output is staged in _drafts/. Include at least one supplied page link using exactly the href above; do not shorten it to a bare filename. Preserve the answer as an inference, not primary evidence.",
           }
-        : undefined,
+        : {
+            format: "Return only a complete Markdown page with YAML frontmatter, no surrounding prose.",
+            id: input.id,
+            sources: [input.source],
+            note: "This is an intermediate draft based only on material, not the final replacement of an existing page. Use exactly the supplied sources entries in frontmatter. Do not split, shorten or change their line ranges, and do not add context or navigation as sources. Do not copy existing generated sections or numbered evidence marks, even when an old number would fit this draft's source count; those numbers belong to the existing page. Existing text is comparison context, not new evidence. Requirements to preserve old text, generated sections, diagrams, formulas and history apply to the later integration, which receives the original page separately and validates their preservation. More precise material locations may be described in the body without changing the source references.",
+          },
     answerPages: input.answerPages,
     context,
     navigation,
     material,
   });
-  if (stdin.length > 64_000)
-    throw new Error("编译材料超过 64000 字符；请明确缩小来源行号范围，不截断证据、不启动模型");
   const work: WorkInput = {
     origin: input.origin,
     sources: [{ ref: input.source, hash: prepared.receipt.rawHash }],
     targets: [input.id],
     recipeHash: digest(
-      JSON.stringify({ profile: RESTRICTED_PROFILE, args, stdin, screening: prepared.receipt }),
+      JSON.stringify({
+        profile: RESTRICTED_PROFILE,
+        args,
+        stdin,
+        screening: prepared.receipt,
+        longMaterial: 1,
+      }),
     ),
   };
   return { prepared, work, args, stdin };
@@ -146,6 +164,7 @@ export async function compileRaw(
     if (!store.matchesDraft(job, input.id)) throw new Error("已记录草稿或来源发生变化");
     return { ...base, ok: true, exitCode: 0, reason: "复用已有草稿" };
   }
+  const previousAttempt = job.attempts.at(-1);
   const attempt = await store.claim(job.id, deps.retry);
   const wiki = join(store.root, "wiki");
   const draft = `_drafts/${input.id}.md`;
@@ -153,19 +172,88 @@ export async function compileRaw(
   let result = base;
   try {
     const before = readOptional(join(wiki, draft));
+    let stdin = plan.stdin;
+    if (deps.retry && previousAttempt?.reason === "Error: 编译草稿 schema 无效") {
+      const receipt = readOptional(
+        join(wiki, `_jobs/compilations/${job.id}.${previousAttempt.token}.output.json`),
+      );
+      if (receipt) {
+        const previous = JSON.parse(receipt) as AgentResult;
+        if (
+          previous.ok &&
+          typeof previous.output === "string" &&
+          Buffer.byteLength(previous.output, "utf8") <= 128 * 1024
+        ) {
+          // Recompute validator rules from the same job's rejected output; never replay model prose as instructions.
+          const validationFeedback = parsePage(draft, unfence(previous.output))
+            .problems.slice(0, 4)
+            .map(({ rule }) => ({ rule }));
+          if (validationFeedback.length) stdin = JSON.stringify({ ...JSON.parse(stdin), validationFeedback });
+        }
+      }
+    }
+    const budget = inputByteLimit(store.root, input.rules);
+    if (Buffer.byteLength(stdin, "utf8") > budget) {
+      const packet = JSON.parse(stdin);
+      const material = packet.material as { source: string; lines: { line: number; text: string }[] };
+      packet.material = undefined;
+      if (packet.context && jsonBytes(packet.context) > budget / 3) {
+        const { sourceId, ...texts } = packet.context;
+        packet.context = {
+          sourceId,
+          ...(await readLongMaterial(
+            store.root,
+            {
+              topic: `${input.id}：已有页面的结构、事实、限制；仅供对照，不作为新证据`,
+              // Quote against readable strings, not JSON's escaped representation of the page.
+              sources: Object.entries(texts).map(([name, text]) => ({
+                source: `existing-page-context:${name}`,
+                text: text as string,
+              })),
+              maxBytes: Math.floor(budget / 4),
+              origin: input.origin,
+              policy,
+            },
+            deps,
+          )),
+        };
+      }
+      const remaining = budget - jsonBytes(packet) - 1024;
+      packet.material = await readLongMaterial(
+        store.root,
+        {
+          topic: input.id,
+          sources: [{ source: material.source, text: material.lines.map((line) => line.text).join("\n") }],
+          maxBytes: remaining,
+          origin: input.origin,
+          policy,
+        },
+        deps,
+      );
+      stdin = JSON.stringify(packet);
+    }
+    assertInputFits(store.root, input.rules, stdin);
     stage = mkdtempSync(join(tmpdir(), "wiki-compile-"));
     const request: AgentRequest = {
       ...attempt.selection,
       id: input.id,
       cwd: stage,
-      args: [...plan.args, "--max-budget-usd", String(attempt.reservedUsd || policy.reserveUsd)],
-      stdin: plan.stdin,
+      accountingOnly: attempt.accountingOnly,
+      args: [
+        ...plan.args,
+        ...(attempt.budgetUsd === undefined ? [] : ["--max-budget-usd", String(attempt.budgetUsd)]),
+      ],
+      stdin,
       timeoutMs: input.timeoutMs,
       allowedWrites: [],
     };
+    mkdirSync(join(wiki, "_jobs/compilations"), { recursive: true });
+    atomicText(
+      join(wiki, `_jobs/compilations/${job.id}.${attempt.token}.input.json`),
+      JSON.stringify({ rules: input.rules, stdin }),
+    );
     const batch = await runBatch([request], { concurrency: 1, runAgent: deps.runAgent });
     result = { ...batch.results[0]!, jobId: job.id };
-    mkdirSync(join(wiki, "_jobs/compilations"), { recursive: true });
     atomicText(
       join(wiki, `_jobs/compilations/${job.id}.${attempt.token}.output.json`),
       JSON.stringify(result),
@@ -175,7 +263,7 @@ export async function compileRaw(
     if (!result.output || Buffer.byteLength(result.output, "utf8") > 128 * 1024)
       throw new Error("缺少 Markdown 结果或结果过大");
     // 模型偶尔把整页包进一层 ```markdown 围栏（2026-09-23 真实重编）；剥掉包装再按页面 schema 验
-    const output = unfence(result.output);
+    const output = bindDraftPageLinks(unfence(result.output), JSON.parse(plan.stdin).navigation.pages);
     const parsed = parsePage(draft, output);
     if (!parsed.page || parsed.problems.length) throw new Error("编译草稿 schema 无效");
     if (

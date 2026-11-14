@@ -2,8 +2,8 @@ import { parseArgs } from "node:util";
 import { assessGap, listCoverageAssessments, prepareCoverageReview } from "../server/coverage-work";
 import { listGaps, splitGapAlias } from "./wiki/gap-ledger";
 import { listTasks } from "./wiki/queue";
+import { configuredWorkflowPolicy, isProduction } from "./wiki/sync-config";
 import { workOne } from "./wiki/worker";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 try {
   const command = process.argv[2] ?? "list";
@@ -13,7 +13,7 @@ try {
         {
           gaps: listGaps(process.cwd()),
           assessments: listCoverageAssessments(process.cwd()),
-          worker: "budgeted-review-required",
+          worker: isProduction(process.cwd()) ? "production-review-required" : "budgeted-review-required",
           queue: listTasks(process.cwd()),
         },
         null,
@@ -37,7 +37,7 @@ try {
     });
     const id = values.task ?? listTasks(process.cwd()).find((t) => t.state === "queued")?.id;
     if (!id) throw new Error("没有待运行任务");
-    const policy = workflowPolicySchema.parse({
+    const policy = configuredWorkflowPolicy(process.cwd(), {
       maxAttempts: Number(values["max-attempts"]),
       maxCostUsd: Number(values["job-budget-usd"]),
       reserveUsd: Number(values["attempt-budget-usd"]),
@@ -96,7 +96,7 @@ try {
       },
     });
     if (!values.gap || !/^[a-f0-9]{64}$/.test(values.gap)) throw new Error("需要 --gap <缺口 key>");
-    const policy = workflowPolicySchema.parse({
+    const policy = configuredWorkflowPolicy(process.cwd(), {
       maxAttempts: Number(values["max-attempts"]),
       maxCostUsd: Number(values["job-budget-usd"]),
       reserveUsd: Number(values["attempt-budget-usd"]),
@@ -109,7 +109,7 @@ try {
     if (!result.ok) process.exitCode = 1;
   } else
     throw new Error(
-      "用法：pnpm wiki:work list | split-gap --alias <key> | prepare --job <诊断 jobId> [--source <raw 行号引用> ...] [--page <已有页 id> ...] | assess --gap <key> | run --task <id>；收费命令需 --job-budget-usd N --attempt-budget-usd N --max-attempts N [--retry-failed]，产物停在待审。",
+      "用法：pnpm wiki:work list | split-gap --alias <key> | prepare --job <诊断 jobId> [--source <raw 行号引用> ...] [--page <已有页 id> ...] | assess --gap <key> | run --task <id>；测试模式需 --job-budget-usd N --attempt-budget-usd N --max-attempts N；正式模式仅记账。失败仍需 --retry-failed，产物停在待审。",
     );
 } catch (error) {
   console.error(String(error));

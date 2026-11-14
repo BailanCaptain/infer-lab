@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import matter from "gray-matter";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
@@ -6,7 +6,7 @@ import { gitText } from "./git";
 import type { Seeds } from "./ingest";
 import { lintPages, wikiFileExists } from "./lint";
 import { loadPages, type WikiPage } from "./pages";
-import { enqueueInLock } from "./queue";
+import { enqueueInLock, listTasks } from "./queue";
 import { localFile } from "./review-files";
 import { citedPaths } from "./stale";
 import { atomicText, digest, WorkflowStore } from "./workflow";
@@ -98,6 +98,27 @@ export function contentDrift(a: string, b: string) {
     union = new Set([...left, ...right]);
   return union.size ? 1 - [...left].filter((t) => right.has(t)).length / union.size : 0;
 }
+const driftReceipt = (root: string, pageId: string, source: string, threshold: number) =>
+  localFile(root, `wiki/_jobs/drift/checked-${digest(JSON.stringify([pageId, source, threshold]))}.json`);
+
+/** Evidence identity survives a publication/date change. Existing queue records bootstrap old installations. */
+export function driftStatus(root: string, pageId: string, source: string, threshold = 0.3) {
+  if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) throw new Error("drift 阈值必须在 0–1");
+  const tasks = listTasks(root).filter((t) => t.input.kind === "rewrite" && t.input.pageId === pageId);
+  const previous = tasks.find(
+    (t) => t.input.kind === "rewrite" && t.input.reason === "content-drift" && t.input.source === source,
+  );
+  if (previous || existsSync(driftReceipt(root, pageId, source, threshold)))
+    return {
+      status: "unchanged-source",
+      reason: "相同来源已检查或已有任务；未调用模型",
+      ...(previous ? { task: previous.id } : {}),
+    };
+  if (tasks.some((t) => t.state !== "closed"))
+    return { status: "deferred", reason: "该页仍有未结束的改写任务；新来源保留至下轮再检查" };
+  return undefined;
+}
+
 export async function recordDrift(
   root: string,
   pageId: string,
@@ -108,6 +129,7 @@ export async function recordDrift(
 ) {
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) throw new Error("drift 阈值必须在 0–1");
   return new WorkflowStore(root).locked(() => {
+    const previous = driftStatus(root, pageId, source, threshold);
     const original = readFileSync(localFile(root, `wiki/${file}`), "utf8");
     const score = contentDrift(matter(original).content, matter(extracted).content);
     const revision = digest(original);
@@ -117,7 +139,8 @@ export async function recordDrift(
       score,
       threshold,
       qualification: "内容差异待复核，不是事实过期判定",
-      ...(score > threshold
+      ...(previous?.task ? { task: previous.task } : {}),
+      ...(score > threshold && !previous
         ? {
             task: enqueueInLock(root, { kind: "rewrite", pageId, revision, source, reason: "content-drift" })
               .id,
@@ -130,6 +153,11 @@ export async function recordDrift(
       join(dir, `drift-${pageId}-${revision.slice(0, 12)}.md`),
       `# 提取差异\n\n${JSON.stringify(result, null, 2)}\n`,
     );
+    // Do not consume evidence deferred behind another page task.
+    if (previous?.status !== "deferred") {
+      mkdirSync(localFile(root, "wiki/_jobs/drift"), { recursive: true });
+      atomicText(driftReceipt(root, pageId, source, threshold), JSON.stringify(result, null, 2));
+    }
     return result;
   });
 }

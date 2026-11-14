@@ -1,5 +1,6 @@
 import { gitText } from "./git";
 import { prOf } from "./lineage";
+import { scanSources } from "./params/scan";
 
 const lines = (text: string) =>
   text
@@ -65,12 +66,37 @@ export function lineageRefs(repo: string, extra: string[], fallback: string[]): 
   return refs.length ? refs : [...fallback];
 }
 
-export function gitLineage(repo: string, term: string, refs: string[], paths: string[]) {
+export function gitLineage(
+  repo: string,
+  term: string,
+  refs: string[],
+  paths: string[],
+  definitionClass?: string,
+) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(term) || !refs.length || !paths.length)
     throw new Error("谱系标识符或范围无效");
+  if (
+    definitionClass &&
+    (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(definitionClass) || paths.length !== 1 || !paths[0]!.endsWith(".py"))
+  )
+    throw new Error("字段谱系必须限定配置类与一个 Python 文件");
   const resolveRef = (ref: string) => resolveLineageRef(repo, ref);
   const counts = new Map<string, number>();
   const count = (sha: string) => {
+    if (definitionClass && !counts.has(sha)) {
+      const files = lines(gitText(repo, ["ls-tree", "-r", "--name-only", sha, "--", ...paths]));
+      const source = Object.fromEntries(
+        files.map((file) => [file, gitText(repo, ["show", `${sha}:${file}`])]),
+      );
+      counts.set(
+        sha,
+        new Set(
+          scanSources(source)
+            .filter((row) => row.form === "field" && row.class === definitionClass && row.name === term)
+            .map((row) => row.file),
+        ).size,
+      );
+    }
     if (!counts.has(sha))
       counts.set(
         sha,
@@ -83,7 +109,7 @@ export function gitLineage(repo: string, term: string, refs: string[], paths: st
     return { ref, commit, files: count(commit) };
   });
   const commits = new Set(
-    presence.flatMap((p) =>
+    (definitionClass ? [] : presence).flatMap((p) =>
       lines(gitText(repo, ["log", "--format=%H", "-S", term, p.commit, "--", ...paths])),
     ),
   );
@@ -122,12 +148,15 @@ export function gitLineage(repo: string, term: string, refs: string[], paths: st
       ];
     })
     .sort((a, b) => a.date!.localeCompare(b.date!) || a.commit.localeCompare(b.commit));
-  const tags = lines(gitText(repo, ["tag", "--sort=version:refname"]));
+  const tags = definitionClass ? [] : lines(gitText(repo, ["tag", "--sort=version:refname"]));
   return {
     schemaVersion: 1,
     term,
+    definitionClass,
     paths: [...paths],
-    interpretation: "textual-presence-not-runtime-behavior",
+    interpretation: definitionClass
+      ? "field-presence-at-selected-commits"
+      : "textual-presence-not-runtime-behavior",
     presence,
     events,
     tagsWithTerm: tags.filter((tag) => count(resolveRef(tag)) > 0),
@@ -135,6 +164,17 @@ export function gitLineage(repo: string, term: string, refs: string[], paths: st
 }
 
 export function renderVerifiedLineage(value: ReturnType<typeof gitLineage>) {
+  if (value.definitionClass)
+    return [
+      "## 版本谱系",
+      "",
+      `范围限定为 \`${value.paths[0]}\` 中的 \`${value.definitionClass}.${value.term}\` 字段定义。定义存在不等于配置可写或运行时可用；行为条件见本页正文。未核定字段的精确引入／移除提交，不以同名文本的历史代替。`,
+      "",
+      "| 版本 | 定义是否存在 | 固定提交 |",
+      "| --- | --- | --- |",
+      ...value.presence.map((p) => `| ${p.ref} | ${p.files ? "有" : "无"} | \`${p.commit.slice(0, 8)}\` |`),
+      "",
+    ].join("\n");
   return [
     "## 版本谱系",
     "",

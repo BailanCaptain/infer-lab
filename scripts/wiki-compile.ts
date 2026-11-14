@@ -3,8 +3,8 @@ import { parseArgs } from "node:util";
 import { compileRaw, planRawCompile } from "./wiki/compile-raw";
 import { loadHandbook } from "./wiki/handbook";
 import { selectedAgent } from "./wiki/selected-agent";
+import { configuredWorkflowPolicy } from "./wiki/sync-config";
 import { originSchema, WorkflowStore } from "./wiki/workflow";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 try {
   const { values } = parseArgs({
@@ -46,7 +46,7 @@ try {
       );
       if (plan.prepared.receipt.blocked) process.exitCode = 1;
     } else {
-      const policy = workflowPolicySchema.parse({
+      const policy = configuredWorkflowPolicy(root, {
         maxCostUsd: Number(values["job-budget-usd"]),
         reserveUsd: Number(values["attempt-budget-usd"]),
         maxAttempts: Number(values["max-attempts"]),

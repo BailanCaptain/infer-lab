@@ -1,5 +1,126 @@
 import { z } from "zod";
 
+const sha = z.string().regex(/^[a-f0-9]{64}$/);
+export const dropBudgetSchema = z
+  .object({
+    contextWindowTokens: z.number().int().positive(),
+    outputReserveTokens: z.number().int().positive(),
+    algorithm: z.literal(1),
+  })
+  .strict();
+export const dropRangeSchema = z
+  .object({
+    id: z.string(),
+    hash: sha,
+    start: z.number().int().nonnegative(),
+    end: z.number().int().nonnegative(),
+  })
+  .strict();
+export const dropComparisonSchema = z
+  .object({
+    page: z.string(),
+    quote: z.string().min(1),
+    reason: z.string().min(1),
+  })
+  .strict();
+export const dropReceiptSchema = z
+  .object({
+    protocol: z.literal(3),
+    baseline: sha,
+    budget: dropBudgetSchema,
+    resources: z.array(
+      z
+        .object({
+          id: z.string(),
+          path: z.string(),
+          kind: z.enum(["source", "reference", "rule", "page", "candidate", "diagram"]),
+          hash: sha,
+          length: z.number().int().nonnegative(),
+          origins: z.array(z.record(z.string())),
+        })
+        .strict(),
+    ),
+    requiredReads: z.array(z.string()),
+    inputs: z.array(
+      z
+        .object({
+          key: sha,
+          stage: z.string(),
+          rulesHash: sha,
+          bytes: z.number().int(),
+          limit: z.number().int(),
+          requestedBytes: z.number().int().nonnegative(),
+          savedBytes: z.number().int().nonnegative(),
+          materials: z.array(dropRangeSchema),
+        })
+        .strict(),
+    ),
+    queries: z.array(
+      z
+        .object({
+          query: z.string(),
+          cursor: z.string().optional(),
+          total: z.number().int(),
+          ids: z.array(z.string()),
+        })
+        .strict(),
+    ),
+    inferredRelations: z
+      .array(z.object({ a: z.string(), b: z.string(), note: z.string() }).strict())
+      .optional(),
+    decisions: z.array(
+      z
+        .object({
+          topic: z.string(),
+          topics: z.array(z.string()).optional(),
+          evidence: z.array(z.string()).min(1),
+          outcome: z.enum(["integrate", "covered", "out-of-scope"]),
+          targets: z.array(z.string()),
+          reason: z.string().min(1),
+          comparisons: z.array(dropComparisonSchema),
+        })
+        .strict(),
+    ),
+    plans: z.array(
+      z
+        .object({
+          path: z.string(),
+          reason: z.string(),
+          evidence: z.array(z.string()),
+          comparisons: z.array(dropComparisonSchema),
+        })
+        .strict(),
+    ),
+    requiredChecks: z.array(z.string()),
+    checks: z.array(
+      z
+        .object({
+          id: z.string(),
+          kind: z.enum(["page", "relation", "asset", "coordination", "coverage"]),
+          pages: z.array(z.string()),
+          asset: z.string().optional(),
+          bindings: z.array(dropRangeSchema),
+          inputs: z.array(sha).min(1),
+          report: z.string().min(1),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export type DropBudget = z.infer<typeof dropBudgetSchema>;
+export type DropRange = z.infer<typeof dropRangeSchema>;
+export type DropReceipt = z.infer<typeof dropReceiptSchema>;
+export const dropReviewSchema = z
+  .object({
+    id: z.string().uuid(),
+    generation: z.number().int(),
+    report: z.string(),
+    protocol: z.literal(3).optional(),
+    receipt: dropReceiptSchema.optional(),
+  })
+  .strict()
+  .refine((d) => (d.protocol === 3) === (d.receipt !== undefined), "新 Drop 提案必须包含完整复核记录");
+
 export const dropItemSchema = z
   .object({
     name: z.string().trim().min(1).max(250),
@@ -65,7 +186,12 @@ export const dropBatchSchema = z.object({
   generation: z.number().int().default(0),
   ownerPid: z.number().optional(),
   token: z.string().optional(),
-  selection: z.object({ provider: z.enum(["claude", "codex"]), model: z.string() }).optional(),
+  selection: z
+    .object({ provider: z.enum(["claude", "codex"]), model: z.string(), codexCli: z.string().optional() })
+    .optional(),
+  protocol: z.literal(3).optional(),
+  budget: dropBudgetSchema.optional(),
+  receipt: dropReceiptSchema.optional(),
   reviewId: z.string().optional(),
   reviews: z.array(z.string()).default([]),
   calls: z

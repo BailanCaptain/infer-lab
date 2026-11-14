@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type AgentRequest, runBatch } from "./batch";
+import { type AgentRequest, runBatch, runPool } from "./batch";
 
 const request = (id: string): AgentRequest => ({
   id,
@@ -12,6 +12,25 @@ const request = (id: string): AgentRequest => ({
 const success = (id: string) => ({ id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0.2 });
 
 describe("shared agent batch", () => {
+  it("services ready I/O while a batch reuses immediately resolved cache entries", async () => {
+    let completed = 0;
+    let completedBeforeIo = 0;
+    const io = new Promise<void>((resolve) =>
+      setImmediate(() => {
+        completedBeforeIo = completed;
+        resolve();
+      }),
+    );
+    await runPool(
+      Array.from({ length: 40 }, (_, i) => i),
+      2,
+      async () => ++completed,
+    );
+    await io;
+    expect(completed).toBe(40);
+    expect(completedBeforeIo).toBeLessThan(40);
+  });
+
   it("bounds concurrency and preserves input order across out-of-order completion", async () => {
     let active = 0;
     let peak = 0;

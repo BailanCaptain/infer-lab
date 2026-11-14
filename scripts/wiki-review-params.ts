@@ -9,8 +9,8 @@ import { paramId } from "./wiki/params/pages";
 import { reviewParam } from "./wiki/params/review";
 import { scanRepo } from "./wiki/params/scan";
 import { withoutLocations } from "./wiki/params/sync";
+import { configuredWorkflowPolicy } from "./wiki/sync-config";
 import { atomicText } from "./wiki/workflow";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
 
 try {
   const { values } = parseArgs({
@@ -47,7 +47,7 @@ try {
   if (!actual || JSON.stringify(withoutLocations(actual)) !== JSON.stringify(withoutLocations(entry)))
     throw new Error("参数候选与钉定源码不符");
   const source = gitText(resolve(repo.path), ["show", `${data.commit}:${entry.file}`]);
-  const policy = workflowPolicySchema.parse({
+  const policy = configuredWorkflowPolicy(process.cwd(), {
     maxCostUsd: Number(values["job-budget-usd"]),
     reserveUsd: Number(values["attempt-budget-usd"]),
     maxAttempts: Number(values["max-attempts"]),

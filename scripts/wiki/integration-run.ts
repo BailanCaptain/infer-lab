@@ -65,7 +65,12 @@ function carrySnapshots(
       if (legacy?.trim()) refs.push(saveRawSnapshot(stageWiki, legacy));
     }
     for (const ref of new Set(refs)) readRawSnapshot(stageWiki, ref);
-    writeFileSync(join(stageWiki, file), withRawSources(text, refs));
+    const targetOrigin = parsePage(file, text).page?.fm.origin;
+    const incoming = before.get(draft);
+    const incomingOrigin = incoming ? parsePage(draft, incoming).page?.fm.origin : undefined;
+    // A directly authored page now also incorporates material from this actual intake.
+    const origin = targetOrigin === "direct" && incomingOrigin !== "direct" ? incomingOrigin : undefined;
+    writeFileSync(join(stageWiki, file), withRawSources(text, refs, origin));
   }
 }
 

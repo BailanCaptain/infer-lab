@@ -8,8 +8,10 @@ const ctx = { wikiRoot: "C:/w/wiki", timeoutMs: 60_000 };
 const systemOf = (req: { args: string[] }) => req.args[req.args.indexOf("--append-system-prompt") + 1]!;
 
 describe("问答拿到的手册", () => {
-  it("只带读页约定、可引来源与查询，不带写页规则与覆盖判定协议", () => {
-    const system = systemOf(buildChatRequest({ message: "x" }, loadHandbook(join(process.cwd(), "wiki")), ctx));
+  it.each(["claude", "codex"] as const)("%s 只注入完整的读页、来源与查询切片各一次", (provider) => {
+    const handbook = loadHandbook(join(process.cwd(), "wiki"));
+    const req = buildChatRequest({ message: "x" }, handbook, { ...ctx, provider });
+    const system = provider === "codex" ? req.stdin : systemOf(req);
     expect(system).toContain("### 读页约定");
     expect(system).toContain("### 可引来源");
     expect(system).toContain("## 查询");
@@ -17,10 +19,34 @@ describe("问答拿到的手册", () => {
     expect(system).not.toContain("#### 教学页的推荐写法");
     expect(system).not.toContain("### 图");
     expect(system).not.toContain("coverage-assessment");
-    expect(system.length).toBeLessThan(6500);
+    let overhead = system;
+    for (const key of ["reading", "citable", "query"] as const) {
+      const slice = handbook[key].trim();
+      expect(system.split(slice), key).toHaveLength(2);
+      overhead = overhead.replace(slice, "");
+    }
+    // 来源白名单可以增长；限制拼装开销，不能把合法来源增长当成写页规则泄漏。
+    expect(overhead.length).toBeLessThan(1000);
+    for (const key of ["pageFormat", "extract", "integrate", "coverage", "lint"] as const)
+      expect(system, key).not.toContain(handbook[key].trim());
+  });
+  it.each(["claude", "codex"] as const)("%s 隔离未授权的手册切片，即使传入完整手册", (provider) => {
+    const excluded = {
+      pageFormat: "WRITE-PAGE-FORMAT-ONLY",
+      extract: "EXTRACT-ONLY",
+      integrate: "INTEGRATE-ONLY",
+      coverage: "COVERAGE-ASSESSMENT-ONLY",
+      lint: "LINT-ONLY",
+    };
+    const req = buildChatRequest({ message: "x" }, { ...hb, ...excluded }, { ...ctx, provider });
+    const system = provider === "codex" ? req.stdin : systemOf(req);
+    for (const marker of Object.values(hb)) expect(system.split(marker)).toHaveLength(2);
+    for (const marker of Object.values(excluded)) expect(system).not.toContain(marker);
   });
   it("长度以讲清为准，并照顾初学者", () => {
-    const system = systemOf(buildChatRequest({ message: "x" }, loadHandbook(join(process.cwd(), "wiki")), ctx));
+    const system = systemOf(
+      buildChatRequest({ message: "x" }, loadHandbook(join(process.cwd(), "wiki")), ctx),
+    );
     expect(system).not.toContain("不超过 400 字");
     expect(system).toContain("初学者");
   });
@@ -74,6 +100,22 @@ describe("parseChatLine", () => {
 });
 
 describe("buildChatRequest", () => {
+  it("passes a CCR route as one model argument while keeping the isolated chat profile", () => {
+    const model = "openrouter,qwen/qwen3-coder:free";
+    const req = buildChatRequest({ message: "x" }, hb, { ...ctx, provider: "claude", model });
+    expect(req.args[req.args.indexOf("--model") + 1]).toBe(model);
+    expect(req.args).toContain("--safe-mode");
+    expect(req.args[req.args.indexOf("--setting-sources") + 1]).toBe("");
+  });
+  it.each(["claude", "codex"] as const)("%s 保留现场问题，不把所有提问预设为学习者提问", (provider) => {
+    const question = "服务启动失败，先收集哪些证据？";
+    const req = buildChatRequest({ message: question }, hb, { ...ctx, provider });
+    expect(req.stdin).toContain(`用户的问题：${question}`);
+    expect(req.stdin).not.toContain("学习者的问题：");
+    const instructions = provider === "codex" ? req.stdin : systemOf(req);
+    expect(instructions.split(hb.query)).toHaveLength(2);
+  });
+
   it("引用导航只提供页面链接，不额外诱导模型复制源码角标", () => {
     const req = buildChatRequest(
       {
@@ -114,9 +156,9 @@ describe("buildChatRequest", () => {
     expect(pinned.args[pinned.args.indexOf("--model") + 1]).toBe("claude-fable-5-1");
     expect(pinned.args).not.toContain("--no-session-persistence");
     expect(buildChatRequest({ message: "q" }, hb, ctx).args).not.toContain("--model");
-    expect(
-      buildChatRequest({ message: "q" }, hb, { ...ctx, model: "claude-opus-5-5[1m]" }).args,
-    ).toContain("claude-opus-5-5[1m]");
+    expect(buildChatRequest({ message: "q" }, hb, { ...ctx, model: "claude-opus-5-5[1m]" }).args).toContain(
+      "claude-opus-5-5[1m]",
+    );
     for (const model of ["", " ", "--tools", "a b", "x;rm"])
       expect(() => buildChatRequest({ message: "q" }, hb, { ...ctx, model })).toThrow(/模型/);
   });
@@ -258,6 +300,7 @@ describe("系统提示写明本轮有哪些工具", () => {
   it("回答里的「没有联网工具」这类说法能被程序认出来", () => {
     expect(claimsOffline("本轮没有联网工具，只能读快照。")).toBe(true);
     expect(claimsOffline("我这一轮只能读知识库快照，读不到上游源码。")).toBe(true);
+    expect(claimsOffline("本轮联网核查工具也不可用，因此尚未核实退出原因。")).toBe(true);
     expect(claimsOffline("默认值为 1，见 [A](sources/a.md)。")).toBe(false);
   });
 });

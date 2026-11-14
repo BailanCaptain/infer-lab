@@ -6,11 +6,13 @@ import { join, posix } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import ReactMarkdown from "react-markdown";
+import { sceneAnchorIds } from "../../src/app/wiki/scene-lessons";
 import { fragmentId } from "../../src/content/wiki/anchors";
 import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { EVIDENCE_MARK_RE, NUMBERED_EVIDENCE_LEVELS } from "../../src/content/wiki/evidenceMarks";
 import { WIKI_REHYPE_PLUGINS, WIKI_REMARK_PLUGINS } from "../../src/content/wiki/markdown";
 import { findPageByName } from "../../src/content/wiki/page-names";
+import { citationProse } from "../../src/content/wiki/retrieve";
 import { isSymmetric, parseRawRef } from "../../src/content/wiki/schema";
 import { buildLayerTimeline } from "../../src/sim/model/forwardLayer";
 import { getTokenPreset } from "../../src/sim/model/presets";
@@ -23,6 +25,7 @@ import { FACTS_BUDGET, MARK_FLOOD } from "./limits";
 import { loadPages, type PageProblem, type WikiPage } from "./pages";
 import { readPageRaw, readRawSnapshot } from "./raw";
 import { configuredRefs, configuredRepoRoots, PRIMARY_REPO } from "./repo-roots";
+import { splitHistory } from "./revisions";
 import { classifySource, supportsOfficialEvidence } from "./sources";
 
 /**
@@ -77,7 +80,7 @@ const LINK_RE = /\]\(([^)\s]+)\)/g;
 function linkTargets(page: WikiPage): string[] {
   const dir = posix.dirname(page.file);
   const out: string[] = [];
-  for (const m of page.body.matchAll(LINK_RE)) {
+  for (const m of citationProse(page.body).matchAll(LINK_RE)) {
     const raw = m[1] ?? "";
     if (/^(https?:|mailto:|#)/.test(raw)) continue;
     out.push(posix.normalize(posix.join(dir, raw.split("#")[0] ?? "")));
@@ -117,6 +120,13 @@ function renderBody(body: string): RenderedBody {
         remarkPlugins: WIKI_REMARK_PLUGINS,
         rehypePlugins: WIKI_REHYPE_PLUGINS,
         components: {
+          code: ({ className, children }) => {
+            if (className === "language-wiki-scene") {
+              const ids = sceneAnchorIds(String(children));
+              if (ids.length) return ids.map((id) => createElement("span", { key: id, id }));
+            }
+            return createElement("code", { className }, children);
+          },
           a: ({ href, node, children }) => {
             links.push({ href: href ?? "", line: node?.position?.start.line ?? 1 });
             return createElement("a", { href }, children);
@@ -275,7 +285,15 @@ function splitRow(row: string): string[] {
  * 参数页判成「evidence 标 S 但没有官方来源」（2026-09-14）。
  */
 function isOfficialDoc(ref: string): boolean {
-  return ref.includes(":docs/") || supportsOfficialEvidence(classifySource(ref));
+  if (ref.includes(":docs/")) return true;
+  if (!supportsOfficialEvidence(classifySource(ref))) return false;
+  const url = new URL(ref);
+  // 官方仓库的代码 URL 与本地源码引用一样，不能计入文档来源。
+  return !(
+    url.hostname === "github.com" &&
+    /^\/[^/]+\/[^/]+\/blob\//.test(url.pathname) &&
+    /\.(?:py|pyi|c|cc|cpp|cxx|h|hpp|cu|cuh|rs|go|js|jsx|ts|tsx|sh)$/i.test(url.pathname)
+  );
 }
 
 /** 代码围栏外、整行是标签的行号（1 起） */
@@ -301,8 +319,16 @@ const MARK_RE = EVIDENCE_MARK_RE;
 const NUMBERED_LEVELS = NUMBERED_EVIDENCE_LEVELS;
 const MARK_DOMINANCE = 0.8;
 
-function markProblems(p: WikiPage): PageProblem[] {
+export function markProblems(p: WikiPage): PageProblem[] {
   const out: PageProblem[] = [];
+  for (const match of citationProse(p.body).matchAll(
+    /(?:[。！？；.!?;]|\[[SCDAIM!]\d*\])[ \t]*\[(\d+)\](?=\s|$|[。！？；.!?;])/g,
+  ))
+    out.push({
+      file: p.file,
+      rule: "mark-bare-index",
+      message: `[${match[1]}] 缺少证据等级，不能解析为来源引用；请使用 [C${match[1]}]、[S${match[1]}] 或相应等级`,
+    });
   const counts = new Map<string, number>();
   let total = 0;
   // 围栏中的 [C99] 等是代码内容，与阅读页的证据标记处理保持一致。
@@ -381,6 +407,18 @@ export function lintPages(pages: WikiPage[], opts: LintOptions): PageProblem[] {
   const inbound = new Set<string>();
 
   for (const p of pages) {
+    if (splitHistory(p.body).history)
+      problems.push({
+        file: p.file,
+        rule: "revision-history",
+        message: "修订历史须留在审阅记录，不能进入学习正文",
+      });
+    if (/^骨架，待补：/m.test(citationProse(p.body)) || p.fm.summary.endsWith("的静态定义，正文待补。"))
+      problems.push({
+        file: p.file,
+        rule: "unfinished-page",
+        message: "参数骨架须留在草稿，补齐教学说明并审阅后才能发布",
+      });
     const prev = ids.get(p.fm.id);
     if (prev)
       problems.push({ file: p.file, rule: "dup-id", message: `id ${p.fm.id} 已被 ${prev.file} 使用` });
@@ -702,9 +740,14 @@ export function lintLog(text: string): PageProblem[] {
   return out;
 }
 
+let stepTerms: readonly string[] | undefined;
+/** The terms come from built-in presets, so the timeline is built once per process. */
 export function collectStepTerms(): string[] {
-  const tl = buildLayerTimeline(getPresetSpec("qwen3-0.6b"), getTokenPreset());
-  return [...new Set(tl.steps.flatMap((s) => s.terms))].sort();
+  if (!stepTerms) {
+    const tl = buildLayerTimeline(getPresetSpec("qwen3-0.6b"), getTokenPreset());
+    stepTerms = [...new Set(tl.steps.flatMap((s) => s.terms))].sort();
+  }
+  return [...stepTerms];
 }
 
 export function runLint(

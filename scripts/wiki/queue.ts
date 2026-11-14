@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { z } from "zod";
-import { localFile } from "./review-files";
+import { localFile, readByStamp } from "./review-files";
 import { atomicText, digest, WorkflowStore } from "./workflow";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -47,14 +47,13 @@ const save = (root: string, task: QueueTask) =>
   atomicText(pathOf(root, task.id), JSON.stringify(taskSchema.parse(task), null, 2));
 export const readTask = (root: string, id: string) =>
   taskSchema.parse(JSON.parse(readFileSync(pathOf(root, id), "utf8")));
+/** Unchanged task files are not reparsed; every caller gets its own copies. */
 export function listTasks(root: string) {
   const dir = localFile(root, "wiki/_jobs/queue");
-  return existsSync(dir)
-    ? readdirSync(dir)
-        .filter((n) => /^[a-f0-9]{64}\.json$/.test(n))
-        .map((n) => readTask(root, n.slice(0, -5)))
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
-    : [];
+  const names = existsSync(dir) ? readdirSync(dir).filter((n) => /^[a-f0-9]{64}\.json$/.test(n)) : [];
+  return structuredClone(readByStamp("queue-tasks", dir, names, (n) => readTask(root, n.slice(0, -5)))).sort(
+    (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+  );
 }
 /** 缺口拆分或合并后同步已关闭任务的关闭计数；调用方持有共享锁 */
 export function setClosureCountInLock(root: string, id: string, count: number) {
@@ -62,6 +61,20 @@ export function setClosureCountInLock(root: string, id: string, count: number) {
   if (task.state !== "closed" || !Number.isInteger(count) || count < 0)
     throw new Error("只能改已关闭任务的关闭计数");
   save(root, { ...task, result: { ...task.result, closureObservationCount: count } });
+}
+/** Explicitly retiring a review must not feed the rejected-review recompilation loop. Caller holds the lock. */
+export function retireReviewTasksInLock(root: string, reviewId: string, reason: string) {
+  const tasks = listTasks(root).filter((t) => t.result?.reviewId === reviewId);
+  if (tasks.some((t) => t.input.kind !== "rewrite" || t.state === "running"))
+    throw new Error("仅可退役未运行的改写任务；缺口任务需保留复测流程");
+  for (const task of tasks) {
+    if (task.state === "closed") continue;
+    save(root, {
+      ...task,
+      state: "closed",
+      result: { ...task.result, closureBasis: "review-retired", retirementReason: reason },
+    });
+  }
 }
 /** Caller must hold the shared lock; used atomically with observations. Never starts a model. */
 export function enqueueInLock(root: string, input: z.infer<typeof taskInputSchema>) {

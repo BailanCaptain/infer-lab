@@ -6,6 +6,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import matter from "gray-matter";
 import { type PageFrontmatter, pageFrontmatterSchema } from "../../src/content/wiki/schema";
+import { readByStamp } from "./review-files";
 
 /** 参数页单独一个目录：它的「版本谱系」由脚本生成，与手写页的处理不同 */
 export const PAGE_DIRS = ["concepts", "params", "sources"] as const;
@@ -57,20 +58,22 @@ export function parsePage(file: string, text: string): { page?: WikiPage; proble
   return { page: { file, fm: r.data, body, bodyLine }, problems };
 }
 
+/** Unchanged page files are not reparsed; every caller gets its own copies. */
 export function loadPages(wikiRoot: string): { pages: WikiPage[]; problems: PageProblem[] } {
   const pages: WikiPage[] = [];
   const problems: PageProblem[] = [];
   for (const dir of PAGE_DIRS) {
     const abs = join(wikiRoot, dir);
     if (!existsSync(abs)) continue;
-    for (const name of readdirSync(abs)
+    const names = readdirSync(abs)
       .filter((n) => n.endsWith(".md"))
-      .sort()) {
-      const file = `${dir}/${name}`;
-      const r = parsePage(file, readFileSync(join(abs, name), "utf8"));
+      .sort();
+    for (const r of readByStamp("pages", abs, names, (name) =>
+      parsePage(`${dir}/${name}`, readFileSync(join(abs, name), "utf8")),
+    )) {
       if (r.page) pages.push(r.page);
       problems.push(...r.problems);
     }
   }
-  return { pages, problems };
+  return structuredClone({ pages, problems });
 }

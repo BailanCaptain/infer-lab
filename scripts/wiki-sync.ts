@@ -14,6 +14,7 @@ try {
             "parameter-diff",
             "github-incremental-if-initialized",
             "patrol",
+            "model-connection-preflight-if-enabled",
             "bounded-reconcile-if-enabled",
             "bounded-drift-if-enabled",
             "bounded-worker-if-enabled",
@@ -27,7 +28,7 @@ try {
   else {
     const result = await syncWiki(process.cwd(), config);
     console.log(JSON.stringify(result, null, 2));
-    if (result.patrol.findings.length || result.deferred) process.exitCode = 1;
+    if (result.patrol.findings.length || result.deferred || result.failures.length) process.exitCode = 1;
   }
 } catch (error) {
   console.error(String(error));

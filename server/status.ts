@@ -8,7 +8,7 @@ import { collectStepTerms } from "../scripts/wiki/lint";
 import { answeredBy, MODEL_ID, modelSwitched, WORK_MODEL } from "../scripts/wiki/model-use";
 import { loadPages } from "../scripts/wiki/pages";
 import { listTasks } from "../scripts/wiki/queue";
-import { listReviews } from "../scripts/wiki/review";
+import { listReviewSummaries } from "../scripts/wiki/review";
 import { readSyncConfig, syncConfigSchema } from "../scripts/wiki/sync-config";
 import { atomicText, WorkflowStore } from "../scripts/wiki/workflow";
 import { findPageByName } from "../src/content/wiki/page-names";
@@ -30,12 +30,17 @@ const pageIds = (root: string, dir: string) =>
  * 不放这里，给命令。
  */
 export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.config.json")) {
+  const config =
+    existsSync(syncConfigPath) || existsSync(syncConfigPath.replace(/\.json$/, ".local.json"))
+      ? readSyncConfig(syncConfigPath)
+      : undefined;
+  const production = config?.mode === "production";
   let budget:
     | {
-        limitUsd: number;
+        limitUsd: number | null;
         chargedUsd: number;
         calls: number;
-        maxCalls: number;
+        maxCalls: number | null;
         paused: boolean;
         pauseReason?: string;
       }
@@ -47,12 +52,14 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     const limitedCalls = b.calls.filter((call) => !call.accountingOnly);
     const unknown = limitedCalls.filter((call) => call.state === "unknown").at(-1);
     budget = {
-      limitUsd: b.policy.limitUsd,
-      chargedUsd: b.chargedUsd,
-      calls: limitedCalls.length,
-      maxCalls: b.policy.maxCalls,
-      paused: b.paused,
-      ...(b.paused && unknown
+      limitUsd: production ? null : b.policy.limitUsd,
+      chargedUsd: production
+        ? b.policy.priorChargedUsd + b.calls.reduce((sum, call) => sum + (call.costUsd ?? 0), 0)
+        : b.chargedUsd,
+      calls: production ? b.calls.length : limitedCalls.length,
+      maxCalls: production ? null : b.policy.maxCalls,
+      paused: production ? false : b.paused,
+      ...(!production && b.paused && unknown
         ? { pauseReason: `${unknown.startedAt.slice(0, 10)} ${unknown.reason ?? ""}` }
         : {}),
     };
@@ -60,10 +67,6 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     budget = undefined; // 没建账本
   }
 
-  const config =
-    existsSync(syncConfigPath) || existsSync(syncConfigPath.replace(/\.json$/, ".local.json"))
-      ? readSyncConfig(syncConfigPath)
-      : undefined;
   // 账本从 2026-09-23 晚起记模型，更早的调用没有这项，不算进分母
   const recorded = calls.filter((call) => call.models && call.billing !== "chatgpt");
   const switched = recorded.filter((call) => modelSwitched(call.models));
@@ -87,9 +90,24 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     switched: switched.length,
     ...(last && hop ? { last: { at: last.startedAt, purpose: last.purpose, ...hop } } : {}),
   };
-  const lastRun = json(join(root, "wiki/_jobs/sync/last-run.json")) as
+  let lastRun = json(join(root, "wiki/_jobs/sync/last-run.json")) as
     | { startedAt?: string; finishedAt?: string; status?: string }
     | undefined;
+  if (lastRun?.status === "running") {
+    const lease = z
+      .object({ active: z.boolean(), pid: z.number().int().positive() })
+      .safeParse(json(join(root, "wiki/_jobs/sync/daily-lease.json")));
+    if (lease.success) {
+      let interrupted = !lease.data.active;
+      if (!interrupted)
+        try {
+          process.kill(lease.data.pid, 0);
+        } catch (error) {
+          interrupted = (error as NodeJS.ErrnoException).code === "ESRCH";
+        }
+      if (interrupted) lastRun = { ...lastRun, status: "interrupted" };
+    }
+  }
   const warnings = join(root, "wiki/warnings");
   const latestParams = existsSync(warnings)
     ? readdirSync(warnings)
@@ -100,7 +118,8 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
   const heldBack = latestParams
     ? ((json(latestParams) as { published?: { heldBack?: number } }).published?.heldBack ?? 0)
     : 0;
-  const paidWork = config ? config.maxTasks + config.reconcileBatches + config.driftSample : 0;
+  const paidWork =
+    config && [config.maxTasks, config.reconcileBatches, config.driftSample].some((quota) => quota !== 0);
 
   const names = loadPages(join(root, "wiki")).pages.map((p) => p.fm);
   const gaps = listGaps(root);
@@ -109,8 +128,9 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
     const page = findPageByName(names, term);
     return { term, ...(page ? { id: page.id, title: page.title } : {}) };
   });
-  const reviews = listReviews(root);
+  const reviews = listReviewSummaries(root);
   return {
+    mode: config?.mode ?? "test",
     budget,
     models,
     nightly: config && {
@@ -120,7 +140,7 @@ export function readStatus(root: string, syncConfigPath = join(root, "wiki/sync.
       fetch: config.fetch,
       github: config.github,
       /** 夜间任务会不会自己调模型：要同时有 paid 授权块和大于 0 的配额 */
-      spendsMoney: !!config.paid && paidWork > 0,
+      spendsMoney: !!config.paid && !!paidWork,
       paidWork: { tasks: config.maxTasks, reconcile: config.reconcileBatches, drift: config.driftSample },
     },
     pages: {

@@ -48,7 +48,9 @@ test.beforeEach(async ({ context }) => {
     await route.fulfill({ response });
   });
 });
-test.afterEach(async () => {
+test.afterEach(async ({ context }) => {
+  // Drain the reader's final refresh before shutting down its isolated API.
+  await context.unrouteAll({ behavior: "wait" });
   if (server && server.exitCode === null) {
     const done = new Promise<void>((r) => server.once("exit", () => r()));
     server.kill();
@@ -57,7 +59,7 @@ test.afterEach(async () => {
   fixture?.cleanup();
 });
 
-for (const width of [1280, 390])
+for (const width of [1440, 1280, 390])
   test(`Drop complete intake, persisted review, figure preview and publication at ${width}px`, async ({
     page,
   }, info) => {
@@ -68,7 +70,15 @@ for (const width of [1280, 390])
     const drop = page.getByRole("tabpanel", { name: "Drop 资料" });
     if (width >= 1200) {
       const panel = page.getByTestId("chat-drawer");
-      await expect.poll(async () => (await panel.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(540);
+      // Expand through the reader's accessible resize control before reviewing the desktop layout.
+      const resize = page.getByRole("separator", { name: "调整问答与正文宽度" });
+      for (let i = 0; i < 5; i++) await resize.press("ArrowLeft");
+      // Narrow desktops reach the reader's minimum body width before the wide review size.
+      if (width >= 1440)
+        await expect.poll(async () => (await panel.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(540);
+      await expect
+        .poll(async () => (await page.getByTestId("wiki-body").boundingBox())?.width ?? 0)
+        .toBeGreaterThanOrEqual(479);
       expect((await panel.boundingBox())!.x).toBeGreaterThan(248);
       await expect(page.getByRole("heading", { name: "已有知识", exact: true })).toBeInViewport();
     }
@@ -90,6 +100,17 @@ for (const width of [1280, 390])
     await expect(page.getByText(/修改后：.*公开资料/)).toBeVisible();
     await expect(page.getByRole("heading", { name: /公式前后预览/ })).toBeVisible();
     await expect(page.locator(".wiki-drop-assets .wiki-calc-result")).toHaveText("2 B");
+    const receipt = page.getByRole("region", { name: "原文与跨页复核记录" });
+    await expect(receipt).toContainText("原文与旧页覆盖 1/1");
+    await receipt.getByText("展开原文覆盖与处理结果", { exact: true }).click();
+    await expect(receipt).toContainText("字符已提供");
+    const popupPromise = page.waitForEvent("popup");
+    await receipt.getByRole("link", { name: "查看原文", exact: true }).click();
+    const raw = await popupPromise;
+    await expect(raw.locator("body")).toContainText("使用时需要保留来源版本");
+    await raw.close();
+    await receipt.getByText("展开跨页与共享资产复核", { exact: true }).click();
+    await expect(receipt).toContainText("共享图");
     await page.screenshot({ path: info.outputPath(`drop-review-${width}.png`), fullPage: true });
     await page.getByRole("button", { name: /批准/ }).click();
     await expect(page.getByTestId("review-state")).toContainText("已发布");

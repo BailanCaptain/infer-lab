@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { reconcileBatches, reconcileCycle } from "./wiki/reconcile";
-import { workflowPolicySchema } from "./wiki/workflow-policy";
+import { configuredWorkflowPolicy, isProduction } from "./wiki/sync-config";
 
 try {
   const { values } = parseArgs({
@@ -16,16 +16,16 @@ try {
   const batches = reconcileBatches(process.cwd()).map((b) => b.map((p) => p.fm.id));
   if (values.plan) console.log(JSON.stringify({ batches, coversWholeInventory: true }, null, 2));
   else {
-    const max = Number(values["max-batches"]);
-    if (!Number.isInteger(max) || max < 1) throw new Error("max-batches 必须为正整数");
-    const policy = workflowPolicySchema.parse({
+    const max = isProduction(process.cwd()) ? null : Number(values["max-batches"]);
+    if (max !== null && (!Number.isInteger(max) || max < 1)) throw new Error("max-batches 必须为正整数");
+    const policy = configuredWorkflowPolicy(process.cwd(), {
       maxCostUsd: Number(values["job-budget-usd"]),
       reserveUsd: Number(values["attempt-budget-usd"]),
       maxAttempts: Number(values["max-attempts"]),
     });
-    console.log(
-      JSON.stringify(await reconcileCycle(process.cwd(), max, policy, { retry: values["retry-failed"] })),
-    );
+    const result = await reconcileCycle(process.cwd(), max, policy, { retry: values["retry-failed"] });
+    console.log(JSON.stringify(result));
+    if (result.failures.length) process.exitCode = 1;
   }
 } catch (error) {
   console.error(String(error));

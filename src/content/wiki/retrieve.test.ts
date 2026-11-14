@@ -124,6 +124,22 @@ describe("citationCheck", () => {
 });
 
 describe("retrieve · 图扩展（AC12）", () => {
+  it("扩展额度有限时，相关正文优先于按文件名排在前面的无关邻居", () => {
+    const nodes = [
+      { id: "anchor", title: "Anchor", text: "入口", related: ["a-unrelated", "z-diagnosis"] },
+      { id: "a-unrelated", title: "无关邻居", text: "别的机制", related: [] },
+      { id: "z-diagnosis", title: "故障诊断", text: "故障的区分方法", related: ["second-hop"] },
+      { id: "second-hop", title: "故障深入", text: "故障故障", related: [] },
+    ].map((p) => ({ ...p, aliases: [], summary: "", chapters: [], evidence: "I" }));
+    const graph = buildIndex(nodes);
+    const result = retrieve("anchor 故障", graph, { limit: 1, expand: true, expansionLimit: 1 });
+    expect(result.map((h) => h.id)).toEqual(["anchor", "z-diagnosis"]);
+    expect(result[1]).toMatchObject({ how: "related", via: "anchor" });
+    expect(retrieve("anchor", graph, { limit: 1, expand: true, expansionLimit: 1 })[1]?.id).toBe(
+      "a-unrelated",
+    );
+  });
+
   it("只声明单向 relations 的页也能从两端扩展，且不走第二跳", () => {
     const graph = buildIndex([
       {

@@ -61,10 +61,10 @@ function filePrompt(req: AgentRequest): string {
 export const selectedAgent =
   (root: string, purpose: string): RunAgent =>
   async (request, onEvent) => {
-    const selection =
-      request.provider && request.model
-        ? { provider: request.provider, model: request.model }
-        : selectedModel(root);
+    const selection = {
+      ...selectedModel(root),
+      ...(request.provider && request.model ? { provider: request.provider, model: request.model } : {}),
+    };
     const args = [...request.args];
     const modelIndex = args.indexOf("--model");
     if (modelIndex < 0) throw new Error("模型请求缺少显式模型参数");

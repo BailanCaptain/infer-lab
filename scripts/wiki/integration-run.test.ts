@@ -42,34 +42,37 @@ function setup() {
 }
 
 describe("staged integration publication", () => {
-  it("refuses an agent rewrite of the existing generated lineage section", async () => {
-    const f = setup();
-    const original = `${page}\n## 版本谱系\n脚本生成的版本记录\n\n## 补充\n原文\n`;
-    f.write("wiki/concepts/a.md", original);
-    await expect(
-      runStagedIntegration(f.root, f.req, ["a"], "2026-09-15", {
-        runAgent: async (req) => {
-          const { writeFileSync } = await import("node:fs");
-          writeFileSync(
-            join(req.cwd, "concepts/a.md"),
-            original.replace("脚本生成的版本记录", "agent 编造的版本记录"),
-          );
-          writeFileSync(
-            join(req.cwd, "_drafts/_integration.json"),
-            JSON.stringify({
-              promoted: ["a"],
-              merged: [],
-              rejected: [],
-              revisions: [{ id: "a", kind: "editorial", reason: "fixture wording change" }],
-            }),
-          );
-          return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
-        },
-        validate: () => [],
-      }),
-    ).rejects.toThrow(/版本谱系/);
-    expect(readFileSync(join(f.root, "wiki/concepts/a.md"), "utf8")).toBe(original);
-  });
+  it.each(["版本谱系", "参数定义（自动生成）"])(
+    "refuses an agent rewrite of the existing generated section: %s",
+    async (heading) => {
+      const f = setup();
+      const original = `${page}\n## ${heading}\n脚本生成的版本记录\n\n## 补充\n原文\n`;
+      f.write("wiki/concepts/a.md", original);
+      await expect(
+        runStagedIntegration(f.root, f.req, ["a"], "2026-09-15", {
+          runAgent: async (req) => {
+            const { writeFileSync } = await import("node:fs");
+            writeFileSync(
+              join(req.cwd, "concepts/a.md"),
+              original.replace("脚本生成的版本记录", "agent 编造的版本记录"),
+            );
+            writeFileSync(
+              join(req.cwd, "_drafts/_integration.json"),
+              JSON.stringify({
+                promoted: ["a"],
+                merged: [],
+                rejected: [],
+                revisions: [{ id: "a", kind: "editorial", reason: "fixture wording change" }],
+              }),
+            );
+            return { id: req.id, ok: true, exitCode: 0, stderrTail: "" };
+          },
+          validate: () => [],
+        }),
+      ).rejects.toThrow(/版本谱系|参数定义/);
+      expect(readFileSync(join(f.root, "wiki/concepts/a.md"), "utf8")).toBe(original);
+    },
+  );
   it("does not publish an agent proposal before human approval", async () => {
     const f = setup();
     await runStagedIntegration(f.root, f.req, ["a"], "2026-09-15", {

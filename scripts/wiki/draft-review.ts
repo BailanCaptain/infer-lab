@@ -1,18 +1,25 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import matter from "gray-matter";
 import { z } from "zod";
+import { CHAPTER_IDS } from "../../src/content/wiki/chapters";
 import { buildIndex, retrieve } from "../../src/content/wiki/retrieve";
 import type { RunAgent } from "./batch";
+import { inputByteLimit, jsonBytes } from "./context-window";
 import { loadHandbook } from "./handbook";
 import { integrationSchema, localDate, selectRelevantPages } from "./ingest";
 import { validateIntegration } from "./integration-check";
 import { runStagedIntegration } from "./integration-run";
+import { lintPages, splitProblems, wikiFileExists } from "./lint";
+import { readLongMaterial } from "./long-material";
 import { relevantPageIds } from "./navigation";
-import { loadPages, parsePage } from "./pages";
+import { loadPages, parsePage, type WikiPage } from "./pages";
 import { configuredRepoRoots } from "./repo-roots";
-import { listReviews } from "./review";
+import { isEmptyReview, listReviews, type Review, readReview, retireReview } from "./review";
 import { localFile } from "./review-files";
-import { PAGE_TEXT_TIMEOUT_MS, runStructured, STRUCTURED_INPUT_LIMIT } from "./structured";
+import { revisePage } from "./revisions";
+import { integrateSections } from "./section-integration";
+import { PAGE_TEXT_TIMEOUT_MS, runStructured } from "./structured";
 import { digest } from "./workflow";
 import type { WorkflowPolicy } from "./workflow-policy";
 
@@ -25,8 +32,18 @@ export async function prepareDraftReview(
 ) {
   const path = `wiki/_drafts/${id}.md`;
   const text = readFileSync(localFile(root, path), "utf8");
-  const prior = listReviews(root).find((r) => r.payload.base[path] === digest(text));
-  if (prior) return { reviewId: prior.id, state: prior.state };
+  const matching = listReviews(root).filter((r) => r.payload.base[path] === digest(text));
+  const prior = matching.find((r) => r.state !== "rejected") ?? matching[0];
+  const finish = async (review: Review) => {
+    if (review.state === "pending" && isEmptyReview(review))
+      review = await retireReview(
+        root,
+        review.id,
+        "本次整合没有文件、日志或矛盾变更；保留材料和判定，不生成空待审",
+      );
+    return { reviewId: review.id, state: review.state };
+  };
+  if (prior) return finish(prior);
   const parsed = parsePage(`_drafts/${id}.md`, text);
   if (!parsed.page || parsed.problems.length) throw new Error("整合草稿无效");
   const roots = configuredRepoRoots(root);
@@ -53,6 +70,7 @@ export async function prepareDraftReview(
         .filter((p) => refs.some((r) => r.id === p.fm.id) || hits.slice(0, 3).some((h) => h.id === p.fm.id))
         .sort((a, b) => Number(b.fm.id === id) - Number(a.fm.id === id))
         .slice(0, 6);
+      const related = selected;
       // 目录只列相关页、仅供定位：带全库 id 与摘要时 104 页就占 13,838 字符（2026-09-23），库一大单它就超上限
       const catalog = relevantPageIds(index, {
         ids: selected.map((p) => p.fm.id),
@@ -60,13 +78,82 @@ export async function prepareDraftReview(
         query,
       });
       const byId = new Map(loaded.pages.map((p) => [p.fm.id, p.fm]));
-      const handbook = loadHandbook(req.cwd);
+      const existing = selected.find((p) => p.fm.id === id);
+      const handbook = loadHandbook(req.cwd, `${parsed.page!.body}\n${existing?.body ?? ""}`, !!existing);
+      const writingRules = `${handbook.pageFormat}\n${handbook.integrate}`;
+      const rules = `${writingRules}\n本次无文件工具，只返回严格 JSON {"pages":[{"path":"sources/id.md","text":"完整 Markdown"}],"decision":{"promoted":[],"merged":[],"rejected":[],"contradictions":[],"revisions":[]}}。按整合规则判断更新、合并、补关系与矛盾，decision 必须恰好处置本草稿。只可修改已提供全文的页或创建与草稿同 id 的页；材料不足时拒收并说明。来源必须来自草稿或提供的旧页。catalog 只列相关页、仅供定位（catalogOmitted 是没列出的页数），禁止凭它补事实。`;
+      const budget = inputByteLimit(root, rules);
       const schema = z
         .object({
           pages: z.array(z.object({ path: z.string(), text: z.string().min(1) }).strict()).max(7),
           decision: integrationSchema,
         })
-        .strict();
+        .strict()
+        .superRefine((value, ctx) => {
+          const candidates: WikiPage[] = [];
+          const allowedSources = new Set([
+            ...parsed.page!.fm.sources,
+            ...selected.flatMap((p) => p.fm.sources),
+          ]);
+          for (const [index, output] of value.pages.entries()) {
+            const checked = parsePage(output.path, output.text);
+            if (
+              !checked.page ||
+              checked.problems.length ||
+              checked.page.fm.sources.some((source) => !allowedSources.has(source))
+            ) {
+              ctx.addIssue({
+                code: "custom",
+                path: ["pages", index, "text"],
+                message: "整合输出含未提供的来源或无效页面",
+              });
+              continue;
+            }
+            candidates.push(checked.page);
+            const previous = selected.find((p) => p.file === output.path);
+            if (previous)
+              try {
+                revisePage(
+                  output.path,
+                  readFileSync(join(req.cwd, previous.file), "utf8"),
+                  output.text,
+                  value.decision.revisions?.find((r) => r.id === previous.fm.id),
+                  localDate(),
+                );
+              } catch (error) {
+                ctx.addIssue({
+                  code: "custom",
+                  path: ["pages", index, "text"],
+                  params: {
+                    rule: String(error).includes("补充修订不能删改")
+                      ? "supplement-preservation"
+                      : "revision-history",
+                  },
+                  message: String(error),
+                });
+              }
+          }
+          const candidateFiles = new Set(candidates.map((p) => p.file));
+          for (const problem of splitProblems(
+            lintPages([...loaded.pages.filter((p) => !candidateFiles.has(p.file)), ...candidates], {
+              chapterIds: CHAPTER_IDS,
+              existsFile: wikiFileExists(req.cwd),
+            }),
+          ).errors)
+            ctx.addIssue({
+              code: "custom",
+              path: [
+                "pages",
+                Math.max(
+                  0,
+                  value.pages.findIndex((p) => p.path === problem.file),
+                ),
+                "text",
+              ],
+              params: { rule: problem.rule },
+              message: `${problem.rule}: ${problem.message}`,
+            });
+        });
       const packet = () => ({
         mode: "draft-integration",
         draft: { id, text },
@@ -82,12 +169,126 @@ export async function prepareDraftReview(
         })),
         catalogOmitted: catalog.omitted,
       });
-      while (
-        JSON.stringify(packet()).length > STRUCTURED_INPUT_LIMIT &&
-        selected.length &&
-        selected.at(-1)!.fm.id !== id
-      )
+      while (jsonBytes(packet()) > budget && selected.length && selected.at(-1)!.fm.id !== id)
         selected = selected.slice(0, -1);
+      if (selected.some((p) => p.fm.id === id)) {
+        const previous = selected.find((p) => p.fm.id === id)!;
+        const changed = await integrateSections(
+          root,
+          {
+            path: previous.file,
+            previous: readFileSync(join(req.cwd, previous.file), "utf8"),
+            draft: text,
+            rules: writingRules,
+            policy,
+          },
+          deps,
+        );
+        if (changed) writeFileSync(join(req.cwd, previous.file), changed.text);
+        writeFileSync(
+          join(req.cwd, "_drafts/_integration.json"),
+          JSON.stringify({
+            promoted: [],
+            merged: changed ? [{ from: id, into: id }] : [],
+            rejected: changed ? [] : [{ id, reason: "逐段核对未找到需更改正文的新证据；保持现有内容" }],
+            contradictions: [],
+            revisions: changed ? [changed.revision] : [],
+          }),
+        );
+        return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0 };
+      }
+      if (jsonBytes(packet()) > budget) {
+        const assessmentRules = `${handbook.integrate}
+这是一份已编译但超过单次窗口的新草稿。根据逐段阅读后的引文判断收录位置，只返回 {"action":"promote|merge|reject","target":"合并目标 id，仅 merge 时提供","reason":"依据和限制"}。promote 会原样保留完整草稿供人工审阅；merge 只可选提供的现有页；证据不足则 reject。摘要不是事实原文，不能据遗漏断言没有内容。`;
+        const assessmentBudget = inputByteLimit(root, assessmentRules);
+        const sources = [
+          { source: `_drafts/${id}.md`, text },
+          ...related.map((p) => ({ source: p.file, text: readFileSync(join(req.cwd, p.file), "utf8") })),
+        ];
+        const evidence = await readLongMaterial(
+          root,
+          {
+            topic: `${parsed.page!.fm.title}：与所给现有页的重复、补充和独立主题边界`,
+            sources,
+            maxBytes: assessmentBudget - 8192,
+            origin: parsed.page!.fm.origin,
+            policy,
+          },
+          deps,
+        );
+        const assessment = await runStructured(
+          root,
+          {
+            kind: "long-draft-assessment-v1",
+            origin: parsed.page!.fm.origin,
+            policy,
+            rules: assessmentRules,
+            data: { mode: "long-draft-assessment", id, candidates: related.map((p) => p.fm.id), evidence },
+            maxInputChars: assessmentBudget,
+            timeoutMs: PAGE_TEXT_TIMEOUT_MS,
+            schema: z
+              .object({
+                action: z.enum(["promote", "merge", "reject"]),
+                target: z.string().optional(),
+                reason: z.string().min(1).max(2000),
+              })
+              .strict()
+              .superRefine((value, ctx) => {
+                if (value.action === "merge" && !related.some((p) => p.fm.id === value.target))
+                  ctx.addIssue({ code: "custom", message: "合并目标不在提供的现有页中" });
+                if (value.action !== "merge" && value.target)
+                  ctx.addIssue({ code: "custom", message: "非合并决策不应包含目标" });
+              }),
+          },
+          deps,
+        );
+        const decision = assessment.value;
+        const previous = related.find((p) => p.fm.id === decision.target);
+        const changed =
+          decision.action === "merge" && previous
+            ? await integrateSections(
+                root,
+                {
+                  path: previous.file,
+                  previous: readFileSync(join(req.cwd, previous.file), "utf8"),
+                  draft: text,
+                  draftId: id,
+                  rules: writingRules,
+                  policy,
+                },
+                deps,
+              )
+            : undefined;
+        if (changed && previous) writeFileSync(join(req.cwd, previous.file), changed.text);
+        if (decision.action === "promote") {
+          const directory =
+            parsed.page!.fm.type === "param"
+              ? "params"
+              : parsed.page!.fm.type === "source" || parsed.page!.fm.type === "pr"
+                ? "sources"
+                : "concepts";
+          mkdirSync(join(req.cwd, directory), { recursive: true });
+          const original = matter(text);
+          writeFileSync(
+            join(req.cwd, directory, `${id}.md`),
+            matter.stringify(original.content, { ...original.data, updated: localDate() }),
+          );
+        }
+        writeFileSync(
+          join(req.cwd, "_drafts/_integration.json"),
+          JSON.stringify({
+            promoted: decision.action === "promote" ? [id] : [],
+            merged: changed && previous ? [{ from: id, into: previous.fm.id }] : [],
+            rejected:
+              decision.action === "reject" || (decision.action === "merge" && !changed)
+                ? [{ id, reason: decision.reason }]
+                : [],
+            contradictions: [],
+            revisions: changed ? [changed.revision] : [],
+          }),
+        );
+        return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0 };
+      }
       const sources = new Set([...parsed.page!.fm.sources, ...selected.flatMap((p) => p.fm.sources)]);
       const decision = await runStructured(
         root,
@@ -97,7 +298,8 @@ export async function prepareDraftReview(
           policy,
           data: packet(),
           timeoutMs: PAGE_TEXT_TIMEOUT_MS,
-          rules: `${handbook.pageFormat}\n${handbook.integrate}\n本次无文件工具，只返回严格 JSON {"pages":[{"path":"sources/id.md","text":"完整 Markdown"}],"decision":{"promoted":[],"merged":[],"rejected":[],"contradictions":[],"revisions":[]}}。按整合规则判断更新、合并、补关系与矛盾，decision 必须恰好处置本草稿。只可修改已提供全文的页或创建与草稿同 id 的页；材料不足时拒收并说明。来源必须来自草稿或提供的旧页。catalog 只列相关页、仅供定位（catalogOmitted 是没列出的页数），禁止凭它补事实。`,
+          rules,
+          maxInputChars: budget,
           schema,
         },
         deps,
@@ -127,5 +329,5 @@ export async function prepareDraftReview(
       return { id: req.id, ok: true, exitCode: 0, stderrTail: "", costUsd: 0 };
     },
   });
-  return { reviewId: result.reviewId, state: "pending" };
+  return finish(readReview(root, result.reviewId));
 }

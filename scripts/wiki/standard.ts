@@ -10,7 +10,6 @@ import { z } from "zod";
 import { EVIDENCE_MARK_RE } from "../../src/content/wiki/evidenceMarks";
 import { diagramRefs, type LoadedDiagram } from "./diagrams";
 import type { PageProblem } from "./pages";
-import { isRevisionEntryHeading, REVISION_HISTORY_HEADING } from "./revisions";
 
 export const STANDARD_RULES = [
   "code-density",
@@ -85,6 +84,15 @@ const INLINE_CODE_RE = /`[^`\n]+`/g;
 const HAN_RE = /\p{Script=Han}/gu;
 const LATIN_WORD_RE = /[A-Za-z][A-Za-z0-9_]*/g;
 
+/** Keep existing prose intact while refusing newly introduced teaching citations. */
+export function proseEvidenceLines(body: string, cfg: StandardConfig): string[] {
+  const blocks = blocksOf(body, 0);
+  const cut = blocks.findIndex((b) => b.kind === "heading" && b.level === 2 && b.text === cfg.sourceSection);
+  return (cut < 0 ? blocks : blocks.slice(0, cut))
+    .flatMap((b) => ("text" in b ? b.text.split(/\r?\n/) : []))
+    .filter((line) => [...line.replace(INLINE_CODE_RE, "").matchAll(EVIDENCE_MARK_RE)].length > 0);
+}
+
 function wordCount(text: string): number {
   const visible = text.replace(/\]\([^)\s]*\)/g, "]");
   return (visible.match(HAN_RE) ?? []).length + (visible.match(LATIN_WORD_RE) ?? []).length;
@@ -151,16 +159,7 @@ export function measureStandard(
   let sourceSections: string | null = null;
   if (cut < 0) sourceSections = `缺少「## ${cfg.sourceSection}」`;
   else {
-    let after = blocks.slice(cut + 1).filter((b) => b.kind === "heading");
-    const historyAt = after.findIndex((b) => b.level === 2 && `## ${b.text}` === REVISION_HISTORY_HEADING);
-    // The engine's final audit section is not teaching content. Other trailing headings
-    // still fail, and publication separately verifies the history against its decision.
-    if (
-      historyAt >= 0 &&
-      historyAt < after.length - 1 &&
-      after.slice(historyAt + 1).every((b) => b.level === 3 && isRevisionEntryHeading(b.text))
-    )
-      after = after.slice(0, historyAt);
+    const after = blocks.slice(cut + 1).filter((b) => b.kind === "heading");
     const h2 = after.filter((b) => b.level === 2).map((b) => b.text);
     const h3 = after.filter((b) => b.level === 3).map((b) => b.text);
     const want = cfg.sourceSubsections;

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { localFixVersions, looksLikeError, traceChat } from "./chat-trace";
 import { GithubClient } from "./github";
 import { TraceSession, traceConfigSchema } from "./github-trace";
@@ -17,6 +17,7 @@ const config = traceConfigSchema.parse({
 const fixtures: ReturnType<typeof wikiFixture>[] = [];
 afterEach(() => {
   for (const f of fixtures.splice(0)) f.cleanup();
+  vi.unstubAllGlobals();
 });
 
 const item = (number: number, pr: boolean, body: string) => ({
@@ -76,6 +77,26 @@ it("普通提问不去 GitHub：没有异常类名或 traceback 就不发任何�
   expect(looksLikeError("报 AttributeError: 'NPUModelRunner' object has no attribute 'x' 怎么办")).toBe(true);
   expect(looksLikeError("Traceback (most recent call last):")).toBe(true);
   expect(looksLikeError("KV Cache 是什么")).toBe(false);
+});
+
+it("停止提问也会中止正在进行的 GitHub 排错请求", async () => {
+  const f = localClone();
+  const cancel = new AbortController();
+  let requestSignal: AbortSignal | undefined;
+  const fetcher = vi.fn(
+    (_url: unknown, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        requestSignal = init.signal!;
+        requestSignal.addEventListener("abort", () => reject(requestSignal!.reason), { once: true });
+        cancel.abort();
+      }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  await expect(
+    traceChat(f.root, "RuntimeError: collective failed", { signal: cancel.signal }),
+  ).rejects.toMatchObject({ name: "AbortError" });
+  expect(requestSignal?.aborted).toBe(true);
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
 it("retains the screened search body when thread inspection is rate limited", async () => {

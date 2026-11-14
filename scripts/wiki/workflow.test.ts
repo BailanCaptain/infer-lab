@@ -20,6 +20,21 @@ const setup = () => {
 };
 
 describe("persistent wiki workflow", () => {
+  it("waits for a live transaction lasting longer than one second without stealing it", async () => {
+    const f = setup();
+    const { rmSync } = await import("node:fs");
+    const store = new WorkflowStore(f.root);
+    f.write(
+      "tools/wiki-runtime/workflow.lock",
+      JSON.stringify({ pid: process.pid, at: new Date().toISOString() }),
+    );
+    const release = setTimeout(() => rmSync(`${store.runtimeDir}/workflow.lock`), 2500);
+    try {
+      expect(await store.locked(() => "acquired")).toBe("acquired");
+    } finally {
+      clearTimeout(release);
+    }
+  });
   it("keeps a budget overrun visible even when the native runner also fails", async () => {
     const f = setup();
     const store = new WorkflowStore(f.root);

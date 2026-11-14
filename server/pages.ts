@@ -10,7 +10,14 @@ export async function handlePages(req: IncomingMessage, res: ServerResponse, roo
     return true;
   }
   try {
-    send(res, 200, await readReaderSnapshot(root));
+    const snapshot = await readReaderSnapshot(root);
+    const etag = `"${snapshot.revision}"`;
+    res.setHeader("ETag", etag);
+    res.setHeader("Cache-Control", "no-cache");
+    if (req.headers["if-none-match"] === etag) {
+      res.writeHead(304);
+      res.end();
+    } else send(res, 200, snapshot);
   } catch (error) {
     send(res, 503, { error: String(error) });
   }

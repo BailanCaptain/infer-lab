@@ -10,9 +10,21 @@ const uuid = z.string().uuid();
 /**
  * 一个模型会话最多续答几轮。2026-09-23 实测同一会话连问四轮，费用 $0.66 → $1.15 → $1.60 → $2.01：
  * 续会话要带上全部历史，每轮约贵 $0.45，第四轮就超过 $2 的单次预留、触发共享预算熔断。
- * 答满就换新会话，旧问题只留作指代上下文（和知识版本变化时的处理一样）。
+ * 答满就换新会话；同知识、同模型保留有界问答作指代，知识或模型变化时只保留问题。
  */
 export const MAX_SESSION_TURNS = 3;
+export const CHAT_HISTORY_BYTES = 32 * 1024;
+const turnSchema = z.object({ question: z.string(), answer: z.string() }).strict();
+export type ChatTurn = z.infer<typeof turnSchema>;
+// Keep whole consecutive turns; a partial log or answer could reverse its meaning.
+function recentTurns(turns: ChatTurn[]): ChatTurn[] {
+  const kept: ChatTurn[] = [];
+  for (const turn of turns.slice(-MAX_SESSION_TURNS).reverse()) {
+    if (Buffer.byteLength(JSON.stringify([turn, ...kept]), "utf8") > CHAT_HISTORY_BYTES) break;
+    kept.unshift(turn);
+  }
+  return kept;
+}
 const sessionSchema = z
   .object({
     id: uuid,
@@ -22,6 +34,7 @@ const sessionSchema = z
     /** 当前模型会话已答的轮数；换会话时从头数 */
     turns: z.number().int().nonnegative().default(0),
     questions: z.array(z.string().max(8000)).max(6),
+    history: z.array(turnSchema).max(MAX_SESSION_TURNS).default([]),
     active: z.object({ token: uuid, pid: z.number().int().positive() }).optional(),
   })
   .strict();
@@ -34,6 +47,8 @@ export interface ChatLease {
   agentSessionId?: string | undefined;
   previousQuestions: string[];
   contextQuestions: string[];
+  contextTurns: ChatTurn[];
+  historyOmitted: boolean;
   resetReason?: "knowledge-updated" | "session-unavailable" | "turn-limit" | "model-changed" | undefined;
 }
 const pathOf = (root: string, id: string) =>
@@ -65,13 +80,14 @@ export function beginChat(
     const known = id && uuid.safeParse(id).success && existsSync(pathOf(root, id));
     const session: Session = known
       ? read(root, id)
-      : { id: randomUUID(), revision, modelKey, turns: 0, questions: [] };
+      : { id: randomUUID(), revision, modelKey, turns: 0, questions: [], history: [] };
     if (session.active && alive(session.active.pid))
       throw new HttpError(409, "这段会话正在回答，请等待结束后再提问");
     const changed = session.revision !== revision;
     const exhausted = !changed && session.turns >= MAX_SESSION_TURNS;
     const modelChanged = session.modelKey !== modelKey;
     const fresh = changed || exhausted || modelChanged || !session.agentSessionId;
+    const contextTurns = changed || modelChanged ? [] : recentTurns(session.history);
     const token = randomUUID();
     const lease: ChatLease = {
       id: session.id,
@@ -81,6 +97,8 @@ export function beginChat(
       agentSessionId: fresh ? undefined : session.agentSessionId,
       previousQuestions: fresh ? session.questions : [],
       contextQuestions: session.questions,
+      contextTurns,
+      historyOmitted: contextTurns.length < session.questions.length,
       resetReason: changed
         ? "knowledge-updated"
         : modelChanged
@@ -101,7 +119,7 @@ export function finishChat(
   root: string,
   lease: ChatLease,
   question: string,
-  result: { ok: boolean; sessionId?: string | undefined },
+  result: { ok: boolean; sessionId?: string | undefined; answer?: string | undefined },
 ): Promise<void> {
   return new WorkflowStore(root).locked(() => {
     const session = read(root, lease.id);
@@ -113,6 +131,9 @@ export function finishChat(
       // 续上旧会话就累加；这轮开的是新会话就从 1 数起
       session.turns = lease.agentSessionId ? session.turns + 1 : 1;
       session.questions = [...session.questions, question.slice(0, 8000)].slice(-6);
+      session.history = result.answer
+        ? recentTurns([...lease.contextTurns, { question, answer: result.answer }])
+        : [];
     }
     delete session.active;
     write(root, session);

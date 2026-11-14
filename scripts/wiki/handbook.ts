@@ -91,9 +91,41 @@ export function sliceHandbook(content: string): HandbookSlices {
  */
 export const TERMS_FILE = "TERMS.md";
 
-export function loadHandbook(wikiRoot: string): HandbookSlices {
+export function loadHandbook(wikiRoot: string, termsContext?: string, textOnly = false): HandbookSlices {
   const slices = sliceHandbook(readFileSync(join(wikiRoot, "HANDBOOK.md"), "utf8"));
+  // Exact text revisions cannot alter figures. Their geometry authoring guide is
+  // unrelated input; retain all evidence, source, revision and writing rules.
+  if (textOnly) {
+    const start = slices.pageFormat.indexOf("### 图\n");
+    const end = slices.pageFormat.indexOf("\n### ", start + 1);
+    if (start >= 0 && end > start)
+      slices.pageFormat = slices.pageFormat.slice(0, start) + slices.pageFormat.slice(end);
+    slices.pageFormat += "\n本次只准备现有页的文字修订，保留图、公式及自动生成区；不要生成或改写图规格。\n";
+  }
+  // Writers have no file tools, and integration copies contain only wiki/. Resolve
+  // the canonical standard beside the code so every writing path receives it.
+  const standard = readFileSync(new URL("../../docs/wiki-writing-standard.md", import.meta.url), "utf8");
+  slices.pageFormat += `\n以下是正式写作标准全文；适用范围按标准执行，与手册摘要冲突时以此为准。\n${standard}`;
   const terms = join(wikiRoot, TERMS_FILE);
-  if (existsSync(terms)) slices.pageFormat += `\n${readFileSync(terms, "utf8")}`;
+  if (existsSync(terms)) {
+    const text = readFileSync(terms, "utf8");
+    const context = termsContext?.toLowerCase();
+    const selected =
+      context === undefined
+        ? text
+        : text
+            .split("\n")
+            .filter((line) => {
+              if (!line.startsWith("|") || /^\|\s*(统一叫法|---)/.test(line)) return true;
+              const cells = line.split("|").map((cell) => cell.trim());
+              return [cells[1], cells[2], cells[4]].some((cell) =>
+                cell
+                  ?.split(/[、,，;；（）()]/)
+                  .some((name) => name.trim() && context.includes(name.trim().toLowerCase())),
+              );
+            })
+            .join("\n");
+    slices.pageFormat += `\n${selected}`;
+  }
   return slices;
 }

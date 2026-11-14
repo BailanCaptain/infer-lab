@@ -24,6 +24,61 @@ function snapshot(version: string) {
 }
 
 describe("reader snapshot state", () => {
+  it("a not-modified response preserves loaded pages while marking the build as current", async () => {
+    const store = createReaderStore(snapshot("a"));
+    const article = store.getPage("a");
+    await store.refresh(async () => null);
+    expect(store.getState().mode).toBe("local");
+    expect(store.getPage("a")).toBe(article);
+    expect(() => store.install(null)).toThrow();
+  });
+  it("unchanged refreshes preserve article and diagram identity", async () => {
+    const store = createReaderStore(snapshot("a"));
+    const article = store.getPage("a");
+    const diagrams = store.getState().diagrams;
+    await store.refresh(async () => snapshot("a"));
+    expect(store.getPage("a")).toBe(article);
+    expect(store.getState().diagrams).toBe(diagrams);
+  });
+
+  it("loads only the requested page once and refuses an old in-flight page after publication", async () => {
+    const full = snapshot("a");
+    let resolve!: (value: unknown) => void;
+    const load = vi.fn(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const store = createReaderStore({ revision: full.revision, registry: full.registry }, load);
+    expect(store.getPage("a")).toBeUndefined();
+    const first = store.ensurePage("a");
+    const second = store.ensurePage("a");
+    expect(load).toHaveBeenCalledTimes(1);
+    store.install(snapshot("b"));
+    resolve({ revision: full.revision, ...full.pageTexts[0], diagrams: [] });
+    await Promise.all([first, second]);
+    expect(store.getPage("a")?.body).toBe("b");
+  });
+
+  it("validates lazy page identity, retries failures and installs its diagrams together", async () => {
+    const full = snapshot("a");
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce({ revision: "b".repeat(64), ...full.pageTexts[0], diagrams: [] })
+      .mockResolvedValueOnce({
+        revision: full.revision,
+        ...full.pageTexts[0],
+        diagrams: [{ id: "figure", svg: "<svg/>" }],
+      });
+    const store = createReaderStore({ revision: full.revision, registry: full.registry }, load);
+    await expect(store.ensurePage("a")).rejects.toThrow("版本");
+    await store.ensurePage("a");
+    expect(store.getPage("a")?.body).toBe("a");
+    expect(store.getState().diagrams.get("figure")).toBe("<svg/>");
+    await store.ensurePage("a");
+    expect(load).toHaveBeenCalledTimes(2);
+  });
   it("keeps the build revision, then replaces body, metadata and revision together", () => {
     const store = createReaderStore(snapshot("a"));
     expect(store.getState()).toMatchObject({ revision: "a".repeat(64), mode: "build" });

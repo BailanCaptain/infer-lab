@@ -1,13 +1,10 @@
 {
+  "mode": "production",
   "seeds": "wiki/seeds/vllm-ascend.yaml",
   "fetch": true,
   "parameters": true,
-  "maxNewParamPages": 10,
   "github": true,
   "githubRepo": "vllm-project/vllm-ascend",
   "patrolAgeDays": 30,
-  "checkUrls": true,
-  "maxTasks": 0,
-  "reconcileBatches": 0,
-  "driftSample": 0
+  "checkUrls": true
 }

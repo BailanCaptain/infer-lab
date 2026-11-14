@@ -33,6 +33,18 @@ const mk = (id: string, over: Partial<WikiPage["fm"]> = {}, body = ""): WikiPage
 });
 const opts = { chapterIds: ["11", "12"], existsFile: (rel: string) => rel === "raw/a.md" };
 
+it("blocks audit tails and unfinished scanner output before publication", () => {
+  expect(lintPages([mk("a", {}, "## 已废弃的说法\n旧文。")], opts).map((p) => p.rule)).toContain(
+    "revision-history",
+  );
+  expect(lintPages([mk("a", {}, "骨架，待补：为什么存在。")], opts).map((p) => p.rule)).toContain(
+    "unfinished-page",
+  );
+  expect(
+    lintPages([mk("a", {}, "```text\n## 已废弃的说法\n骨架，待补：示例。\n```")], opts).map((p) => p.rule),
+  ).not.toContain("revision-history");
+});
+
 it("flags substantive cross-page overlap unless either page links to the other", () => {
   const body = "## 相同的调度限制\n调度队列达到上限之后会暂停接纳新的请求。\n";
   const a = mk("a", {}, body);
@@ -342,6 +354,22 @@ describe("lintPages · HANDBOOK 新规则", () => {
     const wrong = lintPages([mkRaw("a", {}, `${fullBody}\nx [D1]。`)], opts);
     expect(wrong.find((p) => p.rule === "mark-index")?.message).toContain("不该带编号");
   });
+  it("rejects a bare source number after a sentence, while leaving links and code alone", () => {
+    expect(lintPages([mkRaw("a", {}, `${fullBody}\n新增结论。[1]\n`)], opts).map((p) => p.rule)).toContain(
+      "mark-bare-index",
+    );
+    const examples = `${fullBody}\n\`示例。[1]\`\n结论。[1](https://example.com/)\n\`示例。[I][28]\`\n结论。[I][28](https://example.com/)\n\`\`\`text\n示例。[1]\n示例。[I][28]\n\`\`\``;
+    expect(lintPages([mkRaw("a", {}, examples)], opts).map((p) => p.rule)).not.toContain("mark-bare-index");
+  });
+
+  it.each(["新增结论。[I][28]\n", "新增结论 [D][1]。", "新增结论。[C1][1]\n"])(
+    "rejects a bare source number following an evidence mark: %s",
+    (body) => {
+      expect(lintPages([mkRaw("a", {}, `${fullBody}\n${body}`)], opts).map((p) => p.rule)).toContain(
+        "mark-bare-index",
+      );
+    },
+  );
 
   it("mark-flood：标记过密只警告", () => {
     const many = `${fullBody}\n${"句子 [C1]。".repeat(31)}`;
@@ -381,6 +409,23 @@ describe("lintPages · HANDBOOK 新规则", () => {
   it("doc-evidence：标 S 却一条文档来源都没有也报红", () => {
     const bad = mkRaw("a", { sources: ["r@abc1234:a.py#L1"], evidence: "S" }, fullBody);
     expect(lintPages([bad], opts).map((p) => p.rule)).toContain("doc-evidence");
+  });
+
+  it("doc-evidence：官方 GitHub blob 的源码仍是代码证据，文档仍是文档", () => {
+    const root =
+      "https://github.com/ModelEngine-Group/unified-cache-management/blob/4b9acbc8dede919ae17b14c3a23903e89623d5e8/";
+    const sources = [
+      `${root}ucm/integration/vllm/ucm_connector.py#L1-L20`,
+      `${root}ucm/store/cache/v2/global_config.h#L45-L175`,
+    ];
+    const rules = (refs: string[], evidence: "C" | "S") =>
+      lintPages([mkRaw("a", { sources: refs, evidence }, fullBody)], opts).map((p) => p.rule);
+    expect(rules(sources, "C")).not.toContain("doc-evidence");
+    expect(rules(sources, "S")).toContain("doc-evidence");
+    const docs = [`${root}docs/docs-site/docs/en/developer-guide/request-lifecycle.md`, `${root}README.md`];
+    expect(rules(docs, "S")).not.toContain("doc-evidence");
+    expect(rules(docs, "C")).toContain("doc-evidence");
+    expect(rules([...sources, docs[0]!], "C")).not.toContain("doc-evidence");
   });
 
   it("diagram-identifier：图里的文件在 sources 覆盖范围外报红", () => {
@@ -566,6 +611,15 @@ describe("broken-anchor：链接里的 #锚点 必须是目标页阅读页上真
   it("本页锚点 (#x) 查本页的标题", () => {
     expect(anchors("## 本页一节\n[上](#本页一节)")).toEqual([]);
     expect(anchors("## 本页一节\n[上](#别的一节)")).toHaveLength(1);
+  });
+
+  it("连续请求图解保留播放器和四个分段入口，越界或普通代码块不生成入口", () => {
+    const scene = "```wiki-scene\ntoken-flow\n```\n";
+    expect(anchors(`${scene}[全程](#scene-token-flow) [末段](#scene-token-flow-3)`)).toEqual([]);
+    expect(anchors(`${scene}[越界](#scene-token-flow-4)`)).toHaveLength(1);
+    expect(anchors("```text\ntoken-flow\n```\n[假入口](#scene-token-flow-1)")).toHaveLength(1);
+    expect(anchors("```wiki-scene\ntoken-flow:1\n```\n[该段](#scene-token-flow-1)")).toEqual([]);
+    expect(anchors("```wiki-scene\ntoken-flow:1\n```\n[别段](#scene-token-flow-0)")).toHaveLength(1);
   });
 
   it("代码块里的标题不生成锚点，代码里的链接不算链接；引用式链接照样检查", () => {

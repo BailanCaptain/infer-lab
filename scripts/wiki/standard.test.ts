@@ -112,7 +112,7 @@ describe("b. evidence marks in prose", () => {
 });
 
 describe("c. 对照源码 sections", () => {
-  it("accepts engine revision history while still rejecting teaching sections after sources", () => {
+  it("accepts clean revisions and rejects all trailing audit or teaching sections", () => {
     const source = "r@1234567:config.py#L1";
     const before = `---\nid: good\ntitle: Good\ntype: concept\nsummary: Example\nsources: [${source}]\nevidence: I\nupdated: '2026-10-08'\n---\n${goodBody()}\n旧开关默认开启。\n`;
     const after = before.replace("旧开关默认开启。", "新版已移除旧开关。");
@@ -129,8 +129,7 @@ describe("c. 对照源码 sections", () => {
     for (const invalid of [
       `${body}\n## 延伸阅读\n正文。`,
       `${body}\n### 新教学节\n正文。`,
-      body.replace("## 已废弃的说法", "## 延伸阅读"),
-      body.replace("2026-10-08 · 修订", "2026-02-30 · 修订"),
+      `${body}\n## 已废弃的说法\n### 2026-10-08 · 修订 aaaaaaaaaaaaaaaa\n旧文。`,
       `${goodBody()}\n## 已废弃的说法\n正文。`,
     ])
       expect(rules(invalid)).toContain("source-sections");

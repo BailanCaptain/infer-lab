@@ -100,7 +100,11 @@ it("the running server observes new publications without restart and refuses an 
   const health = async () => fetch(`${base}/api/wiki/health`);
   expect(await (await health()).json()).toMatchObject({ pages: 1 });
   const reader = async () => fetch(`${base}/api/wiki/pages`);
-  expect(await (await reader()).json()).toMatchObject({ pageTexts: [{ file: "sources/a.md" }] });
+  const firstReader = await reader();
+  expect(await firstReader.json()).toMatchObject({ pageTexts: [{ file: "sources/a.md" }] });
+  const unchanged = await fetch(`${base}/api/wiki/pages`, { headers: { "If-None-Match": firstReader.headers.get("etag")! } });
+  expect(unchanged.status).toBe(304);
+  expect(await unchanged.text()).toBe("");
   for (const input of [null, { message: 3 }, { message: "", sessionId: {} }]) {
     const invalid = await fetch(`${base}/api/wiki/chat`, {
       method: "POST",
@@ -118,6 +122,7 @@ it("the running server observes new publications without restart and refuses an 
   ).rejects.toThrow("interrupt");
   expect((await health()).status).toBe(503);
   expect((await reader()).status).toBe(503);
+  expect((await fetch(`${base}/api/wiki/pages`, { headers: { "If-None-Match": firstReader.headers.get("etag")! } })).status).toBe(503);
   const published = await fetch(`${base}/api/wiki/reviews/${proposal.reviewId}/approve`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-wiki-review": "1", origin: base },

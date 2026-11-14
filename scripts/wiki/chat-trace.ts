@@ -214,8 +214,9 @@ export function localFixVersions(root: string, repo: string, number: number): Ve
 export async function traceChat(
   root: string,
   message: string,
-  opts: { session?: TraceSession; now?: Date } = {},
+  opts: { session?: TraceSession; now?: Date; signal?: AbortSignal } = {},
 ): Promise<ChatTrace> {
+  opts.signal?.throwIfAborted();
   if (!looksLikeError(message)) return { status: "skipped", reason: "问题里没有报错特征" };
   const config = loadTraceConfig(root);
   let plan: ReturnType<typeof searchPlan>;
@@ -228,7 +229,15 @@ export async function traceChat(
     opts.session ??
     new TraceSession(
       config,
-      new GithubClient(process.env.GITHUB_TOKEN),
+      new GithubClient(process.env.GITHUB_TOKEN, (url, init) => {
+        opts.signal?.throwIfAborted();
+        return fetch(url, {
+          ...init,
+          signal: opts.signal
+            ? AbortSignal.any([opts.signal, ...(init?.signal ? [init.signal] : [])])
+            : init?.signal,
+        });
+      }),
       join(root, "tools/wiki-runtime/github-trace/cache"),
     );
   const scope: TraceScope = {
@@ -237,6 +246,7 @@ export async function traceChat(
     terms: plan.terms,
   };
   const found = await searchErrors(session, plan);
+  opts.signal?.throwIfAborted();
   const failed = found.searches.filter((s) => s.error);
   if (found.searches.length > 0 && failed.length === found.searches.length)
     return { status: "failed", reason: failed[0]!.error!, scope };
@@ -245,6 +255,7 @@ export async function traceChat(
   const candidates: ChatTraceCandidate[] = [];
   let followed = false;
   for (const c of top) {
+    opts.signal?.throwIfAborted();
     const candidate: ChatTraceCandidate = {
       repo: c.repo,
       number: c.number,

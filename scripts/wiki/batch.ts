@@ -1,3 +1,4 @@
+import { setImmediate } from "node:timers/promises";
 import type { ModelUse } from "./model-use";
 
 /** Shared execution contract. Entry adapters own prompts and artifact validation. */
@@ -8,6 +9,7 @@ export interface AgentRequest {
   /** Omitted means the existing Claude runner and USD accounting. */
   provider?: "claude" | "codex";
   model?: string;
+  codexCli?: string;
   /** Explicit evidence files for tool-free file generation; relative paths follow staged cwd. */
   evidenceFiles?: { label: string; path: string; allowMissing?: boolean; numbered?: boolean }[];
   id: string;
@@ -59,6 +61,8 @@ export async function runPool<T, R>(
     while (next < items.length) {
       const i = next++;
       results[i] = await fn(items[i] as T);
+      // Cached work can resolve entirely in microtasks; let active CLI pipes and timers run.
+      if (next < items.length) await setImmediate();
     }
   };
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));

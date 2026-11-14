@@ -2,7 +2,29 @@ import { join } from "node:path";
 import matter from "gray-matter";
 import { sourceLines } from "../audit";
 import { gitText } from "../git";
+import { lineageTerm } from "../lineage";
 import { readPageRaw, saveRawSnapshot, withRawSources } from "../raw";
+import { protectedParamSection } from "./pages";
+import { scanSources } from "./scan";
+
+/** Recover a definition from its pinned generated citation, never from its title alone. */
+export function parameterDefinition(repoDir: string, text: string) {
+  const section = protectedParamSection(text);
+  if (!section) return undefined;
+  const page = matter(text);
+  const citation = /^\| 定义 \| `([^`]+):(\d+)` \[C(\d+)\] \|$/m.exec(section);
+  const source = citation && page.data.sources?.[Number(citation[3]) - 1];
+  const ref = typeof source === "string" && /^[^@]+@([a-f0-9]{7,40}):([^#]+)#L(\d+)(?:-L\d+)?$/.exec(source);
+  if (!citation || !ref || ref[2] !== citation[1] || ref[3] !== citation[2])
+    throw new Error("参数定义的固定来源与自动表不匹配，未重算谱系");
+  const file = ref[2]!;
+  const entries = scanSources({ [file]: gitText(repoDir, ["show", `${ref[1]}:${file}`]) });
+  const matches = entries.filter(
+    (entry) => entry.line === Number(ref[3]) && entry.name === lineageTerm(page.data.title ?? ""),
+  );
+  if (matches.length !== 1) throw new Error("不能唯一定位参数定义，未重算谱系");
+  return matches[0]!;
+}
 
 /** Archive what this static scan actually read; never reconstruct historical agent receipts. */
 export function recordParamSource(

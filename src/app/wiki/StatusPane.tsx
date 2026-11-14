@@ -5,11 +5,12 @@ import { wikiRequest } from "./api";
 
 /** 与 server/status.ts 的 readStatus 返回值同形；前端不 import 服务端模块 */
 interface WikiStatus {
+  mode?: "test" | "production";
   budget?: {
-    limitUsd: number;
+    limitUsd: number | null;
     chargedUsd: number;
     calls: number;
-    maxCalls: number;
+    maxCalls: number | null;
     paused: boolean;
     pauseReason?: string;
   };
@@ -24,12 +25,12 @@ interface WikiStatus {
   };
   nightly?: {
     lastRun?: { startedAt?: string; finishedAt?: string; status?: string };
-    maxNewParamPages: number;
+    maxNewParamPages: number | null;
     heldBack: number;
     fetch: boolean;
     github: boolean;
     spendsMoney: boolean;
-    paidWork: { tasks: number; reconcile: number; drift: number };
+    paidWork: { tasks: number | null; reconcile: number | null; drift: number | null };
   };
   pages: { concepts: number; params: number; sources: number };
   todo: {
@@ -57,6 +58,7 @@ const RUN_LABEL: Record<string, string> = {
   deferred: "整批暂缓（没产出）",
   failed: "失败",
   running: "正在跑",
+  findings: "已完成，发现待处理提示",
 };
 const when = (iso?: string) =>
   iso
@@ -220,7 +222,15 @@ function ModelPicker({
 }
 
 /** Status plus explicit chat model selection; selection never starts a model or changes nightly quotas. */
-export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenReview: () => void }) {
+export function StatusPane({
+  id,
+  hidden,
+  onOpenReview,
+}: {
+  id: string;
+  hidden: boolean;
+  onOpenReview: () => void;
+}) {
   const [status, setStatus] = useState<WikiStatus>();
   const [error, setError] = useState("");
 
@@ -240,7 +250,7 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
   const n = status?.nightly;
   const t = status?.todo;
   return (
-    <div className="wiki-status" data-testid="status-pane" role="tabpanel" hidden={hidden}>
+    <div id={id} className="wiki-status" data-testid="status-pane" role="tabpanel" hidden={hidden}>
       {error && (
         <p role="alert" className="wiki-chat-error">
           {error}
@@ -260,19 +270,21 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
             />
           </section>
           <section>
-            <h3>会不会自己花钱</h3>
+            <h3>运行方式</h3>
             <p
               className={`wiki-status-verdict ${n?.spendsMoney ? "is-warn" : "is-ok"}`}
               data-testid="status-spend"
             >
-              {n?.spendsMoney
-                ? "会：夜间任务已被授权调用模型。"
-                : "不会自动调用。提问、保存回答、启动网页 Drop 或手动运行知识生产命令时才调用模型；夜间任务不调模型。"}
+              {status.mode === "production"
+                ? "正式运行：每晚自动处理待办、检查知识关系和内容变化，生成的知识变更等你审批。"
+                : n?.spendsMoney
+                  ? "会：夜间任务已被授权调用模型。"
+                  : "不会自动调用。提问、保存回答、启动网页 Drop 或手动运行知识生产命令时才调用模型；夜间任务不调模型。"}
             </p>
           </section>
 
           <section>
-            <h3>模型预算</h3>
+            <h3>{status.mode === "production" ? "模型用量" : "模型预算"}</h3>
             {status.models.chatProvider === "codex" && (
               <p className="wiki-status-note">
                 GPT 调用使用本机 Codex 的 ChatGPT 账户额度，已调用 {status.models.codexCalls ?? 0}{" "}
@@ -280,19 +292,22 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
               </p>
             )}
             <p className="wiki-status-note">
-              共享预算用于问答、保存回答等调用。Drop
-              需你主动启动，单独记账，不受这里的暂停、调用次数或金额上限约束。
+              {status.mode === "production"
+                ? "测试额度已取消：本项目不再限制金额、调用次数或每晚处理数量，仍记录模型用量。模型服务商的账户额度和限流仍然适用。缺少来源或实测数据时，会保留缺口等补证据。"
+                : "共享预算用于问答、保存回答等调用。Drop 需你主动启动，单独记账，不受这里的暂停、调用次数或金额上限约束。"}
             </p>
             {b ? (
               <dl>
                 <Row label="状态" tone={b.paused ? "warn" : "ok"}>
                   {b.paused ? `已暂停，问答用不了${b.pauseReason ? `（${b.pauseReason}）` : ""}` : "可用"}
                 </Row>
-                <Row label="已用 / 上限">
-                  ${b.chargedUsd.toFixed(2)} / ${b.limitUsd}
+                <Row label={status.mode === "production" ? "已记录 Claude 费用" : "已用 / 上限"}>
+                  ${b.chargedUsd.toFixed(2)}
+                  {b.limitUsd === null ? " · 无项目上限" : ` / $${b.limitUsd}`}
                 </Row>
                 <Row label="调用次数">
-                  {b.calls} / {b.maxCalls}
+                  {b.calls}
+                  {b.maxCalls === null ? " · 无项目上限" : ` / ${b.maxCalls}`}
                 </Row>
               </dl>
             ) : (
@@ -333,12 +348,18 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
                   {when(n.lastRun?.finishedAt ?? n.lastRun?.startedAt)} ·{" "}
                   {RUN_LABEL[n.lastRun?.status ?? ""] ?? n.lastRun?.status ?? "没有记录"}
                 </Row>
-                <Row label="每晚最多新增参数页">{n.maxNewParamPages}</Row>
+                <Row label="每晚新增参数页">{n.maxNewParamPages ?? "不限数量"}</Row>
                 <Row label="留到下一晚的">{n.heldBack} 个</Row>
                 <Row label="拉上游代码">{n.fetch ? "开" : "关"}</Row>
                 <Row label="拉 GitHub 新讨论">{n.github ? "开（只增量，不做全库首拉）" : "关"}</Row>
-                <Row label="付费项配额">
-                  任务 {n.paidWork.tasks} · 交叉审视 {n.paidWork.reconcile} · 过期抽检 {n.paidWork.drift}
+                <Row label="处理待办">
+                  {n.paidWork.tasks === null ? "本轮全部待办" : `${n.paidWork.tasks} 项 / 晚`}
+                </Row>
+                <Row label="检查知识关系">
+                  {n.paidWork.reconcile === null ? "每晚完整一轮" : `${n.paidWork.reconcile} 批 / 晚`}
+                </Row>
+                <Row label="复核内容变化">
+                  {n.paidWork.drift === null ? "每晚检查全部页面" : `${n.paidWork.drift} 页 / 晚`}
                 </Row>
               </dl>
             ) : (
@@ -415,9 +436,11 @@ export function StatusPane({ hidden, onOpenReview }: { hidden: boolean; onOpenRe
           </section>
 
           <p className="wiki-status-note">
-            上方选择对整个 Wiki
-            生效。要改上限、恢复预算或开批量导入，在对话里说，改动会留下依据。「哪些页引用的上游代码变了」要跑
-            git，这里不算：<code>pnpm wiki:stale</code>。
+            上方模型选择对整个 Wiki 生效。
+            {status.mode === "production"
+              ? "正式运行已取消测试额度；资料投喂仍由你主动启动，待审知识变更在审阅页确认。"
+              : "要改上限、恢复预算或开批量导入，在对话里说，改动会留下依据。"}
+            「哪些页引用的上游代码变了」要跑 git，这里不算：<code>pnpm wiki:stale</code>。
           </p>
         </>
       )}

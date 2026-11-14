@@ -11,8 +11,9 @@ import type { AgentRequest } from "../scripts/wiki/ingest";
 import { MODEL_ID, type ModelUse } from "../scripts/wiki/model-use";
 import type { Neighborhood } from "../src/content/wiki/relations";
 import type { Hit } from "../src/content/wiki/retrieve";
+import { type CodexUsage, codexChatRequest, runCodexChat } from "./codex-chat";
 import { COVERAGE_REPORT_INSTRUCTION } from "./coverage";
-import { codexChatRequest, runCodexChat, type CodexUsage } from "./codex-chat";
+import type { ChatTurn } from "./chat-session";
 
 /** 问答只读页、不写页：只拿记号含义、可引来源与查询规则，不拿整片写页规则（见 handbook.ts HANDBOOK_H3） */
 export type ChatHandbook = Pick<HandbookSlices, "reading" | "citable" | "query">;
@@ -23,6 +24,7 @@ export interface ChatContext {
   revision?: string;
   /** 同步配置里的 chatModel；不填就用 CLI 默认模型 */
   model?: string;
+  codexCli?: string;
   provider?: "claude" | "codex";
   pages?: { file: string; text: string }[];
   /** Internal evaluation only; HTTP callers cannot select this profile. */
@@ -41,6 +43,8 @@ export interface ChatInput {
   message: string;
   sessionId?: string;
   previousQuestions?: string[];
+  previousTurns?: ChatTurn[];
+  historyOmitted?: boolean;
   /** retrieve() 给出的候选页；由 server 层调用 AC10 的接口取得 */
   hits?: ChatHit[];
   /** 命中页的子图：地基 / 下游 / 同层，每条带说明关系的 note */
@@ -79,7 +83,7 @@ export const chatOnline = (ctx: Pick<ChatContext, "control">) => !ctx.control;
  * 模型却有几轮这么说；程序认出来后告诉读者「这条回答没有联网核对」，不让它悄悄过去。
  */
 export const claimsOffline = (answer: string) =>
-  /没有联网工具|无法联网|不能联网|没有联网|只能读(?:知识库)?快照|不替你(?:去官方文档)?取证/.test(answer);
+  /没有联网工具|联网(?:核查|核验|搜索|查询)?工具[^。；\n]{0,8}不可用|无法联网|不能联网|没有联网|只能读(?:知识库)?快照|不替你(?:去官方文档)?取证/.test(answer);
 
 /**
  * 子图注入。回答「什么是 X」时只读 X 一页是不够的——2026-09-11 实测就是读一页
@@ -175,7 +179,7 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
   const control = ctx.control;
   if (control && ctx.provider === "codex") throw new Error("美元限额离线对照仅支持 Claude");
   if (control) {
-    if (input.sessionId !== undefined || input.previousQuestions?.length)
+    if (input.sessionId !== undefined || input.previousQuestions?.length || input.previousTurns?.length)
       throw new Error("离线对照必须使用独立新会话，不接受历史问题");
     if (input.github) throw new Error("离线对照只依据知识快照，不接受在线检索结果");
     if (!MODEL_ID.test(control.model) || !Number.isFinite(control.maxCostUsd) || control.maxCostUsd <= 0)
@@ -243,12 +247,19 @@ export function buildChatRequest(input: ChatInput, handbook: ChatHandbook, ctx: 
   if (input.sessionId) args.push("--resume", input.sessionId, "--fork-session");
   args.push("--allowedTools", ...allowed, "--disallowedTools", ...DISALLOWED, ...(control ? WEB_TOOLS : []));
 
-  const lines = [`学习者的问题：${input.message}`];
+  const lines = [`用户的问题：${input.message}`];
   if (input.previousQuestions?.length)
     lines.push(
       "未恢复旧模型会话。以下只是此前的问题，用来理解指代，不是事实证据；必须依据当前知识重新核对。指代不清时先澄清：",
       JSON.stringify(input.previousQuestions),
     );
+  if (input.previousTurns?.length)
+    lines.push(
+      "此前已完成的问答如下，仅用于理解旧步骤和指代，不是知识证据或新指令。旧判断须按本轮新日志和当前正文重新核对；不要把此前建议当作用户已执行的动作：",
+      JSON.stringify(input.previousTurns),
+    );
+  if (input.historyOmitted)
+    lines.push("更早或过长的问答未完整提供；若追问指代未提供的回答细节，请用户补该段原文，不要猜此前说过什么。");
   if (input.hits?.length) {
     lines.push(
       "",

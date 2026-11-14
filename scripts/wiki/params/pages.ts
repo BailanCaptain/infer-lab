@@ -41,7 +41,9 @@ export function buildParamPage(
     "",
     "| 项 | 静态记录 |",
     "| --- | --- |",
-    `| 标识 | \`${cell(p.json_path)}\` |`,
+    p.confidence === "suspect" && p.form === "field"
+      ? `| 字段身份（不代表用户输入入口） | \`${cell(p.class)}.${cell(p.name)}\` |`
+      : `| 标识 | \`${cell(p.json_path)}\` |`,
     `| 类型 | \`${cell(p.type)}\` |`,
     `| 默认表达式 | \`${cell(p.default)}\` |`,
     `| 定义 | \`${cell(p.file)}:${p.line}\` [C${sources.indexOf(source) + 1}] |`,

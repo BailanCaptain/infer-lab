@@ -4,7 +4,7 @@ import { afterEach, expect, it } from "vitest";
 import type { RunAgent } from "../scripts/wiki/batch";
 import { handbookFixture, wikiFixture } from "../scripts/wiki/test-fixture";
 import { WorkflowStore } from "../scripts/wiki/workflow";
-import { judgeAnswer } from "./answer-quality";
+import { judgeAnswer, reviewEvidencePages } from "./answer-quality";
 import { CODEX_EVIDENCE_LIMIT } from "./codex-chat";
 import { readKnowledgeSnapshot } from "./snapshot";
 
@@ -50,6 +50,177 @@ const runner =
     billing: "chatgpt",
     output: JSON.stringify(output),
   });
+
+const pageText = (page: { passages: { text: string }[] }) => page.passages.map((p) => p.text).join("\n");
+
+it.each(["sources/a.md#版本差异", "#/wiki/a#%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82"])(
+  "preserves a cited version section ahead of keyword-rich background: %s",
+  async (href) => {
+    const f = await setup();
+    f.write(
+      "wiki/sources/a.md",
+      readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") +
+        "\n## 请求收尾\n" +
+        "中止队列 引擎状态 请求引用 worker 清理 前端路由。\n".repeat(500) +
+        "\n### 附加背景\n" +
+        "其他背景说明。\n".repeat(200) +
+        "\n### 版本差异\n旧版立即释放；新版等待在途步骤完成。\n" +
+        "其他背景说明。\n".repeat(200) +
+        "\n### 其他说明\n" +
+        "中止队列 引擎状态 请求引用 worker 清理 前端路由。\n".repeat(500),
+    );
+    const snapshot = await readKnowledgeSnapshot(f.root);
+    const material = reviewEvidencePages(
+      snapshot,
+      `查中止队列、引擎状态、请求引用、worker 清理和前端路由。版本条件见[版本](${href})。`,
+      [],
+      new Set(["sources/a.md"]),
+      5000,
+      "取消请求后如何排查？",
+    );
+    expect(pageText(material[0]!)).toContain("旧版立即释放；新版等待在途步骤完成。");
+    expect(Buffer.byteLength(JSON.stringify(material))).toBeLessThanOrEqual(5000);
+    for (const p of material[0]!.passages)
+      expect(p.text).toBe(snapshot.pageTexts[0]!.text.slice(p.start, p.end));
+  },
+);
+
+it("resolves repeated heading anchors without counting headings inside code examples", async () => {
+  const f = await setup();
+  f.write(
+    "wiki/sources/a.md",
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") +
+      "\n```md\n### 版本差异\n伪标题只是示例。\n```\n" +
+      "\n### 版本差异\n" +
+      "背景说明。\n".repeat(1000) +
+      "\n### [版本差异](https://docs.vllm.ai/)\n第二个真实小节保留版本前提。\n" +
+      "\n### 背景\n" +
+      "背景说明。\n".repeat(1000),
+  );
+  const snapshot = await readKnowledgeSnapshot(f.root);
+  const material = reviewEvidencePages(
+    snapshot,
+    "背景说明见[依据](sources/a.md#版本差异-1)。",
+    [],
+    new Set(),
+    2500,
+  );
+  expect(pageText(material[0]!)).toContain("第二个真实小节保留版本前提。");
+  expect(Buffer.byteLength(JSON.stringify(material))).toBeLessThanOrEqual(2500);
+});
+
+it("keeps cited pages complete before spending the window on uncited expansions", async () => {
+  const f = await setup();
+  f.write(
+    "wiki/sources/a.md",
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") + "解释与条件。\n".repeat(600),
+  );
+  f.write(
+    "wiki/sources/b.md",
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8").replace("id: a", "id: b"),
+  );
+  const snapshot = await readKnowledgeSnapshot(f.root);
+  const original = snapshot.pageTexts.find((p) => p.file === "sources/a.md")!.text;
+  const material = reviewEvidencePages(
+    snapshot,
+    f.input.answer,
+    [{ id: "b" }],
+    new Set(["sources/a.md"]),
+    16_000,
+  );
+  expect(material.find((p) => p.id === "a")).toMatchObject({ truncated: false });
+  expect(material.find((p) => p.id === "a")!.passages).toEqual([
+    { start: 0, end: original.length, text: original },
+  ]);
+});
+
+it("does not insert generated omission notices into quotable page text", async () => {
+  const f = await setup();
+  f.write(
+    "wiki/sources/a.md",
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") + "\n背景说明。\n".repeat(9000),
+  );
+  const snapshot = await readKnowledgeSnapshot(f.root);
+  await judgeAnswer(
+    f.root,
+    { ...f.input, snapshot, evidencePages: snapshot.pageTexts },
+    {
+      runAgent: async (req) => {
+        const data = JSON.parse(req.stdin);
+        expect(data.pages[0].truncated).toBe(true);
+        expect(JSON.stringify(data.pages)).not.toContain("[其间正文省略]");
+        const original = snapshot.pageTexts[0]!.text;
+        for (const passage of data.pages[0].passages) {
+          expect(passage.text).toBe(original.slice(passage.start, passage.end));
+        }
+        return runner({
+          satisfied: null,
+          classification: "undetermined",
+          reason: "材料不全",
+          answerQuote: "",
+          evidence: [],
+        })(req);
+      },
+    },
+  );
+});
+
+it("rejects a verbatim quote from omitted content instead of validating against the full source alone", async () => {
+  const f = await setup();
+  f.write(
+    "wiki/sources/a.md",
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") +
+      Array.from({ length: 9000 }, (_, i) => `背景记录 ${i}。\n`).join(""),
+  );
+  const snapshot = await readKnowledgeSnapshot(f.root);
+  let calls = 0;
+  await expect(
+    judgeAnswer(
+      f.root,
+      { ...f.input, snapshot, evidencePages: snapshot.pageTexts },
+      {
+        runAgent: async (req) => {
+          calls++;
+          const data = JSON.parse(req.stdin);
+          const supplied = data.pages[0].passages as { start: number; end: number; text: string }[];
+          const original = snapshot.pageTexts[0]!.text;
+          const omitted = Array.from(original.matchAll(/背景记录 \d+。/g)).find(
+            (m) => !supplied.some((p) => p.text.includes(m[0])),
+          );
+          expect(omitted).toBeDefined();
+          return runner({ ...decision, evidence: [{ pageId: "a", quote: omitted![0] }] })(req);
+        },
+      },
+    ),
+  ).rejects.toThrow("页面引文不存在或未提供");
+  expect(calls).toBe(1);
+});
+
+it("inspects an existing cited page outside retrieval without claiming the answer received it", async () => {
+  const f = await setup();
+  const material = reviewEvidencePages(f.input.snapshot, f.input.answer, [], new Set());
+  expect(material).toHaveLength(1);
+  expect(material[0]).toMatchObject({ id: "a", providedToAnswer: false, truncated: false });
+});
+
+it("bounds the serialized Unicode passages and metadata even in a tiny review window", async () => {
+  const f = await setup();
+  f.write(
+    "wiki/sources/a.md",
+    readFileSync(join(f.root, "wiki/sources/a.md"), "utf8") + '汉字😀\\"\n'.repeat(4000),
+  );
+  const snapshot = await readKnowledgeSnapshot(f.root);
+  for (const budget of [0, 128, 800, 4096]) {
+    const material = reviewEvidencePages(snapshot, f.input.answer, [], new Set(["sources/a.md"]), budget);
+    if (budget < 2) expect(material).toEqual([]);
+    else expect(Buffer.byteLength(JSON.stringify(material))).toBeLessThanOrEqual(budget);
+    for (const page of material)
+      for (const passage of page.passages) {
+        expect(passage.text).toBe(snapshot.pageTexts[0]!.text.slice(passage.start, passage.end));
+        expect(passage.text).not.toMatch(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/);
+      }
+  }
+});
 
 it.each([false, true])("normalizes only CRLF in verbatim quotes, changed content=%s", async (changed) => {
   const f = await setup();
@@ -158,7 +329,8 @@ it("records excerpt truncation explicitly and never sends private operational fi
       runAgent: async (req) => {
         const data = JSON.parse(req.stdin);
         expect(data.pages[0].truncated).toBe(true);
-        expect(data.pages[0].text.length).toBe(CODEX_EVIDENCE_LIMIT);
+        expect(Buffer.byteLength(JSON.stringify(data.pages))).toBeLessThanOrEqual(CODEX_EVIDENCE_LIMIT);
+        expect(Buffer.byteLength(req.stdin, "utf8")).toBeLessThan(128_000 - 16_384 - 8192);
         expect(req.stdin).not.toContain("private question ledger");
         return runner({
           satisfied: null,
@@ -187,7 +359,7 @@ it("prioritizes the cited page over unrelated accessible pages in a large snapsh
       runAgent: async (req) => {
         const data = JSON.parse(req.stdin);
         expect(data.pages[0].id).toBe("a");
-        expect(data.pages[0].text).toContain("默认值为 1。");
+        expect(pageText(data.pages[0])).toContain("默认值为 1。");
         expect(data.scope.omittedPages).toBeGreaterThan(0);
         return runner(decision)(req);
       },
@@ -216,9 +388,9 @@ it("provides relevant late version evidence instead of only the page prefix", as
     {
       runAgent: async (req) => {
         const data = JSON.parse(req.stdin);
-        expect(data.pages[0].text).toContain("在 baa023ad，hidden_act 不是 silu 时抛错。");
+        expect(pageText(data.pages[0])).toContain("在 baa023ad，hidden_act 不是 silu 时抛错。");
         expect(data.pages[0].truncated).toBe(false);
-        expect(data.pages[0].text).toBe(snapshot.pageTexts[0]!.text);
+        expect(pageText(data.pages[0])).toBe(snapshot.pageTexts[0]!.text);
         return runner({
           satisfied: null,
           classification: "undetermined",
@@ -261,12 +433,10 @@ it("reserves space for every cited page and checks details introduced by the ans
       runAgent: async (req) => {
         const data = JSON.parse(req.stdin);
         for (const page of data.pages) {
-          expect(page.text).toContain("特殊维度 1536，使用 RMSNorm。");
-          expect(page.text.length).toBeGreaterThan(2000);
+          expect(pageText(page)).toContain("特殊维度 1536，使用 RMSNorm。");
+          expect(pageText(page).length).toBeGreaterThan(2000);
         }
-        expect(
-          data.pages.reduce((sum: number, p: { text: string }) => sum + p.text.length, 0),
-        ).toBeLessThanOrEqual(CODEX_EVIDENCE_LIMIT);
+        expect(Buffer.byteLength(JSON.stringify(data.pages))).toBeLessThanOrEqual(CODEX_EVIDENCE_LIMIT);
         return runner({
           satisfied: null,
           classification: "undetermined",

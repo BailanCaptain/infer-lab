@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
 import { paramEntrySchema } from "../src/content/wiki/schema";
+import { gitText } from "./wiki/git";
 import { parseSeeds } from "./wiki/ingest";
 import { replaceSection } from "./wiki/lineage";
 import { gitLineage, renderVerifiedLineage } from "./wiki/lineage-git";
@@ -29,6 +30,12 @@ try {
   const seeds = parseSeeds(readFileSync(values.seeds, "utf8"));
   const repo = seeds.repos[data.repo];
   if (!repo) throw new Error("参数来源未配置");
+  const pin = repo.refs[data.ref];
+  if (
+    !pin ||
+    gitText(resolve(repo.path), ["rev-parse", "--verify", `${pin}^{commit}`]).trim() !== data.commit
+  )
+    throw new Error("扫描提交不匹配教学 seeds 钉点；巡检差异须先审阅，不可直接刷新正式定义");
   const wanted = values.only?.split(",");
   const known = loadPages(resolve("wiki")).pages;
   const rows = data.entries.filter(
@@ -61,14 +68,25 @@ try {
   const outputs = rows.flatMap((entry) => {
     const id = parameterPageId(process.cwd(), data.repo, entry, known);
     if (!id) return [];
-    const path = join(dir, `${id}.md`);
+    const target = join(dir, `${id}.md`);
+    // Static scans can refresh an authored page but cannot publish a new skeleton.
+    const path =
+      relative(dir, resolve("wiki/params")) === "" && !existsSync(target)
+        ? resolve("wiki/_drafts", `${id}.md`)
+        : target;
     let text = buildParamPage(
       { ...data, entry, pageId: id, date: new Date().toISOString().slice(0, 10) },
       existsSync(path) ? readFileSync(path, "utf8") : undefined,
     );
     if (!values["dry-run"])
       text = recordParamSource(process.cwd(), resolve(repo.path), data.repo, data.commit, entry.file, text);
-    const lineage = gitLineage(resolve(repo.path), entry.name, Object.values(repo.refs), ["vllm_ascend/"]);
+    const lineage = gitLineage(
+      resolve(repo.path),
+      entry.name,
+      Object.values(repo.refs),
+      entry.class ? [entry.file] : ["vllm_ascend/"],
+      entry.class || undefined,
+    );
     lineage.presence.forEach((p, i) => {
       p.ref = Object.keys(repo.refs)[i]!;
     });
@@ -76,6 +94,7 @@ try {
   });
   if (!values["dry-run"]) {
     mkdirSync(dir, { recursive: true });
+    mkdirSync(resolve("wiki/_drafts"), { recursive: true });
     for (const item of outputs) atomicText(item.path, item.text);
   }
   console.log(

@@ -15,7 +15,17 @@ it("runs the shared sync CLI across a real Git delta and checkpoints only the co
     for (const entry of scanSources({ [file]: old }))
       f.write(
         `wiki/params/${paramId(entry)}.md`,
-        buildParamPage({ repo: "r", ref: "main", commit: pin, entry, date: "2026-09-16" }),
+        buildParamPage({
+          repo: "r",
+          ref: "main",
+          commit: pin,
+          entry,
+          date: new Date().toISOString().slice(0, 10),
+        })
+          .replace(`${entry.name} 的静态定义，正文待补。`, "控制执行数量。")
+          .replace(`骨架，待补：${entry.name} 的静态参数定义。`, "控制执行数量。[D]")
+          .replace("骨架，待补：为什么存在。", "限制资源使用。[D]")
+          .replace("骨架，待补：开了的代价与互斥关系。", "提高上限增加资源需求。[D]"),
       );
     f.write(`repo/${file}`, "class ExampleConfig:\n    changed: int = 2\n    added: int = 1\n");
     const tip = f.commit("new (#2)");
@@ -28,7 +38,17 @@ it("runs the shared sync CLI across a real Git delta and checkpoints only the co
     const first = f.cli("wiki-sync", ["--config", "sync.json"]);
     expect(first.status, first.stdout + first.stderr).toBe(0);
     const result = JSON.parse(first.stdout);
-    expect(result.parameters[0].published).toEqual({ added: 1, removed: 1, changed: 1, written: 3 });
+    expect(result.parameters[0].published).toEqual({ added: 1, removed: 1, changed: 1, written: 1 });
+    for (const entry of scanSources({ [file]: old })) {
+      const page = readFileSync(join(f.root, `wiki/params/${paramId(entry)}.md`), "utf8");
+      expect(page).toContain("默认表达式 | `1`");
+      expect(page).not.toContain(tip);
+    }
+    const queued = JSON.parse(readFileSync(join(f.root, "wiki/_drafts/_param-queue.json"), "utf8"));
+    expect(queued[0].skipped).toHaveLength(2);
+    expect(
+      queued[0].skipped.every((entry: { reason: string }) => entry.reason === "outside-teaching-pin"),
+    ).toBe(true);
     expect(result.modelCallsAllowed).toBe(false);
     const next = f.cli("wiki-sync", ["--config", "sync.json"]);
     expect(next.status, next.stdout + next.stderr).toBe(0);
@@ -62,7 +82,9 @@ it("works an over-limit delta off a few pages per night instead of deferring the
     );
     f.write("sync.json", JSON.stringify({ seeds: "seeds.yaml", maxNewParamPages: 2 }));
     const pages = () =>
-      existsSync(join(f.root, "wiki/params")) ? readdirSync(join(f.root, "wiki/params")) : [];
+      existsSync(join(f.root, "wiki/_drafts"))
+        ? readdirSync(join(f.root, "wiki/_drafts")).filter((name) => name.endsWith(".md"))
+        : [];
 
     const first = f.cli("wiki-sync", ["--config", "sync.json"]);
     expect(first.status, first.stdout + first.stderr).toBe(0);
@@ -78,9 +100,14 @@ it("works an over-limit delta off a few pages per night instead of deferring the
       written: 1,
     });
     expect(pages()).toHaveLength(3);
-    // 留到第二晚的页，谱系仍从原检查点算起，带得出引入它的 PR
-    for (const name of pages())
-      expect(readFileSync(join(f.root, "wiki/params", name), "utf8")).toContain("#7");
+    // 跨批保留精确字段身份和固定提交；提交标题不能代替字段引入证据。
+    for (const name of pages()) {
+      const body = readFileSync(join(f.root, "wiki/_drafts", name), "utf8");
+      expect(body).toMatch(/ExampleConfig\.(alpha_flag|beta_flag|gamma_flag)` 字段定义/);
+      expect(body).toContain(`| main | 有 | \`${tip.slice(0, 8)}\` |`);
+      expect(body).not.toContain("#7");
+    }
+    expect(readdirSync(join(f.root, "wiki/params")).filter((name) => name.endsWith(".md"))).toEqual([]);
 
     const third = f.cli("wiki-sync", ["--config", "sync.json"]);
     expect(JSON.parse(third.stdout).parameters).toEqual([{ repo: "r", ref: "main", changed: false }]);

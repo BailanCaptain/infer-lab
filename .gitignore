@@ -1,6 +1,11 @@
 node_modules
 dist
 dist-ssr
+/preview-dist/
+/.tmp/
+/tmp/
+/debug.log
+__pycache__/
 *.local
 .vite
 test-results
@@ -20,8 +25,17 @@ tools/hf-cache/
 tools/repos/
 tools/wiki-runtime/
 tools/corpus/
-wiki/_jobs/budget/
-wiki/_jobs/sync/
+# Gap observations contain readers' questions and are regenerated on demand.
+/wiki/_gaps.json
+# Nightly jobs, model transcripts and review receipts are local operational data.
+/wiki/_jobs/*
+!/wiki/_jobs/parameter-sync/
+/wiki/_jobs/parameter-sync/published/
+# Reports from the same jobs stay alongside their local receipts.
+/wiki/warnings/drift-*
+/wiki/warnings/params-*
+/wiki/warnings/patrol-*
+/wiki/warnings/reconcile-*
 # Reproducible local parameter scan/review output (fixed inputs remain in seeds).
 wiki/lineage/params-*.json
 

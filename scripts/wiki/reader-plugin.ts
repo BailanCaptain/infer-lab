@@ -36,10 +36,15 @@ export function wikiReaderPlugin(): Plugin {
       const loaders = snapshot.registry.pages.map((page) => {
         const { text, compiled } = texts.get(page.file)!;
         const refs = new Set(diagramRefs(text));
-        modules.set(
-          page.id,
-          `export default ${JSON.stringify({ revision: snapshot.revision, file: page.file, text, compiled, diagrams: snapshot.diagrams.filter((d) => refs.has(d.id)) })};`,
-        );
+        // Keep compiled Markdown as data so Vite does not transform its entire tree as JavaScript.
+        const payload = JSON.stringify({
+          revision: snapshot.revision,
+          file: page.file,
+          text,
+          compiled,
+          diagrams: snapshot.diagrams.filter((d) => refs.has(d.id)),
+        });
+        modules.set(page.id, `export default JSON.parse(${JSON.stringify(payload)});`);
         return `${JSON.stringify(page.id)}:()=>import(${JSON.stringify(`${pagePrefix}${snapshot.revision}/${page.id}`)}).then(m=>m.default)`;
       });
       revisions.set(snapshot.revision, modules);

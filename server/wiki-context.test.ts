@@ -17,7 +17,7 @@ beforeAll(async () => {
     filter: (path) => !path.split(/[\\/]/).includes("_jobs"),
   });
   snapshot = await readKnowledgeSnapshot(fixture.root);
-});
+}, 30_000); // Copying and indexing the full published corpus is integration setup.
 afterAll(() => fixture.cleanup());
 
 // Real corpus regression: a named topic must survive both retrieval and the answer window.

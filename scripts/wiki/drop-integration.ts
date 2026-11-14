@@ -216,14 +216,15 @@ class DropSession {
       inventoryTotal: this.context.resources().length,
     };
     const seenInputs = new Set<string>();
+    let frameData = data;
     for (;;) {
-      let frame = { ...data, protocol: 3, navigation, ...this.context.pack([...ranges, ...extra]) };
+      let frame = { ...frameData, protocol: 3, navigation, ...this.context.pack([...ranges, ...extra]) };
       const limit = this.context.limit(protocol);
       const negotiate = extra.length > 0 && Buffer.byteLength(JSON.stringify(frame)) > limit;
       if (negotiate) {
         // An overbroad read request is not evidence that the task itself is inseparable.
         // Return an explicit refusal plus range navigation; never mark omitted text as read.
-        const required = { ...data, protocol: 3, navigation, ...this.context.pack(ranges) };
+        const required = { ...frameData, protocol: 3, navigation, ...this.context.pack(ranges) };
         const readBytes = Math.max(
           16,
           Math.min(
@@ -232,7 +233,7 @@ class DropSession {
           ),
         );
         frame = {
-          ...data,
+          ...frameData,
           protocol: 3,
           navigation: {
             ...navigation,
@@ -303,6 +304,10 @@ class DropSession {
           fullLength: this.context.resource(this.pageMaterials.get(pid)!).length,
           note: "短页本次给全文；长页本次给起始段，需用 materials 的 start/end 补读其他范围。历史全文已提供不等于本次全文。",
         })),
+      };
+      // Refresh the packet's read history after a request; sending it twice crowds out evidence.
+      frameData = {
+        ...data,
         read: [...this.read]
           .slice(0, 20)
           .map((pid) => ({ id: pid, material: this.pageMaterials.get(pid), historicalFullRead: true })),
